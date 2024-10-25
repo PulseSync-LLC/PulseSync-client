@@ -43,6 +43,15 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
+        updaterLog: {
+            type: 'dateFile',
+            filename: path.join(LOG_PATH, 'updater'),
+            pattern: 'yyyy-MM-dd.log',
+            alwaysIncludePattern: true,
+            keepFileExt: true,
+            MaxLogsize: 1024 * 1024 * 100,
+            backups: 3,
+        },
         crashLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'crash.log'),
@@ -71,7 +80,11 @@ log4js.configure({
             level: 'debug',
         },
         renderer: {
-            appenders: ['renderProcessLog'],
+            appenders: ['out', 'renderProcessLog'],
+            level: 'debug',
+        },
+        updater: {
+            appenders: ['out', 'updaterLog'],
             level: 'debug',
         },
         crash: {

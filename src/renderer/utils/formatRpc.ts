@@ -1,5 +1,6 @@
 export function timeDifference(time1: string, time2: string): string {
     function toSeconds(time: string): number {
+        if(!time) return 0
         const [minutes, seconds] = time.split(':').map(Number)
 
         if (
@@ -28,6 +29,7 @@ export function timeDifference(time1: string, time2: string): string {
 }
 
 export const replaceParams = (str: any, track: any) => {
+    if(!track.timecodes) return 'Нейромузыка'
     return str
         .replace('{track}', track.playerBarTitle || '')
         .replace('{artist}', track.artist || '')

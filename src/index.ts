@@ -60,7 +60,7 @@ const defaultTheme = {
 const defaultCssContent = `{}`
 
 const defaultScriptContent = ``
-const icon = getNativeImg('appicon', '.png', 'icon').resize({
+const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     width: 40,
     height: 40,
 })
@@ -364,7 +364,6 @@ async function loadThemes(): Promise<Theme[]> {
             }
         }
 
-        logger.main.info('Themes: Available themes:', availableThemes)
         return availableThemes
     } catch (err) {
         logger.main.error('Error reading themes directory:', err)
@@ -409,7 +408,6 @@ ipcMain.handle('getThemes', async () => {
         return await loadThemes()
     } catch (error) {
         logger.main.error('Themes: Error loading themes:', error)
-        throw error
     }
 })
 
@@ -419,11 +417,10 @@ ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
             await fs.promises.rm(themeDirectoryPath, { recursive: true, force: true });
             return { success: true };
         } else {
-            throw new Error('Директория темы не найдена.');
+            logger.main.error('Директория темы не найдена.');
         }
     } catch (error) {
-        console.error('Ошибка при удалении директории темы:', error);
-        throw new Error('Не удалось удалить директорию темы.');
+        logger.main.error('Ошибка при удалении директории темы:', error);
     }
 });
 
@@ -458,11 +455,14 @@ app.whenReady().then(async () => {
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
     const musicPath = await getPathToYandexMusic()
+
     if (!fs.existsSync(musicPath)) {
+
         new Notification({
             title: 'Яндекс Музыка не найдена 😡',
             body: 'Пожалуйста, откройте приложение после установки музыки',
         }).show()
+
         return setTimeout(async () => {
             app.quit()
         }, 1000)
@@ -470,6 +470,7 @@ export async function prestartCheck() {
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
+
     const asarCopy = path.join(musicPath, 'app.asar.copy')
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)

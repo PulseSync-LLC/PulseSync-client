@@ -73,11 +73,15 @@ const ExtensionViewPage: React.FC = () => {
     };
 
     const handleTagChange = (tag: string) => {
-        navigate(`/extensionbeta?selectedTag=${encodeURIComponent(tag)}`);
+        navigate(`/extensionbeta?selectedTag=${encodeURIComponent(tag)}`, {
+            replace: false
+        });
     };
 
     if (!theme) {
-        navigate('/extensionbeta');
+        navigate('/extensionbeta', {
+            replace: false
+        });
         return null;
     }
 

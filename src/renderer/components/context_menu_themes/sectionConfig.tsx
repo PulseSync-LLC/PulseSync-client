@@ -24,7 +24,7 @@ export const createActions = (
     {
         label: `Экспорт ${themeName}`,
         onClick: () => exportTheme(themeName),
-        show: false,
+        show: true,
     },    
     {
         label: `Страница темы ${themeName}`,

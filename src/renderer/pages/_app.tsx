@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, RouterProvider, useNavigate } from 'react-router-dom'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
 import AuthPage from './auth'
@@ -37,6 +37,9 @@ import {
     checkInternetAccess,
     notifyUserRetries,
 } from '../utils/utils'
+import ThemeInterface from '../api/interfaces/theme.interface'
+import userContext from '../api/context/user.context'
+import ThemeInitials from '../api/initials/theme.initials'
 
 function _app() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -45,6 +48,7 @@ function _app() {
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
+    const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
         autoConnect: false,
@@ -306,6 +310,30 @@ function _app() {
                     false,
                 )
             }
+            window.desktopEvents
+                .invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes)
+                })
+            window.desktopEvents?.on('open-theme', (event, data) => {
+                window.desktopEvents
+                    .invoke('getThemes')
+                    .then(async (themes: ThemeInterface[]) => {
+                        setThemes(themes)
+                        console.log(themes.map((theme) => theme.name))
+                        const theme = themes.find(theme => theme.name === data);
+                        if (theme) {
+                            router.navigate(`/extensionbeta/${theme.name}`, {
+                                state: { theme }
+                            }).then(r => {
+                                console.log("Navigation success:", r);
+                            }).catch(err => console.error("Navigation error:", err));
+                        } else {
+                            console.error(`Theme with name "${data}" not found`);
+                        }
+
+                    })
+            })
         } else {
             router.navigate('/', {
                 replace: true,
@@ -409,6 +437,8 @@ function _app() {
                     updateAvailable,
                     setUpdate,
                     appInfo,
+                    setThemes,
+                    themes
                 }}
             >
                 <Player>
@@ -488,23 +518,22 @@ const Player: React.FC<any> = ({ children }) => {
                     track.artist.length > 0
                         ? `${track.playerBarTitle} - ${track.artist}`
                         : track.playerBarTitle
-
                 const activity: any = {
                     type: 2,
                     largeImageKey: track.requestImgTrack[1],
                     smallImageKey:
                         'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
                     smallImageText: app.info.version,
-                    state:
-                        app.discordRpc.state.length > 0
-                            ? replaceParams(app.discordRpc.state, track)
-                            : timeRange || 'Listening to music',
                     details:
                         app.discordRpc.details.length > 0
                             ? replaceParams(app.discordRpc.details, track)
                             : details,
                 }
-
+                if (app.discordRpc.state.length > 0) {
+                    activity.state = replaceParams(app.discordRpc.state, track);
+                } else if (timeRange) {
+                    activity.state = timeRange;
+                }
                 activity.buttons = []
                 if (app.discordRpc.enableRpcButtonListen && track.linkTitle) {
                     activity.buttons.push({
@@ -518,7 +547,7 @@ const Player: React.FC<any> = ({ children }) => {
                 if (app.discordRpc.enableGithubButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
-                        url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts`,
+                        url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev`,
                     })
                 }
 

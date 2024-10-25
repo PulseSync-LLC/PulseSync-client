@@ -9,10 +9,22 @@ directories:
 files:
     - package.json
 
+fileAssociations:
+    - ext: pext
+      name: PulseSync extension
+      description: PulseSync extension
+      role: Editor
+      icon: ./icons/pext/pext.ico
+
 win:
     requestedExecutionLevel: asInvoker
     icon: ./icons/win/icon.ico
     target: nsis
+    fileAssociations:
+        - ext: pext
+          name: PulseSync extension
+          description: PulseSync extension
+          icon: ./icons/pext/pext.ico
 
 mac:
     category: public.app-category.developer-tools

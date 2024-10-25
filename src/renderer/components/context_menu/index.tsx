@@ -19,17 +19,17 @@ interface SectionConfig {
     title: string;
     buttons: {
         label: string;
-        onClick: (event?: any) => void;
+        onClick: (event: any) => void;
         disabled?: boolean;
     }[];
     button?: {
         label: string;
-        onClick: (event?: any) => void;
+        onClick: (event: any) => void;
     };
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, setUser, setUpdate } = useContext(userContext)
+    const { app, setApp, setUser } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
     const handleOpenModal = () => {
@@ -40,12 +40,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.desktopEvents.send('openPath', 'appPath')
     }
 
-    const repatch = () => {
-        window.electron?.patcher?.repatch();
+    const repatch = (e: any) => {
+        toastLoading(e, 'Репатч...')
+        window.electron.patcher.repatch();
     };
 
-    const depatch = () => {
-        window.electron?.patcher?.depatch();
+    const depatch = (e: any) => {
+        toastLoading(e, 'Депатч...')
+        window.electron.patcher.depatch();
         setApp({
             ...app,
             patcher: {

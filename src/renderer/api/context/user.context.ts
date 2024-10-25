@@ -6,6 +6,8 @@ import SettingsInterface from '../interfaces/settings.interface'
 import settingsInitials from '../initials/settings.initials'
 import { AppInfoInterface } from '../interfaces/appinfo.interface'
 import AppinfoInitials from '../initials/appinfo.initials'
+import ThemeInterface from '../interfaces/theme.interface'
+import themeInitials from '../initials/theme.initials'
 
 interface p {
     user: UserInterface
@@ -17,6 +19,8 @@ interface p {
     app: SettingsInterface
     setApp: (settingsData: any) => void
     setUpdate: (state: boolean) => void
+    themes: ThemeInterface[]
+    setThemes: (themes: any) => void
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]
 }
@@ -30,6 +34,8 @@ const UserContext = createContext<p>({
     socketConnected: false,
     app: settingsInitials,
     setApp: () => void 0,
+    themes: themeInitials,
+    setThemes: () => void 0,
     setUpdate: () => void 0,
     updateAvailable: false,
     appInfo: AppinfoInitials,

@@ -27,6 +27,7 @@ import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import { Track } from 'yandex-music-client'
+import AdmZip from 'adm-zip'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -347,6 +348,35 @@ export const handleEvents = (window: BrowserWindow): void => {
     })
     ipcMain.handle('checkSleepMode', async (event, data) => {
         return inSleepMode
+    })
+    ipcMain.handle('exportTheme', async (event, data) => {
+        /**
+         * Создаёт файл с расширением .pext, содержащий папку по указанному пути
+         * @param folderPath Путь к папке, которую нужно заархивировать
+         * @param outputFilePath Путь для сохранения созданного файла с расширением .pext
+         */
+            try {
+                if (!fs.existsSync(data.path)) {
+                    logger.main.error("Folder not found.");
+                }
+
+                const zip = new AdmZip();
+                zip.addLocalFolder(data.path);
+                const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
+
+                const outputPath = path.format({
+                    dir: path.dirname(outputFilePath),
+                    name: path.basename(outputFilePath, '.pext'),
+                    ext: '.pext'
+                });
+
+                zip.writeZip(outputPath);
+                logger.main.info(`Create theme ${outputFilePath}`);
+                shell.showItemInFolder(outputPath);
+                return true
+            } catch (error) {
+                logger.main.error("Error while creating archive file", error.message);
+            }
     })
 }
 export const handleAppEvents = (window: BrowserWindow): void => {

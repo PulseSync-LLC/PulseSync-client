@@ -273,13 +273,21 @@ class Patcher {
 
                 fs.writeFileSync(configPath, cfgReplace);
 
-                let configPathContentWeb = fs.readFileSync(configPath, 'utf8');
-                let websecReplace = configPathContentWeb.replace(
+                let configPathWeb = fs.readFileSync(configPath, 'utf8');
+                let websecReplace = configPathWeb.replace(
                     'enableWebSecurity: true',
                     'enableWebSecurity: false',
                 );
 
-                fs.writeFileSync(configPath, websecReplace);
+                fs.writeFileSync(configPathWeb, websecReplace);
+
+                let configPathUpdate = fs.readFileSync(configPath, 'utf8');
+                let updateReplace = configPathUpdate.replace(
+                    'enableUpdateByProbability: true',
+                    'enableUpdateByProbability: false',
+                );
+
+                fs.writeFileSync(configPathUpdate, updateReplace);
                 console.log(`Added script to ${configPath}`);
             }
 

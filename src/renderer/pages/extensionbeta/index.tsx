@@ -5,18 +5,20 @@ import Container from '../../components/container';
 import * as styles from '../../../../static/styles/page/index.module.scss';
 import * as theme from './extension.module.scss';
 import ExtensionCard from '../../components/extensionCard';
-import { useEffect, useState } from 'react';
+import React, { useContext, useEffect, useState } from 'react'
 import ThemeInterface from '../../api/interfaces/theme.interface';
 import Button from '../../components/button';
 import stringSimilarity from 'string-similarity';
 import CustomCheckbox from '../../components/checkbox_props';
-import { useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom'
+import toast from '../../api/toast'
+import userContext from '../../api/context/user.context'
 
 export default function ExtensionPage() {
-    const [themes, setThemes] = useState<ThemeInterface[]>([]);
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default'
     );
+    const {themes, setThemes } = useContext(userContext)
     const [searchQuery, setSearchQuery] = useState('');
     const [hideEnabled, setHideEnabled] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -35,11 +37,14 @@ export default function ExtensionPage() {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
                 .invoke('getThemes')
-                .then((themes: ThemeInterface[]) => setThemes(themes))
-                .catch((error) => console.error('Error receiving themes:', error));
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes)
+            })
         }
     }, []);
-
+    useEffect(() => {
+        console.log(themes)
+    }, [themes])
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
         const newTheme = isChecked ? themeName : 'Default';
         window.electron.store.set('theme', newTheme);
@@ -59,7 +64,11 @@ export default function ExtensionPage() {
                 window.desktopEvents
                     .invoke('deleteThemeDirectory', themeDirectoryPath)
                     .then(() => {
-                        setThemes(prevThemes => prevThemes.filter(theme => theme.name !== themeName));
+                        setThemes((prevThemes: any[]) =>
+                            prevThemes.filter(
+                                theme => theme.name !== themeName,
+                            ),
+                        )
                         console.log(`Тема "${themeName}" и связанные файлы удалены.`);
                     })
                     .catch(error => {
@@ -71,7 +80,19 @@ export default function ExtensionPage() {
         }
     };
     
-    
+    const handleExportTheme = (themeName: string) => {
+        const theme = themes.find(theme => theme.name === themeName);
+        window.desktopEvents.invoke("exportTheme", {
+            path: theme.path,
+            name: theme.name
+        }).then((result) => {
+            if(result) {
+                toast.success("Успешный экспорт")
+            }
+        }).catch(error => {
+            console.error(error);
+        })
+    }
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value.toLowerCase());
@@ -189,7 +210,7 @@ export default function ExtensionPage() {
                                                     isChecked={true}
                                                     onCheckboxChange={handleCheckboxChange}
                                                     onDelete={handleDeleteTheme}
-                                                    exportTheme={(themeName) => console.log(`Экспортировать тему: ${themeName}`)}
+                                                    exportTheme={(themeName) => handleExportTheme(themeName)}
                                                     className={theme.matches ? 'highlight' : 'dimmed'}
                                                 />
                                             ))}
@@ -207,7 +228,7 @@ export default function ExtensionPage() {
                                                     isChecked={false}
                                                     onCheckboxChange={handleCheckboxChange}
                                                     onDelete={handleDeleteTheme}
-                                                    exportTheme={(themeName) => console.log(`Экспортировать тему: ${themeName}`)}
+                                                    exportTheme={(themeName) => handleExportTheme(themeName)}
                                                     className={theme.matches ? 'highlight' : 'dimmed'}
                                                 />
                                             ))}
