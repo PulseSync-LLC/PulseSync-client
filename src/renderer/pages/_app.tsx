@@ -49,6 +49,10 @@ function _app() {
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
+
+    const [navigateTo, setNavigateTo] = useState<string | null>(null)
+    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
+
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
         autoConnect: false,
@@ -315,31 +319,41 @@ function _app() {
                 .then((themes: ThemeInterface[]) => {
                     setThemes(themes)
                 })
-            window.desktopEvents?.on('open-theme', (event, data) => {
-                window.desktopEvents
-                    .invoke('getThemes')
-                    .then(async (themes: ThemeInterface[]) => {
-                        setThemes(themes)
-                        console.log(themes.map((theme) => theme.name))
-                        const theme = themes.find(theme => theme.name === data);
-                        if (theme) {
-                            router.navigate(`/extensionbeta/${theme.name}`, {
-                                state: { theme }
-                            }).then(r => {
-                                console.log("Navigation success:", r);
-                            }).catch(err => console.error("Navigation error:", err));
-                        } else {
-                            console.error(`Theme with name "${data}" not found`);
-                        }
-
-                    })
-            })
         } else {
             router.navigate('/', {
                 replace: true,
             })
         }
     }, [user.id])
+
+    useEffect(() => {
+        if (navigateTo && navigateState) {
+            console.log('Navigating to:', navigateTo, 'with theme state:', navigateState)
+            router.navigate(navigateTo, { replace: true, state: navigateState })
+        }
+    }, [navigateTo, navigateState])
+
+    useEffect(() => {
+        window.desktopEvents?.on('open-theme', (event, data) => {
+            window.desktopEvents
+                .invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes);
+                    const theme = themes.find((theme) => theme.name === data);
+                    if (theme) {
+                        const themePath = `/extensionbeta/${theme.name}`;
+                        console.log('Navigating to:', themePath);
+                        setNavigateTo(themePath);
+                        setNavigateState(theme);
+                    } else {
+                        console.error(`Theme with name "${data}" not found`);
+                    }
+                })
+                .catch((error) => {
+                    console.error('Error getting themes:', error);
+                });
+        });
+    }, []);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -416,7 +430,7 @@ function _app() {
         }
     }, [])
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-        ;(window as any).setToken = async (args: any) => {
+        ; (window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
@@ -462,7 +476,7 @@ const Player: React.FC<any> = ({ children }) => {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            ;(async () => {
+            ; (async () => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {

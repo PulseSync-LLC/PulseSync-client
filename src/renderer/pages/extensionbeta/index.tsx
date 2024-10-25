@@ -10,15 +10,16 @@ import ThemeInterface from '../../api/interfaces/theme.interface';
 import Button from '../../components/button';
 import stringSimilarity from 'string-similarity';
 import CustomCheckbox from '../../components/checkbox_props';
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import toast from '../../api/toast'
 import userContext from '../../api/context/user.context'
 
 export default function ExtensionPage() {
+    const navigate = useNavigate();
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default'
     );
-    const {themes, setThemes } = useContext(userContext)
+    const { themes, setThemes } = useContext(userContext)
     const [searchQuery, setSearchQuery] = useState('');
     const [hideEnabled, setHideEnabled] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -27,11 +28,20 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         const params = new URLSearchParams(location.search);
-        const selectedTagFromUrl = params.get('selectedTag');
-        if (selectedTagFromUrl) {
-            setSelectedTags(new Set([selectedTagFromUrl]));
+        const isOpenThemeName = params.get('isopen');
+
+        if (isOpenThemeName) {
+            const themeToOpen = themes.find(theme => theme.name === isOpenThemeName);
+            if (themeToOpen) {
+                setSelectedTheme(themeToOpen.name);
+                console.log(`Opening theme: ${themeToOpen.name}`);
+
+                navigate(`/extensionbeta/${themeToOpen.name}`, { state: { theme: themeToOpen } });
+            } else {
+                return;
+            }
         }
-    }, [location.search]);
+    }, [location.search, themes, navigate]);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
@@ -39,7 +49,7 @@ export default function ExtensionPage() {
                 .invoke('getThemes')
                 .then((themes: ThemeInterface[]) => {
                     setThemes(themes)
-            })
+                })
         }
     }, []);
     useEffect(() => {
@@ -54,13 +64,13 @@ export default function ExtensionPage() {
 
     const handleDeleteTheme = (themeName: string) => {
         const isConfirmed = window.confirm(`Вы уверены, что хотите удалить тему "${themeName}"? Это действие нельзя будет отменить.`);
-    
+
         if (isConfirmed) {
             const themeToDelete = themes.find(theme => theme.name === themeName);
-    
+
             if (themeToDelete && themeToDelete.path) {
                 const themeDirectoryPath = themeToDelete.path;
-    
+
                 window.desktopEvents
                     .invoke('deleteThemeDirectory', themeDirectoryPath)
                     .then(() => {
@@ -79,14 +89,14 @@ export default function ExtensionPage() {
             }
         }
     };
-    
+
     const handleExportTheme = (themeName: string) => {
         const theme = themes.find(theme => theme.name === themeName);
         window.desktopEvents.invoke("exportTheme", {
             path: theme.path,
             name: theme.name
         }).then((result) => {
-            if(result) {
+            if (result) {
                 toast.success("Успешный экспорт")
             }
         }).catch(error => {
