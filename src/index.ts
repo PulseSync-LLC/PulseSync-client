@@ -394,6 +394,20 @@ ipcMain.handle('getThemes', async () => {
     }
 })
 
+ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
+    try {
+        if (fs.existsSync(themeDirectoryPath)) {
+            await fs.promises.rm(themeDirectoryPath, { recursive: true, force: true });
+            return { success: true };
+        } else {
+            throw new Error('Директория темы не найдена.');
+        }
+    } catch (error) {
+        console.error('Ошибка при удалении директории темы:', error);
+        throw new Error('Не удалось удалить директорию темы.');
+    }
+});
+
 ipcMain.on('themeChanged', (event, themeName) => {
     logger.main.info(`Themes: theme changed to: ${themeName}`)
     selectedTheme = themeName

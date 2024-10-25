@@ -19,7 +19,7 @@
         left: 0;
         background: linear-gradient(
             180deg,
-            #1e2027 0%,
+            var(--MainBG) 0%,
             rgba(30, 32, 39, 0) 100%
         );
         z-index: 1;
