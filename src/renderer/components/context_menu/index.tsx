@@ -22,15 +22,23 @@ interface SectionConfig {
         onClick: (event?: any) => void;
         disabled?: boolean;
     }[];
+    button?: {
+        label: string;
+        onClick: (event?: any) => void;
+    };
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { app, setApp, setUser, setUpdate } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
-    
+
     const handleOpenModal = () => {
         modalRef.current?.openModal();
     };
+
+    const directoryOpen = () => {
+        window.desktopEvents.send('openPath', 'appPath')
+    }
 
     const repatch = () => {
         window.electron?.patcher?.repatch();
@@ -93,6 +101,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         event.stopPropagation();
         toast.error("Временно не работает");
     };
+
 
     const buttonConfigs: SectionConfig[] = [
         {
@@ -184,8 +193,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             ],
         },
     ];
-  
-      const toastLoading = (event: any, title: string) => {
+
+    const toastLoading = (event: any, title: string) => {
         let toastId: string
         toastId = hotToast.loading(title, {
             style: {
@@ -214,9 +223,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             }
             window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
         }
-
+        window.desktopEvents?.on('UPDATE_APP_DATA', handleUpdateAppData)
+    }
     return (
         <div className={styles.patchMenu}>
+            <button
+                className={styles.contextButton}
+                onClick={directoryOpen}
+            >
+                Директория приложения
+            </button>
             {buttonConfigs.map((section) => (
                 <div className={styles.innerFunction} key={section.title}>
                     {section.title}
