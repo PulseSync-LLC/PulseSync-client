@@ -70,16 +70,7 @@ export default function ThemePage() {
                                 {themes
                                     .filter(theme => theme.name != 'Default')
                                     .map(theme => (
-                                        <ExtensionCard
-                                            key={theme.name}
-                                            theme={theme}
-                                            isChecked={
-                                                selectedTheme === theme.name
-                                            }
-                                            onCheckboxChange={
-                                                handleCheckboxChange
-                                            }
-                                        />
+                                        <div>off</div>
                                     ))}
                             </div>
                         </div>

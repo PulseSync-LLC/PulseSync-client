@@ -4,40 +4,46 @@ export interface SectionConfig {
     show: boolean;
 }
 
-export const createActions = (themeName: string): SectionConfig[] => [
+export const createActions = (
+    themeName: string,
+    onCheckboxChange: (themeName: string, isChecked: boolean) => void,
+    exportTheme: (themeName: string) => void,
+    onDelete: (themeName: string) => void,
+    isChecked: boolean
+): SectionConfig[] => [
     {
-        label: `Выключить ${themeName}`,
-        onClick: () => console.log("Выключить"),
+        label: isChecked ? `Выключить ${themeName}` : `Включить ${themeName}`,
+        onClick: () => onCheckboxChange(themeName, !isChecked),
         show: true,
     },
     {
         label: `Директория аддона ${themeName}`,
         onClick: () => console.log("Директория аддона"),
-        show: true,
+        show: false,
     },
     {
         label: `Экспорт ${themeName}`,
-        onClick: () => console.log("Экспорт"),
-        show: true,
-    },
+        onClick: () => exportTheme(themeName),
+        show: false,
+    },    
     {
         label: `Страница темы ${themeName}`,
         onClick: () => console.log("Страница темы"),
-        show: true,
+        show: false,
     },
     {
         label: `Опубликовать ${themeName}`,
         onClick: () => console.log("Опубликовать"),
-        show: true,
+        show: false,
     },
     {
         label: "Откатиться до версии с сервера",
         onClick: () => console.log("Откат"),
-        show: true,
+        show: false,
     },
     {
         label: `Удалить ${themeName}`,
-        onClick: () => console.log("Удалить"),
+        onClick: () => onDelete(themeName),
         show: true,
     },
 ];

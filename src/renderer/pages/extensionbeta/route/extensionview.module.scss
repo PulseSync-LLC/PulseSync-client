@@ -4,6 +4,7 @@
   width: -webkit-fill-available;
 
   &>.bannerBackground {
+    transition: var(--transition);
     display: flex;
     flex-direction: column;
     align-items: flex-start;
@@ -227,7 +228,8 @@
 
       color: #FFFFFF;
 
-      &>.descriptionText, &>.comingSoon {
+      &>.descriptionText,
+      &>.comingSoon {
         font-weight: 400;
         font-size: 14px;
         line-height: 21px;
@@ -249,7 +251,7 @@
   gap: 10px;
 
   background: rgba(129, 141, 179, 0.22);
-  border-radius: 58px;
+  border-radius: 8px;
   border: none;
 
   font-weight: 700;
@@ -263,6 +265,27 @@
   }
 }
 
+.miniButtonsContainer {
+  transition: var(--transition);
+  display: flex;
+  gap: 0px;
+  background: rgba(129, 141, 179, 0.22);
+  border-radius: 8px;
+
+  &:hover {
+    gap: 5px;
+    background: transparent;
+
+    &>.miniButton {
+      background: rgba(129, 141, 179, 0.22);
+
+      &:hover {
+        background: rgba(129, 141, 179, 0.44);
+      }
+    }
+  }
+}
+
 .miniButton {
   cursor: pointer;
   transition: var(--transition);
@@ -273,8 +296,8 @@
   padding: 10px;
   gap: 10px;
 
-  background: rgba(129, 141, 179, 0.22);
-  border-radius: 58px;
+  background: transparent;
+  border-radius: 8px;
   border: none;
 
   font-weight: 700;
@@ -282,16 +305,18 @@
   line-height: 140%;
 
   color: #FFFFFF;
+}
+
+.miniButton:hover {
+  background: rgba(129, 141, 179, 0.44);
+}
+
+.miniButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+  background: rgba(129, 141, 179, 0.22);
 
   &:hover {
-    background: rgba(129, 141, 179, 0.44);
-  }
-  &:disabled {
-    cursor: not-allowed;
-    opacity: 0.5;
     background: rgba(129, 141, 179, 0.22);
-    &:hover {
-      background: rgba(129, 141, 179, 0.22);
-    }
   }
 }
