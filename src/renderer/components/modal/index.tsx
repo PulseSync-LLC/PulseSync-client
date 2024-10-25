@@ -1,5 +1,5 @@
 import React from 'react'
-import RModal, { Styles } from 'react-modal'
+import RModal from 'react-modal'
 import Button from '../button'
 import { IoCloseSharp } from 'react-icons/io5'
 import './modal.css'

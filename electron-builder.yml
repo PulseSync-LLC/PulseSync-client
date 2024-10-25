@@ -4,30 +4,30 @@ artifactName: pulsesync-app-${version}-setup.${ext}
 copyright: 'Copyright (C) 2024 PulseSync LLC'
 
 directories:
-  output: release
+    output: release
 
 files:
-  - package.json
+    - package.json
 
 win:
-  requestedExecutionLevel: asInvoker
-  icon: ./icons/win/icon.ico
-  target: nsis
+    requestedExecutionLevel: asInvoker
+    icon: ./icons/win/icon.ico
+    target: nsis
 
 mac:
-  category: public.app-category.developer-tools
-  icon: ./icons/win/icon.icns
+    category: public.app-category.developer-tools
+    icon: ./icons/win/icon.icns
 
 nsis:
-  oneClick: false
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  perMachine: false
-  allowElevation: false
-  unicode: true
-  language: 1251
-  deleteAppDataOnUninstall: false
-  packElevateHelper: true
-  license: ./license_ru.txt
-  allowToChangeInstallationDirectory: true
-  include: build/installer.nsh
+    oneClick: false
+    createDesktopShortcut: true
+    createStartMenuShortcut: true
+    perMachine: false
+    allowElevation: false
+    unicode: true
+    language: 1251
+    deleteAppDataOnUninstall: false
+    packElevateHelper: true
+    license: ./license_ru.txt
+    allowToChangeInstallationDirectory: true
+    include: build/installer.nsh

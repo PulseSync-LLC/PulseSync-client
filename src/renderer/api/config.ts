@@ -5,4 +5,6 @@ export default {
     SOCKET_URL: isDev
         ? 'http://localhost:1337/'
         : 'https://socket.pulsesync.dev/',
+    RETRY_INTERVAL_MS: 15000,
+    MAX_RETRY_COUNT: 10,
 }

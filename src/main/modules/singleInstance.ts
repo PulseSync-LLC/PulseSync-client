@@ -1,9 +1,10 @@
-import { app, BrowserWindow, dialog } from 'electron'
-import { checkIsDeeplink, navigateToDeeplink } from './handleDeepLink'
+import { app, BrowserWindow } from 'electron'
+import { checkIsDeeplink, navigateToDeeplink } from './handlers/handleDeepLink'
 import logger from './logger'
 import httpServer from './httpServer'
 import config from '../../config.json'
 import {prestartCheck} from "../../index";
+import {handleUncaughtException} from "./handlers/handleError";
 const isFirstInstance = app.requestSingleInstanceLock()
 
 export const checkForSingleInstance = (): void => {
@@ -16,7 +17,7 @@ export const checkForSingleInstance = (): void => {
                 if (window) {
                     if (window.isMinimized()) {
                         window.restore()
-                        logger.main.log('Restore window')
+                        logger.main.info('Restore window')
                     }
                     const lastCommandLineArg = commandLine.pop()
                     if (
@@ -26,13 +27,14 @@ export const checkForSingleInstance = (): void => {
                         navigateToDeeplink(window, lastCommandLineArg)
                     }
                     toggleWindowVisibility(window, true)
-                    logger.main.log('Show window')
+                    logger.main.info('Show window')
                 }
             },
         )
         prestartCheck()
+        handleUncaughtException()
         httpServer.listen(config.PORT, () => {
-            console.log(`Server running at http://localhost:${config.PORT}/`)
+            logger.http.info(`Server running at http://localhost:${config.PORT}/`)
         })
     } else {
         app.quit()

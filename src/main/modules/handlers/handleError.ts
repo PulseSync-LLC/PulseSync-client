@@ -1,4 +1,5 @@
-import log from 'electron-log'
+import logger from "../logger";
+import * as Sentry from '@sentry/electron/main'
 
 const firstLine = (message: string | Error) => {
     if (typeof message === 'string') {
@@ -16,8 +17,9 @@ export const toPlainError = (error: Error | any) => {
 }
 
 export const handleUncaughtException = () => {
-    const globalErrorLogger = log.scope('UncaughtException')
+    const globalErrorLogger = logger.crash
     process.on('uncaughtException', (error: Error) => {
         globalErrorLogger.error(toPlainError(error))
+        Sentry.captureException(error)
     })
 }

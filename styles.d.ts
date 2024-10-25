@@ -1,12 +1,12 @@
 declare module '*.scss' {
-    const classes: { [key: string]: string }
-    export = classes
+    const styles: { [className: string]: string }
+    export = styles
 }
 declare module '*.module.scss' {
-    const classes: { [key: string]: string }
-    export = classes
+    const styles: { [className: string]: string }
+    export = styles
 }
 declare module '*.module.css' {
-    const classes: { [key: string]: string }
-    export = classes
+    const styles: { [className: string]: string }
+    export = styles
 }

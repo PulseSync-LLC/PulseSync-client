@@ -1,4 +1,4 @@
-import { createContext, ReactElement } from 'react'
+import { createContext } from 'react'
 import { Track } from 'yandex-music-client'
 import TrackInterface from '../interfaces/track.interface'
 

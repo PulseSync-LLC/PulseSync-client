@@ -2,7 +2,9 @@ import {
     app,
     BrowserWindow,
     ipcMain,
+    nativeTheme,
     Notification,
+    powerMonitor,
     protocol,
     session,
     shell,
@@ -21,7 +23,7 @@ import config from './config.json'
 import {
     handleDeeplink,
     handleDeeplinkOnApplicationStartup,
-} from './main/modules/handleDeepLink'
+} from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { getTrackInfo, setTheme } from './main/modules/httpServer'
@@ -40,6 +42,7 @@ declare const PRELOADER_WEBPACK_ENTRY: string
 export let corsAnywherePort: string | number
 export let mainWindow: BrowserWindow
 export let updated = false
+export let inSleepMode = false
 
 let preloaderWindow: BrowserWindow
 let availableThemes: Theme[] = []
@@ -151,6 +154,22 @@ const createWindow = (): void => {
             },
         })
     }
+    powerMonitor.on('suspend', () => {
+        inSleepMode = true
+    })
+    powerMonitor.on('resume', () => {
+        inSleepMode = false
+    })
+    function toggleNativeTheme() {
+        nativeTheme.themeSource = 'light'
+
+        setTimeout(() => {
+            nativeTheme.themeSource = 'dark'
+        }, 100)
+    }
+    mainWindow.webContents.on('devtools-opened', () => {
+        toggleNativeTheme()
+    })
 }
 const corsAnywhere = async () => {
     corsAnywherePort = await getPort()
@@ -348,7 +367,7 @@ async function loadThemes(): Promise<Theme[]> {
         logger.main.info('Themes: Available themes:', availableThemes)
         return availableThemes
     } catch (err) {
-        console.error('Error reading themes directory:', err)
+        logger.main.error('Error reading themes directory:', err)
         throw err
     }
 }
@@ -405,16 +424,20 @@ function initializeTheme() {
 }
 app.whenReady().then(async () => {
     if (isAppDev) {
-        await session.defaultSession.loadExtension(
-            path.join(
-                __dirname,
-                '../',
-                '../',
-                'ReactDevTools',
-                'fmkadmapgofadopljbjfkapdkoienihi',
-                '5.3.1_0',
-            ),
-        )
+        try {
+            await session.defaultSession.loadExtension(
+                path.join(
+                    __dirname,
+                    '../',
+                    '../',
+                    'ReactDevTools',
+                    'fmkadmapgofadopljbjfkapdkoienihi',
+                    '5.3.1_0',
+                ),
+            )
+        } catch (e) {
+            logger.main.error(e)
+        }
     }
     initializeTheme()
 })
@@ -461,6 +484,22 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
+    }
+})
+app.on('render-process-gone', (event, webContents, detailed) => {
+    const REASON_CRASHED = 'crashed'
+    const REASON_OOM = 'oom'
+    logger.renderer.error(
+        'Application crashed',
+        detailed.reason,
+        detailed.exitCode,
+    )
+    if ([REASON_CRASHED, REASON_OOM].includes(detailed.reason)) {
+        if (detailed.reason === REASON_CRASHED) {
+            logger.renderer.info('Relaunching')
+            app.relaunch()
+        }
+        app.exit(0)
     }
 })
 setInterval(() => {

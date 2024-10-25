@@ -23,9 +23,9 @@ export const plugins = [
         process: 'process/browser',
     }),
     new NodePolyfillPlugin(),
-    // sentryWebpackPlugin({
-    //     org: "pulsesync",
-    //     project: "electron",
-    //     authToken: config.SENTRY_KEY,
-    // }),
+    sentryWebpackPlugin({
+        org: 'pulsesync',
+        project: 'electron',
+        authToken: config.SENTRY_KEY,
+    }),
 ]

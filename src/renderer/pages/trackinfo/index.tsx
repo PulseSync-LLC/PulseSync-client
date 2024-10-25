@@ -145,15 +145,13 @@ export default function TrackInfoPage() {
                             imageName={'discord'}
                             onClick={() => {
                                 window.discordRpc.discordRpc(
-                                    app.discordRpc.status ? false : true,
+                                    !app.discordRpc.status,
                                 )
                                 setApp({
                                     ...app,
                                     discordRpc: {
                                         ...app.discordRpc,
-                                        status: app.discordRpc.status
-                                            ? false
-                                            : true,
+                                        status: !app.discordRpc.status,
                                     },
                                 })
                             }}
@@ -385,7 +383,7 @@ export default function TrackInfoPage() {
                                                                         .requestImgTrack[1]
                                                                         ? currentTrack
                                                                               .requestImgTrack[1]
-                                                                        : './static/assets/logo/logoappsummer.png'
+                                                                        : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""
                                                             />
@@ -481,7 +479,9 @@ export default function TrackInfoPage() {
                                                     <div
                                                         className={theme.button}
                                                         onClick={() => {
-                                                           setRickRoll(!rickRollClick)
+                                                            setRickRoll(
+                                                                !rickRollClick,
+                                                            )
                                                         }}
                                                     >
                                                         {app.discordRpc.button
@@ -491,8 +491,15 @@ export default function TrackInfoPage() {
                                                             : '✌️ Open in Yandex Music'}
                                                     </div>
                                                     {rickRollClick && (
-                                                        <video width="600" autoPlay loop>
-                                                            <source src="https://s3.pulsesync.dev/files/heheheha.mp4" type="video/mp4" />
+                                                        <video
+                                                            width="600"
+                                                            autoPlay
+                                                            loop
+                                                        >
+                                                            <source
+                                                                src="https://s3.pulsesync.dev/files/heheheha.mp4"
+                                                                type="video/mp4"
+                                                            />
                                                         </video>
                                                     )}
                                                     <div

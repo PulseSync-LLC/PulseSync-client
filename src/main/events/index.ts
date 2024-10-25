@@ -15,10 +15,10 @@ import fs from 'fs'
 import * as si from 'systeminformation'
 import os from 'os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, mainWindow, updated } from '../../index'
+import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import checkAndTerminateYandexMusic, {
-    checkAndStartYandexMusic,
+    getPathToYandexMusic,
 } from '../../../utils/appUtils'
 import Patcher from '../modules/patcher/patch'
 import { store } from '../modules/storage'
@@ -26,7 +26,7 @@ import UnPatcher from '../modules/patcher/unpatch'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
-import {Track} from "yandex-music-client";
+import { Track } from 'yandex-music-client'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -40,7 +40,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         mainWindow.minimize()
     })
 
-    ipcMain.on('electron-exit', () => {
+    ipcMain.on('electron-window-exit', () => {
         logger.main.info('Exit app')
         app.quit()
     })
@@ -68,17 +68,30 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('electron-repatch', async () => {
         await checkAndTerminateYandexMusic()
-        setTimeout(async () => {
-            await UnPatcher.unpatch()
+        const musicPath = await getPathToYandexMusic()
+        const asarCopy = path.join(musicPath, 'app.asar.copy')
+        if (!fs.existsSync(asarCopy)) {
             setTimeout(async () => {
-                Patcher.patchRum().then(async () => {
+                await Patcher.patchRum().then(async () => {
                     store.set('patcher.patched', true)
                     mainWindow.webContents.send('UPDATE_APP_DATA', {
-                        repatch: true,
+                        patch: true,
                     })
                 })
-            }, 3000)
-        }, 2000)
+            }, 2000)
+        } else {
+            setTimeout(async () => {
+                await UnPatcher.unpatch()
+                setTimeout(async () => {
+                    Patcher.patchRum().then(async () => {
+                        store.set('patcher.patched', true)
+                        mainWindow.webContents.send('UPDATE_APP_DATA', {
+                            repatch: true,
+                        })
+                    })
+                }, 3000)
+            }, 2000)
+        }
     })
     ipcMain.on('electron-depatch', async () => {
         await checkAndTerminateYandexMusic()
@@ -124,7 +137,10 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.on(
         'download-track',
-        (event, val: { url: string; track: TrackInterface, trackInfo: Track }) => {
+        (
+            event,
+            val: { url: string; track: TrackInterface; trackInfo: Track },
+        ) => {
             const musicDir = app.getPath('music')
             const downloadDir = path.join(musicDir, 'PulseSyncMusic')
             dialog
@@ -254,7 +270,7 @@ export const handleEvents = (window: BrowserWindow): void => {
             arch: os.arch(),
         }
     })
-    ipcMain.on('getLogArchive', async (event) => {
+    ipcMain.on('getLogArchive', async event => {
         const logDirPath = path.join(
             app.getPath('appData'),
             'PulseSync',
@@ -269,7 +285,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         const archiveName = `logs-${year}-${month}-${day}.zip`
         const archivePath = path.join(logDirPath, archiveName)
 
-        const userInfo = os.userInfo();
+        const userInfo = os.userInfo()
         const systemInfo = {
             appVersion: app.getVersion(),
             osType: os.type(),
@@ -291,14 +307,20 @@ export const handleEvents = (window: BrowserWindow): void => {
                 homedir: userInfo.homedir,
                 shell: userInfo.shell,
                 uid: userInfo.uid,
-                gid: userInfo.gid
+                gid: userInfo.gid,
             },
-        };
-        const systemInfoPath = path.join(logDirPath, 'system-info.json');
+        }
+        const systemInfoPath = path.join(logDirPath, 'system-info.json')
         try {
-            fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 2), 'utf-8');
+            fs.writeFileSync(
+                systemInfoPath,
+                JSON.stringify(systemInfo, null, 2),
+                'utf-8',
+            )
         } catch (error) {
-            logger.main.error(`Error while creating system-info.json: ${error.message}`);
+            logger.main.error(
+                `Error while creating system-info.json: ${error.message}`,
+            )
         }
         try {
             const output = fs.createWriteStream(archivePath)
@@ -308,16 +330,23 @@ export const handleEvents = (window: BrowserWindow): void => {
                 shell.showItemInFolder(archivePath)
             })
 
-            archive.on('error', (err) => {
-                logger.main.error(`Error while creating archive file: ${err.message}`)
+            archive.on('error', err => {
+                logger.main.error(
+                    `Error while creating archive file: ${err.message}`,
+                )
             })
 
             archive.pipe(output)
             archive.directory(logDirPath, false)
             await archive.finalize()
         } catch (error) {
-            logger.main.error(`Error while creating archive file: ${error.message}`)
+            logger.main.error(
+                `Error while creating archive file: ${error.message}`,
+            )
         }
+    })
+    ipcMain.handle('checkSleepMode', async (event, data) => {
+        return inSleepMode
     })
 }
 export const handleAppEvents = (window: BrowserWindow): void => {

@@ -1,5 +1,4 @@
 import Header from '../../components/layout/header'
-import Container from '../../components/container'
 
 import * as styles from './callback.module.scss'
 
@@ -28,10 +27,7 @@ export default function CallbackPage() {
             })
             window.desktopEvents?.on('authBanned', (event, data) => {
                 setBanned(data.reason)
-                setTimeout(
-                    () => window.desktopEvents?.send('electron-exit'),
-                    10000,
-                )
+                setTimeout(() => window.electron.window.exit(), 10000)
             })
         }
     }, [])

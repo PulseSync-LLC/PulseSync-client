@@ -46,8 +46,7 @@ async function getDownloadInfo(
     return await fetch(`${info!.downloadInfoUrl}&format=json`, {
         headers,
     }).then(async res => {
-        const j = await res.json()
-        return j
+        return await res.json()
     })
 }
 
@@ -55,7 +54,5 @@ function createTrackURL(info: any) {
     // тут мы можем увидеть традиционный хеш
     const trackUrl = `XGRlBW9FXlekgbPrRHuSiA${info.path.substr(1)}${info.s}`
     const hashedUrl = createHash('md5').update(trackUrl).digest('hex')
-    const link = `https://${info.host}/get-mp3/${hashedUrl}/${info.ts}${info.path}`
-
-    return link
+    return `https://${info.host}/get-mp3/${hashedUrl}/${info.ts}${info.path}`
 }

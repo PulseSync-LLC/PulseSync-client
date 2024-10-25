@@ -1,4 +1,5 @@
 import { ipcMain } from 'electron'
+import logger from './logger'
 
 let store: any
 
@@ -26,9 +27,9 @@ async function initializeStore() {
             event.returnValue = store.has(key)
         })
 
-        console.log('ElectronStore initialized and IPC handlers set up')
+        logger.main.info('ElectronStore initialized and IPC handlers set up')
     } catch (error) {
-        console.error('Error initializing ElectronStore:', error)
+        logger.main.error('Error initializing ElectronStore:', error)
     }
 }
 

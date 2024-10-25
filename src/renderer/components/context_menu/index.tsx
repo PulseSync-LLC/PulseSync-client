@@ -1,12 +1,15 @@
-import React, { useContext } from 'react';
-import * as styles from './context_menu.module.scss';
-import userContext from '../../api/context/user.context';
-import ArrowContext from './../../../../static/assets/icons/arrowContext.svg';
-import playerContext from '../../api/context/player.context';
-import toast from '../../api/toast';
-import config from '../../api/config';
-import getUserToken from '../../api/getUserToken';
-import userInitials from '../../api/initials/user.initials';
+import React, { useContext } from 'react'
+import * as styles from './context_menu.module.scss'
+import userContext from '../../api/context/user.context'
+
+import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
+import playerContext from '../../api/context/player.context'
+import hotToast from 'react-hot-toast'
+import toast from '../../api/toast'
+import trackInitials from '../../api/initials/track.initials'
+import config from '../../api/config'
+import getUserToken from '../../api/getUserToken'
+import userInitials from '../../api/initials/user.initials'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>;
@@ -22,9 +25,9 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, setUser } = useContext(userContext);
-    const { currentTrack } = useContext(playerContext);
-
+    const { app, setApp, setUser, setUpdate } = useContext(userContext)
+    const { currentTrack } = useContext(playerContext)
+    
     const handleOpenModal = () => {
         modalRef.current?.openModal();
     };
@@ -181,6 +184,36 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             ],
         },
     ];
+  
+      const toastLoading = (event: any, title: string) => {
+        let toastId: string
+        toastId = hotToast.loading(title, {
+            style: {
+                background: '#292C36',
+                color: '#ffffff',
+                border: 'solid 1px #363944',
+                borderRadius: '8px',
+            },
+        })
+        const handleUpdateAppData = (event: any, data: any) => {
+            for (const [key, value] of Object.entries(data)) {
+                switch (key) {
+                    case 'repatch':
+                        toast.success('Успешный репатч', { id: toastId })
+                        break
+                    case 'patch':
+                        toast.success('Успешный патч', { id: toastId })
+                        break
+                    case 'depatch':
+                        toast.success('Успешный депатч', { id: toastId })
+                        break
+                    default:
+                        hotToast.dismiss(toastId)
+                        break
+                }
+            }
+            window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
+        }
 
     return (
         <div className={styles.patchMenu}>

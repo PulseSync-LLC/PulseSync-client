@@ -16,6 +16,7 @@ declare global {
                 maximize: () => void
                 minimize: () => void
                 close: () => void
+                exit: () => void
                 isMac: () => boolean
             }
             player: {

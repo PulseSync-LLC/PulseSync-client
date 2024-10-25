@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 contextBridge.exposeInMainWorld('electron', {
@@ -25,6 +25,9 @@ contextBridge.exposeInMainWorld('electron', {
         },
         close() {
             ipcRenderer.send('electron-window-close')
+        },
+        exit() {
+            ipcRenderer.send('electron-window-exit')
         },
         isMac() {
             return ipcRenderer.sendSync('electron-mac')

@@ -1,6 +1,15 @@
 export function timeDifference(time1: string, time2: string): string {
     function toSeconds(time: string): number {
         const [minutes, seconds] = time.split(':').map(Number)
+
+        if (
+            isNaN(minutes) ||
+            isNaN(seconds) ||
+            (minutes === 0 && seconds === 0)
+        ) {
+            return 0
+        }
+
         return minutes * 60 + seconds
     }
 
@@ -17,6 +26,7 @@ export function timeDifference(time1: string, time2: string): string {
 
     return toTimeString(differenceInSeconds)
 }
+
 export const replaceParams = (str: any, track: any) => {
     return str
         .replace('{track}', track.playerBarTitle || '')
