@@ -22,11 +22,24 @@
     position: relative;
 }
 
+.container0x0 {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    overflow: scroll;
+    position: relative;
+}
+
 .container {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
+    overflow: overlay;
     gap: 15px;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
@@ -46,15 +59,11 @@
         &::after {
             height: 15px;
             position: absolute;
-            content: '';
+            content: "";
             bottom: 0;
             right: 0;
             left: 0;
-            background: linear-gradient(
-                360deg,
-                #1e2027 0%,
-                rgba(30, 32, 39, 0) 100%
-            );
+            background: linear-gradient(360deg, #1E2027 0%, rgba(30, 32, 39, 0) 100%);
             z-index: 1;
             pointer-events: none;
         }

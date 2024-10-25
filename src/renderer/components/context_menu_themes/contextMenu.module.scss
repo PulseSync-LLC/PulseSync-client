@@ -1,0 +1,93 @@
+/* contextMenu.module.scss */
+
+.contextMenu {
+    position: absolute;
+    padding: 10px;
+    height: -webkit-fill-available;
+    overflow: overlay;
+    animation: contextMenu-module__contextMenu-module__fadeIn___lCRzG___WLvFK 0.3s forwards;
+    z-index: 100022221;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    padding: 0px;
+
+    background: #1e2027f2;
+    border: 1px solid #363944;
+    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
+    padding: 10px 0;
+}
+
+.contextMenuItem {
+    transition: var(--transition);
+    padding: 8px 20px;
+    cursor: pointer;
+    background-color: #3467f200;
+    transition: background 0.2s;
+    min-width: -webkit-fill-available;
+
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 140%;
+
+    color: #FFFFFF;
+}
+
+.contextMenuItem:last-child {
+    transition: var(--transition);
+    padding: 8px 20px;
+    cursor: pointer;
+    background-color: #3467f200;
+    transition: background 0.2s;
+    min-width: -webkit-fill-available;
+
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 140%;
+
+    color: #F23447;
+}
+
+.contextMenuItem:last-child:hover {
+    color: #FFFFFF;
+    background-color: #F23447;
+}
+
+.contextMenuItem:hover {
+    background-color: #3468F2;
+}
+
+/* Анимация появления */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Анимация исчезновения */
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: scale(1);
+    }
+
+    to {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+}
+
+// :hover
+
+// ::after
+
+// ::before

@@ -1,0 +1,118 @@
+.preview {
+    margin-left: 254px;
+    gap: 15px;
+    display: flex;
+    flex-direction: column;
+    width: -webkit-fill-available;
+}
+
+.grid {
+    width: -webkit-fill-available;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 15px;
+}
+
+
+.containerSearch {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 16px;
+    gap: 24px;
+    width: 239px;
+    height: -webkit-fill-available;
+    background: #292C36;
+    outline: 1px solid #363944;
+    border-radius: 8px;
+    position: fixed;
+    z-index: 99;
+    margin-bottom: 15px;
+
+    * .searchInput {
+        display: flex;
+        position: relative;
+        flex-direction: row;
+        align-items: center;
+        padding: 14px 23px;
+        gap: 10px;
+
+        width: -webkit-fill-available;
+
+        background: #3E424C;
+        border: 1px solid #646B7D;
+        border-radius: 4px;
+
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 140%;
+        overflow: auto;
+
+        color: white;
+
+        &::placeholder {
+            color: #B1B8C9;
+        }
+
+        &:focus {
+            color: white;
+            background: #393c46;
+            border-color: rgb(101, 105, 121);
+
+            ~.charCount {
+                opacity: 1;
+            }
+        }
+    }
+}
+
+.searchSection,
+.typeSection,
+.tagsSection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 8px;
+
+    width: 100%;
+}
+
+.searchLabel,
+.typeLabel,
+.tagsLabel {
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 140%;
+
+    color: #FFFFFF;
+}
+
+.previewSelection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 15px;
+
+    &>.labelSelection {
+        font-weight: 700;
+        font-size: 16px;
+        line-height: 18px;
+
+        color: #FFFFFF;
+    }
+}
+
+label {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #FFFFFF;
+}
+
+.selectedTag {
+    font-weight: bold;
+}

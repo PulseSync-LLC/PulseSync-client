@@ -6,6 +6,8 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import ExtensionPage from './extension'
+import ExtensionBetaPage from './extensionbeta'
+import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
 import hotToast, { Toaster } from 'react-hot-toast'
@@ -67,6 +69,14 @@ function _app() {
         {
             path: '/extension',
             element: <ExtensionPage />,
+        },
+        {
+            path: '/extensionbeta',
+            element: <ExtensionBetaPage />,
+        },
+        {
+            path: '/extensionbeta/:contactId',
+            element: <ExtensionViewPage />,
         },
         {
             path: '/joint',

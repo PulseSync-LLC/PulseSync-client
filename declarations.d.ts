@@ -4,4 +4,9 @@ declare module '*.svg' {
     export default content
 }
 
+declare module '*.wav' {
+    const src: string;
+    export default src;
+}
+
 declare module '*.md'

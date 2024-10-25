@@ -1,16 +1,4 @@
 .button {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0.5em 1em;
-
-    cursor: pointer;
-    border: none;
-    border-radius: 13px;
-
-    font-family: Montserrat, serif;
-    font-size: 1em;
-
     &:hover {
     }
 }

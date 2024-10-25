@@ -1,143 +1,136 @@
-.card {
-    transition: cubic-bezier(0.645, 0.045, 0.355, 1) all 0.2s;
-    width: -webkit-fill-available;
+.extensionCard {
+    height: 267px;
     border-radius: 8px;
-    background: var(--panelsColor);
-    outline: 1px solid var(--BorderColor);
-    padding: 0;
-    color: #ffffff;
-    font-family: Arial, sans-serif;
+    position: relative;
+    padding: 24px;
     cursor: pointer;
+    outline: 1px solid var(--BorderColor);
+    background-size: 170% !important;
+    background-position: 50% 50% !important;
 
-    .cardContainer {
+    &:hover {
+        background-size: 150% !important;
+        outline: 1px solid #5d6480;
+
+        &>.imageOverlay {
+            gap: 8px;
+
+            &>.leftOrig{
+                gap: 12px;
+                &>.themeImage {
+                    width: 40px;
+                    height: 40px;
+                }
+            }
+        }
+
+        &>.themeDescription {
+            -webkit-line-clamp: 7;
+        }
+    }
+
+    &>.imageOverlay {
         display: flex;
         flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 20px;
-        gap: 10px;
+        align-items: flex-start;
+        padding: 0px 0px 16px;
+        gap: 16px;
+        width: 100%;
+        transition: var(--transition);
 
-        .containerDetail {
+        &>.leftOrig {
             display: flex;
-            flex-direction: row;
-            align-items: center;
-            padding: 0px;
-            gap: 10px;
+            flex-direction: column;
+            align-items: flex-start;
 
-            .icon {
-                border-radius: 8px;
+            gap: 24px;
+            width: 100%;
+            transition: var(--transition);
+
+            &>.themeImage {
+                transition: var(--transition);
+                width: 55px;
+                height: 55px;
+                border-radius: 6px;
             }
 
-            .themeDetals {
+            &>.detailTop {
                 display: flex;
                 flex-direction: column;
                 justify-content: center;
                 align-items: flex-start;
-                padding: 0px;
-                gap: 2px;
-                display: grid;
 
-                .title {
+                width: 100%;
+
+                &>.themeTitle {
+                    width: 132px;
+
                     font-weight: 700;
                     font-size: 18px;
-                    line-height: 140%;
+                    line-height: 23px;
 
-                    color: #ffffff;
+                    display: flex;
+                    align-items: center;
 
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                    width: 100%;
+                    color: #FFFFFF;
+
+                    mix-blend-mode: normal;
+
+                    flex: none;
+                    order: 1;
+                    align-self: stretch;
+                    flex-grow: 0;
+                    text-wrap: nowrap;
                 }
 
-                .author {
+                &>.themeAuthor {
+                    width: 132px;
+
                     font-weight: 400;
-                    font-size: 14px;
-                    line-height: 140%;
+                    font-size: 12px;
+                    line-height: 18px;
 
-                    color: #b0b0b0;
+                    display: flex;
+                    align-items: center;
 
-                    overflow: hidden;
-                    white-space: nowrap;
-                    text-overflow: ellipsis;
-                    width: 100%;
+                    color: #BBC3DE;
+
+                    mix-blend-mode: normal;
+
+                    flex: none;
+                    order: 3;
+                    align-self: stretch;
+                    flex-grow: 0;
+                    text-wrap: nowrap;
                 }
             }
         }
 
-        .themeVerStar {
+        &>.rightOrig {
+            font-weight: 400;
+            font-size: 12px;
+            line-height: 18px;
             display: flex;
-            flex-direction: column;
-            justify-content: center;
             align-items: flex-end;
-            padding: 0px;
-            gap: 5px;
-
-            .star {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                padding: 0px;
-                gap: 4px;
-
-                font-weight: 700;
-                font-size: 14px;
-                line-height: 140%;
-
-                color: #ffd333;
-            }
+            text-wrap: nowrap;
+            color: #BBC3DE;
+            position: absolute;
+            right: 24px;
+            flex-direction: column;
         }
     }
 
-    .cardContainerTab {
-        transition: cubic-bezier(0.645, 0.045, 0.355, 1) all 0.2s;
-        display: flex;
-        flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 10px 20px;
-        gap: 15px;
-
-        border-top: 1px solid var(--BorderColor);
-
-        .leftTab {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            padding: 0px;
-            gap: 15px;
-        }
-
-        label {
-            gap: 0;
-            width: fit-content;
-
-            div {
-                gap: 0;
-                width: fit-content;
-            }
-        }
+    &>.themeDescription {
+        transition: var(--transition);
+        width: 100%;
+        font-weight: 400;
+        font-size: 14px;
+        line-height: 21px;
+        color: #FFFFFF;
+        display: -webkit-box;
+        -webkit-line-clamp: 6;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
-
-    &:hover {
-        background: #313442;
-        outline: 1px solid #5d6480;
-        .cardContainerTab {
-            border-top: 1px solid #5d6480;
-        }
-    }
-}
-
-.tabDetail {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 0px;
-    gap: 4px;
-
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 140%;
-
-    color: #e4e5ea;
 }

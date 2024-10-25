@@ -138,6 +138,7 @@
         "socket.io": "^4.8.0",
         "socket.io-client": "^4.8.0",
         "stream-browserify": "^3.0.0",
+        "string-similarity": "^4.0.4",
         "systeminformation": "^5.23.5",
         "update-electron-app": "^3.0.0",
         "url": "^0.11.4",

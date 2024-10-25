@@ -1,0 +1,65 @@
+.customCheckbox {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    position: relative;
+    font-family: Arial, sans-serif;
+
+    &:hover > .checkboxLabel{
+        color: #8FABEF;
+        text-decoration: underline;
+    }
+
+    .checkboxInput {
+        position: absolute;
+        opacity: 0;
+        cursor: pointer;
+        height: 0;
+        width: 0;
+    }
+
+    .customBox {
+        width: 20px;
+        height: 20px;
+        background-color: #3E424C;
+        border: 1.5px solid #646B7D;
+        border-radius: 4px;
+        display: inline-block;
+        position: relative;
+        transition: var(--transition);
+
+        .cube {
+            display: block;
+            width: 8px;
+            height: 8px;
+            background-color: #B1B8C9;
+            position: absolute;
+            top: 6px;
+            left: 6px;
+            border-radius: 2px;
+            transition: var(--transition);
+        }
+
+        &.checked {
+            background-color: #2D57C7;
+            border-color: #4273F6;
+
+            .cube {
+                display: block;
+                width: 12px;
+                height: 12px;
+                background-color: #fff;
+                position: absolute;
+                top: 4px;
+                left: 4px;
+                border-radius: 2px;
+            }
+        }
+    }
+
+    .checkboxLabel {
+        margin-left: 8px;
+        font-size: 14px;
+        color: white;
+    }
+}

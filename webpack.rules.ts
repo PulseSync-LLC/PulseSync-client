@@ -28,4 +28,11 @@ export const rules: Required<ModuleOptions>['rules'] = [
             },
         },
     },
+    {
+        test: /\.(wav|mp3|ogg|mpe?g)$/i,
+        loader: 'file-loader',
+        options: {
+            name: '[path][name].[ext]',
+        },
+    },
 ]

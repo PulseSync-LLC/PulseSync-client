@@ -15,140 +15,12 @@
         border-radius: 2px;
     }
 
-    > div {
+    >div {
         font-weight: 700;
         font-size: 12px;
         line-height: 140%;
         text-transform: uppercase;
         color: var(--textInputContainer);
-    }
-
-    .styledInput {
-        display: flex;
-        position: relative;
-        flex-direction: row;
-        align-items: center;
-        padding: 14px 23px;
-        gap: 10px;
-
-        width: -webkit-fill-available;
-
-        background: var(--inputColor);
-        border: 1px solid #3e424c;
-        border-radius: 4px;
-
-        font-weight: 400;
-        font-size: 14px;
-        line-height: 140%;
-        overflow: auto;
-
-        color: #abafbf;
-
-        &::placeholder {
-            color: var(--inputPlaceholderColor);
-        }
-
-        &:focus {
-            color: white;
-            background: #1a1d24;
-            border-color: #5a5e6b;
-
-            ~ .charCount {
-                opacity: 1;
-            }
-        }
-
-        .uploadedImage {
-            cursor: pointer;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-
-            position: relative;
-            width: 110px;
-            height: 110px;
-            min-width: 110px;
-
-            background: var(--inputColor);
-            outline: 1px solid #3e424c;
-            border-radius: 6px;
-
-            &:hover {
-                outline: 1px solid #3468f2;
-
-                & > button {
-                    opacity: 1;
-                }
-            }
-
-            & > button {
-                transition: var(--transition);
-                opacity: 0;
-                cursor: pointer;
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                padding: 3px;
-
-                position: absolute;
-                right: -5px;
-                top: -5px;
-
-                border: 0;
-                color: #e54747;
-                background: #1e2027;
-                outline: 1px solid #363944;
-                border-radius: 6px;
-
-                &:hover {
-                    background: #2f1a1a;
-                    outline: 1px solid #bd4040;
-                }
-            }
-
-            & > img {
-                display: block;
-                object-fit: cover;
-                border-radius: 6px;
-                height: 100%;
-                width: 100%;
-            }
-        }
-
-        .uploadButton {
-            transition: var(--transition);
-            opacity: 0;
-            color: white;
-
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border: 0;
-
-            width: 110px;
-            height: 110px;
-            min-width: 110px;
-
-            background: #1e2027;
-            outline: 1px solid #363944;
-            border-radius: 6px;
-        }
-
-        &:hover {
-            .uploadButton {
-                cursor: pointer;
-                opacity: 1;
-                &:disabled {
-                    opacity: 0.6;
-                    cursor: not-allowed;
-                }
-                &:hover {
-                    background: #3468f2;
-                    outline: 1px solid #2353d8;
-                }
-            }
-        }
     }
 
     .charCount {
@@ -167,5 +39,130 @@
         border-radius: 4px;
         background: var(--inputColor);
         color: var(--textInputContainer);
+    }
+}
+
+.styledInput {
+    display: flex;
+    position: relative;
+    flex-direction: row;
+    align-items: center;
+    padding: 14px 23px;
+    gap: 10px;
+
+    width: -webkit-fill-available;
+
+    background: var(--inputColor);
+    border: 1px solid #3e424c;
+    border-radius: 4px;
+
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    overflow: auto;
+
+    color: #abafbf;
+
+    &::placeholder{
+        color: var(--inputPlaceholderColor);
+    }
+
+    &:focus {
+        color: white;
+        background: #1a1d24;
+        border-color: #5a5e6b;
+
+        ~ .charCount {
+            opacity: 1;
+        }
+    }
+
+    .uploadedImage {
+        cursor: pointer;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+
+        position: relative;
+        width: 110px;
+        height: 110px;
+        min-width: 110px;
+
+        background: var(--inputColor);
+        outline: 1px solid #3E424C;
+        border-radius: 6px;
+
+        &:hover {
+            outline: 1px solid #3468F2;
+
+            &>button {
+                opacity: 1;
+            }
+        }
+
+        &>button {
+            transition: var(--transition);
+            opacity: 0;
+            cursor: pointer;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 3px;
+
+            position: absolute;
+            right: -5px;
+            top: -5px;
+
+            border: 0;
+            color: #E54747;
+            background: #1E2027;
+            outline: 1px solid #363944;
+            border-radius: 6px;
+
+            &:hover {
+                background: #2F1A1A;
+                outline: 1px solid #BD4040;
+            }
+        }
+
+        &>img {
+            display: block;
+            object-fit: cover;
+            border-radius: 6px;
+            height: 100%;
+            width: 100%;
+        }
+    }
+
+    .uploadButton {
+        transition: var(--transition);
+        opacity: 0;
+        color: white;
+
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        border: 0;
+
+        width: 110px;
+        height: 110px;
+        min-width: 110px;
+
+        background: #1E2027;
+        outline: 1px solid #363944;
+        border-radius: 6px;
+    }
+
+    &:hover {
+        .uploadButton {
+            cursor: pointer;
+            opacity: 1;
+
+            &:hover {
+                background: #3468F2;
+                outline: 1px solid #2353d8;
+            }
+        }
     }
 }
