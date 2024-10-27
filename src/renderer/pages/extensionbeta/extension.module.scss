@@ -8,7 +8,6 @@
 .grid {
     width: -webkit-fill-available;
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
     gap: 15px;
 }
 
@@ -84,7 +83,7 @@
                 &:focus {
                     outline: none;
                     padding-left: 23px;
-                    background: #3c4152;
+                    background: #474d61;
 
                     &::placeholder {
                         color: #595f74 !important;
@@ -93,7 +92,7 @@
 
                 &:hover {
                     padding-left: 23px;
-                    background: #3c4152;
+                    background: #474d61;
 
                     &::placeholder {
                         color: #6f778f;
@@ -116,6 +115,7 @@
         }
 
         &>.toolbarButton {
+            position: relative;
             cursor: pointer;
             display: flex;
             flex-direction: row;
@@ -129,70 +129,89 @@
             &:disabled {
                 cursor: not-allowed;
                 opacity: 0.5;
-                background: #3c4152;
+                background: #474d61;
 
                 &:hover {
-                    background: #3c4152;
+                    background: #474d61;
                 }
             }
 
             &:hover {
-                background: #3c4152;
+                background: #474d61;
+            }
+
+            &>.count {
+                position: absolute;
+                display: flex;
+                height: 13px;
+                padding: 0 4px;
+                background: #3468F2;
+                color: #fff;
+                font-size: 11px;
+                font-weight: 900;
+                border-radius: 25px;
+                left: 48%;
+                right: 13%;
+                top: 10px;
+                align-items: center;
+                justify-content: center;
+            }
+        }
+
+        &>.toolbarButtonActive {
+            background: #474d61;
+        }
+
+        &>.refreshButton {
+            &:hover {
+                &>svg {
+                    transform: rotate(25deg);
+                }
+            }
+
+            &:active {
+                &>svg {
+                    transform: rotate(-25deg);
+                }
+            }
+
+            &>svg {
+                transition: var(--transition);
             }
         }
     }
 }
 
 .containerSearch {
-    box-sizing: border-box;
+    position: absolute;
     display: flex;
     flex-direction: column;
+    justify-content: center;
     align-items: flex-start;
-    padding: 16px;
-    gap: 24px;
-    width: 239px;
-    height: -webkit-fill-available;
-    background: #292C36;
-    outline: 1px solid #363944;
+    padding: 10px 20px;
+    gap: 15px;
+    width: 240px;
+    height: fit-content;
+    max-height: 500px;
+    z-index: 1;
+    right: 15px;
+    top: 0px;
+    margin-top: 80px;
+    background: #353A49;
+    outline: 2px solid #41485E;
+    box-shadow: 0px 0px 12.3px rgba(0, 0, 0, 0.49);
     border-radius: 8px;
-    position: fixed;
-    z-index: 99;
-    margin-bottom: 15px;
 
-    * .searchInput {
-        display: flex;
-        position: relative;
-        flex-direction: row;
-        align-items: center;
-        padding: 14px 23px;
-        gap: 10px;
-
-        width: -webkit-fill-available;
-
-        background: #3E424C;
-        border: 1px solid #646B7D;
-        border-radius: 4px;
-
-        font-weight: 400;
-        font-size: 14px;
-        line-height: 140%;
-        overflow: auto;
-
-        color: white;
-
-        &::placeholder {
-            color: #B1B8C9;
-        }
-
-        &:focus {
-            color: white;
-            background: #393c46;
-            border-color: rgb(101, 105, 121);
-
-            ~.charCount {
-                opacity: 1;
-            }
-        }
+    &::after {
+        content: "";
+        position: absolute;
+        top: -65px;
+        right: 0px;
+        width: 50px;
+        height: 70px;
+        z-index: 4444444444444;
+        background: transparent;
+        transition: var(--transition);
     }
 }
 
@@ -213,9 +232,19 @@
 .tagsLabel {
     font-weight: 700;
     font-size: 12px;
-    line-height: 140%;
+    line-height: 18px;
 
-    color: #FFFFFF;
+    color: #AEC1FF;
+}
+
+.tagsContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 2px;
+
+    width: -webkit-fill-available;
 }
 
 .previewSelection {
@@ -264,5 +293,10 @@ label {
 }
 
 .selectedTag {
-    font-weight: bold;
+    background: #3468F2 !important;
+
+    &>* {
+        font-weight: 900 !important;
+        color: white !important;
+    }
 }

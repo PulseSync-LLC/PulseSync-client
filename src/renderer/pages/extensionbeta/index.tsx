@@ -1,46 +1,62 @@
 // extensionbeta/index.tsx
 
 import Layout from '../../components/layout';
-import Container from '../../components/container';
 import * as styles from '../../../../static/styles/page/index.module.scss';
 import * as theme from './extension.module.scss';
 import ExtensionCard from '../../components/extensionCard';
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react';
 import ThemeInterface from '../../api/interfaces/theme.interface';
-import Button from '../../components/button';
 import stringSimilarity from 'string-similarity';
 import CustomCheckbox from '../../components/checkbox_props';
-import { useLocation, useNavigate } from 'react-router-dom'
-import toast from '../../api/toast'
-import userContext from '../../api/context/user.context'
-
-import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
-import FileImg from './../../../../static/assets/stratis-icons/file.svg'
-import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
-import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import toast from '../../api/toast';
+import userContext from '../../api/context/user.context';
+import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg';
+import FileImg from './../../../../static/assets/stratis-icons/file.svg';
+import FilterImg from './../../../../static/assets/stratis-icons/filter.svg';
+import SearchImg from './../../../../static/assets/stratis-icons/search.svg';
 
 export default function ExtensionPage() {
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default'
     );
-    const { themes, setThemes } = useContext(userContext)
+    const { themes, setThemes } = useContext(userContext);
     const [maxThemesCount, setMaxThemesCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [hideEnabled, setHideEnabled] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [filterVisible, setFilterVisible] = useState(false);
 
-    useEffect(() => {
+    const [columnsCount, setColumnsCount] = useState(3);
+
+    const handleFilterHover = () => setFilterVisible(true);
+    const handleFilterLeave = () => setFilterVisible(false);
+
+    const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0);
+
+
+    const loadThemes = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
                 .invoke('getThemes')
                 .then((themes: ThemeInterface[]) => {
-                    setThemes(themes)
+                    setThemes(themes);
                 })
+                .catch(error => console.error('Ошибка при загрузке тем:', error));
         }
-    }, []);
+    };
+
+
     useEffect(() => {
-        console.log(themes)
-    }, [themes])
+        loadThemes();
+    }, []);
+
+    const handleReloadThemes = () => {
+        setThemes([]);
+        loadThemes();
+        toast.success("Темы перезагружены");
+    };
+
+
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
         const newTheme = isChecked ? themeName : 'Default';
         window.electron.store.set('theme', newTheme);
@@ -50,21 +66,13 @@ export default function ExtensionPage() {
 
     const handleDeleteTheme = (themeName: string) => {
         const isConfirmed = window.confirm(`Вы уверены, что хотите удалить тему "${themeName}"? Это действие нельзя будет отменить.`);
-
         if (isConfirmed) {
             const themeToDelete = themes.find(theme => theme.name === themeName);
-
             if (themeToDelete && themeToDelete.path) {
                 const themeDirectoryPath = themeToDelete.path;
-
-                window.desktopEvents
-                    .invoke('deleteThemeDirectory', themeDirectoryPath)
+                window.desktopEvents.invoke('deleteThemeDirectory', themeDirectoryPath)
                     .then(() => {
-                        setThemes((prevThemes: any[]) =>
-                            prevThemes.filter(
-                                theme => theme.name !== themeName,
-                            ),
-                        )
+                        setThemes((prevThemes: any[]) => prevThemes.filter(theme => theme.name !== themeName));
                         console.log(`Тема "${themeName}" и связанные файлы удалены.`);
                     })
                     .catch(error => {
@@ -83,12 +91,12 @@ export default function ExtensionPage() {
             name: theme.name
         }).then((result) => {
             if (result) {
-                toast.success("Успешный экспорт")
+                toast.success("Успешный экспорт");
             }
         }).catch(error => {
             console.error(error);
-        })
-    }
+        });
+    };
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value.toLowerCase());
@@ -161,6 +169,10 @@ export default function ExtensionPage() {
         setMaxThemesCount(prevCount => Math.max(prevCount, filteredThemes.length));
     }, [filteredThemes]);
 
+    const handleColumnsChange = (count: number) => {
+        setColumnsCount(count);
+    };
+
     return (
         <Layout title="Стилизация">
             <div className={styles.page}>
@@ -189,42 +201,56 @@ export default function ExtensionPage() {
                                     )}
                                 </div>
                                 <button className={theme.toolbarButton} onClick={() => window.desktopEvents.send('openPath', 'themePath')}><FileImg /></button>
-                                <button disabled className={theme.toolbarButton}><ArrowRefreshImg /></button>
-                                <button disabled className={theme.toolbarButton}><FilterImg /></button>
+                                <button className={`${theme.toolbarButton} ${theme.refreshButton}`} onClick={handleReloadThemes}><ArrowRefreshImg /></button>
+                                <button className={`${theme.toolbarButton} ${filterVisible ? theme.toolbarButtonActive : ""}`} onMouseEnter={handleFilterHover}><FilterImg />
+                                    {activeTagCount > 0 && (
+                                        <div className={theme.count}>{activeTagCount > 9 ? "9+" : activeTagCount}</div>
+                                    )}
+                                </button>
                             </div>
+                            {filterVisible && (
+                                <div
+                                    className={theme.containerSearch}
+                                    onMouseLeave={handleFilterLeave}
+                                >
+                                    <div className={theme.tagsSection}>
+                                        <div className={theme.tagsLabel}>Tags</div>
+                                        <div className={theme.tagsContainer}>
+                                            <CustomCheckbox
+                                                checked={hideEnabled}
+                                                onChange={handleHideEnabledChange}
+                                                label="Скрыть включенные"
+                                                className={hideEnabled ? theme.selectedTag : ''}
+                                            />
+                                            {allTags.map((tag) => (
+                                                <CustomCheckbox
+                                                    key={tag}
+                                                    checked={selectedTags.has(tag)}
+                                                    onChange={() => handleTagChange(tag)}
+                                                    label={`${tag} (${tagCounts[tag]})`}
+                                                    className={selectedTags.has(tag) ? theme.selectedTag : ''}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className={theme.tagsSection}>
+                                        <div className={theme.tagsLabel}>Колонки: </div>
+                                        <div className={theme.tagsContainer}>
+                                            {[2, 3, 4].map(count => (
+                                                <CustomCheckbox
+                                                    key={count}
+                                                    checked={columnsCount === count}
+                                                    onChange={() => handleColumnsChange(count)}
+                                                    label={`${count} колонок`}
+                                                    className={columnsCount === count ? theme.selectedTag : ''}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                         <div className={styles.container30x15}>
-                            {/* <div className={theme.containerSearch}>
-                                <div className={theme.searchSection}>
-                                    <div className={theme.searchLabel}>
-                                        Поиск ({totalVisibleThemesCount})
-                                    </div>
-                                    <input
-                                        className={theme.searchInput}
-                                        type="text"
-                                        value={searchQuery}
-                                        onChange={handleSearchChange}
-                                        placeholder="Введите название расширения"
-                                    />
-                                </div>
-                                <div className={theme.tagsSection}>
-                                    <div className={theme.tagsLabel}>Tags</div>
-                                    {allTags.map((tag) => (
-                                        <CustomCheckbox
-                                            key={tag}
-                                            checked={selectedTags.has(tag)}
-                                            onChange={() => handleTagChange(tag)}
-                                            label={`${tag} (${tagCounts[tag]})`}
-                                            className={selectedTags.has(tag) ? theme.selectedTag : ''}
-                                        />
-                                    ))}
-                                    <CustomCheckbox
-                                        checked={hideEnabled}
-                                        onChange={handleHideEnabledChange}
-                                        label="Скрыть включенные"
-                                    />
-                                </div>
-                            </div> */}
                             <div className={theme.preview}>
                                 {filteredEnabledThemes.length > 0 && (
                                     <div className={theme.previewSelection}>
@@ -232,7 +258,7 @@ export default function ExtensionPage() {
                                             <div className={theme.labelSelection}>Enable</div>
                                             <div className={theme.line}></div>
                                         </div>
-                                        <div className={theme.grid}>
+                                        <div className={theme.grid} style={{ gridTemplateColumns: `repeat(${columnsCount}, 1fr)` }}>
                                             {filteredEnabledThemes.map((theme) => (
                                                 <ExtensionCard
                                                     key={theme.name}
@@ -253,7 +279,7 @@ export default function ExtensionPage() {
                                             <div className={theme.labelSelection}>Disable</div>
                                             <div className={theme.line}></div>
                                         </div>
-                                        <div className={theme.grid}>
+                                        <div className={theme.grid} style={{ gridTemplateColumns: `repeat(${columnsCount}, 1fr)` }}>
                                             {filteredDisabledThemes.map((theme) => (
                                                 <ExtensionCard
                                                     key={theme.name}
