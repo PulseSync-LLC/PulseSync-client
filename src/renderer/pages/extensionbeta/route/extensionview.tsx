@@ -13,7 +13,7 @@ const ExtensionViewPage: React.FC = () => {
     const location = useLocation();
     const navigate = useNavigate();
     const theme = location.state?.theme as ThemeInterface;
-    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeImage.png');
+    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png');
     const [selectedTheme, setSelectedTheme] = useState(window.electron.store.get('theme') || 'Default');
     const [isThemeEnabled, setIsThemeEnabled] = useState(selectedTheme !== 'Default');
     const [isExpanded, setIsExpanded] = useState(true);
@@ -95,7 +95,7 @@ const ExtensionViewPage: React.FC = () => {
                     }
                 })
                 .catch(() => {
-                    setBannerSrc('static/assets/images/no_themeImage.png');
+                    setBannerSrc('static/assets/images/no_themeBackground.png');
                 });
         }
     }, [theme]);

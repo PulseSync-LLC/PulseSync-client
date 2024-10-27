@@ -28,7 +28,7 @@ const ExtensionCard: React.FC<Props> = ({
 }) => {
     const navigate = useNavigate();
     const [imageSrc, setImageSrc] = useState('static/assets/images/no_themeImage.png');
-    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeImage.png');
+    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png');
 
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
@@ -67,7 +67,7 @@ const ExtensionCard: React.FC<Props> = ({
                     }
                 })
                 .catch(() => {
-                    setBannerSrc('static/assets/images/no_themeImage.png');
+                    setBannerSrc('static/assets/images/no_themeBackground.png');
                 });
         }
     }, [theme]);
@@ -119,6 +119,7 @@ const ExtensionCard: React.FC<Props> = ({
                 className={styles.imageBanner}
                 style={{
                     backgroundImage: `url(${bannerSrc})`,
+                    backgroundSize: `cover`,
                 }}
             />
             <div className={styles.metadataInfoContainer}>
