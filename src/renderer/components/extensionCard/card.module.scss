@@ -171,8 +171,11 @@
         }
 
         &>.metadataInfoContainer>.metadataInfo>.detailInfo {
-            width: 100% !important;
-            padding: 2px 10px;
+            width: 100%;
+            opacity: 1;
+        }
+        &>.triggerContextMenu {
+            opacity: 1;
         }
     }
 
@@ -225,9 +228,10 @@
             &>.detailInfo {
                 transition: var(--transition);
                 display: flex;
+                opacity: 0;
+                padding: 2px 10px;
                 flex-direction: row;
                 align-items: center;
-                padding: 2px 0px;
                 gap: 8px;
                 max-width: fit-content;
                 width: 0%;
@@ -285,7 +289,8 @@
 
     .triggerContextMenu {
         transition: var(--transition);
-        background: #2f323d;
+        background: #6a728a56;
+        opacity: 0;
         border-radius: 8px 8px 0 0;
         height: 20px;
         position: absolute;

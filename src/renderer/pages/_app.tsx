@@ -327,33 +327,27 @@ function _app() {
     }, [user.id])
 
     useEffect(() => {
-        if (navigateTo && navigateState) {
-            console.log('Navigating to:', navigateTo, 'with theme state:', navigateState)
-            router.navigate(navigateTo, { replace: true, state: navigateState })
-        }
-    }, [navigateTo, navigateState])
-
-    useEffect(() => {
-        window.desktopEvents?.on('open-theme', (event, data) => {
-            window.desktopEvents
-                .invoke('getThemes')
+        const handleOpenTheme = (event: any, data: string) => {
+            window.desktopEvents?.invoke('getThemes')
                 .then((themes: ThemeInterface[]) => {
-                    setThemes(themes);
-                    const theme = themes.find((theme) => theme.name === data);
+                    const theme = themes.find(t => t.name === data);
                     if (theme) {
-                        const themePath = `/extensionbeta/${theme.name}`;
-                        console.log('Navigating to:', themePath);
-                        setNavigateTo(themePath);
+                        setThemes(themes);
+                        setNavigateTo(`/extensionbeta/${theme.name}`);
                         setNavigateState(theme);
-                    } else {
-                        console.error(`Theme with name "${data}" not found`);
                     }
                 })
-                .catch((error) => {
-                    console.error('Error getting themes:', error);
-                });
-        });
+                .catch(error => console.error('Error getting themes:', error));
+        };
+    
+        window.desktopEvents?.on('open-theme', handleOpenTheme);
     }, []);
+    
+    useEffect(() => {
+        if (navigateTo && navigateState) {
+            router.navigate(navigateTo, { state: { theme: navigateState } });
+        }
+    }, [navigateTo, navigateState]);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {

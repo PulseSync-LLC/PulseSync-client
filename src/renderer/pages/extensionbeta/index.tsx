@@ -20,7 +20,6 @@ import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 
 export default function ExtensionPage() {
-    const navigate = useNavigate();
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default'
     );
@@ -29,25 +28,6 @@ export default function ExtensionPage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [hideEnabled, setHideEnabled] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
-
-    const location = useLocation();
-
-    useEffect(() => {
-        const params = new URLSearchParams(location.search);
-        const isOpenThemeName = params.get('isopen');
-
-        if (isOpenThemeName) {
-            const themeToOpen = themes.find(theme => theme.name === isOpenThemeName);
-            if (themeToOpen) {
-                setSelectedTheme(themeToOpen.name);
-                console.log(`Opening theme: ${themeToOpen.name}`);
-
-                navigate(`/extensionbeta/${themeToOpen.name}`, { state: { theme: themeToOpen } });
-            } else {
-                return;
-            }
-        }
-    }, [location.search, themes, navigate]);
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {

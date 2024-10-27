@@ -127,7 +127,7 @@ const ExtensionCard: React.FC<Props> = ({
                     <div className={styles.detailInfo}>V{theme.version}</div>
                     <div className={styles.detailInfo}>{theme.lastModified}</div>
                 </div>
-                <div className={styles.themeLocation}>(local)</div>
+                <div className={styles.themeLocation}>local</div>
             </div>
             <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
             <div className={styles.themeDetail}>
