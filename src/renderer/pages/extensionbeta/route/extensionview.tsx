@@ -155,15 +155,13 @@ const ExtensionViewPage: React.FC = () => {
                                                     </div>
                                                 </div>
                                                 <div className={ex.buttonGroup}>
-                                                    {selectedTheme !== theme.name ? (
-                                                        <Button className={ex.defaultButton} onClick={handleEnableTheme}>
-                                                            Включить {theme.name}
-                                                        </Button>
-                                                    ) : (
-                                                        <Button className={ex.defaultButton} onClick={toggleTheme}>
-                                                            {isThemeEnabled ? `Выключить` : `Включить`}
-                                                        </Button>
-                                                    )}
+                                                    <Button
+                                                        className={ex.defaultButton}
+                                                        onClick={selectedTheme !== theme.name ? handleEnableTheme : toggleTheme}
+                                                    >
+                                                        {selectedTheme !== theme.name ? 'Включить' : (isThemeEnabled ? 'Выключить' : 'Включить')}
+                                                    </Button>
+
                                                     <Button className={ex.miniButton} disabled>
                                                         <MdBookmarkBorder size={20} />
                                                     </Button>
