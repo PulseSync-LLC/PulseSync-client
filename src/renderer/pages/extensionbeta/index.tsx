@@ -14,12 +14,18 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import toast from '../../api/toast'
 import userContext from '../../api/context/user.context'
 
+import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
+import FileImg from './../../../../static/assets/stratis-icons/file.svg'
+import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
+import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+
 export default function ExtensionPage() {
     const navigate = useNavigate();
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default'
     );
     const { themes, setThemes } = useContext(userContext)
+    const [maxThemesCount, setMaxThemesCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
     const [hideEnabled, setHideEnabled] = useState(false);
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
@@ -158,26 +164,57 @@ export default function ExtensionPage() {
         return acc;
     }, {} as Record<string, number>);
 
-    const totalVisibleThemesCount = filteredEnabledThemes.length + filteredDisabledThemes.length;
+    const filterThemes = (themes: ThemeInterface[]) => {
+        return themes
+            .filter(theme => theme.name.toLowerCase() !== 'default' && (
+                theme.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                theme.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                stringSimilarity.compareTwoStrings(theme.name.toLowerCase(), searchQuery.toLowerCase()) > 0.35 ||
+                stringSimilarity.compareTwoStrings(theme.author.toLowerCase(), searchQuery.toLowerCase()) > 0.35
+            ))
+            .sort((a, b) => (a.name < b.name ? -1 : 1));
+    };
+
+    const filteredThemes = filterThemes(themes);
+
+    useEffect(() => {
+        setMaxThemesCount(prevCount => Math.max(prevCount, filteredThemes.length));
+    }, [filteredThemes]);
 
     return (
         <Layout title="Стилизация">
             <div className={styles.page}>
                 <div className={styles.container}>
                     <div className={styles.main_container}>
-                        <Container
-                            titleName={'Ваши расширения (BETA)'}
-                            description={'Вы можете управлять всеми установленными расширениями для PulseSync.'}
-                            imageName={'extension'}
-                        >
-                            <Button
-                                title=""
-                                onClick={() => window.desktopEvents.send('openPath', 'themePath')}
-                                children={'Директория аддонов'}
-                            />
-                        </Container>
+                        <div className={theme.toolbar}>
+                            <div className={theme.containerToolbar}>
+                                <div className={theme.searchContainer}>
+                                    <SearchImg />
+                                    <input
+                                        className={theme.searchInput}
+                                        type="text"
+                                        value={searchQuery}
+                                        onChange={handleSearchChange}
+                                        placeholder="Введите название расширения"
+                                    />
+                                    {filteredThemes.length > 0 && filteredThemes.length < maxThemesCount && (
+                                        <div className={theme.searchLabel}>
+                                            Найдено: {filteredThemes.length}
+                                        </div>
+                                    )}
+                                    {filteredThemes.length === 0 && (
+                                        <div className={theme.searchLabel}>
+                                            Ничего не найдено
+                                        </div>
+                                    )}
+                                </div>
+                                <button className={theme.toolbarButton} onClick={() => window.desktopEvents.send('openPath', 'themePath')}><FileImg /></button>
+                                <button disabled className={theme.toolbarButton}><ArrowRefreshImg /></button>
+                                <button disabled className={theme.toolbarButton}><FilterImg /></button>
+                            </div>
+                        </div>
                         <div className={styles.container30x15}>
-                            <div className={theme.containerSearch}>
+                            {/* <div className={theme.containerSearch}>
                                 <div className={theme.searchSection}>
                                     <div className={theme.searchLabel}>
                                         Поиск ({totalVisibleThemesCount})
@@ -207,11 +244,14 @@ export default function ExtensionPage() {
                                         label="Скрыть включенные"
                                     />
                                 </div>
-                            </div>
+                            </div> */}
                             <div className={theme.preview}>
                                 {filteredEnabledThemes.length > 0 && (
                                     <div className={theme.previewSelection}>
-                                        <div className={theme.labelSelection}>Enable</div>
+                                        <div className={theme.selectionContainerLable}>
+                                            <div className={theme.labelSelection}>Enable</div>
+                                            <div className={theme.line}></div>
+                                        </div>
                                         <div className={theme.grid}>
                                             {filteredEnabledThemes.map((theme) => (
                                                 <ExtensionCard
@@ -229,7 +269,10 @@ export default function ExtensionPage() {
                                 )}
                                 {filteredDisabledThemes.length > 0 && (
                                     <div className={theme.previewSelection}>
-                                        <div className={theme.labelSelection}>Disable</div>
+                                        <div className={theme.selectionContainerLable}>
+                                            <div className={theme.labelSelection}>Disable</div>
+                                            <div className={theme.line}></div>
+                                        </div>
                                         <div className={theme.grid}>
                                             {filteredDisabledThemes.map((theme) => (
                                                 <ExtensionCard

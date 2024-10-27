@@ -1,5 +1,4 @@
 .preview {
-    margin-left: 254px;
     gap: 15px;
     display: flex;
     flex-direction: column;
@@ -13,6 +12,136 @@
     gap: 15px;
 }
 
+.toolbar {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px 15px 0px;
+    width: -webkit-fill-available;
+
+    &::after {
+        height: 15px;
+        position: absolute;
+        content: '';
+        bottom: -15px;
+        right: 0;
+        left: 0;
+        background: linear-gradient(180deg,
+                var(--MainBG) 0%,
+                rgba(30, 32, 39, 0) 100%);
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    &>.containerToolbar {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0px;
+        gap: 1px;
+        width: -webkit-fill-available;
+
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 16px;
+        overflow: hidden;
+
+        &>.searchContainer {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 14px 23px;
+            gap: 10px;
+            width: -webkit-fill-available;
+
+            background: #353A49;
+
+            &>.searchInput {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                border: none;
+                background: none;
+                padding-left: 53px;
+
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 700;
+                font-size: 16px;
+                line-height: 140%;
+                transition: var(--transition);
+
+                &::placeholder {
+                    transition: var(--transition);
+                    color: #575b6d;
+                }
+
+                color: #FFFFFF;
+
+                &:focus {
+                    outline: none;
+                    padding-left: 23px;
+                    background: #3c4152;
+
+                    &::placeholder {
+                        color: #595f74 !important;
+                    }
+                }
+
+                &:hover {
+                    padding-left: 23px;
+                    background: #3c4152;
+
+                    &::placeholder {
+                        color: #6f778f;
+                    }
+                }
+            }
+
+            &>.searchLabel {
+                position: absolute;
+                right: 30px;
+                background: #272a35;
+                padding: 6px 18px;
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 800;
+                font-size: 12px;
+                line-height: 18px;
+                border-radius: 30px;
+            }
+        }
+
+        &>.toolbarButton {
+            cursor: pointer;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 14px;
+            gap: 10px;
+            border: none;
+            background: #353A49;
+            transition: var(--transition);
+
+            &:disabled {
+                cursor: not-allowed;
+                opacity: 0.5;
+                background: #3c4152;
+
+                &:hover {
+                    background: #3c4152;
+                }
+            }
+
+            &:hover {
+                background: #3c4152;
+            }
+        }
+    }
+}
 
 .containerSearch {
     box-sizing: border-box;
@@ -96,12 +225,33 @@
     padding: 0px;
     gap: 15px;
 
-    &>.labelSelection {
-        font-weight: 700;
-        font-size: 16px;
-        line-height: 18px;
+    &>.selectionContainerLable {
+        display: flex;
+        flex-direction: row;
+        justify-content: center;
+        align-items: center;
+        padding: 0px;
+        gap: 5px;
 
-        color: #FFFFFF;
+        width: -webkit-fill-available;
+
+        &>.labelSelection {
+            font-family: 'Nunito Sans';
+            font-style: normal;
+            font-weight: 700;
+            font-size: 18px;
+            line-height: 18px;
+
+            color: #6A728A;
+        }
+
+        &>.line {
+            width: -webkit-fill-available;
+            height: 3px;
+
+            background: #6A728A;
+            border-radius: 20px;
+        }
     }
 }
 

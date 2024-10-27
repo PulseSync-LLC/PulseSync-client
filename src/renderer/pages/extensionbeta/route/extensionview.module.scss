@@ -12,6 +12,16 @@
     width: -webkit-fill-available;
     background-size: 100% !important;
     background-position: 50% 50% !important;
+    position: relative;
+
+    &::after {
+      content: "";
+      background: #1e2027;
+      width: -webkit-fill-available;
+      height: 1px;
+      position: absolute;
+      bottom: 0;
+    }
 
     &>.navContainer {
       display: flex;

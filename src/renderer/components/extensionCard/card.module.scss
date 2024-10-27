@@ -1,136 +1,369 @@
+// .extensionCard {
+//     height: 267px;
+//     border-radius: 8px;
+//     position: relative;
+//     padding: 24px;
+//     cursor: pointer;
+//     outline: 1px solid var(--BorderColor);
+//     background-size: cover;
+//     background-position: 50% 0% !important;
+
+//     &:hover {
+//         background-position: 50% 0% !important;
+//         outline: 1px solid #5d6480;
+
+//         &>.imageOverlay {
+//             gap: 8px;
+
+//             &>.leftOrig{
+//                 gap: 12px;
+//                 &>.themeImage {
+//                     width: 40px;
+//                     height: 40px;
+//                 }
+//             }
+//         }
+
+//         &>.themeDescription {
+//             -webkit-line-clamp: 7;
+//         }
+//     }
+
+//     &>.imageOverlay {
+//         display: flex;
+//         flex-direction: row;
+//         align-items: flex-start;
+//         padding: 0px 0px 16px;
+//         gap: 16px;
+//         width: 100%;
+//         transition: var(--transition);
+
+//         &>.leftOrig {
+//             display: flex;
+//             flex-direction: column;
+//             align-items: flex-start;
+
+//             gap: 24px;
+//             width: 100%;
+//             transition: var(--transition);
+
+//             &>.themeImage {
+//                 transition: var(--transition);
+//                 width: 55px;
+//                 height: 55px;
+//                 border-radius: 6px;
+//             }
+
+//             &>.detailTop {
+//                 display: flex;
+//                 flex-direction: column;
+//                 justify-content: center;
+//                 align-items: flex-start;
+
+//                 width: 100%;
+
+//                 &>.themeTitle {
+//                     width: 132px;
+
+//                     font-weight: 700;
+//                     font-size: 18px;
+//                     line-height: 23px;
+
+//                     display: flex;
+//                     align-items: center;
+
+//                     color: #FFFFFF;
+
+//                     mix-blend-mode: normal;
+
+//                     flex: none;
+//                     order: 1;
+//                     align-self: stretch;
+//                     flex-grow: 0;
+//                     text-wrap: nowrap;
+//                 }
+
+//                 &>.themeAuthor {
+//                     width: 132px;
+
+//                     font-weight: 400;
+//                     font-size: 12px;
+//                     line-height: 18px;
+
+//                     display: flex;
+//                     align-items: center;
+
+//                     color: #BBC3DE;
+
+//                     mix-blend-mode: normal;
+
+//                     flex: none;
+//                     order: 3;
+//                     align-self: stretch;
+//                     flex-grow: 0;
+//                     text-wrap: nowrap;
+//                 }
+//             }
+//         }
+
+//         &>.rightOrig {
+//             font-weight: 400;
+//             font-size: 12px;
+//             line-height: 18px;
+//             display: flex;
+//             align-items: flex-end;
+//             text-wrap: nowrap;
+//             color: #BBC3DE;
+//             position: absolute;
+//             right: 24px;
+//             flex-direction: column;
+//         }
+//     }
+
+//     &>.themeDescription {
+//         transition: var(--transition);
+//         width: 100%;
+//         font-weight: 400;
+//         font-size: 14px;
+//         line-height: 21px;
+//         color: #FFFFFF;
+//         display: -webkit-box;
+//         -webkit-line-clamp: 6;
+//         -webkit-box-orient: vertical;
+//         overflow: hidden;
+//         text-overflow: ellipsis;
+//     }
+// }
+
+
 .extensionCard {
-    height: 267px;
-    border-radius: 8px;
-    position: relative;
-    padding: 24px;
     cursor: pointer;
-    outline: 1px solid var(--BorderColor);
-    background-size: 170% !important;
-    background-position: 50% 50% !important;
+    transition: var(--transition);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 45px;
+    isolation: isolate;
+
+    width: 309px;
+    height: 338px;
+
+    background: #292C36;
+    border-radius: 8px;
+    overflow: hidden;
+    outline: 0px solid transparent;
 
     &:hover {
-        background-size: 150% !important;
-        outline: 1px solid #5d6480;
+        background: #2f323d;
+        outline: 4px solid #6A728A;
+        box-shadow: 0px 0px 15px #6A728A !important;
 
-        &>.imageOverlay {
+        &>.imageBanner {
+            background-size: 120%;
+        }
+
+        &>.themeImage {
+            width: 90px;
+            height: 90px;
+        }
+
+        &>.metadataInfoContainer>.metadataInfo>.detailInfo {
+            width: 100% !important;
+            padding: 2px 10px;
+        }
+    }
+
+    &>.imageBanner {
+        transition: var(--transition);
+        width: -webkit-fill-available;
+        height: -webkit-fill-available;
+
+        border-radius: 8px;
+
+        background-position: 50% 50% !important;
+        background-size: 100%;
+        background-repeat: no-repeat !important;
+    }
+
+    &>.themeImage {
+        transition: var(--transition);
+        position: absolute;
+        width: 80px;
+        height: 80px;
+        left: 15px;
+        bottom: 150px;
+
+        outline: 7px solid #292C36;
+        border-radius: 12px;
+
+        background-position: 50% 50% !important;
+        background-size: cover;
+        background-repeat: no-repeat !important;
+    }
+
+    &>.metadataInfoContainer {
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding: 0px;
+
+        position: absolute;
+        width: -webkit-fill-available;
+        left: 15px;
+        right: 15px;
+        top: 10px;
+
+        &>.metadataInfo {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+
+            &>.detailInfo {
+                transition: var(--transition);
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                padding: 2px 0px;
+                gap: 8px;
+                max-width: fit-content;
+                width: 0%;
+                overflow: hidden;
+
+                background: rgba(0, 0, 0, 0.603);
+                backdrop-filter: blur(2.5px);
+                border-radius: 36px;
+
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 900;
+                font-size: 10px;
+                line-height: 14px;
+
+                display: flex;
+                align-items: center;
+                text-transform: uppercase;
+
+                color: #FFFFFF;
+
+                display: -webkit-box;
+                -webkit-line-clamp: 1;
+                -webkit-box-orient: vertical;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+        }
+
+        &>.themeLocation {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 2px 10px;
             gap: 8px;
+            width: fit-content;
 
-            &>.leftOrig{
-                gap: 12px;
-                &>.themeImage {
-                    width: 40px;
-                    height: 40px;
-                }
+            background: rgba(21, 44, 94, 0.76);
+            backdrop-filter: blur(2.5px);
+            border-radius: 36px;
+
+            font-family: 'Nunito Sans';
+            font-style: normal;
+            font-weight: 900;
+            font-size: 10px;
+            line-height: 14px;
+
+            display: flex;
+            align-items: center;
+            text-transform: uppercase;
+
+            color: #FFFFFF;
+        }
+    }
+
+    .triggerContextMenu {
+        transition: var(--transition);
+        background: #2f323d;
+        border-radius: 8px 8px 0 0;
+        height: 20px;
+        position: absolute;
+        bottom: 0;
+        left: 0px;
+        right: 0px;
+        width: fit-content;
+        min-width: 50%;
+        z-index: 999;
+        position-area: bottom;
+
+        &:hover {
+            background: transparent;
+            width: fit-content;
+            min-width: 100%;
+            &>.line {
+                border: 2px solid #6a728a56;
+            }
+        }
+
+        &>.line {
+            width: 25%;
+            height: 0px;
+            border: 2px solid #6A728A;
+            position-area: center;
+            position: absolute;
+            border-radius: 33px;
+        }
+    }
+
+    &>.themeDetail {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0px 15px 15px;
+        gap: 5px;
+
+        width: -webkit-fill-available;
+        height: 131px;
+        min-height: 131px;
+
+        &>.detailTop {
+            display: flex;
+            flex-direction: column;
+
+            &>.themeName {
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 600;
+                font-size: 26px;
+                line-height: 35px;
+
+                color: #FFFFFF;
+            }
+
+            &>.themeAuthor {
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 400;
+                font-size: 12px;
+                line-height: 18px;
+
+                color: #BBC3DE;
             }
         }
 
         &>.themeDescription {
-            -webkit-line-clamp: 7;
-        }
-    }
-
-    &>.imageOverlay {
-        display: flex;
-        flex-direction: row;
-        align-items: flex-start;
-        padding: 0px 0px 16px;
-        gap: 16px;
-        width: 100%;
-        transition: var(--transition);
-
-        &>.leftOrig {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-
-            gap: 24px;
-            width: 100%;
-            transition: var(--transition);
-
-            &>.themeImage {
-                transition: var(--transition);
-                width: 55px;
-                height: 55px;
-                border-radius: 6px;
-            }
-
-            &>.detailTop {
-                display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: flex-start;
-
-                width: 100%;
-
-                &>.themeTitle {
-                    width: 132px;
-
-                    font-weight: 700;
-                    font-size: 18px;
-                    line-height: 23px;
-
-                    display: flex;
-                    align-items: center;
-
-                    color: #FFFFFF;
-
-                    mix-blend-mode: normal;
-
-                    flex: none;
-                    order: 1;
-                    align-self: stretch;
-                    flex-grow: 0;
-                    text-wrap: nowrap;
-                }
-
-                &>.themeAuthor {
-                    width: 132px;
-
-                    font-weight: 400;
-                    font-size: 12px;
-                    line-height: 18px;
-
-                    display: flex;
-                    align-items: center;
-
-                    color: #BBC3DE;
-
-                    mix-blend-mode: normal;
-
-                    flex: none;
-                    order: 3;
-                    align-self: stretch;
-                    flex-grow: 0;
-                    text-wrap: nowrap;
-                }
-            }
-        }
-
-        &>.rightOrig {
+            font-family: "Nunito Sans";
+            font-style: normal;
             font-weight: 400;
-            font-size: 12px;
-            line-height: 18px;
-            display: flex;
-            align-items: flex-end;
-            text-wrap: nowrap;
-            color: #BBC3DE;
-            position: absolute;
-            right: 24px;
-            flex-direction: column;
+            font-size: 14px;
+            line-height: 140%;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            color: #CFD6EA;
         }
     }
 
-    &>.themeDescription {
-        transition: var(--transition);
-        width: 100%;
-        font-weight: 400;
-        font-size: 14px;
-        line-height: 21px;
-        color: #FFFFFF;
-        display: -webkit-box;
-        -webkit-line-clamp: 6;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
 }

@@ -10,7 +10,7 @@ interface Props {
     isChecked: boolean;
     onCheckboxChange: (themeName: string, isChecked: boolean) => void;
     exportTheme: (themeName: string) => void;
-    onDelete: (themeName: string) => void,
+    onDelete: (themeName: string) => void;
     children?: any;
     className?: string;
     style?: CSSProperties;
@@ -33,7 +33,10 @@ const ExtensionCard: React.FC<Props> = ({
     const [contextMenuVisible, setContextMenuVisible] = useState(false);
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
     const [clickEnabled, setClickEnabled] = useState(true);
+    const [cardHeight, setCardHeight] = useState('20px');
     const cardRef = useRef<HTMLDivElement | null>(null);
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [isFadingOut, setIsFadingOut] = useState(false);
 
     const formatPath = (path: string) => {
         return encodeURI(path.replace(/\\/g, '/'));
@@ -75,54 +78,108 @@ const ExtensionCard: React.FC<Props> = ({
         }
     };
 
-    const handleRightClick = (event: React.MouseEvent) => {
-        event.preventDefault();
-        if (cardRef.current) {
-            setMenuPosition({ x: 0, y: 0 });
-            setContextMenuVisible(true);
-            setClickEnabled(false);
+    const handleMouseEnter = () => {
+        timerRef.current = setTimeout(() => {
+            if (cardRef.current) {
+                setMenuPosition({ x: 0, y: 0 });
+                setContextMenuVisible(true);
+                setClickEnabled(false);
+                setCardHeight('70px');
+            }
+        }, 500);
+    };
+
+    const handleMouseLeave = () => {
+        if (timerRef.current) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
         }
+        closeContextMenu();
     };
 
     const closeContextMenu = () => {
-        setContextMenuVisible(false);
-        setClickEnabled(true);
-    };
+        setIsFadingOut(true);
+        setCardHeight('20px');
+        setTimeout(() => {
+            setContextMenuVisible(false);
+            setClickEnabled(true);
+            setIsFadingOut(false);
+        }, 300);
+    };    
+
 
     return (
         <div
             ref={cardRef}
             className={`${className} ${styles.extensionCard}`}
             onClick={handleClick}
-            onContextMenu={handleRightClick}
-            style={{
-                backgroundImage: `linear-gradient(0deg, #292C36 0%, rgba(41, 44, 54, 0.9) 100%), url(${bannerSrc})`,
-            }}
+            onMouseLeave={handleMouseLeave}
         >
-            <div className={styles.imageOverlay}>
-                <div className={styles.leftOrig}>
-                    <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
-                    <div className={styles.detailTop}>
-                        <span className={styles.themeTitle}>{theme.name}</span>
-                        <span className={styles.themeAuthor}>By {theme.author}</span>
-                    </div>
+            <div
+                className={styles.imageBanner}
+                style={{
+                    backgroundImage: `url(${bannerSrc})`,
+                }}
+            />
+            <div className={styles.metadataInfoContainer}>
+                <div className={styles.metadataInfo}>
+                    <div className={styles.detailInfo}>V{theme.version}</div>
+                    <div className={styles.detailInfo}>{theme.lastModified}</div>
                 </div>
-                <div className={styles.rightOrig}>
-                    <div>(local) ver. {theme.version}</div>
-                    <div>{theme.lastModified}</div>
-                </div>
+                <div className={styles.themeLocation}>(local)</div>
             </div>
-            <span className={styles.themeDescription}>
-                {theme.description}
-            </span>
-            {contextMenuVisible && (
-                <ContextMenu
-                    items={createActions(theme.name, onCheckboxChange, exportTheme, onDelete, isChecked)}
-                    position={menuPosition}
-                    onClose={closeContextMenu}
-                />
-            )}
+            <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
+            <div className={styles.themeDetail}>
+                <div className={styles.detailTop}>
+                    <span className={styles.themeName}>{theme.name}</span>
+                    <span className={styles.themeAuthor}>By {theme.author}</span>
+                </div>
+                <div className={styles.themeDescription}>{theme.description}</div>
+            </div>
+            <div
+                className={styles.triggerContextMenu}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+                style={{ height: cardHeight, ...style }}
+            >
+                <div className={styles.line}></div>
+                {contextMenuVisible && (
+                    <ContextMenu
+                        items={createActions(theme.name, onCheckboxChange, exportTheme, onDelete, isChecked)}
+                        position={menuPosition}
+                        onClose={closeContextMenu}
+                        isFadingOut={isFadingOut}
+                        setIsFadingOut={setIsFadingOut}
+                    />
+                )}
+            </div>
         </div>
+        // <div
+        //     ref={cardRef}
+        //     className={`${className} ${styles.extensionCard}`}
+        //     onClick={handleClick}
+        //     onContextMenu={handleRightClick}
+        //     style={{
+        //         backgroundImage: `linear-gradient(0deg, #292C36 0%, rgba(41, 44, 54, 0.9) 100%), url(${bannerSrc})`,
+        //     }}
+        // >
+        //     <div className={styles.imageOverlay}>
+        //         <div className={styles.leftOrig}>
+        //             <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
+        //             <div className={styles.detailTop}>
+        //                 <span className={styles.themeTitle}>{theme.name}</span>
+        //                 <span className={styles.themeAuthor}>By {theme.author}</span>
+        //             </div>
+        //         </div>
+        //         <div className={styles.rightOrig}>
+        //             <div>(local) ver. {theme.version}</div>
+        //             <div>{theme.lastModified}</div>
+        //         </div>
+        //     </div>
+        //     <span className={styles.themeDescription}>
+        //         {theme.description}
+        //     </span>
+        // </div>
     );
 };
 

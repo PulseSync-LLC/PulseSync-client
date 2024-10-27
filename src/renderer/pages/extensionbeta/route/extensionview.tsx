@@ -34,7 +34,7 @@ const ExtensionViewPage: React.FC = () => {
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
 
-        const targetOpacity = isExpanded ? 60 : 90;
+        const targetOpacity = isExpanded ? 45 : 90;
         const step = isExpanded ? -1 : 1;
 
         const animateOpacity = () => {
@@ -111,7 +111,7 @@ const ExtensionViewPage: React.FC = () => {
                                     className={ex.bannerBackground}
                                     style={{
                                         transition: 'background-image 0.5s ease, gap 0.5s ease',
-                                        backgroundImage: `linear-gradient(0deg, #1E2027 0%, rgb(30 32 39 / ${opacity}%) ${opacity}%), url(${bannerSrc})`,
+                                        backgroundImage: `linear-gradient(0deg, rgb(30, 32, 39) 0%, rgb(30 32 39 / ${opacity}%) ${opacity}%), url(${bannerSrc})`,
                                         backgroundSize: 'cover',
                                         gap: isExpanded ? '200px' : '0px',
                                     }}
