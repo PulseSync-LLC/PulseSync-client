@@ -150,7 +150,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     <div className={ex.rating}>⭐️⭐️⭐️⭐️⭐️</div>
                                                     <div className={ex.authorInfo}>
                                                         {theme.author && <div>{theme.author}</div>} - {theme.lastModified && (
-                                                            <div>{theme.lastModified}</div>
+                                                            <div>Last update: {theme.lastModified}</div>
                                                         )}
                                                     </div>
                                                 </div>
