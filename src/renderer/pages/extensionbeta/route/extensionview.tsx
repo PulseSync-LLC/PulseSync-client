@@ -16,8 +16,8 @@ const ExtensionViewPage: React.FC = () => {
     const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png');
     const [selectedTheme, setSelectedTheme] = useState(window.electron.store.get('theme') || 'Default');
     const [isThemeEnabled, setIsThemeEnabled] = useState(selectedTheme !== 'Default');
-    const [isExpanded, setIsExpanded] = useState(true);
-    const [opacity, setOpacity] = useState(90);
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [height, setHeight] = useState(84);
 
     const toggleTheme = () => {
         const newTheme = isThemeEnabled ? 'Default' : theme.name;
@@ -34,14 +34,14 @@ const ExtensionViewPage: React.FC = () => {
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
 
-        const targetOpacity = isExpanded ? 45 : 90;
+        const targetHeight = isExpanded ? 277 : 84;
         const step = isExpanded ? -1 : 1;
 
         const animateOpacity = () => {
-            setOpacity((prev) => {
-                if ((step < 0 && prev <= targetOpacity) || (step > 0 && prev >= targetOpacity)) {
+            setHeight((prev) => {
+                if ((step < 0 && prev <= targetHeight) || (step > 0 && prev >= targetHeight)) {
                     clearInterval(interval!);
-                    return targetOpacity;
+                    return targetHeight;
                 }
                 return prev + step;
             });
@@ -110,117 +110,104 @@ const ExtensionViewPage: React.FC = () => {
                                 <div
                                     className={ex.bannerBackground}
                                     style={{
-                                        transition: 'background-image 0.5s ease, gap 0.5s ease',
-                                        backgroundImage: `linear-gradient(0deg, rgb(30, 32, 39) 0%, rgb(30 32 39 / ${opacity}%) ${opacity}%), url(${bannerSrc})`,
+                                        transition: 'height 0.5s ease, gap 0.5s ease',
+                                        backgroundImage: `url(${bannerSrc})`,
                                         backgroundSize: 'cover',
-                                        gap: isExpanded ? '200px' : '0px',
+                                        height: `${height}px`,
                                     }}
                                 >
-                                    <div
-                                        className={ex.navContainer}
-                                        style={{
-                                            transition: 'all 0.5s ease, gap 0.5s ease',
-                                            width: '100%',
-                                            background: isExpanded ? 'rgb(30 32 39 / 92%)' : 'rgb(30 32 39 / 0%)',
-                                            padding: isExpanded ? '15px 30px' : '15px 30px 0px'
-                                        }}>
-                                        <NavLink className={ex.navLink} to="/extensionbeta">
-                                            Extension
-                                        </NavLink>
-                                        <div className={ex.navText}>
-                                            <MdKeyboardArrowRight />
-                                            {theme.name || 'Название недоступно'}
-                                        </div>
-                                    </div>
-                                    <div className={ex.imageContainer}>
-                                        <img
-                                            className={ex.themeImage}
-                                            src={`${theme.path}/${theme.image}`}
-                                            alt={`${theme.name} image`}
-                                            width="100"
-                                            height="100"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).src = 'static/assets/images/no_themeImage.png';
-                                            }}
-                                        />
-                                        <div className={ex.themeInfo}>
-                                            <div className={ex.themeHeader}>
-                                                <div className={ex.themeTitle}>
-                                                    {theme.name || 'Название недоступно'}
-                                                    <div className={ex.rating}>⭐️⭐️⭐️⭐️⭐️</div>
-                                                    <div className={ex.authorInfo}>
-                                                        {theme.author && <div>{theme.author}</div>} - {theme.lastModified && (
-                                                            <div>Last update: {theme.lastModified}</div>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className={ex.buttonGroup}>
-                                                    <Button
-                                                        className={ex.defaultButton}
-                                                        onClick={selectedTheme !== theme.name ? handleEnableTheme : toggleTheme}
-                                                    >
-                                                        {selectedTheme !== theme.name ? 'Включить' : (isThemeEnabled ? 'Выключить' : 'Включить')}
-                                                    </Button>
-
-                                                    <Button className={ex.miniButton} disabled>
-                                                        <MdBookmarkBorder size={20} />
-                                                    </Button>
-                                                </div>
+                                    <Button className={ex.hideButton} onClick={toggleExpand}>
+                                        <MdKeyboardArrowDown size={20} style={isExpanded ? { 'transition': 'var(--transition)', 'rotate': '180deg' } : { 'transition': 'var(--transition)', 'rotate': '0deg' }} />
+                                    </Button>
+                                </div>
+                                <div className={ex.themeInfo}>
+                                    <div className={ex.themeHeader}>
+                                        <div className={ex.containerLeft}>
+                                            <img
+                                                className={ex.themeImage}
+                                                src={`${theme.path}/${theme.image}`}
+                                                alt={`${theme.name} image`}
+                                                width="100"
+                                                height="100"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = 'static/assets/images/no_themeImage.png';
+                                                }}
+                                            />
+                                            <div className={ex.themeTitle}>
+                                                <div className={ex.titleContainer}>
+                                                    <NavLink className={ex.path} to="/extensionbeta">
+                                                        Extension
+                                                    </NavLink>
+                                                    /
+                                                    <div className={ex.title}>
+                                                        { theme.name || 'Название недоступно' }
+                                                        </div>
+                                                <Button className={ex.addFavorite} disabled>
+                                                    <MdBookmarkBorder size={20} />
+                                                </Button>
                                             </div>
-                                            <div className={ex.rightContainer}>
-                                                <div className={ex.detailsContainer}>
-                                                    <div className={ex.detailInfo}>
-                                                        {theme.version && (
-                                                            <div className={ex.box}>
-                                                                <MdDesignServices /> {theme.version}
-                                                            </div>
-                                                        )}
-                                                        {theme.size !== undefined && (
-                                                            <div className={ex.box}>
-                                                                <MdFolder /> {theme.size}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    <div className={ex.detailInfo}>
-                                                        {Array.isArray(theme.tags) && theme.tags.length > 0 && (
-                                                            theme.tags.map((tag) => {
-                                                                return (
-                                                                    <Button
-                                                                        key={tag}
-                                                                        className={ex.tag}
-                                                                        onClick={() => {
-                                                                            handleTagChange(tag);
-                                                                        }}
-                                                                    >
-                                                                        {tag}
-                                                                    </Button>
-                                                                );
-                                                            })
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div className={ex.miniButtonsContainer}>
-                                                    <Button className={ex.miniButton} onClick={toggleExpand}>
-                                                        <MdKeyboardArrowDown size={20} style={isExpanded ? { 'transition': 'var(--transition)', 'rotate': '180deg' } : { 'transition': 'var(--transition)', 'rotate': '0deg' }} />
-                                                    </Button>
-                                                    <Button className={ex.miniButton}>
-                                                        <MdMoreHoriz size={20} />
-                                                    </Button>
-                                                </div>
+                                            <div className={ex.authorInfo}>
+                                                {theme.author && <div>{theme.author}</div>} - {theme.lastModified && (
+                                                    <div>Last update: {theme.lastModified}</div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div className={ex.galleryContainer}>
-                                    <div className={ex.galleryBox}>
-                                        Галерея
-                                        <div className={ex.comingSoon}>Скоро</div>
-                                    </div>
-                                    <div className={ex.galleryBox}>
-                                        Описание
-                                        <div className={ex.descriptionText}>
-                                            {theme.description && <div>{theme.description}</div>}
+                                <div className={ex.rightContainer}>
+                                    <div className={ex.detailsContainer}>
+                                        <div className={ex.detailInfo}>
+                                            {theme.version && (
+                                                <div className={ex.box}>
+                                                    <MdDesignServices /> {theme.version}
+                                                </div>
+                                            )}
+                                            {theme.size !== undefined && (
+                                                <div className={ex.box}>
+                                                    <MdFolder /> {theme.size}
+                                                </div>
+                                            )}
                                         </div>
+                                        <div className={ex.detailInfo}>
+                                            {Array.isArray(theme.tags) && theme.tags.length > 0 && (
+                                                theme.tags.map((tag) => {
+                                                    return (
+                                                        <Button
+                                                            key={tag}
+                                                            className={ex.tag}
+                                                            onClick={() => {
+                                                                handleTagChange(tag);
+                                                            }}
+                                                        >
+                                                            {tag}
+                                                        </Button>
+                                                    );
+                                                })
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className={ex.miniButtonsContainer}>
+                                        <Button
+                                            className={`${ex.defaultButton } ${selectedTheme !== theme.name ? "" : ex.defaultButtonActive}`}
+                                            onClick={selectedTheme !== theme.name ? handleEnableTheme : toggleTheme}
+                                        >
+                                            {selectedTheme !== theme.name ? 'Включить' : (isThemeEnabled ? 'Выключить' : 'Включить')}
+                                        </Button>
+                                        <Button className={ex.miniButton}>
+                                            <MdMoreHoriz size={20} />
+                                        </Button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className={ex.galleryContainer}>
+                                <div className={ex.galleryBox}>
+                                    Галерея
+                                    <div className={ex.comingSoon}>Скоро</div>
+                                </div>
+                                <div className={ex.galleryBox}>
+                                    Описание
+                                    <div className={ex.descriptionText}>
+                                        {theme.description && <div>{theme.description}</div>}
                                     </div>
                                 </div>
                             </div>
@@ -228,7 +215,8 @@ const ExtensionViewPage: React.FC = () => {
                     </div>
                 </div>
             </div>
-        </Layout>
+        </div>
+        </Layout >
     );
 };
 
