@@ -279,7 +279,7 @@ class Patcher {
                     'enableWebSecurity: false',
                 );
 
-                fs.writeFileSync(configPathWeb, websecReplace);
+                fs.writeFileSync(configPath, websecReplace);
 
                 let configPathUpdate = fs.readFileSync(configPath, 'utf8');
                 let updateReplace = configPathUpdate.replace(
@@ -287,7 +287,7 @@ class Patcher {
                     'enableUpdateByProbability: false',
                 );
 
-                fs.writeFileSync(configPathUpdate, updateReplace);
+                fs.writeFileSync(configPath, updateReplace);
                 console.log(`Added script to ${configPath}`);
             }
 
