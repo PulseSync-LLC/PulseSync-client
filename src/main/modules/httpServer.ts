@@ -3,7 +3,7 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
 import { mainWindow } from '../../index'
-import {authorized} from "../events";
+import { authorized } from "../events";
 import isAppDev from "electron-is-dev";
 import logger from "./logger";
 
@@ -114,7 +114,7 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
 
     if (req.method === 'GET' && req.url === '/get_theme') {
         try {
-            if(authorized || isAppDev) {
+            if (authorized || isAppDev) {
                 const themesPath = path.join(
                     app.getPath('appData'),
                     'PulseSync',
@@ -142,7 +142,7 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
                         cssContent = fs.readFileSync(styleCSS, 'utf8')
                     }
 
-                    res.writeHead(200, {'Content-Type': 'application/json'})
+                    res.writeHead(200, { 'Content-Type': 'application/json' })
                     res.end(
                         JSON.stringify({
                             ok: true,
@@ -153,10 +153,10 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
                     return
                 }
 
-                res.writeHead(404, {'Content-Type': 'application/json'})
-                res.end(JSON.stringify({error: 'Metadata not found'}))
+                res.writeHead(404, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ error: 'Metadata not found' }))
             } else {
-                res.writeHead(200, {'Content-Type': 'application/json'})
+                res.writeHead(200, { 'Content-Type': 'application/json' })
                 res.end(
                     JSON.stringify({
                         ok: true,
@@ -172,6 +172,33 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
             res.end(JSON.stringify({ error: 'Error reading theme files' }))
         }
         return
+    }
+
+    if (req.method === 'GET' && req.url === '/get_handle') {
+        try {
+            const handleEventsPath = path.join(
+                app.getPath('appData'),
+                'PulseSync',
+                'themes',
+                selectedTheme,
+                'handleEvents.json'
+            );
+
+            if (fs.existsSync(handleEventsPath)) {
+                const handleEventsData = JSON.parse(fs.readFileSync(handleEventsPath, 'utf8'));
+
+                res.writeHead(200, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ ok: true, data: handleEventsData }));
+            } else {
+                res.writeHead(404, { 'Content-Type': 'application/json' });
+                res.end(JSON.stringify({ error: 'Handle events data not found' }));
+            }
+        } catch (error) {
+            console.error('Error reading handle events:', error);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: 'Error reading handle events' }));
+        }
+        return;
     }
 
     if (req.method === 'GET' && req.url === '/assets') {
