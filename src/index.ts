@@ -411,6 +411,50 @@ ipcMain.handle('getThemes', async () => {
     }
 })
 
+ipcMain.handle('check-file-exists', async (_, filePath) => {
+    return await fs.promises.access(filePath)
+        .then(() => true)
+        .catch(() => false);
+});
+
+ipcMain.handle('read-file', async (_, filePath) => {
+    try {
+        const data = await fs.promises.readFile(filePath, 'utf8');
+        return data;
+    } catch (error) {
+        console.error('Ошибка при чтении файла:', error);
+        return null;
+    }
+});
+
+const formatJson = (data: any) => JSON.stringify(data, null, 4);
+
+ipcMain.handle('create-config-file', async (_, filePath, defaultContent) => {
+    try {
+        await fs.promises.writeFile(filePath, formatJson(defaultContent), 'utf8');
+        return { success: true };
+    } catch (error) {
+        console.error('Ошибка при создании файла конфигурации:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+ipcMain.handle('write-file', async (_, filePath, data) => {
+    try {
+        if (typeof data === 'string') {
+            fs.writeFileSync(filePath, data, 'utf8');
+        } else {
+            fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+        }
+        console.log('Файл успешно записан:', filePath);
+        return { success: true };
+    } catch (error) {
+        console.error('Ошибка при записи файла:', error);
+        return { success: false, error: error.message };
+    }
+});
+
+
 ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {

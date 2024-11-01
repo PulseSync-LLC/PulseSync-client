@@ -342,6 +342,29 @@ function _app() {
     
         window.desktopEvents?.on('open-theme', handleOpenTheme);
     }, []);
+
+    useEffect(() => {
+        const handleCheckFileExists = async (filePath: string) => {
+            return await window.desktopEvents?.invoke('check-file-exists', filePath);
+        };
+
+        const handleReadFile = async (filePath: string) => {
+            return await window.desktopEvents?.invoke('read-file', filePath);
+        };
+
+        const handleCreateConfigFile = async (filePath: string, defaultContent: object) => {
+            return await window.desktopEvents?.invoke('create-config-file', filePath, defaultContent);
+        };
+
+        const handleWriteFile = async (filePath: string, data: object) => {
+            return await window.desktopEvents?.invoke('write-file', filePath, data);
+        };
+
+        window.desktopEvents?.on('check-file-exists', handleCheckFileExists);
+        window.desktopEvents?.on('read-file', handleReadFile);
+        window.desktopEvents?.on('create-config-file', handleCreateConfigFile);
+        window.desktopEvents?.on('write-file', handleWriteFile);
+    }, []);
     
     useEffect(() => {
         if (navigateTo && navigateState) {
