@@ -128,17 +128,17 @@ const ExtensionViewPage: React.FC = () => {
         }
     }, [theme]);
 
-    const createConfigFile = async () => {
+    const createConfigFile = async () => { 
         const configPath = path.join(theme.path, 'handleEvents.json');
-        const fileExists = await window.desktopEvents.invoke('check-file-exists', configPath);
-
+        const fileExists = await window.desktopEvents.invoke('file-event', 'check-file-exists', configPath);
+    
         if (fileExists) {
-            const configContent = await window.desktopEvents.invoke('read-file', configPath);
+            const configContent = await window.desktopEvents.invoke('file-event', 'read-file', configPath);
             setThemeConfig(JSON.parse(configContent));
         } else {
             const defaultContent: ThemeConfig = { sections: [] };
-            const result = await window.desktopEvents.invoke('create-config-file', configPath, defaultContent);
-
+            const result = await window.desktopEvents.invoke('file-event', 'create-config-file', configPath, defaultContent);
+    
             if (result.success) {
                 setThemeConfig(defaultContent);
             } else {
@@ -149,10 +149,8 @@ const ExtensionViewPage: React.FC = () => {
 
     const saveConfig = async (updatedConfig: ThemeConfig) => {
         const configPath = path.join(theme.path, 'handleEvents.json');
-        const jsonString = JSON.stringify(updatedConfig, null, 4);
-
         try {
-            await window.desktopEvents.invoke('write-file', configPath, jsonString);
+            await window.desktopEvents.invoke('file-event', 'write-file', configPath, updatedConfig);
             console.log('Конфигурация успешно сохранена!');
         } catch (error) {
             console.error('Ошибка при сохранении конфигурации:', error);

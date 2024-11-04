@@ -343,27 +343,17 @@ function _app() {
         window.desktopEvents?.on('open-theme', handleOpenTheme);
     }, []);
 
+    const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
+        return await window.desktopEvents?.invoke('file-event', eventType, filePath, data);
+    };
+
     useEffect(() => {
-        const handleCheckFileExists = async (filePath: string) => {
-            return await window.desktopEvents?.invoke('check-file-exists', filePath);
-        };
-
-        const handleReadFile = async (filePath: string) => {
-            return await window.desktopEvents?.invoke('read-file', filePath);
-        };
-
-        const handleCreateConfigFile = async (filePath: string, defaultContent: object) => {
-            return await window.desktopEvents?.invoke('create-config-file', filePath, defaultContent);
-        };
-
-        const handleWriteFile = async (filePath: string, data: object) => {
-            return await window.desktopEvents?.invoke('write-file', filePath, data);
-        };
-
-        window.desktopEvents?.on('check-file-exists', handleCheckFileExists);
-        window.desktopEvents?.on('read-file', handleReadFile);
-        window.desktopEvents?.on('create-config-file', handleCreateConfigFile);
-        window.desktopEvents?.on('write-file', handleWriteFile);
+        window.desktopEvents?.on('check-file-exists', (filePath) => invokeFileEvent('check-file-exists', filePath));
+        window.desktopEvents?.on('read-file', (filePath) => invokeFileEvent('read-file', filePath));
+        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) => 
+            invokeFileEvent('create-config-file', filePath, defaultContent)
+        );
+        window.desktopEvents?.on('write-file', (filePath, data) => invokeFileEvent('write-file', filePath, data));
     }, []);
     
     useEffect(() => {
