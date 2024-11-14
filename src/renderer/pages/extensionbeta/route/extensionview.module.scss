@@ -298,12 +298,14 @@
     }
 
     &>.settingsContent {
-      width: -webkit-fill-available;
+      height: 20vh;
       display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      padding: 15px 30px;
-      gap: 20px;
+      width: -webkit-fill-available;
+      justify-content: center;
+      color: white;
+      font-size: larger;
+      font-weight: 700;
+      align-items: center;
       animation: showSettingsContent 0.5s ease-in-out forwards;
 
       &>.section {
@@ -717,6 +719,10 @@
 
 .activeEdit {
   background: #3468F2;
+  
+  &:hover {
+    background: #3c6ef7;
+  }
 }
 
 input[type="color"] {
