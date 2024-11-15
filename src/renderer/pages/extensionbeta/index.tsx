@@ -1,5 +1,3 @@
-// extensionbeta/index.tsx
-
 import Layout from '../../components/layout';
 import * as styles from '../../../../static/styles/page/index.module.scss';
 import * as theme from './extension.module.scss';
@@ -22,17 +20,19 @@ export default function ExtensionPage() {
     const { themes, setThemes } = useContext(userContext);
     const [maxThemesCount, setMaxThemesCount] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
-    const [hideEnabled, setHideEnabled] = useState(false);
-    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set());
+    const [hideEnabled, setHideEnabled] = useState(window.electron.store.get('themes.hideEnabled') || false);
     const [filterVisible, setFilterVisible] = useState(false);
 
-    const [columnsCount, setColumnsCount] = useState(3);
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(
+        new Set(window.electron.store.get('themes.selectedTags') || [])
+    );
+    const [columnsCount, setColumnsCount] = useState(
+        window.electron.store.get('themes.columnsCount') || 3
+    );
 
     const handleFilterHover = () => setFilterVisible(true);
     const handleFilterLeave = () => setFilterVisible(false);
-
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0);
-
 
     const loadThemes = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
@@ -45,7 +45,6 @@ export default function ExtensionPage() {
         }
     };
 
-
     useEffect(() => {
         loadThemes();
     }, []);
@@ -55,7 +54,6 @@ export default function ExtensionPage() {
         loadThemes();
         toast.success("Темы перезагружены");
     };
-
 
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
         const newTheme = isChecked ? themeName : 'Default';
@@ -141,12 +139,9 @@ export default function ExtensionPage() {
 
     const enabledThemes = getFilteredThemes(selectedTheme);
     const disabledThemes = getFilteredThemes('other');
-
     const filteredEnabledThemes = hideEnabled ? [] : enabledThemes;
     const filteredDisabledThemes = hideEnabled ? disabledThemes : disabledThemes;
-
     const allTags = Array.from(new Set(themes.flatMap(theme => theme.tags || [])));
-
     const tagCounts = allTags.reduce((acc, tag) => {
         acc[tag] = themes.filter(theme => theme.tags?.includes(tag)).length;
         return acc;
@@ -168,6 +163,12 @@ export default function ExtensionPage() {
     useEffect(() => {
         setMaxThemesCount(prevCount => Math.max(prevCount, filteredThemes.length));
     }, [filteredThemes]);
+
+    useEffect(() => {
+        window.electron.store.set('themes.selectedTags', Array.from(selectedTags));
+        window.electron.store.set('themes.columnsCount', columnsCount);
+        window.electron.store.set('themes.hideEnabled', hideEnabled);
+    }, [selectedTags, columnsCount, hideEnabled]);
 
     const handleColumnsChange = (count: number) => {
         setColumnsCount(count);
