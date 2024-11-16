@@ -5,12 +5,12 @@ import Header from './header'
 import NavButtonPulse from '../nav_button_pulse';
 import Discord from './../../../../static/assets/icons/discord.svg'
 import {
-    MdBugReport,
     MdConnectWithoutContact,
     MdDownload,
-    MdEngineering,
     MdExtension,
+    MdKeyboardArrowRight,
     MdStoreMallDirectory,
+    MdUpdate,
 } from 'react-icons/md'
 import userContext from '../../api/context/user.context'
 import hotToast from 'react-hot-toast'
@@ -103,15 +103,15 @@ const Layout: React.FC<p> = ({ title, children, goBack }) => {
                     {!app.patcher.patched && (
                         <div className={styles.alert_patch}>
                             <div className={styles.patch_container}>
-                                <img
-                                    className={styles.alert_patch_image}
-                                    src="static\assets\images\imageAlertPatch.png"
-                                    alt=""
-                                />
                                 <div className={styles.patch_detail}>
                                     <div className={styles.alert_info}>
+                                        <div className={styles.alert_version_update}>
+                                            <div className={styles.version_old}>5.10.2</div>
+                                            <MdKeyboardArrowRight size={14} />
+                                            <div className={styles.version_new}>5.10.3</div>
+                                        </div>
                                         <div className={styles.alert_title}>
-                                            Отсутствует патч!
+                                            Обновление патча
                                         </div>
                                         <div className={styles.alert_warn}>
                                             Убедитесь что Яндекс Музыка закрыта!
@@ -131,10 +131,15 @@ const Layout: React.FC<p> = ({ title, children, goBack }) => {
                                             })
                                         }}
                                     >
-                                        <MdEngineering size={20} />
-                                        Запатчить
+                                        <MdUpdate size={20} />
+                                        Обновить
                                     </button>
                                 </div>
+                                <img
+                                    className={styles.alert_patch_image}
+                                    src="static\assets\images\imageAlertPatch.png"
+                                    alt=""
+                                />
                             </div>
                         </div>
                     )}
