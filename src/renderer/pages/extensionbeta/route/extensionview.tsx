@@ -1,7 +1,7 @@
 // extensionbeta/route/extensionview.tsx
 
 import path from 'path';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Layout from '../../../components/layout';
 import * as styles from '../../../../../static/styles/page/index.module.scss';
 import * as ex from './extensionview.module.scss';
@@ -39,26 +39,37 @@ const ExtensionViewPage: React.FC = () => {
     const [isThemeEnabled, setIsThemeEnabled] = useState(selectedTheme !== 'Default');
     const [isExpanded, setIsExpanded] = useState(false);
     const [height, setHeight] = useState(84);
+    const [opacity, setOpacity] = useState(0);
     const [activeTab, setActiveTab] = useState('Overview');
     const [themeConfig, setThemeConfig] = useState<any | null>(null);
     const [isEditing, setIsEditing] = useState(false);
-
+    const [enableTransition, setEnableTransition] = useState(false);
+    
     useEffect(() => {
         const themeStates = window.electron.store.get('themes.themeIsExpanded') || {};
-
         if (!themeStates.hasOwnProperty(theme.name)) {
             themeStates[theme.name] = false;
             window.electron.store.set('themes.themeIsExpanded', themeStates);
         }
 
-        setIsExpanded(themeStates[theme.name]);
+        const initialExpandedState = themeStates[theme.name];
+        setIsExpanded(initialExpandedState);
+
+        if (initialExpandedState) {
+            setHeight(277);
+        }
+
+        setTimeout(() => {
+            setOpacity(1);
+            setEnableTransition(true);
+        }, 0);
     }, [theme]);
 
     const toggleExpand = () => {
         const newState = !isExpanded;
         setIsExpanded(newState);
 
-        const themeStates = window.electron.store.get('themeIsExpanded') || {};
+        const themeStates = window.electron.store.get('themes.themeIsExpanded') || {};
         themeStates[theme.name] = newState;
         window.electron.store.set('themes.themeIsExpanded', themeStates);
     };
@@ -76,7 +87,7 @@ const ExtensionViewPage: React.FC = () => {
         const targetHeight = isExpanded ? 277 : 84;
         const step = isExpanded ? -1 : 1;
 
-        const animateOpacity = () => {
+        const animateHeight = () => {
             setHeight((prev) => {
                 if ((step < 0 && prev <= targetHeight) || (step > 0 && prev >= targetHeight)) {
                     clearInterval(interval!);
@@ -86,7 +97,7 @@ const ExtensionViewPage: React.FC = () => {
             });
         };
 
-        interval = setInterval(animateOpacity, 5);
+        interval = setInterval(animateHeight, 5);
 
         return () => {
             if (interval) clearInterval(interval);
@@ -381,7 +392,10 @@ const ExtensionViewPage: React.FC = () => {
                                 <div
                                     className={ex.bannerBackground}
                                     style={{
-                                        transition: 'height 0.5s ease, gap 0.5s ease',
+                                        transition: enableTransition
+                                            ? 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease'
+                                            : 'none',
+                                        opacity: opacity,
                                         backgroundImage: `url(${bannerSrc})`,
                                         backgroundSize: 'cover',
                                         height: `${height}px`,
