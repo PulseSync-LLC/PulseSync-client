@@ -222,134 +222,130 @@ const ExtensionViewPage: React.FC = () => {
             case 'Settings':
                 return (
                     <>
-                        {!themeConfig ? (
-                            <div className={ex.settingsContent}>
-                                {themeConfig?.sections.map((section: Section, sectionIndex: number) => (
-                                    <div key={sectionIndex} className={ex.section}>
-                                        {isEditing ? (
-                                            <input
-                                                type="text"
-                                                className={ex.sectionTitleInput}
-                                                value={section.title}
-                                                onChange={(e) => handleChange(sectionIndex, null, 'title', e.target.value)}
-                                            />
-                                        ) : (
-                                            <div className={ex.sectionTitle}>{section.title}</div>
-                                        )}
-                                        {section.items.map((item: Item, itemIndex: number) => (
-                                            <div key={itemIndex} className={`${ex.item} ${ex[`item-${item.type}`]}`}>
-                                                {isEditing ? (
-                                                    <>
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemNameInput}
-                                                            value={item.id}
-                                                            onChange={(e) => handleChange(sectionIndex, itemIndex, 'id', e.target.value)}
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemNameInput}
-                                                            value={item.name}
-                                                            onChange={(e) => handleChange(sectionIndex, itemIndex, 'name', e.target.value)}
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemDescriptionInput}
-                                                            value={item.description}
-                                                            onChange={(e) => handleChange(sectionIndex, itemIndex, 'description', e.target.value)}
-                                                        />
-                                                    </>
+                        <div className={ex.settingsContent}>
+                            {themeConfig?.sections.map((section: Section, sectionIndex: number) => (
+                                <div key={sectionIndex} className={ex.section}>
+                                    {isEditing ? (
+                                        <input
+                                            type="text"
+                                            className={ex.sectionTitleInput}
+                                            value={section.title}
+                                            onChange={(e) => handleChange(sectionIndex, null, 'title', e.target.value)}
+                                        />
+                                    ) : (
+                                        <div className={ex.sectionTitle}>{section.title}</div>
+                                    )}
+                                    {section.items.map((item: Item, itemIndex: number) => (
+                                        <div key={itemIndex} className={`${ex.item} ${ex[`item-${item.type}`]}`}>
+                                            {isEditing ? (
+                                                <>
+                                                    <input
+                                                        type="text"
+                                                        className={ex.itemNameInput}
+                                                        value={item.id}
+                                                        onChange={(e) => handleChange(sectionIndex, itemIndex, 'id', e.target.value)}
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        className={ex.itemNameInput}
+                                                        value={item.name}
+                                                        onChange={(e) => handleChange(sectionIndex, itemIndex, 'name', e.target.value)}
+                                                    />
+                                                    <input
+                                                        type="text"
+                                                        className={ex.itemDescriptionInput}
+                                                        value={item.description}
+                                                        onChange={(e) => handleChange(sectionIndex, itemIndex, 'description', e.target.value)}
+                                                    />
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div className={ex.itemName}>{item.name}</div>
+                                                    <div className={ex.itemDescription}>{item.description}</div>
+                                                </>
+                                            )}
+                                            {item.type === 'button' && (
+                                                isEditing ? (
+                                                    <button
+                                                        disabled
+                                                        className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
+                                                    >
+                                                        {item.bool ? 'Включено' : 'Отключено'}
+                                                    </button>
                                                 ) : (
-                                                    <>
-                                                        <div className={ex.itemName}>{item.name}</div>
-                                                        <div className={ex.itemDescription}>{item.description}</div>
-                                                    </>
-                                                )}
-                                                {item.type === 'button' && (
-                                                    isEditing ? (
-                                                        <button
-                                                            disabled
-                                                            className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
-                                                        >
-                                                            {item.bool ? 'Включено' : 'Отключено'}
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
-                                                            onClick={() => handleChange(sectionIndex, itemIndex, 'bool', !item.bool)}
-                                                        >
-                                                            {item.bool ? 'Включено' : 'Отключено'}
-                                                        </button>
-                                                    )
-                                                )}
-                                                {item.type === 'color' && (
-                                                    isEditing ? (
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemColorInputText}
-                                                            value={item.input}
-                                                            onChange={(e) => handleChange(sectionIndex, itemIndex, 'input', e.target.value)}
-                                                            placeholder="#FFFFFF"
-                                                        />
-                                                    ) : (
-                                                        <input
-                                                            type="color"
-                                                            className={ex.itemColorInput}
-                                                            value={item.input}
-                                                            onChange={(e) => handleChange(sectionIndex, itemIndex, 'input', e.target.value)}
-                                                        />
-                                                    )
-                                                )}
-                                                {item.type === 'text' && item.buttons && (
-                                                    <div className={ex.itemButtons}>
-                                                        {item.buttons.map((button: { name: string; text: string }, buttonIndex: number) => (
-                                                            <div key={buttonIndex} className={ex.buttonContainer}>
-                                                                {isEditing ? (
-                                                                    <input
-                                                                        type="text"
-                                                                        className={ex.buttonNameInput}
-                                                                        value={button.name}
-                                                                        onChange={(e) => {
-                                                                            const newName = e.target.value;
-                                                                            handleButtonChange(sectionIndex, itemIndex, buttonIndex, 'name', newName); // Изменяем имя кнопки
-                                                                        }}
-                                                                    />
-                                                                ) : (
-                                                                    <div className={ex.buttonName}>{button.name}</div>
-                                                                )}
-                                                                {isEditing ? (
-                                                                    <input
-                                                                        type="text"
-                                                                        className={ex.buttonTextInput}
-                                                                        value={button.text}
-                                                                        disabled
-                                                                    />
-                                                                ) : (
-                                                                    <input
-                                                                        type="text"
-                                                                        className={ex.buttonTextInput}
-                                                                        value={button.text}
-                                                                        onChange={(e) => handleButtonChange(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)}
-                                                                    />
-                                                                )}
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                )}
-                                            </div>
-                                        ))}
-                                    </div>
-                                ))}
-                                {isEditing ? (
-                                    undefined
-                                    // <button className={ex.createParameterButton}>Создать параметр</button>
-                                ) : (
-                                    undefined
-                                )}
-                            </div>
-                        ) : (
-                            <div className={ex.settingsContent}>Настройки недоступны</div>
-                        )}
+                                                    <button
+                                                        className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
+                                                        onClick={() => handleChange(sectionIndex, itemIndex, 'bool', !item.bool)}
+                                                    >
+                                                        {item.bool ? 'Включено' : 'Отключено'}
+                                                    </button>
+                                                )
+                                            )}
+                                            {item.type === 'color' && (
+                                                isEditing ? (
+                                                    <input
+                                                        type="text"
+                                                        className={ex.itemColorInputText}
+                                                        value={item.input}
+                                                        onChange={(e) => handleChange(sectionIndex, itemIndex, 'input', e.target.value)}
+                                                        placeholder="#FFFFFF"
+                                                    />
+                                                ) : (
+                                                    <input
+                                                        type="color"
+                                                        className={ex.itemColorInput}
+                                                        value={item.input}
+                                                        onChange={(e) => handleChange(sectionIndex, itemIndex, 'input', e.target.value)}
+                                                    />
+                                                )
+                                            )}
+                                            {item.type === 'text' && item.buttons && (
+                                                <div className={ex.itemButtons}>
+                                                    {item.buttons.map((button: { name: string; text: string }, buttonIndex: number) => (
+                                                        <div key={buttonIndex} className={ex.buttonContainer}>
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    className={ex.buttonNameInput}
+                                                                    value={button.name}
+                                                                    onChange={(e) => {
+                                                                        const newName = e.target.value;
+                                                                        handleButtonChange(sectionIndex, itemIndex, buttonIndex, 'name', newName); // Изменяем имя кнопки
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <div className={ex.buttonName}>{button.name}</div>
+                                                            )}
+                                                            {isEditing ? (
+                                                                <input
+                                                                    type="text"
+                                                                    className={ex.buttonTextInput}
+                                                                    value={button.text}
+                                                                    disabled
+                                                                />
+                                                            ) : (
+                                                                <input
+                                                                    type="text"
+                                                                    className={ex.buttonTextInput}
+                                                                    value={button.text}
+                                                                    onChange={(e) => handleButtonChange(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)}
+                                                                />
+                                                            )}
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                            {isEditing ? (
+                                undefined
+                                // <button className={ex.createParameterButton}>Создать параметр</button>
+                            ) : (
+                                undefined
+                            )}
+                        </div>
                     </>
                 );
             case 'Metadata':

@@ -298,14 +298,11 @@
     }
 
     &>.settingsContent {
-      height: 20vh;
       display: flex;
-      width: -webkit-fill-available;
-      justify-content: center;
-      color: white;
-      font-size: larger;
-      font-weight: 700;
-      align-items: center;
+      flex-direction: column;
+      align-items: flex-start;
+      padding: 15px 30px;
+      gap: 20px;
       animation: showSettingsContent 0.5s ease-in-out forwards;
 
       &>.section {
