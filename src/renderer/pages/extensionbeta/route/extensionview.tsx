@@ -40,12 +40,28 @@ const ExtensionViewPage: React.FC = () => {
     const [isExpanded, setIsExpanded] = useState(false);
     const [height, setHeight] = useState(84);
     const [activeTab, setActiveTab] = useState('Overview');
-
     const [themeConfig, setThemeConfig] = useState<any | null>(null);
-
     const [isEditing, setIsEditing] = useState(false);
 
+    useEffect(() => {
+        const themeStates = window.electron.store.get('themes.themeIsExpanded') || {};
 
+        if (!themeStates.hasOwnProperty(theme.name)) {
+            themeStates[theme.name] = false;
+            window.electron.store.set('themes.themeIsExpanded', themeStates);
+        }
+
+        setIsExpanded(themeStates[theme.name]);
+    }, [theme]);
+
+    const toggleExpand = () => {
+        const newState = !isExpanded;
+        setIsExpanded(newState);
+
+        const themeStates = window.electron.store.get('themeIsExpanded') || {};
+        themeStates[theme.name] = newState;
+        window.electron.store.set('themes.themeIsExpanded', themeStates);
+    };
 
     const toggleTheme = () => {
         const newTheme = isThemeEnabled ? 'Default' : theme.name;
@@ -55,13 +71,8 @@ const ExtensionViewPage: React.FC = () => {
         setIsThemeEnabled(!isThemeEnabled);
     };
 
-    const toggleExpand = () => {
-        setIsExpanded(!isExpanded);
-    };
-
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null;
-
         const targetHeight = isExpanded ? 277 : 84;
         const step = isExpanded ? -1 : 1;
 
