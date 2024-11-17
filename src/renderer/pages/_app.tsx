@@ -33,10 +33,7 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 import Preloader from '../components/preloader'
 import { replaceParams } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
-import {
-    checkInternetAccess,
-    notifyUserRetries,
-} from '../utils/utils'
+import { checkInternetAccess, notifyUserRetries } from '../utils/utils'
 import ThemeInterface from '../api/interfaces/theme.interface'
 import userContext from '../api/context/user.context'
 import ThemeInitials from '../api/initials/theme.initials'
@@ -52,7 +49,9 @@ function _app() {
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
-    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
+    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(
+        null,
+    )
 
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
@@ -136,9 +135,7 @@ function _app() {
                         retryCount--
                         return false
                     } else {
-                        toast.error(
-                            'Превышено количество попыток подключения.',
-                        )
+                        toast.error('Превышено количество попыток подключения.')
                         window.desktopEvents?.send('authStatus', false)
                         setLoading(false)
                         return false
@@ -357,39 +354,57 @@ function _app() {
 
     useEffect(() => {
         const handleOpenTheme = (event: any, data: string) => {
-            window.desktopEvents?.invoke('getThemes')
+            window.desktopEvents
+                ?.invoke('getThemes')
                 .then((themes: ThemeInterface[]) => {
-                    const theme = themes.find(t => t.name === data);
+                    const theme = themes.find(t => t.name === data)
                     if (theme) {
-                        setThemes(themes);
-                        setNavigateTo(`/extensionbeta/${theme.name}`);
-                        setNavigateState(theme);
+                        setThemes(themes)
+                        setNavigateTo(`/extensionbeta/${theme.name}`)
+                        setNavigateState(theme)
                     }
                 })
-                .catch(error => console.error('Error getting themes:', error));
-        };
-    
-        window.desktopEvents?.on('open-theme', handleOpenTheme);
-    }, []);
+                .catch(error => console.error('Error getting themes:', error))
+        }
 
-    const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
-        return await window.desktopEvents?.invoke('file-event', eventType, filePath, data);
-    };
+        window.desktopEvents?.on('open-theme', handleOpenTheme)
+    }, [])
+
+    const invokeFileEvent = async (
+        eventType: string,
+        filePath: string,
+        data?: any,
+    ) => {
+        return await window.desktopEvents?.invoke(
+            'file-event',
+            eventType,
+            filePath,
+            data,
+        )
+    }
 
     useEffect(() => {
-        window.desktopEvents?.on('check-file-exists', (filePath) => invokeFileEvent('check-file-exists', filePath));
-        window.desktopEvents?.on('read-file', (filePath) => invokeFileEvent('read-file', filePath));
-        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) => 
-            invokeFileEvent('create-config-file', filePath, defaultContent)
-        );
-        window.desktopEvents?.on('write-file', (filePath, data) => invokeFileEvent('write-file', filePath, data));
-    }, []);
-    
+        window.desktopEvents?.on('check-file-exists', filePath =>
+            invokeFileEvent('check-file-exists', filePath),
+        )
+        window.desktopEvents?.on('read-file', filePath =>
+            invokeFileEvent('read-file', filePath),
+        )
+        window.desktopEvents?.on(
+            'create-config-file',
+            (filePath, defaultContent) =>
+                invokeFileEvent('create-config-file', filePath, defaultContent),
+        )
+        window.desktopEvents?.on('write-file', (filePath, data) =>
+            invokeFileEvent('write-file', filePath, data),
+        )
+    }, [])
+
     useEffect(() => {
         if (navigateTo && navigateState) {
-            router.navigate(navigateTo, { state: { theme: navigateState } });
+            router.navigate(navigateTo, { state: { theme: navigateState } })
         }
-    }, [navigateTo, navigateState]);
+    }, [navigateTo, navigateState])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -466,11 +481,10 @@ function _app() {
         }
     }, [])
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-        ; (window as any).setToken = async (args: any) => {
+        ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
-
     }
     return (
         <div className="app-wrapper">
@@ -489,7 +503,7 @@ function _app() {
                     setUpdate,
                     appInfo,
                     setThemes,
-                    themes
+                    themes,
                 }}
             >
                 <Player>
@@ -513,7 +527,7 @@ const Player: React.FC<any> = ({ children }) => {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            ; (async () => {
+            ;(async () => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {
@@ -581,9 +595,9 @@ const Player: React.FC<any> = ({ children }) => {
                             : details,
                 }
                 if (app.discordRpc.state.length > 0) {
-                    activity.state = replaceParams(app.discordRpc.state, track);
+                    activity.state = replaceParams(app.discordRpc.state, track)
                 } else if (timeRange) {
-                    activity.state = timeRange;
+                    activity.state = timeRange
                 }
                 activity.buttons = []
                 if (app.discordRpc.enableRpcButtonListen && track.linkTitle) {

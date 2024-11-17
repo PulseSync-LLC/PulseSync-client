@@ -411,65 +411,71 @@ ipcMain.handle('getThemes', async () => {
     }
 })
 
-const formatJson = (data: any) => JSON.stringify(data, null, 4);
+const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
     switch (eventType) {
         case 'check-file-exists':
             try {
-                await fs.promises.access(filePath);
-                return true;
+                await fs.promises.access(filePath)
+                return true
             } catch {
-                return false;
+                return false
             }
 
         case 'read-file':
             try {
-                const fileData = await fs.promises.readFile(filePath, 'utf8');
-                return fileData;
+                const fileData = await fs.promises.readFile(filePath, 'utf8')
+                return fileData
             } catch (error) {
-                console.error('Ошибка при чтении файла:', error);
-                return null;
+                console.error('Ошибка при чтении файла:', error)
+                return null
             }
 
         case 'create-config-file':
             try {
-                await fs.promises.writeFile(filePath, formatJson(data), 'utf8');
-                return { success: true };
+                await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
+                return { success: true }
             } catch (error) {
-                console.error('Ошибка при создании файла конфигурации:', error);
-                return { success: false, error: error.message };
+                console.error('Ошибка при создании файла конфигурации:', error)
+                return { success: false, error: error.message }
             }
 
         case 'write-file':
             try {
-                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2);
-                fs.writeFileSync(filePath, content, 'utf8');
-                console.log('Файл успешно записан:', filePath);
-                return { success: true };
+                const content =
+                    typeof data === 'string'
+                        ? data
+                        : JSON.stringify(data, null, 2)
+                fs.writeFileSync(filePath, content, 'utf8')
+                console.log('Файл успешно записан:', filePath)
+                return { success: true }
             } catch (error) {
-                console.error('Ошибка при записи файла:', error);
-                return { success: false, error: error.message };
+                console.error('Ошибка при записи файла:', error)
+                return { success: false, error: error.message }
             }
 
         default:
-            console.error('Неизвестный тип события:', eventType);
-            return { success: false, error: 'Неизвестный тип события' };
+            console.error('Неизвестный тип события:', eventType)
+            return { success: false, error: 'Неизвестный тип события' }
     }
-});
+})
 
 ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {
-            await fs.promises.rm(themeDirectoryPath, { recursive: true, force: true });
-            return { success: true };
+            await fs.promises.rm(themeDirectoryPath, {
+                recursive: true,
+                force: true,
+            })
+            return { success: true }
         } else {
-            logger.main.error('Директория темы не найдена.');
+            logger.main.error('Директория темы не найдена.')
         }
     } catch (error) {
-        logger.main.error('Ошибка при удалении директории темы:', error);
+        logger.main.error('Ошибка при удалении директории темы:', error)
     }
-});
+})
 
 ipcMain.on('themeChanged', (event, themeName) => {
     logger.main.info(`Themes: theme changed to: ${themeName}`)
@@ -504,7 +510,6 @@ export async function prestartCheck() {
     const musicPath = await getPathToYandexMusic()
 
     if (!fs.existsSync(musicPath)) {
-
         new Notification({
             title: 'Яндекс Музыка не найдена 😡',
             body: 'Пожалуйста, откройте приложение после установки музыки',

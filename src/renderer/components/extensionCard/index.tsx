@@ -1,22 +1,22 @@
-import React, { CSSProperties, useState, useEffect, useRef } from 'react';
-import * as styles from './card.module.scss';
-import ThemeInterface from '../../api/interfaces/theme.interface';
-import ContextMenu from '../../components/context_menu_themes';
-import { createActions } from '../../components/context_menu_themes/sectionConfig';
-import { useNavigate } from 'react-router-dom';
+import React, { CSSProperties, useState, useEffect, useRef } from 'react'
+import * as styles from './card.module.scss'
+import ThemeInterface from '../../api/interfaces/theme.interface'
+import ContextMenu from '../../components/context_menu_themes'
+import { createActions } from '../../components/context_menu_themes/sectionConfig'
+import { useNavigate } from 'react-router-dom'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import ReactMarkdown from 'react-markdown'
 
 interface Props {
-    theme: ThemeInterface;
-    isChecked: boolean;
-    onCheckboxChange: (themeName: string, isChecked: boolean) => void;
-    exportTheme: (themeName: string) => void;
-    onDelete: (themeName: string) => void;
-    children?: any;
-    className?: string;
-    style?: CSSProperties;
+    theme: ThemeInterface
+    isChecked: boolean
+    onCheckboxChange: (themeName: string, isChecked: boolean) => void
+    exportTheme: (themeName: string) => void
+    onDelete: (themeName: string) => void
+    children?: any
+    className?: string
+    style?: CSSProperties
 }
 
 const ExtensionCard: React.FC<Props> = ({
@@ -29,21 +29,25 @@ const ExtensionCard: React.FC<Props> = ({
     className,
     style,
 }) => {
-    const navigate = useNavigate();
-    const [imageSrc, setImageSrc] = useState('static/assets/images/no_themeImage.png');
-    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png');
+    const navigate = useNavigate()
+    const [imageSrc, setImageSrc] = useState(
+        'static/assets/images/no_themeImage.png',
+    )
+    const [bannerSrc, setBannerSrc] = useState(
+        'static/assets/images/no_themeBackground.png',
+    )
 
-    const [contextMenuVisible, setContextMenuVisible] = useState(false);
-    const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
-    const [clickEnabled, setClickEnabled] = useState(true);
-    const [cardHeight, setCardHeight] = useState('20px');
-    const cardRef = useRef<HTMLDivElement | null>(null);
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const [isFadingOut, setIsFadingOut] = useState(false);
+    const [contextMenuVisible, setContextMenuVisible] = useState(false)
+    const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
+    const [clickEnabled, setClickEnabled] = useState(true)
+    const [cardHeight, setCardHeight] = useState('20px')
+    const cardRef = useRef<HTMLDivElement | null>(null)
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const [isFadingOut, setIsFadingOut] = useState(false)
 
     const formatPath = (path: string) => {
-        return encodeURI(path.replace(/\\/g, '/'));
-    };
+        return encodeURI(path.replace(/\\/g, '/'))
+    }
     function LinkRenderer(props: any) {
         return (
             <a href={props.href} target="_blank" rel="noreferrer">
@@ -53,69 +57,68 @@ const ExtensionCard: React.FC<Props> = ({
     }
     useEffect(() => {
         if (theme.path && theme.image) {
-            const imgSrc = formatPath(`${theme.path}/${theme.image}`);
+            const imgSrc = formatPath(`${theme.path}/${theme.image}`)
             fetch(imgSrc)
-                .then((res) => {
+                .then(res => {
                     if (res.ok) {
-                        setImageSrc(imgSrc);
+                        setImageSrc(imgSrc)
                     }
                 })
                 .catch(() => {
-                    setImageSrc('static/assets/images/no_themeImage.png');
-                });
+                    setImageSrc('static/assets/images/no_themeImage.png')
+                })
         }
-    }, [theme]);
+    }, [theme])
 
     useEffect(() => {
         if (theme.path && theme.banner) {
-            const bannerPath = formatPath(`${theme.path}/${theme.banner}`);
+            const bannerPath = formatPath(`${theme.path}/${theme.banner}`)
             fetch(bannerPath)
-                .then((res) => {
+                .then(res => {
                     if (res.ok) {
-                        setBannerSrc(bannerPath);
+                        setBannerSrc(bannerPath)
                     }
                 })
                 .catch(() => {
-                    setBannerSrc('static/assets/images/no_themeBackground.png');
-                });
+                    setBannerSrc('static/assets/images/no_themeBackground.png')
+                })
         }
-    }, [theme]);
+    }, [theme])
 
     const handleClick = () => {
         if (clickEnabled) {
-            navigate(`/extensionbeta/${theme.name}`, { state: { theme } });
+            navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
         }
-    };
+    }
 
     const handleMouseEnter = () => {
         timerRef.current = setTimeout(() => {
             if (cardRef.current) {
-                setMenuPosition({ x: 0, y: 0 });
-                setContextMenuVisible(true);
-                setClickEnabled(false);
-                setCardHeight('70px');
+                setMenuPosition({ x: 0, y: 0 })
+                setContextMenuVisible(true)
+                setClickEnabled(false)
+                setCardHeight('70px')
             }
-        }, 500);
-    };
+        }, 500)
+    }
 
     const handleMouseLeave = () => {
         if (timerRef.current) {
-            clearTimeout(timerRef.current);
-            timerRef.current = null;
+            clearTimeout(timerRef.current)
+            timerRef.current = null
         }
-        closeContextMenu();
-    };
+        closeContextMenu()
+    }
 
     const closeContextMenu = () => {
-        setIsFadingOut(true);
-        setCardHeight('20px');
+        setIsFadingOut(true)
+        setCardHeight('20px')
         setTimeout(() => {
-            setContextMenuVisible(false);
-            setClickEnabled(true);
-            setIsFadingOut(false);
-        }, 300);
-    };    
-
+            setContextMenuVisible(false)
+            setClickEnabled(true)
+            setIsFadingOut(false)
+        }, 300)
+    }
 
     return (
         <div
@@ -134,15 +137,23 @@ const ExtensionCard: React.FC<Props> = ({
             <div className={styles.metadataInfoContainer}>
                 <div className={styles.metadataInfo}>
                     <div className={styles.detailInfo}>V{theme.version}</div>
-                    <div className={styles.detailInfo}>{theme.lastModified}</div>
+                    <div className={styles.detailInfo}>
+                        {theme.lastModified}
+                    </div>
                 </div>
                 <div className={styles.themeLocation}>local</div>
             </div>
-            <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
+            <img
+                className={styles.themeImage}
+                src={imageSrc}
+                alt="Theme image"
+            />
             <div className={styles.themeDetail}>
                 <div className={styles.detailTop}>
                     <span className={styles.themeName}>{theme.name}</span>
-                    <span className={styles.themeAuthor}>By {theme.author}</span>
+                    <span className={styles.themeAuthor}>
+                        By {theme.author}
+                    </span>
                 </div>
                 <div className={styles.themeDescription}>
                     <ReactMarkdown
@@ -162,7 +173,13 @@ const ExtensionCard: React.FC<Props> = ({
                 <div className={styles.line}></div>
                 {contextMenuVisible && (
                     <ContextMenu
-                        items={createActions(theme.name, onCheckboxChange, exportTheme, onDelete, isChecked)}
+                        items={createActions(
+                            theme.name,
+                            onCheckboxChange,
+                            exportTheme,
+                            onDelete,
+                            isChecked,
+                        )}
                         position={menuPosition}
                         onClose={closeContextMenu}
                         isFadingOut={isFadingOut}
@@ -197,7 +214,7 @@ const ExtensionCard: React.FC<Props> = ({
         //         {theme.description}
         //     </span>
         // </div>
-    );
-};
+    )
+}
 
-export default ExtensionCard;
+export default ExtensionCard

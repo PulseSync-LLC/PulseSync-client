@@ -13,6 +13,6 @@ const ThemeInitials: ThemeInterface[] = [
         lastModified: 0,
         size: 0,
         tags: [],
-    }
+    },
 ]
 export default ThemeInitials

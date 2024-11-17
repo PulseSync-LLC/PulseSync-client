@@ -8,9 +8,9 @@ import { EasyAsar } from 'asar-async'
 import { getRawHeader } from '@electron/asar'
 import AdmZip from 'adm-zip'
 import { app } from 'electron'
-import fs from "fs";
+import fs from 'fs'
 import logger from '../src/main/modules/logger'
-import {mainWindow} from "../src";
+import { mainWindow } from '../src'
 
 const execPromise = util.promisify(exec)
 

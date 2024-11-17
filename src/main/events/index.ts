@@ -261,9 +261,9 @@ export const handleEvents = (window: BrowserWindow): void => {
         }
     })
     ipcMain.on('log-error', (event, errorInfo) => {
-        const logMessage = `[${errorInfo.type}] ${errorInfo.message}\n${errorInfo.stack || ''}\n\n`;
+        const logMessage = `[${errorInfo.type}] ${errorInfo.message}\n${errorInfo.stack || ''}\n\n`
         logger.crash.error(logMessage)
-    });
+    })
     ipcMain.handle('getSystemInfo', async () => {
         return {
             appVersion: app.getVersion(),
@@ -351,28 +351,35 @@ export const handleEvents = (window: BrowserWindow): void => {
          * @param folderPath Путь к папке, которую нужно заархивировать
          * @param outputFilePath Путь для сохранения созданного файла с расширением .pext
          */
-            try {
-                if (!fs.existsSync(data.path)) {
-                    logger.main.error("Folder not found.");
-                }
-
-                const zip = new AdmZip();
-                zip.addLocalFolder(data.path);
-                const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
-
-                const outputPath = path.format({
-                    dir: path.dirname(outputFilePath),
-                    name: path.basename(outputFilePath, '.pext'),
-                    ext: '.pext'
-                });
-
-                zip.writeZip(outputPath);
-                logger.main.info(`Create theme ${outputFilePath}`);
-                shell.showItemInFolder(outputPath);
-                return true
-            } catch (error) {
-                logger.main.error("Error while creating archive file", error.message);
+        try {
+            if (!fs.existsSync(data.path)) {
+                logger.main.error('Folder not found.')
             }
+
+            const zip = new AdmZip()
+            zip.addLocalFolder(data.path)
+            const outputFilePath = path.join(
+                app.getPath('userData'),
+                'exports',
+                data.name,
+            )
+
+            const outputPath = path.format({
+                dir: path.dirname(outputFilePath),
+                name: path.basename(outputFilePath, '.pext'),
+                ext: '.pext',
+            })
+
+            zip.writeZip(outputPath)
+            logger.main.info(`Create theme ${outputFilePath}`)
+            shell.showItemInFolder(outputPath)
+            return true
+        } catch (error) {
+            logger.main.error(
+                'Error while creating archive file',
+                error.message,
+            )
+        }
     })
 }
 export const handleAppEvents = (window: BrowserWindow): void => {

@@ -12,7 +12,7 @@
     width: -webkit-fill-available;
     height: 338px;
 
-    background: #292C36;
+    background: #292c36;
     border-radius: 8px;
     overflow: hidden;
     outline: 0px solid transparent;
@@ -20,29 +20,29 @@
     &:hover {
         gap: 25px;
         background: #2f323d;
-        outline: 4px solid #6A728A;
-        box-shadow: 0px 0px 15px #6A728A !important;
+        outline: 4px solid #6a728a;
+        box-shadow: 0px 0px 15px #6a728a !important;
 
-        &>.imageBanner {
+        & > .imageBanner {
             background-size: 120%;
         }
 
-        &>.themeImage {
+        & > .themeImage {
             width: 90px;
             height: 90px;
             outline: 7px solid #2f323d;
         }
 
-        &>.metadataInfoContainer>.metadataInfo>.detailInfo {
+        & > .metadataInfoContainer > .metadataInfo > .detailInfo {
             width: 100%;
             opacity: 1;
         }
-        &>.triggerContextMenu {
+        & > .triggerContextMenu {
             opacity: 1;
         }
     }
 
-    &>.imageBanner {
+    & > .imageBanner {
         transition: var(--transition);
         width: -webkit-fill-available;
         height: -webkit-fill-available;
@@ -54,7 +54,7 @@
         background-repeat: no-repeat !important;
     }
 
-    &>.themeImage {
+    & > .themeImage {
         transition: var(--transition);
         position: absolute;
         width: 80px;
@@ -62,7 +62,7 @@
         left: 15px;
         bottom: 150px;
 
-        outline: 7px solid #292C36;
+        outline: 7px solid #292c36;
         border-radius: 12px;
 
         background-position: 50% 50% !important;
@@ -70,7 +70,7 @@
         background-repeat: no-repeat !important;
     }
 
-    &>.metadataInfoContainer {
+    & > .metadataInfoContainer {
         display: flex;
         flex-direction: row;
         justify-content: space-between;
@@ -83,12 +83,12 @@
         right: 15px;
         top: 10px;
 
-        &>.metadataInfo {
+        & > .metadataInfo {
             display: flex;
             flex-direction: column;
             gap: 4px;
 
-            &>.detailInfo {
+            & > .detailInfo {
                 transition: var(--transition);
                 display: flex;
                 opacity: 0;
@@ -114,7 +114,7 @@
                 align-items: center;
                 text-transform: uppercase;
 
-                color: #FFFFFF;
+                color: #ffffff;
 
                 display: -webkit-box;
                 -webkit-line-clamp: 1;
@@ -124,7 +124,7 @@
             }
         }
 
-        &>.themeLocation {
+        & > .themeLocation {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -146,7 +146,7 @@
             align-items: center;
             text-transform: uppercase;
 
-            color: #FFFFFF;
+            color: #ffffff;
         }
     }
 
@@ -169,22 +169,22 @@
             background: transparent;
             width: fit-content;
             min-width: 100%;
-            &>.line {
+            & > .line {
                 border: 2px solid #6a728a56;
             }
         }
 
-        &>.line {
+        & > .line {
             width: 25%;
             height: 0px;
-            border: 2px solid #6A728A;
+            border: 2px solid #6a728a;
             position-area: center;
             position: absolute;
             border-radius: 33px;
         }
     }
 
-    &>.themeDetail {
+    & > .themeDetail {
         display: flex;
         flex-direction: column;
         align-items: flex-start;
@@ -195,33 +195,33 @@
         height: 131px;
         min-height: 131px;
 
-        &>.detailTop {
+        & > .detailTop {
             display: flex;
             flex-direction: column;
 
-            &>.themeName {
+            & > .themeName {
                 font-family: 'Nunito Sans';
                 font-style: normal;
                 font-weight: 600;
                 font-size: 26px;
                 line-height: 35px;
 
-                color: #FFFFFF;
+                color: #ffffff;
             }
 
-            &>.themeAuthor {
+            & > .themeAuthor {
                 font-family: 'Nunito Sans';
                 font-style: normal;
                 font-weight: 400;
                 font-size: 12px;
                 line-height: 18px;
 
-                color: #BBC3DE;
+                color: #bbc3de;
             }
         }
 
-        &>.themeDescription {
-            font-family: "Nunito Sans";
+        & > .themeDescription {
+            font-family: 'Nunito Sans';
             font-style: normal;
             font-weight: 400;
             font-size: 14px;
@@ -231,8 +231,7 @@
             -webkit-box-orient: vertical;
             overflow: hidden;
             text-overflow: ellipsis;
-            color: #CFD6EA;
+            color: #cfd6ea;
         }
     }
-
 }

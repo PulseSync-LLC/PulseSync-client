@@ -15,7 +15,7 @@ export const checkInternetAccess = async (): Promise<boolean> => {
 }
 
 export const notifyUserRetries = (retriesLeft: number) => {
-    const retryIntervalInSeconds = Number(config.RETRY_INTERVAL_MS) / 1000 
+    const retryIntervalInSeconds = Number(config.RETRY_INTERVAL_MS) / 1000
     toast.success(
         `Попытка подключения. Осталось попыток: ${retriesLeft}. Следующая через ${retryIntervalInSeconds} сек.`,
         {

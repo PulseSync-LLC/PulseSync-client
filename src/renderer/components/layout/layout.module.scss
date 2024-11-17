@@ -48,7 +48,7 @@
                 background: var(--downloadH);
             }
 
-            &>svg {
+            & > svg {
                 fill: var(--downloadColor);
             }
         }
@@ -72,7 +72,7 @@
         background: rgba(22, 24, 30, 0.85);
         backdrop-filter: blur(9.5px);
 
-        &>.patch_container {
+        & > .patch_container {
             position: relative;
             display: flex;
             flex-direction: row;
@@ -88,7 +88,7 @@
             border: 1px solid #363944;
             border-radius: 10px;
 
-            &>.patch_detail {
+            & > .patch_detail {
                 z-index: 2222;
                 display: flex;
                 flex-direction: column;
@@ -100,18 +100,20 @@
                 width: 100%;
                 height: fit-content;
 
-                background: linear-gradient(270deg,
-                        rgba(41, 44, 54, 0) 0%,
-                        #262832 100%);
+                background: linear-gradient(
+                    270deg,
+                    rgba(41, 44, 54, 0) 0%,
+                    #262832 100%
+                );
 
-                &>.alert_info {
+                & > .alert_info {
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
                     align-items: flex-start;
                     padding: 0px;
 
-                    &>.alert_version_update {
+                    & > .alert_version_update {
                         color: #ffffff;
                         display: flex;
                         flex-direction: row;
@@ -119,7 +121,7 @@
                         padding-bottom: 5px;
                         gap: 7px;
 
-                        &>.version_old,
+                        & > .version_old,
                         .version_new {
                             display: flex;
                             flex-direction: row;
@@ -133,19 +135,19 @@
                             font-weight: 600;
                             font-size: 12px;
 
-                            color: #FFFFFF;
+                            color: #ffffff;
                         }
 
-                        &>.version_old {
+                        & > .version_old {
                             background: #585858;
                         }
 
-                        &>.version_new {
-                            background: #3468F2;
+                        & > .version_new {
+                            background: #3468f2;
                         }
                     }
 
-                    &>.alert_title {
+                    & > .alert_title {
                         font-weight: 900;
                         font-size: 25px;
                         line-height: 140%;
@@ -154,7 +156,7 @@
                         color: #ffffff;
                     }
 
-                    &>.alert_warn {
+                    & > .alert_warn {
                         font-weight: 400;
                         font-size: 14px;
                         line-height: 140%;
@@ -163,7 +165,7 @@
                     }
                 }
 
-                &>.patch_button {
+                & > .patch_button {
                     cursor: pointer;
                     display: flex;
                     flex-direction: row;
@@ -187,7 +189,7 @@
                 }
             }
 
-            &>.alert_patch_image {
+            & > .alert_patch_image {
                 width: 300px;
                 height: 198px;
                 position: absolute;
@@ -197,7 +199,7 @@
             }
         }
 
-        &>.gfdiv {
+        & > .gfdiv {
             display: flex;
             flex-direction: row;
             align-items: center;
@@ -208,7 +210,7 @@
             background: #fffb9c;
             border-radius: 10px;
 
-            &>div {
+            & > div {
                 display: flex;
                 flex-direction: column;
                 align-items: flex-start;
@@ -218,7 +220,7 @@
                 width: -webkit-fill-available;
                 height: fit-content;
 
-                &>.container_warn {
+                & > .container_warn {
                     display: flex;
                     flex-direction: row;
                     justify-content: center;
@@ -231,7 +233,7 @@
                         color: #535240;
                     }
 
-                    &>div {
+                    & > div {
                         font-weight: 800;
                         font-size: 20px;
                         line-height: 27px;
@@ -278,7 +280,6 @@
         }
     }
 }
-
 
 .betatest {
     color: white;

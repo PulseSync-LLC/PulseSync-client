@@ -2,7 +2,7 @@ import * as styles from './layout.module.scss'
 import React, { useContext, useEffect } from 'react'
 import { Helmet } from 'react-helmet'
 import Header from './header'
-import NavButtonPulse from '../nav_button_pulse';
+import NavButtonPulse from '../nav_button_pulse'
 import Discord from './../../../../static/assets/icons/discord.svg'
 import {
     MdConnectWithoutContact,
@@ -90,7 +90,9 @@ const Layout: React.FC<p> = ({ title, children, goBack }) => {
                                 <button
                                     onClick={() => {
                                         setUpdate(false)
-                                        window.desktopEvents?.send('update-install')
+                                        window.desktopEvents?.send(
+                                            'update-install',
+                                        )
                                     }}
                                     className={styles.update_download}
                                 >
@@ -105,10 +107,18 @@ const Layout: React.FC<p> = ({ title, children, goBack }) => {
                             <div className={styles.patch_container}>
                                 <div className={styles.patch_detail}>
                                     <div className={styles.alert_info}>
-                                        <div className={styles.alert_version_update}>
-                                            <div className={styles.version_old}>5.10.2</div>
+                                        <div
+                                            className={
+                                                styles.alert_version_update
+                                            }
+                                        >
+                                            <div className={styles.version_old}>
+                                                5.10.2
+                                            </div>
                                             <MdKeyboardArrowRight size={14} />
-                                            <div className={styles.version_new}>5.10.3</div>
+                                            <div className={styles.version_new}>
+                                                5.10.3
+                                            </div>
                                         </div>
                                         <div className={styles.alert_title}>
                                             Обновление патча
