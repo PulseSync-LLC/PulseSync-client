@@ -23,6 +23,7 @@ import {
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
+import rehypeRaw from "rehype-raw";
 
 interface ThemeConfig {
     sections: Section[]
@@ -63,6 +64,21 @@ const ExtensionViewPage: React.FC = () => {
     const [themeConfig, setThemeConfig] = useState<any | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [enableTransition, setEnableTransition] = useState(false)
+
+    const [markdownContent, setMarkdownContent] = useState<string>('')
+
+    useEffect(() => {
+        const readmePath = `${theme?.path}/README.md`;
+
+        fetch(readmePath)
+            .then((response) => response.text())
+            .then((data) => {
+                setMarkdownContent(data);
+            })
+            .catch((error) => {
+                console.error('Ошибка при загрузке README.md:', error);
+            });
+    }, [theme]);
 
     useEffect(() => {
         const themeStates =
@@ -266,7 +282,7 @@ const ExtensionViewPage: React.FC = () => {
             updatedConfig.sections[sectionIndex] &&
             updatedConfig.sections[sectionIndex].items[itemIndex] &&
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
-                buttonIndex
+            buttonIndex
             ]
         ) {
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
@@ -296,20 +312,14 @@ const ExtensionViewPage: React.FC = () => {
             case 'Overview':
                 return (
                     <div className={ex.galleryContainer}>
-                        <div className={ex.galleryBox}>
-                            Галерея
-                            <div className={ex.comingSoon}>Скоро</div>
-                        </div>
-                        <div className={ex.galleryBox}>
-                            Описание
-                            <div className={ex.descriptionText}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                                    components={{ a: LinkRenderer }}
-                                >
-                                    {theme.description}
-                                </ReactMarkdown>
-                            </div>
+                        <div className={ex.markdownContent}>
+                            <ReactMarkdown
+                                className={ex.markdownText}
+                                remarkPlugins={[remarkGfm, remarkBreaks]}
+                                rehypePlugins={[rehypeRaw]}
+                            >
+                                {markdownContent || theme.description}
+                            </ReactMarkdown>
                         </div>
                     </div>
                 )
@@ -595,7 +605,7 @@ const ExtensionViewPage: React.FC = () => {
                             {isEditing
                                 ? undefined
                                 : // <button className={ex.createParameterButton}>Создать параметр</button>
-                                  undefined}
+                                undefined}
                         </div>
                     </>
                 )
@@ -652,15 +662,15 @@ const ExtensionViewPage: React.FC = () => {
                                             style={
                                                 isExpanded
                                                     ? {
-                                                          transition:
-                                                              'var(--transition)',
-                                                          rotate: '180deg',
-                                                      }
+                                                        transition:
+                                                            'var(--transition)',
+                                                        rotate: '180deg',
+                                                    }
                                                     : {
-                                                          transition:
-                                                              'var(--transition)',
-                                                          rotate: '0deg',
-                                                      }
+                                                        transition:
+                                                            'var(--transition)',
+                                                        rotate: '0deg',
+                                                    }
                                             }
                                         />
                                     </Button>
@@ -675,7 +685,7 @@ const ExtensionViewPage: React.FC = () => {
                                                 width="100"
                                                 height="100"
                                                 onError={e => {
-                                                    ;(
+                                                    ; (
                                                         e.target as HTMLImageElement
                                                     ).src =
                                                         'static/assets/images/no_themeImage.png'
@@ -778,8 +788,8 @@ const ExtensionViewPage: React.FC = () => {
                                                 {selectedTheme !== theme.name
                                                     ? 'Включить'
                                                     : isThemeEnabled
-                                                      ? 'Выключить'
-                                                      : 'Включить'}
+                                                        ? 'Выключить'
+                                                        : 'Включить'}
                                             </Button>
                                             <Button className={ex.miniButton}>
                                                 <MdMoreHoriz size={20} />

@@ -131,6 +131,7 @@
         "react-touchbar-electron": "^1.0.1",
         "react-virtualized-auto-sizer": "^1.0.24",
         "react-window": "^1.8.10",
+        "rehype-raw": "^7.0.0",
         "remark-breaks": "^4.0.0",
         "remark-gfm": "^4.0.0",
         "rollup-plugin-copy": "^3.5.0",

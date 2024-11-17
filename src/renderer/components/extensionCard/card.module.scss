@@ -232,6 +232,10 @@
             overflow: hidden;
             text-overflow: ellipsis;
             color: #cfd6ea;
+
+            p {
+                margin: 0;
+            }
         }
     }
 }
