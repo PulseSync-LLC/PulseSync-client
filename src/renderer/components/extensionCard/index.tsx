@@ -4,6 +4,9 @@ import ThemeInterface from '../../api/interfaces/theme.interface';
 import ContextMenu from '../../components/context_menu_themes';
 import { createActions } from '../../components/context_menu_themes/sectionConfig';
 import { useNavigate } from 'react-router-dom';
+import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
+import ReactMarkdown from 'react-markdown'
 
 interface Props {
     theme: ThemeInterface;
@@ -41,7 +44,13 @@ const ExtensionCard: React.FC<Props> = ({
     const formatPath = (path: string) => {
         return encodeURI(path.replace(/\\/g, '/'));
     };
-
+    function LinkRenderer(props: any) {
+        return (
+            <a href={props.href} target="_blank" rel="noreferrer">
+                {props.children}
+            </a>
+        )
+    }
     useEffect(() => {
         if (theme.path && theme.image) {
             const imgSrc = formatPath(`${theme.path}/${theme.image}`);
@@ -135,7 +144,14 @@ const ExtensionCard: React.FC<Props> = ({
                     <span className={styles.themeName}>{theme.name}</span>
                     <span className={styles.themeAuthor}>By {theme.author}</span>
                 </div>
-                <div className={styles.themeDescription}>{theme.description}</div>
+                <div className={styles.themeDescription}>
+                    <ReactMarkdown
+                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                        components={{ a: LinkRenderer }}
+                    >
+                        {theme.description}
+                    </ReactMarkdown>
+                </div>
             </div>
             <div
                 className={styles.triggerContextMenu}

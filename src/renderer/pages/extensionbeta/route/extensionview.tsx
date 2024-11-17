@@ -9,6 +9,9 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import ThemeInterface from '../../../api/interfaces/theme.interface';
 import Button from '../../../components/button';
 import { MdBookmarkBorder, MdDesignServices, MdEdit, MdExplore, MdFolder, MdKeyboardArrowDown, MdMoreHoriz, MdSettings, MdStickyNote2, MdStoreMallDirectory } from 'react-icons/md';
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
 
 interface ThemeConfig {
     sections: Section[];
@@ -224,6 +227,13 @@ const ExtensionViewPage: React.FC = () => {
         }
     }, [themeConfig]);
 
+    function LinkRenderer(props: any) {
+        return (
+            <a href={props.href} target="_blank" rel="noreferrer">
+                {props.children}
+            </a>
+        )
+    }
     const renderTabContent = () => {
         switch (activeTab) {
             case 'Overview':
@@ -236,7 +246,12 @@ const ExtensionViewPage: React.FC = () => {
                         <div className={ex.galleryBox}>
                             Описание
                             <div className={ex.descriptionText}>
-                                {theme.description && <div>{theme.description}</div>}
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    components={{ a: LinkRenderer }}
+                                >
+                                    {theme.description}
+                                </ReactMarkdown>
                             </div>
                         </div>
                     </div>

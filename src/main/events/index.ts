@@ -260,6 +260,10 @@ export const handleEvents = (window: BrowserWindow): void => {
                 break
         }
     })
+    ipcMain.on('log-error', (event, errorInfo) => {
+        const logMessage = `[${errorInfo.type}] ${errorInfo.message}\n${errorInfo.stack || ''}\n\n`;
+        logger.crash.error(logMessage)
+    });
     ipcMain.handle('getSystemInfo', async () => {
         return {
             appVersion: app.getVersion(),
@@ -296,19 +300,11 @@ export const handleEvents = (window: BrowserWindow): void => {
             freeMemory: os.freemem(),
             arch: os.arch(),
             platform: os.platform(),
-            uptime: os.uptime(),
-            networkInterfaces: os.networkInterfaces(),
-            networkStats: await si.networkStats(),
-            fsSize: await si.fsSize(),
             osInfo: await si.osInfo(),
-            battery: await si.battery(),
             memInfo: await si.mem(),
             userInfo: {
                 username: userInfo.username,
                 homedir: userInfo.homedir,
-                shell: userInfo.shell,
-                uid: userInfo.uid,
-                gid: userInfo.gid,
             },
         }
         const systemInfoPath = path.join(logDirPath, 'system-info.json')

@@ -40,6 +40,7 @@ import {
 import ThemeInterface from '../api/interfaces/theme.interface'
 import userContext from '../api/context/user.context'
 import ThemeInitials from '../api/initials/theme.initials'
+import ErrorBoundary from '../components/errorBoundary'
 
 function _app() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -64,31 +65,59 @@ function _app() {
     const router = createHashRouter([
         {
             path: '/',
-            element: <AuthPage />,
+            element: (
+                <ErrorBoundary>
+                    <AuthPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/auth/callback',
-            element: <CallbackPage />,
+            element: (
+                <ErrorBoundary>
+                    <CallbackPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/trackinfo',
-            element: <TrackInfoPage />,
+            element: (
+                <ErrorBoundary>
+                    <TrackInfoPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extension',
-            element: <ExtensionPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extensionbeta',
-            element: <ExtensionBetaPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionBetaPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extensionbeta/:contactId',
-            element: <ExtensionViewPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionViewPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/joint',
-            element: <JointPage />,
+            element: (
+                <ErrorBoundary>
+                    <JointPage />
+                </ErrorBoundary>
+            ),
         },
     ])
 
@@ -441,6 +470,7 @@ function _app() {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
+
     }
     return (
         <div className="app-wrapper">
