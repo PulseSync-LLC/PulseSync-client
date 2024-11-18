@@ -3,14 +3,28 @@ import * as fs from 'fs'
 import * as path from 'path'
 import { app } from 'electron'
 import { mainWindow } from '../../index'
-import { authorized } from "../events";
-import isAppDev from "electron-is-dev";
-import logger from "./logger";
-
-let jsonDataGET: any = {}
+import { authorized } from '../events'
+import isAppDev from 'electron-is-dev'
+import logger from './logger'
+import { WebSocketServer } from 'ws'
+import { web } from 'webpack'
+let data: any = {}
 let selectedTheme: string = 'Default'
+import { useState } from 'react'
+import { EventEmitter } from 'events'
 
 const server = http.createServer()
+const ws = new WebSocketServer({ server })
+ws.on('connection', socket => {
+    socket.on('message', message => {
+        console.log(`Received message => ${message}`)
+        let data = JSON.parse(message);
+        if (data.type === 'update_data') {
+            updateData(data.data);
+        }
+    })
+    socket.send(JSON.stringify({ message: 'Hello from server!' }))
+})
 
 const getFilePathInAssets = (
     filename: string,
@@ -98,7 +112,7 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
         })
         req.on('end', () => {
             try {
-                jsonDataGET = JSON.parse(data)
+                updateData(JSON.parse(data));
                 res.writeHead(200, { 'Content-Type': 'application/json' })
                 res.end(
                     JSON.stringify({ message: 'Data received successfully' }),
@@ -146,7 +160,7 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
                     res.end(
                         JSON.stringify({
                             ok: true,
-                            css: cssContent ? cssContent : "{}",
+                            css: cssContent ? cssContent : '{}',
                             script: jsContent ? jsContent : '',
                         }),
                     )
@@ -160,7 +174,7 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
                 res.end(
                     JSON.stringify({
                         ok: true,
-                        css: "{}",
+                        css: '{}',
                         script: '',
                     }),
                 )
@@ -181,24 +195,28 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
                 'PulseSync',
                 'themes',
                 selectedTheme,
-                'handleEvents.json'
-            );
+                'handleEvents.json',
+            )
 
             if (fs.existsSync(handleEventsPath)) {
-                const handleEventsData = JSON.parse(fs.readFileSync(handleEventsPath, 'utf8'));
+                const handleEventsData = JSON.parse(
+                    fs.readFileSync(handleEventsPath, 'utf8'),
+                )
 
-                res.writeHead(200, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ ok: true, data: handleEventsData }));
+                res.writeHead(200, { 'Content-Type': 'application/json' })
+                res.end(JSON.stringify({ ok: true, data: handleEventsData }))
             } else {
-                res.writeHead(404, { 'Content-Type': 'application/json' });
-                res.end(JSON.stringify({ error: 'Handle events data not found' }));
+                res.writeHead(404, { 'Content-Type': 'application/json' })
+                res.end(
+                    JSON.stringify({ error: 'Handle events data not found' }),
+                )
             }
         } catch (error) {
-            console.error('Error reading handle events:', error);
-            res.writeHead(500, { 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ error: 'Error reading handle events' }));
+            console.error('Error reading handle events:', error)
+            res.writeHead(500, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Error reading handle events' }))
         }
-        return;
+        return
     }
 
     if (req.method === 'GET' && req.url === '/assets') {
@@ -280,8 +298,16 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
 })
 
 export const getTrackInfo = () => {
-    return jsonDataGET
+    return data
 }
+const eventEmitter = new EventEmitter()
+
+export const updateData = (newData: any) => {
+    data = (newData)
+    eventEmitter.emit('dataUpdated', newData)
+}
+
+export { eventEmitter }
 
 export const setTheme = (theme: string) => {
     selectedTheme = theme

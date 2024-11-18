@@ -381,9 +381,9 @@ export default function TrackInfoPage() {
                                                                 }
                                                                 src={
                                                                     currentTrack
-                                                                        .requestImgTrack[1]
+                                                                        .requestImgTrack[0]
                                                                         ? currentTrack
-                                                                              .requestImgTrack[1]
+                                                                              .requestImgTrack[0]
                                                                         : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""

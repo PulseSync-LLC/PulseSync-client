@@ -37,6 +37,6 @@ export const replaceParams = (str: any, track: any) => {
         .replace('{endTime}', track.timecodes[1] || '')
         .replace(
             '{endTime - startTime}',
-            timeDifference(track.timecodes[1], track.timecodes[0]) || '',
+            /*  timeDifference(track.timecodes[1], track.timecodes[0])  ||*/ '',
         )
 }

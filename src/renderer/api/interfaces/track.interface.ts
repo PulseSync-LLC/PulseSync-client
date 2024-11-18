@@ -5,5 +5,6 @@ export default interface TrackInterface {
     requestImgTrack: (string | null)[]
     linkTitle: string
     id?: string
-    url?: string
+    url?: string,
+    status?: string
 }

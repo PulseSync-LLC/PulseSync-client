@@ -538,6 +538,7 @@ const Player: React.FC<any> = ({ children }) => {
                                 timecodes: data.timecodes,
                                 requestImgTrack: data.requestImgTrack,
                                 linkTitle: data.linkTitle,
+                                status: data.status,
                             }))
                         })
                         window.desktopEvents?.on(
@@ -565,19 +566,11 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id, app.discordRpc.status])
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
-            if (track.playerBarTitle === '' && track.artist === '') {
-                const activity: any = {
-                    details: 'AFK',
-                    largeImageText: app.info.version,
-                    largeImageKey:
-                        'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
-                }
-                window.discordRpc.setActivity(activity)
+            if ((track.playerBarTitle === '' && track.artist === '') || track.status == 'pause') {
+                window.discordRpc.clearActivity()
             } else {
-                const timeRange =
-                    track.timecodes.length === 2
-                        ? `${track.timecodes[0]} - ${track.timecodes[1]}`
-                        : ''
+                const startTimestamp = Math.floor(Date.now()/1000)*1000 - Math.floor(Number(track.timecodes[0])) * 1000;
+                const endTimestamp = startTimestamp + Math.floor(Number(track.timecodes[1])) * 1000;
 
                 const details =
                     track.artist.length > 0
@@ -585,7 +578,9 @@ const Player: React.FC<any> = ({ children }) => {
                         : track.playerBarTitle
                 const activity: any = {
                     type: 2,
-                    largeImageKey: track.requestImgTrack[1],
+                    startTimestamp,
+                    endTimestamp,
+                    largeImageKey: track.requestImgTrack[0],
                     smallImageKey:
                         'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
                     smallImageText: app.info.version,
@@ -596,16 +591,16 @@ const Player: React.FC<any> = ({ children }) => {
                 }
                 if (app.discordRpc.state.length > 0) {
                     activity.state = replaceParams(app.discordRpc.state, track)
-                } else if (timeRange) {
+                } /* else if (timeRange) {
                     activity.state = timeRange
-                }
+                } */
                 activity.buttons = []
                 if (app.discordRpc.enableRpcButtonListen && track.linkTitle) {
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? app.discordRpc.button
                             : '✌️ Open in Yandex Music',
-                        url: `yandexmusic://album/${encodeURIComponent(track.linkTitle)}`,
+                        url: `yandexmusic://album/${encodeURIComponent(track.linkTitle)}/track/${track.id}`,
                     })
                 }
 
@@ -620,7 +615,7 @@ const Player: React.FC<any> = ({ children }) => {
                     delete activity.buttons
                 }
 
-                if (!track.artist && !timeRange) {
+                if (!track.artist) {
                     track.artist = 'Нейромузыка'
                     setTrack(prevTrack => ({
                         ...prevTrack,
