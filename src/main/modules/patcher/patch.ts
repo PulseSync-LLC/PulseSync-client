@@ -234,6 +234,7 @@ class Patcher {
       requestImgTrack: [\`https://\${meta.coverUri.replace('%%', '1000x1000')}\`],
       linkTitle: meta.albums[0]?.id,
       id: meta.realId,
+      url: audio.src
     };
   }
   const ont = setInterval(() => {
@@ -291,6 +292,23 @@ class Patcher {
           JSON.stringify({
             type: "update_data",
             data: { ...result, status: "pause" },
+          })
+        );
+      });
+      audio.addEventListener("seeked", () => {
+        const result = logPlayerBarInfo();
+
+        /*  fetch("http://127.0.0.1:2007/update_data", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(result),
+            }); */
+        ws.send(
+          JSON.stringify({
+            type: "update_data",
+            data: { ...result, status: "seek" },
           })
         );
       });

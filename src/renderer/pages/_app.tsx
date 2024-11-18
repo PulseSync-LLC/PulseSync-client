@@ -539,6 +539,7 @@ const Player: React.FC<any> = ({ children }) => {
                                 requestImgTrack: data.requestImgTrack,
                                 linkTitle: data.linkTitle,
                                 status: data.status,
+                                url: data.url,
                             }))
                         })
                         window.desktopEvents?.on(
