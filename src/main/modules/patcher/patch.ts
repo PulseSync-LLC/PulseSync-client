@@ -294,6 +294,23 @@ class Patcher {
           })
         );
       });
+      audio.addEventListener("seeked", () => {
+        const result = logPlayerBarInfo();
+
+        /*  fetch("http://127.0.0.1:2007/update_data", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify(result),
+            }); */
+        ws.send(
+          JSON.stringify({
+            type: "update_data",
+            data: { ...result, status: "seek" },
+          })
+        );
+      });
 
       /* const result = logPlayerBarInfo();
       if (result.timecodes[1] == null) result.timecodes[1] = 0;
