@@ -234,6 +234,7 @@ class Patcher {
       requestImgTrack: [\`https://\${meta.coverUri.replace('%%', '1000x1000')}\`],
       linkTitle: meta.albums[0]?.id,
       id: meta.realId,
+      url: audio.src
     };
   }
   const ont = setInterval(() => {
