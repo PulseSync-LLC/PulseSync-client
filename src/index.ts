@@ -26,7 +26,7 @@ import {
 } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { getTrackInfo, setTheme } from './main/modules/httpServer'
+import { eventEmitter, setTheme } from './main/modules/httpServer'
 import { handleAppEvents } from './main/events'
 import { getPathToYandexMusic } from '../utils/appUtils'
 import Theme from './renderer/api/interfaces/theme.interface'
@@ -569,9 +569,15 @@ app.on('render-process-gone', (event, webContents, detailed) => {
         app.exit(0)
     }
 })
-setInterval(() => {
+/* setInterval(() => {
     let metadata = getTrackInfo()
     if (Object.keys(metadata).length >= 1) {
         mainWindow.webContents.send('trackinfo', metadata)
     }
-}, 5000)
+}, 5000) */
+
+eventEmitter.on('dataUpdated', newData => {
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('trackinfo', newData)
+    }
+})
