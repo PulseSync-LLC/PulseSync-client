@@ -12,20 +12,13 @@ interface ProcessInfo {
     pid: number;
 }
 
-async function getProcessList(): Promise<string> {
+async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     try {
-        const { stdout } = await execAsync('wmic process get ProcessId,CommandLine', { encoding: 'buffer' });
-        const output = iconv.decode(Buffer.from(stdout), 'CP866');
-        return output;
-    } catch (error) {
-        throw error;
-    }
-}
+        const command = `wmic process where "Name=Яндекс Музыка.exe" get ProcessId,CommandLine`;
+        const { stdout } = await execAsync(command, { encoding: 'buffer' });
 
-export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
-    try {
-        const processList = await getProcessList();
-        const processes = processList.split('\n').filter(line => line.trim() !== '');
+        const output = iconv.decode(Buffer.from(stdout), 'CP866');
+        const processes = output.split('\n').filter(line => line.trim() !== '');
         const yandexProcesses: ProcessInfo[] = [];
 
         processes.forEach(line => {
@@ -41,9 +34,14 @@ export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
 
         return yandexProcesses;
     } catch (error) {
-        console.error('Error retrieving process list:', error);
+        console.error('Error retrieving Yandex Music processes:', error);
         return [];
     }
+}
+
+export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
+    const yandexProcesses = await getYandexMusicProcesses();
+    return yandexProcesses;
 }
 
 export async function closeYandexMusic(): Promise<void> {

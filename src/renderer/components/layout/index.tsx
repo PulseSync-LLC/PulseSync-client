@@ -15,6 +15,7 @@ import {
 import userContext from '../../api/context/user.context'
 import { Toaster, toast } from 'react-hot-toast-magic'
 import { compareVersions } from '../../utils/utils'
+import SettingsInterface from '../../api/interfaces/settings.interface'
 
 interface PatchInfo {
     version: string
@@ -93,7 +94,7 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
             })
 
             if (sortedInfoRef.current.length > 0) {
-                setApp(prevApp => ({
+                setApp((prevApp: SettingsInterface) => ({
                     ...prevApp,
                     patcher: {
                         ...prevApp.patcher,
