@@ -7,16 +7,14 @@ import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
 import { WebSocketServer } from 'ws'
-import { web } from 'webpack'
 let data: any = {}
 let selectedTheme: string = 'Default'
-import { useState } from 'react'
 import { EventEmitter } from 'events'
 
 const server = http.createServer()
 const ws = new WebSocketServer({ server })
 ws.on('connection', socket => {
-    socket.on('message', message => {
+    socket.on('message', (message: any) => {
         console.log(`Received message => ${message}`)
         let data = JSON.parse(message);
         if (data.type === 'update_data') {
@@ -84,47 +82,6 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
         return
     }
 
-    if (req.method === 'POST' && req.url === '/track_info') {
-        let data: any = ''
-        req.on('data', chunk => {
-            data += chunk
-        })
-        req.on('end', () => {
-            try {
-                mainWindow.webContents.send('track_info', JSON.parse(data))
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(
-                    JSON.stringify({ message: 'Data received successfully' }),
-                )
-            } catch (error) {
-                logger.http.error('Error parsing JSON:', error)
-                res.writeHead(400, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ error: 'Invalid JSON' }))
-            }
-        })
-        return
-    }
-
-    if (req.method === 'POST' && req.url === '/update_data') {
-        let data = ''
-        req.on('data', chunk => {
-            data += chunk
-        })
-        req.on('end', () => {
-            try {
-                updateData(JSON.parse(data));
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(
-                    JSON.stringify({ message: 'Data received successfully' }),
-                )
-            } catch (error) {
-                logger.http.error('Error parsing JSON:', error)
-                res.writeHead(400, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ error: 'Invalid JSON' }))
-            }
-        })
-        return
-    }
 
     if (req.method === 'GET' && req.url === '/get_theme') {
         try {

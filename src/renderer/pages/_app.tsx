@@ -10,7 +10,7 @@ import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
-import hotToast, { Toaster } from 'react-hot-toast'
+import hotToast, { Toaster } from 'react-hot-toast-magic'
 import { CssVarsProvider } from '@mui/joy'
 import { Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
@@ -38,6 +38,9 @@ import ThemeInterface from '../api/interfaces/theme.interface'
 import userContext from '../api/context/user.context'
 import ThemeInitials from '../api/initials/theme.initials'
 import ErrorBoundary from '../components/errorBoundary'
+import { PatcherInterface } from '../api/interfaces/patcher.interface'
+import patcherInitials from '../api/initials/patcher.initials'
+import GetPatcherQuery from '../api/queries/getPatcher.query'
 
 function _app() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -46,6 +49,7 @@ function _app() {
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
+    const [patcherInfo, setPatcher] = useState<PatcherInterface[]>(patcherInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
@@ -125,7 +129,6 @@ function _app() {
 
         const attemptAuthorization = async (): Promise<boolean> => {
             const token = await getUserToken()
-            console.log(token)
 
             if (token) {
                 const isOnline = await checkInternetAccess()
@@ -236,22 +239,6 @@ function _app() {
     }
 
     useEffect(() => {
-        const handleMouseButton = (event: MouseEvent) => {
-            if (event.button === 3) {
-                event.preventDefault()
-            }
-            if (event.button === 4) {
-                event.preventDefault()
-            }
-        }
-
-        window.addEventListener('mouseup', handleMouseButton)
-
-        return () => {
-            window.removeEventListener('mouseup', handleMouseButton)
-        }
-    }, [])
-    useEffect(() => {
         if (typeof window !== 'undefined') {
             const checkAuthorization = async () => {
                 await authorize()
@@ -262,10 +249,23 @@ function _app() {
             }
             // auth interval 15 minutes (10 * 60 * 1000)
             const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
+            const handleMouseButton = (event: MouseEvent) => {
+                if (event.button === 3) {
+                    event.preventDefault()
+                }
+                if (event.button === 4) {
+                    event.preventDefault()
+                }
+            }
 
-            return () => clearInterval(intervalId)
+            window.addEventListener('mouseup', handleMouseButton)
+            return () => {
+                clearInterval(intervalId)
+                window.removeEventListener('mouseup', handleMouseButton)
+            }
         }
     }, [])
+
     socket.on('connect', () => {
         console.log('Socket connected')
         toast.success('Соединение установлено')
@@ -324,6 +324,27 @@ function _app() {
                 }
             }
             fetchAppInfo()
+            const fetchPatcherInfo = async () => {
+                try {
+                    let res = await apolloClient.query({
+                        query: GetPatcherQuery,
+                        fetchPolicy: 'no-cache',
+                    })
+                    const { data } = res
+                    if (data && data.getPatcher) {
+                        setPatcher(data.getPatcher)
+                    } else {
+                        console.error('Invalid response format for getPatcher:', data)
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch patcher info:', e)
+                }
+            }
+
+            // Вызов функции получения информации о патчере
+            fetchPatcherInfo()
+            const intervalId = setInterval(fetchPatcherInfo, 10 * 60 * 1000)
+
             if (
                 !user.badges.some(badge => badge.type === 'supporter') &&
                 app.discordRpc.enableGithubButton
@@ -345,30 +366,15 @@ function _app() {
                 .then((themes: ThemeInterface[]) => {
                     setThemes(themes)
                 })
+            return () => {
+                clearInterval(intervalId)
+            }
         } else {
             router.navigate('/', {
                 replace: true,
             })
         }
     }, [user.id])
-
-    useEffect(() => {
-        const handleOpenTheme = (event: any, data: string) => {
-            window.desktopEvents
-                ?.invoke('getThemes')
-                .then((themes: ThemeInterface[]) => {
-                    const theme = themes.find(t => t.name === data)
-                    if (theme) {
-                        setThemes(themes)
-                        setNavigateTo(`/extensionbeta/${theme.name}`)
-                        setNavigateState(theme)
-                    }
-                })
-                .catch(error => console.error('Error getting themes:', error))
-        }
-
-        window.desktopEvents?.on('open-theme', handleOpenTheme)
-    }, [])
 
     const invokeFileEvent = async (
         eventType: string,
@@ -384,6 +390,21 @@ function _app() {
     }
 
     useEffect(() => {
+        const handleOpenTheme = (event: any, data: string) => {
+            window.desktopEvents
+                ?.invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    const theme = themes.find(t => t.name === data)
+                    if (theme) {
+                        setThemes(themes)
+                        setNavigateTo(`/extensionbeta/${theme.name}`)
+                        setNavigateState(theme)
+                    }
+                })
+                .catch(error => console.error('Error getting themes:', error))
+        }
+        window.desktopEvents?.on('open-theme', handleOpenTheme)
+
         window.desktopEvents?.on('check-file-exists', filePath =>
             invokeFileEvent('check-file-exists', filePath),
         )
@@ -398,6 +419,13 @@ function _app() {
         window.desktopEvents?.on('write-file', (filePath, data) =>
             invokeFileEvent('write-file', filePath, data),
         )
+        return () => {
+            window.desktopEvents?.removeAllListeners('create-config-file')
+            window.desktopEvents?.removeAllListeners('open-theme')
+            window.desktopEvents?.removeAllListeners('check-file-exists')
+            window.desktopEvents?.removeAllListeners('read-file')
+            window.desktopEvents?.removeAllListeners('write-file')
+        }
     }, [])
 
     useEffect(() => {
@@ -504,6 +532,8 @@ function _app() {
                     appInfo,
                     setThemes,
                     themes,
+                    setPatcher,
+                    patcherInfo,
                 }}
             >
                 <Player>
@@ -535,23 +565,15 @@ const Player: React.FC<any> = ({ children }) => {
                                 ...prevTrack,
                                 playerBarTitle: data.playerBarTitle,
                                 artist: data.artist,
+                                album: data.albums,
                                 timecodes: data.timecodes,
                                 requestImgTrack: data.requestImgTrack,
                                 linkTitle: data.linkTitle,
                                 status: data.status,
                                 url: data.url,
+                                id: data.id,
                             }))
                         })
-                        window.desktopEvents?.on(
-                            'track_info',
-                            (event, data) => {
-                                setTrack(prevTrack => ({
-                                    ...prevTrack,
-                                    id: data.trackId,
-                                    url: data.url,
-                                }))
-                            },
-                        )
                     } else {
                         window.desktopEvents.removeListener(
                             'track-info',

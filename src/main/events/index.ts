@@ -19,7 +19,7 @@ import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import checkAndTerminateYandexMusic, {
     getPathToYandexMusic,
-} from '../../../utils/appUtils'
+} from '../utils/appUtils'
 import Patcher from '../modules/patcher/patch'
 import { store } from '../modules/storage'
 import UnPatcher from '../modules/patcher/unpatch'
@@ -233,9 +233,6 @@ export const handleEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on('show-notification', async (event, data) => {
         return new Notification({ title: data.title, body: data.body }).show()
-    })
-    ipcMain.on('send-crashreport', async (event, data) => {
-        // TODO: add c++ module for crash reporter
     })
     ipcMain.handle('needModalUpdate', async event => {
         if (reqModal <= 0) {
