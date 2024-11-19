@@ -10,6 +10,7 @@ import { WebSocketServer } from 'ws'
 let data: any = {}
 let selectedTheme: string = 'Default'
 import { EventEmitter } from 'events'
+const eventEmitter = new EventEmitter()
 
 const server = http.createServer()
 const ws = new WebSocketServer({ server })
@@ -257,7 +258,6 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
 export const getTrackInfo = () => {
     return data
 }
-const eventEmitter = new EventEmitter()
 
 export const updateData = (newData: any) => {
     data = (newData)
