@@ -20,6 +20,7 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
+import playerContext from '../../../renderer/api/context/player.context'
 
 interface p {
     goBack?: boolean
@@ -28,16 +29,56 @@ interface p {
 const Header: React.FC<p> = ({ goBack }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const { user, appInfo, app } = useContext(userContext)
+    const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
     const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
         null,
     )
+
     modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
         setIsMenuOpen(!isMenuOpen)
     }
+
+    const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
+
+    const statusColors = {
+        play: '#62FF79',
+        pause: '#62DDFF',
+        default: '#62DDFF',
+    }
+
+    useEffect(() => {
+        const handleDataUpdate = (event: any, data: any) => {
+            if (data) {
+                if (data.status === 'play') {
+                    setPlayStatus('play')
+                } else if (data.status === 'pause') {
+                    setPlayStatus('pause')
+                }
+            }
+        }
+
+        window.desktopEvents?.on('trackinfo', handleDataUpdate)
+    }, [currentTrack])
+
+    useEffect(() => {
+        const color = statusColors[playStatus] || statusColors.default
+        document.documentElement.style.setProperty('--statusColor', color)
+    }, [playStatus])
+
+    const renderPlayerStatus = () => {
+        if (playStatus === 'play') {
+            return 'Слушает'
+        } else if (playStatus === 'pause') {
+            return 'Думает'
+        } else {
+            return 'Думает'
+        }
+    }
+
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke('needModalUpdate').then(value => {
@@ -194,8 +235,16 @@ const Header: React.FC<p> = ({ goBack }) => {
 
                             {user.id !== '-1' && (
                                 <div className={styles.user_container}>
-                                    <img src={user.avatar} alt="" />
-                                    {user.username}
+                                    <div className={styles.user_avatar}>
+                                        <img className={styles.avatar} src={user.avatar} alt="" />
+                                        <div className={styles.status}>
+                                            <div className={styles.dot}></div>
+                                        </div>
+                                    </div>
+                                    <div className={styles.user_info}>
+                                        <div className={styles.username}>{user.username}</div>
+                                        <div className={styles.status_text}>{renderPlayerStatus()}</div>
+                                    </div>
                                     <span className={styles.tooltip}>
                                         Скоро
                                     </span>
