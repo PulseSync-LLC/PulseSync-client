@@ -89,6 +89,10 @@
     }
 }
 
+.innerFunction:last-child {
+    border-radius: 0 0 var(--BorderRadius) var(--BorderRadius);
+}
+
 .contextButton {
     display: flex;
     flex-direction: row;
