@@ -132,6 +132,93 @@
                     }
                 }
 
+                .rpcStatus {
+                    cursor: pointer;
+                    position: relative;
+                    -webkit-app-region: no-drag;
+                    transition: var(--transition);
+
+                    display: flex;
+                    flex-direction: row;
+                    align-items: center;
+                    padding: 4px 14px 4px 4px;
+                    gap: 14px;
+
+                    background: #20232c;
+                    border-radius: 8px;
+
+                    &:hover {
+                        background: #262a35;
+                    }
+
+                    &:hover .tooltip {
+                        visibility: visible;
+                        opacity: 1;
+                    }
+
+                    & > .imageDetail {
+                        position: relative;
+                        display: flex;
+
+                        & > .image {
+                            display: flex;
+                            box-sizing: border-box;
+
+                            --size: 30px;
+                            width: var(--size);
+                            height: var(--size);
+                            border-radius: 4px;
+
+                            flex: none;
+                            order: 0;
+                            flex-grow: 0;
+                            z-index: 0;
+                        }
+                    }
+
+                    & > .rpcDetail {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: flex-start;
+                        padding: 0px;
+                        gap: 2px;
+
+                        font-weight: 500;
+                        font-size: 14px;
+                        line-height: 16px;
+
+                        & > .rpcTitle {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 900;
+                            font-size: 12px;
+                            line-height: 110%;
+
+                            color: #fff;
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
+                        }
+                        & > .rpcAuthor {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 500;
+                            font-size: 10px;
+                            line-height: 110%;
+
+                            color: #fff;
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
+                        }
+                    }
+                }
+
                 .user_container {
                     cursor: pointer;
                     position: relative;
@@ -146,10 +233,6 @@
                     color: var(--statusColor);
                     background: #20232c;
                     border-radius: 10px 8px 8px 10px;
-
-                    flex: none;
-                    order: 1;
-                    flex-grow: 0;
 
                     &:hover {
                         background: #262a35;
@@ -216,6 +299,10 @@
                             line-height: 110%;
 
                             color: var(--statusColor);
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
                         }
                         & > .status_text {
                             min-width: 59px;
@@ -226,6 +313,10 @@
                             line-height: 110%;
 
                             color: var(--statusColor);
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
                         }
                     }
                 }

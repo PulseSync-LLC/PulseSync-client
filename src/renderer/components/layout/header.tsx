@@ -26,6 +26,17 @@ interface p {
     goBack?: boolean
 }
 
+interface DataTrack {
+    playerBarTitle: string
+    artist: string
+    album?: string
+    timecodes: [number, number]
+    requestImgTrack: string[]
+    linkTitle: string | number
+    url: string
+    id: string
+}
+
 const Header: React.FC<p> = ({ goBack }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const { user, appInfo, app } = useContext(userContext)
@@ -33,6 +44,8 @@ const Header: React.FC<p> = ({ goBack }) => {
     const [modal, setModal] = useState(false)
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
+    const [dataTrack, setDataTrack] = useState<DataTrack | null>(null)
+
     const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
         null,
     )
@@ -52,6 +65,7 @@ const Header: React.FC<p> = ({ goBack }) => {
 
     useEffect(() => {
         const handleDataUpdate = (event: any, data: any) => {
+            setDataTrack(data)
             if (data) {
                 if (data.status === 'play') {
                     setPlayStatus('play')
@@ -195,60 +209,100 @@ const Header: React.FC<p> = ({ goBack }) => {
                     <div className={styles.event_container}>
                         <div className={styles.menu}>
                             {user.id !== '-1' && (
-                                <div className={styles.badges_container}>
-                                    {user.badges.length > 0 &&
-                                        user.badges.map(_badge => (
-                                            <div
-                                                className={styles.badge}
-                                                key={_badge.type}
-                                                onMouseMove={e =>
-                                                    handleMouseMove(
-                                                        e,
-                                                        _badge.type,
-                                                    )
-                                                }
-                                                onMouseLeave={() =>
-                                                    handleMouseLeave(
-                                                        _badge.type,
-                                                    )
-                                                }
-                                            >
-                                                <img
-                                                    src={`static/assets/badges/${_badge.type}.svg`}
-                                                    alt={_badge.type}
-                                                    style={{
-                                                        transform:
-                                                            transformStyles[
-                                                                _badge.type
-                                                            ],
-                                                    }}
-                                                />
-                                                <span
-                                                    className={styles.tooltip}
+                                <>
+                                    <div className={styles.badges_container}>
+                                        {user.badges.length > 0 &&
+                                            user.badges.map(_badge => (
+                                                <div
+                                                    className={styles.badge}
+                                                    key={_badge.type}
+                                                    onMouseMove={e =>
+                                                        handleMouseMove(
+                                                            e,
+                                                            _badge.type,
+                                                        )
+                                                    }
+                                                    onMouseLeave={() =>
+                                                        handleMouseLeave(
+                                                            _badge.type,
+                                                        )
+                                                    }
                                                 >
-                                                    {_badge.name}
-                                                </span>
-                                            </div>
-                                        ))}
-                                </div>
-                            )}
-
-                            {user.id !== '-1' && (
-                                <div className={styles.user_container}>
-                                    <div className={styles.user_avatar}>
-                                        <img className={styles.avatar} src={user.avatar} alt="" />
-                                        <div className={styles.status}>
-                                            <div className={styles.dot}></div>
+                                                    <img
+                                                        src={`static/assets/badges/${_badge.type}.svg`}
+                                                        alt={_badge.type}
+                                                        style={{
+                                                            transform:
+                                                                transformStyles[
+                                                                    _badge.type
+                                                                ],
+                                                        }}
+                                                    />
+                                                    <span
+                                                        className={
+                                                            styles.tooltip
+                                                        }
+                                                    >
+                                                        {_badge.name}
+                                                    </span>
+                                                </div>
+                                            ))}
+                                    </div>
+                                    <div className={styles.rpcStatus}>
+                                        <div className={styles.imageDetail}>
+                                            <img
+                                                className={styles.image}
+                                                src={
+                                                    dataTrack
+                                                        ?.requestImgTrack?.[0] ||
+                                                    ''
+                                                }
+                                                alt={
+                                                    dataTrack?.playerBarTitle ||
+                                                    'Track image'
+                                                }
+                                            />
                                         </div>
+                                        <div className={styles.rpcDetail}>
+                                            <div className={styles.rpcTitle}>
+                                                {dataTrack?.playerBarTitle ||
+                                                    'No Title'}
+                                            </div>
+                                            <div className={styles.rpcAuthor}>
+                                                {dataTrack?.artist ||
+                                                    'Unknown Artist'}
+                                            </div>
+                                        </div>
+                                        <span className={styles.tooltip}>
+                                            Скоро
+                                        </span>
                                     </div>
-                                    <div className={styles.user_info}>
-                                        <div className={styles.username}>{user.username}</div>
-                                        <div className={styles.status_text}>{renderPlayerStatus()}</div>
+                                    <div className={styles.user_container}>
+                                        <div className={styles.user_avatar}>
+                                            <img
+                                                className={styles.avatar}
+                                                src={user.avatar}
+                                                alt=""
+                                            />
+                                            <div className={styles.status}>
+                                                <div
+                                                    className={styles.dot}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                        <div className={styles.user_info}>
+                                            <div className={styles.username}>
+                                                {user.username}
+                                            </div>
+                                            <div className={styles.status_text}>
+                                                {renderPlayerStatus()}
+                                            </div>
+                                        </div>
+                                        <span className={styles.tooltip}>
+                                            Скоро
+                                        </span>
                                     </div>
-                                    <span className={styles.tooltip}>
-                                        Скоро
-                                    </span>
-                                </div>
+                                </>
                             )}
                         </div>
                         <div className={styles.button_container}>
