@@ -6,10 +6,6 @@ import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import playerContext from '../../api/context/player.context'
 import hotToast from 'react-hot-toast-magic'
 import toast from '../../api/toast'
-import trackInitials from '../../api/initials/track.initials'
-import config from '../../api/config'
-import getUserToken from '../../api/getUserToken'
-import userInitials from '../../api/initials/user.initials'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
@@ -54,22 +50,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 ...app.patcher,
                 patched: false,
             },
-        })
-    }
-
-    const logout = () => {
-        fetch(config.SERVER_URL + '/auth/logout', {
-            method: 'PUT',
-            headers: {
-                authorization: `Bearer ${getUserToken()}`,
-            },
-        }).then(async r => {
-            const res = await r.json()
-            if (res.ok) {
-                toast.success('Успешный выход')
-                window.electron.store.delete('tokens.token')
-                setUser(userInitials)
-            }
         })
     }
 
@@ -250,9 +230,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     </div>
                 </div>
             ))}
-            <button className={styles.contextButton} onClick={logout}>
-                Выйти
-            </button>
         </div>
     )
 }

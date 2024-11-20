@@ -22,6 +22,10 @@ import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
 import playerContext from '../../../renderer/api/context/player.context'
 import TrackInterface from '../../api/interfaces/track.interface'
+import toast from '../../api/toast'
+import config from '../../api/config'
+import getUserToken from '../../api/getUserToken'
+import userInitials from '../../api/initials/user.initials'
 
 interface p {
     goBack?: boolean
@@ -41,7 +45,7 @@ interface DataTrack {
 const Header: React.FC<p> = ({ goBack }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app } = useContext(userContext)
+    const { user, appInfo, app, setUser } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
     const openModal = () => setModal(true)
@@ -105,6 +109,22 @@ const Header: React.FC<p> = ({ goBack }) => {
             })
         }
     }, [])
+
+    const logout = () => {
+        fetch(config.SERVER_URL + '/auth/logout', {
+            method: 'PUT',
+            headers: {
+                authorization: `Bearer ${getUserToken()}`,
+            },
+        }).then(async r => {
+            const res = await r.json()
+            if (res.ok) {
+                toast.success('Успешный выход')
+                window.electron.store.delete('tokens.token')
+                setUser(userInitials)
+            }
+        })
+    }
 
     const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
 
@@ -347,7 +367,7 @@ const Header: React.FC<p> = ({ goBack }) => {
                                             <div className={styles.user_menu_buttons}>
                                                 <button className={styles.menu_button} disabled>Друзья</button>
                                                 <button className={styles.menu_button} disabled>Настройки</button>
-                                                <button className={styles.menu_button}>Выйти</button>
+                                                <button className={styles.menu_button} onClick={logout}>Выйти</button>
                                             </div>
                                         </div>
                                     )}
