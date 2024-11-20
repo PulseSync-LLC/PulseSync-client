@@ -78,7 +78,7 @@
             flex-direction: row;
             justify-content: flex-end;
             align-items: center;
-            gap: 10px;
+            gap: 11px;
 
             width: fit-content;
             height: fit-content;
@@ -86,7 +86,7 @@
             .menu {
                 display: flex;
                 align-items: center;
-                gap: 15px;
+                gap: 6px;
 
                 .badges_container {
                     -webkit-app-region: no-drag;
@@ -190,7 +190,7 @@
 
                         & > .rpcTitle {
                             min-width: 59px;
-                            max-width: 85px;
+                            max-width: 135px;
 
                             font-weight: 900;
                             font-size: 12px;
@@ -204,7 +204,7 @@
                         }
                         & > .rpcAuthor {
                             min-width: 59px;
-                            max-width: 85px;
+                            max-width: 135px;
 
                             font-weight: 500;
                             font-size: 10px;
