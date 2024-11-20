@@ -5,6 +5,7 @@ const style = {
     color: '#ffffff',
     border: 'solid 1px #363944',
     borderRadius: '8px',
+    zIndex: 999999,
 }
 
 const iToast = {

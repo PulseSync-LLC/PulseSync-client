@@ -6,7 +6,7 @@
     -webkit-app-region: drag;
     padding: 0 0 0 25px;
     width: -webkit-fill-available;
-    z-index: 99999;
+    z-index: 9997;
 
     .fix_size {
         width: 100%;
@@ -142,7 +142,7 @@
                     flex-direction: row;
                     align-items: center;
                     padding: 4px 14px 4px 4px;
-                    gap: 14px;
+                    gap: 7px;
 
                     background: #20232c;
                     border-radius: 8px;
