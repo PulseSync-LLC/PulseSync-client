@@ -40,6 +40,7 @@ interface DataTrack {
 
 const Header: React.FC<p> = ({ goBack }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, appInfo, app } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
@@ -55,12 +56,16 @@ const Header: React.FC<p> = ({ goBack }) => {
         setIsMenuOpen(!isMenuOpen)
     }
 
+    const toggleUserContainer = () => {
+        setIsUserCardOpen(!isUserCardOpen)
+    }
+
     const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
 
     const statusColors = {
         play: '#62FF79',
-        pause: '#62DDFF',
-        default: '#62DDFF',
+        pause: '#60C2FF',
+        default: '#60C2FF',
     }
 
     useEffect(() => {
@@ -118,41 +123,6 @@ const Header: React.FC<p> = ({ goBack }) => {
             </a>
         )
     }
-
-    const [transformStyles, setTransformStyles] = useState<
-        Record<string, string>
-    >({})
-
-    const handleMouseMove = useCallback(
-        (e: React.MouseEvent<HTMLDivElement>, badgeType: string) => {
-            const { clientX, clientY, currentTarget } = e
-            const { offsetWidth, offsetHeight, offsetLeft, offsetTop } =
-                currentTarget
-
-            const centerX = offsetLeft + offsetWidth / 2
-            const centerY = offsetTop + offsetHeight / 2
-
-            const deltaX = (clientX - centerX) / (offsetWidth / 2)
-            const deltaY = (clientY - centerY) / (offsetHeight / 2)
-
-            const angleX = deltaY * 60
-            const angleY = -deltaX * 60
-            const transform = `perspective(500px) rotateX(${angleX}deg) rotateY(${angleY}deg)`
-
-            setTransformStyles(prevStyles => ({
-                ...prevStyles,
-                [badgeType]: transform,
-            }))
-        },
-        [],
-    )
-
-    const handleMouseLeave = useCallback((badgeType: string) => {
-        setTransformStyles(prevStyles => ({
-            ...prevStyles,
-            [badgeType]: '',
-        }))
-    }, [])
     return (
         <>
             <Modal
@@ -208,44 +178,6 @@ const Header: React.FC<p> = ({ goBack }) => {
                         <div className={styles.menu}>
                             {user.id !== '-1' && (
                                 <>
-                                    <div className={styles.badges_container}>
-                                        {user.badges.length > 0 &&
-                                            user.badges.map(_badge => (
-                                                <div
-                                                    className={styles.badge}
-                                                    key={_badge.type}
-                                                    onMouseMove={e =>
-                                                        handleMouseMove(
-                                                            e,
-                                                            _badge.type,
-                                                        )
-                                                    }
-                                                    onMouseLeave={() =>
-                                                        handleMouseLeave(
-                                                            _badge.type,
-                                                        )
-                                                    }
-                                                >
-                                                    <img
-                                                        src={`static/assets/badges/${_badge.type}.svg`}
-                                                        alt={_badge.type}
-                                                        style={{
-                                                            transform:
-                                                                transformStyles[
-                                                                    _badge.type
-                                                                ],
-                                                        }}
-                                                    />
-                                                    <span
-                                                        className={
-                                                            styles.tooltip
-                                                        }
-                                                    >
-                                                        {_badge.name}
-                                                    </span>
-                                                </div>
-                                            ))}
-                                    </div>
                                     <div className={styles.rpcStatus}>
                                         <div className={styles.imageDetail}>
                                             <img
@@ -275,7 +207,10 @@ const Header: React.FC<p> = ({ goBack }) => {
                                             Скоро
                                         </span>
                                     </div>
-                                    <div className={styles.user_container}>
+                                    <div
+                                        className={styles.user_container}
+                                        onClick={toggleUserContainer}
+                                    >
                                         <div className={styles.user_avatar}>
                                             <img
                                                 className={styles.avatar}
@@ -296,10 +231,126 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                 {renderPlayerStatus()}
                                             </div>
                                         </div>
-                                        <span className={styles.tooltip}>
-                                            Скоро
-                                        </span>
                                     </div>
+                                    {isUserCardOpen && (
+                                        <div className={styles.user_menu}>
+                                            <div className={styles.user_info}>
+                                                <img
+                                                    className={
+                                                        styles.user_banner
+                                                    }
+                                                    src={
+                                                        user.banner
+                                                            ? user.banner
+                                                            : 'https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif'
+                                                    }
+                                                    alt=""
+                                                />
+                                                <div
+                                                    className={
+                                                        styles.user_avatar
+                                                    }
+                                                >
+                                                    <img
+                                                        className={
+                                                            styles.avatar
+                                                        }
+                                                        src={user.avatar}
+                                                        alt=""
+                                                    />
+                                                    <div
+                                                        className={
+                                                            styles.status
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={
+                                                                styles.dot
+                                                            }
+                                                        ></div>
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className={
+                                                        styles.user_details
+                                                    }
+                                                >
+                                                    <div
+                                                        className={
+                                                            styles.user_info
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={
+                                                                styles.username
+                                                            }
+                                                        >
+                                                            {user.username}
+                                                        </div>
+                                                        <div
+                                                            className={
+                                                                styles.status_text
+                                                            }
+                                                        >
+                                                            {renderPlayerStatus()}
+                                                            {playStatus ===
+                                                                'play' && (
+                                                                <>
+                                                                    :{' '}
+                                                                    {currentTrack?.playerBarTitle ||
+                                                                        'No Title'}{' '}
+                                                                    -{' '}
+                                                                    {currentTrack?.artist ||
+                                                                        'Unknown Artist'}
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className={
+                                                            styles.badges_container
+                                                        }
+                                                    >
+                                                        {user.badges.length >
+                                                            0 &&
+                                                            user.badges.map(
+                                                                _badge => (
+                                                                    <div
+                                                                        className={
+                                                                            styles.badge
+                                                                        }
+                                                                        key={
+                                                                            _badge.type
+                                                                        }
+                                                                    >
+                                                                        <img
+                                                                            src={`static/assets/badges/${_badge.type}.svg`}
+                                                                            alt={
+                                                                                _badge.type
+                                                                            }
+                                                                        />
+                                                                        <span
+                                                                            className={
+                                                                                styles.tooltip
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                _badge.name
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div className={styles.user_menu_buttons}>
+                                                <button className={styles.menu_button} disabled>Друзья</button>
+                                                <button className={styles.menu_button} disabled>Настройки</button>
+                                                <button className={styles.menu_button}>Выйти</button>
+                                            </div>
+                                        </div>
+                                    )}
                                 </>
                             )}
                         </div>

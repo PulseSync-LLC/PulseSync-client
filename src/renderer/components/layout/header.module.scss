@@ -87,51 +87,6 @@
                 display: flex;
                 align-items: center;
                 gap: 6px;
-
-                .badges_container {
-                    -webkit-app-region: no-drag;
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 4px 12px;
-                    gap: 5px;
-                    background: #232630;
-                    border-radius: 84px;
-                    height: 26px;
-
-                    .badge {
-                        position: relative;
-                        display: flex;
-
-                        img {
-                            transition:
-                                width 0.2s cubic-bezier(0.39, 0.575, 0.565, 1),
-                                height 0.2s cubic-bezier(0.39, 0.575, 0.565, 1);
-                            width: 26px;
-                            height: 26px;
-                            background: transparent;
-                            cursor: pointer;
-
-                            &:hover {
-                                background: #232630;
-                                border-radius: 16px;
-                                width: 36px;
-                                height: 36px;
-                            }
-                        }
-
-                        &:hover .tooltip {
-                            visibility: visible;
-                            opacity: 1;
-                        }
-                    }
-
-                    * path {
-                        stroke: none;
-                    }
-                }
-
                 .rpcStatus {
                     cursor: pointer;
                     position: relative;
@@ -232,7 +187,7 @@
 
                     color: var(--statusColor);
                     background: #20232c;
-                    border-radius: 10px 8px 8px 10px;
+                    border-radius: 15px 8px 8px 15px;
 
                     &:hover {
                         background: #262a35;
@@ -297,6 +252,7 @@
                             font-weight: 900;
                             font-size: 12px;
                             line-height: 110%;
+                            text-transform: capitalize;
 
                             color: var(--statusColor);
                             text-overflow: ellipsis;
@@ -317,6 +273,211 @@
                             flex: none;
                             overflow: hidden;
                             white-space: nowrap;
+                        }
+                    }
+                }
+
+                .user_menu {
+                    position: absolute;
+                    top: 55px;
+                    right: 167px;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    background: #2b3040;
+                    border-radius: 8px;
+                    z-index: 99997;
+                    box-shadow: #0000009c 1px 2px 20px 1px;
+
+                    --userBanner: 260px;
+
+                    & > .user_info {
+                        transition: var(--transition);
+                        cursor: pointer;
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        padding: 0px;
+                        border-radius: 4px;
+                        margin: 7px;
+                        background: #3b4155;
+
+                        &:hover {
+                            background: #464e66;
+                        }
+
+                        & > .user_banner {
+                            width: calc(var(--userBanner) + 45px);
+                            height: 100px;
+
+                            border-radius: 4px 4px 0 0;
+                            flex: none;
+                            order: 0;
+                            align-self: stretch;
+                            flex-grow: 0;
+                            z-index: 0;
+                            object-fit: cover;
+                        }
+
+                        & > .user_avatar {
+                            display: flex;
+                            position: absolute;
+                            left: 25px;
+                            top: 52px;
+
+                            & > .avatar {
+                                display: flex;
+                                box-sizing: border-box;
+
+                                --size: 85px;
+                                width: var(--size);
+                                height: var(--size);
+                                border-radius: 100px;
+
+                                outline: 4px solid #3b4155;
+
+                                flex: none;
+                                order: 0;
+                                flex-grow: 0;
+                                z-index: 0;
+                            }
+
+                            & > .status {
+                                position: absolute;
+                                bottom: 1px;
+                                right: 1px;
+                                outline: 4px solid #3b4155;
+                                border-radius: 50%;
+
+                                & > .dot {
+                                    width: 14px;
+                                    height: 14px;
+                                    border-radius: 50%;
+                                    background: var(--statusColor);
+                                }
+                            }
+                        }
+
+                        & > .user_details {
+                            display: flex;
+                            flex-direction: column;
+                            justify-content: center;
+                            align-items: flex-start;
+                            padding: 40px 20px 10px;
+                            gap: 10px;
+                            width: -webkit-fill-available;
+                            position: relative;
+                            isolation: isolate;
+
+                            & > .user_info {
+                                display: flex;
+                                flex-direction: column;
+                                justify-content: center;
+                                align-items: flex-start;
+                                padding: 0px;
+                                gap: 1px;
+
+                                & > .username {
+                                    font-weight: 900;
+                                    font-size: 16px;
+                                    line-height: 110%;
+                                    text-transform: capitalize;
+
+                                    color: var(--statusColor);
+                                }
+                                & > .status_text {
+                                    font-weight: 500;
+                                    font-size: 14px;
+                                    line-height: 110%;
+
+                                    text-overflow: ellipsis;
+                                    flex: none;
+                                    overflow: hidden;
+                                    white-space: nowrap;
+                                    max-width: var(--userBanner);
+
+                                    color: var(--statusColor);
+                                }
+                            }
+
+                            .badges_container {
+                                -webkit-app-region: no-drag;
+                                display: flex;
+                                flex-direction: row;
+                                align-items: center;
+                                padding: 0px;
+                                background: #33384a;
+                                border-radius: 4px;
+                                position: absolute;
+                                right: 10px;
+                                top: 10px;
+
+                                .badge {
+                                    position: relative;
+                                    display: flex;
+                                    flex-direction: row;
+                                    align-items: center;
+                                    padding: 3px;
+                                    gap: 10px;
+                                    border-radius: 25px;
+
+                                    img {
+                                        width: 26px;
+                                        height: 26px;
+                                        background: transparent;
+                                        cursor: pointer;
+                                    }
+
+                                    &:hover .tooltip {
+                                        visibility: visible;
+                                        opacity: 1;
+                                    }
+                                }
+
+                                * path {
+                                    stroke: none;
+                                }
+                            }
+                        }
+                    }
+
+                    & > .user_menu_buttons {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        padding: 0px 0px 7px;
+                        width: -webkit-fill-available;
+
+                        & > .menu_button {
+                            transition: var(--transition);
+                            cursor: pointer;
+                            display: flex;
+                            flex-direction: row;
+                            align-items: center;
+                            padding: 10px 27px;
+                            gap: 10px;
+                            width: -webkit-fill-available;
+                            border: none;
+
+                            font-weight: 700;
+                            font-size: 12px;
+                            line-height: 140%;
+                            background: transparent;
+
+                            color: #bbc3e0;
+
+                            &:hover {
+                                background: #3b4155;
+                            }
+
+                            &:disabled {
+                                opacity: 0.5;
+                                cursor: not-allowed;
+
+                                &:hover {
+                                    background: transparent;
+                                }
+                            }
                         }
                     }
                 }
