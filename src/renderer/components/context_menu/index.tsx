@@ -61,7 +61,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         fetch(config.SERVER_URL + '/auth/logout', {
             method: 'PUT',
             headers: {
-                authorization: `Bearer: ${getUserToken()}`,
+                authorization: `Bearer ${getUserToken()}`,
             },
         }).then(async r => {
             const res = await r.json()
