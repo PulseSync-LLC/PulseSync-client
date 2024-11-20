@@ -17,9 +17,9 @@ const ws = new WebSocketServer({ server })
 ws.on('connection', socket => {
     socket.on('message', (message: any) => {
         console.log(`Received message => ${message}`)
-        let data = JSON.parse(message);
+        let data = JSON.parse(message)
         if (data.type === 'update_data') {
-            updateData(data.data);
+            updateData(data.data)
         }
     })
     socket.send(JSON.stringify({ message: 'Hello from server!' }))
@@ -82,7 +82,6 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
         res.end()
         return
     }
-
 
     if (req.method === 'GET' && req.url === '/get_theme') {
         try {
@@ -260,7 +259,7 @@ export const getTrackInfo = () => {
 }
 
 export const updateData = (newData: any) => {
-    data = (newData)
+    data = newData
     eventEmitter.emit('dataUpdated', newData)
 }
 
@@ -268,6 +267,38 @@ export { eventEmitter }
 
 export const setTheme = (theme: string) => {
     selectedTheme = theme
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const themePath = path.join(themesPath, selectedTheme)
+    const metadataPath = path.join(themePath, 'metadata.json')
+
+    if (!fs.existsSync(metadataPath)) {
+        return
+    }
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+    let scriptJS = null
+    let cssContent = ''
+    let jsContent = ''
+    const styleCSS = path.join(themePath, metadata.css)
+    if (metadata.script) {
+        scriptJS = path.join(themePath, metadata.script)
+        if (fs.existsSync(scriptJS)) {
+            jsContent = fs.readFileSync(scriptJS, 'utf8')
+        }
+    }
+
+    if (fs.existsSync(styleCSS)) {
+        cssContent = fs.readFileSync(styleCSS, 'utf8')
+    }
+
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                css: cssContent || '{}',
+                script: jsContent || '',
+            }),
+        ),
+    )
 }
 
 export default server
