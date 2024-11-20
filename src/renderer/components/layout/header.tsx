@@ -15,17 +15,26 @@ import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'
+import Skeleton from 'react-loading-skeleton'
 import Modal from '../modal'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
+import * as theme from '../../pages/trackinfo/trackinfo.module.scss'
+import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import playerContext from '../../../renderer/api/context/player.context'
 import TrackInterface from '../../api/interfaces/track.interface'
+import { object, string } from 'yup'
 import toast from '../../api/toast'
 import config from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
+import trackInitials from '../../api/initials/track.initials'
+import CheckboxNav from '../../components/checkbox'
+import { replaceParams } from '../../utils/formatRpc'
+import { useCharCount } from '../../utils/useCharCount'
+import { useFormik } from 'formik'
 
 interface p {
     goBack?: boolean
@@ -45,9 +54,61 @@ interface DataTrack {
 const Header: React.FC<p> = ({ goBack }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app, setUser } = useContext(userContext)
+    const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
+    const [rickRollClick, setRickRoll] = useState(false)
+    const { user, appInfo, app, setUser, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const fixedTheme = { charCount: inputStyle.charCount }
+    const [previousValues, setPreviousValues] = useState({
+        appId: '',
+        details: '',
+        state: '',
+        button: '',
+    })
+    const schema = object().shape({
+        appId: string()
+            .nullable()
+            .notRequired()
+            .test(
+                'len',
+                'Минимальная длина 18 символов',
+                val => !val || val.length >= 18,
+            )
+            .test(
+                'len',
+                'Максимальная длина 20 символов',
+                val => !val || val.length <= 20,
+            ),
+        details: string()
+            .test(
+                'len',
+                'Минимальная длина 2 символа',
+                val => !val || val.length >= 2,
+            )
+            .test(
+                'len',
+                'Максимальная длина 128 символов',
+                val => !val || val.length <= 128,
+            ),
+        state: string()
+            .test(
+                'len',
+                'Минимальная длина 2 символа',
+                val => !val || val.length >= 2,
+            )
+            .test(
+                'len',
+                'Максимальная длина 128 символов',
+                val => !val || val.length <= 128,
+            ),
+        button: string().test(
+            'len',
+            'Максимальная длина 30 символов',
+            val => !val || val.length <= 30,
+        ),
+    })
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
 
@@ -62,6 +123,10 @@ const Header: React.FC<p> = ({ goBack }) => {
 
     const toggleUserContainer = () => {
         setIsUserCardOpen(!isUserCardOpen)
+    }
+
+    const toggleDiscordRpcContainer = () => {
+        setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen)
     }
 
     const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
@@ -110,6 +175,48 @@ const Header: React.FC<p> = ({ goBack }) => {
         }
     }, [])
 
+    const formik = useFormik({
+        initialValues: {
+            appId: app.discordRpc.appId,
+            details: app.discordRpc.details,
+            state: app.discordRpc.state,
+            button: app.discordRpc.button,
+        },
+        validationSchema: schema,
+        onSubmit: values => {
+            const changedValues = getChangedValues(previousValues, values)
+            if (Object.keys(changedValues).length > 0) {
+                window.desktopEvents?.send('update-rpcSettings', changedValues)
+                setPreviousValues(values)
+                setApp({
+                    ...app,
+                    discordRpc: {
+                        ...app.discordRpc,
+                        ...values,
+                    },
+                })
+            }
+        },
+    })
+
+    const outInputChecker = (e: any) => {
+        formik.handleBlur(e)
+        const changedValues = getChangedValues(previousValues, formik.values)
+        if (formik.isValid && Object.keys(changedValues).length > 0) {
+            formik.handleSubmit()
+        }
+    }
+
+    const getChangedValues = (initialValues: any, currentValues: any) => {
+        const changedValues: any = {}
+        for (const key in initialValues) {
+            if (initialValues[key] !== currentValues[key]) {
+                changedValues[key] = currentValues[key]
+            }
+        }
+        return changedValues
+    }
+
     const logout = () => {
         fetch(config.SERVER_URL + '/auth/logout', {
             method: 'PUT',
@@ -143,6 +250,8 @@ const Header: React.FC<p> = ({ goBack }) => {
             </a>
         )
     }
+    useCharCount(containerRef, fixedTheme)
+
     return (
         <>
             <Modal
@@ -170,7 +279,7 @@ const Header: React.FC<p> = ({ goBack }) => {
                         ))}
                 </div>
             </Modal>
-            <header className={styles.nav_bar}>
+            <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
                         <button
@@ -198,7 +307,10 @@ const Header: React.FC<p> = ({ goBack }) => {
                         <div className={styles.menu}>
                             {user.id !== '-1' && (
                                 <>
-                                    <div className={styles.rpcStatus}>
+                                    <div
+                                        className={styles.rpcStatus}
+                                        onClick={toggleDiscordRpcContainer}
+                                    >
                                         <div className={styles.imageDetail}>
                                             <img
                                                 className={styles.image}
@@ -223,10 +335,414 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                     'Unknown Artist'}
                                             </div>
                                         </div>
-                                        <span className={styles.tooltip}>
-                                            Скоро
-                                        </span>
                                     </div>
+                                    {isDiscordRpcCardOpen && (
+                                        <div className={styles.rpcCard}>
+                                            <div className={styles.titleRpc}>
+                                                Настроить статус
+                                            </div>
+                                            <div
+                                                className={
+                                                    styles.settingsContainer
+                                                }
+                                            >
+                                                <div className={styles.options}>
+                                                    <CheckboxNav
+                                                        checkType="toggleRpcStatus"
+                                                        description={
+                                                            'Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord.'
+                                                        }
+                                                    >
+                                                        Включить RPC
+                                                    </CheckboxNav>
+                                                </div>
+                                                <div className={theme.userRPC}>
+                                                    <div
+                                                        className={theme.status}
+                                                    >
+                                                        Слушает
+                                                    </div>
+                                                    <div
+                                                        className={
+                                                            theme.statusRPC
+                                                        }
+                                                    >
+                                                        <div>
+                                                            {app.discordRpc
+                                                                .status &&
+                                                            currentTrack !==
+                                                                trackInitials ? (
+                                                                <div
+                                                                    className={
+                                                                        theme.flex_container
+                                                                    }
+                                                                >
+                                                                    <img
+                                                                        className={
+                                                                            theme.img
+                                                                        }
+                                                                        src={
+                                                                            currentTrack
+                                                                                .requestImgTrack[0]
+                                                                                ? currentTrack
+                                                                                      .requestImgTrack[0]
+                                                                                : './static/assets/logo/logoapp.png'
+                                                                        }
+                                                                        alt=""
+                                                                    />
+                                                                    <div
+                                                                        className={
+                                                                            theme.gap
+                                                                        }
+                                                                    >
+                                                                        <div
+                                                                            className={
+                                                                                theme.appName
+                                                                            }
+                                                                        >
+                                                                            PulseSync
+                                                                        </div>
+                                                                        <div
+                                                                            className={
+                                                                                theme.name
+                                                                            }
+                                                                        >
+                                                                            {app
+                                                                                .discordRpc
+                                                                                .details
+                                                                                .length >
+                                                                            0
+                                                                                ? replaceParams(
+                                                                                      app
+                                                                                          .discordRpc
+                                                                                          .details,
+                                                                                      currentTrack,
+                                                                                  )
+                                                                                : `${currentTrack.playerBarTitle} - ${currentTrack.artist}`}
+                                                                        </div>
+                                                                        {currentTrack
+                                                                            .timecodes
+                                                                            .length >
+                                                                            0 && (
+                                                                            <div
+                                                                                className={
+                                                                                    theme.time
+                                                                                }
+                                                                            >
+                                                                                {app
+                                                                                    .discordRpc
+                                                                                    .state
+                                                                                    .length >
+                                                                                0
+                                                                                    ? replaceParams(
+                                                                                          app
+                                                                                              .discordRpc
+                                                                                              .state,
+                                                                                          currentTrack,
+                                                                                      )
+                                                                                    : `${currentTrack.timecodes[0]} - ${currentTrack.timecodes[1]}`}
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ) : (
+                                                                <div
+                                                                    className={
+                                                                        theme.flex_container
+                                                                    }
+                                                                >
+                                                                    <Skeleton
+                                                                        width={
+                                                                            58
+                                                                        }
+                                                                        height={
+                                                                            58
+                                                                        }
+                                                                    />
+                                                                    <div
+                                                                        className={
+                                                                            theme.gap
+                                                                        }
+                                                                    >
+                                                                        <Skeleton
+                                                                            width={
+                                                                                70
+                                                                            }
+                                                                            height={
+                                                                                19
+                                                                            }
+                                                                        />
+                                                                        <Skeleton
+                                                                            width={
+                                                                                190
+                                                                            }
+                                                                            height={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                        <Skeleton
+                                                                            width={
+                                                                                80
+                                                                            }
+                                                                            height={
+                                                                                16
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            className={
+                                                                theme.buttonRpc
+                                                            }
+                                                        >
+                                                            <div
+                                                                className={
+                                                                    theme.button
+                                                                }
+                                                                onClick={() => {
+                                                                    setRickRoll(
+                                                                        !rickRollClick,
+                                                                    )
+                                                                }}
+                                                            >
+                                                                {app.discordRpc
+                                                                    .button
+                                                                    .length > 0
+                                                                    ? app
+                                                                          .discordRpc
+                                                                          .button
+                                                                    : '✌️ Open in Yandex Music'}
+                                                            </div>
+                                                            {rickRollClick && (
+                                                                <video
+                                                                    width="600"
+                                                                    autoPlay
+                                                                    loop
+                                                                >
+                                                                    <source
+                                                                        src="https://s3.pulsesync.dev/files/heheheha.mp4"
+                                                                        type="video/mp4"
+                                                                    />
+                                                                </video>
+                                                            )}
+                                                            <div
+                                                                className={
+                                                                    theme.button
+                                                                }
+                                                                onClick={() => {
+                                                                    window.open(
+                                                                        'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts',
+                                                                    )
+                                                                }}
+                                                            >
+                                                                ♡ PulseSync
+                                                                Project
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <div className={styles.options}>
+                                                    <div
+                                                        className={
+                                                            inputStyle.textInputContainer
+                                                        }
+                                                    >
+                                                        <div>App ID</div>
+                                                        <input
+                                                            type="text"
+                                                            name="appId"
+                                                            aria-errormessage={
+                                                                (
+                                                                    formik.errors as any
+                                                                )['appId']
+                                                            }
+                                                            placeholder="984031241357647892"
+                                                            className={
+                                                                inputStyle.styledInput
+                                                            }
+                                                            value={
+                                                                formik.values
+                                                                    .appId
+                                                            }
+                                                            onChange={
+                                                                formik.handleChange
+                                                            }
+                                                            onBlur={e => {
+                                                                outInputChecker(
+                                                                    e,
+                                                                )
+                                                            }}
+                                                        />
+                                                        {formik.touched.appId &&
+                                                        formik.errors.appId ? (
+                                                            <div
+                                                                className={
+                                                                    inputStyle.error
+                                                                }
+                                                            >
+                                                                {
+                                                                    formik
+                                                                        .errors
+                                                                        .appId
+                                                                }
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <div
+                                                        className={
+                                                            inputStyle.textInputContainer
+                                                        }
+                                                    >
+                                                        <div>Details</div>
+                                                        <input
+                                                            type="text"
+                                                            name="details"
+                                                            placeholder="enter text"
+                                                            className={
+                                                                inputStyle.styledInput
+                                                            }
+                                                            value={
+                                                                formik.values
+                                                                    .details
+                                                            }
+                                                            onChange={
+                                                                formik.handleChange
+                                                            }
+                                                            onBlur={e => {
+                                                                outInputChecker(
+                                                                    e,
+                                                                )
+                                                            }}
+                                                        />
+                                                        {formik.touched
+                                                            .details &&
+                                                        formik.errors
+                                                            .details ? (
+                                                            <div
+                                                                className={
+                                                                    inputStyle.error
+                                                                }
+                                                            >
+                                                                {
+                                                                    formik
+                                                                        .errors
+                                                                        .details
+                                                                }
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <div
+                                                        className={
+                                                            inputStyle.textInputContainer
+                                                        }
+                                                    >
+                                                        <div>State</div>
+                                                        <input
+                                                            type="text"
+                                                            name="state"
+                                                            placeholder="enter text"
+                                                            className={
+                                                                inputStyle.styledInput
+                                                            }
+                                                            value={
+                                                                formik.values
+                                                                    .state
+                                                            }
+                                                            onChange={
+                                                                formik.handleChange
+                                                            }
+                                                            onBlur={e => {
+                                                                outInputChecker(
+                                                                    e,
+                                                                )
+                                                            }}
+                                                        />
+                                                        {formik.touched.state &&
+                                                        formik.errors.state ? (
+                                                            <div
+                                                                className={
+                                                                    inputStyle.error
+                                                                }
+                                                            >
+                                                                {
+                                                                    formik
+                                                                        .errors
+                                                                        .state
+                                                                }
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                </div>
+                                                <div className={styles.options}>
+                                                    <CheckboxNav
+                                                        checkType="enableRpcButtonListen"
+                                                        description="Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord."
+                                                    >
+                                                        Включить кнопку
+                                                        (Слушать)
+                                                    </CheckboxNav>
+                                                    <div
+                                                        className={
+                                                            inputStyle.textInputContainer
+                                                        }
+                                                    >
+                                                        <div>Button</div>
+                                                        <input
+                                                            type="text"
+                                                            name="button"
+                                                            placeholder="enter text"
+                                                            className={
+                                                                inputStyle.styledInput
+                                                            }
+                                                            value={
+                                                                formik.values
+                                                                    .button
+                                                            }
+                                                            onChange={
+                                                                formik.handleChange
+                                                            }
+                                                            onBlur={e => {
+                                                                outInputChecker(
+                                                                    e,
+                                                                )
+                                                            }}
+                                                        />
+                                                        {formik.touched
+                                                            .button &&
+                                                        formik.errors.button ? (
+                                                            <div
+                                                                className={
+                                                                    inputStyle.error
+                                                                }
+                                                            >
+                                                                {
+                                                                    formik
+                                                                        .errors
+                                                                        .button
+                                                                }
+                                                            </div>
+                                                        ) : null}
+                                                    </div>
+                                                    <CheckboxNav
+                                                        disabled={
+                                                            !user.badges.some(
+                                                                badge =>
+                                                                    badge.type ===
+                                                                    'supporter',
+                                                            )
+                                                        }
+                                                        checkType="enableGithubButton"
+                                                        description="Активируйте этот параметр, чтобы показать что вы любите разработчиков."
+                                                    >
+                                                        Включить кнопку
+                                                        (PulseSync Project)
+                                                    </CheckboxNav>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                     <div
                                         className={styles.user_container}
                                         onClick={toggleUserContainer}
@@ -364,10 +880,35 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div className={styles.user_menu_buttons}>
-                                                <button className={styles.menu_button} disabled>Друзья</button>
-                                                <button className={styles.menu_button} disabled>Настройки</button>
-                                                <button className={styles.menu_button} onClick={logout}>Выйти</button>
+                                            <div
+                                                className={
+                                                    styles.user_menu_buttons
+                                                }
+                                            >
+                                                <button
+                                                    className={
+                                                        styles.menu_button
+                                                    }
+                                                    disabled
+                                                >
+                                                    Друзья
+                                                </button>
+                                                <button
+                                                    className={
+                                                        styles.menu_button
+                                                    }
+                                                    disabled
+                                                >
+                                                    Настройки
+                                                </button>
+                                                <button
+                                                    className={
+                                                        styles.menu_button
+                                                    }
+                                                    onClick={logout}
+                                                >
+                                                    Выйти
+                                                </button>
                                             </div>
                                         </div>
                                     )}

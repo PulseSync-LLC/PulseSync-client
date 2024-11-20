@@ -258,122 +258,6 @@
 
                 color: #f2f3f5;
             }
-
-            .userRPC {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-start;
-                padding: 8px;
-                gap: 4px;
-
-                width: -webkit-fill-available;
-
-                background: var(--MainBG);
-                border-radius: var(--BorderRadius);
-
-                .status {
-                    font-weight: 800;
-                    font-size: 12px;
-                    line-height: 16px;
-
-                    color: #d5d8dc;
-                }
-
-                .statusRPC {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-start;
-                    padding: 0px;
-                    gap: 17px;
-
-                    width: -webkit-fill-available;
-
-                    border-radius: 10px;
-
-                    .flex_container {
-                        display: flex;
-                        flex-direction: row;
-                        align-items: flex-start;
-                        padding: 0px;
-                        gap: 10px;
-
-                        width: -webkit-fill-available;
-
-                        .img {
-                            --imgSize: 58px;
-                            width: var(--imgSize);
-                            height: var(--imgSize);
-                            background: #4e5058;
-                            border-radius: var(--BorderRadius);
-                        }
-
-                        .gap {
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: flex-start;
-                            padding: 0px;
-                            gap: 1px;
-
-                            width: -webkit-fill-available;
-
-                            .appName {
-                                font-weight: 800;
-                                font-size: 14px;
-                                line-height: 19px;
-
-                                color: #d5d8dc;
-                            }
-
-                            .time,
-                            .name {
-                                font-weight: 400;
-                                font-size: 12px;
-                                line-height: 16px;
-                                text-overflow: ellipsis;
-                                flex: none;
-                                overflow: hidden;
-                                white-space: nowrap;
-                                color: #d5d8dc;
-                                width: 190px;
-                            }
-                        }
-                    }
-                }
-
-                .buttonRpc {
-                    display: flex;
-                    flex-direction: column;
-                    gap: 5px;
-                    width: -webkit-fill-available;
-
-                    .button {
-                        box-sizing: border-box;
-                        cursor: pointer;
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center;
-                        align-items: center;
-                        padding: 9px 0px;
-                        gap: 10px;
-
-                        width: -webkit-fill-available;
-
-                        background: var(--NavigationOnColor);
-                        border-radius: var(--BorderRadius);
-
-                        font-weight: 700;
-                        font-size: 12px;
-                        line-height: 16px;
-
-                        color: #fafafa;
-
-                        &:hover {
-                            background: #4e525d;
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -408,5 +292,121 @@
 
     &:hover {
         color: #8ca5eb;
+    }
+}
+
+.userRPC {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 8px;
+    gap: 4px;
+
+    width: -webkit-fill-available;
+
+    background: var(--MainBG);
+    border-radius: var(--BorderRadius);
+
+    .status {
+        font-weight: 800;
+        font-size: 12px;
+        line-height: 16px;
+
+        color: #d5d8dc;
+    }
+
+    .statusRPC {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0px;
+        gap: 10px;
+
+        width: -webkit-fill-available;
+
+        border-radius: 10px;
+
+        .flex_container {
+            display: flex;
+            flex-direction: row;
+            align-items: flex-start;
+            padding: 0px;
+            gap: 10px;
+
+            width: -webkit-fill-available;
+
+            .img {
+                --imgSize: 58px;
+                width: var(--imgSize);
+                height: var(--imgSize);
+                background: #4e5058;
+                border-radius: var(--BorderRadius);
+            }
+
+            .gap {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: flex-start;
+                padding: 0px;
+                gap: 1px;
+
+                width: -webkit-fill-available;
+
+                .appName {
+                    font-weight: 800;
+                    font-size: 14px;
+                    line-height: 19px;
+
+                    color: #d5d8dc;
+                }
+
+                .time,
+                .name {
+                    font-weight: 400;
+                    font-size: 12px;
+                    line-height: 16px;
+                    text-overflow: ellipsis;
+                    flex: none;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    color: #d5d8dc;
+                    width: 190px;
+                }
+            }
+        }
+    }
+
+    .buttonRpc {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+        width: -webkit-fill-available;
+
+        .button {
+            box-sizing: border-box;
+            cursor: pointer;
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: center;
+            padding: 9px 0px;
+            gap: 10px;
+
+            width: -webkit-fill-available;
+
+            background: var(--NavigationOnColor);
+            border-radius: var(--BorderRadius);
+
+            font-weight: 700;
+            font-size: 12px;
+            line-height: 16px;
+
+            color: #fafafa;
+
+            &:hover {
+                background: #4e525d;
+            }
+        }
     }
 }
