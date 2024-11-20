@@ -21,6 +21,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
 import playerContext from '../../../renderer/api/context/player.context'
+import TrackInterface from '../../api/interfaces/track.interface'
 
 interface p {
     goBack?: boolean
@@ -44,7 +45,6 @@ const Header: React.FC<p> = ({ goBack }) => {
     const [modal, setModal] = useState(false)
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
-    const [dataTrack, setDataTrack] = useState<DataTrack | null>(null)
 
     const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
         null,
@@ -64,8 +64,7 @@ const Header: React.FC<p> = ({ goBack }) => {
     }
 
     useEffect(() => {
-        const handleDataUpdate = (event: any, data: any) => {
-            setDataTrack(data)
+        const handleDataUpdate = (data: TrackInterface) => {
             if (data) {
                 if (data.status === 'play') {
                     setPlayStatus('play')
@@ -74,8 +73,7 @@ const Header: React.FC<p> = ({ goBack }) => {
                 }
             }
         }
-
-        window.desktopEvents?.on('trackinfo', handleDataUpdate)
+        handleDataUpdate(currentTrack)
     }, [currentTrack])
 
     useEffect(() => {
@@ -253,23 +251,23 @@ const Header: React.FC<p> = ({ goBack }) => {
                                             <img
                                                 className={styles.image}
                                                 src={
-                                                    dataTrack
+                                                    currentTrack
                                                         ?.requestImgTrack?.[0] ||
                                                     ''
                                                 }
                                                 alt={
-                                                    dataTrack?.playerBarTitle ||
+                                                    currentTrack?.playerBarTitle ||
                                                     'Track image'
                                                 }
                                             />
                                         </div>
                                         <div className={styles.rpcDetail}>
                                             <div className={styles.rpcTitle}>
-                                                {dataTrack?.playerBarTitle ||
+                                                {currentTrack?.playerBarTitle ||
                                                     'No Title'}
                                             </div>
                                             <div className={styles.rpcAuthor}>
-                                                {dataTrack?.artist ||
+                                                {currentTrack?.artist ||
                                                     'Unknown Artist'}
                                             </div>
                                         </div>
