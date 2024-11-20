@@ -7,20 +7,19 @@ import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
 import { WebSocketServer } from 'ws'
-import { web } from 'webpack'
 let data: any = {}
 let selectedTheme: string = 'Default'
-import { useState } from 'react'
 import { EventEmitter } from 'events'
+const eventEmitter = new EventEmitter()
 
 const server = http.createServer()
 const ws = new WebSocketServer({ server })
 ws.on('connection', socket => {
-    socket.on('message', message => {
+    socket.on('message', (message: any) => {
         console.log(`Received message => ${message}`)
-        let data = JSON.parse(message);
+        let data = JSON.parse(message)
         if (data.type === 'update_data') {
-            updateData(data.data);
+            updateData(data.data)
         }
     })
     socket.send(JSON.stringify({ message: 'Hello from server!' }))
@@ -81,48 +80,6 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
             'Access-Control-Allow-Headers': 'Content-Type',
         })
         res.end()
-        return
-    }
-
-    if (req.method === 'POST' && req.url === '/track_info') {
-        let data: any = ''
-        req.on('data', chunk => {
-            data += chunk
-        })
-        req.on('end', () => {
-            try {
-                mainWindow.webContents.send('track_info', JSON.parse(data))
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(
-                    JSON.stringify({ message: 'Data received successfully' }),
-                )
-            } catch (error) {
-                logger.http.error('Error parsing JSON:', error)
-                res.writeHead(400, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ error: 'Invalid JSON' }))
-            }
-        })
-        return
-    }
-
-    if (req.method === 'POST' && req.url === '/update_data') {
-        let data = ''
-        req.on('data', chunk => {
-            data += chunk
-        })
-        req.on('end', () => {
-            try {
-                updateData(JSON.parse(data));
-                res.writeHead(200, { 'Content-Type': 'application/json' })
-                res.end(
-                    JSON.stringify({ message: 'Data received successfully' }),
-                )
-            } catch (error) {
-                logger.http.error('Error parsing JSON:', error)
-                res.writeHead(400, { 'Content-Type': 'application/json' })
-                res.end(JSON.stringify({ error: 'Invalid JSON' }))
-            }
-        })
         return
     }
 
@@ -300,10 +257,9 @@ server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
 export const getTrackInfo = () => {
     return data
 }
-const eventEmitter = new EventEmitter()
 
 export const updateData = (newData: any) => {
-    data = (newData)
+    data = newData
     eventEmitter.emit('dataUpdated', newData)
 }
 
@@ -311,6 +267,38 @@ export { eventEmitter }
 
 export const setTheme = (theme: string) => {
     selectedTheme = theme
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const themePath = path.join(themesPath, selectedTheme)
+    const metadataPath = path.join(themePath, 'metadata.json')
+
+    if (!fs.existsSync(metadataPath)) {
+        return
+    }
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+    let scriptJS = null
+    let cssContent = ''
+    let jsContent = ''
+    const styleCSS = path.join(themePath, metadata.css)
+    if (metadata.script) {
+        scriptJS = path.join(themePath, metadata.script)
+        if (fs.existsSync(scriptJS)) {
+            jsContent = fs.readFileSync(scriptJS, 'utf8')
+        }
+    }
+
+    if (fs.existsSync(styleCSS)) {
+        cssContent = fs.readFileSync(styleCSS, 'utf8')
+    }
+
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                css: cssContent || '{}',
+                script: jsContent || '',
+            }),
+        ),
+    )
 }
 
 export default server

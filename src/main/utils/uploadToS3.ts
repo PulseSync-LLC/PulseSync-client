@@ -2,7 +2,7 @@ import * as AWS from 'aws-sdk'
 import * as fs from 'fs-extra'
 import * as path from 'path'
 import * as yaml from 'yaml'
-import config from '../src/config.json'
+import config from '../../config.json'
 
 const s3 = new AWS.S3({
     accessKeyId: config.S3_ACCESS_KEY_ID,

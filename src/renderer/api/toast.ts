@@ -1,4 +1,4 @@
-import toast, { Renderable, ToastOptions } from 'react-hot-toast'
+import toast, { Renderable, ToastOptions } from 'react-hot-toast-magic'
 
 const style = {
     background: '#292C36',

@@ -135,52 +135,99 @@
                 .user_container {
                     cursor: pointer;
                     position: relative;
-                    transition: var(--transition);
                     -webkit-app-region: no-drag;
-                    padding: 0px 14px 0px 0px;
-                    box-sizing: border-box;
+                    transition: var(--transition);
                     display: flex;
                     flex-direction: row;
-                    justify-content: flex-end;
-                    gap: 10px;
-                    background: #25332565;
-
-                    border-radius: 43px;
-                    font-family: 'Nunito Sans';
-                    font-style: normal;
-                    font-weight: 800;
-                    font-size: 14px;
-                    line-height: 140%;
-                    color: var(--online);
                     align-items: center;
+                    padding: 0px 14px 0px 0px;
+                    gap: 7px;
+
+                    color: var(--statusColor);
+                    background: #20232c;
+                    border-radius: 10px 8px 8px 10px;
+
+                    flex: none;
+                    order: 1;
+                    flex-grow: 0;
 
                     &:hover {
-                        background: #253325;
-
-                        > img {
-                            outline: 2px solid transition;
-                        }
+                        background: #262a35;
                     }
 
                     &:hover .tooltip {
                         visibility: visible;
                         opacity: 1;
                     }
-                }
 
-                .user_container > img {
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: flex-end;
-                    align-items: flex-start;
-                    padding: 1px;
-                    gap: 10px;
-                    outline: 2px solid var(--online);
-                    border-radius: 43px;
+                    & > .user_avatar {
+                        position: relative;
+                        display: flex;
 
-                    --size: 34px;
-                    width: var(--size);
-                    height: var(--size);
+                        & > .avatar {
+                            display: flex;
+                            box-sizing: border-box;
+
+                            --size: 38px;
+                            width: var(--size);
+                            height: var(--size);
+                            border-radius: 47px;
+
+                            flex: none;
+                            order: 0;
+                            flex-grow: 0;
+                            z-index: 0;
+                        }
+
+                        & > .status {
+                            position: absolute;
+                            bottom: 1px;
+                            right: 1px;
+                            outline: solid 3px #20232c;
+                            border-radius: 50%;
+
+                            & > .dot {
+                                width: 9px;
+                                height: 9px;
+                                border-radius: 50%;
+                                background: var(--statusColor);
+                            }
+                        }
+                    }
+
+                    & > .user_info {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: flex-start;
+                        padding: 0px;
+                        gap: 2px;
+
+                        font-weight: 500;
+                        font-size: 14px;
+                        line-height: 16px;
+
+                        & > .username {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 900;
+                            font-size: 12px;
+                            line-height: 110%;
+
+                            color: var(--statusColor);
+                        }
+                        & > .status_text {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 500;
+                            font-size: 10px;
+                            line-height: 110%;
+
+                            color: var(--statusColor);
+                        }
+                    }
                 }
             }
 

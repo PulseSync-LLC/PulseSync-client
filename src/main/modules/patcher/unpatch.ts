@@ -1,7 +1,7 @@
 import { exec } from 'child_process';
 import fs from 'fs';
 import path from 'path';
-import { getPathToYandexMusic, isMac } from '../../../../utils/appUtils';
+import { getPathToYandexMusic, isMac } from '../../utils/appUtils';
 import {store} from "../storage";
 
 class UnPatcher {

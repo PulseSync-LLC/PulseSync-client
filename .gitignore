@@ -104,4 +104,5 @@ PulseSync.pvk
 
 schema.graphql
 ReactDevTools
-modules
+/modules
+src/main/modules/YMusic-DRPC.code-workspace

@@ -6,7 +6,7 @@ import {
     calculateSHA256FromAsar,
     getPathToYandexMusic,
     isMac,
-} from '../../../../utils/appUtils'
+} from '../../utils/appUtils'
 import { store } from '../storage'
 
 class Patcher {
@@ -170,59 +170,6 @@ class Patcher {
   
 
   function logPlayerBarInfo() {
-    /*  const playerBarTitleElement = document.querySelector(
-      '[class*="PlayerBarDesktop_description"] [class*="Meta_title"]'
-    );
-    const linkTitleElement = document.querySelector(
-      '[class*="Meta_albumLink"]'
-    );
-    const artistLinkElement = document.querySelector(
-      '[class*="PlayerBarDesktop_description"] [class*="Meta_artists"]'
-    );
-    const timecodeElements = document.querySelectorAll(
-      '[class*="ChangeTimecode_timecode"]'
-    );
-    const imgElements = document.querySelectorAll(
-      '[class*="PlayerBarDesktop_cover"]'
-    );
-    imgElements.forEach((img) => {
-      if (img.src && img.src.includes("/100x100")) {
-        img.src = img.src.replace("/100x100", "/1000x1000");
-      }
-      if (img.srcset && img.srcset.includes("/100x100")) {
-        img.srcset = img.srcset.replace("/100x100", "/1000x1000");
-      }
-      if (img.srcset && img.srcset.includes("/200x200 2x")) {
-        img.srcset = img.srcset.replace("/200x200 2x", "/1000x1000 2x");
-      }
-    });
-    const titleText = playerBarTitleElement
-      ? playerBarTitleElement.textContent.trim()
-      : "";
-
-    const artistTextElements = artistLinkElement
-      ? artistLinkElement.querySelectorAll('[class*="Meta_artistCaption"]')
-      : null;
-    const artistTexts = artistTextElements
-      ? Array.from(artistTextElements).map((element) =>
-          element.textContent.trim()
-        )
-      : [];
-    const linkTitle = linkTitleElement
-      ? linkTitleElement.getAttribute("href")
-      : "";
-    const albumId = linkTitle ? linkTitle.split("=")[1] : "";
-    let timecodesArray = Array.from(timecodeElements, (element) =>
-      element.textContent.trim()
-    );
-    if (timecodesArray.length > 2) {
-      timecodesArray = timecodesArray.slice(0, 2);
-    }
-
-    const ImgTrack =
-      imgElements.length > 0
-        ? Array.from(imgElements, (element) => element.src)
-        : []; */
     let audio = window.player.core.core.implementation.loader.audio;
     let meta = window.qs.currentEntity.observableValue.v.entity.entityData.meta;
 
@@ -262,14 +209,7 @@ class Patcher {
       });
       audio.addEventListener("loadedmetadata", () => {
         const result = logPlayerBarInfo();
-
-        /*  fetch("http://127.0.0.1:2007/update_data", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(result),
-            }); */
+        
         if (result.timecodes[1] == null) result.timecodes[1] = 0;
         ws.send(
           JSON.stringify({
@@ -281,13 +221,6 @@ class Patcher {
       audio.addEventListener("pause", () => {
         const result = logPlayerBarInfo();
 
-        /*  fetch("http://127.0.0.1:2007/update_data", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(result),
-            }); */
         ws.send(
           JSON.stringify({
             type: "update_data",
@@ -298,13 +231,6 @@ class Patcher {
       audio.addEventListener("seeked", () => {
         const result = logPlayerBarInfo();
 
-        /*  fetch("http://127.0.0.1:2007/update_data", {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify(result),
-            }); */
         ws.send(
           JSON.stringify({
             type: "update_data",
@@ -312,15 +238,6 @@ class Patcher {
           })
         );
       });
-
-      /* const result = logPlayerBarInfo();
-      if (result.timecodes[1] == null) result.timecodes[1] = 0;
-      ws.send(
-        JSON.stringify({
-          type: "update_data",
-          data: { ...result, status: "pause" },
-        })
-      ); */
     }
   }, 300);
 
@@ -372,21 +289,6 @@ class Patcher {
       }
     }
   });
-  /* function updateTheme() {
-    fetch("http://127.0.0.1:2007/get_theme")
-      .then((response) => response.json())
-      .then((data) => {
-        if (data.ok) {
-         
-        } else {
-          console.error("Failed to load theme:", data.error);
-        }
-      })
-      .catch((error) => console.error("Error fetching theme:", error));
-  }
-  updateTheme();
-
-  setInterval(updateTheme, 2000); */
 });
                 `
 
