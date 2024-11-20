@@ -16,7 +16,7 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            navigate('/trackinfo')
+            navigate('/extensionbeta')
         }
     }, [user.id])
 

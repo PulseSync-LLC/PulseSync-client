@@ -41,7 +41,7 @@ export default function AuthPage() {
     }, [])
     useEffect(() => {
         if (user.id !== '-1') {
-            navigate('/trackinfo', {
+            navigate('/extensionbeta', {
                 replace: true,
             })
         }

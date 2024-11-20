@@ -4,7 +4,6 @@ import UserMeQuery from '../api/queries/user/getMe.query'
 
 import AuthPage from './auth'
 import CallbackPage from './auth/callback'
-import TrackInfoPage from './trackinfo'
 import ExtensionPage from './extension'
 import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
@@ -83,14 +82,6 @@ function _app() {
             ),
         },
         {
-            path: '/trackinfo',
-            element: (
-                <ErrorBoundary>
-                    <TrackInfoPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
             path: '/extension',
             element: (
                 <ErrorBoundary>
@@ -163,7 +154,7 @@ function _app() {
                     if (data.getMe && data.getMe.id) {
                         setUser(data.getMe)
 
-                        await router.navigate('/trackinfo', {
+                        await router.navigate('/extensionbeta', {
                             replace: true,
                         })
 

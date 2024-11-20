@@ -1,4 +1,3 @@
-import * as styles from './header.module.scss'
 import React, {
     useCallback,
     useContext,
@@ -21,7 +20,8 @@ import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
-import * as theme from '../../pages/trackinfo/trackinfo.module.scss'
+import * as styles from './header.module.scss'
+import * as theme from './trackinfo.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import playerContext from '../../../renderer/api/context/player.context'
 import TrackInterface from '../../api/interfaces/track.interface'
@@ -360,7 +360,7 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                     <div
                                                         className={theme.status}
                                                     >
-                                                        Слушает
+                                                        Слушает PulseSync
                                                     </div>
                                                     <div
                                                         className={
@@ -395,13 +395,6 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                                             theme.gap
                                                                         }
                                                                     >
-                                                                        <div
-                                                                            className={
-                                                                                theme.appName
-                                                                            }
-                                                                        >
-                                                                            PulseSync
-                                                                        </div>
                                                                         <div
                                                                             className={
                                                                                 theme.name
@@ -443,6 +436,20 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                                                     : `${currentTrack.timecodes[0]} - ${currentTrack.timecodes[1]}`}
                                                                             </div>
                                                                         )}
+
+                                                                        <div
+                                                                            className={
+                                                                                theme.timeline
+                                                                            }
+                                                                        >
+                                                                            10:40{' '}
+                                                                            <div
+                                                                                className={
+                                                                                    theme.timeline_line
+                                                                                }
+                                                                            ></div>{' '}
+                                                                            13:37
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             ) : (
@@ -466,14 +473,6 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                                     >
                                                                         <Skeleton
                                                                             width={
-                                                                                70
-                                                                            }
-                                                                            height={
-                                                                                19
-                                                                            }
-                                                                        />
-                                                                        <Skeleton
-                                                                            width={
                                                                                 190
                                                                             }
                                                                             height={
@@ -488,6 +487,20 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                                                 16
                                                                             }
                                                                         />
+                                                                        <div
+                                                                            className={
+                                                                                theme.timeline
+                                                                            }
+                                                                        >
+                                                                            <Skeleton
+                                                                                width={
+                                                                                    200
+                                                                                }
+                                                                                height={
+                                                                                    6
+                                                                                }
+                                                                            />
+                                                                        </div>
                                                                     </div>
                                                                 </div>
                                                             )}

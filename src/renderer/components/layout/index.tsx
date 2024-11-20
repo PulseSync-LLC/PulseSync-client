@@ -213,9 +213,6 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                 <div className={styles.main_window}>
                     <div className={styles.navigation_bar}>
                         <div className={styles.navigation_buttons}>
-                            <NavButtonPulse to="/trackinfo">
-                                <Discord height={24} width={24} />
-                            </NavButtonPulse>
                             <NavButtonPulse to="/extensionbeta">
                                 <MdExtension size={24} />
                                 <div className={styles.betatest}>beta</div>
