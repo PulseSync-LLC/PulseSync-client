@@ -99,11 +99,12 @@
                         width: -webkit-fill-available;
                         height: 2px;
 
-                        background: linear-gradient(
-                            90deg,
-                            #ffffff 78%,
-                            #999999 78.01%
-                        );
+                        background: #999999;
+
+                        &>.timeline_progress {
+                            height: 2px;
+                            background: #fafafa;
+                        }
                     }
                 }
             }

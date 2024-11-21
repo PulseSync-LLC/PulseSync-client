@@ -39,25 +39,73 @@ import { useFormik } from 'formik'
 interface p {
     goBack?: boolean
 }
-
-interface DataTrack {
-    playerBarTitle: string
-    artist: string
-    album?: string
-    timecodes: [number, number]
-    requestImgTrack: string[]
-    linkTitle: string | number
-    url: string
-    id: string
-}
-
+// getTrackInfo реализовать запрос 
 const Header: React.FC<p> = ({ goBack }) => {
+    const { currentTrack } = useContext(playerContext);
+    const [currentTime, setCurrentTime] = useState<number>(0);
+    const [progress, setProgress] = useState<number>(0);
+    
+    if (!currentTrack || !currentTrack.timecodes) {
+        return <div>Loading...</div>;
+    }
+    
+    const trackStart: number = Number(currentTrack.timecodes[0] || 0);
+    const trackEnd: number = Number(currentTrack.timecodes[1] || 0);
+    
+    if (isNaN(trackStart) || isNaN(trackEnd)) {
+        return <div>Error: Invalid track timecodes</div>;
+    }
+    
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | null = null;
+    
+        const startTimestamp = Date.now() - trackStart * 1000;
+    
+        const updatePlayback = () => {
+            const elapsedTime = (Date.now() - startTimestamp) / 1000;
+            const newCurrentTime = Math.min(
+                elapsedTime,
+                trackEnd
+            );
+            setCurrentTime(newCurrentTime);
+    
+            if (newCurrentTime >= trackEnd) {
+                clearInterval(intervalId!);
+            }
+        };
+    
+        updatePlayback();
+        intervalId = setInterval(updatePlayback, 1000);
+    
+        return () => {
+            if (intervalId) clearInterval(intervalId);
+        };
+    }, [trackStart, trackEnd]);
+    
+    useEffect(() => {
+        console.log('Current Time:', currentTime.toFixed(2));
+        console.log('Track Start:', trackStart.toFixed(2));
+        console.log('Track End:', trackEnd.toFixed(2));
+    }, [currentTime, trackStart, trackEnd]);
+    
+    useEffect(() => {
+        if (currentTime >= trackStart && currentTime <= trackEnd) {
+            const progressPercentage = (currentTime / trackEnd) * 100;
+            setProgress(Math.min(Math.max(progressPercentage, 0), 100));
+        }
+    }, [currentTime, trackStart, trackEnd]);
+    
+    const formatTime = (timeInSeconds: number): string => {
+        const minutes = Math.floor(timeInSeconds / 60);
+        const seconds = Math.floor(timeInSeconds % 60);
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    };
+
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
     const [rickRollClick, setRickRoll] = useState(false)
     const { user, appInfo, app, setUser, setApp } = useContext(userContext)
-    const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedTheme = { charCount: inputStyle.charCount }
@@ -436,19 +484,40 @@ const Header: React.FC<p> = ({ goBack }) => {
                                                                                     : `${currentTrack.timecodes[0]} - ${currentTrack.timecodes[1]}`}
                                                                             </div>
                                                                         )}
-
                                                                         <div
                                                                             className={
                                                                                 theme.timeline
                                                                             }
                                                                         >
-                                                                            10:40{' '}
+                                                                            {/* Display current time */}
+                                                                            <span>
+                                                                                {formatTime(
+                                                                                    currentTime,
+                                                                                )}
+                                                                            </span>
+
+                                                                            {/* Timeline progress bar */}
                                                                             <div
                                                                                 className={
                                                                                     theme.timeline_line
                                                                                 }
-                                                                            ></div>{' '}
-                                                                            13:37
+                                                                            >
+                                                                                <div
+                                                                                    className={
+                                                                                        theme.timeline_progress
+                                                                                    }
+                                                                                    style={{
+                                                                                        width: `${progress}%`,
+                                                                                    }}
+                                                                                ></div>
+                                                                            </div>
+
+                                                                            {/* Display track end time */}
+                                                                            <span>
+                                                                                {formatTime(
+                                                                                    trackEnd,
+                                                                                )}
+                                                                            </span>
                                                                         </div>
                                                                     </div>
                                                                 </div>
