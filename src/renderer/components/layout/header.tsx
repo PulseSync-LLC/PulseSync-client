@@ -140,9 +140,9 @@ const Header: React.FC<p> = ({ goBack }) => {
     useEffect(() => {
         const handleDataUpdate = (data: TrackInterface) => {
             if (data) {
-                if (data.status === 'play') {
+                if (data.status === 'playing') {
                     setPlayStatus('play')
-                } else if (data.status === 'pause') {
+                } else if (data.status === 'paused') {
                     setPlayStatus('pause')
                 }
             }
