@@ -44,7 +44,7 @@ const Header: React.FC<p> = ({ goBack }) => {
     const { currentTrack } = useContext(playerContext);
     const [currentTime, setCurrentTime] = useState<number>(0);
     const [progress, setProgress] = useState<number>(0);
-    
+    const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
     if (!currentTrack || !currentTrack.timecodes) {
         return <div>Loading...</div>;
     }
@@ -69,8 +69,8 @@ const Header: React.FC<p> = ({ goBack }) => {
             );
             setCurrentTime(newCurrentTime);
     
-            if (newCurrentTime >= trackEnd) {
-                clearInterval(intervalId!);
+            if (newCurrentTime >= trackEnd || playStatus != 'play') {
+                clearInterval(intervalId);
             }
         };
     
@@ -80,7 +80,7 @@ const Header: React.FC<p> = ({ goBack }) => {
         return () => {
             if (intervalId) clearInterval(intervalId);
         };
-    }, [trackStart, trackEnd]);
+    }, [trackStart, trackEnd, playStatus]);
     
     useEffect(() => {
         console.log('Current Time:', currentTime.toFixed(2));
@@ -177,7 +177,7 @@ const Header: React.FC<p> = ({ goBack }) => {
         setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen)
     }
 
-    const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
+    
 
     const statusColors = {
         play: '#62FF79',
