@@ -140,18 +140,19 @@ export const handleEvents = (window: BrowserWindow): void => {
         'download-track',
         (
             event,
-            val: { url: string; track: TrackInterface; trackInfo: Track },
+            val: { url: string; track: TrackInterface;/*  trackInfo: Track */ },
         ) => {
-            const musicDir = app.getPath('music')
-            const downloadDir = path.join(musicDir, 'PulseSyncMusic')
+            const musicDir = app.getPath('music');
+            const downloadDir = path.join(musicDir, 'PulseSyncMusic');
+            const fileExtension = val.url.split('/').reverse()[0];
             dialog
                 .showSaveDialog(mainWindow, {
                     title: 'Сохранить как',
                     defaultPath: path.join(
                         downloadDir,
-                        `${val.track.playerBarTitle.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artist.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.mp3`,
+                        `${val.track.playerBarTitle.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artist.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${fileExtension}`,
                     ),
-                    filters: [{ name: 'Трек', extensions: ['mp3'] }],
+                    filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })
                 .then(result => {
                     if (!result.canceled)

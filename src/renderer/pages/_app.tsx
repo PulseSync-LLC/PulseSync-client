@@ -580,7 +580,7 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id, app.discordRpc.status])
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
-            if ((track.playerBarTitle === '' && track.artist === '') || track.status == 'pause') {
+            if ((track.playerBarTitle === '' && track.artist === '') || track.status == 'paused') {
                 window.discordRpc.clearActivity()
             } else {
                 const startTimestamp = Math.floor(Date.now()/1000)*1000 - Math.floor(Number(track.timecodes[0])) * 1000;
@@ -604,7 +604,7 @@ const Player: React.FC<any> = ({ children }) => {
                             : details,
                 }
                 if (app.discordRpc.state.length > 0) {
-                    activity.state = replaceParams(app.discordRpc.state, track)
+                    activity.state = replaceParams(app.discordRpc.state, track) || 'Музыка играет'
                 } /* else if (timeRange) {
                     activity.state = timeRange
                 } */
