@@ -1,7 +1,7 @@
 import * as http from 'http'
 import * as fs from 'fs'
 import * as path from 'path'
-import { app } from 'electron'
+import { app, ipcMain } from 'electron'
 import { mainWindow } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
@@ -239,5 +239,9 @@ export const setTheme = (theme: string) => {
         ),
     )
 }
+ipcMain.on('getTrackInfo', async (event, _) => {
+    mainWindow.webContents.send('trackinfo', data);
+    return data;
+});
 
 export default server
