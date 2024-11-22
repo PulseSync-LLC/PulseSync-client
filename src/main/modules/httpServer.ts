@@ -234,14 +234,18 @@ export const setTheme = (theme: string) => {
                 ok: true,
                 css: cssContent || '{}',
                 script: jsContent || '',
-                type: 'theme'
+                type: 'theme',
             }),
         ),
     )
 }
 ipcMain.on('getTrackInfo', async (event, _) => {
-    mainWindow.webContents.send('trackinfo', data);
-    return data;
-});
+    mainWindow.webContents.send('trackinfo', data)
+    if (data) {
+        return 'null';
+    } else {
+        return data
+    }
+})
 
 export default server

@@ -1,4 +1,5 @@
 export default interface TrackInterface {
+    state<T>(state: any): [any, any]
     playerBarTitle: string
     artist: string
     album: string

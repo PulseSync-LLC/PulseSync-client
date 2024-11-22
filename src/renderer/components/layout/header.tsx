@@ -39,67 +39,130 @@ import { useFormik } from 'formik'
 interface p {
     goBack?: boolean
 }
-// getTrackInfo реализовать запрос 
+
+interface TrackInfo {
+    status: 'play' | 'pause' | 'null'
+    title: string
+    artist: string
+    duration: number
+}
+
 const Header: React.FC<p> = ({ goBack }) => {
-    const { currentTrack } = useContext(playerContext);
-    const [currentTime, setCurrentTime] = useState<number>(0);
-    const [progress, setProgress] = useState<number>(0);
-    const [playStatus, setPlayStatus] = useState<'play' | 'pause' | null>(null)
-    if (!currentTrack || !currentTrack.timecodes) {
-        return <div>Loading...</div>;
+    const storedStatus = localStorage.getItem('playStatus')
+    const trackInfo: TrackInfo = null
+    const { currentTrack } = useContext(playerContext)
+    const [currentTime, setCurrentTime] = useState<number>(0)
+    const [progress, setProgress] = useState<number>(0)
+
+    const getStoredPlayStatus = () => {
+        return storedStatus === 'play' || storedStatus === 'pause' || storedStatus === 'null'
+            ? storedStatus
+            : 'null'
     }
-    
-    const trackStart: number = Number(currentTrack.timecodes[0] || 0);
-    const trackEnd: number = Number(currentTrack.timecodes[1] || 0);
-    
-    if (isNaN(trackStart) || isNaN(trackEnd)) {
-        return <div>Error: Invalid track timecodes</div>;
-    }
-    
+
+    const [playStatus, setPlayStatus] = useState<'play' | 'pause' | 'null'>(
+        currentTrack?.status === 'play' ||
+            currentTrack?.status === 'pause' ||
+            currentTrack?.status === 'null'
+            ? currentTrack.status
+            : getStoredPlayStatus(),
+    )
+
     useEffect(() => {
-        let intervalId: NodeJS.Timeout | null = null;
-    
-        const startTimestamp = Date.now() - trackStart * 1000;
-    
-        const updatePlayback = () => {
-            const elapsedTime = (Date.now() - startTimestamp) / 1000;
-            const newCurrentTime = Math.min(
-                elapsedTime,
-                trackEnd
-            );
-            setCurrentTime(newCurrentTime);
-    
-            if (newCurrentTime >= trackEnd || playStatus != 'play') {
-                clearInterval(intervalId);
+        const fetchTrackInfo = async () => {
+            try {
+                if (
+                    trackInfo?.status === 'play' ||
+                    trackInfo?.status === 'pause'
+                ) {
+                    setPlayStatus(trackInfo.status)
+                }
+                if (trackInfo?.status === 'null') {
+                    setPlayStatus('null')
+                }
+            } catch (error) {
+                console.error('Ошибка при получении информации о треке:', error)
             }
-        };
-    
-        updatePlayback();
-        intervalId = setInterval(updatePlayback, 1000);
-    
-        return () => {
-            if (intervalId) clearInterval(intervalId);
-        };
-    }, [trackStart, trackEnd, playStatus]);
-    
+        }
+
+        fetchTrackInfo()
+
+        setInterval(() => {
+            if (playStatus !== 'null' || trackInfo?.status === 'null') {
+                if (playStatus == 'null') {
+                    window.desktopEvents.send('getTrackInfo')
+                }
+            }
+            fetchTrackInfo()
+        }, 5000)
+    }, [])
+
     useEffect(() => {
-        console.log('Current Time:', currentTime.toFixed(2));
-        console.log('Track Start:', trackStart.toFixed(2));
-        console.log('Track End:', trackEnd.toFixed(2));
-    }, [currentTime, trackStart, trackEnd]);
-    
+        localStorage.setItem('playStatus', playStatus)
+    }, [playStatus])
+
+    const renderPlayerStatus = () => {
+        if (playStatus === 'play') {
+            return 'Слушает'
+        } else if (playStatus === 'pause') {
+            return 'Думает'
+        } else {
+            return 'Ждёт подключения'
+        }
+    }
+
+    if (!currentTrack || !currentTrack.timecodes) {
+        return <div>Loading...</div>
+    }
+
+    const trackStart: number = Number(currentTrack.timecodes[0] || 0)
+    const trackEnd: number = Number(currentTrack.timecodes[1] || 0)
+
+    if (isNaN(trackStart) || isNaN(trackEnd)) {
+        return <div>Error: Invalid track timecodes</div>
+    }
+
+    useEffect(() => {
+        let intervalId: NodeJS.Timeout | null = null
+
+        const startTimestamp = Date.now() - trackStart * 1000
+
+        const updatePlayback = () => {
+            const elapsedTime = (Date.now() - startTimestamp) / 1000
+            const newCurrentTime = Math.min(elapsedTime, trackEnd)
+            setCurrentTime(newCurrentTime)
+
+            if (newCurrentTime >= trackEnd || playStatus != 'play') {
+                clearInterval(intervalId)
+            }
+        }
+
+        updatePlayback()
+        intervalId = setInterval(updatePlayback, 1000)
+
+        return () => {
+            if (intervalId) clearInterval(intervalId)
+        }
+    }, [trackStart, trackEnd, playStatus])
+
+    useEffect(() => {
+        console.log('Current Time:', currentTime.toFixed(2))
+        console.log('Track Start:', trackStart.toFixed(2))
+        console.log('Track End:', trackEnd.toFixed(2))
+    }, [currentTime, trackStart, trackEnd])
+
     useEffect(() => {
         if (currentTime >= trackStart && currentTime <= trackEnd) {
-            const progressPercentage = (currentTime / trackEnd) * 100;
-            setProgress(Math.min(Math.max(progressPercentage, 0), 100));
+            const progressPercentage = (currentTime / trackEnd) * 100
+            setProgress(Math.min(Math.max(progressPercentage, 0), 100))
         }
-    }, [currentTime, trackStart, trackEnd]);
-    
+    }, [currentTime, trackStart, trackEnd])
+
     const formatTime = (timeInSeconds: number): string => {
-        const minutes = Math.floor(timeInSeconds / 60);
-        const seconds = Math.floor(timeInSeconds % 60);
-        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-    };
+        const minutes = Math.floor(timeInSeconds / 60)
+        const seconds = Math.floor(timeInSeconds % 60)
+        return `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+    }
 
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
@@ -177,12 +240,10 @@ const Header: React.FC<p> = ({ goBack }) => {
         setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen)
     }
 
-    
-
     const statusColors = {
         play: '#62FF79',
         pause: '#60C2FF',
-        default: '#FF6289',
+        null: '#FF6289',
     }
 
     useEffect(() => {
@@ -192,6 +253,8 @@ const Header: React.FC<p> = ({ goBack }) => {
                     setPlayStatus('play')
                 } else if (data.status === 'paused') {
                     setPlayStatus('pause')
+                } else {
+                    setPlayStatus('null')
                 }
             }
         }
@@ -199,19 +262,9 @@ const Header: React.FC<p> = ({ goBack }) => {
     }, [currentTrack])
 
     useEffect(() => {
-        const color = statusColors[playStatus] || statusColors.default
+        const color = statusColors[playStatus] || statusColors.null
         document.documentElement.style.setProperty('--statusColor', color)
     }, [playStatus])
-
-    const renderPlayerStatus = () => {
-        if (playStatus === 'play') {
-            return 'Слушает'
-        } else if (playStatus === 'pause') {
-            return 'Думает'
-        } else {
-            return 'Ждёт подключения'
-        }
-    }
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
