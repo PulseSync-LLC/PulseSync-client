@@ -182,7 +182,7 @@ const Header: React.FC<p> = ({ goBack }) => {
     const statusColors = {
         play: '#62FF79',
         pause: '#60C2FF',
-        default: '#60C2FF',
+        default: '#FF6289',
     }
 
     useEffect(() => {
@@ -209,7 +209,7 @@ const Header: React.FC<p> = ({ goBack }) => {
         } else if (playStatus === 'pause') {
             return 'Думает'
         } else {
-            return 'Думает'
+            return 'Ждёт подключения'
         }
     }
 

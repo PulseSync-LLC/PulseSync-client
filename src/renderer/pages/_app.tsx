@@ -159,6 +159,7 @@ function _app() {
                         })
 
                         window.desktopEvents?.send('authStatus', true)
+                        window.desktopEvents?.send('getTrackInfo');
                         return true
                     } else {
                         setLoading(false)
