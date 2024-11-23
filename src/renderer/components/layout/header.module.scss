@@ -355,10 +355,11 @@
                         padding: 0px;
                         border-radius: 4px;
                         margin: 7px;
-                        background: #3b4155;
+                        background: #1f222c;
+                        outline: 1px solid #444b5d;
 
                         &:hover {
-                            background: #464e66;
+                            background: #242834;
                         }
 
                         & > .user_banner {

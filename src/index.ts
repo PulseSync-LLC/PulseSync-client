@@ -479,13 +479,32 @@ ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
     }
 })
 
+// sockets
+
+import * as http from 'http'
+import { WebSocketServer } from 'ws'
+const server = http.createServer()
+const ws = new WebSocketServer({ server })
+
+let themeSent = false;
+
+ws.on('connection', socket => {
+    if (!themeSent) {
+        selectedTheme = store.get('theme') || 'Default'
+        setTheme(selectedTheme)
+        themeSent = true; 
+    }
+})
+
+// 
+
 ipcMain.on('themeChanged', (event, themeName) => {
     logger.main.info(`Themes: theme changed to: ${themeName}`)
-    selectedTheme = themeName
     setTheme(selectedTheme)
 })
 function initializeTheme() {
     selectedTheme = store.get('theme') || 'Default'
+    console.log('Themes: theme changed to:', selectedTheme)
     setTheme(selectedTheme)
 }
 app.whenReady().then(async () => {

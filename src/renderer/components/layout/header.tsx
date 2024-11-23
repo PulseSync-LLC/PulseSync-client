@@ -40,16 +40,8 @@ interface p {
     goBack?: boolean
 }
 
-interface TrackInfo {
-    status: 'play' | 'pause' | 'null'
-    title: string
-    artist: string
-    duration: number
-}
-
 const Header: React.FC<p> = ({ goBack }) => {
     const storedStatus = localStorage.getItem('playStatus')
-    const trackInfo: TrackInfo = null
     const { currentTrack } = useContext(playerContext)
     const [currentTime, setCurrentTime] = useState<number>(0)
     const [progress, setProgress] = useState<number>(0)
@@ -67,35 +59,56 @@ const Header: React.FC<p> = ({ goBack }) => {
             ? currentTrack.status
             : getStoredPlayStatus(),
     )
+    const [socket, setSocket] = useState<WebSocket | null>(null)
 
     useEffect(() => {
-        const fetchTrackInfo = async () => {
-            try {
+        const ws = new WebSocket('ws://localhost:2007')
+
+        ws.onopen = () => {
+            console.log('WebSocket connection established')
+            setSocket(ws)
+        }
+
+        ws.onmessage = event => {
+            const message = JSON.parse(event.data)
+            if (message.type === 'trackInfo' && message.data) {
+                const trackInfo = message.data
                 if (
-                    trackInfo?.status === 'play' ||
-                    trackInfo?.status === 'pause'
+                    trackInfo.status === 'play' ||
+                    trackInfo.status === 'pause'
                 ) {
                     setPlayStatus(trackInfo.status)
-                }
-                if (trackInfo?.status === 'null') {
+                } else {
                     setPlayStatus('null')
                 }
-            } catch (error) {
-                console.error('Ошибка при получении информации о треке:', error)
             }
         }
 
-        fetchTrackInfo()
+        ws.onerror = error => {
+            console.error('WebSocket error:', error)
+        }
 
-        setInterval(() => {
-            if (playStatus !== 'null' || trackInfo?.status === 'null') {
-                if (playStatus == 'null') {
-                    window.desktopEvents.send('getTrackInfo')
-                }
-            }
-            fetchTrackInfo()
-        }, 5000)
+        ws.onclose = () => {
+            console.log('WebSocket connection closed')
+            setSocket(null)
+        }
+
+        return () => {
+            ws.close()
+        }
     }, [])
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            if (socket && playStatus === 'null') {
+                socket.send(JSON.stringify({ type: 'getTrackInfo' }))
+            }
+        }, 5000)
+
+        return () => {
+            clearInterval(interval)
+        }
+    }, [socket, playStatus])
 
     useEffect(() => {
         localStorage.setItem('playStatus', playStatus)

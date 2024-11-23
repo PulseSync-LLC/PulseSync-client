@@ -15,15 +15,31 @@ const eventEmitter = new EventEmitter()
 const server = http.createServer()
 const ws = new WebSocketServer({ server })
 ws.on('connection', socket => {
+    console.log('New client connected')
+    
+    socket.send(JSON.stringify({ type: 'welcome', message: 'Connected to server' }));
+
     socket.on('message', (message: any) => {
-        console.log(`Received message => ${message}`)
-        let data = JSON.parse(message)
-        if (data.type === 'update_data') {
-            updateData(data.data)
+        const data = JSON.parse(message);
+
+        if (data.type === 'getTrackInfo') {
+            socket.send(
+                JSON.stringify({ type: 'trackInfo', data: getTrackInfo() })
+            );
         }
-    })
-    socket.send(JSON.stringify({ message: 'Hello from server!' }))
+
+        if (data.type === 'update_data') {
+            updateData(data.data);
+        }
+    });
+
+    socket.on('close', () => {
+        console.log('Client disconnected');
+        data.status = 'null';
+    });
 })
+
+
 
 const getFilePathInAssets = (
     filename: string,
@@ -239,13 +255,5 @@ export const setTheme = (theme: string) => {
         ),
     )
 }
-ipcMain.on('getTrackInfo', async (event, _) => {
-    mainWindow.webContents.send('trackinfo', data)
-    if (data) {
-        return 'null';
-    } else {
-        return data
-    }
-})
 
 export default server
