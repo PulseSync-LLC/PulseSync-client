@@ -13,7 +13,7 @@ import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
 import path from 'path'
-import fs from 'fs'
+import * as fs from 'original-fs'
 import { store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import { rpc_connect } from './main/modules/discordRpc'
@@ -479,27 +479,9 @@ ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
     }
 })
 
-// sockets
-
-import * as http from 'http'
-import { WebSocketServer } from 'ws'
-const server = http.createServer()
-const ws = new WebSocketServer({ server })
-
-let themeSent = false;
-
-ws.on('connection', socket => {
-    if (!themeSent) {
-        selectedTheme = store.get('theme') || 'Default'
-        setTheme(selectedTheme)
-        themeSent = true; 
-    }
-})
-
-// 
-
 ipcMain.on('themeChanged', (event, themeName) => {
     logger.main.info(`Themes: theme changed to: ${themeName}`)
+    selectedTheme = themeName
     setTheme(selectedTheme)
 })
 function initializeTheme() {
@@ -544,7 +526,7 @@ export async function prestartCheck() {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    const asarCopy = path.join(musicPath, 'app.asar.copy')
+    const asarCopy = path.join(musicPath, 'app.backup.asar')
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)
     }

@@ -1,10 +1,8 @@
 import { exec } from 'child_process';
-import iconv from 'iconv-lite';
 import { promisify } from 'util';
 import os from 'os';
-import crypto from 'crypto';
 import path from 'path';
-import { getRawHeader } from '@electron/asar';
+import crypto from 'crypto';
 
 const execAsync = promisify(exec);
 
@@ -14,17 +12,16 @@ interface ProcessInfo {
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     try {
-        const command = `wmic process where "Name=Яндекс Музыка.exe" get ProcessId,CommandLine`;
-        const { stdout } = await execAsync(command, { encoding: 'buffer' });
+        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`; // Используем tasklist для поиска процесса
+        const { stdout } = await execAsync(command, { encoding: 'utf8' });
 
-        const output = iconv.decode(Buffer.from(stdout), 'CP866');
-        const processes = output.split('\n').filter(line => line.trim() !== '');
+        const processes = stdout.split('\n').filter(line => line.trim() !== '');
         const yandexProcesses: ProcessInfo[] = [];
 
         processes.forEach(line => {
-            if (line.includes('Яндекс Музыка.exe')) {
-                const parts = line.trim().split(/\s+/);
-                const pidStr = parts[parts.length - 1];
+            const parts = line.split('","');
+            if (parts.length > 1) {
+                const pidStr = parts[1].replace(/"/g, '').trim();
                 const pid = parseInt(pidStr, 10);
                 if (!isNaN(pid)) {
                     yandexProcesses.push({ pid });
@@ -88,7 +85,7 @@ export async function calculateSHA256FromAsar(
 ): Promise<string> {
     return crypto
         .createHash('sha256')
-        .update(getRawHeader(asarPath).headerString)
+        .update(asarPath) // Здесь предполагается, что asarPath будет содержать файл для хэширования
         .digest('hex');
 }
 

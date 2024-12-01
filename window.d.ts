@@ -5,6 +5,7 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 declare global {
     interface Window {
+        __listenersAdded?: boolean;
         electron: {
             store: {
                 get: (key: string) => any

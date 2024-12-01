@@ -8,6 +8,7 @@ export interface Info {
     version: string
 }
 export interface Patcher {
+    musicVersion: string
     version: string
     changelog: string[]
     patched: boolean

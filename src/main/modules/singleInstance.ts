@@ -8,7 +8,7 @@ import {handleUncaughtException} from "./handlers/handleError";
 import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'fs'
-const isFirstInstance = app.requestSingleInstanceLock()
+export const isFirstInstance = app.requestSingleInstanceLock()
 
 export const checkForSingleInstance = (): void => {
     logger.main.info('Single instance')
@@ -40,9 +40,6 @@ export const checkForSingleInstance = (): void => {
         )
         prestartCheck()
         handleUncaughtException()
-        httpServer.listen(config.PORT, () => {
-            logger.http.info(`Server running at http://localhost:${config.PORT}/`)
-        })
     } else {
         app.quit()
     }

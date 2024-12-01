@@ -4,7 +4,8 @@ export default gql`
 query GetPatcher {
     getPatcher {
         id
-        version
+        musicVersion
+        modVersion
         downloadUrl
         createdAt
     }

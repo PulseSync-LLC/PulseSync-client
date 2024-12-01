@@ -1,5 +1,5 @@
 import * as styles from './layout.module.scss'
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
 import Header from './header'
 import NavButtonPulse from '../nav_button_pulse'
@@ -16,12 +16,9 @@ import userContext from '../../api/context/user.context'
 import { Toaster, toast } from 'react-hot-toast-magic'
 import { compareVersions } from '../../utils/utils'
 import SettingsInterface from '../../api/interfaces/settings.interface'
-
-interface PatchInfo {
-    version: string
-    downloadUrl: string
-    checksum: string
-}
+import OldHeader from './old_header'
+import { PatcherInterface } from '../../api/interfaces/patcher.interface'
+import Preloader from '../preloader'
 
 interface P {
     title: string
@@ -33,23 +30,26 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
     const { app, setApp, updateAvailable, setUpdate, patcherInfo } = useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const downloadToastIdRef = useRef<string | null>(null)
-    const sortedInfoRef = useRef<PatchInfo[]>([])
 
-    const sortedInfo = useMemo(() => {
-        const info = patcherInfo
-            .filter(info => compareVersions(info.version, app.patcher.version) > 0)
-            .sort((a, b) => compareVersions(a.version, b.version))
-        sortedInfoRef.current = info
-        return info
-    }, [patcherInfo, app.patcher.version])
+    const [isLoadingPatchInfo, setIsLoadingPatchInfo] = useState(true)
 
     useEffect(() => {
         console.log('patcherInfo:', patcherInfo)
-        console.log('sortedInfo:', sortedInfo)
         console.log('app:', app)
-    }, [patcherInfo, sortedInfo, app])
+
+        if (patcherInfo.length > 0) {
+            setIsLoadingPatchInfo(false)
+        } else {
+            setIsLoadingPatchInfo(false)
+        }
+    }, [patcherInfo])
 
     useEffect(() => {
+        const isListenersAdded = window.__listenersAdded;
+        if (isListenersAdded) {
+            return;
+        }
+        window.__listenersAdded = true;
         const handleProgress = (event: any, { progress }: { progress: number }) => {
             console.log('Download progress:', progress)
 
@@ -93,13 +93,13 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                 },
             })
 
-            if (sortedInfoRef.current.length > 0) {
+            if (patcherInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
                     ...prevApp,
                     patcher: {
                         ...prevApp.patcher,
                         patched: true,
-                        version: sortedInfoRef.current[0].version,
+                        version: patcherInfo[0].modVersion,
                     },
                 }))
             } else {
@@ -153,12 +153,13 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         window.desktopEvents?.on('update-available', handleUpdateAvailable)
 
         return () => {
-            window.desktopEvents?.removeListener('download-progress', handleProgress)
-            window.desktopEvents?.removeListener('update-success', handleSuccess)
-            window.desktopEvents?.removeListener('update-failure', handleFailure)
-            window.desktopEvents?.removeListener('update-available', handleUpdateAvailable)
-        }
-    }, [])
+            window.desktopEvents?.removeAllListeners('download-progress');
+            window.desktopEvents?.removeAllListeners('update-success');
+            window.desktopEvents?.removeAllListeners('update-failure');
+            window.desktopEvents?.removeAllListeners('update-available');
+            window.__listenersAdded = false;
+        };
+    }, [patcherInfo]);
 
     const startUpdate = () => {
         if (isUpdating) {
@@ -174,7 +175,7 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
             return
         }
 
-        if (sortedInfo.length === 0) {
+        if (patcherInfo.length === 0) {
             toast.error('Нет доступных обновлений для установки.', {
                 style: {
                     background: '#292C36',
@@ -199,8 +200,12 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         })
         downloadToastIdRef.current = id
 
-        const { version, downloadUrl, checksum } = sortedInfo[0]
-        window.desktopEvents?.send('update-app-asar', { version, link: downloadUrl, checksum })
+        const { modVersion, downloadUrl, checksum } = patcherInfo[0]
+        window.desktopEvents?.send('update-app-asar', { version: modVersion, link: downloadUrl, checksum })
+    }
+
+    if (isLoadingPatchInfo) {
+        return <Preloader />;
     }
 
     return (
@@ -209,10 +214,13 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                 <title>{title + ' - PulseSync'}</title>
             </Helmet>
             <div className={styles.children}>
-                <Header goBack={goBack} />
+                <OldHeader goBack={goBack} />
                 <div className={styles.main_window}>
                     <div className={styles.navigation_bar}>
                         <div className={styles.navigation_buttons}>
+                            <NavButtonPulse to="/trackinfo">
+                                <Discord height={24} width={24} />
+                            </NavButtonPulse>
                             <NavButtonPulse to="/extensionbeta">
                                 <MdExtension size={24} />
                                 <div className={styles.betatest}>beta</div>
@@ -239,7 +247,7 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                         </div>
                     </div>
 
-                    {(!app.patcher.patched || (sortedInfo[0] && app.patcher.version !== sortedInfo[0].version)) && (
+                    {patcherInfo.length > 0 && (!app.patcher.patched || (patcherInfo[0] && app.patcher.version < patcherInfo[0].modVersion)) && (
                         <div className={styles.alert_patch}>
                             <div className={styles.patch_container}>
                                 <div className={styles.patch_detail}>
@@ -250,7 +258,7 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                                             </div>
                                             <MdKeyboardArrowRight size={14} />
                                             <div className={styles.version_new}>
-                                                {sortedInfo[0]?.version}
+                                                {patcherInfo[0]?.modVersion}
                                             </div>
                                         </div>
                                         <div className={styles.alert_title}>
@@ -262,9 +270,7 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                                     </div>
                                     <button
                                         className={styles.patch_button}
-                                        onClick={() => {
-                                            startUpdate()
-                                        }}
+                                        onClick={startUpdate}
                                     >
                                         <MdUpdate size={20} />
                                         {app.patcher.patched ? 'Обновить' : 'Установить'}

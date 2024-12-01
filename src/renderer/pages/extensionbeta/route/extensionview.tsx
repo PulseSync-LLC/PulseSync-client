@@ -544,7 +544,7 @@ const ExtensionViewPage: React.FC = () => {
                                                                                             buttonIndex,
                                                                                             'name',
                                                                                             newName,
-                                                                                        ) // Изменяем имя кнопки
+                                                                                        )
                                                                                     }}
                                                                                 />
                                                                             ) : (

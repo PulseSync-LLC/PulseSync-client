@@ -8,7 +8,6 @@ import {
 } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
-import TrackInterface from '../../renderer/api/interfaces/track.interface'
 import https from 'https'
 import { getPercent } from '../../renderer/utils/percentage'
 import fs from 'fs'
@@ -17,17 +16,12 @@ import os from 'os'
 import { v4 } from 'uuid'
 import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
-import checkAndTerminateYandexMusic, {
-    getPathToYandexMusic,
-} from '../utils/appUtils'
-import Patcher from '../modules/patcher/patch'
 import { store } from '../modules/storage'
-import UnPatcher from '../modules/patcher/unpatch'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
-import { Track } from 'yandex-music-client'
 import AdmZip from 'adm-zip'
+import { Track } from '../../renderer/api/interfaces/track.interface'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -53,57 +47,6 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('electron-window-close', () => {
         mainWindow.hide()
-    })
-
-    ipcMain.on('electron-patch', async () => {
-        await checkAndTerminateYandexMusic()
-        setTimeout(async () => {
-            await Patcher.patchRum().then(async () => {
-                store.set('patcher.patched', true)
-                mainWindow.webContents.send('UPDATE_APP_DATA', {
-                    patch: true,
-                })
-            })
-        }, 2000)
-    })
-
-    ipcMain.on('electron-repatch', async () => {
-        await checkAndTerminateYandexMusic()
-        const musicPath = await getPathToYandexMusic()
-        const asarCopy = path.join(musicPath, 'app.asar.copy')
-        if (!fs.existsSync(asarCopy)) {
-            setTimeout(async () => {
-                await Patcher.patchRum().then(async () => {
-                    store.set('patcher.patched', true)
-                    mainWindow.webContents.send('UPDATE_APP_DATA', {
-                        patch: true,
-                    })
-                })
-            }, 2000)
-        } else {
-            setTimeout(async () => {
-                await UnPatcher.unpatch()
-                setTimeout(async () => {
-                    Patcher.patchRum().then(async () => {
-                        store.set('patcher.patched', true)
-                        mainWindow.webContents.send('UPDATE_APP_DATA', {
-                            repatch: true,
-                        })
-                    })
-                }, 3000)
-            }, 2000)
-        }
-    })
-    ipcMain.on('electron-depatch', async () => {
-        await checkAndTerminateYandexMusic()
-        setTimeout(async () => {
-            await UnPatcher.unpatch().then(async () => {
-                store.set('patcher.patched', false)
-                mainWindow.webContents.send('UPDATE_APP_DATA', {
-                    depatch: true,
-                })
-            })
-        }, 2000)
     })
 
     ipcMain.on('electron-corsanywhereport', event => {
@@ -140,7 +83,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         'download-track',
         (
             event,
-            val: { url: string; track: TrackInterface;/*  trackInfo: Track */ },
+            val: { url: string; track: Track;/*  trackInfo: Track */ },
         ) => {
             const musicDir = app.getPath('music');
             const downloadDir = path.join(musicDir, 'PulseSyncMusic');
@@ -150,7 +93,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                     title: 'Сохранить как',
                     defaultPath: path.join(
                         downloadDir,
-                        `${val.track.playerBarTitle.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artist.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${fileExtension}`,
+                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists.map((x) => x.name).join(", ").replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${fileExtension}`,
                     ),
                     filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })

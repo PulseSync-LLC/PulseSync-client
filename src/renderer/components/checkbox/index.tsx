@@ -64,6 +64,12 @@ const Checkbox: React.FC<Props> = ({
         } else {
             switch (checkType) {
                 case 'toggleRpcStatus':
+                    if(!event.target.checked) {
+                        window.desktopEvents.send('websocket-start')
+                    }
+                    else {
+                        window.desktopEvents.send('websocket-stop')
+                    }
                     window.discordRpc.discordRpc(event.target.checked)
                     setApp({
                         ...app,
@@ -74,6 +80,8 @@ const Checkbox: React.FC<Props> = ({
                     })
                     break
                 case 'enableRpcButtonListen':
+                    window.discordRpc.clearActivity()
+                    window.desktopEvents.send('websocket-restart')
                     window.electron.store.set(
                         'discordRpc.enableRpcButtonListen',
                         event.target.checked,
@@ -87,6 +95,8 @@ const Checkbox: React.FC<Props> = ({
                     })
                     break
                 case 'enableGithubButton':
+                    window.discordRpc.clearActivity()
+                    window.desktopEvents.send('websocket-restart')
                     window.electron.store.set(
                         'discordRpc.enableGithubButton',
                         event.target.checked,

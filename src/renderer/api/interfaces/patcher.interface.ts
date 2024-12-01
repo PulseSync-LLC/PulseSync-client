@@ -1,6 +1,7 @@
 export interface PatcherInterface {
     id: number
-    version: string
+    modVersion: string
+    musicVersion: string
     checksum: string
     downloadUrl: string
     createdAt: string

@@ -8,6 +8,7 @@ import UserBlock from './../../../../static/assets/icons/userBlock.svg'
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import userContext from '../../api/context/user.context'
+import OldHeader from '../../components/layout/old_header'
 
 export default function CallbackPage() {
     const navigate = useNavigate()
@@ -16,7 +17,7 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            navigate('/extensionbeta')
+            navigate('/trackinfo')
         }
     }, [user.id])
 
@@ -33,7 +34,7 @@ export default function CallbackPage() {
     }, [])
     return (
         <>
-            <Header />
+            <OldHeader />
             <div className={styles.main_window}>
                 <div>
                     <div className={styles.container}>

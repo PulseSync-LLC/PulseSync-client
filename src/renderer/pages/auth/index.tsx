@@ -11,6 +11,7 @@ import CheckboxNav from '../../components/checkbox'
 import { MdAdminPanelSettings } from 'react-icons/md'
 import userContext from '../../api/context/user.context'
 import config from '../../api/config'
+import OldHeader from '../../components/layout/old_header'
 
 const LinkRenderer = (props: any) => {
     return (
@@ -41,7 +42,7 @@ export default function AuthPage() {
     }, [])
     useEffect(() => {
         if (user.id !== '-1') {
-            navigate('/extensionbeta', {
+            navigate('/trackinfo', {
                 replace: true,
             })
         }
@@ -49,7 +50,7 @@ export default function AuthPage() {
     const memoizedMdText = useMemo(() => mdText, [mdText])
     return (
         <>
-            <Header />
+            <OldHeader />
             <div className={styles.main_window}>
                 <div className={styles.container}>
                     <div className={styles.policy}>
