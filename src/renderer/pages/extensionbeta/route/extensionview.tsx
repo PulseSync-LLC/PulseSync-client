@@ -5,7 +5,7 @@ import React, { useEffect, useRef, useState } from 'react'
 import Layout from '../../../components/layout'
 import * as styles from '../../../../../static/styles/page/index.module.scss'
 import * as ex from './extensionview.module.scss'
-import { NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router'
 import ThemeInterface from '../../../api/interfaces/theme.interface'
 import Button from '../../../components/button'
 import {

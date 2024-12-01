@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { createHashRouter, RouterProvider, useNavigate } from 'react-router-dom'
+import { createHashRouter, RouterProvider, useNavigate } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
 import AuthPage from './auth'

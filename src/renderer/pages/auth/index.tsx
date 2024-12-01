@@ -2,7 +2,7 @@ import Header from '../../components/layout/header'
 import { useContext, useEffect, useMemo, useState } from 'react'
 import MarkDown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import * as styles from './auth.module.scss'
 
