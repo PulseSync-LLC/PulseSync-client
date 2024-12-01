@@ -205,8 +205,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         response.data.pipe(writer);
 
         writer.on('finish', async () => {
-            writer.close();
-
             if (mainWindow) {
                 mainWindow.setProgressBar(-1);
             }
@@ -266,6 +264,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         writer.end();
     }
 };
+
 
 export const handlePatcher = (window: BrowserWindow): void => {
     handlePatcherEvents(window);
