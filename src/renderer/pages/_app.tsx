@@ -589,18 +589,18 @@ const Player: React.FC<any> = ({ children }) => {
                                 realId: data.track.realId,
                                 title: data.track.title,
                                 artists: data.track.artists.map((artist: any) => ({
-                                    id: artist.id,
-                                    name: artist.name,
-                                    various: artist.various,
-                                    composer: artist.composer,
-                                    available: artist.available,
+                                    id: artist.id ?? null,
+                                    name: artist.name ?? "Unknown Artist",
+                                    various: artist.various ?? false,
+                                    composer: artist.composer ?? false,
+                                    available: artist.available ?? false,
                                     cover: {
-                                        type: artist.cover.type,
-                                        uri: artist.cover.uri,
-                                        prefix: artist.cover.prefix
+                                        type: artist.cover?.type ?? null,
+                                        uri: artist.cover?.uri ?? null,
+                                        prefix: artist.cover?.prefix ?? null
                                     },
-                                    genres: artist.genres,
-                                    disclaimers: artist.disclaimers
+                                    genres: artist.genres ?? [],
+                                    disclaimers: artist.disclaimers ?? []
                                 })),
                                 albums: data.track.albums.map((album: any) => ({
                                     id: album.id,
