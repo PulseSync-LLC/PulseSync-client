@@ -11,6 +11,7 @@ import { EventEmitter } from 'events';
 import trackInitials from '../../renderer/api/initials/track.initials';
 import { isFirstInstance } from './singleInstance'
 import config from '../../config.json'
+import { store } from './storage'
 
 const eventEmitter = new EventEmitter();
 let data: any = {};
@@ -59,10 +60,11 @@ const initializeServer = () => {
     ws = new WebSocketServer({ server });
 
     ws.on('connection', socket => {
+        if(!authorized) return socket.close();
         logger.main.log('New client connected');
 
         socket.send(JSON.stringify({ type: 'welcome', message: 'Connected to server' }));
-
+        sendTheme()
         socket.on('message', (message: any) => {
             const data = JSON.parse(message);
             logger.main.log(data);
@@ -287,6 +289,7 @@ export const updateData = (newData: any) => {
 export { eventEmitter };
 
 export const setTheme = (theme: string) => {
+    if(!authorized) return;
     selectedTheme = theme;
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
     const themePath = path.join(themesPath, selectedTheme);
@@ -311,7 +314,16 @@ export const setTheme = (theme: string) => {
         cssContent = fs.readFileSync(styleCSS, 'utf8');
     }
 
-    if (ws) {
+    const waitForSocket = new Promise<void>((resolve) => {
+        const interval = setInterval(() => {
+            if (ws && ws.clients && ws.clients.size > 0) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+    });
+
+    waitForSocket.then(() => {
         ws.clients.forEach(x =>
             x.send(
                 JSON.stringify({
@@ -322,8 +334,44 @@ export const setTheme = (theme: string) => {
                 }),
             ),
         );
-    }
+    });
 };
+
+export const sendTheme = () => {
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    const themePath = path.join(themesPath, store.get('theme') || "Default");
+    const metadataPath = path.join(themePath, 'metadata.json');
+
+    if (!fs.existsSync(metadataPath)) {
+        return;
+    }
+    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
+    let scriptJS = null;
+    let cssContent = '';
+    let jsContent = '';
+    const styleCSS = path.join(themePath, metadata.css);
+    if (metadata.script) {
+        scriptJS = path.join(themePath, metadata.script);
+        if (fs.existsSync(scriptJS)) {
+            jsContent = fs.readFileSync(scriptJS, 'utf8');
+        }
+    }
+
+    if (fs.existsSync(styleCSS)) {
+        cssContent = fs.readFileSync(styleCSS, 'utf8');
+    }
+
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                css: cssContent || '{}',
+                script: jsContent || '',
+                type: 'theme',
+            }),
+        ),
+    );
+}
 
 ipcMain.handle('getTrackInfo', async (event, _) => {
     if (!data || Object.keys(data).length === 0) {

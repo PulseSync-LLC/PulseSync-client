@@ -33,6 +33,7 @@ import Theme from './renderer/api/interfaces/theme.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { handlePatcher } from './main/modules/patcher/newPatcher'
+import chokidar from 'chokidar'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -160,16 +161,6 @@ const createWindow = (): void => {
     })
     powerMonitor.on('resume', () => {
         inSleepMode = false
-    })
-    function toggleNativeTheme() {
-        nativeTheme.themeSource = 'light'
-
-        setTimeout(() => {
-            nativeTheme.themeSource = 'dark'
-        }, 100)
-    }
-    mainWindow.webContents.on('devtools-opened', () => {
-        toggleNativeTheme()
     })
 }
 const corsAnywhere = async () => {
@@ -507,6 +498,18 @@ app.whenReady().then(async () => {
         }
     }
     initializeTheme()
+
+    // TODO
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    const watcher = chokidar.watch(themesPath, {
+        persistent: true,
+        ignored: /metadata\.json/,
+    });
+
+    watcher.on('change', (filePath) => {
+        console.log(`Theme file ${filePath} was updated.`);
+        initializeTheme();
+    });
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
