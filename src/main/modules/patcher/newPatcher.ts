@@ -9,7 +9,7 @@ import closeYandexMusic, { isYandexMusicRunning } from '../../utils/appUtils';
 import logger from '../logger';
 import asar from '@electron/asar';
 import config from '../../../renderer/api/config';
-import * as fs from 'original-fs';
+import * as fs from 'original-fs'
 
 let yandexMusicVersion: string = null;
 let modVersion: string = null;
@@ -26,7 +26,6 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
             yandexMusicVersion = await getYandexMusicVersion();
             modVersion = version;
             logger.main.info(`Текущая версия Яндекс Музыки: ${yandexMusicVersion}`);
-
             try {
                 const compatible = await checkModCompatibility(version, yandexMusicVersion);
                 if (!compatible) {
@@ -164,7 +163,6 @@ const checkModCompatibility = async (modVersion: string, yandexMusicVersion: str
         return false;
     }
 };
-
 const isFileLocked = (filePath: string): boolean => {
     try {
         const fd = fs.openSync(filePath, 'r');
@@ -182,6 +180,8 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
 
     const writer = fs.createWriteStream(tempFilePath);
 
+    let isFinished = false;
+
     try {
         const response = await axios.get(link, {
             httpsAgent,
@@ -192,6 +192,8 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         let downloadedLength = 0;
 
         response.data.on('data', (chunk: Buffer) => {
+            if (isFinished) return;
+
             downloadedLength += chunk.length;
             const progress = downloadedLength / totalLength;
 
@@ -200,11 +202,20 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             }
 
             event.reply('download-progress', { progress: Math.round(progress * 100) });
+
+            writer.write(chunk);
         });
 
-        response.data.pipe(writer);
+        response.data.on('end', () => {
+            if (isFinished) return;
+
+            isFinished = true;
+            writer.end();
+        });
 
         writer.on('finish', async () => {
+            if (!isFinished) return;
+
             if (mainWindow) {
                 mainWindow.setProgressBar(-1);
             }
@@ -260,12 +271,9 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         }
 
         event.reply('update-failure', { success: false, error: err.message });
-    } finally {
-        writer.end();
     }
 };
 
-
 export const handlePatcher = (window: BrowserWindow): void => {
     handlePatcherEvents(window);
-};
+}
