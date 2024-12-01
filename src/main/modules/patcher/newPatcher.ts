@@ -9,10 +9,11 @@ import closeYandexMusic, { isYandexMusicRunning } from '../../utils/appUtils';
 import logger from '../logger';
 import asar from '@electron/asar';
 import config from '../../../renderer/api/config';
-import * as fs from 'original-fs'
+import * as fs from 'original-fs';
 
 let yandexMusicVersion: string = null;
 let modVersion: string = null;
+
 export const handlePatcherEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-app-asar', async (event, { version, link, checksum }) => {
         try {
@@ -25,6 +26,7 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
             yandexMusicVersion = await getYandexMusicVersion();
             modVersion = version;
             logger.main.info(`Текущая версия Яндекс Музыки: ${yandexMusicVersion}`);
+
             try {
                 const compatible = await checkModCompatibility(version, yandexMusicVersion);
                 if (!compatible) {
@@ -61,7 +63,7 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
             console.log('Path to app.asar:', savePath);
 
             if (fs.existsSync(savePath) && !fs.existsSync(backupPath)) {
-                fs.copyFileSync(savePath, backupPath)
+                fs.copyFileSync(savePath, backupPath);
                 logger.main.info('Старый app.asar был сохранён как app.backup.asar');
             }
 
@@ -163,6 +165,16 @@ const checkModCompatibility = async (modVersion: string, yandexMusicVersion: str
     }
 };
 
+const isFileLocked = (filePath: string): boolean => {
+    try {
+        const fd = fs.openSync(filePath, 'r');
+        fs.closeSync(fd);
+        return false;
+    } catch (err) {
+        return true;
+    }
+};
+
 const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePath: string, event: any, checksum?: string) => {
     const httpsAgent = new https.Agent({
         rejectUnauthorized: false,
@@ -227,8 +239,13 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         });
 
         writer.on('error', (err: Error) => {
-            fs.unlink(tempFilePath, () => {});
-            logger.main.error('Ошибка при записи файла:', err);
+            if (isFileLocked(tempFilePath)) {
+                logger.main.error('Файл заблокирован и не может быть удалён');
+                event.reply('update-failure', { success: false, error: 'Ошибка при удалении файла' });
+            } else {
+                fs.unlink(tempFilePath, () => {});
+                logger.main.error('Ошибка при записи файла:', err);
+            }
 
             if (mainWindow) {
                 mainWindow.setProgressBar(-1);
@@ -245,9 +262,11 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         }
 
         event.reply('update-failure', { success: false, error: err.message });
+    } finally {
+        writer.end();
     }
 };
 
 export const handlePatcher = (window: BrowserWindow): void => {
     handlePatcherEvents(window);
-}
+};
