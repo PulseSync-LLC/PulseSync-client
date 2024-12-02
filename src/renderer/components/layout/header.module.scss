@@ -193,11 +193,15 @@
                     &::after {
                         height: 18px;
                         position: absolute;
-                        content: "";
+                        content: '';
                         bottom: 361px;
                         right: 0;
                         left: 0;
-                        background: linear-gradient(180deg, #2B3040 38%, #2b304000 100%);
+                        background: linear-gradient(
+                            180deg,
+                            #2b3040 38%,
+                            #2b304000 100%
+                        );
                         z-index: 1;
                         pointer-events: none;
                     }
@@ -219,7 +223,7 @@
                         height: -webkit-fill-available;
                         overflow: overlay;
 
-                        &>.options {
+                        & > .options {
                             width: -webkit-fill-available;
                             padding: 0 1px;
                             gap: 8px;
@@ -338,47 +342,119 @@
                     display: flex;
                     flex-direction: column;
                     align-items: flex-start;
-                    background: #2b3040;
+                    background: #1f222b;
                     border-radius: 8px;
+                    overflow: hidden;
                     z-index: 99997;
                     box-shadow: #0000009c 1px 2px 20px 1px;
 
-                    --userBanner: 260px;
+                    --userBanner: 345px;
+
+                    & > .user_alert {
+                        display: flex;
+                        flex-direction: column;
+                        align-items: flex-start;
+                        padding: 10px 15px;
+                        gap: 2px;
+
+                        width: -webkit-fill-available;
+
+                        background: #ffee71;
+
+                        & > .alert_info {
+                            width: -webkit-fill-available;
+                            font-weight: 800;
+                            font-size: 14px;
+                            line-height: 16px;
+                            text-align: center;
+
+                            color: #1f222b;
+                            max-width: 360px;
+                        }
+                        & > .alert_reson {
+                            width: -webkit-fill-available;
+                            font-weight: 600;
+                            font-size: 12px;
+                            line-height: 15px;
+                            text-align: center;
+
+                            color: #1f222b;
+                            max-width: 360px;
+                        }
+                    }
 
                     & > .user_info {
                         transition: var(--transition);
-                        cursor: pointer;
+                        position: relative;
                         display: flex;
                         flex-direction: column;
                         align-items: flex-start;
                         padding: 0px;
-                        border-radius: 4px;
-                        margin: 7px;
-                        background: #1f222c;
-                        outline: 1px solid #444b5d;
 
-                        &:hover {
-                            background: #242834;
-                        }
+                        // &:hover {
+                        //     background: #242834;
+                        // }
 
                         & > .user_banner {
+                            position: relative;
                             width: calc(var(--userBanner) + 45px);
-                            height: 100px;
+                            height: 124px;
 
-                            border-radius: 4px 4px 0 0;
                             flex: none;
                             order: 0;
                             align-self: stretch;
                             flex-grow: 0;
                             z-index: 0;
                             object-fit: cover;
+                            background-size: cover;
+                            background-position: 50% 50%;
+
+                            & > .badges_container {
+                                -webkit-app-region: no-drag;
+                                display: flex;
+                                flex-direction: row;
+                                align-items: center;
+                                background: #33384a73;
+                                border-radius: 6px;
+                                position: absolute;
+                                right: 20px;
+                                top: 10px;
+                                padding: 3px;
+                                gap: 3px;
+
+                                & > .badge {
+                                    position: relative;
+                                    display: flex;
+                                    flex-direction: row;
+                                    align-items: center;
+
+                                    img {
+                                        width: 24px;
+                                        height: 24px;
+                                        background: transparent;
+                                        cursor: pointer;
+                                    }
+
+                                    &:hover .tooltip {
+                                        visibility: visible;
+                                        opacity: 1;
+                                        left: unset;
+                                        top: 35px;
+                                        transform: translateX(-80%);
+                                    }
+                                }
+
+                                * path {
+                                    stroke: none;
+                                }
+                            }
                         }
 
                         & > .user_avatar {
                             display: flex;
                             position: absolute;
-                            left: 25px;
-                            top: 52px;
+                            left: 20px;
+                            top: 70px;
 
                             & > .avatar {
                                 display: flex;
@@ -389,7 +465,7 @@
                                 height: var(--size);
                                 border-radius: 100px;
 
-                                outline: 4px solid #3b4155;
+                                outline: 4px solid #1b1e26;
 
                                 flex: none;
                                 order: 0;
@@ -399,15 +475,15 @@
 
                             & > .status {
                                 position: absolute;
-                                bottom: 1px;
-                                right: 1px;
-                                outline: 4px solid #3b4155;
+                                bottom: 2px;
+                                right: 2px;
+                                outline: 4px solid #1b1e26;
                                 border-radius: 50%;
 
                                 & > .dot {
-                                    width: 14px;
-                                    height: 14px;
-                                    border-radius: 50%;
+                                    width: 18px;
+                                    height: 18px;
+                                    border-radius: 100%;
                                     background: var(--statusColor);
                                 }
                             }
@@ -434,62 +510,17 @@
 
                                 & > .username {
                                     font-weight: 900;
-                                    font-size: 16px;
+                                    font-size: 18px;
                                     line-height: 110%;
-
-                                    color: var(--statusColor);
+                                    color: #fff;
                                 }
-                                & > .status_text {
-                                    font-weight: 500;
-                                    font-size: 14px;
+                                & > .usertag {
+                                    font-weight: 700;
+                                    font-size: 15px;
                                     line-height: 110%;
+                                    color: #e1e1e1;
 
-                                    text-overflow: ellipsis;
-                                    flex: none;
-                                    overflow: hidden;
-                                    white-space: nowrap;
-                                    max-width: var(--userBanner);
-
-                                    color: var(--statusColor);
-                                }
-                            }
-
-                            .badges_container {
-                                -webkit-app-region: no-drag;
-                                display: flex;
-                                flex-direction: row;
-                                align-items: center;
-                                padding: 0px;
-                                background: #33384a;
-                                border-radius: 4px;
-                                position: absolute;
-                                right: 10px;
-                                top: 10px;
-
-                                .badge {
-                                    position: relative;
-                                    display: flex;
-                                    flex-direction: row;
-                                    align-items: center;
-                                    padding: 3px;
-                                    gap: 10px;
-                                    border-radius: 25px;
-
-                                    img {
-                                        width: 26px;
-                                        height: 26px;
-                                        background: transparent;
-                                        cursor: pointer;
-                                    }
-
-                                    &:hover .tooltip {
-                                        visibility: visible;
-                                        opacity: 1;
-                                    }
-                                }
-
-                                * path {
-                                    stroke: none;
+                                    // color: var(--statusColor);
                                 }
                             }
                         }
@@ -508,24 +539,24 @@
                             display: flex;
                             flex-direction: row;
                             align-items: center;
-                            padding: 10px 27px;
+                            padding: 10px 20px;
                             gap: 10px;
                             width: -webkit-fill-available;
                             border: none;
 
                             font-weight: 700;
-                            font-size: 12px;
+                            font-size: 13px;
                             line-height: 140%;
                             background: transparent;
 
-                            color: #bbc3e0;
+                            color: #fff;
 
                             &:hover {
                                 background: #3b4155;
                             }
 
                             &:disabled {
-                                opacity: 0.5;
+                                opacity: 0.2;
                                 cursor: not-allowed;
 
                                 &:hover {
@@ -547,7 +578,7 @@
                     width: fit-content;
                     height: fit-content;
                     border: 0;
-                    padding: 16px;
+                    padding: 15px;
                     background: transparent;
                     -webkit-app-region: no-drag;
 

@@ -5,65 +5,65 @@ import React, {
     useEffect,
     useMemo,
     useRef,
-    useState
+    useState,
 } from 'react'
 
-import Minus from './../../../../static/assets/icons/minus.svg';
-import Minimize from './../../../../static/assets/icons/minimize.svg';
-import Close from './../../../../static/assets/icons/close.svg';
-import ArrowDown from './../../../../static/assets/icons/arrowDown.svg';
+import Minus from './../../../../static/assets/icons/minus.svg'
+import Minimize from './../../../../static/assets/icons/minimize.svg'
+import Close from './../../../../static/assets/icons/close.svg'
+import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
 
-import userContext from '../../api/context/user.context';
-import ContextMenu from '../context_menu';
-import Skeleton from 'react-loading-skeleton';
-import Modal from '../modal';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import remarkBreaks from 'remark-breaks';
-import * as modalStyles from '../modal/modal.modules.scss';
-import * as styles from './header.module.scss';
-import * as theme from './trackinfo.module.scss';
-import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss';
-import playerContext from '../../../renderer/api/context/player.context';
-import { object, string } from 'yup';
-import toast from '../../api/toast';
-import config from '../../api/config';
-import getUserToken from '../../api/getUserToken';
-import userInitials from '../../api/initials/user.initials';
-import { useCharCount } from '../../utils/useCharCount';
+import userContext from '../../api/context/user.context'
+import ContextMenu from '../context_menu'
+import Skeleton from 'react-loading-skeleton'
+import Modal from '../modal'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkBreaks from 'remark-breaks'
+import * as modalStyles from '../modal/modal.modules.scss'
+import * as styles from './header.module.scss'
+import * as theme from './trackinfo.module.scss'
+import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
+import playerContext from '../../../renderer/api/context/player.context'
+import { object, string } from 'yup'
+import toast from '../../api/toast'
+import config from '../../api/config'
+import getUserToken from '../../api/getUserToken'
+import userInitials from '../../api/initials/user.initials'
+import { useCharCount } from '../../utils/useCharCount'
 
 interface p {
-    goBack?: boolean;
+    goBack?: boolean
 }
 
 const OldHeader: React.FC<p> = () => {
-    const storedStatus = localStorage.getItem('playStatus');
-    const { currentTrack } = useContext(playerContext);
-    const [currentTime, setCurrentTime] = useState<number>(0);
-    const [progress, setProgress] = useState<number>(0);
-    const previousStatusRef = useRef<string | null>(null);
-    const [isMenuOpen, setIsMenuOpen] = useState(false);
-    const [isUserCardOpen, setIsUserCardOpen] = useState(false);
-    const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false);
-    const [rickRollClick, setRickRoll] = useState(false);
-    const { user, appInfo, app, setUser, setApp } = useContext(userContext);
-    const [modal, setModal] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-    const fixedTheme = { charCount: inputStyle.charCount };
+    const storedStatus = localStorage.getItem('playStatus')
+    const { currentTrack } = useContext(playerContext)
+    const [currentTime, setCurrentTime] = useState<number>(0)
+    const [progress, setProgress] = useState<number>(0)
+    const previousStatusRef = useRef<string | null>(null)
+    const [isMenuOpen, setIsMenuOpen] = useState(false)
+    const [isUserCardOpen, setIsUserCardOpen] = useState(false)
+    const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
+    const [rickRollClick, setRickRoll] = useState(false)
+    const { user, appInfo, app, setUser, setApp } = useContext(userContext)
+    const [modal, setModal] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const fixedTheme = { charCount: inputStyle.charCount }
     const [previousValues, setPreviousValues] = useState({
         appId: '',
         details: '',
         state: '',
         button: '',
-    });
+    })
     const getStoredPlayStatus = () => {
-        console.log('Retrieving playStatus from localStorage');
+        console.log('Retrieving playStatus from localStorage')
         return storedStatus === 'playing' ||
-        storedStatus === 'pause' ||
-        storedStatus === 'null'
+            storedStatus === 'pause' ||
+            storedStatus === 'null'
             ? storedStatus
-            : 'null';
-    };
+            : 'null'
+    }
 
     // const normalizeStatus = (status: string | undefined): 'playing' | 'pause' | 'null' => {
     //     console.log('normalizeStatus called with:', status);
@@ -78,7 +78,9 @@ const OldHeader: React.FC<p> = () => {
     //
     // console.log('Initial playStatus:', initialPlayStatus);
     //
-    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(getStoredPlayStatus());
+    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(
+        getStoredPlayStatus(),
+    )
     //
     // useEffect(() => {
     //     if (currentTrack && typeof currentTrack.status === 'string') {
@@ -255,31 +257,31 @@ const OldHeader: React.FC<p> = () => {
     //         val => !val || val.length <= 30,
     //     ),
     // });
-    const openModal = () => setModal(true);
-    const closeModal = () => setModal(false);
+    const openModal = () => setModal(true)
+    const closeModal = () => setModal(false)
 
     const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
         null,
-    );
+    )
 
-    modalRef.current = { openModal, closeModal };
+    modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen);
-    };
+        setIsMenuOpen(!isMenuOpen)
+    }
 
     const toggleUserContainer = () => {
-        setIsUserCardOpen(!isUserCardOpen);
-    };
+        setIsUserCardOpen(!isUserCardOpen)
+    }
 
     const toggleDiscordRpcContainer = () => {
-        setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen);
-    };
+        setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen)
+    }
 
     const statusColors = {
         playing: '#62FF79',
         pause: '#60C2FF',
         null: '#FF6289',
-    };
+    }
     // useEffect(() => {
     //     const handleDataUpdate = (data: Track) => {
     //         if (data) {
@@ -296,19 +298,19 @@ const OldHeader: React.FC<p> = () => {
     // }, [currentTrack]);
     //
     useEffect(() => {
-        const color = statusColors[playStatus] || statusColors.null;
-        document.documentElement.style.setProperty('--statusColor', color);
-    }, [playStatus]);
+        const color = statusColors[playStatus] || statusColors.null
+        document.documentElement.style.setProperty('--statusColor', color)
+    }, [playStatus])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke('needModalUpdate').then(value => {
                 if (value) {
-                    openModal();
+                    openModal()
                 }
-            });
+            })
         }
-    }, []);
+    }, [])
 
     // const formik = useFormik({
     //     initialValues: {
@@ -359,33 +361,33 @@ const OldHeader: React.FC<p> = () => {
                 authorization: `Bearer ${getUserToken()}`,
             },
         }).then(async r => {
-            const res = await r.json();
+            const res = await r.json()
             if (res.ok) {
-                toast.success('Успешный выход');
-                window.electron.store.delete('tokens.token');
-                setUser(userInitials);
+                toast.success('Успешный выход')
+                window.electron.store.delete('tokens.token')
+                setUser(userInitials)
             }
-        });
-    };
+        })
+    }
 
-    const memoizedAppInfo = useMemo(() => appInfo, [appInfo]);
+    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
 
     const formatDate = (timestamp: any) => {
-        const date = new Date(timestamp * 1000);
+        const date = new Date(timestamp * 1000)
         return date.toLocaleDateString('ru-RU', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
-        });
-    };
+        })
+    }
     function LinkRenderer(props: any) {
         return (
             <a href={props.href} target="_blank" rel="noreferrer">
                 {props.children}
             </a>
-        );
+        )
     }
-    useCharCount(containerRef, fixedTheme);
+    useCharCount(containerRef, fixedTheme)
 
     // if (isNaN(trackStart) || isNaN(trackEnd)) {
     //     return <div>Error: Invalid track timecodes</div>;
@@ -432,7 +434,11 @@ const OldHeader: React.FC<p> = () => {
                                 alt=""
                             />
                             <span>PulseSync</span>
-                            <div className={isMenuOpen ? styles.true : styles.false}>
+                            <div
+                                className={
+                                    isMenuOpen ? styles.true : styles.false
+                                }
+                            >
                                 {user.id != '-1' && <ArrowDown />}
                             </div>
                             {isMenuOpen && <ContextMenu modalRef={modalRef} />}
@@ -731,7 +737,9 @@ const OldHeader: React.FC<p> = () => {
                                                 alt=""
                                             />
                                             <div className={styles.status}>
-                                                <div className={styles.dot}></div>
+                                                <div
+                                                    className={styles.dot}
+                                                ></div>
                                             </div>
                                         </div>
                                         <div className={styles.user_info}>
@@ -745,31 +753,120 @@ const OldHeader: React.FC<p> = () => {
                                     </div>
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
-                                            <div className={styles.user_info}>
-                                                <img
-                                                    className={styles.user_banner}
-                                                    src={
-                                                        user.banner
-                                                            ? user.banner
-                                                            : 'https://i.pinimg.com/originals/36/5e/66/' +
-                                                            '365e667dfc1b90180dc16b595e8f1c88.gif'
+                                            <div className={styles.user_alert}>
+                                                <div
+                                                    className={
+                                                        styles.alert_info
                                                     }
-                                                    alt=""
-                                                />
-                                                <div className={styles.user_avatar}>
+                                                >
+                                                    Предупреждение: Ваш профиль
+                                                    скрыт на 7 дней!
+                                                </div>
+                                                <div
+                                                    className={
+                                                        styles.alert_reson
+                                                    }
+                                                >
+                                                    Причина: Оскорбительный
+                                                    контент в профиле!
+                                                </div>
+                                            </div>
+                                            <div className={styles.user_info}>
+                                                <div
+                                                    className={
+                                                        styles.user_banner
+                                                    }
+                                                    style={{
+                                                        backgroundImage:
+                                                            user.banner
+                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
+                                                                : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                    }}
+                                                >
+                                                    <div
+                                                        className={
+                                                            styles.badges_container
+                                                        }
+                                                    >
+                                                        {user.badges.length >
+                                                            0 &&
+                                                            user.badges.map(
+                                                                _badge => (
+                                                                    <div
+                                                                        className={
+                                                                            styles.badge
+                                                                        }
+                                                                        key={
+                                                                            _badge.type
+                                                                        }
+                                                                    >
+                                                                        <img
+                                                                            src={`static/assets/badges/${_badge.type}.svg`}
+                                                                            alt={
+                                                                                _badge.type
+                                                                            }
+                                                                        />
+                                                                        <span
+                                                                            className={
+                                                                                styles.tooltip
+                                                                            }
+                                                                        >
+                                                                            {
+                                                                                _badge.name
+                                                                            }
+                                                                        </span>
+                                                                    </div>
+                                                                ),
+                                                            )}
+                                                    </div>
+                                                </div>
+                                                <div
+                                                    className={
+                                                        styles.user_avatar
+                                                    }
+                                                >
                                                     <img
-                                                        className={styles.avatar}
+                                                        className={
+                                                            styles.avatar
+                                                        }
                                                         src={user.avatar}
                                                         alt=""
                                                     />
-                                                    <div className={styles.status}>
-                                                        <div className={styles.dot}></div>
+                                                    <div
+                                                        className={
+                                                            styles.status
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={
+                                                                styles.dot
+                                                            }
+                                                        ></div>
                                                     </div>
                                                 </div>
-                                                <div className={styles.user_details}>
-                                                    <div className={styles.user_info}>
-                                                        <div className={styles.username}>
+                                                <div
+                                                    className={
+                                                        styles.user_details
+                                                    }
+                                                >
+                                                    <div
+                                                        className={
+                                                            styles.user_info
+                                                        }
+                                                    >
+                                                        <div
+                                                            className={
+                                                                styles.username
+                                                            }
+                                                        >
                                                             {user.username}
+                                                        </div>
+                                                        <div
+                                                            className={
+                                                                styles.usertag
+                                                            }
+                                                        >
+                                                            @{user.username}
                                                         </div>
                                                         {/*<div className={styles.status_text}>*/}
                                                         {/*    {renderPlayerStatus()}*/}
@@ -781,46 +878,33 @@ const OldHeader: React.FC<p> = () => {
                                                         {/*    )}*/}
                                                         {/*</div>*/}
                                                     </div>
-                                                    <div
-                                                        className={
-                                                            styles.badges_container
-                                                        }
-                                                    >
-                                                        {user.badges.length > 0 &&
-                                                            user.badges.map(_badge => (
-                                                                <div
-                                                                    className={styles.badge}
-                                                                    key={_badge.type}
-                                                                >
-                                                                    <img
-                                                                        src={`static/assets/badges/${_badge.type}.svg`}
-                                                                        alt={_badge.type}
-                                                                    />
-                                                                    <span
-                                                                        className={styles.tooltip}
-                                                                    >
-                                    {_badge.name}
-                                  </span>
-                                                                </div>
-                                                            ))}
-                                                    </div>
                                                 </div>
                                             </div>
-                                            <div className={styles.user_menu_buttons}>
+                                            <div
+                                                className={
+                                                    styles.user_menu_buttons
+                                                }
+                                            >
                                                 <button
-                                                    className={styles.menu_button}
+                                                    className={
+                                                        styles.menu_button
+                                                    }
                                                     disabled
                                                 >
                                                     Друзья
                                                 </button>
                                                 <button
-                                                    className={styles.menu_button}
+                                                    className={
+                                                        styles.menu_button
+                                                    }
                                                     disabled
                                                 >
                                                     Настройки
                                                 </button>
                                                 <button
-                                                    className={styles.menu_button}
+                                                    className={
+                                                        styles.menu_button
+                                                    }
                                                     onClick={logout}
                                                 >
                                                     Выйти
@@ -835,14 +919,18 @@ const OldHeader: React.FC<p> = () => {
                             <button
                                 id="hide"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.minimize()}
+                                onClick={() =>
+                                    window.electron.window.minimize()
+                                }
                             >
                                 <Minus color="#E4E5EA" />
                             </button>
                             <button
                                 id="minimize"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.maximize()}
+                                onClick={() =>
+                                    window.electron.window.maximize()
+                                }
                             >
                                 <Minimize color="#E4E5EA" />
                             </button>
@@ -858,7 +946,7 @@ const OldHeader: React.FC<p> = () => {
                 </div>
             </header>
         </>
-    );
-};
+    )
+}
 
-export default OldHeader;
+export default OldHeader
