@@ -12,6 +12,7 @@ import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefr
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import { useSearchParams } from 'react-router-dom'
 
 export default function ExtensionPage() {
     const [selectedTheme, setSelectedTheme] = useState(
@@ -48,6 +49,15 @@ export default function ExtensionPage() {
                 )
         }
     }
+
+    const [searchParams] = useSearchParams()
+    const selectedTagFromURL = searchParams.get('selectedTag')
+
+    useEffect(() => {
+        if (selectedTagFromURL) {
+            setSelectedTags(prevTags => new Set(prevTags).add(selectedTagFromURL))
+        }
+    }, [selectedTagFromURL])
 
     useEffect(() => {
         loadThemes()

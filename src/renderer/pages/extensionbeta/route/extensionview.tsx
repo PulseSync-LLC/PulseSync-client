@@ -1,12 +1,14 @@
 // extensionbeta/route/extensionview.tsx
 
 import path from 'path'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { CSSProperties, useEffect, useRef, useState } from 'react'
 import Layout from '../../../components/layout'
 import * as styles from '../../../../../static/styles/page/index.module.scss'
 import * as ex from './extensionview.module.scss'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import ThemeInterface from '../../../api/interfaces/theme.interface'
+import ViewModal from '../../../components/context_menu_themes/viewModal'
+import { createActions } from '../../../components/context_menu_themes/sectionConfig'
 import Button from '../../../components/button'
 import {
     MdBookmarkBorder,
@@ -23,7 +25,7 @@ import {
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import rehypeRaw from "rehype-raw";
+import rehypeRaw from 'rehype-raw'
 
 interface ThemeConfig {
     sections: Section[]
@@ -44,10 +46,56 @@ interface Item {
     buttons?: { name: string; text: string }[]
 }
 
+interface ActionOptions {
+    showCheck?: boolean
+    showDirectory?: boolean
+    showExport?: boolean
+    showDelete?: boolean
+}
+
+interface Props {
+    isTheme: ThemeInterface
+    isChecked: boolean
+    onCheckboxChange?: (themeName: string, isChecked: boolean) => void
+    exportTheme?: (themeName: string) => void
+    onDelete?: (themeName: string) => void
+    children?: any
+    className?: string
+    style?: CSSProperties
+    options?: ActionOptions
+}
+
 const ExtensionViewPage: React.FC = () => {
+    const [contextMenuVisible, setContextMenuVisible] = useState(false)
+    const menuRef = useRef(null)
+
+    const handleButtonClick = () => {
+        setContextMenuVisible(prev => !prev)
+    }
+
+    useEffect(() => {
+        const handleClickOutside = (event: { target: any }) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setContextMenuVisible(false)
+            }
+        }
+
+        if (contextMenuVisible) {
+            document.addEventListener('mousedown', handleClickOutside)
+        } else {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [contextMenuVisible])
+
     const location = useLocation()
     const navigate = useNavigate()
     const theme = location.state?.theme as ThemeInterface
+    console.log('Полученный theme:', theme)
+
     const [bannerSrc, setBannerSrc] = useState(
         'static/assets/images/no_themeBackground.png',
     )
@@ -68,17 +116,17 @@ const ExtensionViewPage: React.FC = () => {
     const [markdownContent, setMarkdownContent] = useState<string>('')
 
     useEffect(() => {
-        const readmePath = `${theme?.path}/README.md`;
+        const readmePath = `${theme?.path}/README.md`
 
         fetch(readmePath)
-            .then((response) => response.text())
-            .then((data) => {
-                setMarkdownContent(data);
+            .then(response => response.text())
+            .then(data => {
+                setMarkdownContent(data)
             })
-            .catch((error) => {
-                console.error('Ошибка при загрузке README.md:', error);
-            });
-    }, [theme]);
+            .catch(error => {
+                console.error('Ошибка при загрузке README.md:', error)
+            })
+    }, [theme])
 
     useEffect(() => {
         const themeStates =
@@ -282,7 +330,7 @@ const ExtensionViewPage: React.FC = () => {
             updatedConfig.sections[sectionIndex] &&
             updatedConfig.sections[sectionIndex].items[itemIndex] &&
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
-            buttonIndex
+                buttonIndex
             ]
         ) {
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
@@ -605,7 +653,7 @@ const ExtensionViewPage: React.FC = () => {
                             {isEditing
                                 ? undefined
                                 : // <button className={ex.createParameterButton}>Создать параметр</button>
-                                undefined}
+                                  undefined}
                         </div>
                     </>
                 )
@@ -662,15 +710,15 @@ const ExtensionViewPage: React.FC = () => {
                                             style={
                                                 isExpanded
                                                     ? {
-                                                        transition:
-                                                            'var(--transition)',
-                                                        rotate: '180deg',
-                                                    }
+                                                          transition:
+                                                              'var(--transition)',
+                                                          rotate: '180deg',
+                                                      }
                                                     : {
-                                                        transition:
-                                                            'var(--transition)',
-                                                        rotate: '0deg',
-                                                    }
+                                                          transition:
+                                                              'var(--transition)',
+                                                          rotate: '0deg',
+                                                      }
                                             }
                                         />
                                     </Button>
@@ -685,7 +733,7 @@ const ExtensionViewPage: React.FC = () => {
                                                 width="100"
                                                 height="100"
                                                 onError={e => {
-                                                    ; (
+                                                    ;(
                                                         e.target as HTMLImageElement
                                                     ).src =
                                                         'static/assets/images/no_themeImage.png'
@@ -788,13 +836,35 @@ const ExtensionViewPage: React.FC = () => {
                                                 {selectedTheme !== theme.name
                                                     ? 'Включить'
                                                     : isThemeEnabled
-                                                        ? 'Выключить'
-                                                        : 'Включить'}
+                                                      ? 'Выключить'
+                                                      : 'Включить'}
                                             </Button>
-                                            <Button className={ex.miniButton}>
+                                            <Button
+                                                className={ex.miniButton}
+                                                onClick={handleButtonClick}
+                                            >
                                                 <MdMoreHoriz size={20} />
                                             </Button>
                                         </div>
+                                        {contextMenuVisible && (
+                                            <div ref={menuRef}>
+                                                <ViewModal
+                                                    items={createActions(
+                                                        theme.name,
+                                                        undefined,
+                                                        ()=> {console.log("exportTheme")},
+                                                        ()=> {console.log("onDelete")},
+                                                        isThemeEnabled,
+                                                        {
+                                                            showCheck: false,
+                                                            showDirectory: true,
+                                                            showExport: true,
+                                                            showDelete: true,
+                                                        },
+                                                    )}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 <div className={ex.extensionNav}>

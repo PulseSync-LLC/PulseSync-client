@@ -280,7 +280,7 @@ const OldHeader: React.FC<p> = () => {
     const statusColors = {
         playing: '#62FF79',
         pause: '#60C2FF',
-        null: '#FF6289',
+        null: '#FFD562', // old #FF6289
     }
     // useEffect(() => {
     //     const handleDataUpdate = (data: Track) => {
@@ -753,7 +753,7 @@ const OldHeader: React.FC<p> = () => {
                                     </div>
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
-                                            <div className={styles.user_alert}>
+                                            {/* <div className={styles.user_alert}>
                                                 <div
                                                     className={
                                                         styles.alert_info
@@ -770,7 +770,7 @@ const OldHeader: React.FC<p> = () => {
                                                     Причина: Оскорбительный
                                                     контент в профиле!
                                                 </div>
-                                            </div>
+                                            </div> */}
                                             <div className={styles.user_info}>
                                                 <div
                                                     className={

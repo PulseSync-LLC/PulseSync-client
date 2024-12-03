@@ -179,6 +179,12 @@ const ExtensionCard: React.FC<Props> = ({
                             exportTheme,
                             onDelete,
                             isChecked,
+                            {
+                                showCheck: true,
+                                showDirectory: true,
+                                showExport: true,
+                                showDelete: true,
+                            },
                         )}
                         position={menuPosition}
                         onClose={closeContextMenu}

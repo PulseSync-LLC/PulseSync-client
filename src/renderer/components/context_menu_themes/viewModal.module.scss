@@ -1,0 +1,68 @@
+/* contextMenu.module.scss */
+
+.contextMenu {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    position: absolute;
+    top: 78px;
+    z-index: 2;
+    padding: 7px 0;
+    right: 45px;
+    width: fit-content;
+    height: fit-content;
+    background: #292c36;
+    box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
+    border-radius: 8px;
+    justify-content: center;
+    animation: fadeIn 0.3s forwards;
+}
+
+.contextMenuOut {
+    animation: fadeOut 0.3s forwards;
+}
+
+.contextMenuItem {
+    cursor: pointer;
+    display: flex;
+    gap: 10px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 8px 20px;
+    font-style: normal;
+    width: -webkit-fill-available;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+    color: #ffffff;
+    transition: var(--transition);
+
+    &:hover {
+        background: #3b4155;
+    }
+}
+
+.contextMenuItem:last-child {
+    transition: var(--transition);
+    &:hover {
+        background: rgba(239, 101, 101, 0.2);
+    }
+}
+
+.icon {
+    width: 24px;
+    height: 24px;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
