@@ -33,7 +33,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const directoryOpen = () => {
-        window.desktopEvents.send('openPath', 'appPath')
+        window.desktopEvents.send('openPath', { action: 'appPath' })
     }
 
     const repatch = (e: any) => {
@@ -80,8 +80,48 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
-        event.stopPropagation()
-        toast.error('Временно не работает')
+        let toastId: string
+        console.log(currentTrack)
+        toastId = hotToast.loading('Загрузка...', {
+            style: {
+                background: '#292C36',
+                color: '#ffffff',
+                border: 'solid 1px #363944',
+                borderRadius: '8px',
+            },
+        })
+
+        window.desktopEvents?.on(
+            'download-track-progress',
+            (event, value) => {
+                toast.loading(
+                    <>
+                        <span>Загрузка</span>
+                        <b style={{marginLeft: '.5em'}}>
+                            {Math.floor(value)}%
+                        </b>
+                    </>,
+                    {
+                        id: toastId,
+                    },
+                )
+            },
+        )
+        window.electron.downloadTrack({
+            track: currentTrack,
+            url: currentTrack.url
+        })
+
+        window.desktopEvents?.once('download-track-cancelled', () =>
+            hotToast.dismiss(toastId),
+        )
+        window.desktopEvents?.once('download-track-failed', () =>
+            toast.error('Ошибка загрузки трека', {id: toastId}),
+        )
+        window.desktopEvents?.once('download-track-finished', () => {
+            toast.success('Загрузка завершена', {id: toastId})
+            window.desktopEvents?.removeAllListeners('download-track-progress')
+        })
     }
 
     const buttonConfigs: SectionConfig[] = [
@@ -143,14 +183,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             title: 'Музыка',
             buttons: [
                 {
-                    label: `Скачать ${currentTrack.playerBarTitle} в папку музыка`,
+                    label: `Скачать ${currentTrack.title} в папку музыка`,
                     onClick: downloadTrack,
                     disabled: !currentTrack.url,
                 },
                 {
                     label: 'Директория со скаченной музыкой',
                     onClick: () =>
-                        window.desktopEvents.send('openPath', 'musicPath'),
+                        window.desktopEvents.send('openPath', {
+                            action: 'musicPath',
+                        }),
                 },
             ],
         },

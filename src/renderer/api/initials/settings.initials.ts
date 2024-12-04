@@ -12,6 +12,7 @@ const settingsInitials: SettingsInterface = {
     },
     patcher: {
         version: '',
+        musicVersion: '',
         patched: false,
         updated: false,
         changelog: [],

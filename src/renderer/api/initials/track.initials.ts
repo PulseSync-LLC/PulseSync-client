@@ -2,10 +2,11 @@ import { Track } from '../interfaces/track.interface'
 
 const TrackInitials: Track = {
     status: '',
+    linkTitle: '',
     formatTitle: '',
     albumArt: '',
     timestamps: [0, 0],
-    id: '',
+    url: '',
     realId: '',
     title: '',
     major: {

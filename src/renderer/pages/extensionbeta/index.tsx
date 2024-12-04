@@ -76,55 +76,6 @@ export default function ExtensionPage() {
         window.desktopEvents.send('themeChanged', newTheme)
     }
 
-    const handleDeleteTheme = (themeName: string) => {
-        const isConfirmed = window.confirm(
-            `Вы уверены, что хотите удалить тему "${themeName}"? Это действие нельзя будет отменить.`,
-        )
-        if (isConfirmed) {
-            const themeToDelete = themes.find(theme => theme.name === themeName)
-            if (themeToDelete && themeToDelete.path) {
-                const themeDirectoryPath = themeToDelete.path
-                window.desktopEvents
-                    .invoke('deleteThemeDirectory', themeDirectoryPath)
-                    .then(() => {
-                        setThemes((prevThemes: any[]) =>
-                            prevThemes.filter(
-                                theme => theme.name !== themeName,
-                            ),
-                        )
-                        console.log(
-                            `Тема "${themeName}" и связанные файлы удалены.`,
-                        )
-                    })
-                    .catch(error => {
-                        console.error(
-                            `Ошибка при удалении темы "${themeName}":`,
-                            error,
-                        )
-                    })
-            } else {
-                console.error(`Тема "${themeName}" не найдена для удаления.`)
-            }
-        }
-    }
-
-    const handleExportTheme = (themeName: string) => {
-        const theme = themes.find(theme => theme.name === themeName)
-        window.desktopEvents
-            .invoke('exportTheme', {
-                path: theme.path,
-                name: theme.name,
-            })
-            .then(result => {
-                if (result) {
-                    toast.success('Успешный экспорт')
-                }
-            })
-            .catch(error => {
-                console.error(error)
-            })
-    }
-
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(event.target.value.toLowerCase())
     }
@@ -275,7 +226,9 @@ export default function ExtensionPage() {
                                     onClick={() =>
                                         window.desktopEvents.send(
                                             'openPath',
-                                            'themePath',
+                                            {
+                                                action: 'themePath',
+                                            }
                                         )
                                     }
                                 >
@@ -402,14 +355,6 @@ export default function ExtensionPage() {
                                                         onCheckboxChange={
                                                             handleCheckboxChange
                                                         }
-                                                        onDelete={
-                                                            handleDeleteTheme
-                                                        }
-                                                        exportTheme={themeName =>
-                                                            handleExportTheme(
-                                                                themeName,
-                                                            )
-                                                        }
                                                         className={
                                                             theme.matches
                                                                 ? 'highlight'
@@ -449,14 +394,6 @@ export default function ExtensionPage() {
                                                         isChecked={false}
                                                         onCheckboxChange={
                                                             handleCheckboxChange
-                                                        }
-                                                        onDelete={
-                                                            handleDeleteTheme
-                                                        }
-                                                        exportTheme={themeName =>
-                                                            handleExportTheme(
-                                                                themeName,
-                                                            )
                                                         }
                                                         className={
                                                             theme.matches

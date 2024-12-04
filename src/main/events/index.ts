@@ -22,11 +22,16 @@ import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
+import NodeID3 from 'node-id3';
+import ffmpeg from 'fluent-ffmpeg';
 
 const updater = getUpdater()
 let reqModal = 0
+const ffmpegPath = path.join(__dirname, "..", "..", 'modules', 'ffmpeg.exe'); // Для Windows
+ffmpeg.setFfmpegPath(ffmpegPath);
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
+
     ipcMain.on('update-install', () => {
         updater.install()
     })
@@ -57,7 +62,8 @@ export const handleEvents = (window: BrowserWindow): void => {
         if (version) return version
     })
     ipcMain.on('openPath', async (event, data) => {
-        switch (data) {
+        console.log(data)
+        switch (data.action) {
             case 'appPath':
                 const appPath = app.getAppPath()
                 const pulseSyncPath = path.resolve(appPath, '../..')
@@ -76,6 +82,15 @@ export const handleEvents = (window: BrowserWindow): void => {
                 )
                 await shell.openPath(themesFolderPath)
                 break
+            case 'theme':
+                const themeFolder = path.join(
+                    app.getPath('appData'),
+                    'PulseSync',
+                    'themes',
+                    data.themeName
+                )
+                await shell.openPath(themeFolder)
+                break
         }
     })
 
@@ -83,59 +98,122 @@ export const handleEvents = (window: BrowserWindow): void => {
         'download-track',
         (
             event,
-            val: { url: string; track: Track;/*  trackInfo: Track */ },
+            val: { url: string; track: Track; /* trackInfo: Track */ },
         ) => {
             const musicDir = app.getPath('music');
             const downloadDir = path.join(musicDir, 'PulseSyncMusic');
-            const fileExtension = val.url.split('/').reverse()[0];
+            const fileExtension = val.url.split('/').reverse()[0].split('.').pop()?.toLowerCase();
+            const cleanedFileExtension = fileExtension === '320' ? 'mp3' : fileExtension;
+
             dialog
                 .showSaveDialog(mainWindow, {
                     title: 'Сохранить как',
                     defaultPath: path.join(
                         downloadDir,
-                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists.map((x) => x.name).join(", ").replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${fileExtension}`,
+                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists.map((x) => x.name).join(", ").replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${cleanedFileExtension}`,
                     ),
                     filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })
                 .then(result => {
-                    if (!result.canceled)
+                    if (!result.canceled) {
                         https.get(val.url, response => {
                             const totalFileSize = parseInt(
                                 response.headers['content-length'],
                                 10,
-                            )
-                            let downloadedBytes = 0
+                            );
+                            let downloadedBytes = 0;
 
                             response.on('data', chunk => {
-                                downloadedBytes += chunk.length
+                                downloadedBytes += chunk.length;
                                 const percent = getPercent(
                                     downloadedBytes,
                                     totalFileSize,
-                                )
-                                mainWindow.setProgressBar(percent / 100)
+                                );
+                                mainWindow.setProgressBar(percent / 100);
                                 mainWindow.webContents.send(
                                     'download-track-progress',
                                     percent,
-                                )
-                            })
-                            response
-                                .pipe(fs.createWriteStream(result.filePath))
-                                .on('finish', () => {
-                                    mainWindow.webContents.send(
-                                        'download-track-finished',
-                                    )
+                                );
+                            });
 
-                                    shell.showItemInFolder(result.filePath)
-                                    mainWindow.setProgressBar(-1)
-                                })
-                        })
-                    else mainWindow.webContents.send('download-track-cancelled')
+                            const filePath = result.filePath; // Путь к сохраненному файлу
+                            response
+                                .pipe(fs.createWriteStream(filePath))
+                                .on('finish', async () => {
+                                    console.log('Файл успешно загружен:', filePath);
+
+                                    // Проверка формата файла
+                                    const extension = path.extname(filePath).toLowerCase();
+                                    if (['.flac', '.aac'].includes(extension)) {
+                                        console.log('Конвертация в MP3...');
+                                        const mp3Path = filePath.replace(extension, '.mp3');
+                                        try {
+                                            await convertToMP3(filePath, mp3Path);
+                                            fs.unlinkSync(filePath); // Удаление оригинального файла
+                                            console.log('Конвертация завершена:', mp3Path);
+                                            await writeMetadata(mp3Path, val.track);
+                                            mainWindow.webContents.send('download-track-finished');
+                                            shell.showItemInFolder(mp3Path);
+                                        } catch (err) {
+                                            console.error('Ошибка конвертации:', err);
+                                            mainWindow.webContents.send('download-track-failed');
+                                        }
+                                    } else {
+                                        console.log('Файл уже в формате MP3. Установка метаданных...');
+                                        await writeMetadata(filePath, val.track);
+                                        mainWindow.webContents.send('download-track-finished');
+                                        shell.showItemInFolder(filePath);
+                                    }
+                                    mainWindow.setProgressBar(-1);
+                                });
+                        });
+                    } else {
+                        mainWindow.webContents.send('download-track-cancelled');
+                    }
                 })
-                .catch(() =>
-                    mainWindow.webContents.send('download-track-failed'),
-                )
+                .catch(() => mainWindow.webContents.send('download-track-failed'));
         },
-    )
+    );
+
+// Функция конвертации в MP3
+    function convertToMP3(inputFilePath: string, outputFilePath: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ffmpeg(inputFilePath)
+                .audioCodec('libmp3lame') // Кодек MP3
+                .audioBitrate(320) // Высокое качество
+                .on('error', (err) => reject(err))
+                .on('end', () => resolve())
+                .save(outputFilePath);
+        });
+    }
+
+// Функция для записи метаданных
+    async function writeMetadata(filePath: string, track: Track): Promise<void> {
+        let coverRes, coverBuffer;
+        if (track?.coverUri) {
+            coverRes = await fetch(
+                'https://' +
+                track?.coverUri.replace('%%', '1000x1000'),
+            );
+            coverBuffer = Buffer.from(await coverRes.arrayBuffer());
+        }
+
+        const tags = {
+            title: track.title,
+            artist: track.artists.map((artist) => artist.name).join(', '),
+            album: track.albums[0]?.title || 'Unknown Album',
+            year: track.albums[0]?.year.toString(),
+            genre: track.albums[0]?.genre || 'Unknown',
+            APIC: coverBuffer || track.coverUri, // Обложка альбома
+        };
+
+        const success = NodeID3.write(tags, filePath);
+        if (success) {
+            console.log('Метаданные успешно записаны:', filePath);
+        } else {
+            throw new Error('Ошибка записи метаданных.');
+        }
+    }
     ipcMain.on('get-music-device', event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${

@@ -131,6 +131,8 @@ const createWindow = (): void => {
             nodeIntegration: true,
             devTools: isAppDev,
             webSecurity: false,
+            webgl: true,
+            enableBlinkFeatures: 'WebGL2',
         },
     })
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(e => {
@@ -500,16 +502,23 @@ app.whenReady().then(async () => {
     initializeTheme()
 
     // TODO
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
-    const watcher = chokidar.watch(themesPath, {
-        persistent: true,
-        ignored: /metadata\.json/,
-    });
-
-    watcher.on('change', (filePath) => {
-        console.log(`Theme file ${filePath} was updated.`);
-        initializeTheme();
-    });
+    // const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    // const watcher = chokidar.watch(themesPath, {
+    //     persistent: true,
+    //     ignored: (path, stats) => {
+    //         console.log('Checking file:', path);
+    //         return !path.match(/\.(js|css|md|json)$/i);
+    //     },
+    // });
+    // watcher
+    //     .on('add', (filePath: string) => {
+    //         console.log(`Theme file ${filePath} was updated.`);
+    //         initializeTheme()
+    //     })
+    //     .on('change', (filePath: string) => {
+    //         console.log(`Theme file ${filePath} was updated.`);
+    //         initializeTheme()
+    //     })
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')

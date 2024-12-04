@@ -47,6 +47,7 @@ declare global {
             removeListener: (channel: string) => void
             getVersion: (version: string) => string
         }
+        refreshThemes: () => void
         discordRpc: {
             discordRpc: (val: boolean) => void
             setActivity: (props: SetActivity) => void

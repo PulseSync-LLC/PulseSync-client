@@ -526,6 +526,16 @@ function _app() {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
+        ;(window as any).refreshThemes = async (args: any) => {
+            window.desktopEvents
+                .invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes)
+                    router.navigate('/extensionbeta', {
+                        replace: true,
+                    })
+                })
+        }
     }
     return (
         <div className="app-wrapper">
@@ -583,6 +593,7 @@ const Player: React.FC<any> = ({ children }) => {
                             setTrack(prevTrack => ({
                                 ...prevTrack,
                                 status: data.status,
+                                url: data.url,
                                 formatTitle: data.track.albums[0]?.id,
                                 albumArt: coverImg,
                                 timestamps: timecodes,
@@ -637,10 +648,6 @@ const Player: React.FC<any> = ({ children }) => {
                                 type: data.track.type,
                                 rememberPosition: data.track.rememberPosition,
                                 trackSharingFlag: data.track.trackSharingFlag,
-                                lyricsInfo: {
-                                    hasAvailableSyncLyrics: data.track.lyricsInfo.hasAvailableSyncLyrics,
-                                    hasAvailableTextLyrics: data.track.lyricsInfo.hasAvailableTextLyrics
-                                },
                             }));
                         })
 
@@ -714,9 +721,8 @@ const Player: React.FC<any> = ({ children }) => {
                 }
 
                 activity.buttons = [];
-                const linkTitle = track.albums[0].id;
-
-                if (app.discordRpc.enableRpcButtonListen && linkTitle) {
+                if (!track.artists || track.artists.length === 0 && app.discordRpc.enableRpcButtonListen) {
+                    const linkTitle = track.albums[0].id;
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? app.discordRpc.button
@@ -738,7 +744,6 @@ const Player: React.FC<any> = ({ children }) => {
                     delete activity.buttons;
                 }
                 console.log(track)
-                console.log(!track.artists || track.artists.length === 0)
                 if (!track.artists || track.artists.length === 0) {
                     setTrack((prevTrack: Track) => ({
                         ...prevTrack,

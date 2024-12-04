@@ -60,7 +60,9 @@ export default function ThemePage() {
                             onClick={() =>
                                 window.desktopEvents.send(
                                     'openPath',
-                                    'themePath',
+                                    {
+                                        action: 'themePath',
+                                    }
                                 )
                             }
                             buttonName={'Директория аддонов'}

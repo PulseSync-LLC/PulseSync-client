@@ -1,5 +1,6 @@
 export interface Track {
     status: string;
+    url: string
     linkTitle: string;
     formatTitle: string;
     albumArt: string;

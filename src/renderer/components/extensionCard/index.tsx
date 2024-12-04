@@ -12,8 +12,6 @@ interface Props {
     theme: ThemeInterface
     isChecked: boolean
     onCheckboxChange: (themeName: string, isChecked: boolean) => void
-    exportTheme: (themeName: string) => void
-    onDelete: (themeName: string) => void
     children?: any
     className?: string
     style?: CSSProperties
@@ -23,8 +21,6 @@ const ExtensionCard: React.FC<Props> = ({
     theme,
     isChecked,
     onCheckboxChange,
-    exportTheme,
-    onDelete,
     children,
     className,
     style,
@@ -174,10 +170,7 @@ const ExtensionCard: React.FC<Props> = ({
                 {contextMenuVisible && (
                     <ContextMenu
                         items={createActions(
-                            theme.name,
                             onCheckboxChange,
-                            exportTheme,
-                            onDelete,
                             isChecked,
                             {
                                 showCheck: true,
@@ -185,6 +178,7 @@ const ExtensionCard: React.FC<Props> = ({
                                 showExport: true,
                                 showDelete: true,
                             },
+                            theme,
                         )}
                         position={menuPosition}
                         onClose={closeContextMenu}
