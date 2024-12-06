@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { createHashRouter, RouterProvider, useNavigate } from 'react-router'
+import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
 import AuthPage from './auth'
@@ -32,25 +32,28 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 import Preloader from '../components/preloader'
 import { fixStrings, replaceParams } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
-import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
+import {
+    checkInternetAccess,
+    compareVersions,
+    notifyUserRetries,
+} from '../utils/utils'
 import ThemeInterface from '../api/interfaces/theme.interface'
-import userContext from '../api/context/user.context'
 import ThemeInitials from '../api/initials/theme.initials'
 import ErrorBoundary from '../components/errorBoundary'
 import { PatcherInterface } from '../api/interfaces/patcher.interface'
 import patcherInitials from '../api/initials/patcher.initials'
 import GetPatcherQuery from '../api/queries/getPatcher.query'
-import { Album, Artist, Track } from '../api/interfaces/track.interface'
-import Header from '../components/layout/header'
+import { Track } from '../api/interfaces/track.interface'
 
-function _app() {
+function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
     const [socketError, setSocketError] = useState(-1)
     const [socketConnected, setSocketConnected] = useState(false)
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
-    const [patcherInfo, setPatcher] = useState<PatcherInterface[]>(patcherInitials)
+    const [patcherInfo, setPatcher] =
+        useState<PatcherInterface[]>(patcherInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
@@ -155,7 +158,7 @@ function _app() {
                 }
 
                 try {
-                    let res = await apolloClient.query({
+                    const res = await apolloClient.query({
                         query: UserMeQuery,
                         fetchPolicy: 'no-cache',
                     })
@@ -164,23 +167,16 @@ function _app() {
                     if (data.getMe && data.getMe.id) {
                         setUser(data.getMe)
 
-                        await router.navigate('/trackinfo', {
-                            replace: true,
-                        })
+                        await router.navigate('/trackinfo', { replace: true })
 
                         window.desktopEvents?.send('authStatus', true)
                         return true
                     } else {
                         setLoading(false)
-
                         window.electron.store.delete('tokens.token')
-                        await router.navigate('/', {
-                            replace: true,
-                        })
-
+                        await router.navigate('/', { replace: true })
                         setUser(userInitials)
                         sendErrorAuthNotify()
-
                         window.desktopEvents?.send('authStatus', false)
                         return false
                     }
@@ -191,17 +187,13 @@ function _app() {
                     if (window.electron.store.has('tokens.token')) {
                         window.electron.store.delete('tokens.token')
                     }
-                    await router.navigate('/', {
-                        replace: true,
-                    })
+                    await router.navigate('/', { replace: true })
                     setUser(userInitials)
-
                     window.desktopEvents?.send('authStatus', false)
                     return false
                 }
             } else {
                 window.desktopEvents?.send('authStatus', false)
-
                 setLoading(false)
                 return false
             }
@@ -248,13 +240,10 @@ function _app() {
             if (user.id === '-1') {
                 checkAuthorization()
             }
-            // auth interval 15 minutes (10 * 60 * 1000)
+            // auth interval 10 min
             const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
             const handleMouseButton = (event: MouseEvent) => {
-                if (event.button === 3) {
-                    event.preventDefault()
-                }
-                if (event.button === 4) {
+                if (event.button === 3 || event.button === 4) {
                     event.preventDefault()
                 }
             }
@@ -271,7 +260,6 @@ function _app() {
         console.log('Socket connected')
         toast.success('Соединение установлено')
         socket.emit('connection')
-
         setSocket(socket)
         setSocketConnected(true)
         setLoading(false)
@@ -279,7 +267,6 @@ function _app() {
 
     socket.on('disconnect', (reason, description) => {
         console.log('Socket disconnected')
-
         setSocketError(1)
         setSocket(null)
         setSocketConnected(false)
@@ -288,7 +275,6 @@ function _app() {
     socket.on('connect_error', err => {
         console.log('Socket connect error: ' + err)
         setSocketError(1)
-
         setSocket(null)
         setSocketConnected(false)
     })
@@ -300,12 +286,14 @@ function _app() {
             toast.success('Соединение восстановлено')
         }
     }, [socketError])
+
     useEffect(() => {
         if (user.id !== '-1') {
             if (!socket.connected) {
                 socket.connect()
             }
             window.desktopEvents?.send('updater-start')
+
             const fetchAppInfo = async () => {
                 try {
                     const res = await fetch(
@@ -325,32 +313,44 @@ function _app() {
                 }
             }
             fetchAppInfo()
+
             const fetchPatcherInfo = async () => {
                 try {
-                    let res = await apolloClient.query({
+                    const res = await apolloClient.query({
                         query: GetPatcherQuery,
                         fetchPolicy: 'no-cache',
-                    });
+                    })
 
-                    const { data } = res;
+                    const { data } = res
 
                     if (data && data.getPatcher) {
                         const info = (data.getPatcher as PatcherInterface[])
-                            .filter(info => compareVersions(info.modVersion, app.patcher.version) > 0)
-                            .sort((a, b) => compareVersions(a.modVersion, b.modVersion));
+                            .filter(
+                                info =>
+                                    compareVersions(
+                                        info.modVersion,
+                                        app.patcher.version,
+                                    ) > 0,
+                            )
+                            .sort((a, b) =>
+                                compareVersions(a.modVersion, b.modVersion),
+                            )
 
                         if (info.length > 0) {
-                            setPatcher(info);
+                            setPatcher(info)
                         } else {
-                            console.log('Нет доступных обновлений');
+                            console.log('Нет доступных обновлений')
                         }
                     } else {
-                        console.error('Invalid response format for getPatcher:', data);
+                        console.error(
+                            'Invalid response format for getPatcher:',
+                            data,
+                        )
                     }
                 } catch (e) {
-                    console.error('Failed to fetch patcher info:', e);
+                    console.error('Failed to fetch patcher info:', e)
                 }
-            };
+            }
 
             fetchPatcherInfo()
             const intervalId = setInterval(fetchPatcherInfo, 10 * 60 * 1000)
@@ -371,21 +371,21 @@ function _app() {
                     false,
                 )
             }
-            if(app.discordRpc.status) {
+
+            if (app.discordRpc.status) {
                 window.desktopEvents?.send('websocket-start')
             }
             window.desktopEvents
                 .invoke('getThemes')
-                .then((themes: ThemeInterface[]) => {
-                    setThemes(themes)
+                .then((fetchedThemes: ThemeInterface[]) => {
+                    setThemes(fetchedThemes)
                 })
+
             return () => {
                 clearInterval(intervalId)
             }
         } else {
-            router.navigate('/', {
-                replace: true,
-            })
+            router.navigate('/', { replace: true })
         }
     }, [user.id])
 
@@ -406,12 +406,12 @@ function _app() {
         const handleOpenTheme = (event: any, data: string) => {
             window.desktopEvents
                 ?.invoke('getThemes')
-                .then((themes: ThemeInterface[]) => {
-                    const theme = themes.find(t => t.name === data)
-                    if (theme) {
-                        setThemes(themes)
-                        setNavigateTo(`/extensionbeta/${theme.name}`)
-                        setNavigateState(theme)
+                .then((fetchedThemes: ThemeInterface[]) => {
+                    const foundTheme = fetchedThemes.find(t => t.name === data)
+                    if (foundTheme) {
+                        setThemes(fetchedThemes)
+                        setNavigateTo(`/extensionbeta/${foundTheme.name}`)
+                        setNavigateState(foundTheme)
                     }
                 })
                 .catch(error => console.error('Error getting themes:', error))
@@ -432,6 +432,7 @@ function _app() {
         window.desktopEvents?.on('write-file', (filePath, data) =>
             invokeFileEvent('write-file', filePath, data),
         )
+
         return () => {
             window.desktopEvents?.removeAllListeners('create-config-file')
             window.desktopEvents?.removeAllListeners('open-theme')
@@ -510,9 +511,7 @@ function _app() {
                         toast.success('Обновление загружено', { id: toastId }),
                     )
                 } else {
-                    toast.error('Обновления не найдены', {
-                        id: toastId,
-                    })
+                    toast.error('Обновления не найдены', { id: toastId })
                 }
             })
             const loadSettings = async () => {
@@ -521,6 +520,7 @@ function _app() {
             loadSettings()
         }
     }, [])
+
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
@@ -529,14 +529,13 @@ function _app() {
         ;(window as any).refreshThemes = async (args: any) => {
             window.desktopEvents
                 .invoke('getThemes')
-                .then((themes: ThemeInterface[]) => {
-                    setThemes(themes)
-                    router.navigate('/extensionbeta', {
-                        replace: true,
-                    })
+                .then((fetchedThemes: ThemeInterface[]) => {
+                    setThemes(fetchedThemes)
+                    router.navigate('/extensionbeta', { replace: true })
                 })
         }
     }
+
     return (
         <div className="app-wrapper">
             <Toaster />
@@ -565,7 +564,7 @@ function _app() {
                             {loading ? (
                                 <Preloader />
                             ) : (
-                                    <RouterProvider router={router} />
+                                <RouterProvider router={router} />
                             )}
                         </CssVarsProvider>
                     </SkeletonTheme>
@@ -574,6 +573,7 @@ function _app() {
         </div>
     )
 }
+
 const Player: React.FC<any> = ({ children }) => {
     const { user, app } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
@@ -584,12 +584,10 @@ const Player: React.FC<any> = ({ children }) => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {
-                            console.log(data)
-                            const coverImg = `https://${data.track.coverUri.replace( '%%', '1000x1000' )}`
-
+                            const coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
                             const timecodes = data.timecodes
                                 ? data.timecodes
-                                : [0, 0];
+                                : [0, 0]
                             setTrack(prevTrack => ({
                                 ...prevTrack,
                                 status: data.status,
@@ -599,20 +597,23 @@ const Player: React.FC<any> = ({ children }) => {
                                 timestamps: timecodes,
                                 realId: data.track.realId,
                                 title: data.track.title,
-                                artists: data.track.artists.map((artist: any) => ({
-                                    id: artist.id ?? null,
-                                    name: artist.name ?? "Unknown Artist",
-                                    various: artist.various ?? false,
-                                    composer: artist.composer ?? false,
-                                    available: artist.available ?? false,
-                                    cover: {
-                                        type: artist.cover?.type ?? null,
-                                        uri: artist.cover?.uri ?? null,
-                                        prefix: artist.cover?.prefix ?? null
-                                    },
-                                    genres: artist.genres ?? [],
-                                    disclaimers: artist.disclaimers ?? []
-                                })),
+                                artists: data.track.artists.map(
+                                    (artist: any) => ({
+                                        id: artist.id ?? null,
+                                        name: artist.name ?? 'Unknown Artist',
+                                        various: artist.various ?? false,
+                                        composer: artist.composer ?? false,
+                                        available: artist.available ?? false,
+                                        cover: {
+                                            type: artist.cover?.type ?? null,
+                                            uri: artist.cover?.uri ?? null,
+                                            prefix:
+                                                artist.cover?.prefix ?? null,
+                                        },
+                                        genres: artist.genres ?? [],
+                                        disclaimers: artist.disclaimers ?? [],
+                                    }),
+                                ),
                                 albums: data.track.albums.map((album: any) => ({
                                     id: album.id,
                                     title: album.title,
@@ -627,20 +628,28 @@ const Player: React.FC<any> = ({ children }) => {
                                     likesCount: album.likesCount,
                                     recent: album.recent,
                                     veryImportant: album.veryImportant,
-                                    artists: data.track.artists.map((artist: any) => ({
-                                        id: artist.id ?? null,
-                                        name: artist.name ?? "Unknown Artist",
-                                        various: artist.various ?? false,
-                                        composer: artist.composer ?? false,
-                                        available: artist.available ?? false,
-                                        cover: {
-                                            type: artist.cover?.type ?? null,
-                                            uri: artist.cover?.uri ?? null,
-                                            prefix: artist.cover?.prefix ?? null
-                                        },
-                                        genres: artist.genres ?? [],
-                                        disclaimers: artist.disclaimers ?? []
-                                    })),
+                                    artists: data.track.artists.map(
+                                        (artist: any) => ({
+                                            id: artist.id ?? null,
+                                            name:
+                                                artist.name ?? 'Unknown Artist',
+                                            various: artist.various ?? false,
+                                            composer: artist.composer ?? false,
+                                            available:
+                                                artist.available ?? false,
+                                            cover: {
+                                                type:
+                                                    artist.cover?.type ?? null,
+                                                uri: artist.cover?.uri ?? null,
+                                                prefix:
+                                                    artist.cover?.prefix ??
+                                                    null,
+                                            },
+                                            genres: artist.genres ?? [],
+                                            disclaimers:
+                                                artist.disclaimers ?? [],
+                                        }),
+                                    ),
                                 })),
                                 coverUri: data.track.coverUri,
                                 ogImage: data.track.ogImage,
@@ -648,13 +657,10 @@ const Player: React.FC<any> = ({ children }) => {
                                 type: data.track.type,
                                 rememberPosition: data.track.rememberPosition,
                                 trackSharingFlag: data.track.trackSharingFlag,
-                            }));
+                            }))
                         })
-
                     } else {
-                        window.desktopEvents.removeAllListeners(
-                            'trackinfo',
-                        )
+                        window.desktopEvents.removeAllListeners('trackinfo')
                         setTrack(trackInitials)
                     }
                 }
@@ -663,33 +669,41 @@ const Player: React.FC<any> = ({ children }) => {
             window.discordRpc.clearActivity()
         }
     }, [user.id, app.discordRpc.status])
+
     const getCoverImage = (track: Track): string => {
-        return track.albumArt || track.coverUri || track.ogImage || '';
-    };
+        return track.albumArt || track.coverUri || track.ogImage || ''
+    }
 
     const getTrackStartTime = (track: Track): number => {
         return track.timestamps && track.timestamps.length > 0
             ? track.timestamps[0]
-            : 0;
-    };
+            : 0
+    }
 
     const getTrackEndTime = (track: Track): number => {
         return track.timestamps && track.timestamps.length > 0
             ? track.timestamps[1]
-            : 0;
-    };
+            : 0
+    }
 
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
-            if (track.title === '' || track.status === 'paused' || track.timestamps[0] === 0 && track.timestamps[1] === 0) {
-                window.discordRpc.clearActivity();
+            if (
+                track.title === '' ||
+                track.status === 'paused' ||
+                (track.timestamps[0] === 0 && track.timestamps[1] === 0)
+            ) {
+                window.discordRpc.clearActivity()
             } else {
-                const trackStartTime = getTrackStartTime(track);
-                const trackEndTime = getTrackEndTime(track);
-                const artistName = track.artists.map(x => x.name ).join( ', ' )
+                const trackStartTime = getTrackStartTime(track)
+                const trackEndTime = getTrackEndTime(track)
+                const artistName = track.artists.map(x => x.name).join(', ')
 
-                const startTimestamp = Math.floor(Date.now()/1000)*1000 - Math.floor(Number(trackStartTime)) * 1000;
-                const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000;
+                const startTimestamp =
+                    Math.floor(Date.now() / 1000) * 1000 -
+                    Math.floor(Number(trackStartTime)) * 1000
+                const endTimestamp =
+                    startTimestamp + Math.floor(Number(trackEndTime)) * 1000
 
                 const activity: any = {
                     type: 2,
@@ -702,62 +716,64 @@ const Player: React.FC<any> = ({ children }) => {
                     details:
                         app.discordRpc.details.length > 0
                             ? fixStrings(
-                                replaceParams(app.discordRpc.details, track),
-                            )
+                                  replaceParams(app.discordRpc.details, track),
+                              )
                             : fixStrings(track.title),
                     state:
                         app.discordRpc.state.length > 0
                             ? fixStrings(
-                                replaceParams(app.discordRpc.state, track),
-                            )
+                                  replaceParams(app.discordRpc.state, track),
+                              )
                             : fixStrings(artistName),
-                };
+                }
 
                 if (app.discordRpc.state.length > 0) {
                     activity.state =
                         fixStrings(
                             replaceParams(app.discordRpc.state, track),
-                        ) || 'Музыка играет';
+                        ) || 'Музыка играет'
                 }
 
-                activity.buttons = [];
-                if (!track.artists || track.artists.length === 0 && app.discordRpc.enableRpcButtonListen) {
-                    const linkTitle = track.albums[0].id;
+                activity.buttons = []
+                if (
+                    (!track.artists || track.artists.length === 0) &&
+                    app.discordRpc.enableRpcButtonListen
+                ) {
+                    const linkTitle = track.albums[0].id
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? app.discordRpc.button
                             : '✌️ Open in Yandex Music',
-                        url: `yandexmusic://album/${encodeURIComponent(
-                            linkTitle,
-                        )}/track/${track.realId}`,
-                    });
+                        url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
+                    })
                 }
 
                 if (app.discordRpc.enableGithubButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
                         url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev`,
-                    });
+                    })
                 }
 
                 if (activity.buttons.length === 0) {
-                    delete activity.buttons;
+                    delete activity.buttons
                 }
-                console.log(track)
+
                 if (!track.artists || track.artists.length === 0) {
                     setTrack((prevTrack: Track) => ({
                         ...prevTrack,
                         title: `${track.title} - Нейромузыка`,
-                    }));
+                    }))
                     activity.details = fixStrings(
                         `${track.title} - Нейромузыка`,
-                    );
+                    )
                 }
 
-                window.discordRpc.setActivity(activity);
+                window.discordRpc.setActivity(activity)
             }
         }
-    }, [app.settings, user, track, app.discordRpc]);
+    }, [app.settings, user, track, app.discordRpc])
+
     return (
         <PlayerContext.Provider
             value={{
@@ -769,4 +785,5 @@ const Player: React.FC<any> = ({ children }) => {
         </PlayerContext.Provider>
     )
 }
-export default _app
+
+export default App

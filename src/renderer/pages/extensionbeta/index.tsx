@@ -1,8 +1,9 @@
-import Layout from '../../components/layout'
-import * as styles from '../../../../static/styles/page/index.module.scss'
-import * as theme from './extension.module.scss'
-import ExtensionCard from '../../components/extensionCard'
 import React, { useContext, useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import Layout from '../../components/layout'
+import * as globalStyles from '../../../../static/styles/page/index.module.scss'
+import * as extensionStyles from './extension.module.scss'
+import ExtensionCard from '../../components/extensionCard'
 import ThemeInterface from '../../api/interfaces/theme.interface'
 import stringSimilarity from 'string-similarity'
 import CustomCheckbox from '../../components/checkbox_props'
@@ -12,20 +13,18 @@ import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefr
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
-import { useSearchParams } from 'react-router-dom'
 
 export default function ExtensionPage() {
-    const [selectedTheme, setSelectedTheme] = useState(
+    const [currentThemeName, setCurrentThemeName] = useState(
         window.electron.store.get('theme') || 'Default',
     )
     const { themes, setThemes } = useContext(userContext)
-    const [maxThemesCount, setMaxThemesCount] = useState(0)
+    const [maxThemeCount, setMaxThemeCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(
         window.electron.store.get('themes.hideEnabled') || false,
     )
     const [filterVisible, setFilterVisible] = useState(false)
-
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
         new Set(window.electron.store.get('themes.selectedTags') || []),
     )
@@ -33,16 +32,16 @@ export default function ExtensionPage() {
         window.electron.store.get('themes.columnsCount') || 3,
     )
 
-    const handleFilterHover = () => setFilterVisible(true)
-    const handleFilterLeave = () => setFilterVisible(false)
+    const [searchParams] = useSearchParams()
+    const selectedTagFromURL = searchParams.get('selectedTag')
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
 
     const loadThemes = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
                 .invoke('getThemes')
-                .then((themes: ThemeInterface[]) => {
-                    setThemes(themes)
+                .then((fetchedThemes: ThemeInterface[]) => {
+                    setThemes(fetchedThemes)
                 })
                 .catch(error =>
                     console.error('Ошибка при загрузке тем:', error),
@@ -50,12 +49,11 @@ export default function ExtensionPage() {
         }
     }
 
-    const [searchParams] = useSearchParams()
-    const selectedTagFromURL = searchParams.get('selectedTag')
-
     useEffect(() => {
         if (selectedTagFromURL) {
-            setSelectedTags(prevTags => new Set(prevTags).add(selectedTagFromURL))
+            setSelectedTags(prevTags =>
+                new Set(prevTags).add(selectedTagFromURL),
+            )
         }
     }, [selectedTagFromURL])
 
@@ -63,7 +61,7 @@ export default function ExtensionPage() {
         loadThemes()
     }, [])
 
-    const handleReloadThemes = () => {
+    const reloadThemes = () => {
         setThemes([])
         loadThemes()
         toast.success('Темы перезагружены')
@@ -72,7 +70,7 @@ export default function ExtensionPage() {
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
         const newTheme = isChecked ? themeName : 'Default'
         window.electron.store.set('theme', newTheme)
-        setSelectedTheme(newTheme)
+        setCurrentThemeName(newTheme)
         window.desktopEvents.send('themeChanged', newTheme)
     }
 
@@ -88,28 +86,24 @@ export default function ExtensionPage() {
 
     const handleTagChange = (tag: string) => {
         const updatedTags = new Set(selectedTags)
-        if (updatedTags.has(tag)) {
-            updatedTags.delete(tag)
-        } else {
-            updatedTags.add(tag)
-        }
+        updatedTags.has(tag) ? updatedTags.delete(tag) : updatedTags.add(tag)
         setSelectedTags(updatedTags)
     }
 
-    const filterAndSortThemes = (themes: ThemeInterface[]) => {
-        return themes
-            .filter(theme => theme.name !== 'Default')
-            .map(theme => ({
-                ...theme,
+    const filterAndSortThemes = (themeList: ThemeInterface[]) => {
+        return themeList
+            .filter(item => item.name !== 'Default')
+            .map(item => ({
+                ...item,
                 matches:
-                    theme.name.toLowerCase().includes(searchQuery) ||
-                    theme.author.toLowerCase().includes(searchQuery) ||
+                    item.name.toLowerCase().includes(searchQuery) ||
+                    item.author.toLowerCase().includes(searchQuery) ||
                     stringSimilarity.compareTwoStrings(
-                        theme.name.toLowerCase(),
+                        item.name.toLowerCase(),
                         searchQuery,
                     ) > 0.35 ||
                     stringSimilarity.compareTwoStrings(
-                        theme.author.toLowerCase(),
+                        item.author.toLowerCase(),
                         searchQuery,
                     ) > 0.35,
             }))
@@ -117,55 +111,50 @@ export default function ExtensionPage() {
     }
 
     const filterThemesByTags = (
-        themes: ThemeInterface[],
+        themeList: ThemeInterface[],
         tags: Set<string>,
     ) => {
-        if (tags.size === 0) return themes
-        return themes.filter(theme => theme.tags?.some(tag => tags.has(tag)))
+        if (tags.size === 0) return themeList
+        return themeList.filter(item => item.tags?.some(tag => tags.has(tag)))
     }
 
     const getFilteredThemes = (themeType: string) => {
-        const filteredThemes = filterAndSortThemes(
+        const filtered = filterAndSortThemes(
             filterThemesByTags(themes, selectedTags),
         )
-        return themeType === selectedTheme
-            ? filteredThemes.filter(theme => theme.name === selectedTheme)
-            : filteredThemes.filter(theme => theme.name !== selectedTheme)
+        return themeType === currentThemeName
+            ? filtered.filter(item => item.name === currentThemeName)
+            : filtered.filter(item => item.name !== currentThemeName)
     }
 
-    const enabledThemes = getFilteredThemes(selectedTheme)
+    const enabledThemes = getFilteredThemes(currentThemeName)
     const disabledThemes = getFilteredThemes('other')
     const filteredEnabledThemes = hideEnabled ? [] : enabledThemes
     const filteredDisabledThemes = hideEnabled ? disabledThemes : disabledThemes
-    const allTags = Array.from(
-        new Set(themes.flatMap(theme => theme.tags || [])),
-    )
+
+    const allTags = Array.from(new Set(themes.flatMap(item => item.tags || [])))
     const tagCounts = allTags.reduce(
         (acc, tag) => {
-            acc[tag] = themes.filter(theme => theme.tags?.includes(tag)).length
+            acc[tag] = themes.filter(item => item.tags?.includes(tag)).length
             return acc
         },
         {} as Record<string, number>,
     )
 
-    const filterThemes = (themes: ThemeInterface[]) => {
-        return themes
+    const filterThemes = (themeList: ThemeInterface[]) => {
+        return themeList
             .filter(
-                theme =>
-                    theme.name.toLowerCase() !== 'default' &&
-                    (theme.name
-                        .toLowerCase()
-                        .includes(searchQuery.toLowerCase()) ||
-                        theme.author
-                            .toLowerCase()
-                            .includes(searchQuery.toLowerCase()) ||
+                item =>
+                    item.name.toLowerCase() !== 'default' &&
+                    (item.name.toLowerCase().includes(searchQuery) ||
+                        item.author.toLowerCase().includes(searchQuery) ||
                         stringSimilarity.compareTwoStrings(
-                            theme.name.toLowerCase(),
-                            searchQuery.toLowerCase(),
+                            item.name.toLowerCase(),
+                            searchQuery,
                         ) > 0.35 ||
                         stringSimilarity.compareTwoStrings(
-                            theme.author.toLowerCase(),
-                            searchQuery.toLowerCase(),
+                            item.author.toLowerCase(),
+                            searchQuery,
                         ) > 0.35),
             )
             .sort((a, b) => (a.name < b.name ? -1 : 1))
@@ -174,7 +163,7 @@ export default function ExtensionPage() {
     const filteredThemes = filterThemes(themes)
 
     useEffect(() => {
-        setMaxThemesCount(prevCount =>
+        setMaxThemeCount(prevCount =>
             Math.max(prevCount, filteredThemes.length),
         )
     }, [filteredThemes])
@@ -188,21 +177,26 @@ export default function ExtensionPage() {
         window.electron.store.set('themes.hideEnabled', hideEnabled)
     }, [selectedTags, columnsCount, hideEnabled])
 
-    const handleColumnsChange = (count: number) => {
-        setColumnsCount(count)
+    const handleColumnsChange = (columns: number) => {
+        setColumnsCount(columns)
     }
+
+    const showFilter = () => setFilterVisible(true)
+    const hideFilter = () => setFilterVisible(false)
 
     return (
         <Layout title="Стилизация">
-            <div className={styles.page}>
-                <div className={styles.container}>
-                    <div className={styles.main_container}>
-                        <div className={theme.toolbar}>
-                            <div className={theme.containerToolbar}>
-                                <div className={theme.searchContainer}>
+            <div className={globalStyles.page}>
+                <div className={globalStyles.container}>
+                    <div className={globalStyles.main_container}>
+                        <div className={extensionStyles.toolbar}>
+                            <div className={extensionStyles.containerToolbar}>
+                                <div
+                                    className={extensionStyles.searchContainer}
+                                >
                                     <SearchImg />
                                     <input
-                                        className={theme.searchInput}
+                                        className={extensionStyles.searchInput}
                                         type="text"
                                         value={searchQuery}
                                         onChange={handleSearchChange}
@@ -210,43 +204,52 @@ export default function ExtensionPage() {
                                     />
                                     {filteredThemes.length > 0 &&
                                         filteredThemes.length <
-                                            maxThemesCount && (
-                                            <div className={theme.searchLabel}>
+                                            maxThemeCount && (
+                                            <div
+                                                className={
+                                                    extensionStyles.searchLabel
+                                                }
+                                            >
                                                 Найдено: {filteredThemes.length}
                                             </div>
                                         )}
                                     {filteredThemes.length === 0 && (
-                                        <div className={theme.searchLabel}>
+                                        <div
+                                            className={
+                                                extensionStyles.searchLabel
+                                            }
+                                        >
                                             Ничего не найдено
                                         </div>
                                     )}
                                 </div>
                                 <button
-                                    className={theme.toolbarButton}
+                                    className={extensionStyles.toolbarButton}
                                     onClick={() =>
-                                        window.desktopEvents.send(
-                                            'openPath',
-                                            {
-                                                action: 'themePath',
-                                            }
-                                        )
+                                        window.desktopEvents.send('openPath', {
+                                            action: 'themePath',
+                                        })
                                     }
                                 >
                                     <FileImg />
                                 </button>
                                 <button
-                                    className={`${theme.toolbarButton} ${theme.refreshButton}`}
-                                    onClick={handleReloadThemes}
+                                    className={`${extensionStyles.toolbarButton} ${extensionStyles.refreshButton}`}
+                                    onClick={reloadThemes}
                                 >
                                     <ArrowRefreshImg />
                                 </button>
                                 <button
-                                    className={`${theme.toolbarButton} ${filterVisible ? theme.toolbarButtonActive : ''}`}
-                                    onMouseEnter={handleFilterHover}
+                                    className={`${extensionStyles.toolbarButton} ${
+                                        filterVisible
+                                            ? extensionStyles.toolbarButtonActive
+                                            : ''
+                                    }`}
+                                    onMouseEnter={showFilter}
                                 >
                                     <FilterImg />
                                     {activeTagCount > 0 && (
-                                        <div className={theme.count}>
+                                        <div className={extensionStyles.count}>
                                             {activeTagCount > 9
                                                 ? '9+'
                                                 : activeTagCount}
@@ -256,14 +259,24 @@ export default function ExtensionPage() {
                             </div>
                             {filterVisible && (
                                 <div
-                                    className={theme.containerSearch}
-                                    onMouseLeave={handleFilterLeave}
+                                    className={extensionStyles.containerSearch}
+                                    onMouseLeave={hideFilter}
                                 >
-                                    <div className={theme.tagsSection}>
-                                        <div className={theme.tagsLabel}>
+                                    <div
+                                        className={extensionStyles.tagsSection}
+                                    >
+                                        <div
+                                            className={
+                                                extensionStyles.tagsLabel
+                                            }
+                                        >
                                             Tags
                                         </div>
-                                        <div className={theme.tagsContainer}>
+                                        <div
+                                            className={
+                                                extensionStyles.tagsContainer
+                                            }
+                                        >
                                             <CustomCheckbox
                                                 checked={hideEnabled}
                                                 onChange={
@@ -272,7 +285,7 @@ export default function ExtensionPage() {
                                                 label="Скрыть включенные"
                                                 className={
                                                     hideEnabled
-                                                        ? theme.selectedTag
+                                                        ? extensionStyles.selectedTag
                                                         : ''
                                                 }
                                             />
@@ -288,18 +301,28 @@ export default function ExtensionPage() {
                                                     label={`${tag} (${tagCounts[tag]})`}
                                                     className={
                                                         selectedTags.has(tag)
-                                                            ? theme.selectedTag
+                                                            ? extensionStyles.selectedTag
                                                             : ''
                                                     }
                                                 />
                                             ))}
                                         </div>
                                     </div>
-                                    <div className={theme.tagsSection}>
-                                        <div className={theme.tagsLabel}>
+                                    <div
+                                        className={extensionStyles.tagsSection}
+                                    >
+                                        <div
+                                            className={
+                                                extensionStyles.tagsLabel
+                                            }
+                                        >
                                             Колонки:{' '}
                                         </div>
-                                        <div className={theme.tagsContainer}>
+                                        <div
+                                            className={
+                                                extensionStyles.tagsContainer
+                                            }
+                                        >
                                             {[2, 3, 4].map(count => (
                                                 <CustomCheckbox
                                                     key={count}
@@ -314,7 +337,7 @@ export default function ExtensionPage() {
                                                     label={`${count} колонок`}
                                                     className={
                                                         columnsCount === count
-                                                            ? theme.selectedTag
+                                                            ? extensionStyles.selectedTag
                                                             : ''
                                                     }
                                                 />
@@ -324,79 +347,94 @@ export default function ExtensionPage() {
                                 </div>
                             )}
                         </div>
-                        <div className={styles.container30x15}>
-                            <div className={theme.preview}>
+
+                        <div className={globalStyles.container30x15}>
+                            <div className={extensionStyles.preview}>
                                 {filteredEnabledThemes.length > 0 && (
-                                    <div className={theme.previewSelection}>
+                                    <div
+                                        className={
+                                            extensionStyles.previewSelection
+                                        }
+                                    >
                                         <div
                                             className={
-                                                theme.selectionContainerLable
+                                                extensionStyles.selectionContainerLable
                                             }
                                         >
                                             <div
-                                                className={theme.labelSelection}
+                                                className={
+                                                    extensionStyles.labelSelection
+                                                }
                                             >
                                                 Enable
                                             </div>
-                                            <div className={theme.line}></div>
+                                            <div
+                                                className={extensionStyles.line}
+                                            ></div>
                                         </div>
                                         <div
-                                            className={theme.grid}
+                                            className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
                                         >
-                                            {filteredEnabledThemes.map(
-                                                theme => (
-                                                    <ExtensionCard
-                                                        key={theme.name}
-                                                        theme={theme}
-                                                        isChecked={true}
-                                                        onCheckboxChange={
-                                                            handleCheckboxChange
-                                                        }
-                                                        className={
-                                                            theme.matches
-                                                                ? 'highlight'
-                                                                : 'dimmed'
-                                                        }
-                                                    />
-                                                ),
-                                            )}
+                                            {filteredEnabledThemes.map(item => (
+                                                <ExtensionCard
+                                                    key={item.name}
+                                                    theme={item}
+                                                    isChecked={true}
+                                                    onCheckboxChange={
+                                                        handleCheckboxChange
+                                                    }
+                                                    className={
+                                                        item.matches
+                                                            ? 'highlight'
+                                                            : 'dimmed'
+                                                    }
+                                                />
+                                            ))}
                                         </div>
                                     </div>
                                 )}
                                 {filteredDisabledThemes.length > 0 && (
-                                    <div className={theme.previewSelection}>
+                                    <div
+                                        className={
+                                            extensionStyles.previewSelection
+                                        }
+                                    >
                                         <div
                                             className={
-                                                theme.selectionContainerLable
+                                                extensionStyles.selectionContainerLable
                                             }
                                         >
                                             <div
-                                                className={theme.labelSelection}
+                                                className={
+                                                    extensionStyles.labelSelection
+                                                }
                                             >
                                                 Disable
                                             </div>
-                                            <div className={theme.line}></div>
+                                            <div
+                                                className={extensionStyles.line}
+                                            ></div>
                                         </div>
                                         <div
-                                            className={theme.grid}
+                                            className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
                                         >
                                             {filteredDisabledThemes.map(
-                                                theme => (
+                                                item => (
                                                     <ExtensionCard
-                                                        key={theme.name}
-                                                        theme={theme}
+                                                        key={item.name}
+                                                        theme={item}
                                                         isChecked={false}
                                                         onCheckboxChange={
                                                             handleCheckboxChange
                                                         }
                                                         className={
-                                                            theme.matches
+                                                            item.matches
                                                                 ? 'highlight'
                                                                 : 'dimmed'
                                                         }

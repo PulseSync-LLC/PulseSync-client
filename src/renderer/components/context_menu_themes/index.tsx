@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as cm from './contextMenu.module.scss'
-import { SectionConfig } from './sectionConfig'
+import { MenuItem } from './sectionConfig'
 
 interface ContextMenuProps {
-    items: SectionConfig[]
+    items: MenuItem[]
     position: { x: number; y: number }
     onClose: () => void
     isFadingOut: boolean
@@ -11,7 +11,7 @@ interface ContextMenuProps {
 }
 
 interface ContextMenuProps {
-    items: SectionConfig[]
+    items: MenuItem[]
     position: { x: number; y: number }
     onClose: () => void
     isFadingOut: boolean

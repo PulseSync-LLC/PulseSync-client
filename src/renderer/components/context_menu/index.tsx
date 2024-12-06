@@ -1,9 +1,9 @@
 import React, { useContext } from 'react'
-import * as styles from './context_menu.module.scss'
+import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
+import playerContext from '../../api/context/player.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
-import playerContext from '../../api/context/player.context'
 import hotToast from 'react-hot-toast-magic'
 import toast from '../../api/toast'
 
@@ -11,38 +11,64 @@ interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
 }
 
+interface SectionItem {
+    label: string
+    onClick: (event: any) => void
+    disabled?: boolean
+}
+
 interface SectionConfig {
     title: string
-    buttons: {
-        label: string
-        onClick: (event: any) => void
-        disabled?: boolean
-    }[]
-    button?: {
-        label: string
-        onClick: (event: any) => void
-    }
+    buttons: SectionItem[]
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, setUser } = useContext(userContext)
+    const { app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
-    const handleOpenModal = () => {
+    const openModal = () => {
         modalRef.current?.openModal()
     }
 
-    const directoryOpen = () => {
+    const openAppDirectory = () => {
         window.desktopEvents.send('openPath', { action: 'appPath' })
     }
 
+    const showLoadingToast = (event: any, message: string) => {
+        const toastId = hotToast.loading(message, {
+            style: {
+                background: '#292C36',
+                color: '#ffffff',
+                border: 'solid 1px #363944',
+                borderRadius: '8px',
+            },
+        })
+
+        const handleUpdateAppData = (event: any, data: any) => {
+            for (const [key] of Object.entries(data)) {
+                if (key === 'repatch') {
+                    toast.success('Успешный репатч', { id: toastId })
+                } else if (key === 'patch') {
+                    toast.success('Успешный патч', { id: toastId })
+                } else if (key === 'depatch') {
+                    toast.success('Успешный депатч', { id: toastId })
+                } else {
+                    hotToast.dismiss(toastId)
+                }
+            }
+            window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
+        }
+
+        window.desktopEvents?.on('UPDATE_APP_DATA', handleUpdateAppData)
+    }
+
     const repatch = (e: any) => {
-        toastLoading(e, 'Репатч...')
+        showLoadingToast(e, 'Репатч...')
         window.electron.patcher.repatch()
     }
 
     const depatch = (e: any) => {
-        toastLoading(e, 'Депатч...')
+        showLoadingToast(e, 'Депатч...')
         window.electron.patcher.depatch()
         setApp({
             ...app,
@@ -53,36 +79,30 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
     }
 
-    const githubLink = () => {
+    const openGitHub = () => {
         window.open(
             'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts',
         )
     }
 
-    const enableFunc = (type: string, status: boolean) => {
+    const toggleSetting = (type: string, status: boolean) => {
         const updatedSettings = { ...app.settings }
-        switch (type) {
-            case 'autoTray':
-                updatedSettings.autoStartInTray = status
-                window.electron.store.set('settings.autoStartInTray', status)
-                break
-            case 'autoStart':
-                updatedSettings.autoStartApp = status
-                window.electron.store.set('settings.autoStartApp', status)
-                window.desktopEvents?.send('autoStartApp', status)
-                break
-            case 'autoStartMusic':
-                updatedSettings.autoStartMusic = status
-                window.electron.store.set('settings.autoStartMusic', status)
-                break
+        if (type === 'autoTray') {
+            updatedSettings.autoStartInTray = status
+            window.electron.store.set('settings.autoStartInTray', status)
+        } else if (type === 'autoStart') {
+            updatedSettings.autoStartApp = status
+            window.electron.store.set('settings.autoStartApp', status)
+            window.desktopEvents?.send('autoStartApp', status)
+        } else if (type === 'autoStartMusic') {
+            updatedSettings.autoStartMusic = status
+            window.electron.store.set('settings.autoStartMusic', status)
         }
         setApp({ ...app, settings: updatedSettings })
     }
 
     const downloadTrack = (event: any) => {
-        let toastId: string
-        console.log(currentTrack)
-        toastId = hotToast.loading('Загрузка...', {
+        const toastId = hotToast.loading('Загрузка...', {
             style: {
                 background: '#292C36',
                 color: '#ffffff',
@@ -91,35 +111,29 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
         })
 
-        window.desktopEvents?.on(
-            'download-track-progress',
-            (event, value) => {
-                toast.loading(
-                    <>
-                        <span>Загрузка</span>
-                        <b style={{marginLeft: '.5em'}}>
-                            {Math.floor(value)}%
-                        </b>
-                    </>,
-                    {
-                        id: toastId,
-                    },
-                )
-            },
-        )
+        window.desktopEvents?.on('download-track-progress', (event, value) => {
+            toast.loading(
+                <>
+                    <span>Загрузка</span>
+                    <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
+                </>,
+                { id: toastId },
+            )
+        })
+
         window.electron.downloadTrack({
             track: currentTrack,
-            url: currentTrack.url
+            url: currentTrack.url,
         })
 
         window.desktopEvents?.once('download-track-cancelled', () =>
             hotToast.dismiss(toastId),
         )
         window.desktopEvents?.once('download-track-failed', () =>
-            toast.error('Ошибка загрузки трека', {id: toastId}),
+            toast.error('Ошибка загрузки трека', { id: toastId }),
         )
         window.desktopEvents?.once('download-track-finished', () => {
-            toast.success('Загрузка завершена', {id: toastId})
+            toast.success('Загрузка завершена', { id: toastId })
             window.desktopEvents?.removeAllListeners('download-track-progress')
         })
     }
@@ -145,7 +159,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 },
                 {
                     label: 'Скрипт патчера на GitHub',
-                    onClick: githubLink,
+                    onClick: openGitHub,
                 },
             ],
         },
@@ -154,12 +168,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             buttons: [
                 {
                     label: 'Включить',
-                    onClick: () => enableFunc('autoTray', true),
+                    onClick: () => toggleSetting('autoTray', true),
                     disabled: app.settings.autoStartInTray,
                 },
                 {
                     label: 'Выключить',
-                    onClick: () => enableFunc('autoTray', false),
+                    onClick: () => toggleSetting('autoTray', false),
                     disabled: !app.settings.autoStartInTray,
                 },
             ],
@@ -169,12 +183,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             buttons: [
                 {
                     label: 'Включить',
-                    onClick: () => enableFunc('autoStart', true),
+                    onClick: () => toggleSetting('autoStart', true),
                     disabled: app.settings.autoStartApp,
                 },
                 {
                     label: 'Выключить',
-                    onClick: () => enableFunc('autoStart', false),
+                    onClick: () => toggleSetting('autoStart', false),
                     disabled: !app.settings.autoStartApp,
                 },
             ],
@@ -201,7 +215,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             buttons: [
                 {
                     label: `Beta v${app.info.version}`,
-                    onClick: handleOpenModal,
+                    onClick: openModal,
                 },
                 {
                     label: 'Проверить обновления',
@@ -218,51 +232,23 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         },
     ]
 
-    const toastLoading = (event: any, title: string) => {
-        let toastId: string
-        toastId = hotToast.loading(title, {
-            style: {
-                background: '#292C36',
-                color: '#ffffff',
-                border: 'solid 1px #363944',
-                borderRadius: '8px',
-            },
-        })
-        const handleUpdateAppData = (event: any, data: any) => {
-            for (const [key, value] of Object.entries(data)) {
-                switch (key) {
-                    case 'repatch':
-                        toast.success('Успешный репатч', { id: toastId })
-                        break
-                    case 'patch':
-                        toast.success('Успешный патч', { id: toastId })
-                        break
-                    case 'depatch':
-                        toast.success('Успешный депатч', { id: toastId })
-                        break
-                    default:
-                        hotToast.dismiss(toastId)
-                        break
-                }
-            }
-            window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
-        }
-        window.desktopEvents?.on('UPDATE_APP_DATA', handleUpdateAppData)
-    }
     return (
-        <div className={styles.patchMenu}>
-            <button className={styles.contextButton} onClick={directoryOpen}>
+        <div className={menuStyles.patchMenu}>
+            <button
+                className={menuStyles.contextButton}
+                onClick={openAppDirectory}
+            >
                 Директория приложения
             </button>
             {buttonConfigs.map(section => (
-                <div className={styles.innerFunction} key={section.title}>
+                <div className={menuStyles.innerFunction} key={section.title}>
                     {section.title}
                     <ArrowContext />
-                    <div className={styles.showButtons}>
+                    <div className={menuStyles.showButtons}>
                         {section.buttons.map((button, index) => (
                             <button
                                 key={index}
-                                className={styles.contextButton}
+                                className={menuStyles.contextButton}
                                 onClick={button.onClick}
                                 disabled={button.disabled}
                             >

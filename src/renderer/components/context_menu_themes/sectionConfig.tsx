@@ -1,60 +1,61 @@
-// context_menu_themes/sectionConfig.tsx
-
-import React, { useContext } from 'react'
-import CheckOn from './../../../../static/assets/stratis-icons/check-square-on.svg';
-import CheckOff from './../../../../static/assets/stratis-icons/minus-square-off.svg';
-import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.svg';
-import FileExport from './../../../../static/assets/stratis-icons/file-export.svg';
-import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg';
-import userContext from '../../api/context/user.context'
+import React from 'react'
+import CheckOn from './../../../../static/assets/stratis-icons/check-square-on.svg'
+import CheckOff from './../../../../static/assets/stratis-icons/minus-square-off.svg'
+import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.svg'
+import FileExport from './../../../../static/assets/stratis-icons/file-export.svg'
+import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
 import ThemeInterface from '../../api/interfaces/theme.interface'
 import toast from '../../api/toast'
 
-export interface SectionConfig {
-    label?: string;
-    icon?: React.ReactNode;
-    onClick: () => void;
-    show: boolean;
+export interface MenuItem {
+    label?: string
+    icon?: React.ReactNode
+    onClick: () => void
+    show: boolean
 }
 
-interface CreateActionsOptions {
-    showCheck?: boolean;
-    showDirectory?: boolean;
-    showExport?: boolean;
-    showDelete?: boolean;
+interface ActionVisibility {
+    showCheck?: boolean
+    showDirectory?: boolean
+    showExport?: boolean
+    showDelete?: boolean
 }
-export const createActions = (
-    onCheckboxChange: (themeName: string, isChecked: boolean) => void,
-    isChecked: boolean = false,
-    options: CreateActionsOptions = {},
-    theme: ThemeInterface
-): SectionConfig[] => [
+
+export const createContextMenuActions = (
+    handleToggleCheck: (themeName: string, isChecked: boolean) => void,
+    checkedState: boolean = false,
+    actionVisibility: ActionVisibility = {},
+    currentTheme: ThemeInterface
+): MenuItem[] => [
     {
-        label: isChecked ? `Выключить ${theme.name}` : `Включить ${theme.name}`,
+        label: checkedState
+            ? `Выключить ${currentTheme.name}`
+            : `Включить ${currentTheme.name}`,
         onClick: () => {
-            if (onCheckboxChange) {
-                onCheckboxChange(theme.name, !isChecked);
+            if (handleToggleCheck) {
+                handleToggleCheck(currentTheme.name, !checkedState)
             }
         },
-        show: options.showCheck ?? true,
-        icon: isChecked ? <CheckOn /> : <CheckOff />,
+        show: actionVisibility.showCheck ?? true,
+        icon: checkedState ? <CheckOn /> : <CheckOff />,
     },
     {
-        label: `Директория аддона ${theme.name}`,
-        onClick: () => window.desktopEvents.send('openPath', {
-            action: 'theme',
-            themeName: theme.name
-        }),
-        show: options.showDirectory ?? false,
+        label: `Директория аддона ${currentTheme.name}`,
+        onClick: () =>
+            window.desktopEvents.send('openPath', {
+                action: 'theme',
+                themeName: currentTheme.name,
+            }),
+        show: actionVisibility.showDirectory ?? false,
         icon: <FileDirectory />,
     },
     {
-        label: `Экспорт ${theme.name}`,
+        label: `Экспорт ${currentTheme.name}`,
         onClick: () => {
             window.desktopEvents
                 .invoke('exportTheme', {
-                    path: theme.path,
-                    name: theme.name,
+                    path: currentTheme.path,
+                    name: currentTheme.name,
                 })
                 .then(result => {
                     if (result) {
@@ -65,16 +66,16 @@ export const createActions = (
                     console.error(error)
                 })
         },
-        show: options.showExport ?? false,
+        show: actionVisibility.showExport ?? false,
         icon: <FileExport />,
     },
     {
-        label: `Страница темы ${theme.name}`,
+        label: `Страница темы ${currentTheme.name}`,
         onClick: () => console.log('Страница темы'),
         show: false,
     },
     {
-        label: `Опубликовать ${theme.name}`,
+        label: `Опубликовать ${currentTheme.name}`,
         onClick: () => console.log('Опубликовать'),
         show: false,
     },
@@ -84,30 +85,30 @@ export const createActions = (
         show: false,
     },
     {
-        label: `Удалить ${theme.name}`,
+        label: `Удалить ${currentTheme.name}`,
         onClick: () => {
-            const isConfirmed = window.confirm(
-                `Вы уверены, что хотите удалить тему "${theme.name}"? Это действие нельзя будет отменить.`,
+            const confirmation = window.confirm(
+                `Вы уверены, что хотите удалить тему "${currentTheme.name}"? Это действие нельзя будет отменить.`
             )
-            if (isConfirmed) {
-                    const themeDirectoryPath = theme.path
-                    window.desktopEvents
-                        .invoke('deleteThemeDirectory', themeDirectoryPath)
-                        .then(() => {
-                            window.refreshThemes()
-                            console.log(
-                                `Тема "${theme.name}" и связанные файлы удалены.`,
-                            )
-                        })
-                        .catch(error => {
-                            console.error(
-                                `Ошибка при удалении темы "${theme.name}":`,
-                                error,
-                            )
-                        })
+            if (confirmation) {
+                const themeDirPath = currentTheme.path
+                window.desktopEvents
+                    .invoke('deleteThemeDirectory', themeDirPath)
+                    .then(() => {
+                        window.refreshThemes()
+                        console.log(
+                            `Тема "${currentTheme.name}" и связанные файлы удалены.`
+                        )
+                    })
+                    .catch(error => {
+                        console.error(
+                            `Ошибка при удалении темы "${currentTheme.name}":`,
+                            error
+                        )
+                    })
             }
         },
-        show: options.showDelete ?? false,
+        show: actionVisibility.showDelete ?? false,
         icon: <FileDelete />,
     },
-];
+]

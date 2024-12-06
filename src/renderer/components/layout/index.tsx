@@ -1,9 +1,5 @@
-import * as styles from './layout.module.scss'
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet } from 'react-helmet'
-import Header from './header'
-import NavButtonPulse from '../nav_button_pulse'
-import Discord from './../../../../static/assets/icons/discord.svg'
 import {
     MdConnectWithoutContact,
     MdDownload,
@@ -12,47 +8,49 @@ import {
     MdStoreMallDirectory,
     MdUpdate,
 } from 'react-icons/md'
-import userContext from '../../api/context/user.context'
-import { Toaster, toast } from 'react-hot-toast-magic'
-import { compareVersions } from '../../utils/utils'
-import SettingsInterface from '../../api/interfaces/settings.interface'
+
 import OldHeader from './old_header'
-import { PatcherInterface } from '../../api/interfaces/patcher.interface'
+import NavButtonPulse from '../nav_button_pulse'
+import DiscordIcon from './../../../../static/assets/icons/discord.svg'
 import Preloader from '../preloader'
 
-interface P {
+import userContext from '../../api/context/user.context'
+import SettingsInterface from '../../api/interfaces/settings.interface'
+import { Toaster, toast } from 'react-hot-toast-magic'
+import * as pageStyles from './layout.module.scss'
+
+interface LayoutProps {
     title: string
     children: React.ReactNode
     goBack?: boolean
 }
 
-const Layout: React.FC<P> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, patcherInfo } = useContext(userContext)
+const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
+    const { app, setApp, updateAvailable, setUpdate, patcherInfo } =
+        useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
+    const [loadingPatchInfo, setLoadingPatchInfo] = useState(true)
     const downloadToastIdRef = useRef<string | null>(null)
 
-    const [isLoadingPatchInfo, setIsLoadingPatchInfo] = useState(true)
-
     useEffect(() => {
-        console.log('patcherInfo:', patcherInfo)
-        console.log('app:', app)
-
         if (patcherInfo.length > 0) {
-            setIsLoadingPatchInfo(false)
+            setLoadingPatchInfo(false)
         } else {
-            setIsLoadingPatchInfo(false)
+            setLoadingPatchInfo(false)
         }
     }, [patcherInfo])
 
     useEffect(() => {
-        const isListenersAdded = window.__listenersAdded;
+        const isListenersAdded = (window as any).__listenersAdded
         if (isListenersAdded) {
-            return;
+            return
         }
-        window.__listenersAdded = true;
-        const handleProgress = (event: any, { progress }: { progress: number }) => {
-            console.log('Download progress:', progress)
+        ;(window as any).__listenersAdded = true
 
+        const handleProgress = (
+            event: any,
+            { progress }: { progress: number },
+        ) => {
             if (downloadToastIdRef.current) {
                 toast.loading(`Прогресс загрузки: ${progress}%`, {
                     id: downloadToastIdRef.current,
@@ -79,7 +77,6 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         }
 
         const handleSuccess = (event: any, data: any) => {
-            console.log('Update success:', data)
             if (downloadToastIdRef.current) {
                 toast.dismiss(downloadToastIdRef.current)
                 downloadToastIdRef.current = null
@@ -117,7 +114,6 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         }
 
         const handleFailure = (event: any, error: any) => {
-            console.error('Update failure:', error)
             if (downloadToastIdRef.current) {
                 toast.dismiss(downloadToastIdRef.current)
                 downloadToastIdRef.current = null
@@ -153,13 +149,13 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         window.desktopEvents?.on('update-available', handleUpdateAvailable)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('download-progress');
-            window.desktopEvents?.removeAllListeners('update-success');
-            window.desktopEvents?.removeAllListeners('update-failure');
-            window.desktopEvents?.removeAllListeners('update-available');
-            window.__listenersAdded = false;
-        };
-    }, [patcherInfo]);
+            window.desktopEvents?.removeAllListeners('download-progress')
+            window.desktopEvents?.removeAllListeners('update-success')
+            window.desktopEvents?.removeAllListeners('update-failure')
+            window.desktopEvents?.removeAllListeners('update-available')
+            ;(window as any).__listenersAdded = false
+        }
+    }, [patcherInfo, setApp, setUpdate])
 
     const startUpdate = () => {
         if (isUpdating) {
@@ -201,11 +197,15 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
         downloadToastIdRef.current = id
 
         const { modVersion, downloadUrl, checksum } = patcherInfo[0]
-        window.desktopEvents?.send('update-app-asar', { version: modVersion, link: downloadUrl, checksum })
+        window.desktopEvents?.send('update-app-asar', {
+            version: modVersion,
+            link: downloadUrl,
+            checksum,
+        })
     }
 
-    if (isLoadingPatchInfo) {
-        return <Preloader />;
+    if (loadingPatchInfo) {
+        return <Preloader />
     }
 
     return (
@@ -213,17 +213,17 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
             <Helmet>
                 <title>{title + ' - PulseSync'}</title>
             </Helmet>
-            <div className={styles.children}>
+            <div className={pageStyles.children}>
                 <OldHeader goBack={goBack} />
-                <div className={styles.main_window}>
-                    <div className={styles.navigation_bar}>
-                        <div className={styles.navigation_buttons}>
+                <div className={pageStyles.main_window}>
+                    <div className={pageStyles.navigation_bar}>
+                        <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/trackinfo">
-                                <Discord height={24} width={24} />
+                                <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/extensionbeta">
                                 <MdExtension size={24} />
-                                <div className={styles.betatest}>beta</div>
+                                <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" disabled>
                                 <MdStoreMallDirectory size={24} />
@@ -232,14 +232,14 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                                 <MdConnectWithoutContact size={24} />
                             </NavButtonPulse>
                         </div>
-                        <div className={styles.navigation_buttons}>
+                        <div className={pageStyles.navigation_buttons}>
                             {updateAvailable && (
                                 <button
                                     onClick={() => {
                                         setUpdate(false)
                                         startUpdate()
                                     }}
-                                    className={styles.update_download}
+                                    className={pageStyles.update_download}
                                 >
                                     <MdDownload size={24} />
                                 </button>
@@ -247,43 +247,76 @@ const Layout: React.FC<P> = ({ title, children, goBack }) => {
                         </div>
                     </div>
 
-                    {patcherInfo.length > 0 && (!app.patcher.patched || (patcherInfo[0] && app.patcher.version < patcherInfo[0].modVersion)) && (
-                        <div className={styles.alert_patch}>
-                            <div className={styles.patch_container}>
-                                <div className={styles.patch_detail}>
-                                    <div className={styles.alert_info}>
-                                        <div className={styles.alert_version_update}>
-                                            <div className={styles.version_old}>
-                                                {app.patcher.version ? app.patcher.version : 'Не установлен'}
+                    {patcherInfo.length > 0 &&
+                        (!app.patcher.patched ||
+                            (patcherInfo[0] &&
+                                app.patcher.version <
+                                    patcherInfo[0].modVersion)) && (
+                            <div className={pageStyles.alert_patch}>
+                                <div className={pageStyles.patch_container}>
+                                    <div className={pageStyles.patch_detail}>
+                                        <div className={pageStyles.alert_info}>
+                                            <div
+                                                className={
+                                                    pageStyles.alert_version_update
+                                                }
+                                            >
+                                                <div
+                                                    className={
+                                                        pageStyles.version_old
+                                                    }
+                                                >
+                                                    {app.patcher.version
+                                                        ? app.patcher.version
+                                                        : 'Не установлен'}
+                                                </div>
+                                                <MdKeyboardArrowRight
+                                                    size={14}
+                                                />
+                                                <div
+                                                    className={
+                                                        pageStyles.version_new
+                                                    }
+                                                >
+                                                    {patcherInfo[0]?.modVersion}
+                                                </div>
                                             </div>
-                                            <MdKeyboardArrowRight size={14} />
-                                            <div className={styles.version_new}>
-                                                {patcherInfo[0]?.modVersion}
+                                            <div
+                                                className={
+                                                    pageStyles.alert_title
+                                                }
+                                            >
+                                                {app.patcher.patched
+                                                    ? 'Обновление патча'
+                                                    : 'Установка патча'}
+                                            </div>
+                                            <div
+                                                className={
+                                                    pageStyles.alert_warn
+                                                }
+                                            >
+                                                Убедитесь, что Яндекс Музыка
+                                                закрыта!
                                             </div>
                                         </div>
-                                        <div className={styles.alert_title}>
-                                            {app.patcher.patched ? 'Обновление патча' : 'Установка патча'}
-                                        </div>
-                                        <div className={styles.alert_warn}>
-                                            Убедитесь, что Яндекс Музыка закрыта!
-                                        </div>
+                                        <button
+                                            className={pageStyles.patch_button}
+                                            onClick={startUpdate}
+                                        >
+                                            <MdUpdate size={20} />
+                                            {app.patcher.patched
+                                                ? 'Обновить'
+                                                : 'Установить'}
+                                        </button>
                                     </div>
-                                    <button
-                                        className={styles.patch_button}
-                                        onClick={startUpdate}
-                                    >
-                                        <MdUpdate size={20} />
-                                        {app.patcher.patched ? 'Обновить' : 'Установить'}
-                                    </button>
+                                    <img
+                                        className={pageStyles.alert_patch_image}
+                                        src="static/assets/images/imageAlertPatch.png"
+                                        alt="Patch Update"
+                                    />
                                 </div>
-                                <img
-                                    className={styles.alert_patch_image}
-                                    src="static/assets/images/imageAlertPatch.png"
-                                    alt="Patch Update"
-                                />
                             </div>
-                        </div>
-                    )}
+                        )}
                     {children}
                 </div>
             </div>

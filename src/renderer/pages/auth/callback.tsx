@@ -1,55 +1,56 @@
-import Header from '../../components/layout/header'
-
-import * as styles from './callback.module.scss'
-
-import DiscordAuth from './../../../../static/assets/icons/discordAuth.svg'
-import HandBlock from './../../../../static/assets/icons/handBlock.svg'
-import UserBlock from './../../../../static/assets/icons/userBlock.svg'
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+
+import * as pageStyles from './callback.module.scss'
+
+import DiscordAuthIcon from './../../../../static/assets/icons/discordAuth.svg'
+import HandBlockIcon from './../../../../static/assets/icons/handBlock.svg'
+import UserBlockIcon from './../../../../static/assets/icons/userBlock.svg'
+
 import userContext from '../../api/context/user.context'
 import OldHeader from '../../components/layout/old_header'
 
 export default function CallbackPage() {
     const navigate = useNavigate()
     const { user, authorize } = useContext(userContext)
-    const [banned, setBanned] = useState('')
+    const [banReason, setBanReason] = useState('')
 
     useEffect(() => {
         if (user.id !== '-1') {
             navigate('/trackinfo')
         }
-    }, [user.id])
+    }, [user.id, navigate])
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            window.desktopEvents?.on('authSuccess', (event, data) => {
+            window.desktopEvents?.on('authSuccess', () => {
                 authorize()
             })
             window.desktopEvents?.on('authBanned', (event, data) => {
-                setBanned(data.reason)
+                setBanReason(data.reason)
                 setTimeout(() => window.electron.window.exit(), 10000)
             })
         }
-    }, [])
+    }, [authorize])
+
     return (
         <>
             <OldHeader />
-            <div className={styles.main_window}>
+            <div className={pageStyles.main_window}>
                 <div>
-                    <div className={styles.container}>
-                        {!banned && <DiscordAuth />}
-                        {banned && (
-                            <div className={styles.animBan}>
-                                <HandBlock className={styles.svg1} />
-                                <UserBlock className={styles.svg2} />
+                    <div className={pageStyles.container}>
+                        {!banReason && <DiscordAuthIcon />}
+                        {banReason && (
+                            <div className={pageStyles.animBan}>
+                                <HandBlockIcon className={pageStyles.svg1} />
+                                <UserBlockIcon className={pageStyles.svg2} />
                             </div>
                         )}
-                        {!banned ? (
+                        {!banReason ? (
                             'Ожидание авторизации'
                         ) : (
                             <p>
-                                Вы забанены. По причине: {banned}. <br />{' '}
+                                Вы забанены. По причине: {banReason}. <br />{' '}
                                 Приложение закроется через 10 секунд
                             </p>
                         )}

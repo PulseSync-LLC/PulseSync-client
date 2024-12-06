@@ -1,14 +1,14 @@
 import React, { CSSProperties, useState, useEffect, useRef } from 'react'
-import * as styles from './card.module.scss'
+import * as cardStyles from './card.module.scss'
 import ThemeInterface from '../../api/interfaces/theme.interface'
 import ContextMenu from '../../components/context_menu_themes'
-import { createActions } from '../../components/context_menu_themes/sectionConfig'
+import { createContextMenuActions } from '../../components/context_menu_themes/sectionConfig'
 import { useNavigate } from 'react-router'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 import ReactMarkdown from 'react-markdown'
 
-interface Props {
+interface ExtensionCardProps {
     theme: ThemeInterface
     isChecked: boolean
     onCheckboxChange: (themeName: string, isChecked: boolean) => void
@@ -17,7 +17,7 @@ interface Props {
     style?: CSSProperties
 }
 
-const ExtensionCard: React.FC<Props> = ({
+const ExtensionCard: React.FC<ExtensionCardProps> = ({
     theme,
     isChecked,
     onCheckboxChange,
@@ -32,18 +32,16 @@ const ExtensionCard: React.FC<Props> = ({
     const [bannerSrc, setBannerSrc] = useState(
         'static/assets/images/no_themeBackground.png',
     )
-
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
     const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 })
-    const [clickEnabled, setClickEnabled] = useState(true)
+    const [clickAllowed, setClickAllowed] = useState(true)
     const [cardHeight, setCardHeight] = useState('20px')
     const cardRef = useRef<HTMLDivElement | null>(null)
-    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const [isFadingOut, setIsFadingOut] = useState(false)
+    const hoverTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const [fadingOut, setFadingOut] = useState(false)
 
-    const formatPath = (path: string) => {
-        return encodeURI(path.replace(/\\/g, '/'))
-    }
+    const getEncodedPath = (path: string) => encodeURI(path.replace(/\\/g, '/'))
+
     function LinkRenderer(props: any) {
         return (
             <a href={props.href} target="_blank" rel="noreferrer">
@@ -51,107 +49,106 @@ const ExtensionCard: React.FC<Props> = ({
             </a>
         )
     }
+
     useEffect(() => {
         if (theme.path && theme.image) {
-            const imgSrc = formatPath(`${theme.path}/${theme.image}`)
+            const imgSrc = getEncodedPath(`${theme.path}/${theme.image}`)
             fetch(imgSrc)
                 .then(res => {
-                    if (res.ok) {
-                        setImageSrc(imgSrc)
-                    }
+                    if (res.ok) setImageSrc(imgSrc)
                 })
-                .catch(() => {
-                    setImageSrc('static/assets/images/no_themeImage.png')
-                })
+                .catch(() =>
+                    setImageSrc('static/assets/images/no_themeImage.png'),
+                )
         }
     }, [theme])
 
     useEffect(() => {
         if (theme.path && theme.banner) {
-            const bannerPath = formatPath(`${theme.path}/${theme.banner}`)
+            const bannerPath = getEncodedPath(`${theme.path}/${theme.banner}`)
             fetch(bannerPath)
                 .then(res => {
-                    if (res.ok) {
-                        setBannerSrc(bannerPath)
-                    }
+                    if (res.ok) setBannerSrc(bannerPath)
                 })
-                .catch(() => {
-                    setBannerSrc('static/assets/images/no_themeBackground.png')
-                })
+                .catch(() =>
+                    setBannerSrc('static/assets/images/no_themeBackground.png'),
+                )
         }
     }, [theme])
 
     const handleClick = () => {
-        if (clickEnabled) {
+        if (clickAllowed) {
             navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
         }
     }
 
-    const handleMouseEnter = () => {
-        timerRef.current = setTimeout(() => {
+    const handleMouseHoverStart = () => {
+        hoverTimerRef.current = setTimeout(() => {
             if (cardRef.current) {
                 setMenuPosition({ x: 0, y: 0 })
                 setContextMenuVisible(true)
-                setClickEnabled(false)
+                setClickAllowed(false)
                 setCardHeight('70px')
             }
         }, 500)
     }
 
-    const handleMouseLeave = () => {
-        if (timerRef.current) {
-            clearTimeout(timerRef.current)
-            timerRef.current = null
+    const handleMouseHoverEnd = () => {
+        if (hoverTimerRef.current) {
+            clearTimeout(hoverTimerRef.current)
+            hoverTimerRef.current = null
         }
         closeContextMenu()
     }
 
     const closeContextMenu = () => {
-        setIsFadingOut(true)
+        setFadingOut(true)
         setCardHeight('20px')
         setTimeout(() => {
             setContextMenuVisible(false)
-            setClickEnabled(true)
-            setIsFadingOut(false)
+            setClickAllowed(true)
+            setFadingOut(false)
         }, 300)
     }
 
     return (
         <div
             ref={cardRef}
-            className={`${className} ${styles.extensionCard}`}
+            className={`${className} ${cardStyles.extensionCard}`}
             onClick={handleClick}
-            onMouseLeave={handleMouseLeave}
+            onMouseLeave={handleMouseHoverEnd}
         >
             <div
-                className={styles.imageBanner}
+                className={cardStyles.imageBanner}
                 style={{
                     backgroundImage: `url(${bannerSrc})`,
-                    backgroundSize: `cover`,
+                    backgroundSize: 'cover',
                 }}
             />
-            <div className={styles.metadataInfoContainer}>
-                <div className={styles.metadataInfo}>
-                    <div className={styles.detailInfo}>V{theme.version}</div>
-                    <div className={styles.detailInfo}>
+            <div className={cardStyles.metadataInfoContainer}>
+                <div className={cardStyles.metadataInfo}>
+                    <div className={cardStyles.detailInfo}>
+                        V{theme.version}
+                    </div>
+                    <div className={cardStyles.detailInfo}>
                         {theme.lastModified}
                     </div>
                 </div>
-                <div className={styles.themeLocation}>local</div>
+                <div className={cardStyles.themeLocation}>local</div>
             </div>
             <img
-                className={styles.themeImage}
+                className={cardStyles.themeImage}
                 src={imageSrc}
                 alt="Theme image"
             />
-            <div className={styles.themeDetail}>
-                <div className={styles.detailTop}>
-                    <span className={styles.themeName}>{theme.name}</span>
-                    <span className={styles.themeAuthor}>
+            <div className={cardStyles.themeDetail}>
+                <div className={cardStyles.detailTop}>
+                    <span className={cardStyles.themeName}>{theme.name}</span>
+                    <span className={cardStyles.themeAuthor}>
                         By {theme.author}
                     </span>
                 </div>
-                <div className={styles.themeDescription}>
+                <div className={cardStyles.themeDescription}>
                     <ReactMarkdown
                         remarkPlugins={[remarkGfm, remarkBreaks]}
                         components={{ a: LinkRenderer }}
@@ -161,15 +158,15 @@ const ExtensionCard: React.FC<Props> = ({
                 </div>
             </div>
             <div
-                className={styles.triggerContextMenu}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
+                className={cardStyles.triggerContextMenu}
+                onMouseEnter={handleMouseHoverStart}
+                onMouseLeave={handleMouseHoverEnd}
                 style={{ height: cardHeight, ...style }}
             >
-                <div className={styles.line}></div>
+                <div className={cardStyles.line}></div>
                 {contextMenuVisible && (
                     <ContextMenu
-                        items={createActions(
+                        items={createContextMenuActions(
                             onCheckboxChange,
                             isChecked,
                             {
@@ -182,38 +179,12 @@ const ExtensionCard: React.FC<Props> = ({
                         )}
                         position={menuPosition}
                         onClose={closeContextMenu}
-                        isFadingOut={isFadingOut}
-                        setIsFadingOut={setIsFadingOut}
+                        isFadingOut={fadingOut}
+                        setIsFadingOut={setFadingOut}
                     />
                 )}
             </div>
         </div>
-        // <div
-        //     ref={cardRef}
-        //     className={`${className} ${styles.extensionCard}`}
-        //     onClick={handleClick}
-        //     onContextMenu={handleRightClick}
-        //     style={{
-        //         backgroundImage: `linear-gradient(0deg, #292C36 0%, rgba(41, 44, 54, 0.9) 100%), url(${bannerSrc})`,
-        //     }}
-        // >
-        //     <div className={styles.imageOverlay}>
-        //         <div className={styles.leftOrig}>
-        //             <img className={styles.themeImage} src={imageSrc} alt="Theme image" />
-        //             <div className={styles.detailTop}>
-        //                 <span className={styles.themeTitle}>{theme.name}</span>
-        //                 <span className={styles.themeAuthor}>By {theme.author}</span>
-        //             </div>
-        //         </div>
-        //         <div className={styles.rightOrig}>
-        //             <div>(local) ver. {theme.version}</div>
-        //             <div>{theme.lastModified}</div>
-        //         </div>
-        //     </div>
-        //     <span className={styles.themeDescription}>
-        //         {theme.description}
-        //     </span>
-        // </div>
     )
 }
 
