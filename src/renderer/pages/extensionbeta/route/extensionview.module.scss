@@ -4,7 +4,7 @@
     width: -webkit-fill-available;
     height: -webkit-fill-available;
 
-    &>.bannerBackground {
+    & > .bannerBackground {
         transition: var(--transition);
         display: flex;
         flex-direction: column;
@@ -15,7 +15,7 @@
         background-position: 50% 50% !important;
         position: relative;
 
-        &>.hideButton {
+        & > .hideButton {
             opacity: 0.25;
             transition: var(--transition);
             cursor: pointer;
@@ -42,7 +42,7 @@
         }
 
         &:hover {
-            &>.hideButton {
+            & > .hideButton {
                 opacity: 1;
             }
         }
@@ -57,7 +57,7 @@
         }
     }
 
-    &>.themeInfo {
+    & > .themeInfo {
         position: relative;
         display: flex;
         flex-direction: row;
@@ -67,7 +67,7 @@
         justify-content: space-between;
         background: #292c36;
 
-        &>.themeHeader {
+        & > .themeHeader {
             display: flex;
             flex-direction: column;
             justify-content: space-between;
@@ -76,7 +76,7 @@
             padding: 0px;
             gap: 2px;
 
-            &>.containerLeft {
+            & > .containerLeft {
                 display: flex;
                 flex-direction: row;
                 align-items: center;
@@ -85,19 +85,19 @@
 
                 width: -webkit-fill-available;
 
-                &>.themeImage {
+                & > .themeImage {
                     width: 55px;
                     height: 55px;
 
                     border-radius: 8px;
                 }
 
-                &>.themeTitle {
+                & > .themeTitle {
                     display: flex;
                     flex-direction: column;
                     align-items: flex-start;
 
-                    &>.titleContainer {
+                    & > .titleContainer {
                         display: flex;
                         flex-direction: row;
                         align-items: center;
@@ -112,7 +112,7 @@
 
                         color: #8d97b5;
 
-                        &>.path {
+                        & > .path {
                             transition: var(--transition);
                             cursor: pointer;
                             color: var(--color);
@@ -122,11 +122,11 @@
                             }
                         }
 
-                        &>.title {
+                        & > .title {
                             color: #ffffff;
                         }
 
-                        &>.addFavorite {
+                        & > .addFavorite {
                             transition: var(--transition);
                             cursor: pointer;
                             display: flex;
@@ -141,7 +141,7 @@
                             background: #818db338;
                             color: white;
                             border-radius: 4px;
-                            
+
                             &disabled {
                                 opacity: 0.5;
                             }
@@ -152,12 +152,12 @@
                         }
                     }
 
-                    &>.rating {
+                    & > .rating {
                         font-size: 16px;
                         line-height: 140%;
                     }
 
-                    &>.authorInfo {
+                    & > .authorInfo {
                         display: flex;
                         flex-direction: row;
                         align-items: center;
@@ -175,7 +175,7 @@
             }
         }
 
-        &>.rightContainer {
+        & > .rightContainer {
             justify-content: space-between;
             display: flex;
             flex-direction: row;
@@ -185,21 +185,21 @@
             width: fit-content;
             height: fit-content;
 
-            &>.detailsContainer {
+            & > .detailsContainer {
                 display: flex;
                 flex-direction: column;
                 align-items: flex-end;
                 padding: 0px;
                 gap: 4px;
 
-                &>.detailInfo {
+                & > .detailInfo {
                     display: flex;
                     flex-direction: row;
                     align-items: flex-start;
                     padding: 0px;
                     gap: 4px;
 
-                    &>.box {
+                    & > .box {
                         display: flex;
                         flex-direction: row;
                         justify-content: center;
@@ -217,13 +217,13 @@
                         gap: 4px;
                         border-radius: 26px;
 
-                        &>svg {
+                        & > svg {
                             width: 15px;
                             height: 15px;
                         }
                     }
 
-                    &>.tag {
+                    & > .tag {
                         cursor: pointer;
                         transition: var(--transition);
                         display: flex;
@@ -252,7 +252,7 @@
         }
     }
 
-    &>.extensionNav {
+    & > .extensionNav {
         box-sizing: border-box;
 
         display: flex;
@@ -267,19 +267,20 @@
         background: #272a33;
         border-bottom: 1px solid #363944;
 
-        &>.extensionNavContainer {
+        & > .extensionNavContainer {
             display: flex;
             flex-direction: row;
             align-items: center;
         }
     }
 
-    &>.extensionContent {
+    & > .extensionContent {
         display: flex;
         align-items: center;
+        flex-direction: column;
 
-        &>.metadataContent {
-            height: 20vh;
+        & > .alertContent {
+            height: 25vh;
             display: flex;
             width: -webkit-fill-available;
             justify-content: center;
@@ -287,7 +288,28 @@
             font-size: larger;
             font-weight: 700;
             align-items: center;
+            gap: 10px;
+            flex-direction: column;
             animation: showMetadataContent 0.5s ease-in-out forwards;
+
+            & > .settingsAlertButton {
+                transition: var(--transition);
+                cursor: pointer;
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                padding: 9px 25px;
+                gap: 10px;
+
+                background: #3468f2;
+                color: #fff;
+                border-radius: 8px;
+                border: 0;
+
+                &:hover {
+                    background: #2553d1;
+                }
+            }
         }
 
         @keyframes showMetadataContent {
@@ -302,7 +324,7 @@
             }
         }
 
-        &>.settingsContent {
+        & > .settingsContent {
             display: flex;
             flex-direction: row;
             width: 100%;
@@ -311,7 +333,7 @@
             flex-wrap: wrap;
             animation: showSettingsContent 0.5s ease-in-out forwards;
 
-            &>.section {
+            & > .section {
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
@@ -321,7 +343,7 @@
                 border-radius: 8px;
                 outline: 1px #1c1e25 solid;
 
-                &>.sectionTitle {
+                & > .sectionTitle {
                     font-weight: 700;
                     font-size: 12px;
                     line-height: 140%;
@@ -329,11 +351,11 @@
                     color: #aec1ff;
                 }
 
-                &>.sectionTitleInput {
+                & > .sectionTitleInput {
                     font-weight: 700;
                     font-size: 12px;
                     line-height: 140%;
-                    color: #aec1ff;
+                    color: #d083ff;
                     background: transparent;
                     border: 0px solid;
                     border-bottom: 1px solid;
@@ -341,74 +363,97 @@
                     outline: 0px solid;
                 }
 
-                &>.item {
+                & > .item {
+                    position: relative;
                     display: flex;
                     flex-direction: column;
                     justify-content: center;
                     align-items: flex-start;
-                    padding: 6px 0px 0px;
+                    padding: 12px 16px; // Увеличены отступы для лучшей читаемости
 
-                    background: #292c36;
-                    outline: 1px solid #363944;
+                    background: #292c36; // Сохраняем оригинальный цвет фона
+                    outline: 1px solid #363944; // Сохраняем оригинальную рамку
                     border-radius: 8px;
 
-                    &>.itemName {
-                        padding: 0px 16px;
-                        font-weight: 900;
-                        font-size: 12px;
-                        line-height: 140%;
+                    // Заголовок элемента
+                    & > .itemName {
+                        padding: 0 0 8px 0; // Нижний отступ для разделения от описания
+                        font-weight: 700; // Немного менее жирный для лучшей читаемости
+                        font-size: 14px; // Увеличен размер шрифта
+                        line-height: 1.4;
 
-                        color: #ffffff;
+                        color: #ffffff; // Сохраняем оригинальный цвет
                     }
 
-                    &>.itemDescription {
-                        padding: 0px 16px;
+                    // Описание элемента
+                    & > .itemDescription {
+                        padding: 0 0 12px 0; // Нижний отступ для разделения от следующего элемента
                         font-weight: 400;
-                        font-size: 12px;
-                        line-height: 140%;
-                        margin-bottom: 5px;
+                        font-size: 14px; // Увеличен размер шрифта
+                        line-height: 1.6;
 
-                        color: #c4d4ff;
+                        color: #c4d4ff; // Сохраняем оригинальный цвет
                     }
 
-                    &>.itemNameInput,
-                    &>.itemDescriptionInput,
-                    &>.itemButtons>.buttonContainer>.buttonNameInput,
-                    &>.itemColorInputText {
+                    // Тип элемента (отображается только в режиме редактирования)
+                    & > .itemTypeInfo {
+                        position: absolute;
+                        top: 12px;
+                        right: 12px;
+                        padding: 4px 8px;
                         font-weight: 700;
                         font-size: 12px;
-                        line-height: 140%;
-                        color: #ffffff;
-                        background: #505669;
-                        width: -webkit-fill-available;
-                        border-radius: 6px;
-                        padding: 4px 13px;
-                        border: 0px solid;
-                        margin: 4px 7px;
-                        outline: 0px solid;
+                        line-height: 1.4;
+                        color: #171a1c; // Сохраняем оригинальный цвет текста
+                        background: #ac96ff; // Сохраняем оригинальный цвет фона
+                        border-radius: 4px;
                     }
 
-                    &>.itemButton {
-                        transition: var(--transition);
+                    // Поля ввода
+                    & > .itemNameInput,
+                    & > .itemDescriptionInput,
+                    & > .itemButtons .buttonContainer .buttonNameInput,
+                    & > .itemColorInputText {
+                        font-weight: 500; // Средний вес для лучшей читаемости
+                        font-size: 14px; // Увеличен размер шрифта
+                        line-height: 1.6;
+                        color: #d7cdff; // Сохраняем оригинальный цвет текста
+                        background: #7580a11c; // Сохраняем оригинальный цвет фона
+                        width: 100%;
+                        border-radius: 6px;
+                        padding: 8px 12px; // Увеличены отступы для удобства ввода
+                        border: 1px solid #363944; // Добавлена рамка для четкости
+                        margin: 8px 0; // Отступы между полями
+                        outline: none;
+
+                        &:focus {
+                            border-color: #ac96ff; // Цвет рамки при фокусе
+                            box-shadow: 0 0 0 2px rgba(172, 150, 255, 0.3); // Тень при фокусе
+                        }
+                    }
+
+                    // Кнопка-переключатель (bool)
+                    & > .itemButton {
+                        transition: background 0.3s ease;
                         cursor: pointer;
                         display: flex;
-                        flex-direction: row;
                         justify-content: center;
                         align-items: center;
-                        padding: 6px 16px;
-                        gap: 10px;
+                        padding: 10px 20px; // Увеличены отступы для лучшей кликабельности
+                        gap: 8px;
 
-                        font-weight: 700;
-                        font-size: 14px;
+                        font-weight: 600; // Немного более жирный для выделения
+                        font-size: 16px; // Увеличен размер шрифта
+                        line-height: 1.4;
 
-                        color: white;
-                        background: #363944;
+                        color: #ffffff; // Сохраняем оригинальный цвет текста
+                        background: #363944; // Сохраняем оригинальный цвет фона
                         border: none;
                         border-radius: 8px;
-                        width: -webkit-fill-available;
+                        width: 100%;
 
                         &:hover {
-                            background: #818db370;
+                            background: #818db370; // Сохраняем оригинальный цвет при наведении
                         }
 
                         &:disabled {
@@ -422,57 +467,90 @@
                         }
                     }
 
-                    &>.itemButtonActive {
-                        transition: var(--transition);
-                        background: #3468f2;
+                    // Активное состояние кнопки
+                    & > .itemButtonActive {
+                        background: #3468f2; // Сохраняем оригинальный цвет
+                        transition: background 0.3s ease;
 
                         &:hover {
-                            background: #2553d1;
+                            background: #2553d1; // Сохраняем оригинальный цвет при наведении
                         }
                     }
 
-                    &>.itemButtons {
+                    // Блок для кнопок внутри текстовых настроек
+                    & > .itemButtons {
                         display: flex;
                         flex-direction: column;
                         align-items: flex-start;
                         padding: 16px;
-                        gap: 6px;
-
-                        width: -webkit-fill-available;
-
-                        background: #3b4152;
+                        gap: 12px; // Увеличен отступ между кнопками
+                        width: 100%;
+                        background: #3b4152; // Сохраняем оригинальный цвет фона
                         border-radius: 8px;
+                        margin-top: 12px; // Отступ сверху для разделения от предыдущих элементов
 
-                        &>.buttonContainer {
+                        .buttonContainer {
                             display: flex;
                             flex-direction: column;
                             align-items: flex-start;
-                            padding: 0px;
-                            gap: 4px;
-                            justify-content: space-between;
-                            width: -webkit-fill-available;
+                            gap: 6px; // Увеличен отступ между элементами
+                            width: 100%;
 
-                            &>.buttonName {
-                                font-weight: 800;
-                                font-size: 12px;
-                                line-height: 140%;
-
-                                color: #aec1ff;
+                            .buttonName {
+                                font-weight: 700; // Немного более жирный для лучшей читаемости
+                                font-size: 14px; // Увеличен размер шрифта
+                                line-height: 1.4;
+                                color: #aec1ff; // Сохраняем оригинальный цвет текста
                             }
 
-                            &>.buttonTextInput {
+                            .buttonTextInputEdit {
+                                font-weight: 500; // Средний вес для лучшей читаемости
+                                font-size: 14px; // Увеличен размер шрифта
+                                line-height: 1.6;
+                                color: #ffd8d8; // Сохраняем оригинальный цвет текста
+                                background: #7580a11c; // Сохраняем оригинальный цвет фона
+                                width: 100%;
+                                border-radius: 6px;
+                                padding: 8px 16px; // Увеличены отступы для удобства ввода
+                                border: 1px solid #363944; // Добавлена рамка для четкости
+                                margin: 4px 0; // Отступы между полями
+                                outline: none;
+
+                                &:focus {
+                                    border-color: #ac96ff; // Цвет рамки при фокусе
+                                    box-shadow: 0 0 0 2px
+                                        rgba(172, 150, 255, 0.3); // Тень при фокусе
+                                }
+
+                                &:disabled {
+                                    cursor: not-allowed;
+                                    opacity: 0.5;
+                                }
+                            }
+
+                            .buttonTextInput {
                                 display: flex;
-                                flex-direction: row;
                                 align-items: center;
-                                padding: 4px 6px;
-                                width: -webkit-fill-available;
-                                background: rgba(0, 0, 0, 0.2);
+                                padding: 8px 12px; // Увеличены отступы для удобства ввода
+                                width: 100%;
+                                background: rgba(
+                                    0,
+                                    0,
+                                    0,
+                                    0.2
+                                ); // Сохраняем оригинальный цвет фона
                                 border-radius: 4px;
-                                border: none;
+                                border: 1px solid rgba(0, 0, 0, 0.3); // Добавлена рамка для четкости
                                 font-weight: 400;
                                 font-size: 14px;
-                                line-height: 20px;
-                                color: #ffffff;
+                                line-height: 1.6;
+                                color: #ffffff; // Сохраняем оригинальный цвет текста
+
+                                &:focus {
+                                    border-color: #ac96ff; // Цвет рамки при фокусе
+                                    box-shadow: 0 0 0 2px
+                                        rgba(172, 150, 255, 0.3); // Тень при фокусе
+                                }
 
                                 &:disabled {
                                     cursor: not-allowed;
@@ -480,6 +558,30 @@
                                 }
                             }
                         }
+                    }
+
+                    // Дополнительные классы для режима редактирования
+                    .itemNameEdit {
+                        font-weight: 700; // Немного менее жирный для лучшей читаемости
+                        font-size: 14px; // Увеличен размер шрифта
+                        line-height: 1.4;
+                        color: #ac96ff; // Сохраняем оригинальный цвет
+                        padding: 8px 0; // Увеличены отступы
+                    }
+
+                    .itemNameButtons {
+                        font-weight: 700; // Немного менее жирный для лучшей читаемости
+                        font-size: 14px; // Увеличен размер шрифта
+                        line-height: 1.4;
+                        color: #f3aeff; // Сохраняем оригинальный цвет
+                    }
+
+                    .iNBMini {
+                        padding: 0 16px;
+                        font-weight: 700; // Средний вес для лучшей читаемости
+                        font-size: 12px; // Сохраняем оригинальный размер
+                        line-height: 1.4;
+                        color: #c99090; // Сохраняем оригинальный цвет
                     }
                 }
             }
@@ -497,7 +599,7 @@
             }
         }
 
-        &>.galleryContainer {
+        & > .galleryContainer {
             width: -webkit-fill-available;
             display: flex;
             flex-direction: column;
@@ -518,7 +620,7 @@
                 }
             }
 
-            &>div {
+            & > div {
                 width: -webkit-fill-available;
             }
 
@@ -584,7 +686,7 @@
         gap: 5px;
         background: transparent;
 
-        &>.miniButton {
+        & > .miniButton {
             background: rgba(129, 141, 179, 0.22);
 
             &:hover {
@@ -745,7 +847,6 @@ input[type='color']::-webkit-color-swatch {
     border: none;
 }
 
-
 .carouselContainer {
     position: relative;
     width: 100%;
@@ -767,7 +868,8 @@ input[type='color']::-webkit-color-swatch {
     display: block;
 }
 
-.carouselButtonLeft, .carouselButtonRight {
+.carouselButtonLeft,
+.carouselButtonRight {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -788,6 +890,19 @@ input[type='color']::-webkit-color-swatch {
     right: 10px;
 }
 
-.carouselButtonLeft:hover, .carouselButtonRight:hover {
+.carouselButtonLeft:hover,
+.carouselButtonRight:hover {
     background-color: rgba(0, 0, 0, 0.7);
+}
+
+
+.howAlert {
+    padding: 10px 15px;
+    width: -webkit-fill-available;
+    background: #ffee71;
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 15px;
+    text-align: center;
+    color: #1f222b;
 }

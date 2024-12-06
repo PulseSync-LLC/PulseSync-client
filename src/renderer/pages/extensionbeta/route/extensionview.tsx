@@ -41,7 +41,12 @@ interface Item {
     type: string
     bool?: boolean
     input?: string
-    buttons?: { name: string; text: string }[]
+    buttons?: Button[]
+}
+
+interface Button {
+    name: string
+    text: string
 }
 
 interface ActionOptions {
@@ -102,29 +107,34 @@ const ExtensionViewPage: React.FC = () => {
         }
     }, [contextMenuVisible])
 
-    const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png')
+    const [bannerSrc, setBannerSrc] = useState(
+        'static/assets/images/no_themeBackground.png',
+    )
     const [selectedTheme, setSelectedTheme] = useState(
         window.electron.store.get('theme') || 'Default',
     )
-    const [isThemeEnabled, setIsThemeEnabled] = useState(selectedTheme !== 'Default')
+    const [isThemeEnabled, setIsThemeEnabled] = useState(
+        selectedTheme !== 'Default',
+    )
     const [isExpanded, setIsExpanded] = useState(false)
     const [height, setHeight] = useState(84)
     const [opacity, setOpacity] = useState(1)
     const [activeTab, setActiveTab] = useState('Overview')
-    const [themeConfig, setThemeConfig] = useState<any | null>(null)
+    const [themeConfig, setThemeConfig] = useState<ThemeConfig | null>(null)
     const [isEditing, setIsEditing] = useState(false)
     const [enableTransition, setEnableTransition] = useState(true)
 
     const [markdownContent, setMarkdownContent] = useState<string>('')
+    const [fileExists, setFileExists] = useState<boolean | null>(null)
 
     useEffect(() => {
         if (theme) {
-            const themeStates = window.electron.store.get('themes.themeIsExpanded') || {}
+            const themeStates =
+                window.electron.store.get('themes.themeIsExpanded') || {}
             if (!themeStates.hasOwnProperty(theme.name)) {
                 themeStates[theme.name] = false
                 window.electron.store.set('themes.themeIsExpanded', themeStates)
             }
-
             const initialExpandedState = themeStates[theme.name]
             setIsExpanded(initialExpandedState)
             setHeight(initialExpandedState ? 277 : 84)
@@ -136,7 +146,8 @@ const ExtensionViewPage: React.FC = () => {
         setIsExpanded(newState)
 
         if (theme) {
-            const themeStates = window.electron.store.get('themes.themeIsExpanded') || {}
+            const themeStates =
+                window.electron.store.get('themes.themeIsExpanded') || {}
             themeStates[theme.name] = newState
             window.electron.store.set('themes.themeIsExpanded', themeStates)
         }
@@ -189,8 +200,8 @@ const ExtensionViewPage: React.FC = () => {
         setIsThemeEnabled(storedTheme !== 'Default')
     }, [])
 
-    const formatPath = (path: string) => {
-        return encodeURI(path.replace(/\\/g, '/'))
+    const formatPath = (p: string) => {
+        return encodeURI(p.replace(/\\/g, '/'))
     }
 
     const handleTagChange = (tag: string) => {
@@ -207,7 +218,9 @@ const ExtensionViewPage: React.FC = () => {
                     if (res.ok) {
                         setBannerSrc(bannerPath)
                     } else {
-                        setBannerSrc('static/assets/images/no_themeBackground.png')
+                        setBannerSrc(
+                            'static/assets/images/no_themeBackground.png',
+                        )
                     }
                 })
                 .catch(() => {
@@ -219,51 +232,133 @@ const ExtensionViewPage: React.FC = () => {
     useEffect(() => {
         if (theme) {
             const readmePath = `${theme.path}/README.md`
-
             fetch(readmePath)
                 .then(response => response.text())
                 .then(data => {
                     setMarkdownContent(data)
                 })
-                .catch(error => {
-                    console.error('Ошибка при загрузке README.md:', error)
+                .catch(() => {
+                    console.error('Ошибка при загрузке README.md:')
                 })
+        }
+    }, [theme])
+
+    useEffect(() => {
+        const checkConfigFile = async () => {
+            if (theme) {
+                const configPath = path.join(theme.path, 'handleEvents.json')
+                const exists = await window.desktopEvents.invoke(
+                    'file-event',
+                    'check-file-exists',
+                    configPath,
+                )
+                setFileExists(exists)
+
+                if (exists) {
+                    const configContent = await window.desktopEvents.invoke(
+                        'file-event',
+                        'read-file',
+                        configPath,
+                    )
+                    setThemeConfig(JSON.parse(configContent))
+                }
+            }
+        }
+
+        if (theme) {
+            checkConfigFile()
         }
     }, [theme])
 
     const createConfigFile = async () => {
         if (theme) {
             const configPath = path.join(theme.path, 'handleEvents.json')
-            const fileExists = await window.desktopEvents.invoke(
+
+            const defaultContent: ThemeConfig = {
+                sections: [
+                    {
+                        title: 'Действия',
+                        items: [
+                            {
+                                id: 'showHints',
+                                name: 'Показать подсказки',
+                                description:
+                                    'Включает отображение подсказок при наведении курсора',
+                                type: 'button',
+                                bool: false,
+                            },
+                            {
+                                id: 'darkMode',
+                                name: 'Режим темной темы',
+                                description:
+                                    'Активирует тёмный режим для комфортной работы при слабом освещении',
+                                type: 'button',
+                                bool: true,
+                            },
+                            {
+                                id: 'enableNotifications',
+                                name: 'Уведомления',
+                                description:
+                                    'Включает показ всплывающих уведомлений о новых событиях',
+                                type: 'button',
+                                bool: false,
+                            },
+                        ],
+                    },
+                    {
+                        title: 'Цветовая схема',
+                        items: [
+                            {
+                                id: 'mainBackground',
+                                name: 'Основной фон',
+                                description:
+                                    'Цвет фона главного окна приложения',
+                                type: 'color',
+                                input: '#3498db',
+                                bool: true,
+                            },
+                        ],
+                    },
+                    {
+                        title: 'Текстовые настройки',
+                        items: [
+                            {
+                                id: 'greetingMessage',
+                                name: 'Приветственное сообщение',
+                                description:
+                                    'Текст, отображаемый при запуске приложения',
+                                type: 'text',
+                                buttons: [
+                                    {
+                                        name: 'MessageParam1',
+                                        text: 'Добро пожаловать!',
+                                    },
+                                    {
+                                        name: 'MessageParam2',
+                                        text: 'Отмена',
+                                    },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            }
+
+            const result = await window.desktopEvents.invoke(
                 'file-event',
-                'check-file-exists',
+                'create-config-file',
                 configPath,
+                defaultContent,
             )
 
-            if (fileExists) {
-                const configContent = await window.desktopEvents.invoke(
-                    'file-event',
-                    'read-file',
-                    configPath,
-                )
-                setThemeConfig(JSON.parse(configContent))
+            if (result.success) {
+                setThemeConfig(defaultContent)
+                setFileExists(true)
             } else {
-                const defaultContent: ThemeConfig = { sections: [] }
-                const result = await window.desktopEvents.invoke(
-                    'file-event',
-                    'create-config-file',
-                    configPath,
-                    defaultContent,
+                console.error(
+                    'Ошибка при создании файла конфигурации:',
+                    result.error,
                 )
-
-                if (result.success) {
-                    setThemeConfig(defaultContent)
-                } else {
-                    console.error(
-                        'Ошибка при создании файла конфигурации:',
-                        result.error,
-                    )
-                }
             }
         }
     }
@@ -278,7 +373,6 @@ const ExtensionViewPage: React.FC = () => {
                     configPath,
                     updatedConfig,
                 )
-                console.log('Конфигурация успешно сохранена!')
             } catch (error) {
                 console.error('Ошибка при сохранении конфигурации:', error)
             }
@@ -299,15 +393,16 @@ const ExtensionViewPage: React.FC = () => {
         value: any,
     ) => {
         const updatedConfig = structuredClone(themeConfig)
+        if (!updatedConfig) return
 
         if (itemIndex !== null) {
             const section = updatedConfig.sections[sectionIndex]
             const item = section.items[itemIndex]
             if (item) {
-                item[key] = value
+                ;(item as any)[key] = value
             }
         } else {
-            updatedConfig.sections[sectionIndex][key] = value
+            ;(updatedConfig.sections[sectionIndex] as any)[key] = value
         }
 
         setThemeConfig(updatedConfig)
@@ -318,32 +413,27 @@ const ExtensionViewPage: React.FC = () => {
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
-        key: string,
-        newValue: any,
+        key: keyof Button,
+        newValue: string,
     ) => {
+        if (!themeConfig) return
         const updatedConfig = structuredClone(themeConfig)
 
         if (
             updatedConfig.sections[sectionIndex] &&
             updatedConfig.sections[sectionIndex].items[itemIndex] &&
+            updatedConfig.sections[sectionIndex].items[itemIndex].buttons &&
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
                 buttonIndex
-                ]
+            ]
         ) {
             updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
                 buttonIndex
-                ][key] = newValue
-
+            ][key] = newValue
             setThemeConfig(updatedConfig)
             saveConfig(updatedConfig)
         }
     }
-
-    useEffect(() => {
-        if (!themeConfig && theme) {
-            createConfigFile()
-        }
-    }, [themeConfig, theme])
 
     function LinkRenderer(props: any) {
         return (
@@ -353,7 +443,6 @@ const ExtensionViewPage: React.FC = () => {
         )
     }
 
-    // Рендер содержимого вкладок
     const renderTabContent = () => {
         if (!theme) return null
 
@@ -373,29 +462,43 @@ const ExtensionViewPage: React.FC = () => {
                         </div>
                     </div>
                 )
+
             case 'Settings':
+                if (fileExists === false) {
+                    return (
+                        <div className={ex.alertContent}>
+                            <div>Создать базовый handleEvent.json</div>
+                            <button
+                                className={ex.settingsAlertButton}
+                                onClick={createConfigFile}
+                            >
+                                Создать файл
+                            </button>
+                        </div>
+                    )
+                }
+
                 return (
                     <div className={ex.settingsContent}>
                         {themeConfig?.sections.map(
                             (section: Section, sectionIndex: number) => (
-                                <div
-                                    key={sectionIndex}
-                                    className={ex.section}
-                                >
+                                <div key={sectionIndex} className={ex.section}>
                                     {isEditing ? (
-                                        <input
-                                            type="text"
-                                            className={ex.sectionTitleInput}
-                                            value={section.title}
-                                            onChange={e =>
-                                                handleChange(
-                                                    sectionIndex,
-                                                    null,
-                                                    'title',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
+                                        <>
+                                            <input
+                                                type="text"
+                                                className={ex.sectionTitleInput}
+                                                value={section.title}
+                                                onChange={e =>
+                                                    handleChange(
+                                                        sectionIndex,
+                                                        null,
+                                                        'title',
+                                                        e.target.value,
+                                                    )
+                                                }
+                                            />
+                                        </>
                                     ) : (
                                         <div className={ex.sectionTitle}>
                                             {section.title}
@@ -409,66 +512,126 @@ const ExtensionViewPage: React.FC = () => {
                                             >
                                                 {isEditing ? (
                                                     <>
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemNameInput}
-                                                            value={item.id}
-                                                            onChange={e =>
-                                                                handleChange(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'id',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemNameInput}
-                                                            value={item.name}
-                                                            onChange={e =>
-                                                                handleChange(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'name',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemDescriptionInput}
-                                                            value={item.description}
-                                                            onChange={e =>
-                                                                handleChange(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'description',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
+                                                        <>
+                                                            <span
+                                                                className={
+                                                                    ex.itemTypeInfo
+                                                                }
+                                                            >
+                                                                Type:{' '}
+                                                                {item.type}
+                                                            </span>
+                                                            <span
+                                                                className={
+                                                                    ex.itemNameEdit
+                                                                }
+                                                            >
+                                                                id (string):{' '}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                className={
+                                                                    ex.itemNameInput
+                                                                }
+                                                                value={item.id}
+                                                                onChange={e =>
+                                                                    handleChange(
+                                                                        sectionIndex,
+                                                                        itemIndex,
+                                                                        'id',
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </>
+                                                        <>
+                                                            <span
+                                                                className={
+                                                                    ex.itemNameEdit
+                                                                }
+                                                            >
+                                                                name (string):{' '}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                className={
+                                                                    ex.itemNameInput
+                                                                }
+                                                                value={
+                                                                    item.name
+                                                                }
+                                                                onChange={e =>
+                                                                    handleChange(
+                                                                        sectionIndex,
+                                                                        itemIndex,
+                                                                        'name',
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </>
+                                                        <>
+                                                            <span
+                                                                className={
+                                                                    ex.itemNameEdit
+                                                                }
+                                                            >
+                                                                description
+                                                                (string):{' '}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                className={
+                                                                    ex.itemDescriptionInput
+                                                                }
+                                                                value={
+                                                                    item.description
+                                                                }
+                                                                onChange={e =>
+                                                                    handleChange(
+                                                                        sectionIndex,
+                                                                        itemIndex,
+                                                                        'description',
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                            />
+                                                        </>
                                                     </>
                                                 ) : (
                                                     <>
-                                                        <div className={ex.itemName}>
+                                                        <div
+                                                            className={
+                                                                ex.itemName
+                                                            }
+                                                        >
                                                             {item.name}
                                                         </div>
-                                                        <div className={ex.itemDescription}>
+                                                        <div
+                                                            className={
+                                                                ex.itemDescription
+                                                            }
+                                                        >
                                                             {item.description}
                                                         </div>
                                                     </>
                                                 )}
+
                                                 {item.type === 'button' &&
                                                     (isEditing ? (
-                                                        <button
-                                                            disabled
-                                                            className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
-                                                        >
-                                                            {item.bool
-                                                                ? 'Включено'
-                                                                : 'Отключено'}
-                                                        </button>
+                                                        <>
+                                                            <button
+                                                                disabled
+                                                                className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
+                                                            >
+                                                                {item.bool
+                                                                    ? 'Включено'
+                                                                    : 'Отключено'}
+                                                            </button>
+                                                        </>
                                                     ) : (
                                                         <button
                                                             className={`${ex.itemButton} ${item.bool ? ex.itemButtonActive : ''}`}
@@ -486,92 +649,173 @@ const ExtensionViewPage: React.FC = () => {
                                                                 : 'Отключено'}
                                                         </button>
                                                     ))}
+
                                                 {item.type === 'color' &&
                                                     (isEditing ? (
-                                                        <input
-                                                            type="text"
-                                                            className={ex.itemColorInputText}
-                                                            value={item.input || ''}
-                                                            onChange={e =>
-                                                                handleChange(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'input',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                            placeholder="#FFFFFF"
-                                                        />
+                                                        <>
+                                                            <span
+                                                                className={
+                                                                    ex.itemNameEdit
+                                                                }
+                                                            >
+                                                                input (string):{' '}
+                                                            </span>
+                                                            <input
+                                                                type="text"
+                                                                className={
+                                                                    ex.itemColorInputText
+                                                                }
+                                                                value={
+                                                                    item.input ||
+                                                                    ''
+                                                                }
+                                                                onChange={e =>
+                                                                    handleChange(
+                                                                        sectionIndex,
+                                                                        itemIndex,
+                                                                        'input',
+                                                                        e.target
+                                                                            .value,
+                                                                    )
+                                                                }
+                                                                placeholder="#FFFFFF"
+                                                            />
+                                                        </>
                                                     ) : (
                                                         <input
                                                             type="color"
-                                                            className={ex.itemColorInput}
-                                                            value={item.input || '#FFFFFF'}
+                                                            className={
+                                                                ex.itemColorInput
+                                                            }
+                                                            value={
+                                                                item.input ||
+                                                                '#FFFFFF'
+                                                            }
                                                             onChange={e =>
                                                                 handleChange(
                                                                     sectionIndex,
                                                                     itemIndex,
                                                                     'input',
-                                                                    e.target.value,
+                                                                    e.target
+                                                                        .value,
                                                                 )
                                                             }
                                                         />
                                                     ))}
+
                                                 {item.type === 'text' &&
                                                     item.buttons && (
-                                                        <div className={ex.itemButtons}>
+                                                        <div
+                                                            className={
+                                                                ex.itemButtons
+                                                            }
+                                                        >
                                                             {item.buttons.map(
                                                                 (
-                                                                    button: { name: string; text: string },
+                                                                    button: Button,
                                                                     buttonIndex: number,
                                                                 ) => (
                                                                     <div
-                                                                        key={buttonIndex}
-                                                                        className={ex.buttonContainer}
+                                                                        key={
+                                                                            buttonIndex
+                                                                        }
+                                                                        className={
+                                                                            ex.buttonContainer
+                                                                        }
                                                                     >
                                                                         {isEditing ? (
-                                                                            <input
-                                                                                type="text"
-                                                                                className={ex.buttonNameInput}
-                                                                                value={button.name}
-                                                                                onChange={e => {
-                                                                                    const newName = e.target.value
-                                                                                    handleButtonChange(
-                                                                                        sectionIndex,
-                                                                                        itemIndex,
-                                                                                        buttonIndex,
-                                                                                        'name',
-                                                                                        newName,
-                                                                                    )
-                                                                                }}
-                                                                            />
+                                                                            <>
+                                                                                <span
+                                                                                    className={
+                                                                                        ex.itemNameButtons
+                                                                                    }
+                                                                                >
+                                                                                    button.name
+                                                                                    (string):{' '}
+                                                                                </span>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className={
+                                                                                        ex.buttonNameInput
+                                                                                    }
+                                                                                    value={
+                                                                                        button.name
+                                                                                    }
+                                                                                    onChange={e => {
+                                                                                        const newName =
+                                                                                            e
+                                                                                                .target
+                                                                                                .value
+                                                                                        handleButtonChange(
+                                                                                            sectionIndex,
+                                                                                            itemIndex,
+                                                                                            buttonIndex,
+                                                                                            'name',
+                                                                                            newName,
+                                                                                        )
+                                                                                    }}
+                                                                                />
+                                                                                <span
+                                                                                    className={
+                                                                                        ex.iNBMini
+                                                                                    }
+                                                                                >
+                                                                                    button.text
+                                                                                    (string):{' '}
+                                                                                </span>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className={
+                                                                                        ex.buttonTextInputEdit
+                                                                                    }
+                                                                                    value={
+                                                                                        button.text
+                                                                                    }
+                                                                                    onChange={e =>
+                                                                                        handleButtonChange(
+                                                                                            sectionIndex,
+                                                                                            itemIndex,
+                                                                                            buttonIndex,
+                                                                                            'text',
+                                                                                            e
+                                                                                                .target
+                                                                                                .value,
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            </>
                                                                         ) : (
-                                                                            <div className={ex.buttonName}>
-                                                                                {button.name}
-                                                                            </div>
-                                                                        )}
-                                                                        {isEditing ? (
-                                                                            <input
-                                                                                type="text"
-                                                                                className={ex.buttonTextInput}
-                                                                                value={button.text}
-                                                                                disabled
-                                                                            />
-                                                                        ) : (
-                                                                            <input
-                                                                                type="text"
-                                                                                className={ex.buttonTextInput}
-                                                                                value={button.text}
-                                                                                onChange={e =>
-                                                                                    handleButtonChange(
-                                                                                        sectionIndex,
-                                                                                        itemIndex,
-                                                                                        buttonIndex,
-                                                                                        'text',
-                                                                                        e.target.value,
-                                                                                    )
-                                                                                }
-                                                                            />
+                                                                            <>
+                                                                                <div
+                                                                                    className={
+                                                                                        ex.buttonName
+                                                                                    }
+                                                                                >
+                                                                                    {
+                                                                                        button.name
+                                                                                    }
+                                                                                </div>
+                                                                                <input
+                                                                                    type="text"
+                                                                                    className={
+                                                                                        ex.buttonTextInput
+                                                                                    }
+                                                                                    value={
+                                                                                        button.text
+                                                                                    }
+                                                                                    onChange={e =>
+                                                                                        handleButtonChange(
+                                                                                            sectionIndex,
+                                                                                            itemIndex,
+                                                                                            buttonIndex,
+                                                                                            'text',
+                                                                                            e
+                                                                                                .target
+                                                                                                .value,
+                                                                                        )
+                                                                                    }
+                                                                                />
+                                                                            </>
                                                                         )}
                                                                     </div>
                                                                 ),
@@ -588,7 +832,7 @@ const ExtensionViewPage: React.FC = () => {
                 )
             case 'Metadata':
                 return (
-                    <div className={ex.metadataContent}>
+                    <div className={ex.alertContent}>
                         Страница "метаданные темы" в разработке
                     </div>
                 )
@@ -607,14 +851,17 @@ const ExtensionViewPage: React.FC = () => {
                 <div className={styles.container}>
                     <div className={styles.main_container}>
                         <div className={styles.container0x0}>
-                            {activeTab === 'Settings' && (
-                                <button
-                                    className={`${ex.edit} ${isEditing ? ex.activeEdit : ''}`}
-                                    onClick={() => setIsEditing(prev => !prev)}
-                                >
-                                    <MdEdit />
-                                </button>
-                            )}
+                            {activeTab === 'Settings' &&
+                                fileExists === true && (
+                                    <button
+                                        className={`${ex.edit} ${isEditing ? ex.activeEdit : ''}`}
+                                        onClick={() =>
+                                            setIsEditing(prev => !prev)
+                                        }
+                                    >
+                                        <MdEdit />
+                                    </button>
+                                )}
                             <div className={ex.containerFix}>
                                 <div
                                     className={ex.bannerBackground}
@@ -630,20 +877,26 @@ const ExtensionViewPage: React.FC = () => {
                                 >
                                     <Button
                                         className={ex.hideButton}
-                                        onClick={() => setIsExpanded(prev => !prev)}
+                                        onClick={() =>
+                                            setIsExpanded(prev => !prev)
+                                        }
                                     >
                                         <MdKeyboardArrowDown
                                             size={20}
                                             style={
                                                 isExpanded
                                                     ? {
-                                                        transition: 'var(--transition)',
-                                                        transform: 'rotate(180deg)',
-                                                    }
+                                                          transition:
+                                                              'var(--transition)',
+                                                          transform:
+                                                              'rotate(180deg)',
+                                                      }
                                                     : {
-                                                        transition: 'var(--transition)',
-                                                        transform: 'rotate(0deg)',
-                                                    }
+                                                          transition:
+                                                              'var(--transition)',
+                                                          transform:
+                                                              'rotate(0deg)',
+                                                      }
                                             }
                                         />
                                     </Button>
@@ -665,7 +918,11 @@ const ExtensionViewPage: React.FC = () => {
                                                 }}
                                             />
                                             <div className={ex.themeTitle}>
-                                                <div className={ex.titleContainer}>
+                                                <div
+                                                    className={
+                                                        ex.titleContainer
+                                                    }
+                                                >
                                                     <NavLink
                                                         className={ex.path}
                                                         to="/extensionbeta"
@@ -674,13 +931,18 @@ const ExtensionViewPage: React.FC = () => {
                                                     </NavLink>
                                                     /
                                                     <div className={ex.title}>
-                                                        {theme.name || 'Название недоступно'}
+                                                        {theme.name ||
+                                                            'Название недоступно'}
                                                     </div>
                                                     <Button
-                                                        className={ex.addFavorite}
+                                                        className={
+                                                            ex.addFavorite
+                                                        }
                                                         disabled
                                                     >
-                                                        <MdBookmarkBorder size={20} />
+                                                        <MdBookmarkBorder
+                                                            size={20}
+                                                        />
                                                     </Button>
                                                 </div>
                                                 <div className={ex.authorInfo}>
@@ -692,7 +954,8 @@ const ExtensionViewPage: React.FC = () => {
                                                     -{' '}
                                                     {theme.lastModified && (
                                                         <div>
-                                                            Last update: {theme.lastModified}
+                                                            Last update:{' '}
+                                                            {theme.lastModified}
                                                         </div>
                                                     )}
                                                 </div>
@@ -704,12 +967,14 @@ const ExtensionViewPage: React.FC = () => {
                                             <div className={ex.detailInfo}>
                                                 {theme.version && (
                                                     <div className={ex.box}>
-                                                        <MdDesignServices /> {theme.version}
+                                                        <MdDesignServices />{' '}
+                                                        {theme.version}
                                                     </div>
                                                 )}
                                                 {theme.size !== undefined && (
                                                     <div className={ex.box}>
-                                                        <MdFolder /> {theme.size}
+                                                        <MdFolder />{' '}
+                                                        {theme.size}
                                                     </div>
                                                 )}
                                             </div>
@@ -720,37 +985,51 @@ const ExtensionViewPage: React.FC = () => {
                                                         <Button
                                                             key={tag}
                                                             className={ex.tag}
-                                                            onClick={() => handleTagChange(tag)}
+                                                            onClick={() =>
+                                                                handleTagChange(
+                                                                    tag,
+                                                                )
+                                                            }
                                                         >
                                                             {tag}
                                                         </Button>
                                                     ))}
                                             </div>
                                         </div>
-                                        <div className={ex.miniButtonsContainer}>
-                                            <Button
-                                                className={`${ex.defaultButton} ${selectedTheme === theme.name ? ex.defaultButtonActive : ''}`}
-                                                onClick={
-                                                    selectedTheme !== theme.name
-                                                        ? handleEnableTheme
-                                                        : toggleTheme
+                                        <div ref={menuRef}>
+                                            <div
+                                                className={
+                                                    ex.miniButtonsContainer
                                                 }
                                             >
-                                                {selectedTheme !== theme.name
-                                                    ? 'Включить'
-                                                    : isThemeEnabled
-                                                        ? 'Выключить'
-                                                        : 'Включить'}
-                                            </Button>
-                                            <Button
-                                                className={ex.miniButton}
-                                                onClick={() => setContextMenuVisible(prev => !prev)}
-                                            >
-                                                <MdMoreHoriz size={20} />
-                                            </Button>
-                                        </div>
-                                        {contextMenuVisible && (
-                                            <div ref={menuRef}>
+                                                <Button
+                                                    className={`${ex.defaultButton} ${selectedTheme === theme.name ? ex.defaultButtonActive : ''}`}
+                                                    onClick={
+                                                        selectedTheme !==
+                                                        theme.name
+                                                            ? handleEnableTheme
+                                                            : toggleTheme
+                                                    }
+                                                >
+                                                    {selectedTheme !==
+                                                    theme.name
+                                                        ? 'Включить'
+                                                        : isThemeEnabled
+                                                          ? 'Выключить'
+                                                          : 'Включить'}
+                                                </Button>
+                                                <Button
+                                                    className={ex.miniButton}
+                                                    onClick={() =>
+                                                        setContextMenuVisible(
+                                                            prev => !prev,
+                                                        )
+                                                    }
+                                                >
+                                                    <MdMoreHoriz size={20} />
+                                                </Button>
+                                            </div>
+                                            {contextMenuVisible && (
                                                 <ViewModal
                                                     items={createActions(
                                                         undefined,
@@ -761,30 +1040,36 @@ const ExtensionViewPage: React.FC = () => {
                                                             showExport: true,
                                                             showDelete: true,
                                                         },
-                                                        theme
+                                                        theme,
                                                     )}
                                                 />
-                                            </div>
-                                        )}
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 <div className={ex.extensionNav}>
                                     <div className={ex.extensionNavContainer}>
                                         <button
                                             className={`${ex.extensionNavButton} ${activeTab === 'Overview' ? ex.activeTabButton : ''}`}
-                                            onClick={() => setActiveTab('Overview')}
+                                            onClick={() =>
+                                                setActiveTab('Overview')
+                                            }
                                         >
                                             <MdExplore /> Overview
                                         </button>
                                         <button
                                             className={`${ex.extensionNavButton} ${activeTab === 'Settings' ? ex.activeTabButton : ''}`}
-                                            onClick={() => setActiveTab('Settings')}
+                                            onClick={() =>
+                                                setActiveTab('Settings')
+                                            }
                                         >
                                             <MdSettings /> Settings
                                         </button>
                                         <button
                                             className={`${ex.extensionNavButton} ${activeTab === 'Metadata' ? ex.activeTabButton : ''}`}
-                                            onClick={() => setActiveTab('Metadata')}
+                                            onClick={() =>
+                                                setActiveTab('Metadata')
+                                            }
                                         >
                                             <MdStickyNote2 /> Metadata
                                         </button>
@@ -797,6 +1082,20 @@ const ExtensionViewPage: React.FC = () => {
                                     </button>
                                 </div>
                                 <div className={ex.extensionContent}>
+                                    {isEditing && activeTab === 'Settings' && (
+                                        <div className={ex.howAlert}>
+                                            Подробную информацию о том, как с
+                                            этим работать, можно найти в нашем{' '}
+                                            <a
+                                                href="https://discord.gg/qy42uGTzRy"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                Discord канале
+                                            </a>{' '}
+                                            в разделе extension!
+                                        </div>
+                                    )}
                                     {renderTabContent()}
                                 </div>
                             </div>
