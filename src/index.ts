@@ -13,7 +13,7 @@ import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
 import path from 'path'
-import fs from 'fs'
+import * as fs from 'original-fs'
 import { store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import { rpc_connect } from './main/modules/discordRpc'
@@ -26,12 +26,14 @@ import {
 } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { getTrackInfo, setTheme } from './main/modules/httpServer'
+import { eventEmitter, setTheme } from './main/modules/httpServer'
 import { handleAppEvents } from './main/events'
-import { getPathToYandexMusic } from '../utils/appUtils'
+import { getPathToYandexMusic } from './main/utils/appUtils'
 import Theme from './renderer/api/interfaces/theme.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
+import { handlePatcher } from './main/modules/patcher/newPatcher'
+import chokidar from 'chokidar'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -60,17 +62,17 @@ const defaultTheme = {
 const defaultCssContent = `{}`
 
 const defaultScriptContent = ``
-const icon = getNativeImg('appicon', '.png', 'icon').resize({
+const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     width: 40,
     height: 40,
 })
 app.setAppUserModelId('pulsesync.app')
-Sentry.init({
-    debug: false,
-    dsn: config.SENTRY_DSN,
-    enableRendererProfiling: true,
-    enableTracing: true,
-})
+// Sentry.init({
+//     debug: false,
+//     dsn: config.SENTRY_DSN,
+//     enableRendererProfiling: true,
+//     enableTracing: true,
+// })
 
 function checkCLIArguments() {
     const args = process.argv.slice(1)
@@ -129,6 +131,8 @@ const createWindow = (): void => {
             nodeIntegration: true,
             devTools: isAppDev,
             webSecurity: false,
+            webgl: true,
+            enableBlinkFeatures: 'WebGL2',
         },
     })
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(e => {
@@ -159,16 +163,6 @@ const createWindow = (): void => {
     })
     powerMonitor.on('resume', () => {
         inSleepMode = false
-    })
-    function toggleNativeTheme() {
-        nativeTheme.themeSource = 'light'
-
-        setTimeout(() => {
-            nativeTheme.themeSource = 'dark'
-        }, 100)
-    }
-    mainWindow.webContents.on('devtools-opened', () => {
-        toggleNativeTheme()
     })
 }
 const corsAnywhere = async () => {
@@ -241,6 +235,7 @@ app.on('ready', async () => {
     createWindow() // Все что связано с mainWindow должно устанавливаться после этого метода
     checkForSingleInstance()
     handleAppEvents(mainWindow)
+    handlePatcher(mainWindow)
     handleDeeplinkOnApplicationStartup()
     handleDeeplink(mainWindow)
     createTray()
@@ -364,7 +359,6 @@ async function loadThemes(): Promise<Theme[]> {
             }
         }
 
-        logger.main.info('Themes: Available themes:', availableThemes)
         return availableThemes
     } catch (err) {
         logger.main.error('Error reading themes directory:', err)
@@ -409,7 +403,72 @@ ipcMain.handle('getThemes', async () => {
         return await loadThemes()
     } catch (error) {
         logger.main.error('Themes: Error loading themes:', error)
-        throw error
+    }
+})
+
+const formatJson = (data: any) => JSON.stringify(data, null, 4)
+
+ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
+    switch (eventType) {
+        case 'check-file-exists':
+            try {
+                await fs.promises.access(filePath)
+                return true
+            } catch {
+                return false
+            }
+
+        case 'read-file':
+            try {
+                const fileData = await fs.promises.readFile(filePath, 'utf8')
+                return fileData
+            } catch (error) {
+                console.error('Ошибка при чтении файла:', error)
+                return null
+            }
+
+        case 'create-config-file':
+            try {
+                await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
+                return { success: true }
+            } catch (error) {
+                console.error('Ошибка при создании файла конфигурации:', error)
+                return { success: false, error: error.message }
+            }
+
+        case 'write-file':
+            try {
+                const content =
+                    typeof data === 'string'
+                        ? data
+                        : JSON.stringify(data, null, 2)
+                fs.writeFileSync(filePath, content, 'utf8')
+                console.log('Файл успешно записан:', filePath)
+                return { success: true }
+            } catch (error) {
+                console.error('Ошибка при записи файла:', error)
+                return { success: false, error: error.message }
+            }
+
+        default:
+            console.error('Неизвестный тип события:', eventType)
+            return { success: false, error: 'Неизвестный тип события' }
+    }
+})
+
+ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
+    try {
+        if (fs.existsSync(themeDirectoryPath)) {
+            await fs.promises.rm(themeDirectoryPath, {
+                recursive: true,
+                force: true,
+            })
+            return { success: true }
+        } else {
+            logger.main.error('Директория темы не найдена.')
+        }
+    } catch (error) {
+        logger.main.error('Ошибка при удалении директории темы:', error)
     }
 })
 
@@ -420,6 +479,7 @@ ipcMain.on('themeChanged', (event, themeName) => {
 })
 function initializeTheme() {
     selectedTheme = store.get('theme') || 'Default'
+    console.log('Themes: theme changed to:', selectedTheme)
     setTheme(selectedTheme)
 }
 app.whenReady().then(async () => {
@@ -440,15 +500,36 @@ app.whenReady().then(async () => {
         }
     }
     initializeTheme()
+
+    // TODO
+    // const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    // const watcher = chokidar.watch(themesPath, {
+    //     persistent: true,
+    //     ignored: (path, stats) => {
+    //         console.log('Checking file:', path);
+    //         return !path.match(/\.(js|css|md|json)$/i);
+    //     },
+    // });
+    // watcher
+    //     .on('add', (filePath: string) => {
+    //         console.log(`Theme file ${filePath} was updated.`);
+    //         initializeTheme()
+    //     })
+    //     .on('change', (filePath: string) => {
+    //         console.log(`Theme file ${filePath} was updated.`);
+    //         initializeTheme()
+    //     })
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
     const musicPath = await getPathToYandexMusic()
+
     if (!fs.existsSync(musicPath)) {
         new Notification({
             title: 'Яндекс Музыка не найдена 😡',
             body: 'Пожалуйста, откройте приложение после установки музыки',
         }).show()
+
         return setTimeout(async () => {
             app.quit()
         }, 1000)
@@ -456,7 +537,8 @@ export async function prestartCheck() {
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
-    const asarCopy = path.join(musicPath, 'app.asar.copy')
+
+    const asarCopy = path.join(musicPath, 'app.backup.asar')
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)
     }
@@ -502,9 +584,15 @@ app.on('render-process-gone', (event, webContents, detailed) => {
         app.exit(0)
     }
 })
-setInterval(() => {
+/* setInterval(() => {
     let metadata = getTrackInfo()
     if (Object.keys(metadata).length >= 1) {
         mainWindow.webContents.send('trackinfo', metadata)
     }
-}, 5000)
+}, 5000) */
+
+eventEmitter.on('dataUpdated', newData => {
+    if (mainWindow && mainWindow.webContents) {
+        mainWindow.webContents.send('trackinfo', newData)
+    }
+})

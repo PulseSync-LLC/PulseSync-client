@@ -1,11 +1,11 @@
-import React from 'react';
-import * as styles from './checkbox_props.module.scss';
+import React from 'react'
+import * as styles from './checkbox_props.module.scss'
 
 interface CustomCheckboxProps {
-    checked: boolean;
-    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-    label?: string;
-    className?: string;
+    checked: boolean
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void
+    label?: string
+    className?: string
 }
 
 const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
@@ -22,12 +22,12 @@ const CustomCheckbox: React.FC<CustomCheckboxProps> = ({
                 onChange={onChange}
                 className={styles.checkboxInput}
             />
-            <div className={`${styles.customBox} ${checked ? styles.checked : ''}`}>
-                <div className={styles.cube}></div>
-            </div>
             {label && <span className={styles.checkboxLabel}>{label}</span>}
+            <div
+                className={`${styles.customBox} ${checked ? styles.checked : ''}`}
+            ></div>
         </label>
-    );
-};
+    )
+}
 
-export default CustomCheckbox;
+export default CustomCheckbox

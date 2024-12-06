@@ -6,7 +6,7 @@
     flex-direction: column;
     align-items: flex-start;
     padding: 0px;
-    gap: 7px;
+    gap: 4px;
 
     width: -webkit-fill-available;
 
@@ -29,7 +29,7 @@
         flex-direction: row;
         justify-content: space-between;
         align-items: center;
-        padding: 0px;
+        padding: 0 2px 0 0;
         gap: 10px;
 
         width: -webkit-fill-available;
@@ -39,9 +39,8 @@
         }
 
         .children_content {
-            display: flex;
-            font-weight: 700;
-            font-size: 18px;
+            font-weight: 600;
+            font-size: 14px;
             line-height: 140%;
 
             color: #ffffff;
@@ -58,40 +57,36 @@
             padding: 2px;
             gap: 25px;
 
-            width: 50px;
-            height: 22px;
+            width: 16px;
+            height: 16px;
 
-            background: #3e424c;
-            outline: 2px solid #646b7d;
+            background: #2d3348;
+            outline: 2px solid #545f82;
             border-radius: 50px;
 
             .checkbox_slider {
                 transition: var(--transition);
-
-                position: absolute;
                 box-sizing: border-box;
                 display: flex;
                 flex-direction: row;
                 justify-content: center;
                 align-items: center;
                 gap: 10px;
-                padding: 6px 10px;
-                left: 5px;
-
-                background: white;
+                width: 8px;
+                height: 8px;
+                margin: auto;
+                background: #545f82;
                 border-radius: 50px;
             }
         }
     }
 
     .description {
-        font-family: 'Nunito Sans';
-        font-style: normal;
         font-weight: 400;
-        font-size: 14px;
+        font-size: 10px;
         line-height: 140%;
 
-        color: #c7c9d2;
+        color: #a3abc6;
     }
 }
 
@@ -106,13 +101,18 @@
 
     .checkboxInner {
         .custom_checkbox {
-            background: #2d57c7;
-            outline: 2px solid #2e64f5;
+            background: #2dc77f;
+            outline: 2px solid #42f693;
 
             .checkbox_slider {
-                padding: 6px 10px;
-                left: 25px;
+                background: white;
+                width: 12px;
+                height: 12px;
             }
         }
     }
+}
+
+.disabled {
+    opacity: 0.35;
 }

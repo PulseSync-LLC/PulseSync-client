@@ -8,7 +8,6 @@ import {
 } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
-import TrackInterface from '../../renderer/api/interfaces/track.interface'
 import https from 'https'
 import { getPercent } from '../../renderer/utils/percentage'
 import fs from 'fs'
@@ -17,21 +16,22 @@ import os from 'os'
 import { v4 } from 'uuid'
 import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
-import checkAndTerminateYandexMusic, {
-    getPathToYandexMusic,
-} from '../../../utils/appUtils'
-import Patcher from '../modules/patcher/patch'
 import { store } from '../modules/storage'
-import UnPatcher from '../modules/patcher/unpatch'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
-import { Track } from 'yandex-music-client'
+import AdmZip from 'adm-zip'
+import { Track } from '../../renderer/api/interfaces/track.interface'
+import NodeID3 from 'node-id3';
+import ffmpeg from 'fluent-ffmpeg';
 
 const updater = getUpdater()
 let reqModal = 0
+const ffmpegPath = path.join(__dirname, "..", "..", 'modules', 'ffmpeg.exe'); // Для Windows
+ffmpeg.setFfmpegPath(ffmpegPath);
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
+
     ipcMain.on('update-install', () => {
         updater.install()
     })
@@ -54,57 +54,6 @@ export const handleEvents = (window: BrowserWindow): void => {
         mainWindow.hide()
     })
 
-    ipcMain.on('electron-patch', async () => {
-        await checkAndTerminateYandexMusic()
-        setTimeout(async () => {
-            await Patcher.patchRum().then(async () => {
-                store.set('patcher.patched', true)
-                mainWindow.webContents.send('UPDATE_APP_DATA', {
-                    patch: true,
-                })
-            })
-        }, 2000)
-    })
-
-    ipcMain.on('electron-repatch', async () => {
-        await checkAndTerminateYandexMusic()
-        const musicPath = await getPathToYandexMusic()
-        const asarCopy = path.join(musicPath, 'app.asar.copy')
-        if (!fs.existsSync(asarCopy)) {
-            setTimeout(async () => {
-                await Patcher.patchRum().then(async () => {
-                    store.set('patcher.patched', true)
-                    mainWindow.webContents.send('UPDATE_APP_DATA', {
-                        patch: true,
-                    })
-                })
-            }, 2000)
-        } else {
-            setTimeout(async () => {
-                await UnPatcher.unpatch()
-                setTimeout(async () => {
-                    Patcher.patchRum().then(async () => {
-                        store.set('patcher.patched', true)
-                        mainWindow.webContents.send('UPDATE_APP_DATA', {
-                            repatch: true,
-                        })
-                    })
-                }, 3000)
-            }, 2000)
-        }
-    })
-    ipcMain.on('electron-depatch', async () => {
-        await checkAndTerminateYandexMusic()
-        setTimeout(async () => {
-            await UnPatcher.unpatch().then(async () => {
-                store.set('patcher.patched', false)
-                mainWindow.webContents.send('UPDATE_APP_DATA', {
-                    depatch: true,
-                })
-            })
-        }, 2000)
-    })
-
     ipcMain.on('electron-corsanywhereport', event => {
         event.returnValue = corsAnywherePort
     })
@@ -113,7 +62,8 @@ export const handleEvents = (window: BrowserWindow): void => {
         if (version) return version
     })
     ipcMain.on('openPath', async (event, data) => {
-        switch (data) {
+        console.log(data)
+        switch (data.action) {
             case 'appPath':
                 const appPath = app.getAppPath()
                 const pulseSyncPath = path.resolve(appPath, '../..')
@@ -132,6 +82,15 @@ export const handleEvents = (window: BrowserWindow): void => {
                 )
                 await shell.openPath(themesFolderPath)
                 break
+            case 'theme':
+                const themeFolder = path.join(
+                    app.getPath('appData'),
+                    'PulseSync',
+                    'themes',
+                    data.themeName
+                )
+                await shell.openPath(themeFolder)
+                break
         }
     })
 
@@ -139,58 +98,122 @@ export const handleEvents = (window: BrowserWindow): void => {
         'download-track',
         (
             event,
-            val: { url: string; track: TrackInterface; trackInfo: Track },
+            val: { url: string; track: Track; /* trackInfo: Track */ },
         ) => {
-            const musicDir = app.getPath('music')
-            const downloadDir = path.join(musicDir, 'PulseSyncMusic')
+            const musicDir = app.getPath('music');
+            const downloadDir = path.join(musicDir, 'PulseSyncMusic');
+            const fileExtension = val.url.split('/').reverse()[0].split('.').pop()?.toLowerCase();
+            const cleanedFileExtension = fileExtension === '320' ? 'mp3' : fileExtension;
+
             dialog
                 .showSaveDialog(mainWindow, {
                     title: 'Сохранить как',
                     defaultPath: path.join(
                         downloadDir,
-                        `${val.track.playerBarTitle.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artist.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.mp3`,
+                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists.map((x) => x.name).join(", ").replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${cleanedFileExtension}`,
                     ),
-                    filters: [{ name: 'Трек', extensions: ['mp3'] }],
+                    filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })
                 .then(result => {
-                    if (!result.canceled)
+                    if (!result.canceled) {
                         https.get(val.url, response => {
                             const totalFileSize = parseInt(
                                 response.headers['content-length'],
                                 10,
-                            )
-                            let downloadedBytes = 0
+                            );
+                            let downloadedBytes = 0;
 
                             response.on('data', chunk => {
-                                downloadedBytes += chunk.length
+                                downloadedBytes += chunk.length;
                                 const percent = getPercent(
                                     downloadedBytes,
                                     totalFileSize,
-                                )
-                                mainWindow.setProgressBar(percent / 100)
+                                );
+                                mainWindow.setProgressBar(percent / 100);
                                 mainWindow.webContents.send(
                                     'download-track-progress',
                                     percent,
-                                )
-                            })
-                            response
-                                .pipe(fs.createWriteStream(result.filePath))
-                                .on('finish', () => {
-                                    mainWindow.webContents.send(
-                                        'download-track-finished',
-                                    )
+                                );
+                            });
 
-                                    shell.showItemInFolder(result.filePath)
-                                    mainWindow.setProgressBar(-1)
-                                })
-                        })
-                    else mainWindow.webContents.send('download-track-cancelled')
+                            const filePath = result.filePath; // Путь к сохраненному файлу
+                            response
+                                .pipe(fs.createWriteStream(filePath))
+                                .on('finish', async () => {
+                                    console.log('Файл успешно загружен:', filePath);
+
+                                    // Проверка формата файла
+                                    const extension = path.extname(filePath).toLowerCase();
+                                    if (['.flac', '.aac'].includes(extension)) {
+                                        console.log('Конвертация в MP3...');
+                                        const mp3Path = filePath.replace(extension, '.mp3');
+                                        try {
+                                            await convertToMP3(filePath, mp3Path);
+                                            fs.unlinkSync(filePath); // Удаление оригинального файла
+                                            console.log('Конвертация завершена:', mp3Path);
+                                            await writeMetadata(mp3Path, val.track);
+                                            mainWindow.webContents.send('download-track-finished');
+                                            shell.showItemInFolder(mp3Path);
+                                        } catch (err) {
+                                            console.error('Ошибка конвертации:', err);
+                                            mainWindow.webContents.send('download-track-failed');
+                                        }
+                                    } else {
+                                        console.log('Файл уже в формате MP3. Установка метаданных...');
+                                        await writeMetadata(filePath, val.track);
+                                        mainWindow.webContents.send('download-track-finished');
+                                        shell.showItemInFolder(filePath);
+                                    }
+                                    mainWindow.setProgressBar(-1);
+                                });
+                        });
+                    } else {
+                        mainWindow.webContents.send('download-track-cancelled');
+                    }
                 })
-                .catch(() =>
-                    mainWindow.webContents.send('download-track-failed'),
-                )
+                .catch(() => mainWindow.webContents.send('download-track-failed'));
         },
-    )
+    );
+
+// Функция конвертации в MP3
+    function convertToMP3(inputFilePath: string, outputFilePath: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            ffmpeg(inputFilePath)
+                .audioCodec('libmp3lame') // Кодек MP3
+                .audioBitrate(320) // Высокое качество
+                .on('error', (err) => reject(err))
+                .on('end', () => resolve())
+                .save(outputFilePath);
+        });
+    }
+
+// Функция для записи метаданных
+    async function writeMetadata(filePath: string, track: Track): Promise<void> {
+        let coverRes, coverBuffer;
+        if (track?.coverUri) {
+            coverRes = await fetch(
+                'https://' +
+                track?.coverUri.replace('%%', '1000x1000'),
+            );
+            coverBuffer = Buffer.from(await coverRes.arrayBuffer());
+        }
+
+        const tags = {
+            title: track.title,
+            artist: track.artists.map((artist) => artist.name).join(', '),
+            album: track.albums[0]?.title || 'Unknown Album',
+            year: track.albums[0]?.year.toString(),
+            genre: track.albums[0]?.genre || 'Unknown',
+            APIC: coverBuffer || track.coverUri, // Обложка альбома
+        };
+
+        const success = NodeID3.write(tags, filePath);
+        if (success) {
+            console.log('Метаданные успешно записаны:', filePath);
+        } else {
+            throw new Error('Ошибка записи метаданных.');
+        }
+    }
     ipcMain.on('get-music-device', event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${
@@ -233,9 +256,6 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.on('show-notification', async (event, data) => {
         return new Notification({ title: data.title, body: data.body }).show()
     })
-    ipcMain.on('send-crashreport', async (event, data) => {
-        // TODO: add c++ module for crash reporter
-    })
     ipcMain.handle('needModalUpdate', async event => {
         if (reqModal <= 0) {
             reqModal++
@@ -258,6 +278,10 @@ export const handleEvents = (window: BrowserWindow): void => {
                 logger.renderer.log(data.text)
                 break
         }
+    })
+    ipcMain.on('log-error', (event, errorInfo) => {
+        const logMessage = `[${errorInfo.type}] ${errorInfo.message}\n${errorInfo.stack || ''}\n\n`
+        logger.crash.error(logMessage)
     })
     ipcMain.handle('getSystemInfo', async () => {
         return {
@@ -295,19 +319,11 @@ export const handleEvents = (window: BrowserWindow): void => {
             freeMemory: os.freemem(),
             arch: os.arch(),
             platform: os.platform(),
-            uptime: os.uptime(),
-            networkInterfaces: os.networkInterfaces(),
-            networkStats: await si.networkStats(),
-            fsSize: await si.fsSize(),
             osInfo: await si.osInfo(),
-            battery: await si.battery(),
             memInfo: await si.mem(),
             userInfo: {
                 username: userInfo.username,
                 homedir: userInfo.homedir,
-                shell: userInfo.shell,
-                uid: userInfo.uid,
-                gid: userInfo.gid,
             },
         }
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
@@ -347,6 +363,42 @@ export const handleEvents = (window: BrowserWindow): void => {
     })
     ipcMain.handle('checkSleepMode', async (event, data) => {
         return inSleepMode
+    })
+    ipcMain.handle('exportTheme', async (event, data) => {
+        /**
+         * Создаёт файл с расширением .pext, содержащий папку по указанному пути
+         * @param folderPath Путь к папке, которую нужно заархивировать
+         * @param outputFilePath Путь для сохранения созданного файла с расширением .pext
+         */
+        try {
+            if (!fs.existsSync(data.path)) {
+                logger.main.error('Folder not found.')
+            }
+
+            const zip = new AdmZip()
+            zip.addLocalFolder(data.path)
+            const outputFilePath = path.join(
+                app.getPath('userData'),
+                'exports',
+                data.name,
+            )
+
+            const outputPath = path.format({
+                dir: path.dirname(outputFilePath),
+                name: path.basename(outputFilePath, '.pext'),
+                ext: '.pext',
+            })
+
+            zip.writeZip(outputPath)
+            logger.main.info(`Create theme ${outputFilePath}`)
+            shell.showItemInFolder(outputPath)
+            return true
+        } catch (error) {
+            logger.main.error(
+                'Error while creating archive file',
+                error.message,
+            )
+        }
     })
 }
 export const handleAppEvents = (window: BrowserWindow): void => {

@@ -5,8 +5,8 @@ declare module '*.svg' {
 }
 
 declare module '*.wav' {
-    const src: string;
-    export default src;
+    const src: string
+    export default src
 }
 
 declare module '*.md'

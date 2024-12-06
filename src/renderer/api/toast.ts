@@ -1,10 +1,11 @@
-import toast, { Renderable, ToastOptions } from 'react-hot-toast'
+import toast, { Renderable, ToastOptions } from 'react-hot-toast-magic'
 
 const style = {
     background: '#292C36',
     color: '#ffffff',
     border: 'solid 1px #363944',
     borderRadius: '8px',
+    zIndex: 999999,
 }
 
 const iToast = {

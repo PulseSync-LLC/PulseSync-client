@@ -88,16 +88,21 @@ typings/
 # Vite
 .vite/
 
+*.zip
+
 # Electron-Forge
 out/
 .idea
 yarn.lock
+
 config.json
 release
+
 PulseSync.cer
 PulseSync.pfx
 PulseSync.pvk
-utils/uploadToS3.js
+
 schema.graphql
 ReactDevTools
-modules
+/modules
+src/main/modules/YMusic-DRPC.code-workspace

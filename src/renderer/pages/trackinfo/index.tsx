@@ -4,7 +4,7 @@ import Container from '../../components/container'
 import CheckboxNav from '../../components/checkbox'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
-import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
+import * as inputStyle from './oldInput.module.scss'
 import * as theme from './trackinfo.module.scss'
 
 import React, { useContext, useEffect, useRef, useState } from 'react'
@@ -132,6 +132,7 @@ export default function TrackInfoPage() {
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedTheme = { charCount: inputStyle.charCount }
     useCharCount(containerRef, fixedTheme)
+
     return (
         <Layout title="Discord RPC">
             <div className={styles.page}>
@@ -144,9 +145,13 @@ export default function TrackInfoPage() {
                             }
                             imageName={'discord'}
                             onClick={() => {
-                                window.discordRpc.discordRpc(
-                                    !app.discordRpc.status,
-                                )
+                                if (app.discordRpc.status) {
+                                    window.desktopEvents.send('websocket-stop')
+                                    window.discordRpc.discordRpc(false)
+                                } else {
+                                    window.desktopEvents.send('websocket-start')
+                                    window.discordRpc.discordRpc(true)
+                                }
                                 setApp({
                                     ...app,
                                     discordRpc: {
@@ -379,10 +384,8 @@ export default function TrackInfoPage() {
                                                                     theme.img
                                                                 }
                                                                 src={
-                                                                    currentTrack
-                                                                        .requestImgTrack[1]
-                                                                        ? currentTrack
-                                                                              .requestImgTrack[1]
+                                                                    currentTrack.albumArt
+                                                                        ? currentTrack.albumArt
                                                                         : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""
@@ -415,31 +418,49 @@ export default function TrackInfoPage() {
                                                                                   .details,
                                                                               currentTrack,
                                                                           )
-                                                                        : `${currentTrack.playerBarTitle} - ${currentTrack.artist}`}
+                                                                        : currentTrack.title}
                                                                 </div>
-                                                                {currentTrack
-                                                                    .timecodes
-                                                                    .length >
-                                                                    0 && (
-                                                                    <div
-                                                                        className={
-                                                                            theme.time
-                                                                        }
-                                                                    >
-                                                                        {app
-                                                                            .discordRpc
-                                                                            .state
-                                                                            .length >
-                                                                        0
-                                                                            ? replaceParams(
-                                                                                  app
-                                                                                      .discordRpc
-                                                                                      .state,
-                                                                                  currentTrack,
-                                                                              )
-                                                                            : `${currentTrack.timecodes[0]} - ${currentTrack.timecodes[1]}`}
-                                                                    </div>
-                                                                )}
+                                                                <div
+                                                                    className={
+                                                                        theme.name
+                                                                    }
+                                                                >
+                                                                    {app
+                                                                        .discordRpc
+                                                                        .state
+                                                                        .length >
+                                                                    0
+                                                                        ? replaceParams(
+                                                                              app
+                                                                                  .discordRpc
+                                                                                  .state,
+                                                                              currentTrack,
+                                                                          )
+                                                                        : currentTrack.artists.map(x => x.name).join(', ')}
+                                                                </div>
+                                                                {/*{currentTrack*/}
+                                                                {/*    .timestamps*/}
+                                                                {/*    .length >*/}
+                                                                {/*    0 && (*/}
+                                                                {/*    <div*/}
+                                                                {/*        className={*/}
+                                                                {/*            theme.time*/}
+                                                                {/*        }*/}
+                                                                {/*    >*/}
+                                                                {/*        {app*/}
+                                                                {/*            .discordRpc*/}
+                                                                {/*            .state*/}
+                                                                {/*            .length >*/}
+                                                                {/*        0*/}
+                                                                {/*            ? replaceParams(*/}
+                                                                {/*                  app*/}
+                                                                {/*                      .discordRpc*/}
+                                                                {/*                      .state,*/}
+                                                                {/*                  currentTrack,*/}
+                                                                {/*              )*/}
+                                                                {/*            : `${currentTrack.timestamps[0]} - ${currentTrack.timestamps[1]}`}*/}
+                                                                {/*    </div>*/}
+                                                                {/*)}*/}
                                                             </div>
                                                         </div>
                                                     ) : (
@@ -609,93 +630,6 @@ export default function TrackInfoPage() {
                                                         onClick={() =>
                                                             copyValues(
                                                                 '{artist}',
-                                                            )
-                                                        }
-                                                    />
-                                                </button>
-                                                <button
-                                                    className={
-                                                        theme.modalContextButton
-                                                    }
-                                                >
-                                                    <div
-                                                        className={
-                                                            theme.contextInfo
-                                                        }
-                                                    >
-                                                        <div
-                                                            className={
-                                                                theme.contextPreview
-                                                            }
-                                                        >
-                                                            startTime
-                                                        </div>
-                                                        - начальное время
-                                                    </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() =>
-                                                            copyValues(
-                                                                '{startTime}',
-                                                            )
-                                                        }
-                                                    />
-                                                </button>
-                                                <button
-                                                    className={
-                                                        theme.modalContextButton
-                                                    }
-                                                >
-                                                    <div
-                                                        className={
-                                                            theme.contextInfo
-                                                        }
-                                                    >
-                                                        <div
-                                                            className={
-                                                                theme.contextPreview
-                                                            }
-                                                        >
-                                                            endTime
-                                                        </div>
-                                                        - конечное время
-                                                    </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() =>
-                                                            copyValues(
-                                                                '{endTime}',
-                                                            )
-                                                        }
-                                                    />
-                                                </button>
-                                                <button
-                                                    className={
-                                                        theme.modalContextButton
-                                                    }
-                                                >
-                                                    <div
-                                                        className={
-                                                            theme.contextInfo
-                                                        }
-                                                    >
-                                                        <div
-                                                            className={
-                                                                theme.contextPreview
-                                                            }
-                                                        >
-                                                            endTime - startTime
-                                                        </div>
-                                                        - до конца трека
-                                                    </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() =>
-                                                            copyValues(
-                                                                '{endTime - startTime}',
                                                             )
                                                         }
                                                     />

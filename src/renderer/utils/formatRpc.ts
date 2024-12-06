@@ -1,5 +1,8 @@
+import { Track } from '../api/interfaces/track.interface'
+
 export function timeDifference(time1: string, time2: string): string {
     function toSeconds(time: string): number {
+        if (!time) return 0
         const [minutes, seconds] = time.split(':').map(Number)
 
         if (
@@ -27,14 +30,19 @@ export function timeDifference(time1: string, time2: string): string {
     return toTimeString(differenceInSeconds)
 }
 
-export const replaceParams = (str: any, track: any) => {
+export const replaceParams = (str: any, track: Track) => {
     return str
-        .replace('{track}', track.playerBarTitle || '')
-        .replace('{artist}', track.artist || '')
-        .replace('{startTime}', track.timecodes[0] || '')
-        .replace('{endTime}', track.timecodes[1] || '')
-        .replace(
-            '{endTime - startTime}',
-            timeDifference(track.timecodes[1], track.timecodes[0]) || '',
-        )
+        .replace('{track}', track.title || '')
+        .replace('{artist}', track.artists.map(a => a.name).join(', ') || '')
+}
+export function fixStrings(string: string): string {
+    if (!string) return string;
+    if (string.length <= 1) {
+        string += 'ㅤ';
+    }
+    if (string.length > 128) {
+        string = string.substring(0, 127);
+        string += '…';
+    }
+    return string;
 }

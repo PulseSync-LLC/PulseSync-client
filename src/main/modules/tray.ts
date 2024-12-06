@@ -10,7 +10,7 @@ let tray: Tray
 let menu: Menu
 
 function createTray() {
-    const icon = getNativeImg('appicon', '.png', 'icon').resize({
+    const icon = getNativeImg('appicon', '.ico', 'icon').resize({
         width: 16,
         height: 16,
     })

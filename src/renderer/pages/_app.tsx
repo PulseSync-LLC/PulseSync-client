@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useState } from 'react'
-import { createHashRouter, RouterProvider } from 'react-router-dom'
+import { createHashRouter, RouterProvider, useNavigate } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
 import AuthPage from './auth'
@@ -10,7 +10,7 @@ import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
-import hotToast, { Toaster } from 'react-hot-toast'
+import hotToast, { Toaster } from 'react-hot-toast-magic'
 import { CssVarsProvider } from '@mui/joy'
 import { Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
@@ -21,7 +21,6 @@ import toast from '../api/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import trackInitials from '../api/initials/track.initials'
-import TrackInterface from '../api/interfaces/track.interface'
 import PlayerContext from '../api/context/player.context'
 import apolloClient from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
@@ -31,12 +30,18 @@ import config from '../api/config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
-import { replaceParams } from '../utils/formatRpc'
+import { fixStrings, replaceParams } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
-import {
-    checkInternetAccess,
-    notifyUserRetries,
-} from '../utils/utils'
+import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
+import ThemeInterface from '../api/interfaces/theme.interface'
+import userContext from '../api/context/user.context'
+import ThemeInitials from '../api/initials/theme.initials'
+import ErrorBoundary from '../components/errorBoundary'
+import { PatcherInterface } from '../api/interfaces/patcher.interface'
+import patcherInitials from '../api/initials/patcher.initials'
+import GetPatcherQuery from '../api/queries/getPatcher.query'
+import { Album, Artist, Track } from '../api/interfaces/track.interface'
+import Header from '../components/layout/header'
 
 function _app() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -45,6 +50,14 @@ function _app() {
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
+    const [patcherInfo, setPatcher] = useState<PatcherInterface[]>(patcherInitials)
+    const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
+
+    const [navigateTo, setNavigateTo] = useState<string | null>(null)
+    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(
+        null,
+    )
+
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
         autoConnect: false,
@@ -56,31 +69,59 @@ function _app() {
     const router = createHashRouter([
         {
             path: '/',
-            element: <AuthPage />,
+            element: (
+                <ErrorBoundary>
+                    <AuthPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/auth/callback',
-            element: <CallbackPage />,
+            element: (
+                <ErrorBoundary>
+                    <CallbackPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/trackinfo',
-            element: <TrackInfoPage />,
+            element: (
+                <ErrorBoundary>
+                    <TrackInfoPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extension',
-            element: <ExtensionPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extensionbeta',
-            element: <ExtensionBetaPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionBetaPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/extensionbeta/:contactId',
-            element: <ExtensionViewPage />,
+            element: (
+                <ErrorBoundary>
+                    <ExtensionViewPage />
+                </ErrorBoundary>
+            ),
         },
         {
             path: '/joint',
-            element: <JointPage />,
+            element: (
+                <ErrorBoundary>
+                    <JointPage />
+                </ErrorBoundary>
+            ),
         },
     ])
 
@@ -89,7 +130,6 @@ function _app() {
 
         const attemptAuthorization = async (): Promise<boolean> => {
             const token = await getUserToken()
-            console.log(token)
 
             if (token) {
                 const isOnline = await checkInternetAccess()
@@ -99,9 +139,7 @@ function _app() {
                         retryCount--
                         return false
                     } else {
-                        toast.error(
-                            'Превышено количество попыток подключения.',
-                        )
+                        toast.error('Превышено количество попыток подключения.')
                         window.desktopEvents?.send('authStatus', false)
                         setLoading(false)
                         return false
@@ -202,22 +240,6 @@ function _app() {
     }
 
     useEffect(() => {
-        const handleMouseButton = (event: MouseEvent) => {
-            if (event.button === 3) {
-                event.preventDefault()
-            }
-            if (event.button === 4) {
-                event.preventDefault()
-            }
-        }
-
-        window.addEventListener('mouseup', handleMouseButton)
-
-        return () => {
-            window.removeEventListener('mouseup', handleMouseButton)
-        }
-    }, [])
-    useEffect(() => {
         if (typeof window !== 'undefined') {
             const checkAuthorization = async () => {
                 await authorize()
@@ -228,10 +250,23 @@ function _app() {
             }
             // auth interval 15 minutes (10 * 60 * 1000)
             const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
+            const handleMouseButton = (event: MouseEvent) => {
+                if (event.button === 3) {
+                    event.preventDefault()
+                }
+                if (event.button === 4) {
+                    event.preventDefault()
+                }
+            }
 
-            return () => clearInterval(intervalId)
+            window.addEventListener('mouseup', handleMouseButton)
+            return () => {
+                clearInterval(intervalId)
+                window.removeEventListener('mouseup', handleMouseButton)
+            }
         }
     }, [])
+
     socket.on('connect', () => {
         console.log('Socket connected')
         toast.success('Соединение установлено')
@@ -290,6 +325,36 @@ function _app() {
                 }
             }
             fetchAppInfo()
+            const fetchPatcherInfo = async () => {
+                try {
+                    let res = await apolloClient.query({
+                        query: GetPatcherQuery,
+                        fetchPolicy: 'no-cache',
+                    });
+
+                    const { data } = res;
+
+                    if (data && data.getPatcher) {
+                        const info = (data.getPatcher as PatcherInterface[])
+                            .filter(info => compareVersions(info.modVersion, app.patcher.version) > 0)
+                            .sort((a, b) => compareVersions(a.modVersion, b.modVersion));
+
+                        if (info.length > 0) {
+                            setPatcher(info);
+                        } else {
+                            console.log('Нет доступных обновлений');
+                        }
+                    } else {
+                        console.error('Invalid response format for getPatcher:', data);
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch patcher info:', e);
+                }
+            };
+
+            fetchPatcherInfo()
+            const intervalId = setInterval(fetchPatcherInfo, 10 * 60 * 1000)
+
             if (
                 !user.badges.some(badge => badge.type === 'supporter') &&
                 app.discordRpc.enableGithubButton
@@ -306,12 +371,81 @@ function _app() {
                     false,
                 )
             }
+            if(app.discordRpc.status) {
+                window.desktopEvents?.send('websocket-start')
+            }
+            window.desktopEvents
+                .invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes)
+                })
+            return () => {
+                clearInterval(intervalId)
+            }
         } else {
             router.navigate('/', {
                 replace: true,
             })
         }
     }, [user.id])
+
+    const invokeFileEvent = async (
+        eventType: string,
+        filePath: string,
+        data?: any,
+    ) => {
+        return await window.desktopEvents?.invoke(
+            'file-event',
+            eventType,
+            filePath,
+            data,
+        )
+    }
+
+    useEffect(() => {
+        const handleOpenTheme = (event: any, data: string) => {
+            window.desktopEvents
+                ?.invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    const theme = themes.find(t => t.name === data)
+                    if (theme) {
+                        setThemes(themes)
+                        setNavigateTo(`/extensionbeta/${theme.name}`)
+                        setNavigateState(theme)
+                    }
+                })
+                .catch(error => console.error('Error getting themes:', error))
+        }
+        window.desktopEvents?.on('open-theme', handleOpenTheme)
+
+        window.desktopEvents?.on('check-file-exists', filePath =>
+            invokeFileEvent('check-file-exists', filePath),
+        )
+        window.desktopEvents?.on('read-file', filePath =>
+            invokeFileEvent('read-file', filePath),
+        )
+        window.desktopEvents?.on(
+            'create-config-file',
+            (filePath, defaultContent) =>
+                invokeFileEvent('create-config-file', filePath, defaultContent),
+        )
+        window.desktopEvents?.on('write-file', (filePath, data) =>
+            invokeFileEvent('write-file', filePath, data),
+        )
+        return () => {
+            window.desktopEvents?.removeAllListeners('create-config-file')
+            window.desktopEvents?.removeAllListeners('open-theme')
+            window.desktopEvents?.removeAllListeners('check-file-exists')
+            window.desktopEvents?.removeAllListeners('read-file')
+            window.desktopEvents?.removeAllListeners('write-file')
+        }
+    }, [])
+
+    useEffect(() => {
+        if (navigateTo && navigateState) {
+            router.navigate(navigateTo, { state: { theme: navigateState } })
+        }
+    }, [navigateTo, navigateState])
 
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -392,6 +526,16 @@ function _app() {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
+        ;(window as any).refreshThemes = async (args: any) => {
+            window.desktopEvents
+                .invoke('getThemes')
+                .then((themes: ThemeInterface[]) => {
+                    setThemes(themes)
+                    router.navigate('/extensionbeta', {
+                        replace: true,
+                    })
+                })
+        }
     }
     return (
         <div className="app-wrapper">
@@ -409,6 +553,10 @@ function _app() {
                     updateAvailable,
                     setUpdate,
                     appInfo,
+                    setThemes,
+                    themes,
+                    setPatcher,
+                    patcherInfo,
                 }}
             >
                 <Player>
@@ -417,7 +565,7 @@ function _app() {
                             {loading ? (
                                 <Preloader />
                             ) : (
-                                <RouterProvider router={router} />
+                                    <RouterProvider router={router} />
                             )}
                         </CssVarsProvider>
                     </SkeletonTheme>
@@ -428,7 +576,7 @@ function _app() {
 }
 const Player: React.FC<any> = ({ children }) => {
     const { user, app } = useContext(UserContext)
-    const [track, setTrack] = useState<TrackInterface>(trackInitials)
+    const [track, setTrack] = useState<Track>(trackInitials)
 
     useEffect(() => {
         if (user.id !== '-1') {
@@ -436,29 +584,76 @@ const Player: React.FC<any> = ({ children }) => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {
+                            console.log(data)
+                            const coverImg = `https://${data.track.coverUri.replace( '%%', '1000x1000' )}`
+
+                            const timecodes = data.timecodes
+                                ? data.timecodes
+                                : [0, 0];
                             setTrack(prevTrack => ({
                                 ...prevTrack,
-                                playerBarTitle: data.playerBarTitle,
-                                artist: data.artist,
-                                timecodes: data.timecodes,
-                                requestImgTrack: data.requestImgTrack,
-                                linkTitle: data.linkTitle,
-                            }))
+                                status: data.status,
+                                url: data.url,
+                                formatTitle: data.track.albums[0]?.id,
+                                albumArt: coverImg,
+                                timestamps: timecodes,
+                                realId: data.track.realId,
+                                title: data.track.title,
+                                artists: data.track.artists.map((artist: any) => ({
+                                    id: artist.id ?? null,
+                                    name: artist.name ?? "Unknown Artist",
+                                    various: artist.various ?? false,
+                                    composer: artist.composer ?? false,
+                                    available: artist.available ?? false,
+                                    cover: {
+                                        type: artist.cover?.type ?? null,
+                                        uri: artist.cover?.uri ?? null,
+                                        prefix: artist.cover?.prefix ?? null
+                                    },
+                                    genres: artist.genres ?? [],
+                                    disclaimers: artist.disclaimers ?? []
+                                })),
+                                albums: data.track.albums.map((album: any) => ({
+                                    id: album.id,
+                                    title: album.title,
+                                    type: album.type,
+                                    metaType: album.metaType,
+                                    year: album.year,
+                                    releaseDate: album.releaseDate,
+                                    coverUri: album.coverUri,
+                                    ogImage: album.ogImage,
+                                    genre: album.genre,
+                                    trackCount: album.trackCount,
+                                    likesCount: album.likesCount,
+                                    recent: album.recent,
+                                    veryImportant: album.veryImportant,
+                                    artists: data.track.artists.map((artist: any) => ({
+                                        id: artist.id ?? null,
+                                        name: artist.name ?? "Unknown Artist",
+                                        various: artist.various ?? false,
+                                        composer: artist.composer ?? false,
+                                        available: artist.available ?? false,
+                                        cover: {
+                                            type: artist.cover?.type ?? null,
+                                            uri: artist.cover?.uri ?? null,
+                                            prefix: artist.cover?.prefix ?? null
+                                        },
+                                        genres: artist.genres ?? [],
+                                        disclaimers: artist.disclaimers ?? []
+                                    })),
+                                })),
+                                coverUri: data.track.coverUri,
+                                ogImage: data.track.ogImage,
+                                lyricsAvailable: data.track.lyricsAvailable,
+                                type: data.track.type,
+                                rememberPosition: data.track.rememberPosition,
+                                trackSharingFlag: data.track.trackSharingFlag,
+                            }));
                         })
-                        window.desktopEvents?.on(
-                            'track_info',
-                            (event, data) => {
-                                setTrack(prevTrack => ({
-                                    ...prevTrack,
-                                    id: data.trackId,
-                                    url: data.url,
-                                }))
-                            },
-                        )
+
                     } else {
-                        window.desktopEvents.removeListener(
-                            'track-info',
-                            setTrack,
+                        window.desktopEvents.removeAllListeners(
+                            'trackinfo',
                         )
                         setTrack(trackInitials)
                     }
@@ -468,81 +663,106 @@ const Player: React.FC<any> = ({ children }) => {
             window.discordRpc.clearActivity()
         }
     }, [user.id, app.discordRpc.status])
+    const getCoverImage = (track: Track): string => {
+        return track.albumArt || track.coverUri || track.ogImage || '';
+    };
+
+    const getTrackStartTime = (track: Track): number => {
+        return track.timestamps && track.timestamps.length > 0
+            ? track.timestamps[0]
+            : 0;
+    };
+
+    const getTrackEndTime = (track: Track): number => {
+        return track.timestamps && track.timestamps.length > 0
+            ? track.timestamps[1]
+            : 0;
+    };
+
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
-            if (track.playerBarTitle === '' && track.artist === '') {
-                const activity: any = {
-                    details: 'AFK',
-                    largeImageText: app.info.version,
-                    largeImageKey:
-                        'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
-                }
-                window.discordRpc.setActivity(activity)
+            if (track.title === '' || track.status === 'paused' || track.timestamps[0] === 0 && track.timestamps[1] === 0) {
+                window.discordRpc.clearActivity();
             } else {
-                const timeRange =
-                    track.timecodes.length === 2
-                        ? `${track.timecodes[0]} - ${track.timecodes[1]}`
-                        : ''
+                const trackStartTime = getTrackStartTime(track);
+                const trackEndTime = getTrackEndTime(track);
+                const artistName = track.artists.map(x => x.name ).join( ', ' )
 
-                const details =
-                    track.artist.length > 0
-                        ? `${track.playerBarTitle} - ${track.artist}`
-                        : track.playerBarTitle
+                const startTimestamp = Math.floor(Date.now()/1000)*1000 - Math.floor(Number(trackStartTime)) * 1000;
+                const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000;
 
                 const activity: any = {
                     type: 2,
-                    largeImageKey: track.requestImgTrack[1],
+                    startTimestamp,
+                    endTimestamp,
+                    largeImageKey: getCoverImage(track),
                     smallImageKey:
                         'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
                     smallImageText: app.info.version,
-                    state:
-                        app.discordRpc.state.length > 0
-                            ? replaceParams(app.discordRpc.state, track)
-                            : timeRange || 'Listening to music',
                     details:
                         app.discordRpc.details.length > 0
-                            ? replaceParams(app.discordRpc.details, track)
-                            : details,
+                            ? fixStrings(
+                                replaceParams(app.discordRpc.details, track),
+                            )
+                            : fixStrings(track.title),
+                    state:
+                        app.discordRpc.state.length > 0
+                            ? fixStrings(
+                                replaceParams(app.discordRpc.state, track),
+                            )
+                            : fixStrings(artistName),
+                };
+
+                if (app.discordRpc.state.length > 0) {
+                    activity.state =
+                        fixStrings(
+                            replaceParams(app.discordRpc.state, track),
+                        ) || 'Музыка играет';
                 }
 
-                activity.buttons = []
-                if (app.discordRpc.enableRpcButtonListen && track.linkTitle) {
+                activity.buttons = [];
+                if (!track.artists || track.artists.length === 0 && app.discordRpc.enableRpcButtonListen) {
+                    const linkTitle = track.albums[0].id;
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? app.discordRpc.button
                             : '✌️ Open in Yandex Music',
-                        url: `yandexmusic://album/${encodeURIComponent(track.linkTitle)}`,
-                    })
+                        url: `yandexmusic://album/${encodeURIComponent(
+                            linkTitle,
+                        )}/track/${track.realId}`,
+                    });
                 }
 
                 if (app.discordRpc.enableGithubButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
-                        url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts`,
-                    })
+                        url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev`,
+                    });
                 }
 
                 if (activity.buttons.length === 0) {
-                    delete activity.buttons
+                    delete activity.buttons;
                 }
-
-                if (!track.artist && !timeRange) {
-                    track.artist = 'Нейромузыка'
-                    setTrack(prevTrack => ({
+                console.log(track)
+                if (!track.artists || track.artists.length === 0) {
+                    setTrack((prevTrack: Track) => ({
                         ...prevTrack,
-                        artist: 'Нейромузыка',
-                    }))
-                    activity.details = `${track.playerBarTitle} - ${track.artist}`
+                        title: `${track.title} - Нейромузыка`,
+                    }));
+                    activity.details = fixStrings(
+                        `${track.title} - Нейромузыка`,
+                    );
                 }
 
-                window.discordRpc.setActivity(activity)
+                window.discordRpc.setActivity(activity);
             }
         }
-    }, [app.settings, user, track, app.discordRpc])
+    }, [app.settings, user, track, app.discordRpc]);
     return (
         <PlayerContext.Provider
             value={{
                 currentTrack: track,
+                setTrack,
             }}
         >
             {children}

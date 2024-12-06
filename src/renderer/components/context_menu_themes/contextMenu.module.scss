@@ -1,63 +1,57 @@
 /* contextMenu.module.scss */
 
 .contextMenu {
-    position: absolute;
-    padding: 10px;
-    height: -webkit-fill-available;
-    overflow: overlay;
-    animation: contextMenu-module__contextMenu-module__fadeIn___lCRzG___WLvFK 0.3s forwards;
-    z-index: 100022221;
-
+    align-self: self-end;
     display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: flex-start;
-    padding: 0px;
-
-    background: #1e2027f2;
-    border: 1px solid #363944;
-    box-shadow: 0px 1px 4px rgba(0, 0, 0, 0.25);
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 12px;
+    gap: 5px;
+    position: absolute;
+    bottom: 8px;
+    width: fit-content;
+    height: fit-content;
+    background: #353a49;
+    outline: 2px solid #41485e;
+    box-shadow: 0px 0px 12.3px rgba(0, 0, 0, 0.49);
     border-radius: 8px;
-    padding: 10px 0;
+    justify-content: center;
+    position-area: center;
+    animation: fadeIn 0.3s forwards;
+}
+
+.contextMenuOut {
+    animation: fadeOut 0.3s forwards;
 }
 
 .contextMenuItem {
-    transition: var(--transition);
-    padding: 8px 20px;
-    cursor: pointer;
-    background-color: #3467f200;
-    transition: background 0.2s;
-    min-width: -webkit-fill-available;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    margin: 0;
+    gap: 10px;
+    width: fit-content;
+    height: fit-content;
 
-    font-weight: 700;
-    font-size: 13px;
-    line-height: 140%;
-
-    color: #FFFFFF;
+    background: rgba(179, 194, 239, 0);
+    border-radius: 8px;
+    &:hover {
+        background: rgba(179, 194, 239, 0.2);
+    }
 }
 
 .contextMenuItem:last-child {
     transition: var(--transition);
-    padding: 8px 20px;
-    cursor: pointer;
-    background-color: #3467f200;
-    transition: background 0.2s;
-    min-width: -webkit-fill-available;
-
-    font-weight: 700;
-    font-size: 13px;
-    line-height: 140%;
-
-    color: #F23447;
+    background: rgba(239, 101, 101, 0);
+    &:hover {
+        background: rgba(239, 101, 101, 0.2);
+    }
 }
 
-.contextMenuItem:last-child:hover {
-    color: #FFFFFF;
-    background-color: #F23447;
-}
-
-.contextMenuItem:hover {
-    background-color: #3468F2;
+.icon {
+    width: 24px;
+    height: 24px;
 }
 
 /* Анимация появления */
@@ -79,7 +73,6 @@
         opacity: 1;
         transform: scale(1);
     }
-
     to {
         opacity: 0;
         transform: scale(0.95);

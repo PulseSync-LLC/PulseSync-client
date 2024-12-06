@@ -5,6 +5,7 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 declare global {
     interface Window {
+        __listenersAdded?: boolean;
         electron: {
             store: {
                 get: (key: string) => any
@@ -46,6 +47,7 @@ declare global {
             removeListener: (channel: string) => void
             getVersion: (version: string) => string
         }
+        refreshThemes: () => void
         discordRpc: {
             discordRpc: (val: boolean) => void
             setActivity: (props: SetActivity) => void

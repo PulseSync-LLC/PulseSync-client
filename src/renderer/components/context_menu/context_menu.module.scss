@@ -8,10 +8,10 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    box-shadow: 0px 0px 8px 5px rgba(0, 0, 0, 0.25);
-    background: var(--Main);
-    outline: 1px solid var(--BorderColor);
-    border-radius: var(--BorderRadius);
+    box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
+    background: #1F222B;
+    border-radius: 8px;
+    padding: 7px 0;
 }
 
 .innerFunction {
@@ -28,6 +28,7 @@
     font-size: 14px;
     line-height: 140%;
     color: #ffffff;
+    transition: var(--transition);
 
     svg {
         transform: rotate(0deg);
@@ -39,6 +40,7 @@
     }
 
     &:disabled {
+        cursor: not-allowed;
         opacity: 0.5 !important;
 
         &:hover {
@@ -52,7 +54,7 @@
     }
 
     &:hover {
-        background: #3468f2 !important;
+        background: #3b4155 !important;
         position: relative;
         --spacing: 3%;
 
@@ -62,7 +64,8 @@
         }
 
         > .showButtons {
-            transform: translateX(calc(var(--spacing) * 30.5));
+            transition: var(--transition);
+            transform: translateX(calc(var(--spacing)* 30.5));
             width: var(--widthMenu);
             margin-left: var(--spacing);
             position: absolute;
@@ -73,9 +76,10 @@
             flex-direction: column;
             justify-content: center;
             align-items: flex-start;
-            background: var(--Main);
-            outline: 1px solid var(--BorderColor);
-            border-radius: var(--BorderRadius);
+            box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
+            background: #1F222B;
+            border-radius: 8px;
+            padding: 7px 0;
 
             &::after {
                 content: '';
@@ -90,6 +94,7 @@
 }
 
 .contextButton {
+    transition: var(--transition);
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -106,19 +111,8 @@
     line-height: 140%;
     color: #ffffff;
 
-    &:first-child {
-        border-radius: var(--BorderRadius) var(--BorderRadius) 0 0;
-    }
-
-    &:last-child {
-        border-radius: 0 0 var(--BorderRadius) var(--BorderRadius);
-    }
-
-    &:last-child:first-child {
-        border-radius: var(--BorderRadius);
-    }
-
     &:disabled {
+        cursor: not-allowed !important;
         opacity: 0.5 !important;
 
         &:hover {
@@ -128,6 +122,6 @@
     }
 
     &:hover {
-        background: #3468f2 !important;
+        background: #3b4155 !important;
     }
 }

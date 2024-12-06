@@ -6,8 +6,9 @@ import DiscordAuth from './../../../../static/assets/icons/discordAuth.svg'
 import HandBlock from './../../../../static/assets/icons/handBlock.svg'
 import UserBlock from './../../../../static/assets/icons/userBlock.svg'
 import { useContext, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import userContext from '../../api/context/user.context'
+import OldHeader from '../../components/layout/old_header'
 
 export default function CallbackPage() {
     const navigate = useNavigate()
@@ -33,7 +34,7 @@ export default function CallbackPage() {
     }, [])
     return (
         <>
-            <Header />
+            <OldHeader />
             <div className={styles.main_window}>
                 <div>
                     <div className={styles.container}>

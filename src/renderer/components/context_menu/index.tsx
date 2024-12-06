@@ -4,95 +4,125 @@ import userContext from '../../api/context/user.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import playerContext from '../../api/context/player.context'
-import hotToast from 'react-hot-toast'
+import hotToast from 'react-hot-toast-magic'
 import toast from '../../api/toast'
-import trackInitials from '../../api/initials/track.initials'
-import config from '../../api/config'
-import getUserToken from '../../api/getUserToken'
-import userInitials from '../../api/initials/user.initials'
 
 interface ContextMenuProps {
-    modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>;
+    modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
 }
 
 interface SectionConfig {
-    title: string;
+    title: string
     buttons: {
-        label: string;
-        onClick: (event?: any) => void;
-        disabled?: boolean;
-    }[];
+        label: string
+        onClick: (event: any) => void
+        disabled?: boolean
+    }[]
+    button?: {
+        label: string
+        onClick: (event: any) => void
+    }
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, setUser, setUpdate } = useContext(userContext)
+    const { app, setApp, setUser } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
-    
+
     const handleOpenModal = () => {
-        modalRef.current?.openModal();
-    };
+        modalRef.current?.openModal()
+    }
 
-    const repatch = () => {
-        window.electron?.patcher?.repatch();
-    };
+    const directoryOpen = () => {
+        window.desktopEvents.send('openPath', { action: 'appPath' })
+    }
 
-    const depatch = () => {
-        window.electron?.patcher?.depatch();
+    const repatch = (e: any) => {
+        toastLoading(e, 'Репатч...')
+        window.electron.patcher.repatch()
+    }
+
+    const depatch = (e: any) => {
+        toastLoading(e, 'Депатч...')
+        window.electron.patcher.depatch()
         setApp({
             ...app,
             patcher: {
                 ...app.patcher,
                 patched: false,
             },
-        });
-    };
-
-    const logout = () => {
-        fetch(config.SERVER_URL + '/auth/logout', {
-            method: 'PUT',
-            headers: {
-                authorization: `Bearer: ${getUserToken()}`,
-            },
-        }).then(async (r) => {
-            const res = await r.json();
-            if (res.ok) {
-                toast.success('Успешный выход');
-                window.electron.store.delete('tokens.token');
-                setUser(userInitials);
-            }
-        });
-    };
+        })
+    }
 
     const githubLink = () => {
         window.open(
             'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts',
-        );
-    };
+        )
+    }
 
     const enableFunc = (type: string, status: boolean) => {
-        const updatedSettings = { ...app.settings };
+        const updatedSettings = { ...app.settings }
         switch (type) {
             case 'autoTray':
-                updatedSettings.autoStartInTray = status;
-                window.electron.store.set('settings.autoStartInTray', status);
-                break;
+                updatedSettings.autoStartInTray = status
+                window.electron.store.set('settings.autoStartInTray', status)
+                break
             case 'autoStart':
-                updatedSettings.autoStartApp = status;
-                window.electron.store.set('settings.autoStartApp', status);
-                window.desktopEvents?.send('autoStartApp', status);
-                break;
+                updatedSettings.autoStartApp = status
+                window.electron.store.set('settings.autoStartApp', status)
+                window.desktopEvents?.send('autoStartApp', status)
+                break
             case 'autoStartMusic':
-                updatedSettings.autoStartMusic = status;
-                window.electron.store.set('settings.autoStartMusic', status);
-                break;
+                updatedSettings.autoStartMusic = status
+                window.electron.store.set('settings.autoStartMusic', status)
+                break
         }
-        setApp({ ...app, settings: updatedSettings });
-    };
+        setApp({ ...app, settings: updatedSettings })
+    }
 
     const downloadTrack = (event: any) => {
-        event.stopPropagation();
-        toast.error("Временно не работает");
-    };
+        let toastId: string
+        console.log(currentTrack)
+        toastId = hotToast.loading('Загрузка...', {
+            style: {
+                background: '#292C36',
+                color: '#ffffff',
+                border: 'solid 1px #363944',
+                borderRadius: '8px',
+            },
+        })
+
+        window.desktopEvents?.on(
+            'download-track-progress',
+            (event, value) => {
+                toast.loading(
+                    <>
+                        <span>Загрузка</span>
+                        <b style={{marginLeft: '.5em'}}>
+                            {Math.floor(value)}%
+                        </b>
+                    </>,
+                    {
+                        id: toastId,
+                    },
+                )
+            },
+        )
+        window.electron.downloadTrack({
+            track: currentTrack,
+            url: currentTrack.url
+        })
+
+        window.desktopEvents?.once('download-track-cancelled', () =>
+            hotToast.dismiss(toastId),
+        )
+        window.desktopEvents?.once('download-track-failed', () =>
+            toast.error('Ошибка загрузки трека', {id: toastId}),
+        )
+        window.desktopEvents?.once('download-track-finished', () => {
+            toast.success('Загрузка завершена', {id: toastId})
+            window.desktopEvents?.removeAllListeners('download-track-progress')
+        })
+    }
 
     const buttonConfigs: SectionConfig[] = [
         {
@@ -153,13 +183,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             title: 'Музыка',
             buttons: [
                 {
-                    label: `Скачать ${currentTrack.playerBarTitle} в папку музыка`,
+                    label: `Скачать ${currentTrack.title} в папку музыка`,
                     onClick: downloadTrack,
-                    disabled: !currentTrack.id,
+                    disabled: !currentTrack.url,
                 },
                 {
                     label: 'Директория со скаченной музыкой',
-                    onClick: () => window.desktopEvents.send('openPath', 'musicPath'),
+                    onClick: () =>
+                        window.desktopEvents.send('openPath', {
+                            action: 'musicPath',
+                        }),
                 },
             ],
         },
@@ -177,15 +210,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 {
                     label: 'Собрать логи в архив',
                     onClick: () => {
-                        window.desktopEvents.send('getLogArchive');
-                        toast.success('Успешно');
+                        window.desktopEvents.send('getLogArchive')
+                        toast.success('Успешно')
                     },
                 },
             ],
         },
-    ];
-  
-      const toastLoading = (event: any, title: string) => {
+    ]
+
+    const toastLoading = (event: any, title: string) => {
         let toastId: string
         toastId = hotToast.loading(title, {
             style: {
@@ -214,10 +247,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             }
             window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
         }
-
+        window.desktopEvents?.on('UPDATE_APP_DATA', handleUpdateAppData)
+    }
     return (
         <div className={styles.patchMenu}>
-            {buttonConfigs.map((section) => (
+            <button className={styles.contextButton} onClick={directoryOpen}>
+                Директория приложения
+            </button>
+            {buttonConfigs.map(section => (
                 <div className={styles.innerFunction} key={section.title}>
                     {section.title}
                     <ArrowContext />
@@ -235,11 +272,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     </div>
                 </div>
             ))}
-            <button className={styles.contextButton} onClick={logout}>
-                Выйти
-            </button>
         </div>
-    );
-};
+    )
+}
 
-export default ContextMenu;
+export default ContextMenu

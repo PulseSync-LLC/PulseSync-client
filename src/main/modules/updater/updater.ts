@@ -25,21 +25,19 @@ class Updater {
     private updateStatus: UpdateStatus = UpdateStatus.IDLE
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
-    private logger
     private commonConfig: any
 
     constructor() {
-        this.logger = logger
         this.commonConfig = this.commonConfig || {}
-        autoUpdater.logger = require('electron-log')
+        autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
 
         autoUpdater.on('error', error => {
-            this.logger.updater.log('Updater error', error)
+            logger.updater.log('Updater error', error)
         })
 
         autoUpdater.on('checking-for-update', () => {
-            this.logger.updater.log('Checking for update')
+            logger.updater.log('Checking for update')
         })
         autoUpdater.on('download-progress', (info: ProgressInfo) => {
             mainWindow.setProgressBar(info.percent / 100)
@@ -49,10 +47,10 @@ class Updater {
             )
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
-            this.logger.updater.log('Update downloaded', updateInfo.version)
+            logger.updater.log('Update downloaded', updateInfo.version)
 
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
-                this.logger.updater.log('This update should be installed now')
+                logger.updater.log('This update should be installed now')
                 this.install()
                 return
             }
@@ -63,7 +61,7 @@ class Updater {
                     this.commonConfig.DEPRECATED_VERSIONS,
                 )
                 if (isDeprecatedVersion) {
-                    this.logger.updater.log(
+                    logger.updater.log(
                         'This version is deprecated',
                         app.getVersion(),
                         this.commonConfig.DEPRECATED_VERSIONS,
@@ -84,18 +82,18 @@ class Updater {
         const { downloadPromise, updateInfo } = updateResult
 
         if (updateInfo.updateUrgency !== undefined) {
-            this.logger.updater.info('Urgency', updateInfo.updateUrgency)
+            logger.updater.info('Urgency', updateInfo.updateUrgency)
         }
 
         if (updateInfo.commonConfig !== undefined) {
-            this.logger.updater.info('Common config', updateInfo.commonConfig)
+            logger.updater.info('Common config', updateInfo.commonConfig)
             for (const key in updateInfo.commonConfig) {
                 if (updateInfo.commonConfig.hasOwnProperty(key)) {
                     if (!this.commonConfig) {
                         this.commonConfig = {}
                     }
                     this.commonConfig[key] = updateInfo.commonConfig[key]
-                    this.logger.updater.info(
+                    logger.updater.info(
                         `Updated commonConfig: ${key} = ${updateInfo.commonConfig[key]}`,
                     )
                 }
@@ -109,7 +107,7 @@ class Updater {
             return
         }
 
-        this.logger.updater.info(
+        logger.updater.info(
             'New version available',
             app.getVersion(),
             '->',
@@ -121,7 +119,7 @@ class Updater {
             .then(downloadResult => {
                 if (downloadResult) {
                     this.updateStatus = UpdateStatus.DOWNLOADED
-                    this.logger.updater.info(
+                    logger.updater.info(
                         `Download result: ${downloadResult}`,
                     )
                     mainWindow.webContents.send('download-update-finished')
@@ -132,14 +130,14 @@ class Updater {
             })
             .catch(error => {
                 this.updateStatus = UpdateStatus.IDLE
-                this.logger.updater.error('Downloader error', error)
+                logger.updater.error('Downloader error', error)
                 mainWindow.webContents.send('download-update-failed')
             })
     }
 
     async check(): Promise<UpdateStatus>{
         if (this.updateStatus !== UpdateStatus.IDLE) {
-            this.logger.updater.log(
+            logger.updater.log(
                 'New update is processing',
                 this.updateStatus,
             )
@@ -154,12 +152,12 @@ class Updater {
                 body: `PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения`,
             })
             if (!updateResult) {
-                this.logger.updater.log('No update found')
+                logger.updater.log('No update found')
                 return null
             }
             this.updateApplier(updateResult)
         } catch (error) {
-            this.logger.updater.error('Update check error', error)
+            logger.updater.error('Update check error', error)
         }
         return this.updateStatus
     }
@@ -181,7 +179,7 @@ class Updater {
     }
 
     install() {
-        this.logger.updater.info(
+        logger.updater.info(
             'Installing a new version',
             this.latestAvailableVersion,
         )

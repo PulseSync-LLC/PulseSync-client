@@ -1,3 +1,7 @@
+.ReactModalPortal {
+    z-index: 99999;
+}
+
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -10,15 +14,26 @@
     align-items: center;
     justify-content: center;
     opacity: 0;
-    transition: opacity 0.5s;
+    transition: opacity 0.5s ease;
     overflow: hidden;
 }
+
 .modal-header {
     display: flex;
-    position: relative;
-    flex-direction: row;
     justify-content: space-between;
     align-items: center;
+    padding-bottom: 1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.5em;
+}
+
+.modal-header button svg {
+    width: 20px;
+    height: 20px;
 }
 
 .ReactModal__Overlay--after-open {
@@ -28,28 +43,45 @@
 .ReactModal__Overlay--before-close {
     opacity: 0;
 }
+
 .modal-content {
     outline: none !important;
-    max-width: 500px;
-    transform: translateY(-50px);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    transform: translateY(-20px);
     transition:
-        transform 0.5s,
-        opacity 0.5s;
-    opacity: 0;
-    top: 50%;
-    left: 50%;
-    right: auto;
-    bottom: auto;
+        transform 0.3s ease,
+        opacity 0.3s ease;
     display: flex;
     flex-direction: column;
-    background-color: var(--medium);
+    background-color: #1f222b;
     color: var(--HeaderBarTextColor);
-    width: 400px;
-    height: 400px;
-    padding: 10px 20px 20px;
+    padding: 20px 25px 0px 25px;
     overflow-y: auto;
-    border-radius: 20px;
+    border-radius: 10px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.close-button {
+    transition: var(--transition);
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 5px;
+    border-radius: 40px;
+    gap: 10px;
     border: none;
+    font-weight: 700;
+    font-size: 13px;
+    line-height: 140%;
+    background: transparent;
+    color: #fff;
+}
+
+.close-button:hover {
+    background: #3b4155;
 }
 
 .ReactModal__Content--after-open {
@@ -59,14 +91,63 @@
 
 .ReactModal__Content--before-close {
     opacity: 0;
-    transform: translateY(-50px);
+    transform: translateY(-20px);
 }
 
-.modal-text {
-    position: relative;
-    top: -15%;
+.modal-modules__updateModal___Zx3HN {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5em;
+    padding: 1em;
+}
+
+.modal-modules__version_info___OPXJb {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5em;
+}
+
+.modal-modules__version_info___OPXJb h3 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.modal-modules__version_info___OPXJb span {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.modal-modules__updateModal___Zx3HN > div {
+    background: #292c36;
+    padding: 20px;
+    border-radius: 12px;
+}
+
+.modal-modules__updateModal___Zx3HN p {
+    margin: 0.5em 0;
+    line-height: 1.5;
+}
+
+.modal-modules__updateModal___Zx3HN ul {
+    padding-left: 1.5em;
+    margin: 0.5em 0;
+}
+
+.modal-modules__updateModal___Zx3HN li {
+    margin-bottom: 0.5em;
+    line-height: 1.5;
+}
+
+.modal-modules__updateModal___Zx3HN hr {
+    display: none;
 }
 
 em {
     font-style: italic !important;
+}
+
+del {
+    text-decoration: line-through;
+    color: rgba(255, 255, 255, 0.6);
 }

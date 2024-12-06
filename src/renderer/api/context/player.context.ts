@@ -1,9 +1,9 @@
 import { createContext } from 'react'
-import { Track } from 'yandex-music-client'
-import TrackInterface from '../interfaces/track.interface'
+import { Track } from '../interfaces/track.interface'
 
 interface p {
-    currentTrack?: TrackInterface
+    currentTrack?: Track
+    setTrack?: (data: any) => void
     state?: boolean
     highQuality?: boolean
     muted?: boolean
@@ -24,6 +24,7 @@ interface p {
 }
 
 const PlayerContext = createContext<p>({
+    setTrack: () => void 0,
     shuffle: false,
     state: false,
     loading: false,
