@@ -95,8 +95,10 @@ out/
 .idea
 yarn.lock
 
+config.ts
 config.json
 release
+
 
 PulseSync.cer
 PulseSync.pfx

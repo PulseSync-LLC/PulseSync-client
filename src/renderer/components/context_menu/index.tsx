@@ -87,16 +87,20 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const toggleSetting = (type: string, status: boolean) => {
         const updatedSettings = { ...app.settings }
-        if (type === 'autoTray') {
-            updatedSettings.autoStartInTray = status
-            window.electron.store.set('settings.autoStartInTray', status)
-        } else if (type === 'autoStart') {
-            updatedSettings.autoStartApp = status
-            window.electron.store.set('settings.autoStartApp', status)
-            window.desktopEvents?.send('autoStartApp', status)
-        } else if (type === 'autoStartMusic') {
-            updatedSettings.autoStartMusic = status
-            window.electron.store.set('settings.autoStartMusic', status)
+        switch (type) {
+            case 'autoTray':
+                updatedSettings.autoStartInTray = status
+                window.electron.store.set('settings.autoStartInTray', status)
+                break
+            case 'autoStart':
+                updatedSettings.autoStartApp = status
+                window.electron.store.set('settings.autoStartApp', status)
+                window.desktopEvents?.send('autoStartApp', status)
+                break
+            case 'autoStartMusic':
+                updatedSettings.autoStartMusic = status
+                window.electron.store.set('settings.autoStartMusic', status)
+                break
         }
         setApp({ ...app, settings: updatedSettings })
     }

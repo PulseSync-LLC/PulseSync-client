@@ -155,7 +155,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners('update-available')
             ;(window as any).__listenersAdded = false
         }
-    }, [patcherInfo, setApp, setUpdate])
+    }, [patcherInfo])
 
     const startUpdate = () => {
         if (isUpdating) {
