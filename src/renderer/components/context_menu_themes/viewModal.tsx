@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as cm from './viewModal.module.scss'
-import { SectionConfig } from './sectionConfig'
+import { MenuItem  } from './sectionConfig'
 
 interface ContextMenuProps {
-    items: SectionConfig[]
+    items: MenuItem[]
 }
 
 interface ContextMenuProps {
-    items: SectionConfig[]
+    items: MenuItem[]
 }
 
 const viewModal: React.FC<ContextMenuProps> = ({
