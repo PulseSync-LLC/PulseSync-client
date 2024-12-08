@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { Helmet } from 'react-helmet'
+import {Helmet} from "react-helmet"
 import {
     MdConnectWithoutContact,
     MdDownload,

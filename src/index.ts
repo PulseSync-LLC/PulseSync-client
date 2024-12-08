@@ -67,12 +67,12 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     height: 40,
 })
 app.setAppUserModelId('pulsesync.app')
-// Sentry.init({
-//     debug: false,
-//     dsn: config.SENTRY_DSN,
-//     enableRendererProfiling: true,
-//     enableTracing: true,
-// })
+Sentry.init({
+    debug: false,
+    dsn: config.SENTRY_DSN,
+    enableRendererProfiling: true,
+    enableTracing: true,
+})
 
 function checkCLIArguments() {
     const args = process.argv.slice(1)
@@ -195,6 +195,17 @@ protocol.registerSchemesAsPrivileged([
     },
     {
         scheme: 'wss',
+        privileges: {
+            standard: true,
+            bypassCSP: true,
+            allowServiceWorkers: true,
+            supportFetchAPI: true,
+            corsEnabled: true,
+            stream: true,
+        },
+    },
+    {
+        scheme: 'sentry-ipc',
         privileges: {
             standard: true,
             bypassCSP: true,
