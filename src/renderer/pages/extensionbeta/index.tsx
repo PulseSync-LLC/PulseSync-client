@@ -13,6 +13,7 @@ import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefr
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import { motion } from 'framer-motion'
 
 export default function ExtensionPage() {
     const [currentThemeName, setCurrentThemeName] = useState(
@@ -184,6 +185,21 @@ export default function ExtensionPage() {
     const showFilter = () => setFilterVisible(true)
     const hideFilter = () => setFilterVisible(false)
 
+    const containerVariants = {
+        hidden: { opacity: 0 },
+        visible: {
+            opacity: 1,
+            transition: {
+                staggerChildren: 0.1,
+            },
+        },
+    }
+
+    const itemVariants = {
+        hidden: { opacity: 0, y: 40 },
+        visible: { opacity: 1, y: 0 },
+    }
+
     return (
         <Layout title="Стилизация">
             <div className={globalStyles.page}>
@@ -270,6 +286,42 @@ export default function ExtensionPage() {
                                                 extensionStyles.tagsLabel
                                             }
                                         >
+                                            Колонки:{' '}
+                                        </div>
+                                        <div
+                                            className={
+                                                extensionStyles.tagsContainer
+                                            }
+                                        >
+                                            {[2, 3, 4].map(count => (
+                                                <CustomCheckbox
+                                                    key={count}
+                                                    checked={
+                                                        columnsCount === count
+                                                    }
+                                                    onChange={() =>
+                                                        handleColumnsChange(
+                                                            count,
+                                                        )
+                                                    }
+                                                    label={`${count} колонок`}
+                                                    className={
+                                                        columnsCount === count
+                                                            ? extensionStyles.selectedTag
+                                                            : ''
+                                                    }
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div
+                                        className={extensionStyles.tagsSection}
+                                    >
+                                        <div
+                                            className={
+                                                extensionStyles.tagsLabel
+                                            }
+                                        >
                                             Tags
                                         </div>
                                         <div
@@ -308,42 +360,6 @@ export default function ExtensionPage() {
                                             ))}
                                         </div>
                                     </div>
-                                    <div
-                                        className={extensionStyles.tagsSection}
-                                    >
-                                        <div
-                                            className={
-                                                extensionStyles.tagsLabel
-                                            }
-                                        >
-                                            Колонки:{' '}
-                                        </div>
-                                        <div
-                                            className={
-                                                extensionStyles.tagsContainer
-                                            }
-                                        >
-                                            {[2, 3, 4].map(count => (
-                                                <CustomCheckbox
-                                                    key={count}
-                                                    checked={
-                                                        columnsCount === count
-                                                    }
-                                                    onChange={() =>
-                                                        handleColumnsChange(
-                                                            count,
-                                                        )
-                                                    }
-                                                    label={`${count} колонок`}
-                                                    className={
-                                                        columnsCount === count
-                                                            ? extensionStyles.selectedTag
-                                                            : ''
-                                                    }
-                                                />
-                                            ))}
-                                        </div>
-                                    </div>
                                 </div>
                             )}
                         </div>
@@ -372,28 +388,35 @@ export default function ExtensionPage() {
                                                 className={extensionStyles.line}
                                             ></div>
                                         </div>
-                                        <div
+                                        <motion.div
                                             className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
+                                            variants={containerVariants}
+                                            initial="hidden"
+                                            animate="visible"
                                         >
                                             {filteredEnabledThemes.map(item => (
-                                                <ExtensionCard
+                                                <motion.div
                                                     key={item.name}
-                                                    theme={item}
-                                                    isChecked={true}
-                                                    onCheckboxChange={
-                                                        handleCheckboxChange
-                                                    }
-                                                    className={
-                                                        item.matches
-                                                            ? 'highlight'
-                                                            : 'dimmed'
-                                                    }
-                                                />
+                                                    variants={itemVariants}
+                                                >
+                                                    <ExtensionCard
+                                                        theme={item}
+                                                        isChecked={true}
+                                                        onCheckboxChange={
+                                                            handleCheckboxChange
+                                                        }
+                                                        className={
+                                                            item.matches
+                                                                ? 'highlight'
+                                                                : 'dimmed'
+                                                        }
+                                                    />
+                                                </motion.div>
                                             ))}
-                                        </div>
+                                        </motion.div>
                                     </div>
                                 )}
                                 {filteredDisabledThemes.length > 0 && (
@@ -418,30 +441,37 @@ export default function ExtensionPage() {
                                                 className={extensionStyles.line}
                                             ></div>
                                         </div>
-                                        <div
+                                        <motion.div
                                             className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
+                                            variants={containerVariants}
+                                            initial="hidden"
+                                            animate="visible"
                                         >
                                             {filteredDisabledThemes.map(
                                                 item => (
-                                                    <ExtensionCard
+                                                    <motion.div
                                                         key={item.name}
-                                                        theme={item}
-                                                        isChecked={false}
-                                                        onCheckboxChange={
-                                                            handleCheckboxChange
-                                                        }
-                                                        className={
-                                                            item.matches
-                                                                ? 'highlight'
-                                                                : 'dimmed'
-                                                        }
-                                                    />
+                                                        variants={itemVariants}
+                                                    >
+                                                        <ExtensionCard
+                                                            theme={item}
+                                                            isChecked={false}
+                                                            onCheckboxChange={
+                                                                handleCheckboxChange
+                                                            }
+                                                            className={
+                                                                item.matches
+                                                                    ? 'highlight'
+                                                                    : 'dimmed'
+                                                            }
+                                                        />
+                                                    </motion.div>
                                                 ),
                                             )}
-                                        </div>
+                                        </motion.div>
                                     </div>
                                 )}
                             </div>
