@@ -67,12 +67,12 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     height: 40,
 })
 app.setAppUserModelId('pulsesync.app')
-Sentry.init({
-    debug: false,
-    dsn: config.SENTRY_DSN,
-    enableRendererProfiling: true,
-    enableTracing: true,
-})
+// Sentry.init({
+//     debug: false,
+//     dsn: config.SENTRY_DSN,
+//     enableRendererProfiling: true,
+//     enableTracing: true,
+// })
 
 function checkCLIArguments() {
     const args = process.argv.slice(1)

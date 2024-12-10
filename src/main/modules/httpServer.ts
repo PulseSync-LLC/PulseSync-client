@@ -77,6 +77,12 @@ const initializeServer = () => {
         socket.on('close', () => {
             logger.main.log('Client disconnected');
             data.status = 'null';
+            mainWindow.webContents.send('trackinfo', {
+                data: {
+                    status: 'pause',
+                    track: trackInitials
+                }
+            })
         });
     });
 
@@ -373,14 +379,17 @@ export const sendTheme = () => {
     );
 }
 
-ipcMain.handle('getTrackInfo', async (event, _) => {
-    if (!data || Object.keys(data).length === 0) {
-        logger.main.log('Returning initial track data');
-        return trackInitials;
-    } else {
-        logger.main.log('Returning current track data');
-        return data;
-    }
-});
+ipcMain.on('getTrackInfo', async (event, _) => {
+    logger.main.log('Returning current track data');
+    if (!ws) return;
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                type: 'getTrackInfo',
+            }),
+        ),
+    );
+})
 
 export default server;

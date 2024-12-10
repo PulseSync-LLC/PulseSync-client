@@ -1,9 +1,21 @@
 import { Track } from '../interfaces/track.interface'
 
 const TrackInitials: Track = {
+    event: '',
+    progress: {
+        duration: 0,
+        loaded: 0,
+        position: 0,
+        played: 0,
+    },
+    queue: [],
+    repeat: 'none',
+    shuffle: false,
+    speed: 1,
+    currentMs: 0,
     status: '',
+    volume: 100,
     linkTitle: '',
-    formatTitle: '',
     albumArt: '',
     timestamps: [0, 0],
     url: '',

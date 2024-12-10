@@ -16,12 +16,13 @@ import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { MdClose, MdContentCopy } from 'react-icons/md'
 import toast from '../../api/toast'
-import { replaceParams } from '../../utils/formatRpc'
+import { replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const context = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
     const [modal, setModal] = useState(false)
     const [modalAnim, setModalAnim] = useState(false)
@@ -89,6 +90,9 @@ export default function TrackInfoPage() {
         return changedValues
     }
     useEffect(() => {
+        console.log(context)
+    }, [context])
+    useEffect(() => {
         setPreviousValues({
             ...(previousValues as any),
             appId: app.discordRpc.appId,
@@ -109,6 +113,7 @@ export default function TrackInfoPage() {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
+                window.desktopEvents?.send('getTrackInfo')
                 setPreviousValues(values)
                 setApp({
                     ...app,
@@ -146,10 +151,10 @@ export default function TrackInfoPage() {
                             imageName={'discord'}
                             onClick={() => {
                                 if (app.discordRpc.status) {
-                                    window.desktopEvents.send('websocket-stop')
+                                    window.desktopEvents.send('getTrackInfo')
                                     window.discordRpc.discordRpc(false)
                                 } else {
-                                    window.desktopEvents.send('websocket-start')
+                                    window.desktopEvents.send('getTrackInfo')
                                     window.discordRpc.discordRpc(true)
                                 }
                                 setApp({
@@ -507,8 +512,7 @@ export default function TrackInfoPage() {
                                                     >
                                                         {app.discordRpc.button
                                                             .length > 0
-                                                            ? app.discordRpc
-                                                                  .button
+                                                            ? truncateLabel(app.discordRpc.button)
                                                             : '✌️ Open in Yandex Music'}
                                                     </div>
                                                     {rickRollClick && (

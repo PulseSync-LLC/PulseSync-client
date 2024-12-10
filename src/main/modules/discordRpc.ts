@@ -15,7 +15,9 @@ let rpcConnected = false
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
-        client.user?.setActivity(activity).catch((e) => {
+        client.user?.setActivity(activity).then((r) => {
+            console.log(r)
+        }).catch((e) => {
             logger.discordRpc.error(e)
         })
     } else if(!changeId){

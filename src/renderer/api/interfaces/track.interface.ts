@@ -1,8 +1,21 @@
+export interface Progress {
+    duration: number;
+    loaded: number;
+    position: number;
+    played: number;
+}
 export interface Track {
+    event: string;
+    progress: Progress;
+    queue: any[];
+    currentMs: number;
+    repeat: string;
+    shuffle: boolean;
+    speed: number;
+    volume: number;
     status: string;
     url: string
     linkTitle: string;
-    formatTitle: string;
     albumArt: string;
     timestamps: number[];
     realId: string;
