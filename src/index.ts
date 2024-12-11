@@ -546,6 +546,9 @@ export async function prestartCheck() {
     if (!store.has('discordRpc.appId')) {
         store.set('discordRpc.appId', '')
     }
+    if (!store.has('settings.closeAppInTray')) {
+        store.set('settings.closeAppInTray', true)
+    }
     if (store.has('discordRpc.status') && store.get('discordRpc.status')) {
         rpc_connect()
     }
