@@ -1031,7 +1031,7 @@ const Header: React.FC<p> = memo(() => {
                             <button
                                 id="close"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.close()}
+                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
                             >
                                 <Close color="#E4E5EA" />
                             </button>
