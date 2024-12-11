@@ -12,14 +12,15 @@ interface ContextMenuProps {
 }
 
 interface SectionItem {
-    label: string
+    label: React.ReactNode
     onClick: (event: any) => void
     disabled?: boolean
 }
 
 interface SectionConfig {
-    title: string
-    buttons: SectionItem[]
+    title?: string
+    buttons?: SectionItem[]
+    content?: React.ReactNode
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
@@ -142,125 +143,146 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
     }
 
-    const buttonConfigs: SectionConfig[] = [
-        {
-            title: 'Патч',
-            buttons: [
-                {
-                    label: 'Патч',
-                    onClick: repatch,
-                    disabled: app.patcher.patched,
-                },
-                {
-                    label: 'Репатч',
-                    onClick: repatch,
-                    disabled: !app.patcher.patched,
-                },
-                {
-                    label: 'Депатч',
-                    onClick: depatch,
-                    disabled: !app.patcher.patched,
-                },
-                {
-                    label: 'Скрипт патчера на GitHub',
-                    onClick: openGitHub,
-                },
-            ],
-        },
-        {
-            title: 'Автотрей',
-            buttons: [
-                {
-                    label: 'Включить',
-                    onClick: () => toggleSetting('autoTray', true),
-                    disabled: app.settings.autoStartInTray,
-                },
-                {
-                    label: 'Выключить',
-                    onClick: () => toggleSetting('autoTray', false),
-                    disabled: !app.settings.autoStartInTray,
-                },
-            ],
-        },
-        {
-            title: 'Автозапуск приложения',
-            buttons: [
-                {
-                    label: 'Включить',
-                    onClick: () => toggleSetting('autoStart', true),
-                    disabled: app.settings.autoStartApp,
-                },
-                {
-                    label: 'Выключить',
-                    onClick: () => toggleSetting('autoStart', false),
-                    disabled: !app.settings.autoStartApp,
-                },
-            ],
-        },
-        {
-            title: 'Музыка',
-            buttons: [
-                {
-                    label: `Скачать ${currentTrack.title} в папку музыка`,
-                    onClick: downloadTrack,
-                    disabled: !currentTrack.url,
-                },
-                {
-                    label: 'Директория со скаченной музыкой',
-                    onClick: () =>
-                        window.desktopEvents.send('openPath', {
-                            action: 'musicPath',
-                        }),
-                },
-            ],
-        },
-        {
-            title: 'Особое',
-            buttons: [
-                {
-                    label: `Beta v${app.info.version}`,
-                    onClick: openModal,
-                },
-                {
-                    label: 'Проверить обновления',
-                    onClick: () => window.desktopEvents?.send('checkUpdate'),
-                },
-                {
-                    label: 'Собрать логи в архив',
-                    onClick: () => {
-                        window.desktopEvents.send('getLogArchive')
-                        toast.success('Успешно')
-                    },
-                },
-            ],
-        },
-    ]
+    const createButtonSection = (
+        title: string,
+        buttons: {
+            label: React.ReactNode
+            onClick: (event: any) => void
+            disabled?: boolean
+        }[],
+    ): SectionConfig => ({
+        title,
+        buttons,
+    })
 
-    return (
-        <div className={menuStyles.patchMenu}>
+    const createContentSection = (content: React.ReactNode): SectionConfig => ({
+        content,
+    })
+
+    const createToggleSection = (
+        title: string,
+        checked: boolean,
+        onToggle: () => void,
+    ): SectionConfig =>
+        createContentSection(
+            <button
+                className={menuStyles.contextButton}
+                onClick={() => {
+                    onToggle()
+                    const newState = !checked
+                    toast.success(
+                        `${title} ${newState ? 'включён' : 'выключен'}`,
+                    )
+                }}
+            >
+                <span>{title}</span>
+                <div className={menuStyles.custom_checkbox_menu}>
+                    <div
+                        className={
+                            checked
+                                ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}`
+                                : menuStyles.custom_checkbox_menu_dot
+                        }
+                    ></div>
+                </div>
+                <div style={{ display: 'none', alignItems: 'center' }}>
+                    <input type="checkbox" checked={checked} readOnly />
+                </div>
+            </button>,
+        )
+
+    const buttonConfigs: SectionConfig[] = [
+        createContentSection(
             <button
                 className={menuStyles.contextButton}
                 onClick={openAppDirectory}
             >
                 Директория приложения
-            </button>
-            {buttonConfigs.map(section => (
-                <div className={menuStyles.innerFunction} key={section.title}>
-                    {section.title}
-                    <ArrowContext />
-                    <div className={menuStyles.showButtons}>
-                        {section.buttons.map((button, index) => (
-                            <button
-                                key={index}
-                                className={menuStyles.contextButton}
-                                onClick={button.onClick}
-                                disabled={button.disabled}
-                            >
-                                {button.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
+            </button>,
+        ),
+        createButtonSection('Патч', [
+            { label: 'Патч', onClick: repatch, disabled: app.patcher.patched },
+            {
+                label: 'Репатч',
+                onClick: repatch,
+                disabled: !app.patcher.patched,
+            },
+            {
+                label: 'Депатч',
+                onClick: depatch,
+                disabled: !app.patcher.patched,
+            },
+            { label: 'Скрипт патчера на GitHub', onClick: openGitHub },
+        ]),
+        createToggleSection('Автотрей', app.settings.autoStartInTray, () =>
+            toggleSetting('autoTray', !app.settings.autoStartInTray),
+        ),
+        createToggleSection(
+            'Автозапуск приложения',
+            app.settings.autoStartApp,
+            () => toggleSetting('autoStart', !app.settings.autoStartApp),
+        ),
+        createButtonSection('Музыка', [
+            {
+                label: `Скачать ${currentTrack.title} в папку музыка`,
+                onClick: downloadTrack,
+                disabled: !currentTrack.url,
+            },
+            {
+                label: 'Директория со скаченной музыкой',
+                onClick: () =>
+                    window.desktopEvents.send('openPath', {
+                        action: 'musicPath',
+                    }),
+            },
+        ]),
+        createButtonSection('Особое', [
+            { label: `Beta v${app.info.version}`, onClick: openModal },
+            {
+                label: 'Проверить обновления',
+                onClick: () => window.desktopEvents?.send('checkUpdate'),
+            },
+            {
+                label: 'Собрать логи в архив',
+                onClick: () => {
+                    window.desktopEvents.send('getLogArchive')
+                    toast.success('Успешно')
+                },
+            },
+        ]),
+    ]
+
+    return (
+        <div className={menuStyles.patchMenu}>
+            {buttonConfigs.map((section, index) => (
+                <React.Fragment key={index}>
+                    {section.content ? (
+                        <div>{section.content}</div>
+                    ) : (
+                        <div className={menuStyles.innerFunction}>
+                            {section.title && (
+                                <>
+                                    {section.title}
+                                    <ArrowContext />
+                                </>
+                            )}
+                            {section.buttons && (
+                                <div className={menuStyles.showButtons}>
+                                    {section.buttons.map((button, i) => (
+                                        <button
+                                            key={i}
+                                            className={menuStyles.contextButton}
+                                            onClick={button.onClick}
+                                            disabled={button.disabled}
+                                        >
+                                            {button.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+                </React.Fragment>
             ))}
         </div>
     )

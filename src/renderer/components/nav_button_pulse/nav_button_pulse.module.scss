@@ -10,11 +10,12 @@
     position: relative;
 
     & > svg {
+        transition: var(--transition);
         fill: var(--NavigationIconDefaultSvgColor);
     }
 
     &:hover {
-        background: var(--NavigationOnColor);
+        background: #292C36;
         &:hover {
             & > svg {
                 fill: white;

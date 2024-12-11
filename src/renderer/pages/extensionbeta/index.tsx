@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -26,6 +26,8 @@ export default function ExtensionPage() {
         window.electron.store.get('themes.hideEnabled') || false,
     )
     const [filterVisible, setFilterVisible] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const buttonRef = useRef<HTMLButtonElement>(null)
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
         new Set(window.electron.store.get('themes.selectedTags') || []),
     )
@@ -182,8 +184,28 @@ export default function ExtensionPage() {
         setColumnsCount(columns)
     }
 
-    const showFilter = () => setFilterVisible(true)
-    const hideFilter = () => setFilterVisible(false)
+    const toggleFilter = () => setFilterVisible(prev => !prev)
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node
+
+            if (
+                filterVisible &&
+                containerRef.current &&
+                !containerRef.current.contains(target) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(target)
+            ) {
+                setFilterVisible(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [filterVisible])
 
     const containerVariants = {
         hidden: { opacity: 0 },
@@ -256,12 +278,13 @@ export default function ExtensionPage() {
                                     <ArrowRefreshImg />
                                 </button>
                                 <button
+                                    ref={buttonRef}
                                     className={`${extensionStyles.toolbarButton} ${
                                         filterVisible
                                             ? extensionStyles.toolbarButtonActive
                                             : ''
                                     }`}
-                                    onMouseEnter={showFilter}
+                                    onClick={toggleFilter}
                                 >
                                     <FilterImg />
                                     {activeTagCount > 0 && (
@@ -276,7 +299,7 @@ export default function ExtensionPage() {
                             {filterVisible && (
                                 <div
                                     className={extensionStyles.containerSearch}
-                                    onMouseLeave={hideFilter}
+                                    ref={containerRef}
                                 >
                                     <div
                                         className={extensionStyles.tagsSection}

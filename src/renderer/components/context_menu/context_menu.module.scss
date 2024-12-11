@@ -9,7 +9,7 @@
     justify-content: center;
     align-items: flex-start;
     box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
-    background: #1F222B;
+    background: #1f222b;
     border-radius: 8px;
     padding: 7px 0;
 }
@@ -65,7 +65,7 @@
 
         > .showButtons {
             transition: var(--transition);
-            transform: translateX(calc(var(--spacing)* 30.5));
+            transform: translateX(calc(var(--spacing) * 30.5));
             width: var(--widthMenu);
             margin-left: var(--spacing);
             position: absolute;
@@ -77,7 +77,7 @@
             justify-content: center;
             align-items: flex-start;
             box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
-            background: #1F222B;
+            background: #1f222b;
             border-radius: 8px;
             padding: 7px 0;
 
@@ -100,6 +100,7 @@
     align-items: center;
     padding: 8px 20px;
     color: white !important;
+    justify-content: space-between;
 
     font-style: normal;
     width: var(--widthMenu) !important;
@@ -123,5 +124,54 @@
 
     &:hover {
         background: #3b4155 !important;
+    }
+
+    &:hover {
+        & > .custom_checkbox_menu {
+            & > .custom_checkbox_menu_dot {
+                animation: shake 0.5s infinite;
+            }
+        }
+    }
+
+    @keyframes shake {
+        0% { transform: translate(-0.5px, 0px) rotate(0deg); }
+        10% { transform: translate(-0.5px, -0.5px) rotate(-0.5deg); }
+        20% { transform: translate(0.5px, 0.5px) rotate(0.5deg); }
+        30% { transform: translate(-0.5px, 0px) rotate(-0.5deg); }
+        40% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
+        50% { transform: translate(-0.5px, 0.5px) rotate(-0.5deg); }
+        60% { transform: translate(0.5px, 0px) rotate(0.5deg); }
+        70% { transform: translate(-0.5px, -0.5px) rotate(-0.5deg); }
+        80% { transform: translate(0.5px, 0.5px) rotate(0.5deg); }
+        90% { transform: translate(-0.5px, 0px) rotate(-0.5deg); }
+        100% { transform: translate(0.5px, 0.5px) rotate(0deg); }
+    }
+
+    & > .custom_checkbox_menu {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 2px;
+        gap: 10px;
+
+        width: 14px;
+        height: 14px;
+
+        outline: 1px solid #ffffff;
+        border-radius: 4px;
+        
+        & > .custom_checkbox_menu_dot {
+            transition: var(--transition);
+            width: 50%;
+            height: 50%;
+            background: #ffffff;
+            border-radius: 2px;
+            
+            &.active {
+                width: 100%;
+                height: 100%;
+            }
+        }
     }
 }

@@ -61,8 +61,8 @@
             height: 16px;
 
             background: #2d3348;
-            outline: 2px solid #545f82;
-            border-radius: 50px;
+            outline: 1px solid #545f82;
+            border-radius: 4px;
 
             .checkbox_slider {
                 transition: var(--transition);
@@ -76,7 +76,7 @@
                 height: 8px;
                 margin: auto;
                 background: #545f82;
-                border-radius: 50px;
+                border-radius: 3px;
             }
         }
     }

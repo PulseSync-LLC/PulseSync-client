@@ -49,6 +49,7 @@ const OldHeader: React.FC<p> = () => {
     const { user, appInfo, app, setUser, setApp } = useContext(userContext)
     const [modal, setModal] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
+    const userCardRef = useRef<HTMLDivElement>(null)
     const fixedTheme = { charCount: inputStyle.charCount }
     const [previousValues, setPreviousValues] = useState({
         appId: '',
@@ -266,12 +267,37 @@ const OldHeader: React.FC<p> = () => {
 
     modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
-        setIsMenuOpen(!isMenuOpen)
+        if (isUserCardOpen) {
+            setIsUserCardOpen(false);
+        }
+        setIsMenuOpen(!isMenuOpen);
     }
 
     const toggleUserContainer = () => {
-        setIsUserCardOpen(!isUserCardOpen)
+        if (isMenuOpen) {
+            setIsMenuOpen(false);
+        }
+        setIsUserCardOpen(!isUserCardOpen);
     }
+
+    useEffect(() => {
+        function handleClickOutside(event: MouseEvent) {
+            const target = event.target as Node
+            
+            if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
+                setIsMenuOpen(false)
+            }
+
+            if (isUserCardOpen && userCardRef.current && !userCardRef.current.contains(target)) {
+                setIsUserCardOpen(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside)
+        }
+    }, [isMenuOpen, isUserCardOpen])
 
     const toggleDiscordRpcContainer = () => {
         setIsDiscordRpcCardOpen(!isDiscordRpcCardOpen)
@@ -441,11 +467,11 @@ const OldHeader: React.FC<p> = () => {
                             >
                                 {user.id != '-1' && <ArrowDown />}
                             </div>
-                            {isMenuOpen && <ContextMenu modalRef={modalRef} />}
                         </button>
+                        {isMenuOpen && <ContextMenu modalRef={modalRef} />}
                     </div>
                     <div className={styles.event_container}>
-                        <div className={styles.menu}>
+                        <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
                                     {/*<div*/}
