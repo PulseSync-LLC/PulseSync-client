@@ -268,27 +268,35 @@ const OldHeader: React.FC<p> = () => {
     modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
         if (isUserCardOpen) {
-            setIsUserCardOpen(false);
+            setIsUserCardOpen(false)
         }
-        setIsMenuOpen(!isMenuOpen);
+        setIsMenuOpen(!isMenuOpen)
     }
 
     const toggleUserContainer = () => {
         if (isMenuOpen) {
-            setIsMenuOpen(false);
+            setIsMenuOpen(false)
         }
-        setIsUserCardOpen(!isUserCardOpen);
+        setIsUserCardOpen(!isUserCardOpen)
     }
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node
-            
-            if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
+
+            if (
+                isMenuOpen &&
+                containerRef.current &&
+                !containerRef.current.contains(target)
+            ) {
                 setIsMenuOpen(false)
             }
 
-            if (isUserCardOpen && userCardRef.current && !userCardRef.current.contains(target)) {
+            if (
+                isUserCardOpen &&
+                userCardRef.current &&
+                !userCardRef.current.contains(target)
+            ) {
                 setIsUserCardOpen(false)
             }
         }
@@ -448,28 +456,30 @@ const OldHeader: React.FC<p> = () => {
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
-                    <div className={styles.app_menu}>
-                        <button
-                            className={styles.logoplace}
-                            onClick={toggleMenu}
-                            disabled={user.id === '-1'}
-                        >
-                            <img
-                                className={styles.logoapp}
-                                src="static/assets/logo/logoapp.svg"
-                                alt=""
-                            />
-                            <span>PulseSync</span>
-                            <div
-                                className={
-                                    isMenuOpen ? styles.true : styles.false
-                                }
+                    {user.id !== '-1' && (
+                        <div className={styles.app_menu}>
+                            <button
+                                className={styles.logoplace}
+                                onClick={toggleMenu}
+                                disabled={user.id === '-1'}
                             >
-                                {user.id != '-1' && <ArrowDown />}
-                            </div>
-                        </button>
-                        {isMenuOpen && <ContextMenu modalRef={modalRef} />}
-                    </div>
+                                <img
+                                    className={styles.logoapp}
+                                    src="static/assets/logo/logoapp.svg"
+                                    alt=""
+                                />
+                                <span>PulseSync</span>
+                                <div
+                                    className={
+                                        isMenuOpen ? styles.true : styles.false
+                                    }
+                                >
+                                    {user.id != '-1' && <ArrowDown />}
+                                </div>
+                            </button>
+                            {isMenuOpen && <ContextMenu modalRef={modalRef} />}
+                        </div>
+                    ) || (<div></div>)}
                     <div className={styles.event_container}>
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (

@@ -143,36 +143,29 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
     }
 
-    const createButtonSection = (
+    function createButtonSection(
         title: string,
-        buttons: {
-            label: React.ReactNode
-            onClick: (event: any) => void
-            disabled?: boolean
-        }[],
-    ): SectionConfig => ({
-        title,
-        buttons,
-    })
+        buttons: SectionItem[],
+    ): SectionConfig {
+        return { title, buttons }
+    }
+    
+    function createContentSection(content: React.ReactNode): SectionConfig {
+        return { content }
+    }
 
-    const createContentSection = (content: React.ReactNode): SectionConfig => ({
-        content,
-    })
-
-    const createToggleSection = (
+    function createToggleSection(
         title: string,
         checked: boolean,
         onToggle: () => void,
-    ): SectionConfig =>
-        createContentSection(
+    ): SectionConfig {
+        return createContentSection(
             <button
                 className={menuStyles.contextButton}
                 onClick={() => {
                     onToggle()
                     const newState = !checked
-                    toast.success(
-                        `${title} ${newState ? 'включён' : 'выключен'}`,
-                    )
+                    toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
                 }}
             >
                 <span>{title}</span>
@@ -185,11 +178,37 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                         }
                     ></div>
                 </div>
-                <div style={{ display: 'none', alignItems: 'center' }}>
-                    <input type="checkbox" checked={checked} readOnly />
-                </div>
             </button>,
         )
+    }
+
+    function createToggleButton(
+        title: string,
+        checked: boolean,
+        onToggle: () => void,
+    ): SectionItem {
+        return {
+            label: (
+                <>
+                    <span>{title}</span>
+                    <div className={menuStyles.custom_checkbox_menu}>
+                        <div
+                            className={
+                                checked
+                                    ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}`
+                                    : menuStyles.custom_checkbox_menu_dot
+                            }
+                        ></div>
+                    </div>
+                </>
+            ),
+            onClick: (event) => {
+                onToggle()
+                const newState = !checked
+                toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
+            },
+        }
+    }
 
     const buttonConfigs: SectionConfig[] = [
         createContentSection(
@@ -228,6 +247,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: downloadTrack,
                 disabled: !currentTrack.url,
             },
+            createToggleButton('Что-то',  true, () =>
+                toggleSetting('что', true),
+            ),
             {
                 label: 'Директория со скаченной музыкой',
                 onClick: () =>

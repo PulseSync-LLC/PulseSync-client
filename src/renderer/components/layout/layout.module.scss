@@ -13,12 +13,12 @@
     width: -webkit-fill-available;
     bottom: 0;
     top: 50px;
-    background: var(--MainBG);
+    // background: var(--MainBG);
     z-index: 8000;
 
     .navigation_bar {
         border-radius: 0px 0px 20px 0px;
-        background: var(--Main);
+        // background: var(--Main);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
