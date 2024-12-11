@@ -146,7 +146,7 @@ export default function TrackInfoPage() {
                         <Container
                             titleName={'Discord RPC'}
                             description={
-                                'Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord.'
+                                'Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord. (Продлена жизнь страницы до 2.1.0)'
                             }
                             imageName={'discord'}
                             onClick={() => {
