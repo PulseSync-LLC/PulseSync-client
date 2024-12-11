@@ -65,8 +65,7 @@
 
         > .showButtons {
             transition: var(--transition);
-            transform: translateX(calc(var(--spacing) * 30.5));
-            width: var(--widthMenu);
+            transform: translateX(calc(var(--spacing)* 24.4));
             margin-left: var(--spacing);
             position: absolute;
             top: 0;
@@ -80,6 +79,7 @@
             background: #1f222b;
             border-radius: 8px;
             padding: 7px 0;
+            min-width: 322px;
 
             &::after {
                 content: '';
@@ -104,13 +104,11 @@
 
     font-style: normal;
     width: var(--widthMenu) !important;
-    min-width: fit-content;
-    max-width: -webkit-fill-available;
-    min-width: fit-content;
     font-weight: 700 !important;
     font-size: 14px !important;
     line-height: 140%;
-    color: #ffffff;
+
+    min-width: -webkit-fill-available;
 
     &:disabled {
         cursor: not-allowed !important;

@@ -149,7 +149,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     ): SectionConfig {
         return { title, buttons }
     }
-    
+
     function createContentSection(content: React.ReactNode): SectionConfig {
         return { content }
     }
@@ -165,7 +165,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick={() => {
                     onToggle()
                     const newState = !checked
-                    toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
+                    toast.success(
+                        `${title} ${newState ? 'включён' : 'выключен'}`,
+                    )
                 }}
             >
                 <span>{title}</span>
@@ -202,7 +204,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     </div>
                 </>
             ),
-            onClick: (event) => {
+            onClick: event => {
                 onToggle()
                 const newState = !checked
                 toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
@@ -233,21 +235,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             { label: 'Скрипт патчера на GitHub', onClick: openGitHub },
         ]),
-        createToggleSection('Автотрей', app.settings.autoStartInTray, () =>
-            toggleSetting('autoTray', !app.settings.autoStartInTray),
-        ),
-        createToggleSection(
-            'Автозапуск приложения',
-            app.settings.autoStartApp,
-            () => toggleSetting('autoStart', !app.settings.autoStartApp),
-        ),
+        createButtonSection('Настройки приложения', [
+            createToggleButton('Автотрей', app.settings.autoStartInTray, () =>
+                toggleSetting('autoTray', !app.settings.autoStartInTray),
+            ),
+            createToggleButton(
+                'Автозапуск приложения',
+                app.settings.autoStartApp,
+                () => toggleSetting('autoStart', !app.settings.autoStartApp),
+            ),
+            createToggleButton('Скрыть окно при нажатии на «X»', true, () =>
+                toggleSetting('что', true),
+            ),
+        ]),
         createButtonSection('Музыка', [
             {
                 label: `Скачать ${currentTrack.title} в папку музыка`,
                 onClick: downloadTrack,
                 disabled: !currentTrack.url,
             },
-            createToggleButton('Что-то',  true, () =>
+            createToggleButton('Что-то', true, () =>
                 toggleSetting('что', true),
             ),
             {
