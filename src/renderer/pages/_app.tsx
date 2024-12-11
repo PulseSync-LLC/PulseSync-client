@@ -64,6 +64,7 @@ function App() {
 
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
+        path: '/ws',
         autoConnect: false,
         auth: {
             token: getUserToken(),
@@ -310,6 +311,13 @@ function App() {
         setSocketError(1)
         setSocket(null)
         setSocketConnected(false)
+    })
+    socket.on('logout', async (err) => {
+        setUser(userInitials)
+        setSocketError(1)
+        setSocket(null)
+        setSocketConnected(false)
+        await router.navigate('/', { replace: true })
     })
 
     useEffect(() => {
