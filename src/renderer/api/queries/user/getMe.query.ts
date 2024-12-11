@@ -8,7 +8,7 @@ export default gql`
             username
             perms
             id
-
+            createdAt
             badges {
                 uuid
                 name

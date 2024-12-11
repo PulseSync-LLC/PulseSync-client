@@ -23,8 +23,8 @@ contextBridge.exposeInMainWorld('electron', {
         maximize() {
             ipcRenderer.send('electron-window-maximize')
         },
-        close() {
-            ipcRenderer.send('electron-window-close')
+        close(val: boolean) {
+            ipcRenderer.send('electron-window-close', val)
         },
         exit() {
             ipcRenderer.send('electron-window-exit')

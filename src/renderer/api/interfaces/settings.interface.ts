@@ -1,8 +1,9 @@
 export interface Settings {
-    readPolicy: boolean
     autoStartInTray: boolean
     autoStartMusic: boolean
     autoStartApp: boolean
+    closeAppInTray: boolean
+    writeMetadataAfterDownload: boolean
 }
 export interface Info {
     version: string

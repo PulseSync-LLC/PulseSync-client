@@ -16,7 +16,7 @@ const directoryPath = './release'
 const filePath = './release/latest.yml'
 
 fs.readFile(filePath, 'utf8')
-    .then(data => {
+    .then((data) => {
         const latestYml = yaml.parse(data)
 
         latestYml.updateUrgency = 'soft'
@@ -38,11 +38,10 @@ fs.readFile(filePath, 'utf8')
             }
 
             const filesToUpload = files.filter(
-                file =>
+                (file) =>
                     file === 'latest.yml' ||
                     (file.startsWith('pulse') &&
-                        (file.endsWith('.exe') ||
-                            file.endsWith('.exe.blockmap'))),
+                        (file.endsWith('.exe') || file.endsWith('.exe.blockmap'))),
             )
 
             const latestYmlIndex = filesToUpload.indexOf('latest.yml')
@@ -54,7 +53,7 @@ fs.readFile(filePath, 'utf8')
             uploadFilesSequentially(filesToUpload)
         })
     })
-    .catch(err => {
+    .catch((err) => {
         console.error('Error updating latest.yml:', err)
     })
 
@@ -82,10 +81,7 @@ const uploadFile = (fileName: string) => {
                     console.log(`Error uploading file ${fileName}:`, err)
                     reject(err)
                 } else {
-                    console.log(
-                        `File ${fileName} uploaded to S3:`,
-                        data.Location,
-                    )
+                    console.log(`File ${fileName} uploaded to S3:`, data.Location)
                     resolve(data)
                 }
             },

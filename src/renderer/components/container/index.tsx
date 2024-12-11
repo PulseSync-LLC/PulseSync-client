@@ -22,9 +22,7 @@ const Container: React.FC<p> = ({
 }) => {
     return (
         <>
-            <div
-                className={`${styles.container} ${className ? className : ''}`}
-            >
+            <div className={`${styles.container} ${className ? className : ''}`}>
                 <div className={styles.mainContainer}>
                     <div className={styles.left}>
                         <div className={styles.imageContainer}>
@@ -35,9 +33,7 @@ const Container: React.FC<p> = ({
                         </div>
                         <div className={styles.detailPage}>
                             <div className={styles.title}>{titleName}</div>
-                            <div className={styles.description}>
-                                {description}
-                            </div>
+                            <div className={styles.description}>{description}</div>
                         </div>
                     </div>
                     {onClick && <button onClick={onClick}>{buttonName}</button>}

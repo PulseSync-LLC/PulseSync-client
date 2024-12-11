@@ -1,9 +1,4 @@
-import React, {
-    ButtonHTMLAttributes,
-    useContext,
-    useEffect,
-    useState,
-} from 'react'
+import React, { ButtonHTMLAttributes, useContext, useEffect, useState } from 'react'
 import * as styles from './checkbox.module.scss'
 import userContext from '../../api/context/user.context'
 
@@ -43,14 +38,7 @@ const Checkbox: React.FC<Props> = ({
                     break
                 case 'enableGithubButton':
                     setIsActive(
-                        window.electron.store.get(
-                            'discordRpc.enableGithubButton',
-                        ),
-                    )
-                    break
-                case 'readPolicy':
-                    setIsActive(
-                        window.electron.store.get('settings.readPolicy'),
+                        window.electron.store.get('discordRpc.enableGithubButton'),
                     )
                     break
             }
@@ -103,19 +91,6 @@ const Checkbox: React.FC<Props> = ({
                             enableGithubButton: event.target.checked,
                         },
                     })
-                    break
-                case 'readPolicy':
-                    setApp({
-                        ...app,
-                        settings: {
-                            ...app.settings,
-                            readPolicy: event.target.checked,
-                        },
-                    })
-                    window.electron.store.set(
-                        'settings.readPolicy',
-                        event.target.checked,
-                    )
                     break
             }
         }

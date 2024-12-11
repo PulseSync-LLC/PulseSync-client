@@ -22,7 +22,7 @@ export default function ThemePage() {
                     console.log('Received themes:', themes)
                     setThemes(themes)
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error('Error receiving themes:', error)
                 })
         }
@@ -58,20 +58,17 @@ export default function ThemePage() {
                             }
                             imageName={'extension'}
                             onClick={() =>
-                                window.desktopEvents.send(
-                                    'openPath',
-                                    {
-                                        action: 'themePath',
-                                    }
-                                )
+                                window.desktopEvents.send('openPath', {
+                                    action: 'themePath',
+                                })
                             }
                             buttonName={'Директория аддонов'}
                         ></Container>
                         <div className={styles.container30x15}>
                             <div className={theme.grid}>
                                 {themes
-                                    .filter(theme => theme.name != 'Default')
-                                    .map(theme => (
+                                    .filter((theme) => theme.name != 'Default')
+                                    .map((theme) => (
                                         <div>off</div>
                                     ))}
                             </div>

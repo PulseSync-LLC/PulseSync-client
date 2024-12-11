@@ -1,11 +1,11 @@
 import * as semver from 'semver'
 import { app } from 'electron'
-import {autoUpdater, ProgressInfo} from 'electron-updater'
+import { autoUpdater, ProgressInfo } from 'electron-updater'
 import { state } from '../state'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
-import {mainWindow} from "../../../index";
+import { mainWindow } from '../../../index'
 
 type UpdateInfo = {
     version: string
@@ -32,7 +32,7 @@ class Updater {
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
 
-        autoUpdater.on('error', error => {
+        autoUpdater.on('error', (error) => {
             logger.updater.log('Updater error', error)
         })
 
@@ -41,10 +41,7 @@ class Updater {
         })
         autoUpdater.on('download-progress', (info: ProgressInfo) => {
             mainWindow.setProgressBar(info.percent / 100)
-            mainWindow.webContents.send(
-                'download-update-progress',
-                info.percent,
-            )
+            mainWindow.webContents.send('download-update-progress', info.percent)
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
@@ -72,7 +69,7 @@ class Updater {
             }
 
             this.latestAvailableVersion = updateInfo.version
-            this.onUpdateListeners.forEach(listener =>
+            this.onUpdateListeners.forEach((listener) =>
                 listener(updateInfo.version),
             )
         })
@@ -116,39 +113,37 @@ class Updater {
         this.updateStatus = UpdateStatus.DOWNLOADING
 
         downloadPromise
-            .then(downloadResult => {
+            .then((downloadResult) => {
                 if (downloadResult) {
                     this.updateStatus = UpdateStatus.DOWNLOADED
-                    logger.updater.info(
-                        `Download result: ${downloadResult}`,
-                    )
+                    logger.updater.info(`Download result: ${downloadResult}`)
                     mainWindow.webContents.send('download-update-finished')
                     mainWindow.webContents.send('UPDATE_APP_DATA', {
                         update: true,
                     })
                 }
             })
-            .catch(error => {
+            .catch((error) => {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
                 mainWindow.webContents.send('download-update-failed')
             })
     }
 
-    async check(): Promise<UpdateStatus>{
+    async check(): Promise<UpdateStatus> {
         if (this.updateStatus !== UpdateStatus.IDLE) {
-            logger.updater.log(
-                'New update is processing',
-                this.updateStatus,
-            )
-            if(this.updateStatus === UpdateStatus.DOWNLOADED)
-                mainWindow.webContents.send('update-available', this.latestAvailableVersion)
+            logger.updater.log('New update is processing', this.updateStatus)
+            if (this.updateStatus === UpdateStatus.DOWNLOADED)
+                mainWindow.webContents.send(
+                    'update-available',
+                    this.latestAvailableVersion,
+                )
             return this.updateStatus
         }
 
         try {
             const updateResult = await autoUpdater.checkForUpdatesAndNotify({
-                title: "Новое обновление готово к установке",
+                title: 'Новое обновление готово к установке',
                 body: `PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения`,
             })
             if (!updateResult) {
@@ -179,10 +174,7 @@ class Updater {
     }
 
     install() {
-        logger.updater.info(
-            'Installing a new version',
-            this.latestAvailableVersion,
-        )
+        logger.updater.info('Installing a new version', this.latestAvailableVersion)
         state.willQuit = true
         autoUpdater.quitAndInstall(true, true)
     }

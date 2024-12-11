@@ -23,10 +23,7 @@ const Modal: React.FC<p> = ({ title, isOpen, reqClose, children }) => {
         >
             <div className="modal-header">
                 <h2>{title}</h2>
-                <Button
-                    className="close-button"
-                    onClick={reqClose}
-                >
+                <Button className="close-button" onClick={reqClose}>
                     <IoCloseSharp size={20} style={{ color: 'var(--white)' }} />
                 </Button>
             </div>

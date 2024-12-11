@@ -19,11 +19,7 @@ const getNativeImg = (name: string, ext: string, useFor?: string) => {
           )
         : path.join(__dirname, '..', '..', 'static', 'assets')
 
-    const filePath = path.join(
-        basePath,
-        useFor ? useFor + '/' : '',
-        `${name}${ext}`,
-    )
+    const filePath = path.join(basePath, useFor ? useFor + '/' : '', `${name}${ext}`)
     return nativeImage.createFromPath(filePath)
 }
 export function convertToMP3(
@@ -37,12 +33,12 @@ export function convertToMP3(
         )
 
         ffmpeg(inputFilePath)
-            .audioCodec('libmp3lame') 
+            .audioCodec('libmp3lame')
             .audioBitrate(320)
             .on('start', () => {
                 console.log(`Начата конвертация файла: ${inputFilePath}`)
             })
-            .on('error', err => {
+            .on('error', (err) => {
                 console.error(`Ошибка конвертации: ${err.message}`)
                 reject(err)
             })
@@ -55,7 +51,10 @@ export function convertToMP3(
             .save(outputFilePath)
     })
 }
-export async function handleFileConversion(inputFilePath: string, outputDir: string) {
+export async function handleFileConversion(
+    inputFilePath: string,
+    outputDir: string,
+) {
     const extension = path.extname(inputFilePath).toLowerCase()
     if (['.flac', '.aac'].includes(extension)) {
         try {

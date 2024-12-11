@@ -81,9 +81,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const openGitHub = () => {
-        window.open(
-            'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts',
-        )
+        window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts')
     }
 
     const toggleSetting = (type: string, status: boolean) => {
@@ -101,6 +99,20 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'autoStartMusic':
                 updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
+                break
+            case 'writeMetadataToggle':
+                updatedSettings.writeMetadataAfterDownload = status
+                window.electron.store.set(
+                    'settings.writeMetadataAfterDownload',
+                    status,
+                )
+                break
+            case 'closeAppInTray':
+                updatedSettings.closeAppInTray = status
+                window.electron.store.set(
+                    'settings.closeAppInTray',
+                    status,
+                )
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -129,6 +141,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.electron.downloadTrack({
             track: currentTrack,
             url: currentTrack.url,
+            metadata: app.settings.writeMetadataAfterDownload,
         })
 
         window.desktopEvents?.once('download-track-cancelled', () =>
@@ -165,9 +178,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick={() => {
                     onToggle()
                     const newState = !checked
-                    toast.success(
-                        `${title} ${newState ? 'включён' : 'выключен'}`,
-                    )
+                    toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
                 }}
             >
                 <span>{title}</span>
@@ -204,7 +215,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     </div>
                 </>
             ),
-            onClick: event => {
+            onClick: (event) => {
                 onToggle()
                 const newState = !checked
                 toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
@@ -214,10 +225,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const buttonConfigs: SectionConfig[] = [
         createContentSection(
-            <button
-                className={menuStyles.contextButton}
-                onClick={openAppDirectory}
-            >
+            <button className={menuStyles.contextButton} onClick={openAppDirectory}>
                 Директория приложения
             </button>,
         ),
@@ -244,8 +252,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 app.settings.autoStartApp,
                 () => toggleSetting('autoStart', !app.settings.autoStartApp),
             ),
-            createToggleButton('Скрыть окно при нажатии на «X»', true, () =>
-                toggleSetting('что', true),
+            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
+                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
         createButtonSection('Музыка', [
@@ -254,8 +262,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: downloadTrack,
                 disabled: !currentTrack.url,
             },
-            createToggleButton('Что-то', true, () =>
-                toggleSetting('что', true),
+            createToggleButton(
+                'Запись метаданных в трек',
+                app.settings.writeMetadataAfterDownload,
+                () =>
+                    toggleSetting(
+                        'writeMetadataToggle',
+                        !app.settings.writeMetadataAfterDownload,
+                    ),
             ),
             {
                 label: 'Директория со скаченной музыкой',

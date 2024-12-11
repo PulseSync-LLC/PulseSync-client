@@ -261,9 +261,7 @@ const OldHeader: React.FC<p> = () => {
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
 
-    const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
-        null,
-    )
+    const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(null)
 
     modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
@@ -338,7 +336,7 @@ const OldHeader: React.FC<p> = () => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke('needModalUpdate').then(value => {
+            window.desktopEvents?.invoke('needModalUpdate').then((value) => {
                 if (value) {
                     openModal()
                 }
@@ -394,7 +392,7 @@ const OldHeader: React.FC<p> = () => {
             headers: {
                 authorization: `Bearer ${getUserToken()}`,
             },
-        }).then(async r => {
+        }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
                 toast.success('Успешный выход')
@@ -429,15 +427,11 @@ const OldHeader: React.FC<p> = () => {
 
     return (
         <>
-            <Modal
-                title="Последние обновления"
-                isOpen={modal}
-                reqClose={closeModal}
-            >
+            <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
                 <div className={modalStyles.updateModal}>
                     {memoizedAppInfo
-                        .filter(info => info.version <= app.info.version)
-                        .map(info => (
+                        .filter((info) => info.version <= app.info.version)
+                        .map((info) => (
                             <div key={info.id}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
@@ -456,7 +450,7 @@ const OldHeader: React.FC<p> = () => {
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
-                    {user.id !== '-1' && (
+                    {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
                             <button
                                 className={styles.logoplace}
@@ -479,7 +473,7 @@ const OldHeader: React.FC<p> = () => {
                             </button>
                             {isMenuOpen && <ContextMenu modalRef={modalRef} />}
                         </div>
-                    ) || (<div></div>)}
+                    )) || <div></div>}
                     <div className={styles.event_container}>
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
@@ -773,9 +767,7 @@ const OldHeader: React.FC<p> = () => {
                                                 alt=""
                                             />
                                             <div className={styles.status}>
-                                                <div
-                                                    className={styles.dot}
-                                                ></div>
+                                                <div className={styles.dot}></div>
                                             </div>
                                         </div>
                                         <div className={styles.user_info}>
@@ -809,14 +801,11 @@ const OldHeader: React.FC<p> = () => {
                                             </div> */}
                                             <div className={styles.user_info}>
                                                 <div
-                                                    className={
-                                                        styles.user_banner
-                                                    }
+                                                    className={styles.user_banner}
                                                     style={{
-                                                        backgroundImage:
-                                                            user.banner
-                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
-                                                                : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage: user.banner
+                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
+                                                            : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
                                                     }}
                                                 >
                                                     <div
@@ -824,10 +813,10 @@ const OldHeader: React.FC<p> = () => {
                                                             styles.badges_container
                                                         }
                                                     >
-                                                        {user.badges.length >
-                                                            0 &&
-                                                            user.badges.map(
-                                                                _badge => (
+                                                        {user.badges.length > 0 &&
+                                                            user.badges
+                                                                .sort((a, b) => b.level - a.level)
+                                                                .map((_badge) => (
                                                                     <div
                                                                         className={
                                                                             styles.badge
@@ -856,39 +845,21 @@ const OldHeader: React.FC<p> = () => {
                                                             )}
                                                     </div>
                                                 </div>
-                                                <div
-                                                    className={
-                                                        styles.user_avatar
-                                                    }
-                                                >
+                                                <div className={styles.user_avatar}>
                                                     <img
-                                                        className={
-                                                            styles.avatar
-                                                        }
+                                                        className={styles.avatar}
                                                         src={user.avatar}
                                                         alt=""
                                                     />
-                                                    <div
-                                                        className={
-                                                            styles.status
-                                                        }
-                                                    >
+                                                    <div className={styles.status}>
                                                         <div
-                                                            className={
-                                                                styles.dot
-                                                            }
+                                                            className={styles.dot}
                                                         ></div>
                                                     </div>
                                                 </div>
-                                                <div
-                                                    className={
-                                                        styles.user_details
-                                                    }
-                                                >
+                                                <div className={styles.user_details}>
                                                     <div
-                                                        className={
-                                                            styles.user_info
-                                                        }
+                                                        className={styles.user_info}
                                                     >
                                                         <div
                                                             className={
@@ -917,30 +888,22 @@ const OldHeader: React.FC<p> = () => {
                                                 </div>
                                             </div>
                                             <div
-                                                className={
-                                                    styles.user_menu_buttons
-                                                }
+                                                className={styles.user_menu_buttons}
                                             >
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     disabled
                                                 >
                                                     Друзья
                                                 </button>
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     disabled
                                                 >
                                                     Настройки
                                                 </button>
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     onClick={logout}
                                                 >
                                                     Выйти
@@ -955,25 +918,21 @@ const OldHeader: React.FC<p> = () => {
                             <button
                                 id="hide"
                                 className={styles.button_title}
-                                onClick={() =>
-                                    window.electron.window.minimize()
-                                }
+                                onClick={() => window.electron.window.minimize()}
                             >
                                 <Minus color="#E4E5EA" />
                             </button>
                             <button
                                 id="minimize"
                                 className={styles.button_title}
-                                onClick={() =>
-                                    window.electron.window.maximize()
-                                }
+                                onClick={() => window.electron.window.maximize()}
                             >
                                 <Minimize color="#E4E5EA" />
                             </button>
                             <button
                                 id="close"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.close()}
+                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
                             >
                                 <Close color="#E4E5EA" />
                             </button>

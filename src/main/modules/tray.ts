@@ -46,7 +46,7 @@ function createTray() {
     )
     const menuItem = new MenuItem({
         type: 'checkbox',
-        label: "Discord RPC",
+        label: 'Discord RPC',
         checked: store.get('discordRpc.status'),
         id: 'rpc-status',
         click: async () => {
@@ -76,7 +76,7 @@ function createTray() {
     )
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
-    tray.on('click', event => {
+    tray.on('click', (event) => {
         mainWindow.show()
     })
 }

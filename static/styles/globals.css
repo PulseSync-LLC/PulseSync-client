@@ -202,9 +202,8 @@ form {
         animate-svg-fill-3 0.7s cubic-bezier(0.39, 0.575, 0.565, 1) 0.9s both;
 }
 
-
 /* Общие стили для всех элементов в markdown */
-[class*="markdownText"] {
+[class*='markdownText'] {
     font-family: 'Arial', sans-serif;
     color: #333;
     line-height: 1.6;
@@ -214,36 +213,38 @@ form {
 }
 
 /* Заголовки */
-[class*="markdownText"] h1, [class*="markdownText"] h2, [class*="markdownText"] h3 {
+[class*='markdownText'] h1,
+[class*='markdownText'] h2,
+[class*='markdownText'] h3 {
     color: #d9dadd;
     font-weight: bold;
     margin: 20px 0 10px;
 }
 
-[class*="markdownText"] h1 {
+[class*='markdownText'] h1 {
     font-size: 2.5em;
     border-bottom: 2px solid #d9dadd;
     padding-bottom: 5px;
 }
 
-[class*="markdownText"] h2 {
+[class*='markdownText'] h2 {
     font-size: 2em;
     color: #d9dadd;
 }
 
-[class*="markdownText"] h3 {
+[class*='markdownText'] h3 {
     font-size: 1.5em;
     color: #d9dadd;
 }
 
 /* Абзацы */
-[class*="markdownText"] p {
+[class*='markdownText'] p {
     font-size: 16px;
     margin-bottom: 15px;
 }
 
 /* Изображения */
-[class*="markdownText"] img {
+[class*='markdownText'] img {
     width: 100%;
     max-width: 600px;
     height: auto;
@@ -254,20 +255,22 @@ form {
 }
 
 /* Стиль для ссылок */
-[class*="markdownText"] a {
+[class*='markdownText'] a {
     color: #80a0ff;
     text-decoration: none;
     border-bottom: 2px solid #80a0ff;
-    transition: color 0.3s ease, border-color 0.3s ease;
+    transition:
+        color 0.3s ease,
+        border-color 0.3s ease;
 }
 
-[class*="markdownText"] a:hover {
+[class*='markdownText'] a:hover {
     color: #333;
     border-color: #333;
 }
 
 /* Стиль для цитат */
-[class*="markdownText"] blockquote {
+[class*='markdownText'] blockquote {
     background-color: #171921;
     border-left: 5px solid #75a4ff;
     padding: 15px 20px;
@@ -277,11 +280,11 @@ form {
     color: #75a4ff;
 }
 
-[class*="markdownText"] blockquote p {
+[class*='markdownText'] blockquote p {
     margin: 0;
 }
 
-[class*="markdownText"] blockquote code {
+[class*='markdownText'] blockquote code {
     background-color: #2a314d;
     color: #75a4ff;
     font-size: 14px;
@@ -290,7 +293,7 @@ form {
 }
 
 /* Стиль для таблиц */
-[class*="markdownText"] table {
+[class*='markdownText'] table {
     width: 100%;
     border-collapse: collapse;
     margin: 10px 0;
@@ -300,27 +303,28 @@ form {
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-[class*="markdownText"] table th, [class*="markdownText"] table td {
+[class*='markdownText'] table th,
+[class*='markdownText'] table td {
     padding: 12px 25px;
     text-align: left;
 }
 
-[class*="markdownText"] table th {
+[class*='markdownText'] table th {
     background-color: #333743;
     color: white;
     font-weight: bold;
 }
 
-[class*="markdownText"] table tr:nth-child(even) {
+[class*='markdownText'] table tr:nth-child(even) {
     background-color: #2d303b;
 }
 
-[class*="markdownText"] table tr:hover {
+[class*='markdownText'] table tr:hover {
     background-color: #494f67;
 }
 
 /* Стили для кодов */
-[class*="markdownText"] pre code {
+[class*='markdownText'] pre code {
     display: block;
     padding: 15px;
     margin: 10px 0;
@@ -335,74 +339,74 @@ form {
     overflow-x: auto;
 }
 
-[class*="markdownText"] pre code.language-python {
+[class*='markdownText'] pre code.language-python {
     border-left: 5px solid #f7ea7b;
     color: #f7ea7b;
 }
 
-[class*="markdownText"] pre code.language-html {
+[class*='markdownText'] pre code.language-html {
     border-left: 5px solid #ff9b6b;
     color: #ff9b6b;
 }
 
-[class*="markdownText"] pre code.language-scss {
+[class*='markdownText'] pre code.language-scss {
     border-left: 5px solid #6ec8ff;
     color: #6ec8ff;
 }
 
-[class*="markdownText"] pre code::-webkit-scrollbar {
+[class*='markdownText'] pre code::-webkit-scrollbar {
     height: 8px;
 }
 
-[class*="markdownText"] pre code::-webkit-scrollbar-thumb {
+[class*='markdownText'] pre code::-webkit-scrollbar-thumb {
     background-color: rgba(255, 255, 255, 0.2);
     border-radius: 10px;
 }
 
-[class*="markdownText"] pre code::-webkit-scrollbar-thumb:hover {
+[class*='markdownText'] pre code::-webkit-scrollbar-thumb:hover {
     background-color: rgba(255, 255, 255, 0.5);
 }
 
 /* Стили для списков */
-[class*="markdownText"] ol, [class*="markdownText"] ul {
+[class*='markdownText'] ol,
+[class*='markdownText'] ul {
     margin-left: 20px;
     margin-bottom: 20px;
 }
 
-[class*="markdownText"] ol li, [class*="markdownText"] ul li {
+[class*='markdownText'] ol li,
+[class*='markdownText'] ul li {
     margin-bottom: 10px;
     font-size: 16px;
 }
 
-
-
-[class*="markdownText"] .carousel-container {
+[class*='markdownText'] .carousel-container {
     position: relative;
     width: 100%;
     overflow: hidden;
 }
 
 /* Стиль для самой карусели */
-[class*="markdownText"] .carousel {
+[class*='markdownText'] .carousel {
     display: flex;
     transition: transform 0.5s ease-in-out;
 }
 
 /* Слайды карусели */
-[class*="markdownText"] .carousel-slide {
+[class*='markdownText'] .carousel-slide {
     min-width: 100%;
     transition: 0.3s ease-in-out;
 }
 
-[class*="markdownText"] .carousel-slide img {
+[class*='markdownText'] .carousel-slide img {
     width: 100%;
     height: auto;
     display: block;
 }
 
 /* Кнопки для переключения */
-[class*="markdownText"] .carousel-prev, 
-[class*="markdownText"] .carousel-next {
+[class*='markdownText'] .carousel-prev,
+[class*='markdownText'] .carousel-next {
     position: absolute;
     top: 50%;
     transform: translateY(-50%);
@@ -414,10 +418,10 @@ form {
     font-size: 18px;
 }
 
-[class*="markdownText"] .carousel-prev {
+[class*='markdownText'] .carousel-prev {
     left: 10px;
 }
 
-[class*="markdownText"] .carousel-next {
+[class*='markdownText'] .carousel-next {
     right: 10px;
 }

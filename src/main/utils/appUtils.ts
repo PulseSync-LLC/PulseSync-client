@@ -1,59 +1,61 @@
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import os from 'os';
-import path from 'path';
-import crypto from 'crypto';
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import os from 'os'
+import path from 'path'
+import crypto from 'crypto'
 
-const execAsync = promisify(exec);
+const execAsync = promisify(exec)
 
 interface ProcessInfo {
-    pid: number;
+    pid: number
 }
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     try {
-        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`; // Используем tasklist для поиска процесса
-        const { stdout } = await execAsync(command, { encoding: 'utf8' });
+        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH` // Используем tasklist для поиска процесса
+        const { stdout } = await execAsync(command, { encoding: 'utf8' })
 
-        const processes = stdout.split('\n').filter(line => line.trim() !== '');
-        const yandexProcesses: ProcessInfo[] = [];
+        const processes = stdout.split('\n').filter((line) => line.trim() !== '')
+        const yandexProcesses: ProcessInfo[] = []
 
-        processes.forEach(line => {
-            const parts = line.split('","');
+        processes.forEach((line) => {
+            const parts = line.split('","')
             if (parts.length > 1) {
-                const pidStr = parts[1].replace(/"/g, '').trim();
-                const pid = parseInt(pidStr, 10);
+                const pidStr = parts[1].replace(/"/g, '').trim()
+                const pid = parseInt(pidStr, 10)
                 if (!isNaN(pid)) {
-                    yandexProcesses.push({ pid });
+                    yandexProcesses.push({ pid })
                 }
             }
-        });
+        })
 
-        return yandexProcesses;
+        return yandexProcesses
     } catch (error) {
-        console.error('Error retrieving Yandex Music processes:', error);
-        return [];
+        console.error('Error retrieving Yandex Music processes:', error)
+        return []
     }
 }
 
 export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
-    const yandexProcesses = await getYandexMusicProcesses();
-    return yandexProcesses;
+    const yandexProcesses = await getYandexMusicProcesses()
+    return yandexProcesses
 }
 
 export async function closeYandexMusic(): Promise<void> {
-    const yandexProcesses = await isYandexMusicRunning();
+    const yandexProcesses = await isYandexMusicRunning()
     if (yandexProcesses.length === 0) {
-        console.info('Yandex Music is not running.');
-        return;
+        console.info('Yandex Music is not running.')
+        return
     }
 
     for (const proc of yandexProcesses) {
         try {
-            process.kill(proc.pid);
-            console.info(`Yandex Music process with PID ${proc.pid} has been terminated.`);
+            process.kill(proc.pid)
+            console.info(
+                `Yandex Music process with PID ${proc.pid} has been terminated.`,
+            )
         } catch (error) {
-            console.error(`Error terminating process ${proc.pid}:`, error);
+            console.error(`Error terminating process ${proc.pid}:`, error)
         }
     }
 }
@@ -65,28 +67,26 @@ export async function getPathToYandexMusic() {
             'Yandex Music.app',
             'Contents',
             'Resources',
-        );
+        )
     } else {
         return path.join(
             process.env.LOCALAPPDATA || '',
             'Programs',
             'YandexMusic',
             'resources',
-        );
+        )
     }
 }
 
 export const isMac = () => {
-    return os.platform() === 'darwin';
-};
+    return os.platform() === 'darwin'
+}
 
-export async function calculateSHA256FromAsar(
-    asarPath: string,
-): Promise<string> {
+export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
     return crypto
         .createHash('sha256')
         .update(asarPath) // Здесь предполагается, что asarPath будет содержать файл для хэширования
-        .digest('hex');
+        .digest('hex')
 }
 
-export default closeYandexMusic;
+export default closeYandexMusic

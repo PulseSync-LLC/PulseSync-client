@@ -93,9 +93,7 @@ class Patcher {
 
             exec(deleteCommand, (deleteError, deleteStdout, deleteStderr) => {
                 if (deleteError) {
-                    reject(
-                        `Error deleting source directory: ${deleteError.message}`,
-                    )
+                    reject(`Error deleting source directory: ${deleteError.message}`)
                 } else if (deleteStderr) {
                     reject(`stderr: ${deleteStderr}`)
                 } else {
@@ -117,7 +115,7 @@ class Patcher {
             console.log(`Extracting app.asar to ${destinationDir}...`)
             asar.extractAll(appAsarPath, destinationDir)
 
-            await new Promise(resolve => setTimeout(resolve, 2000))
+            await new Promise((resolve) => setTimeout(resolve, 2000))
 
             const rumScriptPath = this.findRumScript(destinationDir)
 
@@ -367,13 +365,8 @@ class Patcher {
                 setTimeout(async () => {
                     if (isMac()) {
                         try {
-                            const hash =
-                                await calculateSHA256FromAsar(appAsarPath)
-                            const InfoPlist = path.join(
-                                appPath,
-                                '../',
-                                'Info.plist',
-                            )
+                            const hash = await calculateSHA256FromAsar(appAsarPath)
+                            const InfoPlist = path.join(appPath, '../', 'Info.plist')
                             fs.readFile(InfoPlist, 'utf8', (err, data) => {
                                 if (err) {
                                     console.error('Error reading file:', err)
@@ -395,7 +388,7 @@ class Patcher {
                                         InfoPlist,
                                         updatedData,
                                         'utf8',
-                                        err => {
+                                        (err) => {
                                             if (err) {
                                                 console.error(
                                                     'Error writing file:',
@@ -403,9 +396,7 @@ class Patcher {
                                                 )
                                                 return
                                             }
-                                            console.log(
-                                                'File updated successfully',
-                                            )
+                                            console.log('File updated successfully')
                                             store.set('music.hash', match[1])
                                             return true
                                         },

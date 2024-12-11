@@ -77,7 +77,7 @@ app.setAppUserModelId('pulsesync.app')
 function checkCLIArguments() {
     const args = process.argv.slice(1)
     if (args.length > 0 && !isAppDev) {
-        if (args.some(arg => arg.startsWith('pulsesync://'))) {
+        if (args.some((arg) => arg.startsWith('pulsesync://'))) {
             return
         }
         if (args.includes('--updated')) {
@@ -135,7 +135,7 @@ const createWindow = (): void => {
             enableBlinkFeatures: 'WebGL2',
         },
     })
-    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(e => {
+    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((e) => {
         console.error(e)
     })
 
@@ -147,7 +147,7 @@ const createWindow = (): void => {
             mainWindow.moveTop()
         }
     })
-    mainWindow.webContents.setWindowOpenHandler(electronData => {
+    mainWindow.webContents.setWindowOpenHandler((electronData) => {
         shell.openExternal(electronData.url)
         return { action: 'deny' }
     })
@@ -256,12 +256,9 @@ function createDefaultThemeIfNotExists(themesFolderPath: string) {
     try {
         if (!fs.existsSync(defaultThemePath)) {
             fs.mkdirSync(defaultThemePath, { recursive: true })
-            fs.mkdirSync(
-                path.join(themesFolderPath, defaultTheme.name, 'Assets'),
-                {
-                    recursive: true,
-                },
-            )
+            fs.mkdirSync(path.join(themesFolderPath, defaultTheme.name, 'Assets'), {
+                recursive: true,
+            })
 
             const metadataPath = path.join(defaultThemePath, 'metadata.json')
             const cssPath = path.join(defaultThemePath, defaultTheme.css)
@@ -275,20 +272,14 @@ function createDefaultThemeIfNotExists(themesFolderPath: string) {
             fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
             fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
-            logger.main.info(
-                `Themes: default theme created at ${defaultThemePath}.`,
-            )
+            logger.main.info(`Themes: default theme created at ${defaultThemePath}.`)
         }
     } catch (err) {
         logger.main.error('Theme: error creating default theme:', err)
     }
 }
 async function loadThemes(): Promise<Theme[]> {
-    const themesFolderPath = path.join(
-        app.getPath('appData'),
-        'PulseSync',
-        'themes',
-    )
+    const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
 
     try {
         createDefaultThemeIfNotExists(themesFolderPath)
@@ -344,7 +335,7 @@ async function loadThemes(): Promise<Theme[]> {
                                 JSON.stringify(metadata, null, 4),
                                 'utf-8',
                             )
-                            .catch(err => {
+                            .catch((err) => {
                                 logger.main.error(
                                     `Themes: error writing metadata.json in theme ${folder}:`,
                                     err,
@@ -450,9 +441,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
         case 'write-file':
             try {
                 const content =
-                    typeof data === 'string'
-                        ? data
-                        : JSON.stringify(data, null, 2)
+                    typeof data === 'string' ? data : JSON.stringify(data, null, 2)
                 fs.writeFileSync(filePath, content, 'utf8')
                 console.log('Файл успешно записан:', filePath)
                 return { success: true }
@@ -550,6 +539,7 @@ export async function prestartCheck() {
     }
 
     const asarCopy = path.join(musicPath, 'app.backup.asar')
+
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)
     }
@@ -582,11 +572,7 @@ app.on('activate', () => {
 app.on('render-process-gone', (event, webContents, detailed) => {
     const REASON_CRASHED = 'crashed'
     const REASON_OOM = 'oom'
-    logger.renderer.error(
-        'Application crashed',
-        detailed.reason,
-        detailed.exitCode,
-    )
+    logger.renderer.error('Application crashed', detailed.reason, detailed.exitCode)
     if ([REASON_CRASHED, REASON_OOM].includes(detailed.reason)) {
         if (detailed.reason === REASON_CRASHED) {
             logger.renderer.info('Relaunching')
@@ -602,7 +588,7 @@ app.on('render-process-gone', (event, webContents, detailed) => {
     }
 }, 5000) */
 
-eventEmitter.on('dataUpdated', newData => {
+eventEmitter.on('dataUpdated', (newData) => {
     if (mainWindow && mainWindow.webContents) {
         mainWindow.webContents.send('trackinfo', newData)
     }

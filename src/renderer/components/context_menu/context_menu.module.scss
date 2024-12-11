@@ -65,7 +65,7 @@
 
         > .showButtons {
             transition: var(--transition);
-            transform: translateX(calc(var(--spacing)* 24.4));
+            transform: translateX(calc(var(--spacing) * 24.4));
             margin-left: var(--spacing);
             position: absolute;
             top: 0;
@@ -133,17 +133,39 @@
     }
 
     @keyframes shake {
-        0% { transform: translate(-0.5px, 0px) rotate(0deg); }
-        10% { transform: translate(-0.5px, -0.5px) rotate(-0.5deg); }
-        20% { transform: translate(0.5px, 0.5px) rotate(0.5deg); }
-        30% { transform: translate(-0.5px, 0px) rotate(-0.5deg); }
-        40% { transform: translate(0.5px, -0.5px) rotate(0.5deg); }
-        50% { transform: translate(-0.5px, 0.5px) rotate(-0.5deg); }
-        60% { transform: translate(0.5px, 0px) rotate(0.5deg); }
-        70% { transform: translate(-0.5px, -0.5px) rotate(-0.5deg); }
-        80% { transform: translate(0.5px, 0.5px) rotate(0.5deg); }
-        90% { transform: translate(-0.5px, 0px) rotate(-0.5deg); }
-        100% { transform: translate(0.5px, 0.5px) rotate(0deg); }
+        0% {
+            transform: translate(-0.5px, 0px) rotate(0deg);
+        }
+        10% {
+            transform: translate(-0.5px, -0.5px) rotate(-0.5deg);
+        }
+        20% {
+            transform: translate(0.5px, 0.5px) rotate(0.5deg);
+        }
+        30% {
+            transform: translate(-0.5px, 0px) rotate(-0.5deg);
+        }
+        40% {
+            transform: translate(0.5px, -0.5px) rotate(0.5deg);
+        }
+        50% {
+            transform: translate(-0.5px, 0.5px) rotate(-0.5deg);
+        }
+        60% {
+            transform: translate(0.5px, 0px) rotate(0.5deg);
+        }
+        70% {
+            transform: translate(-0.5px, -0.5px) rotate(-0.5deg);
+        }
+        80% {
+            transform: translate(0.5px, 0.5px) rotate(0.5deg);
+        }
+        90% {
+            transform: translate(-0.5px, 0px) rotate(-0.5deg);
+        }
+        100% {
+            transform: translate(0.5px, 0.5px) rotate(0deg);
+        }
     }
 
     & > .custom_checkbox_menu {
@@ -157,14 +179,14 @@
         outline: 1px solid #ffffff;
         border-radius: 4px;
         justify-content: center;
-        
+
         & > .custom_checkbox_menu_dot {
             transition: var(--transition);
             width: 8px;
             height: 8px;
             background: #ffffff00;
             border-radius: 2px;
-            
+
             &.active {
                 width: 12px;
                 height: 12px;

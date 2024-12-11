@@ -2,10 +2,11 @@ import SettingsInterface from '../interfaces/settings.interface'
 
 const settingsInitials: SettingsInterface = {
     settings: {
-        readPolicy: false,
         autoStartInTray: false,
         autoStartMusic: false,
         autoStartApp: false,
+        closeAppInTray: false,
+        writeMetadataAfterDownload: false,
     },
     info: {
         version: '',

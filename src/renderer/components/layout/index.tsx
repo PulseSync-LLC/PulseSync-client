@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import {Helmet} from "react-helmet"
+import { Helmet } from 'react-helmet'
 import {
     MdConnectWithoutContact,
     MdDownload,
@@ -47,10 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
         ;(window as any).__listenersAdded = true
 
-        const handleProgress = (
-            event: any,
-            { progress }: { progress: number },
-        ) => {
+        const handleProgress = (event: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
                 toast.loading(`Прогресс загрузки: ${progress}%`, {
                     id: downloadToastIdRef.current,
@@ -270,9 +267,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                         ? app.patcher.version
                                                         : 'Не установлен'}
                                                 </div>
-                                                <MdKeyboardArrowRight
-                                                    size={14}
-                                                />
+                                                <MdKeyboardArrowRight size={14} />
                                                 <div
                                                     className={
                                                         pageStyles.version_new
@@ -281,22 +276,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                     {patcherInfo[0]?.modVersion}
                                                 </div>
                                             </div>
-                                            <div
-                                                className={
-                                                    pageStyles.alert_title
-                                                }
-                                            >
+                                            <div className={pageStyles.alert_title}>
                                                 {app.patcher.patched
                                                     ? 'Обновление патча'
                                                     : 'Установка патча'}
                                             </div>
-                                            <div
-                                                className={
-                                                    pageStyles.alert_warn
-                                                }
-                                            >
-                                                Убедитесь, что Яндекс Музыка
-                                                закрыта!
+                                            <div className={pageStyles.alert_warn}>
+                                                Убедитесь, что Яндекс Музыка закрыта!
                                             </div>
                                         </div>
                                         <button

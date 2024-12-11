@@ -4,8 +4,8 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { store } from './storage'
 import logger from './logger'
 import config from '../../config.json'
-import {mainWindow} from "../../index";
-import {updateTray} from "./tray";
+import { mainWindow } from '../../index'
+import { updateTray } from './tray'
 
 let clientId
 let client: Client
@@ -15,12 +15,15 @@ let rpcConnected = false
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
-        client.user?.setActivity(activity).then((r) => {
-            console.log(r)
-        }).catch((e) => {
-            logger.discordRpc.error(e)
-        })
-    } else if(!changeId){
+        client.user
+            ?.setActivity(activity)
+            .then((r) => {
+                console.log(r)
+            })
+            .catch((e) => {
+                logger.discordRpc.error(e)
+            })
+    } else if (!changeId) {
         rpc_connect()
     }
 })
@@ -28,14 +31,17 @@ ipcMain.on('discordrpc-discordRpc', (event, val) => {
     setRpcStatus(val)
 })
 function updateAppId(newAppId: string) {
-    if(newAppId === config.CLIENT_ID) return;
+    if (newAppId === config.CLIENT_ID) return
     changeId = true
     store.set('discordRpc.appId', newAppId)
-    client.destroy().then(() => {
-        rpc_connect()
-    }).catch((e) => {
-        logger.discordRpc.error(e);
-    });
+    client
+        .destroy()
+        .then(() => {
+            rpc_connect()
+        })
+        .catch((e) => {
+            logger.discordRpc.error(e)
+        })
 }
 
 ipcMain.on('discordrpc-clearstate', () => {
@@ -43,7 +49,7 @@ ipcMain.on('discordrpc-clearstate', () => {
 })
 
 function rpc_connect() {
-    const customId = store.get("discordRpc.appId")
+    const customId = store.get('discordRpc.appId')
     clientId = customId.length > 0 ? customId : config.CLIENT_ID
     client = new Client({
         clientId,
@@ -55,7 +61,7 @@ function rpc_connect() {
         logger.discordRpc.error(e)
     })
     client.on('ready', () => {
-        if(changeId) changeId = false
+        if (changeId) changeId = false
         rpcConnected = true
         logger.discordRpc.info('discordRpc state: connected')
     })
@@ -90,4 +96,4 @@ export const setRpcStatus = (status: boolean) => {
 const getRpcApp = () => {
     return client.application
 }
-export { rpc_connect, updateAppId, getRpcApp}
+export { rpc_connect, updateAppId, getRpcApp }

@@ -37,8 +37,7 @@ export function useCharCount(
             if (!counterElement) {
                 counterElement = document.createElement('div')
                 counterElement.id = counterId
-                counterElement.className =
-                    theme.charCount || 'default-char-count'
+                counterElement.className = theme.charCount || 'default-char-count'
                 inputElement.parentNode?.insertBefore(
                     counterElement,
                     inputElement.nextSibling,
@@ -54,10 +53,9 @@ export function useCharCount(
 
         const textInputs =
             container.querySelectorAll<HTMLInputElement>('input[type="text"]')
-        const textAreas =
-            container.querySelectorAll<HTMLTextAreaElement>('textarea')
+        const textAreas = container.querySelectorAll<HTMLTextAreaElement>('textarea')
 
-        textInputs.forEach(input => createCharCountElement(input))
-        textAreas.forEach(textarea => createCharCountElement(textarea))
+        textInputs.forEach((input) => createCharCountElement(input))
+        textAreas.forEach((textarea) => createCharCountElement(textarea))
     }, [containerRef, theme])
 }

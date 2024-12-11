@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as cm from './viewModal.module.scss'
-import { MenuItem  } from './sectionConfig'
+import { MenuItem } from './sectionConfig'
 
 interface ContextMenuProps {
     items: MenuItem[]
@@ -10,15 +10,11 @@ interface ContextMenuProps {
     items: MenuItem[]
 }
 
-const viewModal: React.FC<ContextMenuProps> = ({
-    items,
-}) => {
+const viewModal: React.FC<ContextMenuProps> = ({ items }) => {
     return (
-        <div
-            className={`${cm.contextMenu}`}
-        >
+        <div className={`${cm.contextMenu}`}>
             {items
-                .filter(item => item.show)
+                .filter((item) => item.show)
                 .map((item, index) => (
                     <div
                         key={index}

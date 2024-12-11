@@ -5,7 +5,7 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 declare global {
     interface Window {
-        __listenersAdded?: boolean;
+        __listenersAdded?: boolean
         electron: {
             store: {
                 get: (key: string) => any
@@ -16,7 +16,7 @@ declare global {
             window: {
                 maximize: () => void
                 minimize: () => void
-                close: () => void
+                close: (val: boolean) => void
                 exit: () => void
                 isMac: () => boolean
             }
@@ -57,10 +57,7 @@ declare global {
             send: (name: any, ...args: any[]) => void
             on: (
                 name: string,
-                listener: (
-                    event: Electron.IpcRendererEvent,
-                    ...args: any[]
-                ) => void,
+                listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
             ) => void
             once: (
                 channel: string,
@@ -68,10 +65,7 @@ declare global {
             ) => void
             removeListener: (
                 name: string,
-                listener: (
-                    event: Electron.IpcRendererEvent,
-                    ...args: any[]
-                ) => void,
+                listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
             ) => void
             removeAllListeners: (channel: string) => void
             invoke: (name: string, ...args: any[]) => Promise<any>

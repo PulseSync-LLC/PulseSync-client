@@ -30,7 +30,7 @@ async function getDownloadInfo(
     const isAuthorized = true
     const info = isAuthorized
         ? trackInfo
-              .filter(item => item.codec === 'mp3' && !item.preview)
+              .filter((item) => item.codec === 'mp3' && !item.preview)
               .reduce((prev, current) => {
                   if (highRate)
                       return prev.bitrateInKbps > current.bitrateInKbps
@@ -45,7 +45,7 @@ async function getDownloadInfo(
 
     return await fetch(`${info!.downloadInfoUrl}&format=json`, {
         headers,
-    }).then(async res => {
+    }).then(async (res) => {
         return await res.json()
     })
 }

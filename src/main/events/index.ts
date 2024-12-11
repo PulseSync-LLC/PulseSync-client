@@ -1,11 +1,4 @@
-import {
-    app,
-    BrowserWindow,
-    dialog,
-    ipcMain,
-    shell,
-    Notification,
-} from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell, Notification } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
 import https from 'https'
@@ -22,16 +15,15 @@ import { updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
-import NodeID3 from 'node-id3';
-import ffmpeg from 'fluent-ffmpeg';
+import NodeID3 from 'node-id3'
+import ffmpeg from 'fluent-ffmpeg'
 
 const updater = getUpdater()
 let reqModal = 0
-const ffmpegPath = path.join(__dirname, "..", "..", 'modules', 'ffmpeg.exe'); // Для Windows
-ffmpeg.setFfmpegPath(ffmpegPath);
+const ffmpegPath = path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe') // Для Windows
+ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
-
     ipcMain.on('update-install', () => {
         updater.install()
     })
@@ -49,15 +41,18 @@ export const handleEvents = (window: BrowserWindow): void => {
         if (mainWindow.isMaximized()) mainWindow.unmaximize()
         else mainWindow.maximize()
     })
-
-    ipcMain.on('electron-window-close', () => {
+    ipcMain.on('before-quit', async () => {
+        mainWindow.close()
+    })
+    ipcMain.on('electron-window-close', (event, val) => {
+        if(!val) app.quit()
         mainWindow.hide()
     })
 
-    ipcMain.on('electron-corsanywhereport', event => {
+    ipcMain.on('electron-corsanywhereport', (event) => {
         event.returnValue = corsAnywherePort
     })
-    ipcMain.handle('getVersion', async event => {
+    ipcMain.handle('getVersion', async (event) => {
         const version = app.getVersion()
         if (version) return version
     })
@@ -87,7 +82,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                     app.getPath('appData'),
                     'PulseSync',
                     'themes',
-                    data.themeName
+                    data.themeName,
                 )
                 await shell.openPath(themeFolder)
                 break
@@ -98,104 +93,155 @@ export const handleEvents = (window: BrowserWindow): void => {
         'download-track',
         (
             event,
-            val: { url: string; track: Track; /* trackInfo: Track */ },
+            val: {
+                url: string
+                track: Track
+                metadata: boolean /* trackInfo: Track */
+            },
         ) => {
-            const musicDir = app.getPath('music');
-            const downloadDir = path.join(musicDir, 'PulseSyncMusic');
-            const fileExtension = val.url.split('/').reverse()[0].split('.').pop()?.toLowerCase();
-            const cleanedFileExtension = fileExtension === '320' ? 'mp3' : fileExtension;
+            const musicDir = app.getPath('music')
+            const downloadDir = path.join(musicDir, 'PulseSyncMusic')
+            const fileExtension = val.url
+                .split('/')
+                .reverse()[0]
+                .split('.')
+                .pop()
+                ?.toLowerCase()
+            const cleanedFileExtension =
+                fileExtension === '320' ? 'mp3' : fileExtension
 
             dialog
                 .showSaveDialog(mainWindow, {
                     title: 'Сохранить как',
                     defaultPath: path.join(
                         downloadDir,
-                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists.map((x) => x.name).join(", ").replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')}.${cleanedFileExtension}`,
+                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists
+                            .map((x) => x.name)
+                            .join(', ')
+                            .replace(
+                                new RegExp('[?"/\\\\*:\\|<>]', 'g'),
+                                '',
+                            )}.${cleanedFileExtension}`,
                     ),
                     filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })
-                .then(result => {
+                .then((result) => {
                     if (!result.canceled) {
-                        https.get(val.url, response => {
+                        https.get(val.url, (response) => {
                             const totalFileSize = parseInt(
                                 response.headers['content-length'],
                                 10,
-                            );
-                            let downloadedBytes = 0;
+                            )
+                            let downloadedBytes = 0
 
-                            response.on('data', chunk => {
-                                downloadedBytes += chunk.length;
+                            response.on('data', (chunk) => {
+                                downloadedBytes += chunk.length
                                 const percent = getPercent(
                                     downloadedBytes,
                                     totalFileSize,
-                                );
-                                mainWindow.setProgressBar(percent / 100);
+                                )
+                                mainWindow.setProgressBar(percent / 100)
                                 mainWindow.webContents.send(
                                     'download-track-progress',
                                     percent,
-                                );
-                            });
+                                )
+                            })
 
-                            const filePath = result.filePath; // Путь к сохраненному файлу
+                            const filePath = result.filePath // Путь к сохраненному файлу
                             response
                                 .pipe(fs.createWriteStream(filePath))
                                 .on('finish', async () => {
-                                    console.log('Файл успешно загружен:', filePath);
-
-                                    // Проверка формата файла
-                                    const extension = path.extname(filePath).toLowerCase();
-                                    if (['.flac', '.aac'].includes(extension)) {
-                                        console.log('Конвертация в MP3...');
-                                        const mp3Path = filePath.replace(extension, '.mp3');
-                                        try {
-                                            await convertToMP3(filePath, mp3Path);
-                                            fs.unlinkSync(filePath); // Удаление оригинального файла
-                                            console.log('Конвертация завершена:', mp3Path);
-                                            await writeMetadata(mp3Path, val.track);
-                                            mainWindow.webContents.send('download-track-finished');
-                                            shell.showItemInFolder(mp3Path);
-                                        } catch (err) {
-                                            console.error('Ошибка конвертации:', err);
-                                            mainWindow.webContents.send('download-track-failed');
+                                    console.log('File downloaded:', filePath)
+                                    console.log(val.metadata)
+                                    if (val.metadata) {
+                                        const extension = path
+                                            .extname(filePath)
+                                            .toLowerCase()
+                                        if (
+                                            [
+                                                '.flac',
+                                                '.aac',
+                                                '.aac256',
+                                                '.aac128',
+                                                '.aac64g',
+                                            ].includes(extension)
+                                        ) {
+                                            console.log('Converting to MP3...')
+                                            const mp3Path = filePath.replace(
+                                                extension,
+                                                '.mp3',
+                                            )
+                                            try {
+                                                await convertToMP3(filePath, mp3Path)
+                                                fs.unlinkSync(filePath) // Delete the original file
+                                                console.log(
+                                                    'Conversion completed:',
+                                                    mp3Path,
+                                                )
+                                                await writeMetadata(
+                                                    mp3Path,
+                                                    val.track,
+                                                )
+                                                mainWindow.webContents.send(
+                                                    'download-track-finished',
+                                                )
+                                                shell.showItemInFolder(mp3Path)
+                                            } catch (err) {
+                                                console.error(
+                                                    'Conversion error:',
+                                                    err,
+                                                )
+                                                mainWindow.webContents.send(
+                                                    'download-track-failed',
+                                                )
+                                            }
+                                        } else {
+                                            console.log(
+                                                'File is already in MP3 format. Setting metadata...',
+                                            )
+                                            await writeMetadata(filePath, val.track)
+                                            mainWindow.webContents.send(
+                                                'download-track-finished',
+                                            )
+                                            shell.showItemInFolder(filePath)
                                         }
-                                    } else {
-                                        console.log('Файл уже в формате MP3. Установка метаданных...');
-                                        await writeMetadata(filePath, val.track);
-                                        mainWindow.webContents.send('download-track-finished');
-                                        shell.showItemInFolder(filePath);
                                     }
-                                    mainWindow.setProgressBar(-1);
-                                });
-                        });
+                                    mainWindow.webContents.send(
+                                        'download-track-finished',
+                                    )
+                                    shell.showItemInFolder(filePath)
+                                    mainWindow.setProgressBar(-1)
+                                })
+                        })
                     } else {
-                        mainWindow.webContents.send('download-track-cancelled');
+                        mainWindow.webContents.send('download-track-cancelled')
                     }
                 })
-                .catch(() => mainWindow.webContents.send('download-track-failed'));
+                .catch(() => mainWindow.webContents.send('download-track-failed'))
         },
-    );
+    )
 
-// Функция конвертации в MP3
-    function convertToMP3(inputFilePath: string, outputFilePath: string): Promise<void> {
+    function convertToMP3(
+        inputFilePath: string,
+        outputFilePath: string,
+    ): Promise<void> {
         return new Promise((resolve, reject) => {
             ffmpeg(inputFilePath)
-                .audioCodec('libmp3lame') // Кодек MP3
-                .audioBitrate(320) // Высокое качество
+                .audioCodec('libmp3lame')
+                .audioBitrate(320)
                 .on('error', (err) => reject(err))
                 .on('end', () => resolve())
-                .save(outputFilePath);
-        });
+                .save(outputFilePath)
+        })
     }
 
-// Функция для записи метаданных
     async function writeMetadata(filePath: string, track: Track): Promise<void> {
-        let coverRes, coverBuffer;
+        let coverRes, coverBuffer
         if (track?.coverUri) {
             coverRes = await fetch(
-                'https://' +
-                track?.coverUri.replace('%%', '1000x1000'),
-            );
-            coverBuffer = Buffer.from(await coverRes.arrayBuffer());
+                'https://' + track?.coverUri.replace('%%', '1000x1000'),
+            )
+            coverBuffer = Buffer.from(await coverRes.arrayBuffer())
         }
 
         const tags = {
@@ -204,18 +250,18 @@ export const handleEvents = (window: BrowserWindow): void => {
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
-            APIC: coverBuffer || track.coverUri, // Обложка альбома
-        };
+            APIC: coverBuffer || track.coverUri,
+        }
 
-        const success = NodeID3.write(tags, filePath);
+        const success = NodeID3.write(tags, filePath)
         if (success) {
-            console.log('Метаданные успешно записаны:', filePath);
+            console.log('Метаданные успешно записаны:', filePath)
         } else {
-            throw new Error('Ошибка записи метаданных.');
+            throw new Error('Ошибка записи метаданных.')
         }
     }
-    ipcMain.on('get-music-device', event => {
-        si.system().then(data => {
+    ipcMain.on('get-music-device', (event) => {
+        si.system().then((data) => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${
                 data.manufacturer
             }; model=${data.model}; clid=WindowsPhone; device_id=${
@@ -233,7 +279,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.on('updater-start', async (event, data) => {
         await checkOrFindUpdate()
         updater.start()
-        updater.onUpdate(version => {
+        updater.onUpdate((version) => {
             mainWindow.webContents.send('update-available', version)
         })
     })
@@ -256,7 +302,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.on('show-notification', async (event, data) => {
         return new Notification({ title: data.title, body: data.body }).show()
     })
-    ipcMain.handle('needModalUpdate', async event => {
+    ipcMain.handle('needModalUpdate', async (event) => {
         if (reqModal <= 0) {
             reqModal++
             return updated
@@ -294,12 +340,8 @@ export const handleEvents = (window: BrowserWindow): void => {
             arch: os.arch(),
         }
     })
-    ipcMain.on('getLogArchive', async event => {
-        const logDirPath = path.join(
-            app.getPath('appData'),
-            'PulseSync',
-            'logs',
-        )
+    ipcMain.on('getLogArchive', async (event) => {
+        const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
 
         const now = new Date()
         const year = now.getFullYear()
@@ -346,7 +388,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                 shell.showItemInFolder(archivePath)
             })
 
-            archive.on('error', err => {
+            archive.on('error', (err) => {
                 logger.main.error(
                     `Error while creating archive file: ${err.message}`,
                 )
@@ -356,9 +398,7 @@ export const handleEvents = (window: BrowserWindow): void => {
             archive.directory(logDirPath, false)
             await archive.finalize()
         } catch (error) {
-            logger.main.error(
-                `Error while creating archive file: ${error.message}`,
-            )
+            logger.main.error(`Error while creating archive file: ${error.message}`)
         }
     })
     ipcMain.handle('checkSleepMode', async (event, data) => {
@@ -394,10 +434,7 @@ export const handleEvents = (window: BrowserWindow): void => {
             shell.showItemInFolder(outputPath)
             return true
         } catch (error) {
-            logger.main.error(
-                'Error while creating archive file',
-                error.message,
-            )
+            logger.main.error('Error while creating archive file', error.message)
         }
     })
 }

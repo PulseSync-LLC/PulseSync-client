@@ -46,17 +46,13 @@ export default function ExtensionPage() {
                 .then((fetchedThemes: ThemeInterface[]) => {
                     setThemes(fetchedThemes)
                 })
-                .catch(error =>
-                    console.error('Ошибка при загрузке тем:', error),
-                )
+                .catch((error) => console.error('Ошибка при загрузке тем:', error))
         }
     }
 
     useEffect(() => {
         if (selectedTagFromURL) {
-            setSelectedTags(prevTags =>
-                new Set(prevTags).add(selectedTagFromURL),
-            )
+            setSelectedTags((prevTags) => new Set(prevTags).add(selectedTagFromURL))
         }
     }, [selectedTagFromURL])
 
@@ -81,9 +77,7 @@ export default function ExtensionPage() {
         setSearchQuery(event.target.value.toLowerCase())
     }
 
-    const handleHideEnabledChange = (
-        event: React.ChangeEvent<HTMLInputElement>,
-    ) => {
+    const handleHideEnabledChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         setHideEnabled(event.target.checked)
     }
 
@@ -95,8 +89,8 @@ export default function ExtensionPage() {
 
     const filterAndSortThemes = (themeList: ThemeInterface[]) => {
         return themeList
-            .filter(item => item.name !== 'Default')
-            .map(item => ({
+            .filter((item) => item.name !== 'Default')
+            .map((item) => ({
                 ...item,
                 matches:
                     item.name.toLowerCase().includes(searchQuery) ||
@@ -113,12 +107,9 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    const filterThemesByTags = (
-        themeList: ThemeInterface[],
-        tags: Set<string>,
-    ) => {
+    const filterThemesByTags = (themeList: ThemeInterface[], tags: Set<string>) => {
         if (tags.size === 0) return themeList
-        return themeList.filter(item => item.tags?.some(tag => tags.has(tag)))
+        return themeList.filter((item) => item.tags?.some((tag) => tags.has(tag)))
     }
 
     const getFilteredThemes = (themeType: string) => {
@@ -126,8 +117,8 @@ export default function ExtensionPage() {
             filterThemesByTags(themes, selectedTags),
         )
         return themeType === currentThemeName
-            ? filtered.filter(item => item.name === currentThemeName)
-            : filtered.filter(item => item.name !== currentThemeName)
+            ? filtered.filter((item) => item.name === currentThemeName)
+            : filtered.filter((item) => item.name !== currentThemeName)
     }
 
     const enabledThemes = getFilteredThemes(currentThemeName)
@@ -135,10 +126,10 @@ export default function ExtensionPage() {
     const filteredEnabledThemes = hideEnabled ? [] : enabledThemes
     const filteredDisabledThemes = hideEnabled ? disabledThemes : disabledThemes
 
-    const allTags = Array.from(new Set(themes.flatMap(item => item.tags || [])))
+    const allTags = Array.from(new Set(themes.flatMap((item) => item.tags || [])))
     const tagCounts = allTags.reduce(
         (acc, tag) => {
-            acc[tag] = themes.filter(item => item.tags?.includes(tag)).length
+            acc[tag] = themes.filter((item) => item.tags?.includes(tag)).length
             return acc
         },
         {} as Record<string, number>,
@@ -147,7 +138,7 @@ export default function ExtensionPage() {
     const filterThemes = (themeList: ThemeInterface[]) => {
         return themeList
             .filter(
-                item =>
+                (item) =>
                     item.name.toLowerCase() !== 'default' &&
                     (item.name.toLowerCase().includes(searchQuery) ||
                         item.author.toLowerCase().includes(searchQuery) ||
@@ -166,16 +157,11 @@ export default function ExtensionPage() {
     const filteredThemes = filterThemes(themes)
 
     useEffect(() => {
-        setMaxThemeCount(prevCount =>
-            Math.max(prevCount, filteredThemes.length),
-        )
+        setMaxThemeCount((prevCount) => Math.max(prevCount, filteredThemes.length))
     }, [filteredThemes])
 
     useEffect(() => {
-        window.electron.store.set(
-            'themes.selectedTags',
-            Array.from(selectedTags),
-        )
+        window.electron.store.set('themes.selectedTags', Array.from(selectedTags))
         window.electron.store.set('themes.columnsCount', columnsCount)
         window.electron.store.set('themes.hideEnabled', hideEnabled)
     }, [selectedTags, columnsCount, hideEnabled])
@@ -184,7 +170,7 @@ export default function ExtensionPage() {
         setColumnsCount(columns)
     }
 
-    const toggleFilter = () => setFilterVisible(prev => !prev)
+    const toggleFilter = () => setFilterVisible((prev) => !prev)
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -229,9 +215,7 @@ export default function ExtensionPage() {
                     <div className={globalStyles.main_container}>
                         <div className={extensionStyles.toolbar}>
                             <div className={extensionStyles.containerToolbar}>
-                                <div
-                                    className={extensionStyles.searchContainer}
-                                >
+                                <div className={extensionStyles.searchContainer}>
                                     <SearchImg />
                                     <input
                                         className={extensionStyles.searchInput}
@@ -241,8 +225,7 @@ export default function ExtensionPage() {
                                         placeholder="Введите название расширения"
                                     />
                                     {filteredThemes.length > 0 &&
-                                        filteredThemes.length <
-                                            maxThemeCount && (
+                                        filteredThemes.length < maxThemeCount && (
                                             <div
                                                 className={
                                                     extensionStyles.searchLabel
@@ -252,11 +235,7 @@ export default function ExtensionPage() {
                                             </div>
                                         )}
                                     {filteredThemes.length === 0 && (
-                                        <div
-                                            className={
-                                                extensionStyles.searchLabel
-                                            }
-                                        >
+                                        <div className={extensionStyles.searchLabel}>
                                             Ничего не найдено
                                         </div>
                                     )}
@@ -301,31 +280,19 @@ export default function ExtensionPage() {
                                     className={extensionStyles.containerSearch}
                                     ref={containerRef}
                                 >
-                                    <div
-                                        className={extensionStyles.tagsSection}
-                                    >
-                                        <div
-                                            className={
-                                                extensionStyles.tagsLabel
-                                            }
-                                        >
+                                    <div className={extensionStyles.tagsSection}>
+                                        <div className={extensionStyles.tagsLabel}>
                                             Колонки:{' '}
                                         </div>
                                         <div
-                                            className={
-                                                extensionStyles.tagsContainer
-                                            }
+                                            className={extensionStyles.tagsContainer}
                                         >
-                                            {[2, 3, 4].map(count => (
+                                            {[2, 3, 4].map((count) => (
                                                 <CustomCheckbox
                                                     key={count}
-                                                    checked={
-                                                        columnsCount === count
-                                                    }
+                                                    checked={columnsCount === count}
                                                     onChange={() =>
-                                                        handleColumnsChange(
-                                                            count,
-                                                        )
+                                                        handleColumnsChange(count)
                                                     }
                                                     label={`${count} колонок`}
                                                     className={
@@ -337,26 +304,16 @@ export default function ExtensionPage() {
                                             ))}
                                         </div>
                                     </div>
-                                    <div
-                                        className={extensionStyles.tagsSection}
-                                    >
-                                        <div
-                                            className={
-                                                extensionStyles.tagsLabel
-                                            }
-                                        >
+                                    <div className={extensionStyles.tagsSection}>
+                                        <div className={extensionStyles.tagsLabel}>
                                             Tags
                                         </div>
                                         <div
-                                            className={
-                                                extensionStyles.tagsContainer
-                                            }
+                                            className={extensionStyles.tagsContainer}
                                         >
                                             <CustomCheckbox
                                                 checked={hideEnabled}
-                                                onChange={
-                                                    handleHideEnabledChange
-                                                }
+                                                onChange={handleHideEnabledChange}
                                                 label="Скрыть включенные"
                                                 className={
                                                     hideEnabled
@@ -364,12 +321,10 @@ export default function ExtensionPage() {
                                                         : ''
                                                 }
                                             />
-                                            {allTags.map(tag => (
+                                            {allTags.map((tag) => (
                                                 <CustomCheckbox
                                                     key={tag}
-                                                    checked={selectedTags.has(
-                                                        tag,
-                                                    )}
+                                                    checked={selectedTags.has(tag)}
                                                     onChange={() =>
                                                         handleTagChange(tag)
                                                     }
@@ -391,9 +346,7 @@ export default function ExtensionPage() {
                             <div className={extensionStyles.preview}>
                                 {filteredEnabledThemes.length > 0 && (
                                     <div
-                                        className={
-                                            extensionStyles.previewSelection
-                                        }
+                                        className={extensionStyles.previewSelection}
                                     >
                                         <div
                                             className={
@@ -420,7 +373,7 @@ export default function ExtensionPage() {
                                             initial="hidden"
                                             animate="visible"
                                         >
-                                            {filteredEnabledThemes.map(item => (
+                                            {filteredEnabledThemes.map((item) => (
                                                 <motion.div
                                                     key={item.name}
                                                     variants={itemVariants}
@@ -444,9 +397,7 @@ export default function ExtensionPage() {
                                 )}
                                 {filteredDisabledThemes.length > 0 && (
                                     <div
-                                        className={
-                                            extensionStyles.previewSelection
-                                        }
+                                        className={extensionStyles.previewSelection}
                                     >
                                         <div
                                             className={
@@ -473,27 +424,25 @@ export default function ExtensionPage() {
                                             initial="hidden"
                                             animate="visible"
                                         >
-                                            {filteredDisabledThemes.map(
-                                                item => (
-                                                    <motion.div
-                                                        key={item.name}
-                                                        variants={itemVariants}
-                                                    >
-                                                        <ExtensionCard
-                                                            theme={item}
-                                                            isChecked={false}
-                                                            onCheckboxChange={
-                                                                handleCheckboxChange
-                                                            }
-                                                            className={
-                                                                item.matches
-                                                                    ? 'highlight'
-                                                                    : 'dimmed'
-                                                            }
-                                                        />
-                                                    </motion.div>
-                                                ),
-                                            )}
+                                            {filteredDisabledThemes.map((item) => (
+                                                <motion.div
+                                                    key={item.name}
+                                                    variants={itemVariants}
+                                                >
+                                                    <ExtensionCard
+                                                        theme={item}
+                                                        isChecked={false}
+                                                        onCheckboxChange={
+                                                            handleCheckboxChange
+                                                        }
+                                                        className={
+                                                            item.matches
+                                                                ? 'highlight'
+                                                                : 'dimmed'
+                                                        }
+                                                    />
+                                                </motion.div>
+                                            ))}
                                         </motion.div>
                                     </div>
                                 )}

@@ -39,14 +39,14 @@
                 .svg1 {
                     order: 0;
                     position: absolute;
-                    animation: animSvg1 9.2s
-                        cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
+                    animation: animSvg1 9.2s cubic-bezier(0.645, 0.045, 0.355, 1)
+                        infinite;
                 }
 
                 .svg2 {
                     position: absolute;
-                    animation: animSvg2 9.2s
-                        cubic-bezier(0.645, 0.045, 0.355, 1) infinite;
+                    animation: animSvg2 9.2s cubic-bezier(0.645, 0.045, 0.355, 1)
+                        infinite;
                 }
             }
 

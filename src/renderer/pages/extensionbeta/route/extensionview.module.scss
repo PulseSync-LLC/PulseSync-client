@@ -522,8 +522,7 @@
 
                                 &:focus {
                                     border-color: #ac96ff; // Цвет рамки при фокусе
-                                    box-shadow: 0 0 0 2px
-                                        rgba(172, 150, 255, 0.3); // Тень при фокусе
+                                    box-shadow: 0 0 0 2px rgba(172, 150, 255, 0.3); // Тень при фокусе
                                 }
 
                                 &:disabled {
@@ -552,8 +551,7 @@
 
                                 &:focus {
                                     border-color: #ac96ff; // Цвет рамки при фокусе
-                                    box-shadow: 0 0 0 2px
-                                        rgba(172, 150, 255, 0.3); // Тень при фокусе
+                                    box-shadow: 0 0 0 2px rgba(172, 150, 255, 0.3); // Тень при фокусе
                                 }
 
                                 &:disabled {
@@ -898,7 +896,6 @@ input[type='color']::-webkit-color-swatch {
 .carouselButtonRight:hover {
     background-color: rgba(0, 0, 0, 0.7);
 }
-
 
 .howAlert {
     padding: 10px 15px;

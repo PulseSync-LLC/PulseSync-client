@@ -29,10 +29,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            if (
-                menuRef.current &&
-                !menuRef.current.contains(event.target as Node)
-            ) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
                 onClose()
             }
         }
@@ -50,16 +47,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             style={{ top: position.y, left: position.x }}
         >
             {items
-                .filter(item => item.show)
+                .filter((item) => item.show)
                 .map((item, index) => (
                     <div
                         key={index}
                         className={cm.contextMenuItem}
                         onClick={item.onClick}
                     >
-                        {item.icon && (
-                            <span className={cm.icon}>{item.icon}</span>
-                        )}
+                        {item.icon && <span className={cm.icon}>{item.icon}</span>}
                     </div>
                 ))}
         </div>

@@ -1,4 +1,4 @@
-import logger from "../logger";
+import logger from '../logger'
 import * as Sentry from '@sentry/electron/main'
 
 const firstLine = (message: string | Error) => {

@@ -3,7 +3,7 @@ import config from '../api/config'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch('https://google.com', {
+        const response = await fetch('https://ya.ru', {
             method: 'HEAD',
             mode: 'no-cors',
         })

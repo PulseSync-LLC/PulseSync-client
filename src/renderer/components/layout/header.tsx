@@ -103,10 +103,7 @@ const Header: React.FC<p> = memo(() => {
     }, [currentTrack])
 
     useEffect(() => {
-        console.log(
-            'useEffect [playStatus] triggered with playStatus:',
-            playStatus,
-        )
+        console.log('useEffect [playStatus] triggered with playStatus:', playStatus)
         let interval: NodeJS.Timeout | undefined
 
         const fetchTrackInfo = async () => {
@@ -130,9 +127,7 @@ const Header: React.FC<p> = memo(() => {
         }
 
         if (playStatus === 'null') {
-            console.log(
-                'playStatus is null, starting interval to fetch track info',
-            )
+            console.log('playStatus is null, starting interval to fetch track info')
             interval = setInterval(() => {
                 fetchTrackInfo()
             }, 5000)
@@ -236,47 +231,45 @@ const Header: React.FC<p> = memo(() => {
             .test(
                 'len',
                 'Минимальная длина 18 символов',
-                val => !val || val.length >= 18,
+                (val) => !val || val.length >= 18,
             )
             .test(
                 'len',
                 'Максимальная длина 20 символов',
-                val => !val || val.length <= 20,
+                (val) => !val || val.length <= 20,
             ),
         details: string()
             .test(
                 'len',
                 'Минимальная длина 2 символа',
-                val => !val || val.length >= 2,
+                (val) => !val || val.length >= 2,
             )
             .test(
                 'len',
                 'Максимальная длина 128 символов',
-                val => !val || val.length <= 128,
+                (val) => !val || val.length <= 128,
             ),
         state: string()
             .test(
                 'len',
                 'Минимальная длина 2 символа',
-                val => !val || val.length >= 2,
+                (val) => !val || val.length >= 2,
             )
             .test(
                 'len',
                 'Максимальная длина 128 символов',
-                val => !val || val.length <= 128,
+                (val) => !val || val.length <= 128,
             ),
         button: string().test(
             'len',
             'Максимальная длина 30 символов',
-            val => !val || val.length <= 30,
+            (val) => !val || val.length <= 30,
         ),
     })
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
 
-    const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
-        null,
-    )
+    const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(null)
 
     modalRef.current = { openModal, closeModal }
     const toggleMenu = () => {
@@ -318,7 +311,7 @@ const Header: React.FC<p> = memo(() => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke('needModalUpdate').then(value => {
+            window.desktopEvents?.invoke('needModalUpdate').then((value) => {
                 if (value) {
                     openModal()
                 }
@@ -334,7 +327,7 @@ const Header: React.FC<p> = memo(() => {
             button: app.discordRpc.button,
         },
         validationSchema: schema,
-        onSubmit: values => {
+        onSubmit: (values) => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
@@ -374,7 +367,7 @@ const Header: React.FC<p> = memo(() => {
             headers: {
                 authorization: `Bearer ${getUserToken()}`,
             },
-        }).then(async r => {
+        }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
                 toast.success('Успешный выход')
@@ -409,15 +402,11 @@ const Header: React.FC<p> = memo(() => {
 
     return (
         <>
-            <Modal
-                title="Последние обновления"
-                isOpen={modal}
-                reqClose={closeModal}
-            >
+            <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
                 <div className={modalStyles.updateModal}>
                     {memoizedAppInfo
-                        .filter(info => info.version <= app.info.version)
-                        .map(info => (
+                        .filter((info) => info.version <= app.info.version)
+                        .map((info) => (
                             <div key={info.id}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
@@ -448,11 +437,7 @@ const Header: React.FC<p> = memo(() => {
                                 alt=""
                             />
                             <span>PulseSync</span>
-                            <div
-                                className={
-                                    isMenuOpen ? styles.true : styles.false
-                                }
-                            >
+                            <div className={isMenuOpen ? styles.true : styles.false}>
                                 {user.id != '-1' && <ArrowDown />}
                             </div>
                             {isMenuOpen && <ContextMenu modalRef={modalRef} />}
@@ -469,9 +454,7 @@ const Header: React.FC<p> = memo(() => {
                                         <div className={styles.imageDetail}>
                                             <img
                                                 className={styles.image}
-                                                src={
-                                                    currentTrack?.albumArt || ''
-                                                }
+                                                src={currentTrack?.albumArt || ''}
                                                 alt={
                                                     currentTrack?.title ||
                                                     'Track image'
@@ -480,12 +463,11 @@ const Header: React.FC<p> = memo(() => {
                                         </div>
                                         <div className={styles.rpcDetail}>
                                             <div className={styles.rpcTitle}>
-                                                {currentTrack?.title ||
-                                                    'No Title'}
+                                                {currentTrack?.title || 'No Title'}
                                             </div>
                                             <div className={styles.rpcAuthor}>
                                                 {currentTrack.artists
-                                                    .map(x => x.name)
+                                                    .map((x) => x.name)
                                                     .join(', ')}
                                             </div>
                                         </div>
@@ -496,9 +478,7 @@ const Header: React.FC<p> = memo(() => {
                                                 Настроить статус
                                             </div>
                                             <div
-                                                className={
-                                                    styles.settingsContainer
-                                                }
+                                                className={styles.settingsContainer}
                                             >
                                                 <div className={styles.options}>
                                                     <CheckboxNav
@@ -512,19 +492,12 @@ const Header: React.FC<p> = memo(() => {
                                                     </CheckboxNav>
                                                 </div>
                                                 <div className={theme.userRPC}>
-                                                    <div
-                                                        className={theme.status}
-                                                    >
+                                                    <div className={theme.status}>
                                                         Слушает PulseSync
                                                     </div>
-                                                    <div
-                                                        className={
-                                                            theme.statusRPC
-                                                        }
-                                                    >
+                                                    <div className={theme.statusRPC}>
                                                         <div>
-                                                            {app.discordRpc
-                                                                .status &&
+                                                            {app.discordRpc.status &&
                                                             currentTrack !==
                                                                 trackInitials ? (
                                                                 <div
@@ -563,7 +536,7 @@ const Header: React.FC<p> = memo(() => {
                                                                                           .details,
                                                                                       currentTrack,
                                                                                   )
-                                                                                : `${currentTrack.title} - ${currentTrack.artists.map(x => x.name).join(', ')}`}
+                                                                                : `${currentTrack.title} - ${currentTrack.artists.map((x) => x.name).join(', ')}`}
                                                                         </div>
                                                                         {currentTrack
                                                                             .timestamps
@@ -630,12 +603,8 @@ const Header: React.FC<p> = memo(() => {
                                                                     }
                                                                 >
                                                                     <Skeleton
-                                                                        width={
-                                                                            58
-                                                                        }
-                                                                        height={
-                                                                            58
-                                                                        }
+                                                                        width={58}
+                                                                        height={58}
                                                                     />
                                                                     <div
                                                                         className={
@@ -692,10 +661,9 @@ const Header: React.FC<p> = memo(() => {
                                                                 }}
                                                             >
                                                                 {app.discordRpc
-                                                                    .button
-                                                                    .length > 0
-                                                                    ? app
-                                                                          .discordRpc
+                                                                    .button.length >
+                                                                0
+                                                                    ? app.discordRpc
                                                                           .button
                                                                     : '✌️ Open in Yandex Music'}
                                                             </div>
@@ -722,8 +690,7 @@ const Header: React.FC<p> = memo(() => {
                                                                     )
                                                                 }}
                                                             >
-                                                                ♡ PulseSync
-                                                                Project
+                                                                ♡ PulseSync Project
                                                             </div>
                                                         </div>
                                                     </div>
@@ -748,16 +715,13 @@ const Header: React.FC<p> = memo(() => {
                                                                 inputStyle.styledInput
                                                             }
                                                             value={
-                                                                formik.values
-                                                                    .appId
+                                                                formik.values.appId
                                                             }
                                                             onChange={
                                                                 formik.handleChange
                                                             }
-                                                            onBlur={e => {
-                                                                outInputChecker(
-                                                                    e,
-                                                                )
+                                                            onBlur={(e) => {
+                                                                outInputChecker(e)
                                                             }}
                                                         />
                                                         {formik.touched.appId &&
@@ -767,11 +731,7 @@ const Header: React.FC<p> = memo(() => {
                                                                     inputStyle.error
                                                                 }
                                                             >
-                                                                {
-                                                                    formik
-                                                                        .errors
-                                                                        .appId
-                                                                }
+                                                                {formik.errors.appId}
                                                             </div>
                                                         ) : null}
                                                     </div>
@@ -789,30 +749,24 @@ const Header: React.FC<p> = memo(() => {
                                                                 inputStyle.styledInput
                                                             }
                                                             value={
-                                                                formik.values
-                                                                    .details
+                                                                formik.values.details
                                                             }
                                                             onChange={
                                                                 formik.handleChange
                                                             }
-                                                            onBlur={e => {
-                                                                outInputChecker(
-                                                                    e,
-                                                                )
+                                                            onBlur={(e) => {
+                                                                outInputChecker(e)
                                                             }}
                                                         />
-                                                        {formik.touched
-                                                            .details &&
-                                                        formik.errors
-                                                            .details ? (
+                                                        {formik.touched.details &&
+                                                        formik.errors.details ? (
                                                             <div
                                                                 className={
                                                                     inputStyle.error
                                                                 }
                                                             >
                                                                 {
-                                                                    formik
-                                                                        .errors
+                                                                    formik.errors
                                                                         .details
                                                                 }
                                                             </div>
@@ -832,16 +786,13 @@ const Header: React.FC<p> = memo(() => {
                                                                 inputStyle.styledInput
                                                             }
                                                             value={
-                                                                formik.values
-                                                                    .state
+                                                                formik.values.state
                                                             }
                                                             onChange={
                                                                 formik.handleChange
                                                             }
-                                                            onBlur={e => {
-                                                                outInputChecker(
-                                                                    e,
-                                                                )
+                                                            onBlur={(e) => {
+                                                                outInputChecker(e)
                                                             }}
                                                         />
                                                         {formik.touched.state &&
@@ -851,11 +802,7 @@ const Header: React.FC<p> = memo(() => {
                                                                     inputStyle.error
                                                                 }
                                                             >
-                                                                {
-                                                                    formik
-                                                                        .errors
-                                                                        .state
-                                                                }
+                                                                {formik.errors.state}
                                                             </div>
                                                         ) : null}
                                                     </div>
@@ -865,8 +812,7 @@ const Header: React.FC<p> = memo(() => {
                                                         checkType="enableRpcButtonListen"
                                                         description="Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord."
                                                     >
-                                                        Включить кнопку
-                                                        (Слушать)
+                                                        Включить кнопку (Слушать)
                                                     </CheckboxNav>
                                                     <div
                                                         className={
@@ -882,20 +828,16 @@ const Header: React.FC<p> = memo(() => {
                                                                 inputStyle.styledInput
                                                             }
                                                             value={
-                                                                formik.values
-                                                                    .button
+                                                                formik.values.button
                                                             }
                                                             onChange={
                                                                 formik.handleChange
                                                             }
-                                                            onBlur={e => {
-                                                                outInputChecker(
-                                                                    e,
-                                                                )
+                                                            onBlur={(e) => {
+                                                                outInputChecker(e)
                                                             }}
                                                         />
-                                                        {formik.touched
-                                                            .button &&
+                                                        {formik.touched.button &&
                                                         formik.errors.button ? (
                                                             <div
                                                                 className={
@@ -903,8 +845,7 @@ const Header: React.FC<p> = memo(() => {
                                                                 }
                                                             >
                                                                 {
-                                                                    formik
-                                                                        .errors
+                                                                    formik.errors
                                                                         .button
                                                                 }
                                                             </div>
@@ -913,7 +854,7 @@ const Header: React.FC<p> = memo(() => {
                                                     <CheckboxNav
                                                         disabled={
                                                             !user.badges.some(
-                                                                badge =>
+                                                                (badge) =>
                                                                     badge.type ===
                                                                     'supporter',
                                                             )
@@ -921,8 +862,8 @@ const Header: React.FC<p> = memo(() => {
                                                         checkType="enableGithubButton"
                                                         description="Активируйте этот параметр, чтобы показать что вы любите разработчиков."
                                                     >
-                                                        Включить кнопку
-                                                        (PulseSync Project)
+                                                        Включить кнопку (PulseSync
+                                                        Project)
                                                     </CheckboxNav>
                                                 </div>
                                             </div>
@@ -939,9 +880,7 @@ const Header: React.FC<p> = memo(() => {
                                                 alt=""
                                             />
                                             <div className={styles.status}>
-                                                <div
-                                                    className={styles.dot}
-                                                ></div>
+                                                <div className={styles.dot}></div>
                                             </div>
                                         </div>
                                         <div className={styles.user_info}>
@@ -957,49 +896,28 @@ const Header: React.FC<p> = memo(() => {
                                         <div className={styles.user_menu}>
                                             <div className={styles.user_info}>
                                                 <div
-                                                    className={
-                                                        styles.user_banner
-                                                    }
+                                                    className={styles.user_banner}
                                                     style={{
-                                                        backgroundImage:
-                                                            user.banner
-                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
-                                                                : 'url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage: user.banner
+                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
+                                                            : 'url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
                                                     }}
                                                 ></div>
-                                                <div
-                                                    className={
-                                                        styles.user_avatar
-                                                    }
-                                                >
+                                                <div className={styles.user_avatar}>
                                                     <img
-                                                        className={
-                                                            styles.avatar
-                                                        }
+                                                        className={styles.avatar}
                                                         src={user.avatar}
                                                         alt=""
                                                     />
-                                                    <div
-                                                        className={
-                                                            styles.status
-                                                        }
-                                                    >
+                                                    <div className={styles.status}>
                                                         <div
-                                                            className={
-                                                                styles.dot
-                                                            }
+                                                            className={styles.dot}
                                                         ></div>
                                                     </div>
                                                 </div>
-                                                <div
-                                                    className={
-                                                        styles.user_details
-                                                    }
-                                                >
+                                                <div className={styles.user_details}>
                                                     <div
-                                                        className={
-                                                            styles.user_info
-                                                        }
+                                                        className={styles.user_info}
                                                     >
                                                         <div
                                                             className={
@@ -1023,12 +941,10 @@ const Header: React.FC<p> = memo(() => {
                                                                     -{' '}
                                                                     {currentTrack.artists
                                                                         .map(
-                                                                            x =>
+                                                                            (x) =>
                                                                                 x.name,
                                                                         )
-                                                                        .join(
-                                                                            ', ',
-                                                                        )}
+                                                                        .join(', ')}
                                                                 </>
                                                             )}
                                                         </div>
@@ -1038,10 +954,9 @@ const Header: React.FC<p> = memo(() => {
                                                             styles.badges_container
                                                         }
                                                     >
-                                                        {user.badges.length >
-                                                            0 &&
+                                                        {user.badges.length > 0 &&
                                                             user.badges.map(
-                                                                _badge => (
+                                                                (_badge) => (
                                                                     <div
                                                                         className={
                                                                             styles.badge
@@ -1072,30 +987,22 @@ const Header: React.FC<p> = memo(() => {
                                                 </div>
                                             </div>
                                             <div
-                                                className={
-                                                    styles.user_menu_buttons
-                                                }
+                                                className={styles.user_menu_buttons}
                                             >
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     disabled
                                                 >
                                                     Друзья
                                                 </button>
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     disabled
                                                 >
                                                     Настройки
                                                 </button>
                                                 <button
-                                                    className={
-                                                        styles.menu_button
-                                                    }
+                                                    className={styles.menu_button}
                                                     onClick={logout}
                                                 >
                                                     Выйти
@@ -1110,18 +1017,14 @@ const Header: React.FC<p> = memo(() => {
                             <button
                                 id="hide"
                                 className={styles.button_title}
-                                onClick={() =>
-                                    window.electron.window.minimize()
-                                }
+                                onClick={() => window.electron.window.minimize()}
                             >
                                 <Minus color="#E4E5EA" />
                             </button>
                             <button
                                 id="minimize"
                                 className={styles.button_title}
-                                onClick={() =>
-                                    window.electron.window.maximize()
-                                }
+                                onClick={() => window.electron.window.maximize()}
                             >
                                 <Minimize color="#E4E5EA" />
                             </button>

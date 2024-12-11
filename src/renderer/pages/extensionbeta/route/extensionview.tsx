@@ -72,9 +72,7 @@ interface Props {
 
 const ExtensionViewPage: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
-    const [currentTheme, setCurrentTheme] = useState<ThemeInterface | null>(
-        null,
-    )
+    const [currentTheme, setCurrentTheme] = useState<ThemeInterface | null>(null)
     const [bannerImage, setBannerImage] = useState(
         'static/assets/images/no_themeBackground.png',
     )
@@ -90,9 +88,7 @@ const ExtensionViewPage: React.FC = () => {
     const [editMode, setEditMode] = useState(false)
     const [transitionsEnabled, setTransitionsEnabled] = useState(true)
     const [markdownData, setMarkdownData] = useState<string>('')
-    const [configFileExists, setConfigFileExists] = useState<boolean | null>(
-        null,
-    )
+    const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
 
     const menuElementRef = useRef(null)
     const location = useLocation()
@@ -134,10 +130,7 @@ const ExtensionViewPage: React.FC = () => {
                 window.electron.store.get('themes.themeIsExpanded') || {}
             if (!expandedStates.hasOwnProperty(currentTheme.name)) {
                 expandedStates[currentTheme.name] = false
-                window.electron.store.set(
-                    'themes.themeIsExpanded',
-                    expandedStates,
-                )
+                window.electron.store.set('themes.themeIsExpanded', expandedStates)
             }
             const initialExpanded = expandedStates[currentTheme.name]
             setBannerExpanded(initialExpanded)
@@ -158,9 +151,7 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const toggleThemeActivation = () => {
-        const newTheme = themeActive
-            ? 'Default'
-            : currentTheme?.name || 'Default'
+        const newTheme = themeActive ? 'Default' : currentTheme?.name || 'Default'
         window.electron.store.set('theme', newTheme)
         setActivatedTheme(newTheme)
         window.desktopEvents.send('themeChanged', newTheme)
@@ -173,7 +164,7 @@ const ExtensionViewPage: React.FC = () => {
         const step = bannerExpanded ? -1 : 1
 
         const animateBannerHeight = () => {
-            setBannerHeight(prev => {
+            setBannerHeight((prev) => {
                 if (
                     (step < 0 && prev <= targetHeight) ||
                     (step > 0 && prev >= targetHeight)
@@ -221,19 +212,15 @@ const ExtensionViewPage: React.FC = () => {
                 `${currentTheme.path}/${currentTheme.banner}`,
             )
             fetch(bannerPath)
-                .then(res => {
+                .then((res) => {
                     if (res.ok) {
                         setBannerImage(bannerPath)
                     } else {
-                        setBannerImage(
-                            'static/assets/images/no_themeBackground.png',
-                        )
+                        setBannerImage('static/assets/images/no_themeBackground.png')
                     }
                 })
                 .catch(() => {
-                    setBannerImage(
-                        'static/assets/images/no_themeBackground.png',
-                    )
+                    setBannerImage('static/assets/images/no_themeBackground.png')
                 })
         }
     }, [currentTheme])
@@ -242,8 +229,8 @@ const ExtensionViewPage: React.FC = () => {
         if (currentTheme) {
             const readmePath = `${currentTheme.path}/README.md`
             fetch(readmePath)
-                .then(response => response.text())
-                .then(data => {
+                .then((response) => response.text())
+                .then((data) => {
                     setMarkdownData(data)
                 })
                 .catch(() => {
@@ -255,10 +242,7 @@ const ExtensionViewPage: React.FC = () => {
     useEffect(() => {
         const checkConfigFile = async () => {
             if (currentTheme) {
-                const configPath = path.join(
-                    currentTheme.path,
-                    'handleEvents.json',
-                )
+                const configPath = path.join(currentTheme.path, 'handleEvents.json')
                 const exists = await window.desktopEvents.invoke(
                     'file-event',
                     'check-file-exists',
@@ -322,8 +306,7 @@ const ExtensionViewPage: React.FC = () => {
                             {
                                 id: 'mainBackground',
                                 name: 'Основной фон',
-                                description:
-                                    'Цвет фона главного окна приложения',
+                                description: 'Цвет фона главного окна приложения',
                                 type: 'color',
                                 input: '#3498db',
                                 bool: true,
@@ -393,14 +376,7 @@ const ExtensionViewPage: React.FC = () => {
     const updateConfigField = (
         sectionIndex: number,
         itemIndex: number | null,
-        key:
-            | 'name'
-            | 'description'
-            | 'input'
-            | 'text'
-            | 'title'
-            | 'bool'
-            | 'id',
+        key: 'name' | 'description' | 'input' | 'text' | 'title' | 'bool' | 'id',
         value: any,
     ) => {
         const updatedConfig = structuredClone(configData)
@@ -499,11 +475,9 @@ const ExtensionViewPage: React.FC = () => {
                                     {editMode ? (
                                         <input
                                             type="text"
-                                            className={
-                                                localStyles.sectionTitleInput
-                                            }
+                                            className={localStyles.sectionTitleInput}
                                             value={section.title}
-                                            onChange={e =>
+                                            onChange={(e) =>
                                                 updateConfigField(
                                                     sectionIndex,
                                                     null,
@@ -513,9 +487,7 @@ const ExtensionViewPage: React.FC = () => {
                                             }
                                         />
                                     ) : (
-                                        <div
-                                            className={localStyles.sectionTitle}
-                                        >
+                                        <div className={localStyles.sectionTitle}>
                                             {section.title}
                                         </div>
                                     )}
@@ -547,13 +519,12 @@ const ExtensionViewPage: React.FC = () => {
                                                                 localStyles.itemNameInput
                                                             }
                                                             value={item.id}
-                                                            onChange={e =>
+                                                            onChange={(e) =>
                                                                 updateConfigField(
                                                                     sectionIndex,
                                                                     itemIndex,
                                                                     'id',
-                                                                    e.target
-                                                                        .value,
+                                                                    e.target.value,
                                                                 )
                                                             }
                                                         />
@@ -570,13 +541,12 @@ const ExtensionViewPage: React.FC = () => {
                                                                 localStyles.itemNameInput
                                                             }
                                                             value={item.name}
-                                                            onChange={e =>
+                                                            onChange={(e) =>
                                                                 updateConfigField(
                                                                     sectionIndex,
                                                                     itemIndex,
                                                                     'name',
-                                                                    e.target
-                                                                        .value,
+                                                                    e.target.value,
                                                                 )
                                                             }
                                                         />
@@ -585,24 +555,20 @@ const ExtensionViewPage: React.FC = () => {
                                                                 localStyles.itemNameEdit
                                                             }
                                                         >
-                                                            description
-                                                            (string):{' '}
+                                                            description (string):{' '}
                                                         </span>
                                                         <input
                                                             type="text"
                                                             className={
                                                                 localStyles.itemDescriptionInput
                                                             }
-                                                            value={
-                                                                item.description
-                                                            }
-                                                            onChange={e =>
+                                                            value={item.description}
+                                                            onChange={(e) =>
                                                                 updateConfigField(
                                                                     sectionIndex,
                                                                     itemIndex,
                                                                     'description',
-                                                                    e.target
-                                                                        .value,
+                                                                    e.target.value,
                                                                 )
                                                             }
                                                         />
@@ -678,10 +644,9 @@ const ExtensionViewPage: React.FC = () => {
                                                                     localStyles.itemColorInputText
                                                                 }
                                                                 value={
-                                                                    item.input ||
-                                                                    ''
+                                                                    item.input || ''
                                                                 }
-                                                                onChange={e =>
+                                                                onChange={(e) =>
                                                                     updateConfigField(
                                                                         sectionIndex,
                                                                         itemIndex,
@@ -703,13 +668,12 @@ const ExtensionViewPage: React.FC = () => {
                                                                 item.input ||
                                                                 '#FFFFFF'
                                                             }
-                                                            onChange={e =>
+                                                            onChange={(e) =>
                                                                 updateConfigField(
                                                                     sectionIndex,
                                                                     itemIndex,
                                                                     'input',
-                                                                    e.target
-                                                                        .value,
+                                                                    e.target.value,
                                                                 )
                                                             }
                                                         />
@@ -753,7 +717,9 @@ const ExtensionViewPage: React.FC = () => {
                                                                                     value={
                                                                                         button.name
                                                                                     }
-                                                                                    onChange={e => {
+                                                                                    onChange={(
+                                                                                        e,
+                                                                                    ) => {
                                                                                         const newName =
                                                                                             e
                                                                                                 .target
@@ -783,7 +749,9 @@ const ExtensionViewPage: React.FC = () => {
                                                                                     value={
                                                                                         button.text
                                                                                     }
-                                                                                    onChange={e =>
+                                                                                    onChange={(
+                                                                                        e,
+                                                                                    ) =>
                                                                                         updateButtonConfig(
                                                                                             sectionIndex,
                                                                                             itemIndex,
@@ -815,7 +783,9 @@ const ExtensionViewPage: React.FC = () => {
                                                                                     value={
                                                                                         button.text
                                                                                     }
-                                                                                    onChange={e =>
+                                                                                    onChange={(
+                                                                                        e,
+                                                                                    ) =>
                                                                                         updateButtonConfig(
                                                                                             sectionIndex,
                                                                                             itemIndex,
@@ -867,9 +837,7 @@ const ExtensionViewPage: React.FC = () => {
                                 configFileExists === true && (
                                     <button
                                         className={`${localStyles.edit} ${editMode ? localStyles.activeEdit : ''}`}
-                                        onClick={() =>
-                                            setEditMode(prev => !prev)
-                                        }
+                                        onClick={() => setEditMode((prev) => !prev)}
                                     >
                                         <MdEdit />
                                     </button>
@@ -889,9 +857,10 @@ const ExtensionViewPage: React.FC = () => {
                                 >
                                     <Button
                                         className={localStyles.hideButton}
-                                        onClick={() =>
-                                            setBannerExpanded(prev => !prev)
-                                        }
+                                        onClick={() => {
+                                            setBannerExpanded((prev) => !prev)
+                                            toggleBanner()
+                                        }}
                                     >
                                         <MdKeyboardArrowDown
                                             size={20}
@@ -906,8 +875,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     : {
                                                           transition:
                                                               'var(--transition)',
-                                                          transform:
-                                                              'rotate(0deg)',
+                                                          transform: 'rotate(0deg)',
                                                       }
                                             }
                                         />
@@ -916,49 +884,35 @@ const ExtensionViewPage: React.FC = () => {
 
                                 <div className={localStyles.themeInfo}>
                                     <div className={localStyles.themeHeader}>
-                                        <div
-                                            className={
-                                                localStyles.containerLeft
-                                            }
-                                        >
+                                        <div className={localStyles.containerLeft}>
                                             <img
-                                                className={
-                                                    localStyles.themeImage
-                                                }
+                                                className={localStyles.themeImage}
                                                 src={`${currentTheme.path}/${currentTheme.image}`}
                                                 alt={`${currentTheme.name} image`}
                                                 width="100"
                                                 height="100"
-                                                onError={e => {
+                                                onError={(e) => {
                                                     ;(
                                                         e.target as HTMLImageElement
                                                     ).src =
                                                         'static/assets/images/no_themeImage.png'
                                                 }}
                                             />
-                                            <div
-                                                className={
-                                                    localStyles.themeTitle
-                                                }
-                                            >
+                                            <div className={localStyles.themeTitle}>
                                                 <div
                                                     className={
                                                         localStyles.titleContainer
                                                     }
                                                 >
                                                     <NavLink
-                                                        className={
-                                                            localStyles.path
-                                                        }
+                                                        className={localStyles.path}
                                                         to="/extensionbeta"
                                                     >
                                                         Extension
                                                     </NavLink>
                                                     /
                                                     <div
-                                                        className={
-                                                            localStyles.title
-                                                        }
+                                                        className={localStyles.title}
                                                     >
                                                         {currentTheme.name ||
                                                             'Название недоступно'}
@@ -981,9 +935,7 @@ const ExtensionViewPage: React.FC = () => {
                                                 >
                                                     {currentTheme.author && (
                                                         <div>
-                                                            {
-                                                                currentTheme.author
-                                                            }
+                                                            {currentTheme.author}
                                                         </div>
                                                     )}{' '}
                                                     -{' '}
@@ -1002,64 +954,38 @@ const ExtensionViewPage: React.FC = () => {
 
                                     <div className={localStyles.rightContainer}>
                                         <div
-                                            className={
-                                                localStyles.detailsContainer
-                                            }
+                                            className={localStyles.detailsContainer}
                                         >
-                                            <div
-                                                className={
-                                                    localStyles.detailInfo
-                                                }
-                                            >
+                                            <div className={localStyles.detailInfo}>
                                                 {currentTheme.version && (
-                                                    <div
-                                                        className={
-                                                            localStyles.box
-                                                        }
-                                                    >
+                                                    <div className={localStyles.box}>
                                                         <MdDesignServices />{' '}
                                                         {currentTheme.version}
                                                     </div>
                                                 )}
-                                                {currentTheme.size !==
-                                                    undefined && (
-                                                    <div
-                                                        className={
-                                                            localStyles.box
-                                                        }
-                                                    >
+                                                {currentTheme.size !== undefined && (
+                                                    <div className={localStyles.box}>
                                                         <MdFolder />{' '}
                                                         {currentTheme.size}
                                                     </div>
                                                 )}
                                             </div>
-                                            <div
-                                                className={
-                                                    localStyles.detailInfo
-                                                }
-                                            >
-                                                {Array.isArray(
-                                                    currentTheme.tags,
-                                                ) &&
-                                                    currentTheme.tags.length >
-                                                        0 &&
-                                                    currentTheme.tags.map(
-                                                        tag => (
-                                                            <Button
-                                                                key={tag}
-                                                                className={
-                                                                    localStyles.tag
-                                                                }
-                                                                onClick={() =>
-                                                                    changeTag(
-                                                                        tag,
-                                                                    )
-                                                                }
-                                                            >
-                                                                {tag}
-                                                            </Button>
-                                                        ),
-                                                    )}
+                                            <div className={localStyles.detailInfo}>
+                                                {Array.isArray(currentTheme.tags) &&
+                                                    currentTheme.tags.length > 0 &&
+                                                    currentTheme.tags.map((tag) => (
+                                                        <Button
+                                                            key={tag}
+                                                            className={
+                                                                localStyles.tag
+                                                            }
+                                                            onClick={() =>
+                                                                changeTag(tag)
+                                                            }
+                                                        >
+                                                            {tag}
+                                                        </Button>
+                                                    ))}
                                             </div>
                                         </div>
 
@@ -1096,7 +1022,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     }
                                                     onClick={() =>
                                                         setContextMenuVisible(
-                                                            prev => !prev,
+                                                            (prev) => !prev,
                                                         )
                                                     }
                                                 >
@@ -1124,9 +1050,7 @@ const ExtensionViewPage: React.FC = () => {
 
                                 <div className={localStyles.extensionNav}>
                                     <div
-                                        className={
-                                            localStyles.extensionNavContainer
-                                        }
+                                        className={localStyles.extensionNavContainer}
                                     >
                                         <button
                                             className={`${localStyles.extensionNavButton} ${
@@ -1134,9 +1058,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     ? localStyles.activeTabButton
                                                     : ''
                                             }`}
-                                            onClick={() =>
-                                                setActiveTab('Overview')
-                                            }
+                                            onClick={() => setActiveTab('Overview')}
                                         >
                                             <MdExplore /> Overview
                                         </button>
@@ -1146,9 +1068,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     ? localStyles.activeTabButton
                                                     : ''
                                             }`}
-                                            onClick={() =>
-                                                setActiveTab('Settings')
-                                            }
+                                            onClick={() => setActiveTab('Settings')}
                                         >
                                             <MdSettings /> Settings
                                         </button>
@@ -1158,17 +1078,13 @@ const ExtensionViewPage: React.FC = () => {
                                                     ? localStyles.activeTabButton
                                                     : ''
                                             }`}
-                                            onClick={() =>
-                                                setActiveTab('Metadata')
-                                            }
+                                            onClick={() => setActiveTab('Metadata')}
                                         >
                                             <MdStickyNote2 /> Metadata
                                         </button>
                                     </div>
                                     <button
-                                        className={
-                                            localStyles.extensionNavButton
-                                        }
+                                        className={localStyles.extensionNavButton}
                                         disabled
                                     >
                                         <MdStoreMallDirectory /> Store
@@ -1178,8 +1094,8 @@ const ExtensionViewPage: React.FC = () => {
                                 <div className={localStyles.extensionContent}>
                                     {editMode && activeTab === 'Settings' && (
                                         <div className={localStyles.howAlert}>
-                                            Подробную информацию о том, как с
-                                            этим работать, можно найти в нашем{' '}
+                                            Подробную информацию о том, как с этим
+                                            работать, можно найти в нашем{' '}
                                             <a
                                                 href="https://discord.gg/qy42uGTzRy"
                                                 target="_blank"

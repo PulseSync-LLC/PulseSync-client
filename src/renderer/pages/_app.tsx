@@ -53,14 +53,11 @@ function App() {
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
-    const [patcherInfo, setPatcher] =
-        useState<PatcherInterface[]>(patcherInitials)
+    const [patcherInfo, setPatcher] = useState<PatcherInterface[]>(patcherInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
-    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(
-        null,
-    )
+    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
 
     const [loading, setLoading] = useState(true)
     const socket = io(config.SOCKET_URL, {
@@ -178,7 +175,9 @@ function App() {
                         window.electron.store.delete('tokens.token')
                         await router.navigate('/', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
+                        sendErrorAuthNotify(
+                            'Не удалось получить данные пользователя. Пожалуйста, войдите снова.',
+                        )
                         window.desktopEvents?.send('authStatus', false)
                         return false
                     }
@@ -196,11 +195,13 @@ function App() {
                         }
                     } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
                         const isForbidden = e.graphQLErrors.some(
-                            (error: any) => error.extensions?.code === 'FORBIDDEN'
+                            (error: any) => error.extensions?.code === 'FORBIDDEN',
                         )
 
                         if (isForbidden) {
-                            sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
+                            sendErrorAuthNotify(
+                                'Ваша сессия истекла. Пожалуйста, войдите снова.',
+                            )
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
                             }
@@ -210,7 +211,9 @@ function App() {
                             return false
                         } else {
                             Sentry.captureException(e)
-                            sendErrorAuthNotify('Ошибка авторизации. Пожалуйста, попробуйте снова.')
+                            sendErrorAuthNotify(
+                                'Ошибка авторизации. Пожалуйста, попробуйте снова.',
+                            )
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
                             }
@@ -257,13 +260,11 @@ function App() {
             }
         }
 
-        window.desktopEvents
-            ?.invoke('checkSleepMode')
-            .then(async (res: boolean) => {
-                if (!res) {
-                    await retryAuthorization()
-                }
-            })
+        window.desktopEvents?.invoke('checkSleepMode').then(async (res: boolean) => {
+            if (!res) {
+                await retryAuthorization()
+            }
+        })
     }
 
     useEffect(() => {
@@ -306,7 +307,7 @@ function App() {
         setSocketConnected(false)
     })
 
-    socket.on('connect_error', err => {
+    socket.on('connect_error', (err) => {
         console.log('Socket connect error: ' + err)
         setSocketError(1)
         setSocket(null)
@@ -337,9 +338,7 @@ function App() {
 
             const fetchAppInfo = async () => {
                 try {
-                    const res = await fetch(
-                        `${config.SERVER_URL}/api/v1/app/info`,
-                    )
+                    const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
                     const data = await res.json()
                     if (data.ok && Array.isArray(data.appInfo)) {
                         const sortedAppInfos = data.appInfo.sort(
@@ -367,7 +366,7 @@ function App() {
                     if (data && data.getPatcher) {
                         const info = (data.getPatcher as PatcherInterface[])
                             .filter(
-                                info =>
+                                (info) =>
                                     compareVersions(
                                         info.modVersion,
                                         app.patcher.version,
@@ -395,22 +394,19 @@ function App() {
 
             fetchPatcherInfo()
             const intervalId = setInterval(fetchPatcherInfo, 10 * 60 * 1000)
-
+            console.log(!user.badges.some((badge) => badge.type === 'supporter') && !app.discordRpc.enableGithubButton)
             if (
-                !user.badges.some(badge => badge.type === 'supporter') &&
-                app.discordRpc.enableGithubButton
+                !user.badges.some((badge) => badge.type === 'supporter') &&
+                !app.discordRpc.enableGithubButton
             ) {
                 setApp({
                     ...app,
                     discordRpc: {
                         ...app.discordRpc,
-                        enableGithubButton: false,
+                        enableGithubButton: true,
                     },
                 })
-                window.electron.store.set(
-                    'discordRpc.enableGithubButton',
-                    false,
-                )
+                window.electron.store.set('discordRpc.enableGithubButton', true)
             }
             window.desktopEvents?.send('websocket-start')
             window.desktopEvents
@@ -445,27 +441,25 @@ function App() {
             window.desktopEvents
                 ?.invoke('getThemes')
                 .then((fetchedThemes: ThemeInterface[]) => {
-                    const foundTheme = fetchedThemes.find(t => t.name === data)
+                    const foundTheme = fetchedThemes.find((t) => t.name === data)
                     if (foundTheme) {
                         setThemes(fetchedThemes)
                         setNavigateTo(`/extensionbeta/${foundTheme.name}`)
                         setNavigateState(foundTheme)
                     }
                 })
-                .catch(error => console.error('Error getting themes:', error))
+                .catch((error) => console.error('Error getting themes:', error))
         }
         window.desktopEvents?.on('open-theme', handleOpenTheme)
 
-        window.desktopEvents?.on('check-file-exists', filePath =>
+        window.desktopEvents?.on('check-file-exists', (filePath) =>
             invokeFileEvent('check-file-exists', filePath),
         )
-        window.desktopEvents?.on('read-file', filePath =>
+        window.desktopEvents?.on('read-file', (filePath) =>
             invokeFileEvent('read-file', filePath),
         )
-        window.desktopEvents?.on(
-            'create-config-file',
-            (filePath, defaultContent) =>
-                invokeFileEvent('create-config-file', filePath, defaultContent),
+        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) =>
+            invokeFileEvent('create-config-file', filePath, defaultContent),
         )
         window.desktopEvents?.on('write-file', (filePath, data) =>
             invokeFileEvent('write-file', filePath, data),
@@ -489,7 +483,7 @@ function App() {
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             window.desktopEvents?.on('discordRpcState', (event, data) => {
-                setApp(prevSettings => ({
+                setApp((prevSettings) => ({
                     ...prevSettings,
                     discordRpc: {
                         ...prevSettings.discordRpc,
@@ -497,17 +491,15 @@ function App() {
                     },
                 }))
             })
-            window.desktopEvents
-                ?.invoke('getVersion')
-                .then((version: string) => {
-                    setApp(prevSettings => ({
-                        ...prevSettings,
-                        info: {
-                            ...prevSettings.info,
-                            version: version,
-                        },
-                    }))
-                })
+            window.desktopEvents?.invoke('getVersion').then((version: string) => {
+                setApp((prevSettings) => ({
+                    ...prevSettings,
+                    info: {
+                        ...prevSettings.info,
+                        version: version,
+                    },
+                }))
+            })
             window.desktopEvents?.on('check-update', (event, data) => {
                 let toastId: string
                 toastId = hotToast.loading('Проверка обновлений', {
@@ -536,9 +528,8 @@ function App() {
                             )
                         },
                     )
-                    window.desktopEvents?.once(
-                        'download-update-cancelled',
-                        () => hotToast.dismiss(toastId),
+                    window.desktopEvents?.once('download-update-cancelled', () =>
+                        hotToast.dismiss(toastId),
                     )
                     window.desktopEvents?.once('download-update-failed', () =>
                         toast.error('Ошибка загрузки обновления', {
@@ -574,41 +565,41 @@ function App() {
         }
     }
     return (
-            <div className="app-wrapper">
-                <Toaster />
-                <UserContext.Provider
-                    value={{
-                        user,
-                        setUser,
-                        authorize,
-                        loading,
-                        socket: socketIo,
-                        socketConnected,
-                        app,
-                        setApp,
-                        updateAvailable,
-                        setUpdate,
-                        appInfo,
-                        setThemes,
-                        themes,
-                        setPatcher,
-                        patcherInfo,
-                    }}
-                >
-                    <Player>
-                        <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                            <CssVarsProvider>
-                                {loading ? (
-                                    <Preloader />
-                                ) : (
-                                    <RouterProvider router={router} />
-                                )}
-                            </CssVarsProvider>
-                        </SkeletonTheme>
-                    </Player>
-                </UserContext.Provider>
-            </div>
-    );
+        <div className="app-wrapper">
+            <Toaster />
+            <UserContext.Provider
+                value={{
+                    user,
+                    setUser,
+                    authorize,
+                    loading,
+                    socket: socketIo,
+                    socketConnected,
+                    app,
+                    setApp,
+                    updateAvailable,
+                    setUpdate,
+                    appInfo,
+                    setThemes,
+                    themes,
+                    setPatcher,
+                    patcherInfo,
+                }}
+            >
+                <Player>
+                    <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
+                        <CssVarsProvider>
+                            {loading ? (
+                                <Preloader />
+                            ) : (
+                                <RouterProvider router={router} />
+                            )}
+                        </CssVarsProvider>
+                    </SkeletonTheme>
+                </Player>
+            </UserContext.Provider>
+        </div>
+    )
 }
 
 const Player: React.FC<any> = ({ children }) => {
@@ -621,13 +612,13 @@ const Player: React.FC<any> = ({ children }) => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {
-                            console.log(data);
-                            let coverImg: any;
+                            console.log(data)
+                            let coverImg: any
                             if (data.track?.coverUri) {
-                                coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`;
+                                coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
                             }
 
-                            const timecodes = data.timecodes ?? [0, 0];
+                            const timecodes = data.timecodes ?? [0, 0]
                             setTrack((prevTrack) => ({
                                 ...prevTrack,
                                 status: data.status ?? '',
@@ -636,35 +627,8 @@ const Player: React.FC<any> = ({ children }) => {
                                 timestamps: timecodes,
                                 realId: data.track?.realId ?? '',
                                 title: data.track?.title ?? '',
-                                artists: data.track?.artists?.map((artist: any) => ({
-                                    id: artist.id ?? null,
-                                    name: artist.name ?? 'Unknown Artist',
-                                    various: artist.various ?? false,
-                                    composer: artist.composer ?? false,
-                                    available: artist.available ?? false,
-                                    cover: {
-                                        type: artist.cover?.type ?? null,
-                                        uri: artist.cover?.uri ?? null,
-                                        prefix: artist.cover?.prefix ?? null,
-                                    },
-                                    genres: artist.genres ?? [],
-                                    disclaimers: artist.disclaimers ?? [],
-                                })) ?? [],
-                                albums: data.track?.albums?.map((album: any) => ({
-                                    id: album.id ?? 0,
-                                    title: album.title ?? '',
-                                    type: album.type ?? '',
-                                    metaType: album.metaType ?? '',
-                                    year: album.year ?? 0,
-                                    releaseDate: album.releaseDate ?? '',
-                                    coverUri: album.coverUri ?? '',
-                                    ogImage: album.ogImage ?? '',
-                                    genre: album.genre ?? '',
-                                    trackCount: album.trackCount ?? 0,
-                                    likesCount: album.likesCount ?? 0,
-                                    recent: album.recent ?? false,
-                                    veryImportant: album.veryImportant ?? false,
-                                    artists: data.track?.artists?.map((artist: any) => ({
+                                artists:
+                                    data.track?.artists?.map((artist: any) => ({
                                         id: artist.id ?? null,
                                         name: artist.name ?? 'Unknown Artist',
                                         various: artist.various ?? false,
@@ -678,18 +642,63 @@ const Player: React.FC<any> = ({ children }) => {
                                         genres: artist.genres ?? [],
                                         disclaimers: artist.disclaimers ?? [],
                                     })) ?? [],
-                                })) ?? [],
+                                albums:
+                                    data.track?.albums?.map((album: any) => ({
+                                        id: album.id ?? 0,
+                                        title: album.title ?? '',
+                                        type: album.type ?? '',
+                                        metaType: album.metaType ?? '',
+                                        year: album.year ?? 0,
+                                        releaseDate: album.releaseDate ?? '',
+                                        coverUri: album.coverUri ?? '',
+                                        ogImage: album.ogImage ?? '',
+                                        genre: album.genre ?? '',
+                                        trackCount: album.trackCount ?? 0,
+                                        likesCount: album.likesCount ?? 0,
+                                        recent: album.recent ?? false,
+                                        veryImportant: album.veryImportant ?? false,
+                                        artists:
+                                            data.track?.artists?.map(
+                                                (artist: any) => ({
+                                                    id: artist.id ?? null,
+                                                    name:
+                                                        artist.name ??
+                                                        'Unknown Artist',
+                                                    various: artist.various ?? false,
+                                                    composer:
+                                                        artist.composer ?? false,
+                                                    available:
+                                                        artist.available ?? false,
+                                                    cover: {
+                                                        type:
+                                                            artist.cover?.type ??
+                                                            null,
+                                                        uri:
+                                                            artist.cover?.uri ??
+                                                            null,
+                                                        prefix:
+                                                            artist.cover?.prefix ??
+                                                            null,
+                                                    },
+                                                    genres: artist.genres ?? [],
+                                                    disclaimers:
+                                                        artist.disclaimers ?? [],
+                                                }),
+                                            ) ?? [],
+                                    })) ?? [],
                                 coverUri: data.track?.coverUri ?? '',
                                 ogImage: data.track?.ogImage ?? null,
                                 lyricsAvailable: data.track?.lyricsAvailable ?? null,
                                 type: data.track?.type ?? null,
-                                rememberPosition: data.track?.rememberPosition ?? null,
-                                trackSharingFlag: data.track?.trackSharingFlag ?? null,
-                            }));
-                        });
+                                rememberPosition:
+                                    data.track?.rememberPosition ?? null,
+                                trackSharingFlag:
+                                    data.track?.trackSharingFlag ?? null,
+                            }))
+                        })
                     } else {
-                        window.desktopEvents?.removeAllListeners('trackinfo');
-                        setTrack(trackInitials);
+                        window.desktopEvents?.removeAllListeners('trackinfo')
+                        setTrack(trackInitials)
                     }
                 }
             })()
@@ -725,7 +734,7 @@ const Player: React.FC<any> = ({ children }) => {
             } else {
                 const trackStartTime = getTrackStartTime(track)
                 const trackEndTime = getTrackEndTime(track)
-                const artistName = track.artists.map(x => x.name).join(', ')
+                const artistName = track.artists.map((x) => x.name).join(', ')
 
                 const startTimestamp =
                     Math.floor(Date.now() / 1000) * 1000 -
@@ -749,22 +758,20 @@ const Player: React.FC<any> = ({ children }) => {
                             : fixStrings(track.title),
                     state:
                         app.discordRpc.state.length > 0
-                            ? fixStrings(
-                                  replaceParams(app.discordRpc.state, track),
-                              )
+                            ? fixStrings(replaceParams(app.discordRpc.state, track))
                             : fixStrings(artistName),
                 }
 
                 if (app.discordRpc.state.length > 0) {
                     activity.state =
-                        fixStrings(
-                            replaceParams(app.discordRpc.state, track),
-                        ) || 'Музыка играет'
+                        fixStrings(replaceParams(app.discordRpc.state, track)) ||
+                        'Музыка играет'
                 }
 
                 activity.buttons = []
                 if (
-                    track.artists.length != 0 && app.discordRpc.enableRpcButtonListen
+                    track.artists.length != 0 &&
+                    app.discordRpc.enableRpcButtonListen
                 ) {
                     const linkTitle = track.albums[0].id
                     activity.buttons.push({
@@ -790,9 +797,7 @@ const Player: React.FC<any> = ({ children }) => {
                         ...prevTrack,
                         title: `${track.title} - Нейромузыка`,
                     }))
-                    activity.details = fixStrings(
-                        `${track.title} - Нейромузыка`,
-                    )
+                    activity.details = fixStrings(`${track.title} - Нейромузыка`)
                 }
                 window.discordRpc.setActivity(activity)
             }

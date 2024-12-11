@@ -23,7 +23,7 @@ const TrackInitials: Track = {
     title: '',
     major: {
         id: 0,
-        name: ''
+        name: '',
     },
     available: false,
     availableForPremiumUsers: false,
@@ -35,7 +35,7 @@ const TrackInitials: Track = {
     fileSize: 0,
     r128: {
         i: 0,
-        tp: 0
+        tp: 0,
     },
     artists: [
         {
@@ -47,11 +47,11 @@ const TrackInitials: Track = {
             cover: {
                 type: '',
                 uri: '',
-                prefix: ''
+                prefix: '',
             },
             genres: [],
-            disclaimers: []
-        }
+            disclaimers: [],
+        },
     ],
     albums: [
         {
@@ -78,17 +78,17 @@ const TrackInitials: Track = {
                     cover: {
                         type: '',
                         uri: '',
-                        prefix: ''
+                        prefix: '',
                     },
                     genres: [],
-                    disclaimers: []
-                }
+                    disclaimers: [],
+                },
             ],
             labels: [
                 {
                     id: 0,
-                    name: ''
-                }
+                    name: '',
+                },
             ],
             available: false,
             availableForPremiumUsers: false,
@@ -100,9 +100,9 @@ const TrackInitials: Track = {
             listeningFinished: false,
             trackPosition: {
                 volume: 0,
-                index: 0
-            }
-        }
+                index: 0,
+            },
+        },
     ],
     coverUri: '',
     ogImage: '',
@@ -112,11 +112,11 @@ const TrackInitials: Track = {
     trackSharingFlag: '',
     lyricsInfo: {
         hasAvailableSyncLyrics: false,
-        hasAvailableTextLyrics: false
+        hasAvailableTextLyrics: false,
     },
     trackSource: '',
     specialAudioResources: [],
     liked: false,
-};
+}
 
-export default TrackInitials;
+export default TrackInitials

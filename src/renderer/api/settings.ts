@@ -8,7 +8,7 @@ export const fetchSettings = async (
     const config: SettingsInterface = { ...settingsInitials }
 
     const iterateKeys = (obj: any, path: string[] = []): void => {
-        Object.keys(obj).forEach(key => {
+        Object.keys(obj).forEach((key) => {
             const fullPath = [...path, key].join('.')
             const value = window.electron.store.get(fullPath)
             if (value !== undefined) {

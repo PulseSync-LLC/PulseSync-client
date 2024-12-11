@@ -10,7 +10,7 @@ function App() {
     Modal.setAppElement('#root')
     ReactDOM.createRoot(document.getElementById('root')).render(
         <ErrorBoundary>
-                <Snowfall />
+            <Snowfall />
             <AppPage />
         </ErrorBoundary>,
     )

@@ -1,21 +1,21 @@
 import { Track } from '../api/interfaces/track.interface'
 
 export function truncateLabel(label: string, maxLength = 32) {
-    return label.length > maxLength ? label.slice(0, maxLength) : label;
+    return label.length > maxLength ? label.slice(0, maxLength) : label
 }
 export const replaceParams = (str: any, track: Track) => {
     return str
         .replace('{track}', track.title || '')
-        .replace('{artist}', track.artists.map(a => a.name).join(', ') || '')
+        .replace('{artist}', track.artists.map((a) => a.name).join(', ') || '')
 }
 export function fixStrings(string: string): string {
-    if (!string) return string;
+    if (!string) return string
     if (string.length <= 1) {
-        string += 'ㅤ';
+        string += 'ㅤ'
     }
     if (string.length > 128) {
-        string = string.substring(0, 127);
-        string += '…';
+        string = string.substring(0, 127)
+        string += '…'
     }
-    return string;
+    return string
 }

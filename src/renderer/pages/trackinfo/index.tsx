@@ -39,39 +39,39 @@ export default function TrackInfoPage() {
             .test(
                 'len',
                 'Минимальная длина 18 символов',
-                val => !val || val.length >= 18,
+                (val) => !val || val.length >= 18,
             )
             .test(
                 'len',
                 'Максимальная длина 20 символов',
-                val => !val || val.length <= 20,
+                (val) => !val || val.length <= 20,
             ),
         details: string()
             .test(
                 'len',
                 'Минимальная длина 2 символа',
-                val => !val || val.length >= 2,
+                (val) => !val || val.length >= 2,
             )
             .test(
                 'len',
                 'Максимальная длина 128 символов',
-                val => !val || val.length <= 128,
+                (val) => !val || val.length <= 128,
             ),
         state: string()
             .test(
                 'len',
                 'Минимальная длина 2 символа',
-                val => !val || val.length >= 2,
+                (val) => !val || val.length >= 2,
             )
             .test(
                 'len',
                 'Максимальная длина 128 символов',
-                val => !val || val.length <= 128,
+                (val) => !val || val.length <= 128,
             ),
         button: string().test(
             'len',
             'Максимальная длина 30 символов',
-            val => !val || val.length <= 30,
+            (val) => !val || val.length <= 30,
         ),
     })
     const copyValues = async (value: string) => {
@@ -109,7 +109,7 @@ export default function TrackInfoPage() {
             button: app.discordRpc.button,
         },
         validationSchema: schema,
-        onSubmit: values => {
+        onSubmit: (values) => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
@@ -145,9 +145,7 @@ export default function TrackInfoPage() {
                     <div ref={containerRef} className={styles.main_container}>
                         <Container
                             titleName={'Discord RPC'}
-                            description={
-                                'Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord. (Продлена жизнь страницы до 2.1.0)'
-                            }
+                            description={`Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord. (Продлена жизнь страницы до 2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)})`}
                             imageName={'discord'}
                             onClick={() => {
                                 if (app.discordRpc.status) {
@@ -173,12 +171,8 @@ export default function TrackInfoPage() {
                             <div className={theme.container}>
                                 <form>
                                     <div className={theme.discordRpcSettings}>
-                                        <div
-                                            className={theme.optionalContainer}
-                                        >
-                                            <div
-                                                className={theme.optionalTitle}
-                                            >
+                                        <div className={theme.optionalContainer}>
+                                            <div className={theme.optionalTitle}>
                                                 Настроить статус
                                             </div>
                                             <div
@@ -200,19 +194,15 @@ export default function TrackInfoPage() {
                                                         inputStyle.styledInput
                                                     }
                                                     value={formik.values.appId}
-                                                    onChange={
-                                                        formik.handleChange
-                                                    }
-                                                    onBlur={e => {
+                                                    onChange={formik.handleChange}
+                                                    onBlur={(e) => {
                                                         handleBlur(e)
                                                     }}
                                                 />
                                                 {formik.touched.appId &&
                                                 formik.errors.appId ? (
                                                     <div
-                                                        className={
-                                                            inputStyle.error
-                                                        }
+                                                        className={inputStyle.error}
                                                     >
                                                         {formik.errors.appId}
                                                     </div>
@@ -231,22 +221,16 @@ export default function TrackInfoPage() {
                                                     className={
                                                         inputStyle.styledInput
                                                     }
-                                                    value={
-                                                        formik.values.details
-                                                    }
-                                                    onChange={
-                                                        formik.handleChange
-                                                    }
-                                                    onBlur={e => {
+                                                    value={formik.values.details}
+                                                    onChange={formik.handleChange}
+                                                    onBlur={(e) => {
                                                         handleBlur(e)
                                                     }}
                                                 />
                                                 {formik.touched.details &&
                                                 formik.errors.details ? (
                                                     <div
-                                                        className={
-                                                            inputStyle.error
-                                                        }
+                                                        className={inputStyle.error}
                                                     >
                                                         {formik.errors.details}
                                                     </div>
@@ -266,28 +250,22 @@ export default function TrackInfoPage() {
                                                         inputStyle.styledInput
                                                     }
                                                     value={formik.values.state}
-                                                    onChange={
-                                                        formik.handleChange
-                                                    }
-                                                    onBlur={e => {
+                                                    onChange={formik.handleChange}
+                                                    onBlur={(e) => {
                                                         handleBlur(e)
                                                     }}
                                                 />
                                                 {formik.touched.state &&
                                                 formik.errors.state ? (
                                                     <div
-                                                        className={
-                                                            inputStyle.error
-                                                        }
+                                                        className={inputStyle.error}
                                                     >
                                                         {formik.errors.state}
                                                     </div>
                                                 ) : null}
                                             </div>
                                             <div
-                                                className={
-                                                    theme.openModalButton
-                                                }
+                                                className={theme.openModalButton}
                                                 onClick={() => {
                                                     setModalAnim(true)
                                                     setModal(true)
@@ -316,19 +294,15 @@ export default function TrackInfoPage() {
                                                         inputStyle.styledInput
                                                     }
                                                     value={formik.values.button}
-                                                    onChange={
-                                                        formik.handleChange
-                                                    }
-                                                    onBlur={e => {
+                                                    onChange={formik.handleChange}
+                                                    onBlur={(e) => {
                                                         handleBlur(e)
                                                     }}
                                                 />
                                                 {formik.touched.button &&
                                                 formik.errors.button ? (
                                                     <div
-                                                        className={
-                                                            inputStyle.error
-                                                        }
+                                                        className={inputStyle.error}
                                                     >
                                                         {formik.errors.button}
                                                     </div>
@@ -337,7 +311,7 @@ export default function TrackInfoPage() {
                                             <CheckboxNav
                                                 disabled={
                                                     !user.badges.some(
-                                                        badge =>
+                                                        (badge) =>
                                                             badge.type ===
                                                             'supporter',
                                                     )
@@ -345,8 +319,7 @@ export default function TrackInfoPage() {
                                                 checkType="enableGithubButton"
                                                 description="Активируйте этот параметр, чтобы показать что вы любите разработчиков."
                                             >
-                                                Включить кнопку (PulseSync
-                                                Project)
+                                                Включить кнопку (PulseSync Project)
                                             </CheckboxNav>
                                         </div>
                                     </div>
@@ -385,9 +358,7 @@ export default function TrackInfoPage() {
                                                             }
                                                         >
                                                             <img
-                                                                className={
-                                                                    theme.img
-                                                                }
+                                                                className={theme.img}
                                                                 src={
                                                                     currentTrack.albumArt
                                                                         ? currentTrack.albumArt
@@ -396,9 +367,7 @@ export default function TrackInfoPage() {
                                                                 alt=""
                                                             />
                                                             <div
-                                                                className={
-                                                                    theme.gap
-                                                                }
+                                                                className={theme.gap}
                                                             >
                                                                 <div
                                                                     className={
@@ -412,11 +381,9 @@ export default function TrackInfoPage() {
                                                                         theme.name
                                                                     }
                                                                 >
-                                                                    {app
-                                                                        .discordRpc
+                                                                    {app.discordRpc
                                                                         .details
-                                                                        .length >
-                                                                    0
+                                                                        .length > 0
                                                                         ? replaceParams(
                                                                               app
                                                                                   .discordRpc
@@ -430,18 +397,25 @@ export default function TrackInfoPage() {
                                                                         theme.name
                                                                     }
                                                                 >
-                                                                    {app
-                                                                        .discordRpc
+                                                                    {app.discordRpc
                                                                         .state
-                                                                        .length >
-                                                                    0
+                                                                        .length > 0
                                                                         ? replaceParams(
                                                                               app
                                                                                   .discordRpc
                                                                                   .state,
                                                                               currentTrack,
                                                                           )
-                                                                        : currentTrack.artists.map(x => x.name).join(', ')}
+                                                                        : currentTrack.artists
+                                                                              .map(
+                                                                                  (
+                                                                                      x,
+                                                                                  ) =>
+                                                                                      x.name,
+                                                                              )
+                                                                              .join(
+                                                                                  ', ',
+                                                                              )}
                                                                 </div>
                                                                 {/*{currentTrack*/}
                                                                 {/*    .timestamps*/}
@@ -479,9 +453,7 @@ export default function TrackInfoPage() {
                                                                 height={58}
                                                             />
                                                             <div
-                                                                className={
-                                                                    theme.gap
-                                                                }
+                                                                className={theme.gap}
                                                             >
                                                                 <Skeleton
                                                                     width={70}
@@ -499,9 +471,7 @@ export default function TrackInfoPage() {
                                                         </div>
                                                     )}
                                                 </div>
-                                                <div
-                                                    className={theme.buttonRpc}
-                                                >
+                                                <div className={theme.buttonRpc}>
                                                     <div
                                                         className={theme.button}
                                                         onClick={() => {
@@ -512,7 +482,10 @@ export default function TrackInfoPage() {
                                                     >
                                                         {app.discordRpc.button
                                                             .length > 0
-                                                            ? truncateLabel(app.discordRpc.button)
+                                                            ? truncateLabel(
+                                                                  app.discordRpc
+                                                                      .button,
+                                                              )
                                                             : '✌️ Open in Yandex Music'}
                                                     </div>
                                                     {rickRollClick && (
@@ -568,8 +541,7 @@ export default function TrackInfoPage() {
                                                     onClick={() => {
                                                         setModalAnim(false)
                                                         setTimeout(
-                                                            () =>
-                                                                setModal(false),
+                                                            () => setModal(false),
                                                             200,
                                                         )
                                                     }}
@@ -577,18 +549,14 @@ export default function TrackInfoPage() {
                                                     <MdClose size={20} />
                                                 </button>
                                             </div>
-                                            <div
-                                                className={theme.modalContainer}
-                                            >
+                                            <div className={theme.modalContainer}>
                                                 <button
                                                     className={
                                                         theme.modalContextButton
                                                     }
                                                 >
                                                     <div
-                                                        className={
-                                                            theme.contextInfo
-                                                        }
+                                                        className={theme.contextInfo}
                                                     >
                                                         <div
                                                             className={
@@ -603,9 +571,7 @@ export default function TrackInfoPage() {
                                                         cursor={'pointer'}
                                                         size={18}
                                                         onClick={() =>
-                                                            copyValues(
-                                                                '{track}',
-                                                            )
+                                                            copyValues('{track}')
                                                         }
                                                     />
                                                 </button>
@@ -615,9 +581,7 @@ export default function TrackInfoPage() {
                                                     }
                                                 >
                                                     <div
-                                                        className={
-                                                            theme.contextInfo
-                                                        }
+                                                        className={theme.contextInfo}
                                                     >
                                                         <div
                                                             className={
@@ -632,9 +596,7 @@ export default function TrackInfoPage() {
                                                         cursor={'pointer'}
                                                         size={18}
                                                         onClick={() =>
-                                                            copyValues(
-                                                                '{artist}',
-                                                            )
+                                                            copyValues('{artist}')
                                                         }
                                                     />
                                                 </button>

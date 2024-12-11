@@ -25,7 +25,7 @@ export const createContextMenuActions = (
     handleToggleCheck: (themeName: string, isChecked: boolean) => void,
     checkedState: boolean = false,
     actionVisibility: ActionVisibility = {},
-    currentTheme: ThemeInterface
+    currentTheme: ThemeInterface,
 ): MenuItem[] => [
     {
         label: checkedState
@@ -57,12 +57,12 @@ export const createContextMenuActions = (
                     path: currentTheme.path,
                     name: currentTheme.name,
                 })
-                .then(result => {
+                .then((result) => {
                     if (result) {
                         toast.success('Успешный экспорт')
                     }
                 })
-                .catch(error => {
+                .catch((error) => {
                     console.error(error)
                 })
         },
@@ -88,7 +88,7 @@ export const createContextMenuActions = (
         label: `Удалить ${currentTheme.name}`,
         onClick: () => {
             const confirmation = window.confirm(
-                `Вы уверены, что хотите удалить тему "${currentTheme.name}"? Это действие нельзя будет отменить.`
+                `Вы уверены, что хотите удалить тему "${currentTheme.name}"? Это действие нельзя будет отменить.`,
             )
             if (confirmation) {
                 const themeDirPath = currentTheme.path
@@ -97,13 +97,13 @@ export const createContextMenuActions = (
                     .then(() => {
                         window.refreshThemes()
                         console.log(
-                            `Тема "${currentTheme.name}" и связанные файлы удалены.`
+                            `Тема "${currentTheme.name}" и связанные файлы удалены.`,
                         )
                     })
-                    .catch(error => {
+                    .catch((error) => {
                         console.error(
                             `Ошибка при удалении темы "${currentTheme.name}":`,
-                            error
+                            error,
                         )
                     })
             }

@@ -2,7 +2,7 @@ import { Track } from 'yandex-music-client'
 
 export const getTrackLabel = (track: Track) => {
     return truncate(
-        `${track.title} – ${track.artists.map(a => a.name).join(', ')}`,
+        `${track.title} – ${track.artists.map((a) => a.name).join(', ')}`,
         45,
     )
 }

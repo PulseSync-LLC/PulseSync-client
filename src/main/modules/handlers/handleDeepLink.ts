@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { state } from '../state'
 import { store } from '../storage'
-import config from "../../../renderer/api/config";
+import config from '../../../renderer/api/config'
 import isAppDev from 'electron-is-dev'
 import path from 'path'
 
@@ -36,20 +36,21 @@ export const navigateToDeeplink = (
                 return
             }
             const token = decodeURIComponent(reg[1])
-            const id = decodeURIComponent(reg[2]);
-            fetch(`${config.SERVER_URL}/api/v1/user/${id}/access`).then(async (res) => {
-                const j = await res.json()
-                if (j.ok) {
-                    if (!j.access) {
+            const id = decodeURIComponent(reg[2])
+            fetch(`${config.SERVER_URL}/api/v1/user/${id}/access`)
+                .then(async (res) => {
+                    const j = await res.json()
+                    if (j.ok) {
+                        if (!j.access) {
+                            return app.quit()
+                        }
+                    } else {
                         return app.quit()
                     }
-                }
-                else {
+                })
+                .catch(() => {
                     return app.quit()
-                }
-            }).catch(() => {
-                return app.quit()
-            })
+                })
             store.set('tokens.token', token)
             window.webContents.send('authSuccess')
             break
@@ -59,12 +60,12 @@ export const navigateToDeeplink = (
                 return
             }
             const reason = decodeURIComponent(regexBan[1])
-            window.webContents.send('authBanned', {reason: reason})
+            window.webContents.send('authBanned', { reason: reason })
             break
         case 'joinRoom':
             break
         default:
-            break;
+            break
     }
     window.focus()
     state.deeplink = null

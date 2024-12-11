@@ -82,8 +82,8 @@ const forge_config: ForgeConfig = {
                 `build app ${platform}-${arch} with electron ${electronVersion}`,
             )
             const isMac = () => {
-                return os.platform() === 'darwin';
-            };
+                return os.platform() === 'darwin'
+            }
             if (!isMac()) {
                 const outDir = path.join(buildPath, '..', '..', 'modules')
                 const sourceDir = path.join(__dirname, 'modules')
