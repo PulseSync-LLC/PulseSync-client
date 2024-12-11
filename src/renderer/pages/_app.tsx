@@ -44,6 +44,7 @@ import { PatcherInterface } from '../api/interfaces/patcher.interface'
 import patcherInitials from '../api/initials/patcher.initials'
 import GetPatcherQuery from '../api/queries/getPatcher.query'
 import { Track } from '../api/interfaces/track.interface'
+import * as Sentry from '@sentry/electron/renderer'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -149,11 +150,11 @@ function App() {
                     }
                 }
 
-                const sendErrorAuthNotify = () => {
-                    toast.error('Ошибка авторизации')
+                const sendErrorAuthNotify = (message: string) => {
+                    toast.error(message)
                     window.desktopEvents?.send('show-notification', {
                         title: 'Ошибка авторизации 😡',
-                        body: 'Произошла ошибка при авторизации в программе',
+                        body: message,
                     })
                 }
 
@@ -176,21 +177,54 @@ function App() {
                         window.electron.store.delete('tokens.token')
                         await router.navigate('/', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify()
+                        sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
                         window.desktopEvents?.send('authStatus', false)
                         return false
                     }
-                } catch (e) {
-                    setLoading(false)
-                    sendErrorAuthNotify()
+                } catch (e: any) {
+                    if (e.networkError) {
+                        if (retryCount > 0) {
+                            notifyUserRetries(retryCount)
+                            retryCount--
+                            return false
+                        } else {
+                            toast.error('Сервер недоступен. Попробуйте позже.')
+                            window.desktopEvents?.send('authStatus', false)
+                            setLoading(false)
+                            return false
+                        }
+                    } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
+                        const isForbidden = e.graphQLErrors.some(
+                            (error: any) => error.extensions?.code === 'FORBIDDEN'
+                        )
 
-                    if (window.electron.store.has('tokens.token')) {
-                        window.electron.store.delete('tokens.token')
+                        if (isForbidden) {
+                            sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
+                            if (window.electron.store.has('tokens.token')) {
+                                window.electron.store.delete('tokens.token')
+                            }
+                            await router.navigate('/', { replace: true })
+                            setUser(userInitials)
+                            window.desktopEvents?.send('authStatus', false)
+                            return false
+                        } else {
+                            Sentry.captureException(e)
+                            sendErrorAuthNotify('Ошибка авторизации. Пожалуйста, попробуйте снова.')
+                            if (window.electron.store.has('tokens.token')) {
+                                window.electron.store.delete('tokens.token')
+                            }
+                            await router.navigate('/', { replace: true })
+                            setUser(userInitials)
+                            window.desktopEvents?.send('authStatus', false)
+                            return false
+                        }
+                    } else {
+                        Sentry.captureException(e)
+                        toast.error('Неизвестная ошибка авторизации.')
+                        window.desktopEvents?.send('authStatus', false)
+                        setLoading(false)
+                        return false
                     }
-                    await router.navigate('/', { replace: true })
-                    setUser(userInitials)
-                    window.desktopEvents?.send('authStatus', false)
-                    return false
                 }
             } else {
                 window.desktopEvents?.send('authStatus', false)
@@ -240,7 +274,6 @@ function App() {
             if (user.id === '-1') {
                 checkAuthorization()
             }
-            // auth interval 10 min
             const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
             const handleMouseButton = (event: MouseEvent) => {
                 if (event.button === 3 || event.button === 4) {
@@ -532,43 +565,42 @@ function App() {
                 })
         }
     }
-
     return (
-        <div className="app-wrapper">
-            <Toaster />
-            <UserContext.Provider
-                value={{
-                    user,
-                    setUser,
-                    authorize,
-                    loading,
-                    socket: socketIo,
-                    socketConnected,
-                    app,
-                    setApp,
-                    updateAvailable,
-                    setUpdate,
-                    appInfo,
-                    setThemes,
-                    themes,
-                    setPatcher,
-                    patcherInfo,
-                }}
-            >
-                <Player>
-                    <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                        <CssVarsProvider>
-                            {loading ? (
-                                <Preloader />
-                            ) : (
-                                <RouterProvider router={router} />
-                            )}
-                        </CssVarsProvider>
-                    </SkeletonTheme>
-                </Player>
-            </UserContext.Provider>
-        </div>
-    )
+            <div className="app-wrapper">
+                <Toaster />
+                <UserContext.Provider
+                    value={{
+                        user,
+                        setUser,
+                        authorize,
+                        loading,
+                        socket: socketIo,
+                        socketConnected,
+                        app,
+                        setApp,
+                        updateAvailable,
+                        setUpdate,
+                        appInfo,
+                        setThemes,
+                        themes,
+                        setPatcher,
+                        patcherInfo,
+                    }}
+                >
+                    <Player>
+                        <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
+                            <CssVarsProvider>
+                                {loading ? (
+                                    <Preloader />
+                                ) : (
+                                    <RouterProvider router={router} />
+                                )}
+                            </CssVarsProvider>
+                        </SkeletonTheme>
+                    </Player>
+                </UserContext.Provider>
+            </div>
+    );
 }
 
 const Player: React.FC<any> = ({ children }) => {

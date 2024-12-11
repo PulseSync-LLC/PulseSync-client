@@ -133,6 +133,7 @@
         "react-modal": "^3.16.1",
         "react-refresh": "^0.16.0",
         "react-router-dom": "^7.0.2",
+        "react-snowfall": "^2.2.0",
         "react-touchbar-electron": "^1.0.1",
         "react-virtualized-auto-sizer": "^1.0.24",
         "react-window": "^1.8.10",
