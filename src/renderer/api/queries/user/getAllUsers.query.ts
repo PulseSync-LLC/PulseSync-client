@@ -5,11 +5,13 @@ export default gql`
         $page: Int!
         $perPage: Int!
         $sorting: [SortOptionInput!]
+        $search: String
     ) {
         getUsersWithPagination(
             page: $page
             pageSize: $perPage
             sortOptions: $sorting
+            search: $search
         ) {
             totalCount
             totalPages

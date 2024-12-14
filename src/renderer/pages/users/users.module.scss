@@ -1,0 +1,294 @@
+/* src/pages/users/users.module.scss */
+
+.searchContainer {
+    width: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
+    border-bottom: 1px solid #363944;
+    padding: 20px 30px 0px;
+    gap: 30px;
+    background-size: cover !important;
+
+    & > .titlePage {
+        font-weight: 900;
+        font-size: 23px;
+        line-height: 140%;
+
+        color: #ffffff;
+    }
+
+    & > .BoxContainer {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 0px;
+        gap: 10px;
+
+        & > .searchBoxContainer {
+            position: relative;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            padding: 14px 23px;
+            gap: 10px;
+            width: -webkit-fill-available;
+
+            background: rgb(20 21 24 / 50%);
+            border-radius: 16px;
+
+            & > .searchInput {
+                position: absolute;
+                left: 0;
+                right: 0;
+                top: 0;
+                bottom: 0;
+                border: none;
+                background: none;
+                padding-left: 53px;
+
+                font-family: 'Nunito Sans';
+                font-style: normal;
+                font-weight: 700;
+                font-size: 16px;
+                line-height: 140%;
+                transition: var(--transition);
+                border-radius: 16px;
+
+                &::placeholder {
+                    transition: var(--transition);
+                    color: #575b6d;
+                }
+
+                color: #ffffff;
+
+                &:focus {
+                    outline: none;
+                    padding-left: 23px;
+                    background: #474d61;
+
+                    &::placeholder {
+                        color: #595f74 !important;
+                    }
+                }
+
+                &:hover {
+                    padding-left: 23px;
+                    background: #474d61;
+
+                    &::placeholder {
+                        color: #6f778f;
+                    }
+                }
+            }
+        }
+
+        & > .userNav {
+            box-sizing: border-box;
+
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: flex-start;
+
+            gap: 8px;
+            width: -webkit-fill-available;
+
+            & > .userNavContainer {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+
+                & > .userNavButton {
+                    transition: var(--transition);
+                    box-sizing: border-box;
+                    position: relative;
+
+                    display: flex;
+                    flex-direction: row;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 10px 15px;
+                    gap: 10px;
+
+                    border: none;
+                    background: transparent;
+                    color: #959dba;
+
+                    &::after {
+                        transition: var(--transition);
+                        content: '';
+                        position: absolute;
+                        display: block;
+                        bottom: 0px;
+                        width: -webkit-fill-available;
+                        height: 0px;
+                        background: #3468f2;
+                    }
+
+                    &:hover {
+                        cursor: pointer;
+                        color: #ffffff;
+
+                        &::after {
+                            bottom: -1px;
+                            height: 2px;
+                        }
+                    }
+
+                    &:disabled {
+                        opacity: 0.5;
+
+                        &:hover {
+                            cursor: not-allowed;
+                            color: #959dba;
+
+                            &::after {
+                                bottom: 0px;
+                                height: 0px;
+                            }
+                        }
+                    }
+                }
+
+                & > .activeSort {
+                    color: #ffffff;
+
+                    &::after {
+                        bottom: -1px;
+                        height: 2px;
+                        background: #3468f2;
+                    }
+                }
+            }
+        }
+    }
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px 12px;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+}
+
+//
+
+tbody {
+    gap: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.userRow {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 1px 30px;
+    gap: 30px;
+    border-radius: 8px;
+    justify-content: space-between;
+
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #b6c7ff;
+    background-size: cover !important;
+
+    &:hover {
+        background-color: #5b6181bd !important;
+    }
+}
+
+.userAvatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+}
+
+.userName {
+    display: flex;
+    align-items: center;
+    gap: 17px;
+}
+
+.userDate {
+    display: flex;
+    align-items: center;
+    gap: 17px;
+}
+
+.pagination {
+    width: auto;
+    display: flex;
+    justify-content: center;
+    gap: 5px;
+}
+
+.ellipsis {
+    color: white;
+    display: flex;
+    align-items: flex-end;
+    padding: 0px 5px;
+    transition: var(--transition);
+}
+
+.usersTable {
+    border-collapse: separate;
+    border-spacing: 0 3px;
+    text-align: center;
+    width: 100%;
+}
+
+.userPage {
+    width: -webkit-fill-available;
+    gap: 20px;
+    display: flex;
+    flex-direction: column;
+}
+
+.paginationButtonLR {
+    width: fit-content;
+    height: 30px;
+    background-color: #363944;
+    border-radius: 18px;
+    transition: var(--transition);
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 10px 15px;
+    gap: 10px;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.paginationButton {
+    padding: 0px 11px;
+    width: fit-content;
+    height: 30px;
+    border: none;
+    background-color: transparent;
+    color: #fff;
+    cursor: pointer;
+    transition: var(--transition);
+    border-radius: 18px;
+}
+
+.paginationButtonLR,
+.paginationButton {
+    &.active {
+        background-color: #4c79ff;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    &:hover:not(:disabled) {
+        background-color: #4c79ff;
+    }
+}
