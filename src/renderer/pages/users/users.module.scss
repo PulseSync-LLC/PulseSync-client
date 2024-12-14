@@ -195,7 +195,7 @@ tbody {
     background-size: cover !important;
 
     &:hover {
-        background-color: #5b6181bd !important;
+        background-color: #646fb1bd !important;
     }
 }
 
@@ -205,10 +205,18 @@ tbody {
     border-radius: 8px;
 }
 
+.userBadges {
+    display: flex;
+    gap: 5px;
+    width: 540px;
+    justify-content: flex-start;
+}
+
 .userName {
     display: flex;
     align-items: center;
     gap: 17px;
+    width: 280px;
 }
 
 .userDate {

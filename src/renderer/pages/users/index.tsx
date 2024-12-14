@@ -16,7 +16,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
-    const [sorting, setSorting] = useState([{ id: 'createdAt', desc: true }])
+    const [sorting, setSorting] = useState([{ id: 'createdAt', desc: false }])
     const [search, setSearch] = useState('')
 
     const [backgroundStyle, setBackgroundStyle] = useState({
@@ -229,7 +229,7 @@ export default function UsersPage() {
                                         value={search}
                                         onChange={(e) => {
                                             setSearch(e.target.value)
-                                            setPage(1) // Сбрасываем на первую страницу при новом поиске
+                                            setPage(1)
                                         }}
                                     />
                                 </div>
@@ -293,6 +293,36 @@ export default function UsersPage() {
                                                                 }}
                                                             />
                                                             {user.username}
+                                                        </td>
+                                                        <td
+                                                            className={
+                                                                styles.userBadges
+                                                            }
+                                                        >
+                                                            {user.badges.length >
+                                                                0 &&
+                                                                user.badges
+                                                                    .slice()
+                                                                    .sort(
+                                                                        (a, b) =>
+                                                                            b.level -
+                                                                            a.level,
+                                                                    )
+                                                                    .map(
+                                                                        (_badge) => (
+                                                                            <div
+                                                                                className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
+                                                                                key={`${_badge.type}-${_badge.level}`}
+                                                                            >
+                                                                                <img
+                                                                                    src={`static/assets/badges/${_badge.type}.svg`}
+                                                                                    alt={
+                                                                                        _badge.name
+                                                                                    }
+                                                                                />
+                                                                            </div>
+                                                                        ),
+                                                                    )}
                                                         </td>
                                                         <td
                                                             className={
