@@ -6,6 +6,7 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import ExtensionPage from './extension'
+import UsersPage from './users'
 import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
@@ -98,6 +99,14 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <ExtensionPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/users',
+            element: (
+                <ErrorBoundary>
+                    <UsersPage />
                 </ErrorBoundary>
             ),
         },

@@ -5,6 +5,7 @@ import {
     MdDownload,
     MdExtension,
     MdKeyboardArrowRight,
+    MdPeople,
     MdStoreMallDirectory,
     MdUpdate,
 } from 'react-icons/md'
@@ -220,6 +221,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                             <NavButtonPulse to="/extensionbeta">
                                 <MdExtension size={24} />
+                                <div className={pageStyles.betatest}>beta</div>
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/users">
+                                <MdPeople size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" disabled>
