@@ -28,6 +28,12 @@ export default gql`
                     uuid
                     createdAt
                 }
+                badges {
+                    name
+                    type
+                    level
+                    createdAt
+                }
             }
         }
     }
