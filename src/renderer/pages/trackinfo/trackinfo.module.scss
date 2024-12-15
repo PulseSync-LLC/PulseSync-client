@@ -221,6 +221,8 @@
             align-self: stretch;
             flex-grow: 0;
             z-index: 0;
+
+            object-fit: cover;
         }
 
         > div {
@@ -249,6 +251,7 @@
 
                 border: 5px solid var(--MainBG);
                 border-radius: 50px;
+                object-fit: cover;
             }
 
             .userName {

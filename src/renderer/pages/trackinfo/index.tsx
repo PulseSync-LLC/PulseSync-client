@@ -18,6 +18,7 @@ import { MdClose, MdContentCopy } from 'react-icons/md'
 import toast from '../../api/toast'
 import { replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
+import config from '../../api/config'
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
@@ -328,8 +329,8 @@ export default function TrackInfoPage() {
                                     <img
                                         className={theme.userBanner}
                                         src={
-                                            user.banner
-                                                ? user.banner
+                                            user.bannerHash
+                                                ? `${config.S3_URL}/banners/${user.bannerHash}.webp`
                                                 : 'static/assets/images/no_banner.png'
                                         }
                                         alt=""
@@ -337,7 +338,11 @@ export default function TrackInfoPage() {
                                     <div>
                                         <img
                                             className={theme.userAvatar}
-                                            src={user.avatar}
+                                            src={
+                                                user.avatarHash
+                                                    ? `${config.S3_URL}/avatars/${user.avatarHash}.webp`
+                                                    : 'static/assets/images/undef.png'
+                                            }
                                             alt=""
                                         />
                                         <div className={theme.userName}>

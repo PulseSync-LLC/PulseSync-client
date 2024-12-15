@@ -1027,14 +1027,12 @@ const OldHeader: React.FC<p> = () => {
                                                 <div className={styles.user_avatar}>
                                                     <img
                                                         className={styles.avatar}
-                                                        src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
+                                                        src={
+                                                            user.avatarHash
+                                                                ? `${config.S3_URL}/avatars/${user.avatarHash}.webp`
+                                                                : 'static/assets/images/undef.png'
+                                                        }
                                                         alt="card_avatar"
-                                                        onError={(e) => {
-                                                            ;(
-                                                                e.currentTarget as HTMLImageElement
-                                                            ).src =
-                                                                './static/assets/images/undef.png'
-                                                        }}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}
