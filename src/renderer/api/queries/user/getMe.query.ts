@@ -7,6 +7,7 @@ export default gql`
             avatarHash
             status
             banner
+            bannerHash
             username
             perms
             id

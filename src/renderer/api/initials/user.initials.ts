@@ -7,6 +7,7 @@ const UserInitials: UserInterface = {
     createdAt: '',
     status: '',
     banner: '',
+    bannerHash: '',
     username: '',
     perms: 'default',
     badges: [],

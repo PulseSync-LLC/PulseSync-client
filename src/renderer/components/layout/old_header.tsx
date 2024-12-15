@@ -1,4 +1,5 @@
 import React, {
+    CSSProperties,
     memo,
     useCallback,
     useContext,
@@ -34,6 +35,7 @@ import { useCharCount } from '../../utils/useCharCount'
 import axios from 'axios'
 import UserInterface from '../../api/interfaces/user.interface'
 import * as Sentry from '@sentry/electron/renderer'
+import { motion } from 'framer-motion'
 
 interface p {
     goBack?: boolean
@@ -41,10 +43,12 @@ interface p {
 
 const OldHeader: React.FC<p> = () => {
     const storedStatus = localStorage.getItem('playStatus')
-    const inputRef = useRef<HTMLInputElement | null>(null);
+    const avatarInputRef = useRef<HTMLInputElement | null>(null)
+    const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const { currentTrack } = useContext(playerContext)
     const [currentTime, setCurrentTime] = useState<number>(0)
-    const [progress, setProgress] = useState<number>(0)
+    const [avatarProgress, setAvatarProgress] = useState(-1)
+    const [bannerProgress, setBannerProgress] = useState(-1)
     const previousStatusRef = useRef<string | null>(null)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
@@ -429,22 +433,27 @@ const OldHeader: React.FC<p> = () => {
     //     return <div>Error: Invalid track timecodes</div>;
     // }
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
-            const selectedFile = event.target.files[0];
-            setProgress(-1);
-
-            handleUpload(selectedFile);
+            const selectedFile = event.target.files[0]
+            setAvatarProgress(-1)
+            handleAvatarUpload(selectedFile)
         }
-    };
+    }
 
-    const handleUpload = async (file: File) => {
-        if (!file) {
-            return;
+    const handleBannerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            const selectedFile = event.target.files[0]
+            setBannerProgress(-1)
+            handleBannerUpload(selectedFile)
         }
+    }
 
-        const formData = new FormData();
-        formData.append("file", file);
+    const handleAvatarUpload = async (file: File) => {
+        if (!file) return
+
+        const formData = new FormData()
+        formData.append('file', file)
 
         try {
             const response = await axios.post(
@@ -452,40 +461,88 @@ const OldHeader: React.FC<p> = () => {
                 formData,
                 {
                     headers: {
-                        "Content-Type": "multipart/form-data",
-                        Authorization: `Bearer: ${window.electron.store.get('tokens.token')}`,
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
                     },
                     onUploadProgress: (progressEvent) => {
-                        const { loaded, total } = progressEvent;
-
+                        const { loaded, total } = progressEvent
                         const percentCompleted = Math.floor(
-                            (loaded * 100) / (total || 1)
-                        );
-                        setProgress(percentCompleted);
+                            (loaded * 100) / (total || 1),
+                        )
+                        setAvatarProgress(percentCompleted)
                     },
-                }
-            );
+                },
+            )
 
-            const data = response.data;
+            const data = response.data
 
             if (data && data.ok) {
-                setProgress(-1);
-
-                setUser((prev: UserInterface) => ({
+                setAvatarProgress(-1)
+                setUser((prev: any) => ({
                     ...prev,
                     avatarHash: data.hash,
-                }));
-
-                toast.success("Успешно!");
+                }))
+                toast.success('Аватар успешно загружен!')
             } else {
-                toast.error('Неизвестная ошибка');
+                setAvatarProgress(-1)
+                toast.error('Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
-            toast.error('Неизвестная ошибка');
-            Sentry.captureException(error);
-            console.error("Error uploading file:", error);
+            toast.error('Ошибка при загрузке аватара')
+            setAvatarProgress(-1)
+            Sentry.captureException(error)
+            console.error('Error uploading avatar:', error)
         }
-    };
+    }
+
+    const handleBannerUpload = async (file: File) => {
+        if (!file) return
+
+        const formData = new FormData()
+        formData.append('file', file)
+
+        try {
+            const response = await axios.post(
+                `${config.SERVER_URL}/cdn/banner/upload`,
+                formData,
+                {
+                    headers: {
+                        'Content-Type': 'multipart/form-data',
+                        Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const { loaded, total } = progressEvent
+                        const percentCompleted = Math.floor(
+                            (loaded * 100) / (total || 1),
+                        )
+                        setBannerProgress(percentCompleted)
+                    },
+                },
+            )
+
+            const data = response.data
+            console.log('Загрузка баннера ответ сервера:', data)
+
+            if (data && data.ok) {
+                setBannerProgress(-1)
+                setUser((prev: any) => ({
+                    ...prev,
+                    bannerHash: data.hash,
+                }))
+                toast.success('Баннер успешно загружен!')
+                console.log('Баннер загружен:', data.hash)
+            } else {
+                setBannerProgress(-1)
+                toast.error('Неизвестная ошибка при загрузке баннера')
+                console.error('Ошибка при загрузке баннера:', data)
+            }
+        } catch (error) {
+            toast.error('Ошибка при загрузке баннера')
+            setBannerProgress(-1)
+            Sentry.captureException(error)
+            console.error('Error uploading banner:', error)
+        }
+    }
     return (
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
@@ -822,17 +879,30 @@ const OldHeader: React.FC<p> = () => {
                                         onClick={toggleUserContainer}
                                     >
                                         <input
-                                            ref={inputRef}
+                                            ref={avatarInputRef}
                                             type={'file'}
                                             accept={'image/*'}
                                             style={{ display: 'none' }}
-                                            onChange={handleFileChange}
+                                            onChange={handleAvatarChange}
+                                        />
+                                        <input
+                                            ref={bannerInputRef}
+                                            type={'file'}
+                                            accept={'image/*'}
+                                            style={{ display: 'none' }}
+                                            onChange={handleBannerChange}
                                         />
                                         <div className={styles.user_avatar}>
                                             <img
                                                 className={styles.avatar}
                                                 src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
                                                 alt=""
+                                                onError={(e) => {
+                                                    ;(
+                                                        e.currentTarget as HTMLImageElement
+                                                    ).src =
+                                                        './static/assets/images/undef.png'
+                                                }}
                                             />
                                             <div className={styles.status}>
                                                 <div className={styles.dot}></div>
@@ -871,11 +941,49 @@ const OldHeader: React.FC<p> = () => {
                                                 <div
                                                     className={styles.user_banner}
                                                     style={{
-                                                        backgroundImage: user.banner
-                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${user.banner})`
-                                                            : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage:
+                                                            user.bannerHash
+                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.webp)`
+                                                                : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
                                                     }}
                                                 >
+                                                    <motion.div
+                                                        className={
+                                                            styles.banner_overlay
+                                                        }
+                                                        initial={{ width: '0%' }}
+                                                        animate={{
+                                                            width:
+                                                                bannerProgress !== -1
+                                                                    ? `${bannerProgress}%`
+                                                                    : '0%',
+                                                        }}
+                                                        transition={{
+                                                            duration: 0.3,
+                                                            ease: 'linear',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className={
+                                                                styles.banner_loader
+                                                            }
+                                                            style={
+                                                                {
+                                                                    '--progress': `${bannerProgress}%`,
+                                                                } as CSSProperties
+                                                            }
+                                                        />
+                                                    </motion.div>
+                                                    <div
+                                                        className={
+                                                            styles.hoverUpload
+                                                        }
+                                                        onClick={() =>
+                                                            bannerInputRef.current!.showPicker()
+                                                        }
+                                                    >
+                                                        Загрузить баннер
+                                                    </div>
                                                     <div
                                                         className={
                                                             styles.badges_container
@@ -921,8 +1029,46 @@ const OldHeader: React.FC<p> = () => {
                                                         className={styles.avatar}
                                                         src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
                                                         alt="card_avatar"
-                                                        onClick={() => inputRef.current!.showPicker()}
+                                                        onError={(e) => {
+                                                            ;(
+                                                                e.currentTarget as HTMLImageElement
+                                                            ).src =
+                                                                './static/assets/images/undef.png'
+                                                        }}
                                                     />
+                                                    <motion.div
+                                                        className={styles.overlay}
+                                                        initial={{ opacity: 0 }}
+                                                        transition={{
+                                                            duration: 0.3,
+                                                            ease: 'linear',
+                                                        }}
+                                                        animate={{
+                                                            opacity:
+                                                                avatarProgress !== -1
+                                                                    ? `${avatarProgress}`
+                                                                    : '0',
+                                                        }}
+                                                    >
+                                                        <div
+                                                            className={styles.loader}
+                                                            style={
+                                                                {
+                                                                    '--progress': `${avatarProgress}%`,
+                                                                } as CSSProperties
+                                                            }
+                                                        />
+                                                    </motion.div>
+                                                    <div
+                                                        className={
+                                                            styles.hoverUpload
+                                                        }
+                                                        onClick={() =>
+                                                            avatarInputRef.current!.showPicker()
+                                                        }
+                                                    >
+                                                        Загрузить аватар
+                                                    </div>
                                                     <div className={styles.status}>
                                                         <div
                                                             className={styles.dot}

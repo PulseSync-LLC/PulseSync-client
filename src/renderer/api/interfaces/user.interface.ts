@@ -6,6 +6,7 @@ export default interface UserInterface {
     avatar: string
     avatarHash: string
     banner: string
+    bannerHash: string
     perms: string
     badges: any[]
 }
