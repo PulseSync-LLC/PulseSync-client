@@ -31,6 +31,9 @@ import config from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
+import axios from 'axios'
+import UserInterface from '../../api/interfaces/user.interface'
+import * as Sentry from '@sentry/electron/renderer'
 
 interface p {
     goBack?: boolean
@@ -38,6 +41,7 @@ interface p {
 
 const OldHeader: React.FC<p> = () => {
     const storedStatus = localStorage.getItem('playStatus')
+    const inputRef = useRef<HTMLInputElement | null>(null);
     const { currentTrack } = useContext(playerContext)
     const [currentTime, setCurrentTime] = useState<number>(0)
     const [progress, setProgress] = useState<number>(0)
@@ -425,6 +429,63 @@ const OldHeader: React.FC<p> = () => {
     //     return <div>Error: Invalid track timecodes</div>;
     // }
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        if (event.target.files) {
+            const selectedFile = event.target.files[0];
+            setProgress(-1);
+
+            handleUpload(selectedFile);
+        }
+    };
+
+    const handleUpload = async (file: File) => {
+        if (!file) {
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await axios.post(
+                `${config.SERVER_URL}/cdn/avatar/upload`,
+                formData,
+                {
+                    headers: {
+                        "Content-Type": "multipart/form-data",
+                        Authorization: `Bearer: ${window.electron.store.get('tokens.token')}`,
+                    },
+                    onUploadProgress: (progressEvent) => {
+                        const { loaded, total } = progressEvent;
+
+                        const percentCompleted = Math.floor(
+                            (loaded * 100) / (total || 1)
+                        );
+                        setProgress(percentCompleted);
+                    },
+                }
+            );
+
+            const data = response.data;
+
+            if (data && data.ok) {
+                setProgress(-1);
+
+                setUser((prev: UserInterface) => ({
+                    ...prev,
+                    avatarHash: data.hash,
+                }));
+
+                toast.success("Успешно!");
+            } else {
+                toast.error('Неизвестная ошибка');
+            }
+        } catch (error) {
+            toast.error('Неизвестная ошибка');
+            Sentry.captureException(error);
+            console.error("Error uploading file:", error);
+        }
+    };
     return (
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
@@ -760,10 +821,17 @@ const OldHeader: React.FC<p> = () => {
                                         className={styles.user_container}
                                         onClick={toggleUserContainer}
                                     >
+                                        <input
+                                            ref={inputRef}
+                                            type={'file'}
+                                            accept={'image/*'}
+                                            style={{ display: 'none' }}
+                                            onChange={handleFileChange}
+                                        />
                                         <div className={styles.user_avatar}>
                                             <img
                                                 className={styles.avatar}
-                                                src={user.avatar}
+                                                src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
                                                 alt=""
                                             />
                                             <div className={styles.status}>
@@ -815,7 +883,11 @@ const OldHeader: React.FC<p> = () => {
                                                     >
                                                         {user.badges.length > 0 &&
                                                             user.badges
-                                                                .sort((a, b) => b.level - a.level)
+                                                                .sort(
+                                                                    (a, b) =>
+                                                                        b.level -
+                                                                        a.level,
+                                                                )
                                                                 .map((_badge) => (
                                                                     <div
                                                                         className={
@@ -841,15 +913,15 @@ const OldHeader: React.FC<p> = () => {
                                                                             }
                                                                         </span>
                                                                     </div>
-                                                                ),
-                                                            )}
+                                                                ))}
                                                     </div>
                                                 </div>
                                                 <div className={styles.user_avatar}>
                                                     <img
                                                         className={styles.avatar}
-                                                        src={user.avatar}
-                                                        alt=""
+                                                        src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
+                                                        alt="card_avatar"
+                                                        onClick={() => inputRef.current!.showPicker()}
                                                     />
                                                     <div className={styles.status}>
                                                         <div
@@ -932,7 +1004,11 @@ const OldHeader: React.FC<p> = () => {
                             <button
                                 id="close"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
+                                onClick={() =>
+                                    window.electron.window.close(
+                                        app.settings.closeAppInTray,
+                                    )
+                                }
                             >
                                 <Close color="#E4E5EA" />
                             </button>

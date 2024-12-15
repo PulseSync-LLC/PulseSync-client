@@ -4,6 +4,7 @@ export default interface UserInterface {
     createdAt: string 
     status: string 
     avatar: string
+    avatarHash: string
     banner: string
     perms: string
     badges: any[]

@@ -4,6 +4,8 @@ export default gql`
     query users {
         getMe {
             avatar
+            avatarHash
+            status
             banner
             username
             perms
