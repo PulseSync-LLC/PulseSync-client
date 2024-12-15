@@ -10,6 +10,7 @@ import { FaSortUp, FaSortDown } from 'react-icons/fa'
 import debounce from 'lodash.debounce'
 import { MdAllOut, MdHourglassEmpty } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import { motion } from 'framer-motion'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -18,6 +19,33 @@ export default function UsersPage() {
     const [maxPages, setMaxPages] = useState(1)
     const [sorting, setSorting] = useState([{ id: 'createdAt', desc: false }])
     const [search, setSearch] = useState('')
+
+    const loadingText = 'Загрузка...'.split('')
+
+    const containerVariants = {
+        animate: {
+            transition: {
+                staggerChildren: 0.1,
+            },
+        },
+    }
+
+    const letterVariants = {
+        initial: {
+            y: 0,
+        },
+        animate: {
+            y: [0, -10, 0],
+            transition: {
+                y: {
+                    repeat: Infinity,
+                    repeatType: 'loop',
+                    duration: 1,
+                    ease: 'easeInOut',
+                },
+            },
+        },
+    }
 
     const [backgroundStyle, setBackgroundStyle] = useState({
         background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
@@ -258,7 +286,31 @@ export default function UsersPage() {
                         </div>
                         <div className={globalStyles.container30x15}>
                             {loading ? (
-                                <div>Загрузка...</div>
+                                <div className={styles.loading}>
+                                    <motion.div
+                                        variants={containerVariants}
+                                        initial="initial"
+                                        animate="animate"
+                                        style={{
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                        }}
+                                    >
+                                        {loadingText.map((char, index) => (
+                                            <motion.span
+                                                key={index}
+                                                variants={letterVariants}
+                                                style={{
+                                                    display: 'inline-block',
+                                                    marginRight: '2px',
+                                                }}
+                                            >
+                                                {char}
+                                            </motion.span>
+                                        ))}
+                                    </motion.div>
+                                </div>
                             ) : (
                                 <div className={styles.userPage}>
                                     {users.length > 0 ? (

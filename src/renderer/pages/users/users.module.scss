@@ -164,6 +164,21 @@
     }
 }
 
+.loading {
+    display: flex;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    position: absolute;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: x-large;
+}
+
 .searchInput {
     width: 100%;
     padding: 8px 12px;

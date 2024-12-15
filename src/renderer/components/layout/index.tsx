@@ -225,7 +225,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                             <NavButtonPulse to="/users">
                                 <MdPeople size={24} />
-                                <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" disabled>
                                 <MdStoreMallDirectory size={24} />
