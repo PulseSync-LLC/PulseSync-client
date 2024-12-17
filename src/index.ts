@@ -560,10 +560,7 @@ export async function prestartCheck() {
     if (store.has('discordRpc.status') && store.get('discordRpc.status')) {
         rpc_connect()
     }
-    logger.main.log(store.has('patcher.patched'))
-    logger.main.log(store.get('patcher.patched'))
-    logger.main.log(store.get("patcher.version"))
-    logger.main.log(store.has('patcher.patched') && store.get('patcher.patched') || store.get("patcher.version"))
+
     if (store.has('patcher.patched') && store.get('patcher.patched') || store.get("patcher.version")) {
         if (!fs.existsSync(asarCopy)) {
             store.set('patcher.patched', false)
