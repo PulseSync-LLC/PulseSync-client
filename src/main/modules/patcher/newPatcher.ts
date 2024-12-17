@@ -63,22 +63,21 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
                 'resources',
                 'app.backup.asar',
             )
-            console.log('Path to app.asar:', savePath)
 
-            if (fs.existsSync(savePath) && !fs.existsSync(backupPath)) {
-                fs.copyFileSync(savePath, backupPath)
-                logger.main.info('Старый app.asar был сохранён как app.backup.asar')
+            if (!fs.existsSync(backupPath)) {
+                if (fs.existsSync(savePath)) {
+                    fs.copyFileSync(savePath, backupPath)
+                    logger.main.info('Оригинальный app.asar сохранён как app.backup.asar')
+                } else {
+                    throw new Error('Файл app.asar не найден для создания резервной копии')
+                }
+            } else {
+                logger.main.info('Резервная копия app.backup.asar уже существует')
             }
 
             const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
 
-            await downloadAndUpdateFile(
-                link,
-                tempFilePath,
-                savePath,
-                event,
-                checksum,
-            )
+            await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
         } catch (error: any) {
             logger.main.error('Неожиданная ошибка:', error)
 

@@ -34,6 +34,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const downloadToastIdRef = useRef<string | null>(null)
 
     useEffect(() => {
+        console.log(patcherInfo)
         if (patcherInfo.length > 0) {
             setLoadingPatchInfo(false)
         } else {
@@ -79,7 +80,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 toast.dismiss(downloadToastIdRef.current)
                 downloadToastIdRef.current = null
             }
-            toast.success('Обновление прошло успешно!', {
+            toast.success(app.patcher.patched ? 'Обновление прошло успешно!': "Установка прошла успешно!", {
                 style: {
                     background: '#292C36',
                     color: '#ffffff',
@@ -248,11 +249,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         </div>
                     </div>
 
-                    {patcherInfo.length > 0 &&
-                        (!app.patcher.patched ||
-                            (patcherInfo[0] &&
-                                app.patcher.version <
-                                    patcherInfo[0].modVersion)) && (
+                    {patcherInfo.length > 0 && (!app.patcher.patched || app.patcher.version < patcherInfo[0]?.modVersion) && (
                             <div className={pageStyles.alert_patch}>
                                 <div className={pageStyles.patch_container}>
                                     <div className={pageStyles.patch_detail}>
@@ -267,7 +264,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                         pageStyles.version_old
                                                     }
                                                 >
-                                                    {app.patcher.version
+                                                    {app.patcher.version && app.patcher.patched
                                                         ? app.patcher.version
                                                         : 'Не установлен'}
                                                 </div>

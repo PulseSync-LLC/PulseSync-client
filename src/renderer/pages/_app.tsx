@@ -374,21 +374,16 @@ function App() {
 
                     if (data && data.getPatcher) {
                         const info = (data.getPatcher as PatcherInterface[])
-                            .filter(
-                                (info) =>
-                                    compareVersions(
-                                        info.modVersion,
-                                        app.patcher.version,
-                                    ) > 0,
+                            .filter((info) =>
+                                !app.patcher.version ||
+                                compareVersions(info.modVersion, app.patcher.version) > 0
                             )
-                            .sort((a, b) =>
-                                compareVersions(a.modVersion, b.modVersion),
-                            )
+                            .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
 
                         if (info.length > 0) {
-                            setPatcher(info)
+                            setPatcher(info);
                         } else {
-                            console.log('Нет доступных обновлений')
+                            console.log('Нет доступных обновлений');
                         }
                     } else {
                         console.error(
@@ -417,7 +412,7 @@ function App() {
                 })
                 window.electron.store.set('discordRpc.enableGithubButton', true)
             }
-            window.desktopEvents?.send('websocket-start')
+            //window.desktopEvents?.send('websocket-start')
             window.desktopEvents
                 .invoke('getThemes')
                 .then((fetchedThemes: ThemeInterface[]) => {
@@ -779,7 +774,7 @@ const Player: React.FC<any> = ({ children }) => {
 
                 activity.buttons = []
                 if (
-                    track.artists.length != 0 &&
+                    track.artists.length != 0 && track.albums.length != 0 &&
                     app.discordRpc.enableRpcButtonListen
                 ) {
                     const linkTitle = track.albums[0].id

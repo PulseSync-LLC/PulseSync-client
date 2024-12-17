@@ -6,6 +6,7 @@ import playerContext from '../../api/context/player.context'
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import hotToast from 'react-hot-toast-magic'
 import toast from '../../api/toast'
+import SettingsInterface from '../../api/interfaces/settings.interface'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
@@ -45,43 +46,37 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
         })
 
-        const handleUpdateAppData = (event: any, data: any) => {
-            for (const [key] of Object.entries(data)) {
-                if (key === 'repatch') {
-                    toast.success('Успешный репатч', { id: toastId })
-                } else if (key === 'patch') {
-                    toast.success('Успешный патч', { id: toastId })
-                } else if (key === 'depatch') {
-                    toast.success('Успешный депатч', { id: toastId })
-                } else {
-                    hotToast.dismiss(toastId)
-                }
-            }
-            window.desktopEvents?.removeAllListeners('UPDATE_APP_DATA')
+        const handleFailure = (event: any, args: any) => {
+            toast.error(`Ошибка удаления мода: ${args.error}`, {
+                id: toastId
+            })
         }
 
-        window.desktopEvents?.on('UPDATE_APP_DATA', handleUpdateAppData)
+        const handleSuccess = (event: any, args: any) => {
+            toast.error(`Мод удален успешно`, {
+                id: toastId
+            })
+            setApp((prevApp: SettingsInterface) => ({
+                ...prevApp,
+                patcher: {
+                    ...prevApp.patcher,
+                    patched: false,
+                },
+            }))
+            window.electron.store.delete('patcher.version')
+        }
+
+        window.desktopEvents?.once('remove-mod-success', handleSuccess)
+        window.desktopEvents?.once('remove-mod-failure', handleFailure)
     }
 
-    const repatch = (e: any) => {
-        showLoadingToast(e, 'Репатч...')
-        window.electron.patcher.repatch()
-    }
-
-    const depatch = (e: any) => {
-        showLoadingToast(e, 'Депатч...')
-        window.electron.patcher.depatch()
-        setApp({
-            ...app,
-            patcher: {
-                ...app.patcher,
-                patched: false,
-            },
-        })
+    const deleteMod = (e: any) => {
+        showLoadingToast(e, 'Удаление мода...')
+        window.desktopEvents.send('remove-mod')
     }
 
     const openGitHub = () => {
-        window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts')
+        window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev')
     }
 
     const toggleSetting = (type: string, status: boolean) => {
@@ -229,19 +224,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 Директория приложения
             </button>,
         ),
-        createButtonSection('Патч', [
-            { label: 'Патч', onClick: repatch, disabled: app.patcher.patched },
+        createButtonSection('Мод', [
             {
-                label: 'Репатч',
-                onClick: repatch,
+                label: 'Удалить мод',
+                onClick: deleteMod,
                 disabled: !app.patcher.patched,
             },
-            {
-                label: 'Депатч',
-                onClick: depatch,
-                disabled: !app.patcher.patched,
-            },
-            { label: 'Скрипт патчера на GitHub', onClick: openGitHub },
+            { label: 'Скрипт мода на GitHub', onClick: openGitHub },
         ]),
         createButtonSection('Настройки приложения', [
             createToggleButton('Автотрей', app.settings.autoStartInTray, () =>

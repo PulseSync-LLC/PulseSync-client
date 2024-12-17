@@ -482,19 +482,27 @@ function initializeTheme() {
     console.log('Themes: theme changed to:', selectedTheme)
     setTheme(selectedTheme)
 }
+export const getPath = (args: string) => {
+    const savePath = app.getPath('userData');
+    return path.resolve(`${savePath}/extensions/${args}`);
+};
 app.whenReady().then(async () => {
     if (isAppDev) {
         try {
-            await session.defaultSession.loadExtension(
-                path.join(
-                    __dirname,
-                    '../',
-                    '../',
-                    'ReactDevTools',
-                    'fmkadmapgofadopljbjfkapdkoienihi',
-                    '5.3.1_0',
-                ),
-            )
+            // if ((session.defaultSession as any).loadExtension) {
+            //     return (session.defaultSession as any)
+            //         .loadExtension(getPath("jdkknkkbebbapilgoeccciglkfbmbnfm"))
+            //         .then((ext: { name: string }) => {
+            //             return Promise.resolve(ext.name);
+            //         });
+            // }
+            if ((session.defaultSession as any).loadExtension) {
+                return (session.defaultSession as any)
+                    .loadExtension(getPath("fmkadmapgofadopljbjfkapdkoienihi"))
+                    .then((ext: { name: string }) => {
+                        return Promise.resolve(ext.name);
+                    });
+            }
         } catch (e) {
             logger.main.error(e)
         }
@@ -552,9 +560,14 @@ export async function prestartCheck() {
     if (store.has('discordRpc.status') && store.get('discordRpc.status')) {
         rpc_connect()
     }
-    if (store.has('patcher.patched') && store.get('patcher.patched')) {
+    logger.main.log(store.has('patcher.patched'))
+    logger.main.log(store.get('patcher.patched'))
+    logger.main.log(store.get("patcher.version"))
+    logger.main.log(store.has('patcher.patched') && store.get('patcher.patched') || store.get("patcher.version"))
+    if (store.has('patcher.patched') && store.get('patcher.patched') || store.get("patcher.version")) {
         if (!fs.existsSync(asarCopy)) {
             store.set('patcher.patched', false)
+            store.delete('patcher.version')
         }
     } else if (fs.existsSync(asarCopy)) {
         store.set('patcher.patched', true)
