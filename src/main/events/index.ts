@@ -45,7 +45,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         mainWindow.close()
     })
     ipcMain.on('electron-window-close', (event, val) => {
-        if(!val) app.quit()
+        if (!val) app.quit()
         mainWindow.hide()
     })
 

@@ -15,7 +15,8 @@
         font-size: 12px;
         line-height: 16px;
 
-        color: #ecedef;    }
+        color: #ecedef;
+    }
 
     .statusRPC {
         display: flex;
@@ -101,7 +102,7 @@
 
                         background: #999999;
 
-                        &>.timeline_progress {
+                        & > .timeline_progress {
                             height: 2px;
                             background: #fafafa;
                         }
@@ -130,7 +131,7 @@
 
             width: -webkit-fill-available;
 
-            background: #545D7B;
+            background: #545d7b;
             border-radius: 4px;
 
             font-weight: 700;
@@ -140,7 +141,7 @@
             color: #fafafa;
 
             &:hover {
-                background: #69749A;
+                background: #69749a;
             }
         }
     }

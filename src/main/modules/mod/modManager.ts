@@ -14,7 +14,7 @@ import * as fs from 'original-fs'
 let yandexMusicVersion: string = null
 let modVersion: string = null
 
-export const handlePatcherEvents = (window: BrowserWindow): void => {
+export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-app-asar', async (event, { version, link, checksum }) => {
         try {
             const isRunning = await isYandexMusicRunning()
@@ -27,7 +27,7 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
 
             yandexMusicVersion = await getYandexMusicVersion()
             modVersion = version
-            logger.main.info(`Текущая версия Яндекс Музыки: ${yandexMusicVersion}`)
+            logger.main.info(`Current Yandex Music version: ${yandexMusicVersion}`)
             try {
                 const compatible = await checkModCompatibility(
                     version,
@@ -67,19 +67,27 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
             if (!fs.existsSync(backupPath)) {
                 if (fs.existsSync(savePath)) {
                     fs.copyFileSync(savePath, backupPath)
-                    logger.main.info('Оригинальный app.asar сохранён как app.backup.asar')
+                    logger.main.info('Original app.asar saved as app.backup.asar')
                 } else {
-                    throw new Error('Файл app.asar не найден для создания резервной копии')
+                    throw new Error(
+                        'Файл app.asar не найден для создания резервной копии',
+                    )
                 }
             } else {
-                logger.main.info('Резервная копия app.backup.asar уже существует')
+                logger.main.info('Backup app.backup.asar already exists')
             }
 
             const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
 
-            await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
+            await downloadAndUpdateFile(
+                link,
+                tempFilePath,
+                savePath,
+                event,
+                checksum,
+            )
         } catch (error: any) {
-            logger.main.error('Неожиданная ошибка:', error)
+            logger.main.error('Unexpected error:', error)
 
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
@@ -109,21 +117,21 @@ export const handlePatcherEvents = (window: BrowserWindow): void => {
 
             if (fs.existsSync(backupPath)) {
                 fs.renameSync(backupPath, savePath)
-                logger.main.info('Резервная копия app.asar восстановлена.')
+                logger.main.info('Backup app.asar restored.')
 
-                store.delete('patcher.version')
-                store.delete('patcher.musicVersion')
-                store.set('patcher.patched', false)
+                store.delete('mod.version')
+                store.delete('mod.musicVersion')
+                store.set('mod.patched', false)
 
                 event.reply('remove-mod-success', { success: true })
             } else {
                 event.reply('remove-mod-failure', {
                     success: false,
-                    error: 'Резервная копия не найдена.',
+                    error: 'Резервная копия не найдена. Переустановите Яндекс Музыку',
                 })
             }
         } catch (error) {
-            logger.main.error('Ошибка при удалении мода:', error)
+            logger.main.error('Error removing mod:', error)
             event.reply('remove-mod-failure', {
                 success: false,
                 error: error.message,
@@ -149,11 +157,11 @@ const getYandexMusicVersion = async (): Promise<string> => {
                 throw new Error('Version not found in config.json')
             }
         } else {
-            throw new Error('config.json не найден')
+            throw new Error('config.json not found')
         }
     } catch (error) {
         throw new Error(
-            `Не удалось получить версию Яндекс Музыки из config.json: ${error.message}`,
+            `Failed to get Yandex Music version from config.json: ${error.message}`,
         )
     }
 }
@@ -164,7 +172,7 @@ const checkModCompatibility = async (
 ): Promise<boolean> => {
     try {
         const response = await axios.get(
-            `${config.SERVER_URL}/api/v1/patcher/check?yandexVersion=${yandexMusicVersion}&modVersion=${modVersion}`,
+            `${config.SERVER_URL}/api/v1/mod/check?yandexVersion=${yandexMusicVersion}&modVersion=${modVersion}`,
         )
 
         const data = response.data
@@ -175,17 +183,8 @@ const checkModCompatibility = async (
 
         return data.compatible || false
     } catch (error) {
-        logger.main.error('Ошибка при проверке совместимости мода:', error)
+        logger.main.error('Error checking mod compatibility:', error)
         return false
-    }
-}
-const isFileLocked = (filePath: string): boolean => {
-    try {
-        const fd = fs.openSync(filePath, 'r')
-        fs.closeSync(fd)
-        return false
-    } catch (err) {
-        return true
     }
 }
 
@@ -196,15 +195,32 @@ const downloadAndUpdateFile = async (
     event: any,
     checksum?: string,
 ) => {
-    const httpsAgent = new https.Agent({
-        rejectUnauthorized: false,
-    })
-
-    const writer = fs.createWriteStream(tempFilePath)
-
-    let isFinished = false
-
     try {
+        if (checksum && fs.existsSync(savePath)) {
+            const fileBuffer = fs.readFileSync(savePath)
+            const hashSum = crypto.createHash('sha256')
+            hashSum.update(fileBuffer)
+            const currentChecksum = hashSum.digest('hex')
+
+            if (currentChecksum === checksum) {
+                logger.main.info(
+                    'app.asar file already matches the required checksum. Installation complete.',
+                )
+                event.reply('update-success', {
+                    success: true,
+                    message: 'Мод уже установлен.',
+                })
+                return
+            }
+        }
+
+        const httpsAgent = new https.Agent({
+            rejectUnauthorized: false,
+        })
+
+        const writer = fs.createWriteStream(tempFilePath)
+        let isFinished = false
+
         const response = await axios.get(link, {
             httpsAgent,
             responseType: 'stream',
@@ -215,7 +231,6 @@ const downloadAndUpdateFile = async (
 
         response.data.on('data', (chunk: Buffer) => {
             if (isFinished) return
-
             downloadedLength += chunk.length
             const progress = downloadedLength / totalLength
 
@@ -232,14 +247,12 @@ const downloadAndUpdateFile = async (
 
         response.data.on('end', () => {
             if (isFinished) return
-
             isFinished = true
             writer.end()
         })
 
         writer.on('finish', async () => {
             if (!isFinished) return
-
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
@@ -251,8 +264,8 @@ const downloadAndUpdateFile = async (
                 const hex = hashSum.digest('hex')
 
                 if (hex !== checksum) {
-                    fs.unlink(tempFilePath, () => {})
-                    logger.main.error('Checksum не совпадает')
+                    fs.unlinkSync(tempFilePath)
+                    logger.main.error('Checksum mismatch')
                     event.reply('update-failure', {
                         success: false,
                         error: 'Checksum не совпадает',
@@ -261,49 +274,32 @@ const downloadAndUpdateFile = async (
                 }
             }
 
-            try {
-                fs.renameSync(tempFilePath, savePath)
-                store.set('patcher.version', modVersion)
-                store.set('patcher.musicVersion', yandexMusicVersion)
-                store.set('patcher.patched', true)
+            fs.renameSync(tempFilePath, savePath)
+            store.set('mod.version', modVersion)
+            store.set('mod.musicVersion', yandexMusicVersion)
+            store.set('mod.patched', true)
 
-                event.reply('update-success', { success: true })
-            } catch (err) {
-                logger.main.error('Ошибка при перемещении файла:', err)
-                event.reply('update-failure', { success: false, error: err.message })
-            }
+            event.reply('update-success', { success: true })
         })
 
         writer.on('error', (err: Error) => {
-            if (isFileLocked(tempFilePath)) {
-                logger.main.error('Файл заблокирован и не может быть удалён')
-                event.reply('update-failure', {
-                    success: false,
-                    error: 'Ошибка при удалении файла',
-                })
-            } else {
-                fs.unlink(tempFilePath, () => {})
-                logger.main.error('Ошибка при записи файла:', err)
-            }
-
+            fs.unlink(tempFilePath, () => {})
+            logger.main.error('Error writing file:', err)
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
-
             event.reply('update-failure', { success: false, error: err.message })
         })
     } catch (err) {
         fs.unlink(tempFilePath, () => {})
-        logger.main.error('Ошибка при скачивании файла:', err)
-
+        logger.main.error('Error downloading file:', err)
         if (mainWindow) {
             mainWindow.setProgressBar(-1)
         }
-
         event.reply('update-failure', { success: false, error: err.message })
     }
 }
 
-export const handlePatcher = (window: BrowserWindow): void => {
-    handlePatcherEvents(window)
+export const handleMod = (window: BrowserWindow): void => {
+    handleModEvents(window)
 }

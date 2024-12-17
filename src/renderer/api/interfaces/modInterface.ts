@@ -1,4 +1,4 @@
-export interface PatcherInterface {
+export interface ModInterface {
     id: number
     modVersion: string
     musicVersion: string

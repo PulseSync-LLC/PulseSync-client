@@ -33,11 +33,6 @@ contextBridge.exposeInMainWorld('electron', {
             return ipcRenderer.sendSync('electron-mac')
         },
     },
-    patcher: {
-        patch: (val: boolean) => ipcRenderer.send('electron-patch', val),
-        repatch: () => ipcRenderer.send('electron-repatch'),
-        depatch: () => ipcRenderer.send('electron-depatch'),
-    },
     musicDevice() {
         return ipcRenderer.sendSync('get-music-device')
     },
@@ -78,8 +73,11 @@ contextBridge.exposeInMainWorld('desktopEvents', {
     ) {
         ipcRenderer.on(name, listener)
     },
-    once(channel: string, func: any) {
-        ipcRenderer.once(channel, (event, args) => func(args))
+    once(
+        name: string,
+        listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
+    ) {
+        ipcRenderer.once(name, listener)
     },
     removeListener(
         name: string,

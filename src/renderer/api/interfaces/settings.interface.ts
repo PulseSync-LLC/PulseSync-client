@@ -8,11 +8,11 @@ export interface Settings {
 export interface Info {
     version: string
 }
-export interface Patcher {
+export interface Mod {
     musicVersion: string
     version: string
     changelog: string[]
-    patched: boolean
+    installed: boolean
     updated: boolean
 }
 export interface Tokens {
@@ -32,6 +32,6 @@ export default interface SettingsInterface {
     settings: Settings
     discordRpc: discordRpc
     tokens: Tokens
-    patcher: Patcher
+    mod: Mod
     info: Info
 }

@@ -686,7 +686,7 @@ const Header: React.FC<p> = memo(() => {
                                                                 onClick={() => {
                                                                     window.open(
                                                                         'https://github.com/PulseSync-LLC/' +
-                                                                            'YMusic-DRPC/tree/patcher-ts',
+                                                                            'YMusic-DRPC/tree/dev',
                                                                     )
                                                                 }}
                                                             >
@@ -1031,7 +1031,11 @@ const Header: React.FC<p> = memo(() => {
                             <button
                                 id="close"
                                 className={styles.button_title}
-                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
+                                onClick={() =>
+                                    window.electron.window.close(
+                                        app.settings.closeAppInTray,
+                                    )
+                                }
                             >
                                 <Close color="#E4E5EA" />
                             </button>

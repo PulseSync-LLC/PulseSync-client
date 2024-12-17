@@ -1,13 +1,14 @@
 import gql from 'graphql-tag'
 
 export default gql`
-    query GetPatcher {
-        getPatcher {
+    query GetMod {
+        getMod {
             id
             musicVersion
             modVersion
             downloadUrl
             createdAt
+            checksum
         }
     }
 `

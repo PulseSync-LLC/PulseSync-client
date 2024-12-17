@@ -32,7 +32,7 @@ import { getPathToYandexMusic } from './main/utils/appUtils'
 import Theme from './renderer/api/interfaces/theme.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
-import { handlePatcher } from './main/modules/patcher/newPatcher'
+import { handleMod } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
@@ -246,7 +246,7 @@ app.on('ready', async () => {
     createWindow() // Все что связано с mainWindow должно устанавливаться после этого метода
     checkForSingleInstance()
     handleAppEvents(mainWindow)
-    handlePatcher(mainWindow)
+    handleMod(mainWindow)
     handleDeeplinkOnApplicationStartup()
     handleDeeplink(mainWindow)
     createTray()
@@ -483,9 +483,9 @@ function initializeTheme() {
     setTheme(selectedTheme)
 }
 export const getPath = (args: string) => {
-    const savePath = app.getPath('userData');
-    return path.resolve(`${savePath}/extensions/${args}`);
-};
+    const savePath = app.getPath('userData')
+    return path.resolve(`${savePath}/extensions/${args}`)
+}
 app.whenReady().then(async () => {
     if (isAppDev) {
         try {
@@ -498,10 +498,10 @@ app.whenReady().then(async () => {
             // }
             if ((session.defaultSession as any).loadExtension) {
                 return (session.defaultSession as any)
-                    .loadExtension(getPath("fmkadmapgofadopljbjfkapdkoienihi"))
+                    .loadExtension(getPath('fmkadmapgofadopljbjfkapdkoienihi'))
                     .then((ext: { name: string }) => {
-                        return Promise.resolve(ext.name);
-                    });
+                        return Promise.resolve(ext.name)
+                    })
             }
         } catch (e) {
             logger.main.error(e)
@@ -561,13 +561,16 @@ export async function prestartCheck() {
         rpc_connect()
     }
 
-    if (store.has('patcher.patched') && store.get('patcher.patched') || store.get("patcher.version")) {
+    if (
+        (store.has('mod.patched') && store.get('mod.patched')) ||
+        store.get('mod.version')
+    ) {
         if (!fs.existsSync(asarCopy)) {
-            store.set('patcher.patched', false)
-            store.delete('patcher.version')
+            store.set('mod.patched', false)
+            store.delete('mod.version')
         }
     } else if (fs.existsSync(asarCopy)) {
-        store.set('patcher.patched', true)
+        store.set('mod.patched', true)
     }
 }
 app.on('window-all-closed', () => {

@@ -11,10 +11,10 @@ const settingsInitials: SettingsInterface = {
     info: {
         version: '',
     },
-    patcher: {
+    mod: {
         version: '',
         musicVersion: '',
-        patched: false,
+        installed: false,
         updated: false,
         changelog: [],
     },

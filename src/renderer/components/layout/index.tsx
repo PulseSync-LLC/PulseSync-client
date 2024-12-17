@@ -27,20 +27,20 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, patcherInfo } =
+    const { app, setApp, updateAvailable, setUpdate, modInfo } =
         useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const [loadingPatchInfo, setLoadingPatchInfo] = useState(true)
     const downloadToastIdRef = useRef<string | null>(null)
 
     useEffect(() => {
-        console.log(patcherInfo)
-        if (patcherInfo.length > 0) {
+        console.log(modInfo)
+        if (modInfo.length > 0) {
             setLoadingPatchInfo(false)
         } else {
             setLoadingPatchInfo(false)
         }
-    }, [patcherInfo])
+    }, [modInfo])
 
     useEffect(() => {
         const isListenersAdded = (window as any).__listenersAdded
@@ -80,22 +80,28 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 toast.dismiss(downloadToastIdRef.current)
                 downloadToastIdRef.current = null
             }
-            toast.success(app.patcher.patched ? 'Обновление прошло успешно!': "Установка прошла успешно!", {
-                style: {
-                    background: '#292C36',
-                    color: '#ffffff',
-                    border: 'solid 1px #363944',
-                    borderRadius: '8px',
+            toast.success(
+                data.message ||
+                    (app.mod.installed
+                        ? 'Обновление прошло успешно!'
+                        : 'Установка прошла успешно!'),
+                {
+                    style: {
+                        background: '#292C36',
+                        color: '#ffffff',
+                        border: 'solid 1px #363944',
+                        borderRadius: '8px',
+                    },
                 },
-            })
+            )
 
-            if (patcherInfo.length > 0) {
+            if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
                     ...prevApp,
-                    patcher: {
-                        ...prevApp.patcher,
-                        patched: true,
-                        version: patcherInfo[0].modVersion,
+                    mod: {
+                        ...prevApp.mod,
+                        installed: true,
+                        version: modInfo[0].modVersion,
                     },
                 }))
             } else {
@@ -154,7 +160,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners('update-available')
             ;(window as any).__listenersAdded = false
         }
-    }, [patcherInfo])
+    }, [modInfo])
 
     const startUpdate = () => {
         if (isUpdating) {
@@ -170,7 +176,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             return
         }
 
-        if (patcherInfo.length === 0) {
+        if (modInfo.length === 0) {
             toast.error('Нет доступных обновлений для установки.', {
                 style: {
                     background: '#292C36',
@@ -195,7 +201,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         })
         downloadToastIdRef.current = id
 
-        const { modVersion, downloadUrl, checksum } = patcherInfo[0]
+        const { modVersion, downloadUrl, checksum } = modInfo[0]
+        console.log(modInfo[0])
         window.desktopEvents?.send('update-app-asar', {
             version: modVersion,
             link: downloadUrl,
@@ -249,7 +256,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         </div>
                     </div>
 
-                    {patcherInfo.length > 0 && (!app.patcher.patched || app.patcher.version < patcherInfo[0]?.modVersion) && (
+                    {modInfo.length > 0 &&
+                        (!app.mod.installed ||
+                            app.mod.version < modInfo[0]?.modVersion) && (
                             <div className={pageStyles.alert_patch}>
                                 <div className={pageStyles.patch_container}>
                                     <div className={pageStyles.patch_detail}>
@@ -264,8 +273,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                         pageStyles.version_old
                                                     }
                                                 >
-                                                    {app.patcher.version && app.patcher.patched
-                                                        ? app.patcher.version
+                                                    {app.mod.version &&
+                                                    app.mod.installed
+                                                        ? app.mod.version
                                                         : 'Не установлен'}
                                                 </div>
                                                 <MdKeyboardArrowRight size={14} />
@@ -274,11 +284,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                         pageStyles.version_new
                                                     }
                                                 >
-                                                    {patcherInfo[0]?.modVersion}
+                                                    {modInfo[0]?.modVersion}
                                                 </div>
                                             </div>
                                             <div className={pageStyles.alert_title}>
-                                                {app.patcher.patched
+                                                {app.mod.installed
                                                     ? 'Обновление патча'
                                                     : 'Установка патча'}
                                             </div>
@@ -291,7 +301,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                             onClick={startUpdate}
                                         >
                                             <MdUpdate size={20} />
-                                            {app.patcher.patched
+                                            {app.mod.installed
                                                 ? 'Обновить'
                                                 : 'Установить'}
                                         </button>

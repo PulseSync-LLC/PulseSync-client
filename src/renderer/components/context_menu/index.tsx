@@ -48,22 +48,22 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
         const handleFailure = (event: any, args: any) => {
             toast.error(`Ошибка удаления мода: ${args.error}`, {
-                id: toastId
+                id: toastId,
             })
         }
 
         const handleSuccess = (event: any, args: any) => {
             toast.error(`Мод удален успешно`, {
-                id: toastId
+                id: toastId,
             })
             setApp((prevApp: SettingsInterface) => ({
                 ...prevApp,
-                patcher: {
-                    ...prevApp.patcher,
-                    patched: false,
+                mod: {
+                    ...prevApp.mod,
+                    installed: false,
                 },
             }))
-            window.electron.store.delete('patcher.version')
+            window.electron.store.delete('mod.version')
         }
 
         window.desktopEvents?.once('remove-mod-success', handleSuccess)
@@ -104,10 +104,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
-                window.electron.store.set(
-                    'settings.closeAppInTray',
-                    status,
-                )
+                window.electron.store.set('settings.closeAppInTray', status)
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -228,7 +225,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: 'Удалить мод',
                 onClick: deleteMod,
-                disabled: !app.patcher.patched,
+                disabled: !app.mod.installed,
             },
             { label: 'Скрипт мода на GitHub', onClick: openGitHub },
         ]),
@@ -241,8 +238,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 app.settings.autoStartApp,
                 () => toggleSetting('autoStart', !app.settings.autoStartApp),
             ),
-            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
-                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
+            createToggleButton(
+                'Скрыть окно при нажатии на «X»',
+                app.settings.closeAppInTray,
+                () => toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
         createButtonSection('Музыка', [

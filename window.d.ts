@@ -24,12 +24,6 @@ declare global {
                 setTrack: (track: Track, currentPercent: number) => void
                 setPlaying: (value: boolean) => void
             }
-            patcher: {
-                patch: () => void
-                repatch: () => void
-                depatch: () => void
-            }
-
             request: (url: string, config: AxiosRequestConfig) => AxiosResponse
             corsAnywherePort: () => number
             musicDevice: () => string

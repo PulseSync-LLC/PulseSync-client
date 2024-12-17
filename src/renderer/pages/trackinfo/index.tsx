@@ -509,7 +509,7 @@ export default function TrackInfoPage() {
                                                         className={theme.button}
                                                         onClick={() => {
                                                             window.open(
-                                                                'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/patcher-ts',
+                                                                'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev',
                                                             )
                                                         }}
                                                     >

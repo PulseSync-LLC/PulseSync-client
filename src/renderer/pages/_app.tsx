@@ -41,9 +41,9 @@ import {
 import ThemeInterface from '../api/interfaces/theme.interface'
 import ThemeInitials from '../api/initials/theme.initials'
 import ErrorBoundary from '../components/errorBoundary'
-import { PatcherInterface } from '../api/interfaces/patcher.interface'
-import patcherInitials from '../api/initials/patcher.initials'
-import GetPatcherQuery from '../api/queries/getPatcher.query'
+import { ModInterface } from '../api/interfaces/modInterface'
+import modInitials from '../api/initials/mod.initials'
+import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 
@@ -54,7 +54,7 @@ function App() {
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
-    const [patcherInfo, setPatcher] = useState<PatcherInterface[]>(patcherInitials)
+    const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
@@ -363,42 +363,48 @@ function App() {
             }
             fetchAppInfo()
 
-            const fetchPatcherInfo = async () => {
+            const fetchModInfo = async () => {
                 try {
                     const res = await apolloClient.query({
-                        query: GetPatcherQuery,
+                        query: GetModQuery,
                         fetchPolicy: 'no-cache',
                     })
 
                     const { data } = res
 
-                    if (data && data.getPatcher) {
-                        const info = (data.getPatcher as PatcherInterface[])
-                            .filter((info) =>
-                                !app.patcher.version ||
-                                compareVersions(info.modVersion, app.patcher.version) > 0
+                    if (data && data.getMod) {
+                        const info = (data.getMod as ModInterface[])
+                            .filter(
+                                (info) =>
+                                    !app.mod.version ||
+                                    compareVersions(
+                                        info.modVersion,
+                                        app.mod.version,
+                                    ) > 0,
                             )
-                            .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
+                            .sort((a, b) =>
+                                compareVersions(b.modVersion, a.modVersion),
+                            )
 
                         if (info.length > 0) {
-                            setPatcher(info);
+                            setMod(info)
                         } else {
-                            console.log('Нет доступных обновлений');
+                            console.log('Нет доступных обновлений')
                         }
                     } else {
-                        console.error(
-                            'Invalid response format for getPatcher:',
-                            data,
-                        )
+                        console.error('Invalid response format for getMod:', data)
                     }
                 } catch (e) {
-                    console.error('Failed to fetch patcher info:', e)
+                    console.error('Failed to fetch mod info:', e)
                 }
             }
 
-            fetchPatcherInfo()
-            const intervalId = setInterval(fetchPatcherInfo, 10 * 60 * 1000)
-            console.log(!user.badges.some((badge) => badge.type === 'supporter') && !app.discordRpc.enableGithubButton)
+            fetchModInfo()
+            const intervalId = setInterval(fetchModInfo, 10 * 60 * 1000)
+            console.log(
+                !user.badges.some((badge) => badge.type === 'supporter') &&
+                    !app.discordRpc.enableGithubButton,
+            )
             if (
                 !user.badges.some((badge) => badge.type === 'supporter') &&
                 !app.discordRpc.enableGithubButton
@@ -412,7 +418,7 @@ function App() {
                 })
                 window.electron.store.set('discordRpc.enableGithubButton', true)
             }
-            //window.desktopEvents?.send('websocket-start')
+            window.desktopEvents?.send('websocket-start')
             window.desktopEvents
                 .invoke('getThemes')
                 .then((fetchedThemes: ThemeInterface[]) => {
@@ -586,8 +592,8 @@ function App() {
                     appInfo,
                     setThemes,
                     themes,
-                    setPatcher,
-                    patcherInfo,
+                    setMod: setMod,
+                    modInfo: modInfo,
                 }}
             >
                 <Player>
@@ -774,7 +780,8 @@ const Player: React.FC<any> = ({ children }) => {
 
                 activity.buttons = []
                 if (
-                    track.artists.length != 0 && track.albums.length != 0 &&
+                    track.artists.length != 0 &&
+                    track.albums.length != 0 &&
                     app.discordRpc.enableRpcButtonListen
                 ) {
                     const linkTitle = track.albums[0].id

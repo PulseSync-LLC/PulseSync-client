@@ -8,8 +8,8 @@ import { AppInfoInterface } from '../interfaces/appinfo.interface'
 import AppinfoInitials from '../initials/appinfo.initials'
 import ThemeInterface from '../interfaces/theme.interface'
 import themeInitials from '../initials/theme.initials'
-import { PatcherInterface } from '../interfaces/patcher.interface'
-import PatcherInitials from '../initials/patcher.initials'
+import { ModInterface } from '../interfaces/modInterface'
+import modInitials from '../initials/mod.initials'
 
 interface p {
     user: UserInterface
@@ -25,8 +25,8 @@ interface p {
     setThemes: (themes: any) => void
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]
-    patcherInfo: PatcherInterface[]
-    setPatcher: (patcher: any) => void
+    modInfo: ModInterface[]
+    setMod: (mod: any) => void
 }
 
 const UserContext = createContext<p>({
@@ -43,8 +43,8 @@ const UserContext = createContext<p>({
     setUpdate: () => void 0,
     updateAvailable: false,
     appInfo: AppinfoInitials,
-    patcherInfo: PatcherInitials,
-    setPatcher: () => void 0,
+    modInfo: modInitials,
+    setMod: () => void 0,
 })
 
 export default UserContext
