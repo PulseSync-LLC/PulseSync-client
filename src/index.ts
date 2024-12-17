@@ -562,15 +562,15 @@ export async function prestartCheck() {
     }
 
     if (
-        (store.has('mod.patched') && store.get('mod.patched')) ||
+        (store.has('mod.installed') && store.get('mod.installed')) ||
         store.get('mod.version')
     ) {
         if (!fs.existsSync(asarCopy)) {
-            store.set('mod.patched', false)
+            store.set('mod.installed', false)
             store.delete('mod.version')
         }
     } else if (fs.existsSync(asarCopy)) {
-        store.set('mod.patched', true)
+        store.set('mod.installed', true)
     }
 }
 app.on('window-all-closed', () => {

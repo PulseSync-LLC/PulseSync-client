@@ -53,7 +53,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         }
 
         const handleSuccess = (event: any, args: any) => {
-            toast.error(`Мод удален успешно`, {
+            toast.success(`Мод удален успешно`, {
                 id: toastId,
             })
             setApp((prevApp: SettingsInterface) => ({

@@ -99,36 +99,46 @@ export const handleModEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('remove-mod', async (event) => {
         try {
-            const savePath = path.join(
-                process.env.LOCALAPPDATA || '',
-                'Programs',
-                'YandexMusic',
-                'resources',
-                'app.asar',
-            )
+            const removeMod = () => {
+                const savePath = path.join(
+                    process.env.LOCALAPPDATA || '',
+                    'Programs',
+                    'YandexMusic',
+                    'resources',
+                    'app.asar',
+                )
 
-            const backupPath = path.join(
-                process.env.LOCALAPPDATA || '',
-                'Programs',
-                'YandexMusic',
-                'resources',
-                'app.backup.asar',
-            )
+                const backupPath = path.join(
+                    process.env.LOCALAPPDATA || '',
+                    'Programs',
+                    'YandexMusic',
+                    'resources',
+                    'app.backup.asar',
+                )
 
-            if (fs.existsSync(backupPath)) {
-                fs.renameSync(backupPath, savePath)
-                logger.main.info('Backup app.asar restored.')
+                if (fs.existsSync(backupPath)) {
+                    fs.renameSync(backupPath, savePath)
+                    logger.main.info('Backup app.asar restored.')
 
-                store.delete('mod.version')
-                store.delete('mod.musicVersion')
-                store.set('mod.patched', false)
+                    store.delete('mod.version')
+                    store.delete('mod.musicVersion')
+                    store.set('mod.installed', false)
 
-                event.reply('remove-mod-success', { success: true })
-            } else {
-                event.reply('remove-mod-failure', {
-                    success: false,
-                    error: 'Резервная копия не найдена. Переустановите Яндекс Музыку',
+                    event.reply('remove-mod-success', { success: true })
+                } else {
+                    event.reply('remove-mod-failure', {
+                        success: false,
+                        error: 'Резервная копия не найдена. Переустановите Яндекс Музыку',
+                    })
+                }
+            }
+            const isRunning = await isYandexMusicRunning()
+            if (isRunning) {
+                event.reply('update-message', {
+                    message: 'Закрытие Яндекс Музыки...',
                 })
+                await closeYandexMusic()
+                setTimeout(() => removeMod(), 1500)
             }
         } catch (error) {
             logger.main.error('Error removing mod:', error)
@@ -277,7 +287,7 @@ const downloadAndUpdateFile = async (
             fs.renameSync(tempFilePath, savePath)
             store.set('mod.version', modVersion)
             store.set('mod.musicVersion', yandexMusicVersion)
-            store.set('mod.patched', true)
+            store.set('mod.installed', true)
 
             event.reply('update-success', { success: true })
         })
