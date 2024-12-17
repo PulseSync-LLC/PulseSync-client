@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { Helmet } from 'react-helmet'
+import { Helmet, HelmetProvider } from 'react-helmet-async'
 import {
     MdConnectWithoutContact,
     MdDownload,
@@ -215,7 +215,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }
 
     return (
-        <>
+        <HelmetProvider>
             <Helmet>
                 <title>{title + ' - PulseSync'}</title>
             </Helmet>
@@ -318,7 +318,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 </div>
             </div>
             <Toaster />
-        </>
+        </HelmetProvider>
     )
 }
 
