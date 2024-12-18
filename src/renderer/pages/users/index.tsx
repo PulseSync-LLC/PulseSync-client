@@ -200,7 +200,7 @@ export default function UsersPage() {
     }
 
     useEffect(() => {
-        const usersWithBanner = users.filter((user) => user.banner)
+        const usersWithBanner = users.filter((user) => user.bannerHash)
 
         const checkBannerAvailability = (userList: string | any[], index = 0) => {
             if (index >= userList.length) {
@@ -213,11 +213,11 @@ export default function UsersPage() {
 
             const user = userList[index]
             const img = new Image()
-            img.src = user.banner
+            img.src = user.bannerHash
 
             img.onload = () => {
                 setBackgroundStyle({
-                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.banner}) no-repeat center center`,
+                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`,
                     backgroundSize: 'cover',
                 })
             }
@@ -320,8 +320,8 @@ export default function UsersPage() {
                                                     <tr
                                                         key={user.id}
                                                         style={{
-                                                            background: user.banner
-                                                                ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.banner}) no-repeat center center`
+                                                            background: user.bannerHash
+                                                                ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`
                                                                 : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
                                                         }}
                                                         className={styles.userRow}
@@ -335,7 +335,7 @@ export default function UsersPage() {
                                                                 className={
                                                                     styles.userAvatar
                                                                 }
-                                                                src={user.avatar}
+                                                                src={user.avatarHash}
                                                                 alt={user.username}
                                                                 onError={(e) => {
                                                                     ;(
