@@ -1,3 +1,5 @@
+// src/pages/users/UsersPage.tsx
+
 import Layout from '../../components/layout'
 import * as styles from './users.module.scss'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -47,12 +49,13 @@ export default function UsersPage() {
         },
     }
 
-    const [backgroundStyle, setBackgroundStyle] = useState({
+    const defaultBackground = {
         background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
         backgroundSize: 'cover',
-    })
+    }
 
-    // Дебаунсинг функции поиска
+    const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
+
     const debouncedFetchUsers = useCallback(
         debounce((page: number, perPage: number, sorting: any, search: string) => {
             setLoading(true)
@@ -69,17 +72,17 @@ export default function UsersPage() {
                 .then((result) => {
                     if (result.data) {
                         const data = result.data.getUsersWithPagination
-                        setLoading(false)
                         setUsers(data.users)
                         setMaxPages(data.totalPages)
                     }
+                    setLoading(false)
                 })
                 .catch((e) => {
                     console.error(e)
                     toast.error('Произошла ошибка!')
                     setLoading(false)
                 })
-        }, 300), // Задержка 300 мс
+        }, 300),
         [],
     )
 
@@ -97,19 +100,9 @@ export default function UsersPage() {
         setPage(1)
         setSorting((prevSorting) => {
             if (prevSorting.length > 0 && prevSorting[0].id === field) {
-                return [
-                    {
-                        id: field,
-                        desc: !prevSorting[0].desc,
-                    },
-                ]
+                return [{ id: field, desc: !prevSorting[0].desc }]
             } else {
-                return [
-                    {
-                        id: field,
-                        desc: true,
-                    },
-                ]
+                return [{ id: field, desc: true }]
             }
         })
     }
@@ -195,45 +188,35 @@ export default function UsersPage() {
         )
     }
 
-    const isFieldSorted = (field: string) => {
-        return sorting.length > 0 && sorting[0].id === field
-    }
+    const isFieldSorted = (field: string) =>
+        sorting.length > 0 && sorting[0].id === field
 
     useEffect(() => {
         const usersWithBanner = users.filter((user) => user.bannerHash)
 
         const checkBannerAvailability = (userList: string | any[], index = 0) => {
             if (index >= userList.length) {
-                setBackgroundStyle({
-                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
-                    backgroundSize: 'cover',
-                })
+                setBackgroundStyle(defaultBackground)
                 return
             }
 
-            const user = userList[index]
             const img = new Image()
-            img.src = user.bannerHash
+            img.src = userList[index].bannerHash
 
             img.onload = () => {
                 setBackgroundStyle({
-                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`,
+                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${userList[index].bannerHash}) no-repeat center center`,
                     backgroundSize: 'cover',
                 })
             }
 
-            img.onerror = () => {
-                checkBannerAvailability(userList, index + 1)
-            }
+            img.onerror = () => checkBannerAvailability(userList, index + 1)
         }
 
         if (usersWithBanner.length > 0) {
             checkBannerAvailability(usersWithBanner)
         } else {
-            setBackgroundStyle({
-                background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
-                backgroundSize: 'cover',
-            })
+            setBackgroundStyle(defaultBackground)
         }
     }, [users])
 
@@ -278,9 +261,7 @@ export default function UsersPage() {
                                             {getSortIcon('username')}
                                         </button>
                                     </div>
-                                    {users.length > 0 ? (
-                                        <>{renderPagination()}</>
-                                    ) : null}
+                                    {users.length > 0 && renderPagination()}
                                 </div>
                             </div>
                         </div>
@@ -314,81 +295,84 @@ export default function UsersPage() {
                             ) : (
                                 <div className={styles.userPage}>
                                     {users.length > 0 ? (
-                                        <table className={styles.usersTable}>
-                                            <tbody>
-                                                {users.map((user) => (
-                                                    <tr
-                                                        key={user.id}
-                                                        style={{
-                                                            background: user.bannerHash
-                                                                ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`
-                                                                : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
-                                                        }}
-                                                        className={styles.userRow}
+                                        <div className={styles.userGrid}>
+                                            {users.map((user) => (
+                                                <div
+                                                    key={user.id}
+                                                    className={styles.userCard}
+                                                    style={{
+                                                        background: user.bannerHash
+                                                            ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`
+                                                            : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
+                                                    }}
+                                                >
+                                                    <div
+                                                        className={styles.cardHeader}
                                                     >
-                                                        <td
+                                                        <img
                                                             className={
-                                                                styles.userName
+                                                                styles.userAvatar
+                                                            }
+                                                            src={user.avatarHash}
+                                                            alt={user.username}
+                                                            onError={(e) => {
+                                                                ;(
+                                                                    e.currentTarget as HTMLImageElement
+                                                                ).src =
+                                                                    './static/assets/images/undef.png'
+                                                            }}
+                                                        />
+                                                        <div
+                                                            className={
+                                                                styles.userInfo
                                                             }
                                                         >
-                                                            <img
+                                                            <span
                                                                 className={
-                                                                    styles.userAvatar
+                                                                    styles.username
                                                                 }
-                                                                src={user.avatarHash}
-                                                                alt={user.username}
-                                                                onError={(e) => {
-                                                                    ;(
-                                                                        e.currentTarget as HTMLImageElement
-                                                                    ).src =
-                                                                        './static/assets/images/undef.png'
-                                                                }}
-                                                            />
-                                                            {user.username}
-                                                        </td>
-                                                        <td
-                                                            className={
-                                                                styles.userBadges
-                                                            }
-                                                        >
-                                                            {user.badges.length >
-                                                                0 &&
-                                                                user.badges
-                                                                    .slice()
-                                                                    .sort(
-                                                                        (a, b) =>
-                                                                            b.level -
-                                                                            a.level,
-                                                                    )
-                                                                    .map(
-                                                                        (_badge) => (
-                                                                            <div
-                                                                                className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
-                                                                                key={`${_badge.type}-${_badge.level}`}
-                                                                            >
-                                                                                <img
-                                                                                    src={`static/assets/badges/${_badge.type}.svg`}
-                                                                                    alt={
-                                                                                        _badge.name
-                                                                                    }
-                                                                                />
-                                                                            </div>
-                                                                        ),
-                                                                    )}
-                                                        </td>
-                                                        <td
-                                                            className={
-                                                                styles.userDate
-                                                            }
-                                                        >
-                                                            {new Date(
-                                                                user.createdAt,
-                                                            ).toLocaleDateString()}
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                                            >
+                                                                {user.username}
+                                                            </span>
+                                                            <span
+                                                                className={
+                                                                    styles.userDate
+                                                                }
+                                                            >
+                                                                {new Date(
+                                                                    user.createdAt,
+                                                                ).toLocaleDateString()}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div
+                                                        className={styles.userBadges}
+                                                    >
+                                                        {user.badges.length > 0 &&
+                                                            user.badges
+                                                                .slice()
+                                                                .sort(
+                                                                    (a, b) =>
+                                                                        b.level -
+                                                                        a.level,
+                                                                )
+                                                                .map((_badge) => (
+                                                                    <div
+                                                                        className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
+                                                                        key={`${_badge.type}-${_badge.level}`}
+                                                                    >
+                                                                        <img
+                                                                            src={`static/assets/badges/${_badge.type}.svg`}
+                                                                            alt={
+                                                                                _badge.name
+                                                                            }
+                                                                        />
+                                                                    </div>
+                                                                ))}
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
                                     ) : (
                                         <div className={styles.noResults}>
                                             Нет результатов
