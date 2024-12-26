@@ -26,7 +26,7 @@ import {
 } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { eventEmitter, setTheme } from './main/modules/httpServer'
+import { eventEmitter, sendTheme, setTheme } from './main/modules/httpServer'
 import { handleAppEvents } from './main/events'
 import { getPathToYandexMusic } from './main/utils/appUtils'
 import Theme from './renderer/api/interfaces/theme.interface'
@@ -129,7 +129,7 @@ const createWindow = (): void => {
         webPreferences: {
             preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
             nodeIntegration: true,
-            devTools: isAppDev,
+            devTools: true,
             webSecurity: false,
             webgl: true,
             enableBlinkFeatures: 'WebGL2',
@@ -507,26 +507,6 @@ app.whenReady().then(async () => {
             logger.main.error(e)
         }
     }
-    initializeTheme()
-
-    // TODO
-    // const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
-    // const watcher = chokidar.watch(themesPath, {
-    //     persistent: true,
-    //     ignored: (path, stats) => {
-    //         console.log('Checking file:', path);
-    //         return !path.match(/\.(js|css|md|json)$/i);
-    //     },
-    // });
-    // watcher
-    //     .on('add', (filePath: string) => {
-    //         console.log(`Theme file ${filePath} was updated.`);
-    //         initializeTheme()
-    //     })
-    //     .on('change', (filePath: string) => {
-    //         console.log(`Theme file ${filePath} was updated.`);
-    //         initializeTheme()
-    //     })
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
@@ -572,6 +552,27 @@ export async function prestartCheck() {
     } else if (fs.existsSync(asarCopy)) {
         store.set('mod.installed', true)
     }
+    initializeTheme()
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    logger.main.info(app.getPath('appData'))
+    const watcher = chokidar.watch(themesPath, {
+        persistent: true,
+            ignored: (path, stats) => stats?.isFile() && !path.endsWith('.css'),
+        }
+    );
+    watcher
+        .on('add', (path) => {
+            logger.main.info(`File ${path} has been added`)
+            sendTheme(false)
+        })
+        .on('change', (path) => {
+            logger.main.info(`File ${path} has been changed`)
+            sendTheme(false)
+        })
+        .on('unlink', (path) => {
+            logger.main.info(`File ${path} has been removed`)
+            sendTheme(false)
+        })
 }
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {

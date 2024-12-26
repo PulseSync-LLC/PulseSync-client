@@ -66,7 +66,7 @@ const initializeServer = () => {
         socket.send(
             JSON.stringify({ type: 'welcome', message: 'Connected to server' }),
         )
-        sendTheme()
+        sendTheme(true)
         socket.on('message', (message: any) => {
             const data = JSON.parse(message)
             logger.main.log(data)
@@ -345,7 +345,7 @@ export const setTheme = (theme: string) => {
     })
 }
 
-export const sendTheme = () => {
+export const sendTheme = (withJs: boolean) => {
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
     const themePath = path.join(themesPath, store.get('theme') || 'Default')
     const metadataPath = path.join(themePath, 'metadata.json')
@@ -368,13 +368,13 @@ export const sendTheme = () => {
     if (fs.existsSync(styleCSS)) {
         cssContent = fs.readFileSync(styleCSS, 'utf8')
     }
-
+    if(!ws) return;
     ws.clients.forEach((x) =>
         x.send(
             JSON.stringify({
                 ok: true,
                 css: cssContent || '{}',
-                script: jsContent || '',
+                script: withJs ? jsContent : '',
                 type: 'theme',
             }),
         ),

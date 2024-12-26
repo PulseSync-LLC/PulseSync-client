@@ -38,6 +38,7 @@ export default function ThemePage() {
         if (isChecked) {
             window.electron.store.set('theme', themeName)
             setSelectedTheme(themeName)
+            window.desktopEvents.send('themeChanged', 'Default')
             window.desktopEvents.send('themeChanged', themeName)
         } else {
             window.electron.store.set('theme', 'Default')

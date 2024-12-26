@@ -186,6 +186,7 @@ const ExtensionViewPage: React.FC = () => {
         const newTheme = currentTheme?.name || 'Default'
         window.electron.store.set('theme', newTheme)
         setActivatedTheme(newTheme)
+        window.desktopEvents.send('themeChanged', 'Default')
         window.desktopEvents.send('themeChanged', newTheme)
         setThemeActive(true)
     }

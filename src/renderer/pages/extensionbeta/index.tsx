@@ -70,6 +70,7 @@ export default function ExtensionPage() {
         const newTheme = isChecked ? themeName : 'Default'
         window.electron.store.set('theme', newTheme)
         setCurrentThemeName(newTheme)
+        window.desktopEvents.send('themeChanged', 'Default')
         window.desktopEvents.send('themeChanged', newTheme)
     }
 

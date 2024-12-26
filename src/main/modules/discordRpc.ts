@@ -17,9 +17,6 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
         client.user
             ?.setActivity(activity)
-            .then((r) => {
-                console.log(r)
-            })
             .catch((e) => {
                 logger.discordRpc.error(e)
             })
