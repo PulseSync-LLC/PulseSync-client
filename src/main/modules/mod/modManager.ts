@@ -220,6 +220,9 @@ const downloadAndUpdateFile = async (
                     success: true,
                     message: 'Мод уже установлен.',
                 })
+                store.set('mod.version', modVersion)
+                store.set('mod.installed', true)
+                store.set('mod.musicVersion', yandexMusicVersion)
                 return
             }
         }

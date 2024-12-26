@@ -13,6 +13,7 @@ import debounce from 'lodash.debounce'
 import { MdAllOut, MdHourglassEmpty } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
+import config from '../../api/config'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -201,11 +202,11 @@ export default function UsersPage() {
             }
 
             const img = new Image()
-            img.src = userList[index].bannerHash
+            img.src = `${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}`
 
             img.onload = () => {
                 setBackgroundStyle({
-                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${userList[index].bannerHash}) no-repeat center center`,
+                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}) no-repeat center center`,
                     backgroundSize: 'cover',
                 })
             }
@@ -301,8 +302,8 @@ export default function UsersPage() {
                                                     key={user.id}
                                                     className={styles.userCard}
                                                     style={{
-                                                        background: user.bannerHash
-                                                            ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${user.bannerHash}) no-repeat center center`
+                                                        background: `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+                                                            ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}) no-repeat center center`
                                                             : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
                                                     }}
                                                 >
@@ -313,7 +314,7 @@ export default function UsersPage() {
                                                             className={
                                                                 styles.userAvatar
                                                             }
-                                                            src={user.avatarHash}
+                                                            src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                             alt={user.username}
                                                             onError={(e) => {
                                                                 ;(

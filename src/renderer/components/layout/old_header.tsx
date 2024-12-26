@@ -481,6 +481,7 @@ const OldHeader: React.FC<p> = () => {
                 setUser((prev: any) => ({
                     ...prev,
                     avatarHash: data.hash,
+                    avatarType: data.type,
                 }))
                 toast.success('Аватар успешно загружен!')
             } else {
@@ -528,9 +529,10 @@ const OldHeader: React.FC<p> = () => {
                 setUser((prev: any) => ({
                     ...prev,
                     bannerHash: data.hash,
+                    bannerType: data.type,
                 }))
                 toast.success('Баннер успешно загружен!')
-                console.log('Баннер загружен:', data.hash)
+                console.log('Баннер загружен:', data.hash, data.type)
             } else {
                 setBannerProgress(-1)
                 toast.error('Неизвестная ошибка при загрузке баннера')
@@ -895,7 +897,7 @@ const OldHeader: React.FC<p> = () => {
                                         <div className={styles.user_avatar}>
                                             <img
                                                 className={styles.avatar}
-                                                src={`${config.S3_URL}/avatars/${user.avatarHash}.webp`}
+                                                src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                 alt=""
                                                 onError={(e) => {
                                                     ;(
@@ -942,8 +944,8 @@ const OldHeader: React.FC<p> = () => {
                                                     className={styles.user_banner}
                                                     style={{
                                                         backgroundImage:
-                                                            user.bannerHash
-                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.webp)`
+                                                            `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType})`
                                                                 : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
                                                     }}
                                                 >
@@ -1028,8 +1030,8 @@ const OldHeader: React.FC<p> = () => {
                                                     <img
                                                         className={styles.avatar}
                                                         src={
-                                                            user.avatarHash
-                                                                ? `${config.S3_URL}/avatars/${user.avatarHash}.webp`
+                                                            `${user.avatarType}`
+                                                                ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
                                                                 : 'static/assets/images/undef.png'
                                                         }
                                                         alt="card_avatar"

@@ -19,9 +19,11 @@ export default gql`
             users {
                 id
                 avatarHash
+                avatarType
                 username
                 createdAt
                 bannerHash
+                bannerType
                 perms
                 status
                 ban {
