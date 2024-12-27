@@ -20,7 +20,7 @@ import ffmpeg from 'fluent-ffmpeg'
 
 const updater = getUpdater()
 let reqModal = 0
-const ffmpegPath = path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe') // Для Windows
+const ffmpegPath = path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
 ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
@@ -147,7 +147,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                 )
                             })
 
-                            const filePath = result.filePath // Путь к сохраненному файлу
+                            const filePath = result.filePath
                             response
                                 .pipe(fs.createWriteStream(filePath))
                                 .on('finish', async () => {
@@ -173,7 +173,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                             )
                                             try {
                                                 await convertToMP3(filePath, mp3Path)
-                                                fs.unlinkSync(filePath) // Delete the original file
+                                                fs.unlinkSync(filePath)
                                                 console.log(
                                                     'Conversion completed:',
                                                     mp3Path,

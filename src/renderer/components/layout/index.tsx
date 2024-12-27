@@ -123,7 +123,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 toast.dismiss(downloadToastIdRef.current)
                 downloadToastIdRef.current = null
             }
-            toast.error(`Обновление не удалось: ${error.error}`, {
+            toast.error(`${app.mod.installed
+                ? 'Обновление не удалось'
+                : 'Установка не удалась!'}: ${error.error}`, {
                 style: {
                     background: '#292C36',
                     color: '#ffffff',
