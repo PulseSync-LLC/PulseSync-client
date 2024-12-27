@@ -553,13 +553,12 @@ export async function prestartCheck() {
         store.set('mod.installed', true)
     }
     initializeTheme()
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes');
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
     logger.main.info(app.getPath('appData'))
     const watcher = chokidar.watch(themesPath, {
         persistent: true,
-            ignored: (path, stats) => stats?.isFile() && !path.endsWith('.css'),
-        }
-    );
+        ignored: (path, stats) => stats?.isFile() && !path.endsWith('.css'),
+    })
     watcher
         .on('add', (path) => {
             logger.main.info(`File ${path} has been added`)

@@ -22,6 +22,7 @@ export const plugins = [
         Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
     }),
+
     new NodePolyfillPlugin(),
     // sentryWebpackPlugin({
     //     org: 'pulsesync',

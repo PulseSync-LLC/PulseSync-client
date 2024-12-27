@@ -20,7 +20,15 @@ import ffmpeg from 'fluent-ffmpeg'
 
 const updater = getUpdater()
 let reqModal = 0
-const ffmpegPath = path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
+const ffmpegPath = path.join(
+    __dirname,
+    '..',
+    '..',
+    '..',
+    '..',
+    'modules',
+    'ffmpeg.exe',
+)
 ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {

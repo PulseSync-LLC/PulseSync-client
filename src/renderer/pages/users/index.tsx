@@ -302,9 +302,10 @@ export default function UsersPage() {
                                                     key={user.id}
                                                     className={styles.userCard}
                                                     style={{
-                                                        background: `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-                                                            ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}) no-repeat center center`
-                                                            : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
+                                                        background:
+                                                            `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+                                                                ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}) no-repeat center center`
+                                                                : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
                                                     }}
                                                 >
                                                     <div

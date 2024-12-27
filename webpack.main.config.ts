@@ -8,6 +8,10 @@ export const mainConfig: Configuration = {
     module: {
         rules,
     },
+    cache: {
+        type: 'filesystem',
+        allowCollectingMemory: true,
+    },
     devtool: 'source-map',
     resolve: {
         alias: {
