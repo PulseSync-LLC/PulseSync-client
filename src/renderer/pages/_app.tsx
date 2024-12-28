@@ -337,7 +337,41 @@ function App() {
             toast.success('Соединение восстановлено')
         }
     }, [socketError])
+    const fetchModInfo = async () => {
+        try {
+            const res = await apolloClient.query({
+                query: GetModQuery,
+                fetchPolicy: 'no-cache',
+            })
 
+            const { data } = res
+
+            if (data && data.getMod) {
+                const info = (data.getMod as ModInterface[])
+                    .filter(
+                        (info) =>
+                            !app.mod.version ||
+                            compareVersions(
+                                info.modVersion,
+                                app.mod.version,
+                            ) > 0,
+                    )
+                    .sort((a, b) =>
+                        compareVersions(b.modVersion, a.modVersion),
+                    )
+
+                if (info.length > 0) {
+                    setMod(info)
+                } else {
+                    console.log('Нет доступных обновлений')
+                }
+            } else {
+                console.error('Invalid response format for getMod:', data)
+            }
+        } catch (e) {
+            console.error('Failed to fetch mod info:', e)
+        }
+    }
     useEffect(() => {
         if (user.id !== '-1') {
             if (!socket.connected) {
@@ -362,49 +396,10 @@ function App() {
                 }
             }
             fetchAppInfo()
-
-            const fetchModInfo = async () => {
-                try {
-                    const res = await apolloClient.query({
-                        query: GetModQuery,
-                        fetchPolicy: 'no-cache',
-                    })
-
-                    const { data } = res
-
-                    if (data && data.getMod) {
-                        const info = (data.getMod as ModInterface[])
-                            .filter(
-                                (info) =>
-                                    !app.mod.version ||
-                                    compareVersions(
-                                        info.modVersion,
-                                        app.mod.version,
-                                    ) > 0,
-                            )
-                            .sort((a, b) =>
-                                compareVersions(b.modVersion, a.modVersion),
-                            )
-
-                        if (info.length > 0) {
-                            setMod(info)
-                        } else {
-                            console.log('Нет доступных обновлений')
-                        }
-                    } else {
-                        console.error('Invalid response format for getMod:', data)
-                    }
-                } catch (e) {
-                    console.error('Failed to fetch mod info:', e)
-                }
-            }
-
             fetchModInfo()
+
             const intervalId = setInterval(fetchModInfo, 10 * 60 * 1000)
-            console.log(
-                !user.badges.some((badge) => badge.type === 'supporter') &&
-                    !app.discordRpc.enableGithubButton,
-            )
+
             if (
                 !user.badges.some((badge) => badge.type === 'supporter') &&
                 !app.discordRpc.enableGithubButton
@@ -573,6 +568,11 @@ function App() {
                     router.navigate('/extensionbeta', { replace: true })
                 })
         }
+        ;(window as any).getModInfo = async () => {
+            await fetchModInfo().then(() => {
+                toast.success('Информация о моде обновлена')
+            })
+        }
     }
     return (
         <div className="app-wrapper">
@@ -613,7 +613,7 @@ function App() {
 }
 
 const Player: React.FC<any> = ({ children }) => {
-    const { user, app } = useContext(UserContext)
+    const { user, app, socket, socketConnected } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
 
     useEffect(() => {
@@ -814,7 +814,11 @@ const Player: React.FC<any> = ({ children }) => {
             }
         }
     }, [app.settings, user, track, app.discordRpc])
-
+    useEffect(() => {
+        if(socket && socketConnected) {
+            socket.emit('send_track', track)
+        }
+    }, [track])
     return (
         <PlayerContext.Provider
             value={{
