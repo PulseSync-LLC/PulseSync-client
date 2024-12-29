@@ -69,6 +69,7 @@ export default function UsersPage() {
                         sorting,
                         search,
                     },
+                    fetchPolicy: "no-cache"
                 })
                 .then((result) => {
                     if (result.data) {

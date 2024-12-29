@@ -108,3 +108,4 @@ schema.graphql
 ReactDevTools
 /modules
 src/main/modules/YMusic-DRPC.code-workspace
+uploadToS3.ts
