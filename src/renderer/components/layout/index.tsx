@@ -4,10 +4,10 @@ import {
     MdConnectWithoutContact,
     MdDownload,
     MdExtension,
-    MdKeyboardArrowRight,
+    MdKeyboardArrowRight, MdOutlineWarningAmber,
     MdPeople,
     MdStoreMallDirectory,
-    MdUpdate,
+    MdUpdate
 } from 'react-icons/md'
 
 import OldHeader from './old_header'
@@ -31,6 +31,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const [loadingPatchInfo, setLoadingPatchInfo] = useState(true)
+    const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
     const downloadToastIdRef = useRef<string | null>(null)
 
     useEffect(() => {
@@ -104,6 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         version: modInfo[0].modVersion,
                     },
                 }))
+                setForceInstallEnabled(false)
             } else {
                 toast.error('Ошибка обновления', {
                     style: {
@@ -138,7 +140,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 },
             )
-
+            if(error.type === 'version_mismatch') {
+                setForceInstallEnabled(true)
+            }
             setIsUpdating(false)
         }
 
@@ -169,7 +173,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [modInfo])
 
-    const startUpdate = () => {
+    const startUpdate = (force?: boolean) => {
         if (isUpdating) {
             toast('Обновление уже запущено!', {
                 icon: 'ℹ️',
@@ -214,6 +218,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             version: modVersion,
             link: downloadUrl,
             checksum,
+            force: force || false,
         })
     }
 
@@ -296,8 +301,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                             </div>
                                             <div className={pageStyles.alert_title}>
                                                 {app.mod.installed
-                                                    ? 'Обновление патча'
-                                                    : 'Установка патча'}
+                                                    ? 'Обновление мода'
+                                                    : 'Установка мода'}
                                             </div>
                                             <div className={pageStyles.alert_warn}>
                                                 Убедитесь, что Яндекс Музыка закрыта!
@@ -305,13 +310,24 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         </div>
                                         <button
                                             className={pageStyles.patch_button}
-                                            onClick={startUpdate}
+                                            onClick={() => startUpdate()}
                                         >
                                             <MdUpdate size={20} />
                                             {app.mod.installed
                                                 ? 'Обновить'
                                                 : 'Установить'}
                                         </button>
+                                        {isForceInstallEnabled && (
+                                            <button
+                                                className={pageStyles.patch_button}
+                                                onClick={() => startUpdate(true)}
+                                            >
+                                                <MdOutlineWarningAmber size={20} />
+                                                {app.mod.installed
+                                                    ? 'Все равно обновить'
+                                                    : 'Все равно установить'}
+                                            </button>
+                                        )}
                                     </div>
                                     <img
                                         className={pageStyles.alert_patch_image}

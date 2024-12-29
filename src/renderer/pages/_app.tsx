@@ -46,6 +46,7 @@ import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
+import client from '../api/apolloClient'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -323,6 +324,7 @@ function App() {
         setSocketConnected(false)
     })
     socket.on('logout', async (err) => {
+        await client.resetStore()
         setUser(userInitials)
         setSocketError(1)
         setSocket(null)
@@ -632,8 +634,12 @@ const Player: React.FC<any> = ({ children }) => {
                             setTrack((prevTrack) => ({
                                 ...prevTrack,
                                 status: data.status ?? '',
+                                event: data.event,
+                                speed: data.speed,
+                                volume: data.volume,
                                 url: data.url ?? '',
                                 albumArt: coverImg,
+                                trackSource: data.track?.trackSource,
                                 timestamps: timecodes,
                                 realId: data.track?.realId ?? '',
                                 title: data.track?.title ?? '',
@@ -779,17 +785,21 @@ const Player: React.FC<any> = ({ children }) => {
                 }
 
                 activity.buttons = []
-                if (
-                    track.artists.length != 0 &&
-                    track.albums.length != 0 &&
-                    app.discordRpc.enableRpcButtonListen
-                ) {
+
+                if (track.trackSource !== "UGC" && app.discordRpc.enableRpcButtonListen) {
                     const linkTitle = track.albums[0].id
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? truncateLabel(app.discordRpc.button)
                             : '✌️ Open in Yandex Music',
                         url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
+                    })
+                } else if (track.trackSource === "UGC" && app.discordRpc.enableRpcButtonListen) {
+                    activity.buttons.push({
+                        label: app.discordRpc.button
+                            ? truncateLabel(app.discordRpc.button)
+                            : '✌️ Open music file',
+                        url: track.url,
                     })
                 }
 
@@ -814,11 +824,12 @@ const Player: React.FC<any> = ({ children }) => {
             }
         }
     }, [app.settings, user, track, app.discordRpc])
-    useEffect(() => {
-        if(socket && socketConnected) {
-            socket.emit('send_track', track)
-        }
-    }, [track])
+    // useEffect(() => {
+    //     console.log(track)
+    //     if(socket && track.event === "trackChange" || track.event === "seek") {
+    //         socket.emit('send_track', track)
+    //     }
+    // }, [track])
     return (
         <PlayerContext.Provider
             value={{

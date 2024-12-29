@@ -13,9 +13,23 @@ import * as fs from 'original-fs'
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
+const savePath = path.join(
+    process.env.LOCALAPPDATA || '',
+    'Programs',
+    'YandexMusic',
+    'resources',
+    'app.asar',
+)
 
+const backupPath = path.join(
+    process.env.LOCALAPPDATA || '',
+    'Programs',
+    'YandexMusic',
+    'resources',
+    'app.backup.asar',
+)
 export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-app-asar', async (event, { version, link, checksum }) => {
+    ipcMain.on('update-app-asar', async (event, { version, link, checksum, force }) => {
         try {
             const isRunning = await isYandexMusicRunning()
             if (isRunning) {
@@ -28,41 +42,28 @@ export const handleModEvents = (window: BrowserWindow): void => {
             yandexMusicVersion = await getYandexMusicVersion()
             modVersion = version
             logger.main.info(`Current Yandex Music version: ${yandexMusicVersion}`)
-            try {
-                const compatible = await checkModCompatibility(
-                    version,
-                    yandexMusicVersion,
-                )
-                if (!compatible) {
+            if (!force) {
+                try {
+                    const compatible = await checkModCompatibility(
+                        version,
+                        yandexMusicVersion,
+                    )
+                    if (!compatible) {
+                        event.reply('update-failure', {
+                            success: false,
+                            error: 'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                            type: "version_mismatch"
+                        })
+                        return
+                    }
+                } catch (error) {
                     event.reply('update-failure', {
                         success: false,
-                        error: 'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                        error: `Ошибка при проверке совместимости мода: ${error.message}`,
                     })
                     return
                 }
-            } catch (error) {
-                event.reply('update-failure', {
-                    success: false,
-                    error: `Ошибка при проверке совместимости мода: ${error.message}`,
-                })
-                return
             }
-
-            const savePath = path.join(
-                process.env.LOCALAPPDATA || '',
-                'Programs',
-                'YandexMusic',
-                'resources',
-                'app.asar',
-            )
-
-            const backupPath = path.join(
-                process.env.LOCALAPPDATA || '',
-                'Programs',
-                'YandexMusic',
-                'resources',
-                'app.backup.asar',
-            )
 
             if (!fs.existsSync(backupPath)) {
                 if (fs.existsSync(savePath)) {
@@ -100,21 +101,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('remove-mod', async (event) => {
         try {
             const removeMod = () => {
-                const savePath = path.join(
-                    process.env.LOCALAPPDATA || '',
-                    'Programs',
-                    'YandexMusic',
-                    'resources',
-                    'app.asar',
-                )
 
-                const backupPath = path.join(
-                    process.env.LOCALAPPDATA || '',
-                    'Programs',
-                    'YandexMusic',
-                    'resources',
-                    'app.backup.asar',
-                )
 
                 if (fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, savePath)
@@ -233,6 +220,7 @@ const downloadAndUpdateFile = async (
 
         const writer = fs.createWriteStream(tempFilePath)
         let isFinished = false
+        let isError = false
 
         const response = await axios.get(link, {
             httpsAgent,
@@ -257,15 +245,33 @@ const downloadAndUpdateFile = async (
 
             writer.write(chunk)
         })
-
         response.data.on('end', () => {
             if (isFinished) return
             isFinished = true
             writer.end()
         })
+        response.data.on('error', (err: Error) => {
+            if (isFinished) return;
+            isFinished = true
+            isError = true
+            writer.end();
+            fs.unlink(tempFilePath, () => {})
+            if (fs.existsSync(backupPath)) {
+                fs.renameSync(backupPath, savePath)
+
+                store.delete('mod')
+            }
+            console.error('Download error:', err.message);
+            event.reply('update-failure', {
+                success: false,
+                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте ваше интернет-соединение.',
+            })
+            mainWindow.setProgressBar(-1);
+        });
 
         writer.on('finish', async () => {
             if (!isFinished) return
+            if(isError) return;
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }

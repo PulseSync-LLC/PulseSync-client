@@ -278,7 +278,7 @@ export default function TrackInfoPage() {
                                             <div className={theme.line}></div>
                                             <CheckboxNav
                                                 checkType="enableRpcButtonListen"
-                                                description="Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord."
+                                                description="Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord. Ограничения по русским символам 15+-, по английским 30+-"
                                             >
                                                 Включить кнопку (Слушать)
                                             </CheckboxNav>

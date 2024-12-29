@@ -61,9 +61,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 mod: {
                     ...prevApp.mod,
                     installed: false,
+                    version: false,
                 },
             }))
-            window.electron.store.delete('mod.version')
+            window.electron.store.delete('mod')
         }
 
         window.desktopEvents?.once('remove-mod-success', handleSuccess)

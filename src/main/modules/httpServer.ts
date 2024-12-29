@@ -72,9 +72,7 @@ const initializeServer = () => {
         }, 1000)
         socket.on('message', (message: any) => {
             const data = JSON.parse(message)
-            logger.main.log(data)
             if (data.type === 'update_data') {
-                logger.main.log(data.data)
                 updateData(data.data)
             }
         })

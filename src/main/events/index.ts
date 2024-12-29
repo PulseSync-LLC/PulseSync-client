@@ -17,18 +17,12 @@ import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import NodeID3 from 'node-id3'
 import ffmpeg from 'fluent-ffmpeg'
+import isAppDev from 'electron-is-dev'
 
 const updater = getUpdater()
 let reqModal = 0
-const ffmpegPath = path.join(
-    __dirname,
-    '..',
-    '..',
-    '..',
-    '..',
-    'modules',
-    'ffmpeg.exe',
-)
+const ffmpegPath = isAppDev ? path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe') : path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
+
 ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
@@ -172,6 +166,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                                 '.aac256',
                                                 '.aac128',
                                                 '.aac64g',
+                                                '.aac64he',
                                             ].includes(extension)
                                         ) {
                                             console.log('Converting to MP3...')
@@ -403,12 +398,18 @@ export const handleEvents = (window: BrowserWindow): void => {
             })
 
             archive.pipe(output)
-            archive.directory(logDirPath, false)
+
+            archive.glob('**/*', {
+                cwd: logDirPath,
+                ignore: ['*.zip', archiveName],
+            })
+
             await archive.finalize()
         } catch (error) {
             logger.main.error(`Error while creating archive file: ${error.message}`)
         }
     })
+
     ipcMain.handle('checkSleepMode', async (event, data) => {
         return inSleepMode
     })

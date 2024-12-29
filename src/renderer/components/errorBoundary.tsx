@@ -1,4 +1,6 @@
 import React from 'react'
+import * as Sentry from '@sentry/electron/renderer'
+
 interface ErrorBoundaryProps {
     children: React.ReactNode
 }
@@ -23,11 +25,12 @@ class ErrorBoundary extends React.Component<
             stack: error.stack,
             componentStack: errorInfo.componentStack,
         })
+        Sentry.captureException(error)
     }
 
     render() {
         if (this.state.hasError) {
-            return <h1>Что-то пошло не так.</h1>
+            return <h1 style={{ textAlign:"center"}}>Что-то пошло не так.</h1>
         }
 
         return this.props.children
