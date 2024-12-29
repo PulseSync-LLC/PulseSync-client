@@ -166,37 +166,45 @@
                     }
                 }
 
-                & > .patch_button {
-                    cursor: pointer;
+                & > .button_container {
                     display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    padding: 7px 19px;
-                    gap: 10px;
+                    gap: 5px;
+                    flex-direction: column;
+                    align-items: flex-start;
 
-                    background: #3468f2;
-                    border-radius: 4px;
-                    border: 0;
+                    & > .patch_button {
+                        cursor: pointer;
+                        display: flex;
+                        flex-direction: row;
+                        align-items: center;
+                        padding: 7px 19px;
+                        gap: 10px;
 
-                    font-weight: 600;
-                    font-size: 14px;
-                    line-height: 140%;
+                        background: #3468f2;
+                        border-radius: 4px;
+                        border: 0;
 
-                    color: #ffffff;
+                        font-weight: 600;
+                        font-size: 14px;
+                        line-height: 140%;
 
-                    &:hover {
-                        background: #2c56c8;
+                        color: #ffffff;
+
+                        &:hover {
+                            background: #2c56c8;
+                        }
                     }
                 }
             }
 
             & > .alert_patch_image {
-                width: 300px;
-                height: 198px;
+                width: 320px;
+                height: -webkit-fill-available;
                 position: absolute;
                 right: 0;
                 border-radius: 9px;
                 padding: 1px;
+                object-fit: cover;
             }
         }
 

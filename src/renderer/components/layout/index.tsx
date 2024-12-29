@@ -4,10 +4,11 @@ import {
     MdConnectWithoutContact,
     MdDownload,
     MdExtension,
-    MdKeyboardArrowRight, MdOutlineWarningAmber,
+    MdKeyboardArrowRight,
+    MdOutlineWarningAmber,
     MdPeople,
     MdStoreMallDirectory,
-    MdUpdate
+    MdUpdate,
 } from 'react-icons/md'
 
 import OldHeader from './old_header'
@@ -140,7 +141,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 },
             )
-            if(error.type === 'version_mismatch') {
+            if (error.type === 'version_mismatch') {
                 setForceInstallEnabled(true)
             }
             setIsUpdating(false)
@@ -308,26 +309,32 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                 Убедитесь, что Яндекс Музыка закрыта!
                                             </div>
                                         </div>
-                                        <button
-                                            className={pageStyles.patch_button}
-                                            onClick={() => startUpdate()}
-                                        >
-                                            <MdUpdate size={20} />
-                                            {app.mod.installed
-                                                ? 'Обновить'
-                                                : 'Установить'}
-                                        </button>
-                                        {isForceInstallEnabled && (
+                                        <div className={pageStyles.button_container}>
                                             <button
                                                 className={pageStyles.patch_button}
-                                                onClick={() => startUpdate(true)}
+                                                onClick={() => startUpdate()}
                                             >
-                                                <MdOutlineWarningAmber size={20} />
+                                                <MdUpdate size={20} />
                                                 {app.mod.installed
-                                                    ? 'Все равно обновить'
-                                                    : 'Все равно установить'}
+                                                    ? 'Обновить'
+                                                    : 'Установить'}
                                             </button>
-                                        )}
+                                            {!isForceInstallEnabled && (
+                                                <button
+                                                    className={
+                                                        pageStyles.patch_button
+                                                    }
+                                                    onClick={() => startUpdate(true)}
+                                                >
+                                                    <MdOutlineWarningAmber
+                                                        size={20}
+                                                    />
+                                                    {app.mod.installed
+                                                        ? 'Все равно обновить'
+                                                        : 'Все равно установить'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                     <img
                                         className={pageStyles.alert_patch_image}
