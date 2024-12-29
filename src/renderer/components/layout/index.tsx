@@ -319,7 +319,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                     ? 'Обновить'
                                                     : 'Установить'}
                                             </button>
-                                            {!isForceInstallEnabled && (
+                                            {isForceInstallEnabled && (
                                                 <button
                                                     className={
                                                         pageStyles.patch_button

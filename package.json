@@ -1,7 +1,7 @@
 {
     "name": "pulsesyncapp",
     "productName": "PulseSync",
-    "version": "2.0.0",
+    "version": "2.0.1",
     "description": "PulseSync app for desktops",
     "main": ".webpack/main",
     "scripts": {
@@ -13,7 +13,7 @@
         "lint": "eslint --ext .ts,.tsx .",
         "format": "prettier --write .",
         "build_prod": "electron-forge package && electron-builder --pd ./out/PulseSync-win32-x64",
-        "postbuild_prod": "ts-node src/main/utils/uploadToS3.ts"
+        "postbuild_prod": "ts-node ./uploadToS3.ts"
     },
     "type": "commonjs",
     "keywords": [],

@@ -1,4 +1,4 @@
 provider: generic
-url: https://s3.pulsesync.dev/beta_build/
+url: https://s3.pulsesync.dev/beta/
 updaterCacheDirName: pulsesyncapp-updater
 useMultipleRangeRequest: false

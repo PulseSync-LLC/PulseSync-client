@@ -594,7 +594,7 @@ export default function TrackInfoPage() {
                                                                 theme.contextPreview
                                                             }
                                                         >
-                                                            atrist
+                                                            artist
                                                         </div>
                                                         - имя артиста
                                                     </div>
