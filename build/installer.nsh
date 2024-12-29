@@ -10,8 +10,6 @@
 !define CONFIG_FILE "$APPDATA\PulseSync\config.json"
 
 Section "Install"
-    ; Отладочные сообщения
-    MessageBox MB_OK "Удаление файла: ${CONFIG_FILE}"
     IfFileExists "${CONFIG_FILE}" 0 +2
     Delete "${CONFIG_FILE}"
 SectionEnd
