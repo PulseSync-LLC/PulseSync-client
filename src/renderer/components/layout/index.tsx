@@ -149,15 +149,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleUpdateAvailable = (event: any, data: any) => {
             setUpdate(true)
-            toast('Доступно обновление!', {
-                icon: '🛠️',
-                style: {
-                    background: '#292C36',
-                    color: '#ffffff',
-                    border: 'solid 1px #363944',
-                    borderRadius: '8px',
-                },
-            })
         }
 
         window.desktopEvents?.on('download-progress', handleProgress)
@@ -214,7 +205,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         downloadToastIdRef.current = id
 
         const { modVersion, downloadUrl, checksum } = modInfo[0]
-        console.log(modInfo[0])
         window.desktopEvents?.send('update-app-asar', {
             version: modVersion,
             link: downloadUrl,
@@ -259,7 +249,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <button
                                     onClick={() => {
                                         setUpdate(false)
-                                        startUpdate()
+                                        window.desktopEvents?.send('update-install')
                                     }}
                                     className={pageStyles.update_download}
                                 >
