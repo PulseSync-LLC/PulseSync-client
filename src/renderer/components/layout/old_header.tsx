@@ -489,9 +489,14 @@ const OldHeader: React.FC<p> = () => {
                 toast.error('Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
-            toast.error('Ошибка при загрузке аватара')
+            if(error.response.data.message === "FILE_TOO_LARGE") {
+                toast.error('Размер файла превышает 5мб')
+            }
+            else {
+                toast.error('Ошибка при загрузке аватара')
+                Sentry.captureException(error)
+            }
             setAvatarProgress(-1)
-            Sentry.captureException(error)
             console.error('Error uploading avatar:', error)
         }
     }
@@ -539,9 +544,15 @@ const OldHeader: React.FC<p> = () => {
                 console.error('Ошибка при загрузке баннера:', data)
             }
         } catch (error) {
-            toast.error('Ошибка при загрузке баннера')
+            console.log(error)
+            if(error.response.data.message === "FILE_TOO_LARGE") {
+                toast.error('Размер файла превышает 5мб')
+            }
+            else {
+                toast.error('Ошибка при загрузке баннера')
+                Sentry.captureException(error)
+            }
             setBannerProgress(-1)
-            Sentry.captureException(error)
             console.error('Error uploading banner:', error)
         }
     }
