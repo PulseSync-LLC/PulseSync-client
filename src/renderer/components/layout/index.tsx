@@ -258,7 +258,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-
                     {modInfo.length > 0 &&
                         (!app.mod.installed ||
                             app.mod.version < modInfo[0]?.modVersion) && (

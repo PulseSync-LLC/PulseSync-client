@@ -42,7 +42,7 @@ declare global {
             getVersion: (version: string) => string
         }
         refreshThemes: () => void
-        getModInfo: () => void
+        getModInfo: (args?: any) => void
         discordRpc: {
             discordRpc: (val: boolean) => void
             setActivity: (props: SetActivity) => void

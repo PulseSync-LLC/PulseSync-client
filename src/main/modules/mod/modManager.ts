@@ -270,35 +270,47 @@ const downloadAndUpdateFile = async (
         });
 
         writer.on('finish', async () => {
-            if (!isFinished) return
-            if(isError) return;
-            if (mainWindow) {
-                mainWindow.setProgressBar(-1)
-            }
+            try {
 
-            if (checksum) {
-                const fileBuffer = fs.readFileSync(tempFilePath)
-                const hashSum = crypto.createHash('sha256')
-                hashSum.update(fileBuffer)
-                const hex = hashSum.digest('hex')
 
-                if (hex !== checksum) {
-                    fs.unlinkSync(tempFilePath)
-                    logger.main.error('Checksum mismatch')
-                    event.reply('update-failure', {
-                        success: false,
-                        error: 'Checksum не совпадает',
-                    })
-                    return
+                if (!isFinished) return
+                if (isError) return;
+                if (mainWindow) {
+                    mainWindow.setProgressBar(-1)
                 }
+
+                if (checksum) {
+                    const fileBuffer = fs.readFileSync(tempFilePath)
+                    const hashSum = crypto.createHash('sha256')
+                    hashSum.update(fileBuffer)
+                    const hex = hashSum.digest('hex')
+
+                    if (hex !== checksum) {
+                        fs.unlinkSync(tempFilePath)
+                        logger.main.error('Checksum mismatch')
+                        event.reply('update-failure', {
+                            success: false,
+                            error: 'Checksum не совпадает',
+                        })
+                        return
+                    }
+                }
+
+                fs.renameSync(tempFilePath, savePath)
+                store.set('mod.version', modVersion)
+                store.set('mod.musicVersion', yandexMusicVersion)
+                store.set('mod.installed', true)
+
+                event.reply('update-success', { success: true })
             }
-
-            fs.renameSync(tempFilePath, savePath)
-            store.set('mod.version', modVersion)
-            store.set('mod.musicVersion', yandexMusicVersion)
-            store.set('mod.installed', true)
-
-            event.reply('update-success', { success: true })
+            catch (e) {
+                fs.unlink(tempFilePath, () => {})
+                logger.main.error('Error writing file:', e)
+                if (mainWindow) {
+                    mainWindow.setProgressBar(-1)
+                }
+                event.reply('update-failure', { success: false, error: e.message })
+            }
         })
 
         writer.on('error', (err: Error) => {

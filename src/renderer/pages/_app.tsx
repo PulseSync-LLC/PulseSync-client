@@ -339,41 +339,40 @@ function App() {
             toast.success('Соединение восстановлено')
         }
     }, [socketError])
-    const fetchModInfo = async () => {
+    const fetchModInfo = async (currentApp: SettingsInterface) => {
         try {
             const res = await apolloClient.query({
                 query: GetModQuery,
                 fetchPolicy: 'no-cache',
-            })
+            });
 
-            const { data } = res
+            const { data } = res;
 
             if (data && data.getMod) {
+                console.log(currentApp.mod.version);
+                console.log(!currentApp.mod.version);
                 const info = (data.getMod as ModInterface[])
                     .filter(
                         (info) =>
-                            !app.mod.version ||
-                            compareVersions(
-                                info.modVersion,
-                                app.mod.version,
-                            ) > 0,
+                            !currentApp.mod.version ||
+                            compareVersions(info.modVersion, currentApp.mod.version) > 0,
                     )
                     .sort((a, b) =>
                         compareVersions(b.modVersion, a.modVersion),
-                    )
+                    );
 
                 if (info.length > 0) {
-                    setMod(info)
+                    setMod(info);
                 } else {
-                    console.log('Нет доступных обновлений')
+                    console.log('Нет доступных обновлений');
                 }
             } else {
-                console.error('Invalid response format for getMod:', data)
+                console.error('Invalid response format for getMod:', data);
             }
         } catch (e) {
-            console.error('Failed to fetch mod info:', e)
+            console.error('Failed to fetch mod info:', e);
         }
-    }
+    };
     useEffect(() => {
         if (user.id !== '-1') {
             if (!socket.connected) {
@@ -398,7 +397,7 @@ function App() {
                 }
             }
             fetchAppInfo()
-            fetchModInfo()
+            fetchModInfo(app)
 
             const intervalId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
@@ -562,6 +561,9 @@ function App() {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
+        ;(window as any).tests = async (args: any) => {
+            console.log(app.mod)
+        }
         ;(window as any).refreshThemes = async (args: any) => {
             window.desktopEvents
                 .invoke('getThemes')
@@ -570,11 +572,11 @@ function App() {
                     router.navigate('/extensionbeta', { replace: true })
                 })
         }
-        ;(window as any).getModInfo = async () => {
-            await fetchModInfo().then(() => {
-                toast.success('Информация о моде обновлена')
-            })
-        }
+        (window as any).getModInfo = async (currentApp: SettingsInterface) => {
+            await fetchModInfo(currentApp).then(() => {
+                toast.success('Информация о моде обновлена');
+            });
+        };
     }
     return (
         <div className="app-wrapper">

@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useEffect } from 'react'
 import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
 import playerContext from '../../api/context/player.context'
@@ -7,6 +7,8 @@ import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import hotToast from 'react-hot-toast-magic'
 import toast from '../../api/toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
+import SettingsInitials from '../../api/initials/settings.initials'
+import settingsInitials from '../../api/initials/settings.initials'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
@@ -25,7 +27,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp } = useContext(userContext)
+    const { app, setApp, setMod, modInfo } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
     const openModal = () => {
@@ -56,15 +58,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             toast.success(`Мод удален успешно`, {
                 id: toastId,
             })
-            setApp((prevApp: SettingsInterface) => ({
-                ...prevApp,
-                mod: {
-                    ...prevApp.mod,
-                    installed: false,
-                    version: false,
-                },
-            }))
-            window.electron.store.delete('mod')
+            setApp((prevApp: SettingsInterface) => {
+                const updatedApp = {
+                    ...prevApp,
+                    mod: {
+                        installed: false,
+                        version: '',
+                    },
+                };
+                window.getModInfo(updatedApp);
+                window.electron.store.delete('mod');
+                return updatedApp;
+            });
         }
 
         window.desktopEvents?.once('remove-mod-success', handleSuccess)

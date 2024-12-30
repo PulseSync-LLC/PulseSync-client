@@ -378,9 +378,9 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
             JSON.stringify({
                 ok: true,
                 css: cssContent || '{}',
-                script: withJs ? jsContent : '',
+                ...(withJs && { script: jsContent }),
                 type: 'theme',
-            }),
+            })
         ),
     )
 }
