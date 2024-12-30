@@ -373,16 +373,29 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
         cssContent = fs.readFileSync(styleCSS, 'utf8')
     }
     if (!ws) return
-    ws.clients.forEach((x) =>
-        x.send(
-            JSON.stringify({
-                ok: true,
-                css: cssContent || '{}',
-                ...(withJs && { script: jsContent }),
-                type: 'theme',
-            })
-        ),
-    )
+    if(!withJs) {
+        ws.clients.forEach((x) =>
+            x.send(
+                JSON.stringify({
+                    ok: true,
+                    css: cssContent || '{}',
+                    type: 'update_css',
+                })
+            ),
+        )
+    }
+    else {
+        ws.clients.forEach((x) =>
+            x.send(
+                JSON.stringify({
+                    ok: true,
+                    css: cssContent || '{}',
+                    script: jsContent || '',
+                    type: 'theme',
+                })
+            ),
+        )
+    }
 }
 
 ipcMain.on('getTrackInfo', async (event, _) => {
