@@ -1,0 +1,300 @@
+.item {
+    border: 1px solid #363944;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 16px;
+    background-color: #1f222b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.itemHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.itemTypeInfo {
+    font-size: 14px;
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-weight: 700;
+    background: #3468f2;
+}
+
+.removeItemButton {
+    border: none;
+    color: #e74c3c;
+    background: #e74c3c38;
+    cursor: pointer;
+    height: 30px;
+    width: 30px;
+    border-radius: 8px;
+    font-size: 20px;
+    margin-left: 12px;
+    display: flex;
+    transition: color 0.3s;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        color: #ff9084;
+    }
+}
+
+.field {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 12px;
+}
+
+.label {
+    font-size: 14px;
+    color: #6a728a;
+    margin-bottom: 2px;
+}
+
+.input {
+    padding: 6px 12px;
+    color: #ffffff;
+    background: #5b699329;
+    border-radius: 0px;
+    font-size: 14px;
+    border: 0;
+    border-bottom: 3px solid #5b6993;
+
+    &:focus {
+        border-color: #4d7dff;
+        outline: none;
+        background: #4d7cff3d;
+    }
+}
+
+.itemName {
+    font-size: 16px;
+    font-weight: bold;
+    color: #f5f8ff;
+}
+
+.itemDescription {
+    font-size: 14px;
+    color: #6a728a;
+    margin-bottom: 12px;
+}
+
+.buttonContainer {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-direction: column;
+}
+
+.itemButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: #3468f2;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+
+    &:hover {
+        background-color: #2d56c5;
+    }
+
+    &.itemButtonActive {
+        background-color: #1cb15a;
+
+        &:hover {
+            background-color: #1b8d4b;
+        }
+    }
+}
+
+.resetButton {
+    transition: var(--transition);
+    transform: rotate(1deg);
+    scale: 1;
+    padding: 4px;
+    border: none;
+    border-radius: 44px;
+    background-color: #ffffff;
+    color: #171a1c;
+    cursor: pointer;
+    font-size: 17px;
+    display: block;
+    height: 25px;
+    width: 25px;
+    text-align: center;
+    animation: fadeInScale 0.3s cubic-bezier(0.23, 1, 0.320, 1) forwards;
+
+    &:hover {
+        transition: var(--transition);
+        transform: rotate(180deg);
+        scale: 1.05;
+    }
+
+    &:focus {
+        transition: var(--transition);
+        transform: rotate(260deg);
+        scale: 1.1;
+    }
+}
+
+@keyframes fadeInScale {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.colorContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.colorSelectContainer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    color: white;
+    gap: 15px;
+}
+
+.colorInput {
+    width: 100%;
+    height: 40px;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.textContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.buttonField {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: linear-gradient(90deg, #3468f21c, #3468f200);
+    border-left: 2px solid #3468f2;
+    padding: 10px 10px;
+    overflow: hidden;
+}
+
+.buttonName {
+    font-size: 14px;
+    color: #6a728a;
+}
+
+.buttonTextInput {
+    padding: 6px 12px;
+    color: #ffffff;
+    background: #5b699329;
+    border-radius: 0px;
+    font-size: 14px;
+    border: 0;
+    border-bottom: 3px solid #5b6993;
+
+    &:focus {
+        border-color: #4d7dff;
+        outline: none;
+        background: #4d7cff3d;
+    }
+}
+
+.defaultParameterContainer {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 8px;
+    flex-direction: column;
+    width: -webkit-fill-available;
+    padding: 9px;
+    background: #1a1c24;
+    border-radius: 4px;
+    outline: 1px #474d61 solid;
+}
+
+.defaultLabel {
+    font-size: 14px;
+    color: #a1bbff;
+}
+
+.textContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+input[type='color'] {
+    cursor: pointer;
+    border-radius: 78px;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    border: 3px solid #fff;
+}
+
+input[type='color']::-moz-color-swatch {
+    border: none;
+}
+
+input[type='color']::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border-radius: 0;
+}
+
+input[type='color']::-webkit-color-swatch {
+    border: none;
+}
+
+
+.removeButton {
+    border: none;
+    color: #e74c3c;
+    background: rgba(231, 76, 60, 0.2196078431);
+    cursor: pointer;
+    height: 30px;
+    border-radius: 4px;
+    font-size: 20px;
+    display: flex;
+    transition: color 0.3s;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        color: #ff9084;
+    }
+}
+
+.addButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px;
+    background-color: #2ecc71;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: var(--transition);
+
+    &:hover {
+        background-color: #27ae60;
+    }
+}

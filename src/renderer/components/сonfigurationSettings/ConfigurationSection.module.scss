@@ -1,0 +1,103 @@
+.section {
+    border: 1px solid #363944;
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+    background-color: #171a1c;
+    height: fit-content;
+}
+
+.sectionHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.sectionTitleInput {
+    padding: 6px 12px;
+    color: #ffffff;
+    background: #292c36;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid #363944;
+
+    &:focus {
+        border-color: #4d7dff;
+        outline: none;
+        background: #4d7cff3d;
+    }
+}
+
+.removeSectionButton {
+    border: none;
+    color: #e74c3c;
+    background: #e74c3c38;
+    cursor: pointer;
+    height: 30px;
+    width: 30px;
+    border-radius: 8px;
+    font-size: 20px;
+    margin-left: 12px;
+    display: flex;
+    transition: color 0.3s;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+        color: #ff9084;
+    }
+}
+
+.sectionTitle {
+    font-size: 18px;
+    font-weight: bold;
+    color: #bbc2db;
+    margin-bottom: 10px;
+}
+
+.addItemContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 16px;
+}
+
+.addItemSelect {
+    padding: 8px 12px;
+    border: 0px solid #ccc;
+    border-radius: 4px;
+    font-size: 12px;
+    background-color: #2ecc71;
+    color: #fff;
+    cursor: pointer;
+
+    &:focus {
+        border-color: #2ecc71;
+        outline: none;
+        background: #1a7c44;
+    }
+}
+
+.addItemButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 8px;
+    background-color: #2ecc71;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 13px;
+    transition: var(--transition);
+
+    &:hover {
+        background-color: #27ae60;
+    }
+
+    &:disabled {
+        background-color: #95a5a6;
+        cursor: not-allowed;
+    }
+}

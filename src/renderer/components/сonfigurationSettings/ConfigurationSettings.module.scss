@@ -1,0 +1,57 @@
+.settingsContent {
+    gap: 10px;
+    padding: 24px;
+    background-color: transparent;
+    border-radius: 8px;
+    width: -webkit-fill-available;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+  
+  .addSectionContainer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 24px 0 24px;
+  }
+  
+  .addSectionInput {
+    flex: 1;
+    padding: 7px 12px;
+    color: #ffffff;
+    background: #292c36;
+    font-size: 14px;
+    border-radius: 4px;
+    border: 1px solid #363944;
+  
+    &:focus {
+        border-color: #4d7dff;
+        outline: none;
+        background: #4d7cff3d;
+    }
+  }
+  
+  .addSectionButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    background-color: #3468f2;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+  
+    &:hover {
+      background-color: #2d56c5;
+    }
+  
+    &:disabled {
+      opacity: 0.5;
+      background-color: #3a3d44;
+      cursor: not-allowed;
+    }
+  }
+  

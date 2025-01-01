@@ -1,5 +1,5 @@
 import path from 'path'
-import React, { CSSProperties, useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -16,6 +16,9 @@ import {
     MdSettings,
     MdStickyNote2,
     MdStoreMallDirectory,
+    MdAdd,
+    MdDelete,
+    MdRestore,
 } from 'react-icons/md'
 
 import Layout from '../../../components/layout'
@@ -23,52 +26,18 @@ import Button from '../../../components/button'
 import ViewModal from '../../../components/context_menu_themes/viewModal'
 import ThemeInterface from '../../../api/interfaces/theme.interface'
 import { createContextMenuActions } from '../../../components/context_menu_themes/sectionConfig'
+import ConfigurationSettings from '../../../components/сonfigurationSettings/ConfigurationSettings'
+import {
+    ThemeConfig,
+    Item,
+    TextItem,
+    ButtonAction,
+    ButtonItem,
+    ColorItem,
+} from '../../../components/сonfigurationSettings/types'
 
 import * as globalStyles from '../../../../../static/styles/page/index.module.scss'
 import * as localStyles from './extensionview.module.scss'
-
-interface ThemeConfig {
-    sections: Section[]
-}
-
-interface Section {
-    title: string
-    items: Item[]
-}
-
-interface Item {
-    id: string
-    name: string
-    description: string
-    type: string
-    bool?: boolean
-    input?: string
-    buttons?: ButtonItem[]
-}
-
-interface ButtonItem {
-    name: string
-    text: string
-}
-
-interface ActionOptions {
-    showCheck?: boolean
-    showDirectory?: boolean
-    showExport?: boolean
-    showDelete?: boolean
-}
-
-interface Props {
-    isTheme: ThemeInterface
-    isChecked: boolean
-    onCheckboxChange?: (themeName: string, isChecked: boolean) => void
-    exportTheme?: (themeName: string) => void
-    onDelete?: (themeName: string) => void
-    children?: any
-    className?: string
-    style?: CSSProperties
-    options?: ActionOptions
-}
 
 const ExtensionViewPage: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
@@ -89,8 +58,9 @@ const ExtensionViewPage: React.FC = () => {
     const [transitionsEnabled, setTransitionsEnabled] = useState(true)
     const [markdownData, setMarkdownData] = useState<string>('')
     const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
+    const [newSectionTitle, setNewSectionTitle] = useState('')
 
-    const menuElementRef = useRef(null)
+    const menuElementRef = useRef<HTMLDivElement>(null)
     const location = useLocation()
     const navigate = useNavigate()
 
@@ -104,10 +74,10 @@ const ExtensionViewPage: React.FC = () => {
     }, [location.state, navigate])
 
     useEffect(() => {
-        const clickOutsideHandler = (event: { target: any }) => {
+        const clickOutsideHandler = (event: MouseEvent) => {
             if (
                 menuElementRef.current &&
-                !menuElementRef.current.contains(event.target)
+                !menuElementRef.current.contains(event.target as Node)
             ) {
                 setContextMenuVisible(false)
             }
@@ -257,7 +227,17 @@ const ExtensionViewPage: React.FC = () => {
                         'read-file',
                         configPath,
                     )
-                    setConfigData(JSON.parse(configContent))
+                    try {
+                        const parsedConfig: ThemeConfig = JSON.parse(configContent)
+                        const upgradedConfig = upgradeConfig(parsedConfig)
+                        setConfigData(upgradedConfig)
+                    } catch (error) {
+                        console.error(
+                            'Ошибка при парсинге handleEvents.json:',
+                            error,
+                        )
+                        setConfigData(null)
+                    }
                 }
             }
         }
@@ -266,6 +246,41 @@ const ExtensionViewPage: React.FC = () => {
             checkConfigFile()
         }
     }, [currentTheme])
+
+    const upgradeConfig = (config: ThemeConfig): ThemeConfig => {
+        const upgradedConfig = structuredClone(config)
+
+        upgradedConfig.sections.forEach((section) => {
+            section.items.forEach((item) => {
+                switch (item.type) {
+                    case 'button':
+                        const buttonItem = item as ButtonItem
+                        if (buttonItem.defaultParameter === undefined) {
+                            buttonItem.defaultParameter = buttonItem.bool
+                        }
+                        break
+                    case 'color':
+                        const colorItem = item as ColorItem
+                        if (colorItem.defaultParameter === undefined) {
+                            colorItem.defaultParameter = colorItem.input
+                        }
+                        break
+                    case 'text':
+                        const textItem = item as TextItem
+                        textItem.buttons.forEach((button) => {
+                            if (button.defaultParameter === undefined) {
+                                button.defaultParameter = button.text
+                            }
+                        })
+                        break
+                    default:
+                        break
+                }
+            })
+        })
+
+        return upgradedConfig
+    }
 
     const createDefaultConfig = async () => {
         if (currentTheme) {
@@ -282,6 +297,7 @@ const ExtensionViewPage: React.FC = () => {
                                     'Включает отображение подсказок при наведении курсора',
                                 type: 'button',
                                 bool: false,
+                                defaultParameter: false,
                             },
                             {
                                 id: 'darkMode',
@@ -290,6 +306,7 @@ const ExtensionViewPage: React.FC = () => {
                                     'Активирует тёмный режим для комфортной работы при слабом освещении',
                                 type: 'button',
                                 bool: false,
+                                defaultParameter: false,
                             },
                             {
                                 id: 'enableNotifications',
@@ -298,6 +315,7 @@ const ExtensionViewPage: React.FC = () => {
                                     'Включает показ всплывающих уведомлений о новых событиях',
                                 type: 'button',
                                 bool: false,
+                                defaultParameter: false,
                             },
                         ],
                     },
@@ -310,7 +328,7 @@ const ExtensionViewPage: React.FC = () => {
                                 description: 'Цвет фона главного окна приложения',
                                 type: 'color',
                                 input: '#3498db',
-                                bool: true,
+                                defaultParameter: '#3498db',
                             },
                         ],
                     },
@@ -325,12 +343,22 @@ const ExtensionViewPage: React.FC = () => {
                                 type: 'text',
                                 buttons: [
                                     {
-                                        name: 'MessageParam1',
+                                        id: `btn_${Date.now()}_1`,
+                                        name: 'text',
                                         text: 'Добро пожаловать!',
+                                        defaultParameter: 'Добро пожаловать!',
                                     },
                                     {
-                                        name: 'MessageParam2',
-                                        text: 'Отмена',
+                                        id: `btn_${Date.now()}_2`,
+                                        name: 'position',
+                                        text: 'center',
+                                        defaultParameter: 'center',
+                                    },
+                                    {
+                                        id: `btn_${Date.now()}_3`,
+                                        name: 'size',
+                                        text: '81px',
+                                        defaultParameter: '81px',
                                     },
                                 ],
                             },
@@ -366,31 +394,91 @@ const ExtensionViewPage: React.FC = () => {
                     'file-event',
                     'write-file',
                     configPath,
-                    updatedConfig,
+                    JSON.stringify(updatedConfig, null, 2),
                 )
             } catch (error) {
                 console.error('Ошибка при сохранении конфигурации:', error)
+                alert('Произошла ошибка при сохранении конфигурации.')
             }
         }
     }
 
+    // Улучшенная функция для установки вложенных значений
+    const setNestedValue = (obj: any, path: string, value: any) => {
+        console.log(`Setting path: ${path} to value: ${value}`)
+        const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+        let current = obj
+        for (let i = 0; i < keys.length - 1; i++) {
+            let key = keys[i]
+            let nextKey = keys[i + 1]
+            let index = Number(key)
+
+            if (Array.isArray(current)) {
+                if (isNaN(index)) {
+                    console.error(
+                        `Ожидался числовой индекс массива, но получил: ${key}`,
+                    )
+                    return
+                }
+                if (!current[index]) {
+                    current[index] = isNaN(Number(nextKey)) ? {} : []
+                    console.log(
+                        `Initialized array index ${index} as ${isNaN(Number(nextKey)) ? '{}' : '[]'}`,
+                    )
+                }
+                current = current[index]
+            } else {
+                if (!(key in current) || current[key] === null) {
+                    current[key] = isNaN(Number(nextKey)) ? {} : []
+                    console.log(
+                        `Initialized key '${key}' as ${isNaN(Number(nextKey)) ? '{}' : '[]'}`,
+                    )
+                }
+                current = current[key]
+            }
+        }
+        const lastKey = keys[keys.length - 1]
+        if (Array.isArray(current)) {
+            const index = Number(lastKey)
+            if (isNaN(index)) {
+                console.error(
+                    `Ожидался числовой индекс массива, но получил: ${lastKey}`,
+                )
+                return
+            }
+            if (!current[index]) {
+                current[index] = {}
+                console.log(`Initialized array index ${index} as {}`)
+            }
+            current[index] = value
+            console.log(`Set array[${index}].${lastKey} = ${value}`)
+        } else {
+            current[lastKey] = value
+            console.log(`Set ${lastKey} = ${value}`)
+        }
+    }
+
+    // Модифицированная функция updateConfigField для обработки вложенных ключей
     const updateConfigField = (
         sectionIndex: number,
         itemIndex: number | null,
-        key: 'name' | 'description' | 'input' | 'text' | 'title' | 'bool' | 'id',
+        key: string,
         value: any,
     ) => {
+        if (!configData) return
+
+        console.log(
+            `Updating field: section ${sectionIndex}, item ${itemIndex}, key '${key}' to value: '${value}'`,
+        )
+
         const updatedConfig = structuredClone(configData)
-        if (!updatedConfig) return
 
         if (itemIndex !== null) {
-            const section = updatedConfig.sections[sectionIndex]
-            const item = section.items[itemIndex]
-            if (item) {
-                ;(item as any)[key] = value
-            }
+            const item = updatedConfig.sections[sectionIndex].items[itemIndex]
+            setNestedValue(item, key, value)
         } else {
-            ;(updatedConfig.sections[sectionIndex] as any)[key] = value
+            // Обработка обновлений на уровне секции, если необходимо
+            setNestedValue(updatedConfig.sections[sectionIndex], key, value)
         }
 
         setConfigData(updatedConfig)
@@ -401,26 +489,147 @@ const ExtensionViewPage: React.FC = () => {
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
-        key: keyof ButtonItem,
+        key: keyof ButtonAction,
         newValue: string,
     ) => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
 
-        if (
-            updatedConfig.sections[sectionIndex] &&
-            updatedConfig.sections[sectionIndex].items[itemIndex] &&
-            updatedConfig.sections[sectionIndex].items[itemIndex].buttons &&
-            updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
-                buttonIndex
-            ]
-        ) {
-            updatedConfig.sections[sectionIndex].items[itemIndex].buttons[
-                buttonIndex
-            ][key] = newValue
+        const item = updatedConfig.sections[sectionIndex].items[itemIndex]
+        if (isTextItem(item) && item.buttons[buttonIndex]) {
+            const button = item.buttons[buttonIndex]
+            button[key] = newValue
+            // НИЗАЧТО НЕ ИЗМЕНЯЕМ defaultParameter ЗДЕСЬ
             setConfigData(updatedConfig)
             writeConfigFile(updatedConfig)
         }
+    }
+
+    const resetConfigField = (sectionIndex: number, itemIndex: number) => {
+        if (!configData) return
+        const updatedConfig = structuredClone(configData)
+        const item = updatedConfig.sections[sectionIndex].items[itemIndex]
+        if (item.type === 'button') {
+            item.bool = item.defaultParameter
+        } else if (item.type === 'color') {
+            item.input = item.defaultParameter
+        } else if (item.type === 'text') {
+            const textItem = item as TextItem
+            textItem.buttons = textItem.buttons.map((btn) => ({
+                ...btn,
+                text: btn.defaultParameter || btn.text,
+            }))
+        }
+        setConfigData(updatedConfig)
+        writeConfigFile(updatedConfig)
+    }
+
+    const resetButtonConfig = (
+        sectionIndex: number,
+        itemIndex: number,
+        buttonIndex: number,
+    ) => {
+        if (!configData) return
+        const updatedConfig = structuredClone(configData)
+        const item = updatedConfig.sections[sectionIndex].items[itemIndex]
+        if (isTextItem(item)) {
+            const button = item.buttons[buttonIndex]
+            if (button) {
+                button.text = button.defaultParameter || button.text
+                setConfigData(updatedConfig)
+                writeConfigFile(updatedConfig)
+            } else {
+                console.error(`Кнопка с индексом ${buttonIndex} отсутствует.`)
+            }
+        }
+    }
+
+    const addSection = () => {
+        if (!newSectionTitle.trim()) return
+        const updatedConfig = structuredClone(configData)
+        updatedConfig.sections.push({
+            title: newSectionTitle.trim(),
+            items: [],
+        })
+        setConfigData(updatedConfig)
+        writeConfigFile(updatedConfig)
+        setNewSectionTitle('')
+    }
+
+    const removeSection = (sectionIndex: number) => {
+        const updatedConfig = structuredClone(configData)
+        updatedConfig.sections.splice(sectionIndex, 1)
+        setConfigData(updatedConfig)
+        writeConfigFile(updatedConfig)
+    }
+
+    const addItem = (sectionIndex: number, itemType: string) => {
+        let newItem: Item
+
+        switch (itemType) {
+            case 'button':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'Новый элемент',
+                    description: '',
+                    type: 'button',
+                    bool: false,
+                    defaultParameter: false,
+                }
+                break
+            case 'color':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'Новый цвет',
+                    description: '',
+                    type: 'color',
+                    input: '#ffffff',
+                    defaultParameter: '#ffffff',
+                }
+                break
+            case 'text':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'Новый текст',
+                    description: '',
+                    type: 'text',
+                    buttons: [
+                        {
+                            id: `btn_${Date.now()}_1`,
+                            name: 'text',
+                            text: 'Текст',
+                            defaultParameter: 'Текст',
+                        },
+                        {
+                            id: `btn_${Date.now()}_2`,
+                            name: 'position',
+                            text: 'center',
+                            defaultParameter: 'center',
+                        },
+                        {
+                            id: `btn_${Date.now()}_3`,
+                            name: 'size',
+                            text: '16px',
+                            defaultParameter: '16px',
+                        },
+                    ],
+                }
+                break
+            default:
+                return
+        }
+
+        const updatedConfig = structuredClone(configData)
+        updatedConfig.sections[sectionIndex].items.push(newItem)
+        setConfigData(updatedConfig)
+        writeConfigFile(updatedConfig)
+    }
+
+    const removeItem = (sectionIndex: number, itemIndex: number) => {
+        const updatedConfig = structuredClone(configData)
+        updatedConfig.sections[sectionIndex].items.splice(itemIndex, 1)
+        setConfigData(updatedConfig)
+        writeConfigFile(updatedConfig)
     }
 
     function MarkdownLink(props: any) {
@@ -429,6 +638,10 @@ const ExtensionViewPage: React.FC = () => {
                 {props.children}
             </a>
         )
+    }
+
+    function isTextItem(item: Item): item is TextItem {
+        return item.type === 'text'
     }
 
     const renderActiveTabContent = () => {
@@ -454,10 +667,11 @@ const ExtensionViewPage: React.FC = () => {
                 if (configFileExists === false) {
                     return (
                         <div className={localStyles.alertContent}>
-                            <div>Создать базовый handleEvent.json</div>
+                            <div>Создать базовый handleEvents.json</div>
                             <button
                                 className={localStyles.settingsAlertButton}
                                 onClick={createDefaultConfig}
+                                title="Создать файл конфигурации"
                             >
                                 Создать файл
                             </button>
@@ -465,362 +679,28 @@ const ExtensionViewPage: React.FC = () => {
                     )
                 }
 
-                return (
-                    <div className={localStyles.settingsContent}>
-                        {configData?.sections.map(
-                            (section: Section, sectionIndex: number) => (
-                                <div
-                                    key={sectionIndex}
-                                    className={localStyles.section}
-                                >
-                                    {editMode ? (
-                                        <input
-                                            type="text"
-                                            className={localStyles.sectionTitleInput}
-                                            value={section.title}
-                                            onChange={(e) =>
-                                                updateConfigField(
-                                                    sectionIndex,
-                                                    null,
-                                                    'title',
-                                                    e.target.value,
-                                                )
-                                            }
-                                        />
-                                    ) : (
-                                        <div className={localStyles.sectionTitle}>
-                                            {section.title}
-                                        </div>
-                                    )}
-                                    {section.items.map(
-                                        (item: Item, itemIndex: number) => (
-                                            <div
-                                                key={itemIndex}
-                                                className={`${localStyles.item} ${localStyles[`item-${item.type}`]}`}
-                                            >
-                                                {editMode ? (
-                                                    <>
-                                                        <span
-                                                            className={
-                                                                localStyles.itemTypeInfo
-                                                            }
-                                                        >
-                                                            Type: {item.type}
-                                                        </span>
-                                                        <span
-                                                            className={
-                                                                localStyles.itemNameEdit
-                                                            }
-                                                        >
-                                                            id (string):{' '}
-                                                        </span>
-                                                        <input
-                                                            type="text"
-                                                            className={
-                                                                localStyles.itemNameInput
-                                                            }
-                                                            value={item.id}
-                                                            onChange={(e) =>
-                                                                updateConfigField(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'id',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                        <span
-                                                            className={
-                                                                localStyles.itemNameEdit
-                                                            }
-                                                        >
-                                                            name (string):{' '}
-                                                        </span>
-                                                        <input
-                                                            type="text"
-                                                            className={
-                                                                localStyles.itemNameInput
-                                                            }
-                                                            value={item.name}
-                                                            onChange={(e) =>
-                                                                updateConfigField(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'name',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                        <span
-                                                            className={
-                                                                localStyles.itemNameEdit
-                                                            }
-                                                        >
-                                                            description (string):{' '}
-                                                        </span>
-                                                        <input
-                                                            type="text"
-                                                            className={
-                                                                localStyles.itemDescriptionInput
-                                                            }
-                                                            value={item.description}
-                                                            onChange={(e) =>
-                                                                updateConfigField(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'description',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <div
-                                                            className={
-                                                                localStyles.itemName
-                                                            }
-                                                        >
-                                                            {item.name}
-                                                        </div>
-                                                        <div
-                                                            className={
-                                                                localStyles.itemDescription
-                                                            }
-                                                        >
-                                                            {item.description}
-                                                        </div>
-                                                    </>
-                                                )}
-
-                                                {item.type === 'button' &&
-                                                    (editMode ? (
-                                                        <button
-                                                            disabled
-                                                            className={`${localStyles.itemButton} ${
-                                                                item.bool
-                                                                    ? localStyles.itemButtonActive
-                                                                    : ''
-                                                            }`}
-                                                        >
-                                                            {item.bool
-                                                                ? 'Включено'
-                                                                : 'Отключено'}
-                                                        </button>
-                                                    ) : (
-                                                        <button
-                                                            className={`${localStyles.itemButton} ${
-                                                                item.bool
-                                                                    ? localStyles.itemButtonActive
-                                                                    : ''
-                                                            }`}
-                                                            onClick={() =>
-                                                                updateConfigField(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'bool',
-                                                                    !item.bool,
-                                                                )
-                                                            }
-                                                        >
-                                                            {item.bool
-                                                                ? 'Включено'
-                                                                : 'Отключено'}
-                                                        </button>
-                                                    ))}
-
-                                                {item.type === 'color' &&
-                                                    (editMode ? (
-                                                        <>
-                                                            <span
-                                                                className={
-                                                                    localStyles.itemNameEdit
-                                                                }
-                                                            >
-                                                                input (string):{' '}
-                                                            </span>
-                                                            <input
-                                                                type="text"
-                                                                className={
-                                                                    localStyles.itemColorInputText
-                                                                }
-                                                                value={
-                                                                    item.input || ''
-                                                                }
-                                                                onChange={(e) =>
-                                                                    updateConfigField(
-                                                                        sectionIndex,
-                                                                        itemIndex,
-                                                                        'input',
-                                                                        e.target
-                                                                            .value,
-                                                                    )
-                                                                }
-                                                                placeholder="#FFFFFF"
-                                                            />
-                                                        </>
-                                                    ) : (
-                                                        <input
-                                                            type="color"
-                                                            className={
-                                                                localStyles.itemColorInput
-                                                            }
-                                                            value={
-                                                                item.input ||
-                                                                '#FFFFFF'
-                                                            }
-                                                            onChange={(e) =>
-                                                                updateConfigField(
-                                                                    sectionIndex,
-                                                                    itemIndex,
-                                                                    'input',
-                                                                    e.target.value,
-                                                                )
-                                                            }
-                                                        />
-                                                    ))}
-
-                                                {item.type === 'text' &&
-                                                    item.buttons && (
-                                                        <div
-                                                            className={
-                                                                localStyles.itemButtons
-                                                            }
-                                                        >
-                                                            {item.buttons.map(
-                                                                (
-                                                                    button: ButtonItem,
-                                                                    buttonIndex: number,
-                                                                ) => (
-                                                                    <div
-                                                                        key={
-                                                                            buttonIndex
-                                                                        }
-                                                                        className={
-                                                                            localStyles.buttonContainer
-                                                                        }
-                                                                    >
-                                                                        {editMode ? (
-                                                                            <>
-                                                                                <span
-                                                                                    className={
-                                                                                        localStyles.itemNameButtons
-                                                                                    }
-                                                                                >
-                                                                                    button.name
-                                                                                    (string):
-                                                                                </span>
-                                                                                <input
-                                                                                    type="text"
-                                                                                    className={
-                                                                                        localStyles.buttonNameInput
-                                                                                    }
-                                                                                    value={
-                                                                                        button.name
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) => {
-                                                                                        const newName =
-                                                                                            e
-                                                                                                .target
-                                                                                                .value
-                                                                                        updateButtonConfig(
-                                                                                            sectionIndex,
-                                                                                            itemIndex,
-                                                                                            buttonIndex,
-                                                                                            'name',
-                                                                                            newName,
-                                                                                        )
-                                                                                    }}
-                                                                                />
-                                                                                <span
-                                                                                    className={
-                                                                                        localStyles.iNBMini
-                                                                                    }
-                                                                                >
-                                                                                    button.text
-                                                                                    (string):
-                                                                                </span>
-                                                                                <input
-                                                                                    type="text"
-                                                                                    className={
-                                                                                        localStyles.buttonTextInputEdit
-                                                                                    }
-                                                                                    value={
-                                                                                        button.text
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) =>
-                                                                                        updateButtonConfig(
-                                                                                            sectionIndex,
-                                                                                            itemIndex,
-                                                                                            buttonIndex,
-                                                                                            'text',
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                        )
-                                                                                    }
-                                                                                />
-                                                                            </>
-                                                                        ) : (
-                                                                            <>
-                                                                                <div
-                                                                                    className={
-                                                                                        localStyles.buttonName
-                                                                                    }
-                                                                                >
-                                                                                    {
-                                                                                        button.name
-                                                                                    }
-                                                                                </div>
-                                                                                <input
-                                                                                    type="text"
-                                                                                    className={
-                                                                                        localStyles.buttonTextInput
-                                                                                    }
-                                                                                    value={
-                                                                                        button.text
-                                                                                    }
-                                                                                    onChange={(
-                                                                                        e,
-                                                                                    ) =>
-                                                                                        updateButtonConfig(
-                                                                                            sectionIndex,
-                                                                                            itemIndex,
-                                                                                            buttonIndex,
-                                                                                            'text',
-                                                                                            e
-                                                                                                .target
-                                                                                                .value,
-                                                                                        )
-                                                                                    }
-                                                                                />
-                                                                            </>
-                                                                        )}
-                                                                    </div>
-                                                                ),
-                                                            )}
-                                                        </div>
-                                                    )}
-                                            </div>
-                                        ),
-                                    )}
-                                </div>
-                            ),
-                        )}
-                    </div>
-                )
-
+                return configData ? (
+                    <ConfigurationSettings
+                        configData={configData}
+                        editMode={editMode}
+                        updateConfigField={updateConfigField}
+                        updateButtonConfig={updateButtonConfig}
+                        resetConfigField={resetConfigField}
+                        resetButtonConfig={resetButtonConfig}
+                        addSection={addSection}
+                        removeSection={removeSection}
+                        addItem={addItem}
+                        removeItem={removeItem}
+                        newSectionTitle={newSectionTitle}
+                        setNewSectionTitle={setNewSectionTitle}
+                    />
+                ) : null
             case 'Metadata':
                 return (
                     <div className={localStyles.alertContent}>
                         Страница "метаданные темы" в разработке
                     </div>
                 )
-
             default:
                 return null
         }
@@ -837,8 +717,15 @@ const ExtensionViewPage: React.FC = () => {
                             {activeTab === 'Settings' &&
                                 configFileExists === true && (
                                     <button
-                                        className={`${localStyles.edit} ${editMode ? localStyles.activeEdit : ''}`}
+                                        className={`${localStyles.edit} ${
+                                            editMode ? localStyles.activeEdit : ''
+                                        }`}
                                         onClick={() => setEditMode((prev) => !prev)}
+                                        title={
+                                            editMode
+                                                ? 'Выйти из режима редактирования'
+                                                : 'Войти в режим редактирования'
+                                        }
                                     >
                                         <MdEdit />
                                     </button>
@@ -862,6 +749,11 @@ const ExtensionViewPage: React.FC = () => {
                                             setBannerExpanded((prev) => !prev)
                                             toggleBanner()
                                         }}
+                                        title={
+                                            bannerExpanded
+                                                ? 'Свернуть баннер'
+                                                : 'Развернуть баннер'
+                                        }
                                     >
                                         <MdKeyboardArrowDown
                                             size={20}
@@ -869,13 +761,13 @@ const ExtensionViewPage: React.FC = () => {
                                                 bannerExpanded
                                                     ? {
                                                           transition:
-                                                              'var(--transition)',
+                                                              'transform 0.3s ease',
                                                           transform:
                                                               'rotate(180deg)',
                                                       }
                                                     : {
                                                           transition:
-                                                              'var(--transition)',
+                                                              'transform 0.3s ease',
                                                           transform: 'rotate(0deg)',
                                                       }
                                             }
@@ -908,6 +800,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     <NavLink
                                                         className={localStyles.path}
                                                         to="/extensionbeta"
+                                                        title="Перейти в Extension"
                                                     >
                                                         Extension
                                                     </NavLink>
@@ -923,6 +816,7 @@ const ExtensionViewPage: React.FC = () => {
                                                             localStyles.addFavorite
                                                         }
                                                         disabled
+                                                        title="Добавить в избранное (недоступно)"
                                                     >
                                                         <MdBookmarkBorder
                                                             size={20}
@@ -983,6 +877,7 @@ const ExtensionViewPage: React.FC = () => {
                                                             onClick={() =>
                                                                 changeTag(tag)
                                                             }
+                                                            title={`Фильтровать по тегу ${tag}`}
                                                         >
                                                             {tag}
                                                         </Button>
@@ -1009,6 +904,14 @@ const ExtensionViewPage: React.FC = () => {
                                                             ? activateTheme
                                                             : toggleThemeActivation
                                                     }
+                                                    title={
+                                                        activatedTheme !==
+                                                        currentTheme.name
+                                                            ? 'Включить тему'
+                                                            : themeActive
+                                                              ? 'Выключить тему'
+                                                              : 'Включить тему'
+                                                    }
                                                 >
                                                     {activatedTheme !==
                                                     currentTheme.name
@@ -1026,11 +929,12 @@ const ExtensionViewPage: React.FC = () => {
                                                             (prev) => !prev,
                                                         )
                                                     }
+                                                    title="Дополнительные настройки"
                                                 >
                                                     <MdMoreHoriz size={20} />
                                                 </Button>
                                             </div>
-                                            {contextMenuVisible && (
+                                            {contextMenuVisible && currentTheme && (
                                                 <ViewModal
                                                     items={createContextMenuActions(
                                                         undefined,
@@ -1060,6 +964,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     : ''
                                             }`}
                                             onClick={() => setActiveTab('Overview')}
+                                            title="Обзор"
                                         >
                                             <MdExplore /> Overview
                                         </button>
@@ -1070,6 +975,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     : ''
                                             }`}
                                             onClick={() => setActiveTab('Settings')}
+                                            title="Настройки"
                                         >
                                             <MdSettings /> Settings
                                         </button>
@@ -1080,6 +986,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     : ''
                                             }`}
                                             onClick={() => setActiveTab('Metadata')}
+                                            title="Метаданные"
                                         >
                                             <MdStickyNote2 /> Metadata
                                         </button>
@@ -1087,6 +994,7 @@ const ExtensionViewPage: React.FC = () => {
                                     <button
                                         className={localStyles.extensionNavButton}
                                         disabled
+                                        title="Store (недоступно)"
                                     >
                                         <MdStoreMallDirectory /> Store
                                     </button>
