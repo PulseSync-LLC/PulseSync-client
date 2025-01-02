@@ -1,31 +1,35 @@
-import React, { useState } from 'react';
-import ConfigurationItem from './ConfigurationItem';
-import { MdAdd, MdDelete } from 'react-icons/md';
-import * as styles from './ConfigurationSection.module.scss';
-import { Section, Item, ButtonAction } from './types';
+import React, { useState } from 'react'
+import ConfigurationItem from './ConfigurationItem'
+import { MdAdd, MdDelete } from 'react-icons/md'
+import * as styles from './ConfigurationSection.module.scss'
+import { Section, Item, ButtonAction } from './types'
 
 interface ConfigurationSectionProps {
-    section: Section;
-    sectionIndex: number;
-    editMode: boolean;
+    section: Section
+    sectionIndex: number
+    editMode: boolean
     updateConfigField: (
         sectionIndex: number,
         itemIndex: number | null,
         key: string,
-        value: any
-    ) => void;
+        value: any,
+    ) => void
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
         key: keyof ButtonAction,
-        newValue: string
-    ) => void;
-    resetConfigField: (sectionIndex: number, itemIndex: number) => void;
-    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void;
-    addItem: (sectionIndex: number, itemType: string) => void;
-    removeItem: (sectionIndex: number, itemIndex: number) => void;
-    removeSection: (sectionIndex: number) => void;
+        newValue: string,
+    ) => void
+    resetConfigField: (sectionIndex: number, itemIndex: number) => void
+    resetButtonConfig: (
+        sectionIndex: number,
+        itemIndex: number,
+        buttonIndex: number,
+    ) => void
+    addItem: (sectionIndex: number, itemType: string) => void
+    removeItem: (sectionIndex: number, itemIndex: number) => void
+    removeSection: (sectionIndex: number) => void
 }
 
 const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
@@ -40,11 +44,11 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
     removeItem,
     removeSection,
 }) => {
-    const [newItemType, setNewItemType] = useState<string>('button');
+    const [newItemType, setNewItemType] = useState<string>('button')
 
     const handleAddItemTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setNewItemType(e.target.value);
-    };
+        setNewItemType(e.target.value)
+    }
 
     return (
         <div className={styles.section}>
@@ -55,10 +59,20 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                         className={styles.sectionTitleInput}
                         value={section.title}
                         onChange={(e) =>
-                            updateConfigField(sectionIndex, null, 'title', e.target.value)
+                            updateConfigField(
+                                sectionIndex,
+                                null,
+                                'title',
+                                e.target.value,
+                            )
                         }
                         onBlur={(e) =>
-                            updateConfigField(sectionIndex, null, 'title', e.target.value)
+                            updateConfigField(
+                                sectionIndex,
+                                null,
+                                'title',
+                                e.target.value,
+                            )
                         }
                         placeholder="Название секции"
                     />
@@ -110,7 +124,7 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                 </div>
             )}
         </div>
-    );
-};
+    )
+}
 
-export default ConfigurationSection;
+export default ConfigurationSection

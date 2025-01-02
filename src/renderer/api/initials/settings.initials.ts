@@ -5,6 +5,7 @@ const settingsInitials: SettingsInterface = {
         autoStartInTray: false,
         autoStartMusic: false,
         autoStartApp: false,
+        deletePextAfterImport: false,
         closeAppInTray: false,
         writeMetadataAfterDownload: false,
     },

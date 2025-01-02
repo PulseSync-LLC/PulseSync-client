@@ -1,33 +1,33 @@
-import React from 'react';
-import { MdAdd } from 'react-icons/md';
-import * as styles from './ConfigurationItem.module.scss';
-import { ButtonAction, TextItem } from './types';
-import ButtonConfig from './ButtonConfig';
+import React from 'react'
+import { MdAdd } from 'react-icons/md'
+import * as styles from './ConfigurationItem.module.scss'
+import { ButtonAction, TextItem } from './types'
+import ButtonConfig from './ButtonConfig'
 
 interface TextItemComponentProps {
-    sectionIndex: number;
-    itemIndex: number;
-    item: TextItem;
-    editMode: boolean;
+    sectionIndex: number
+    itemIndex: number
+    item: TextItem
+    editMode: boolean
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
         key: keyof ButtonAction,
         newValue: string,
-    ) => void;
+    ) => void
     resetButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
-    ) => void;
+    ) => void
     updateConfigField: (
         sectionIndex: number,
         itemIndex: number,
         key: string,
         value: any,
-    ) => void;
-    handleRemoveButton: (buttonIndex: number) => void;
+    ) => void
+    handleRemoveButton: (buttonIndex: number) => void
 }
 
 const TextItemComponent: React.FC<TextItemComponentProps> = ({
@@ -46,22 +46,14 @@ const TextItemComponent: React.FC<TextItemComponentProps> = ({
             name: 'newButton',
             text: 'Новый текст',
             defaultParameter: 'Новый текст',
-        };
-        const updatedButtons = [...item.buttons, newButton];
-        updateConfigField(
-            sectionIndex,
-            itemIndex,
-            'buttons',
-            updatedButtons,
-        );
-    };    
+        }
+        const updatedButtons = [...item.buttons, newButton]
+        updateConfigField(sectionIndex, itemIndex, 'buttons', updatedButtons)
+    }
 
     return (
         <div className={styles.textContainer}>
-            {editMode && (
-                <>
-                </>
-            )}
+            {editMode && <></>}
             {item.buttons.map((button, buttonIndex) => (
                 <ButtonConfig
                     key={buttonIndex}
@@ -85,7 +77,7 @@ const TextItemComponent: React.FC<TextItemComponentProps> = ({
                 </button>
             )}
         </div>
-    );
-};
+    )
+}
 
-export default TextItemComponent;
+export default TextItemComponent

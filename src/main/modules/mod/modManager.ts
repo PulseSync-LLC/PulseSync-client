@@ -10,6 +10,7 @@ import logger from '../logger'
 import asar from '@electron/asar'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
+import * as Sentry from '@sentry/electron/main'
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
@@ -29,80 +30,91 @@ const backupPath = path.join(
     'app.backup.asar',
 )
 export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-app-asar', async (event, { version, link, checksum, force }) => {
-        try {
-            const isRunning = await isYandexMusicRunning()
-            if (isRunning) {
-                event.reply('update-message', {
-                    message: 'Закрытие Яндекс Музыки...',
-                })
-                await closeYandexMusic()
-            }
+    ipcMain.on(
+        'update-app-asar',
+        async (event, { version, link, checksum, force }) => {
+            try {
+                const isRunning = await isYandexMusicRunning()
+                if (isRunning) {
+                    event.reply('update-message', {
+                        message: 'Закрытие Яндекс Музыки...',
+                    })
+                    await closeYandexMusic()
+                }
 
-            yandexMusicVersion = await getYandexMusicVersion()
-            modVersion = version
-            logger.main.info(`Current Yandex Music version: ${yandexMusicVersion}`)
-            if (!force) {
-                try {
-                    const compatible = await checkModCompatibility(
-                        version,
-                        yandexMusicVersion,
-                    )
-                    if (!compatible) {
+                yandexMusicVersion = await getYandexMusicVersion()
+                modVersion = version
+                logger.main.info(
+                    `Current Yandex Music version: ${yandexMusicVersion}`,
+                )
+                if (!force) {
+                    try {
+                        const compatible = await checkModCompatibility(
+                            version,
+                            yandexMusicVersion,
+                        )
+                        if (!compatible) {
+                            event.reply('update-failure', {
+                                success: false,
+                                error: 'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                                type: 'version_mismatch',
+                            })
+                            return
+                        }
+                    } catch (error) {
                         event.reply('update-failure', {
                             success: false,
-                            error: 'Этот мод не совместим с текущей версией Яндекс Музыки.',
-                            type: "version_mismatch"
+                            error: `Ошибка при проверке совместимости мода: ${error.message}`,
                         })
                         return
                     }
-                } catch (error) {
-                    event.reply('update-failure', {
-                        success: false,
-                        error: `Ошибка при проверке совместимости мода: ${error.message}`,
-                    })
-                    return
                 }
-            }
 
-            if (!fs.existsSync(backupPath)) {
-                if (fs.existsSync(savePath)) {
-                    fs.copyFileSync(savePath, backupPath)
-                    logger.main.info('Original app.asar saved as app.backup.asar')
+                if (!fs.existsSync(backupPath)) {
+                    if (fs.existsSync(savePath)) {
+                        fs.copyFileSync(savePath, backupPath)
+                        logger.main.info(
+                            'Original app.asar saved as app.backup.asar',
+                        )
+                    } else {
+                        throw new Error(
+                            'Файл app.asar не найден для создания резервной копии',
+                        )
+                    }
                 } else {
-                    throw new Error(
-                        'Файл app.asar не найден для создания резервной копии',
-                    )
+                    logger.main.info('Backup app.backup.asar already exists')
                 }
-            } else {
-                logger.main.info('Backup app.backup.asar already exists')
+
+                const tempFilePath = path.join(
+                    app.getPath('temp'),
+                    'app.asar.download',
+                )
+
+                await downloadAndUpdateFile(
+                    link,
+                    tempFilePath,
+                    savePath,
+                    event,
+                    checksum,
+                )
+            } catch (error: any) {
+                logger.main.error('Unexpected error:', error)
+                Sentry.captureException(error)
+                if (mainWindow) {
+                    mainWindow.setProgressBar(-1)
+                }
+
+                event.reply('update-failure', {
+                    success: false,
+                    error: error.message,
+                })
             }
-
-            const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
-
-            await downloadAndUpdateFile(
-                link,
-                tempFilePath,
-                savePath,
-                event,
-                checksum,
-            )
-        } catch (error: any) {
-            logger.main.error('Unexpected error:', error)
-
-            if (mainWindow) {
-                mainWindow.setProgressBar(-1)
-            }
-
-            event.reply('update-failure', { success: false, error: error.message })
-        }
-    })
+        },
+    )
 
     ipcMain.on('remove-mod', async (event) => {
         try {
             const removeMod = () => {
-
-
                 if (fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, savePath)
                     logger.main.info('Backup app.asar restored.')
@@ -129,6 +141,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
         } catch (error) {
             logger.main.error('Error removing mod:', error)
+            Sentry.captureException(error)
             event.reply('remove-mod-failure', {
                 success: false,
                 error: error.message,
@@ -251,30 +264,29 @@ const downloadAndUpdateFile = async (
             writer.end()
         })
         response.data.on('error', (err: Error) => {
-            if (isFinished) return;
+            if (isFinished) return
             isFinished = true
             isError = true
-            writer.end();
+            writer.end()
             fs.unlink(tempFilePath, () => {})
             if (fs.existsSync(backupPath)) {
                 fs.renameSync(backupPath, savePath)
 
                 store.delete('mod')
             }
-            console.error('Download error:', err.message);
+            Sentry.captureException(err)
+            logger.http.error('Download error:', err.message)
             event.reply('update-failure', {
                 success: false,
                 error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте ваше интернет-соединение.',
             })
-            mainWindow.setProgressBar(-1);
-        });
+            mainWindow.setProgressBar(-1)
+        })
 
         writer.on('finish', async () => {
             try {
-
-
                 if (!isFinished) return
-                if (isError) return;
+                if (isError) return
                 if (mainWindow) {
                     mainWindow.setProgressBar(-1)
                 }
@@ -302,10 +314,10 @@ const downloadAndUpdateFile = async (
                 store.set('mod.installed', true)
 
                 event.reply('update-success', { success: true })
-            }
-            catch (e) {
+            } catch (e) {
                 fs.unlink(tempFilePath, () => {})
                 logger.main.error('Error writing file:', e)
+                Sentry.captureException(e)
                 if (mainWindow) {
                     mainWindow.setProgressBar(-1)
                 }
@@ -316,6 +328,7 @@ const downloadAndUpdateFile = async (
         writer.on('error', (err: Error) => {
             fs.unlink(tempFilePath, () => {})
             logger.main.error('Error writing file:', err)
+            Sentry.captureException(err)
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
@@ -324,6 +337,7 @@ const downloadAndUpdateFile = async (
     } catch (err) {
         fs.unlink(tempFilePath, () => {})
         logger.main.error('Error downloading file:', err)
+        Sentry.captureException(err)
         if (mainWindow) {
             mainWindow.setProgressBar(-1)
         }

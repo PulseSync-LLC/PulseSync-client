@@ -64,10 +64,8 @@ export default function AuthPage() {
             })
         }
 
-        // Add event listener to the window
         window.addEventListener('mousemove', handleMouseMove)
 
-        // Clean up the event listener on component unmount
         return () => {
             window.removeEventListener('mousemove', handleMouseMove)
         }

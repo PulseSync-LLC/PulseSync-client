@@ -403,7 +403,6 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    // Улучшенная функция для установки вложенных значений
     const setNestedValue = (obj: any, path: string, value: any) => {
         console.log(`Setting path: ${path} to value: ${value}`)
         const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
@@ -458,7 +457,6 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    // Модифицированная функция updateConfigField для обработки вложенных ключей
     const updateConfigField = (
         sectionIndex: number,
         itemIndex: number | null,
@@ -477,7 +475,6 @@ const ExtensionViewPage: React.FC = () => {
             const item = updatedConfig.sections[sectionIndex].items[itemIndex]
             setNestedValue(item, key, value)
         } else {
-            // Обработка обновлений на уровне секции, если необходимо
             setNestedValue(updatedConfig.sections[sectionIndex], key, value)
         }
 

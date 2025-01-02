@@ -115,9 +115,7 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
                 </>
             ) : (
                 <>
-                    <div className={styles.buttonName}>
-                        {button.name}:
-                    </div>
+                    <div className={styles.buttonName}>{button.name}:</div>
                     <input
                         type="text"
                         className={styles.buttonTextInput}

@@ -8,6 +8,8 @@ import { handleUncaughtException } from './handlers/handleError'
 import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'fs'
+import * as Sentry from '@sentry/electron/main'
+import { store } from './storage'
 export const isFirstInstance = app.requestSingleInstanceLock()
 
 export const checkForSingleInstance = (): void => {
@@ -76,5 +78,13 @@ async function handlePextFile(filePath: string) {
     zip.extractAllTo(outputDir, true)
 
     logger.main.info(`Extension exported successfully to ${outputDir}`)
+    if (store.get('settings.deletePextAfterImport')) {
+        fs.rm(filePath, (err) => {
+            if (err) {
+                logger.main.error('Error in handlePextFile: ' + err.message)
+                Sentry.captureException(err)
+            }
+        })
+    }
     mainWindow.webContents.send('open-theme', themeName)
 }

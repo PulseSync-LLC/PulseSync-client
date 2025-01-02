@@ -131,7 +131,7 @@
     height: 25px;
     width: 25px;
     text-align: center;
-    animation: fadeInScale 0.3s cubic-bezier(0.23, 1, 0.320, 1) forwards;
+    animation: fadeInScale 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 
     &:hover {
         transition: var(--transition);
@@ -261,7 +261,6 @@ input[type='color']::-webkit-color-swatch-wrapper {
 input[type='color']::-webkit-color-swatch {
     border: none;
 }
-
 
 .removeButton {
     border: none;

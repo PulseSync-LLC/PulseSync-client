@@ -21,7 +21,9 @@ import isAppDev from 'electron-is-dev'
 
 const updater = getUpdater()
 let reqModal = 0
-const ffmpegPath = isAppDev ? path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe') : path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
+const ffmpegPath = isAppDev
+    ? path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe')
+    : path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
 
 ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false

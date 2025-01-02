@@ -373,18 +373,17 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
         cssContent = fs.readFileSync(styleCSS, 'utf8')
     }
     if (!ws) return
-    if(!withJs) {
+    if (!withJs) {
         ws.clients.forEach((x) =>
             x.send(
                 JSON.stringify({
                     ok: true,
                     css: cssContent || '{}',
                     type: 'update_css',
-                })
+                }),
             ),
         )
-    }
-    else {
+    } else {
         ws.clients.forEach((x) =>
             x.send(
                 JSON.stringify({
@@ -392,7 +391,7 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
                     css: cssContent || '{}',
                     script: jsContent || '',
                     type: 'theme',
-                })
+                }),
             ),
         )
     }

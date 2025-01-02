@@ -344,35 +344,36 @@ function App() {
             const res = await apolloClient.query({
                 query: GetModQuery,
                 fetchPolicy: 'no-cache',
-            });
+            })
 
-            const { data } = res;
+            const { data } = res
 
             if (data && data.getMod) {
-                console.log(currentApp.mod.version);
-                console.log(!currentApp.mod.version);
+                console.log(currentApp.mod.version)
+                console.log(!currentApp.mod.version)
                 const info = (data.getMod as ModInterface[])
                     .filter(
                         (info) =>
                             !currentApp.mod.version ||
-                            compareVersions(info.modVersion, currentApp.mod.version) > 0,
+                            compareVersions(
+                                info.modVersion,
+                                currentApp.mod.version,
+                            ) > 0,
                     )
-                    .sort((a, b) =>
-                        compareVersions(b.modVersion, a.modVersion),
-                    );
+                    .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
 
                 if (info.length > 0) {
-                    setMod(info);
+                    setMod(info)
                 } else {
-                    console.log('Нет доступных обновлений');
+                    console.log('Нет доступных обновлений')
                 }
             } else {
-                console.error('Invalid response format for getMod:', data);
+                console.error('Invalid response format for getMod:', data)
             }
         } catch (e) {
-            console.error('Failed to fetch mod info:', e);
+            console.error('Failed to fetch mod info:', e)
         }
-    };
+    }
     useEffect(() => {
         if (user.id !== '-1') {
             if (!socket.connected) {
@@ -572,11 +573,11 @@ function App() {
                     router.navigate('/extensionbeta', { replace: true })
                 })
         }
-        (window as any).getModInfo = async (currentApp: SettingsInterface) => {
+        ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
             await fetchModInfo(currentApp).then(() => {
-                toast.success('Информация о моде обновлена');
-            });
-        };
+                toast.success('Информация о моде обновлена')
+            })
+        }
     }
     return (
         <div className="app-wrapper">
@@ -788,7 +789,10 @@ const Player: React.FC<any> = ({ children }) => {
 
                 activity.buttons = []
 
-                if (track.trackSource !== "UGC" && app.discordRpc.enableRpcButtonListen) {
+                if (
+                    track.trackSource !== 'UGC' &&
+                    app.discordRpc.enableRpcButtonListen
+                ) {
                     const linkTitle = track.albums[0].id
                     activity.buttons.push({
                         label: app.discordRpc.button
@@ -796,7 +800,10 @@ const Player: React.FC<any> = ({ children }) => {
                             : '✌️ Open in Yandex Music',
                         url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
                     })
-                } else if (track.trackSource === "UGC" && app.discordRpc.enableRpcButtonListen) {
+                } else if (
+                    track.trackSource === 'UGC' &&
+                    app.discordRpc.enableRpcButtonListen
+                ) {
                     activity.buttons.push({
                         label: app.discordRpc.button
                             ? truncateLabel(app.discordRpc.button)

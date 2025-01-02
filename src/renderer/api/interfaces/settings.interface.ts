@@ -2,6 +2,7 @@ export interface Settings {
     autoStartInTray: boolean
     autoStartMusic: boolean
     autoStartApp: boolean
+    deletePextAfterImport: boolean
     closeAppInTray: boolean
     writeMetadataAfterDownload: boolean
 }

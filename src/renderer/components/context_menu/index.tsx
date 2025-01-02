@@ -65,11 +65,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                         installed: false,
                         version: '',
                     },
-                };
-                window.getModInfo(updatedApp);
-                window.electron.store.delete('mod');
-                return updatedApp;
-            });
+                }
+                window.getModInfo(updatedApp)
+                window.electron.store.delete('mod')
+                return updatedApp
+            })
         }
 
         window.desktopEvents?.once('remove-mod-success', handleSuccess)
@@ -111,6 +111,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
+                break
+            case 'deletePextAfterImport':
+                updatedSettings.deletePextAfterImport = status
+                window.electron.store.set('settings.deletePextAfterImport', status)
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -253,6 +257,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 'Скрыть окно при нажатии на «X»',
                 app.settings.closeAppInTray,
                 () => toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
+            ),
+            createToggleButton(
+                'Удалять .pext после импорта темы?',
+                app.settings.deletePextAfterImport,
+                () =>
+                    toggleSetting(
+                        'deletePextAfterImport',
+                        !app.settings.deletePextAfterImport,
+                    ),
             ),
         ]),
         createButtonSection('Музыка', [

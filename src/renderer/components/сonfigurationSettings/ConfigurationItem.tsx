@@ -1,34 +1,34 @@
-import React from 'react';
-import { MdDelete, MdRestore } from 'react-icons/md';
-import * as styles from './ConfigurationItem.module.scss';
-import { ButtonAction, Item, TextItem, isTextItem } from './types';
-import TextItemComponent from './TextItemComponent';
+import React from 'react'
+import { MdDelete, MdRestore } from 'react-icons/md'
+import * as styles from './ConfigurationItem.module.scss'
+import { ButtonAction, Item, TextItem, isTextItem } from './types'
+import TextItemComponent from './TextItemComponent'
 
 interface ConfigurationItemProps {
-    sectionIndex: number;
-    itemIndex: number;
-    item: Item;
-    editMode: boolean;
+    sectionIndex: number
+    itemIndex: number
+    item: Item
+    editMode: boolean
     updateConfigField: (
         sectionIndex: number,
         itemIndex: number,
         key: string,
         value: any,
-    ) => void;
+    ) => void
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
         key: keyof ButtonAction,
         newValue: string,
-    ) => void;
-    resetConfigField: (sectionIndex: number, itemIndex: number) => void;
+    ) => void
+    resetConfigField: (sectionIndex: number, itemIndex: number) => void
     resetButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
         buttonIndex: number,
-    ) => void;
-    removeItem: (sectionIndex: number, itemIndex: number) => void;
+    ) => void
+    removeItem: (sectionIndex: number, itemIndex: number) => void
 }
 
 const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
@@ -42,15 +42,15 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
     resetButtonConfig,
     removeItem,
 }) => {
-    let isDifferent = false;
+    let isDifferent = false
 
     switch (item.type) {
         case 'button':
-            isDifferent = item.bool !== item.defaultParameter;
-            break;
+            isDifferent = item.bool !== item.defaultParameter
+            break
         case 'color':
-            isDifferent = item.input !== item.defaultParameter;
-            break;
+            isDifferent = item.input !== item.defaultParameter
+            break
         case 'text':
             isDifferent =
                 JSON.stringify(item.buttons) !==
@@ -59,22 +59,19 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         ...btn,
                         defaultParameter: btn.defaultParameter || '',
                     })),
-                );
-            break;
+                )
+            break
         default:
-            isDifferent = false;
+            isDifferent = false
     }
 
     const handleRemoveButton = (buttonIndex: number) => {
-        if (!isTextItem(item)) return;
-        const updatedButtons = item.buttons.filter((_, index) => index !== buttonIndex);
-        updateConfigField(
-            sectionIndex,
-            itemIndex,
-            'buttons',
-            updatedButtons,
-        );
-    };
+        if (!isTextItem(item)) return
+        const updatedButtons = item.buttons.filter(
+            (_, index) => index !== buttonIndex,
+        )
+        updateConfigField(sectionIndex, itemIndex, 'buttons', updatedButtons)
+    }
 
     return (
         <div className={`${styles.item} ${styles[`item-${item.type}`]}`}>
@@ -197,7 +194,6 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     <MdRestore />
                                 </button>
                             )}
-                            {/* Редактирование defaultParameter для button */}
                             <div className={styles.defaultParameterContainer}>
                                 <label className={styles.defaultLabel}>
                                     Параметр по умолчанию (bool):
@@ -317,7 +313,6 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     <MdRestore />
                                 </button>
                             )}
-                            {/* Редактирование defaultParameter для color */}
                             <div className={styles.defaultParameterContainer}>
                                 <label className={styles.defaultLabel}>
                                     Параметр по умолчанию (цвет):
@@ -414,8 +409,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 />
             )}
         </div>
-    );
+    )
+}
 
-};
-
-export default ConfigurationItem;
+export default ConfigurationItem

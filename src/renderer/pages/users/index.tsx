@@ -1,5 +1,3 @@
-// src/pages/users/UsersPage.tsx
-
 import Layout from '../../components/layout'
 import * as styles from './users.module.scss'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -69,7 +67,7 @@ export default function UsersPage() {
                         sorting,
                         search,
                     },
-                    fetchPolicy: "no-cache"
+                    fetchPolicy: 'no-cache',
                 })
                 .then((result) => {
                     if (result.data) {

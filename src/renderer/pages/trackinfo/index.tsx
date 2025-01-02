@@ -92,7 +92,9 @@ export default function TrackInfoPage() {
         return changedValues
     }
     useEffect(() => {
-        setVerText(`2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`)
+        setVerText(
+            `2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
+        )
     }, [])
     useEffect(() => {
         setPreviousValues({

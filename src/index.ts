@@ -148,13 +148,12 @@ const createWindow = (): void => {
             mainWindow.moveTop()
         }
     })
-    mainWindow.webContents.setZoomFactor(1);
-    mainWindow.webContents.setVisualZoomLevelLimits(1, 1);
+
     mainWindow.webContents.on('before-input-event', (event, input) => {
         if (input.control && (input.key === '+' || input.key === '-')) {
-            event.preventDefault();
+            event.preventDefault()
         }
-    });
+    })
     mainWindow.webContents.setWindowOpenHandler((electronData) => {
         shell.openExternal(electronData.url)
         return { action: 'deny' }
@@ -442,7 +441,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
                 await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
                 return { success: true }
             } catch (error) {
-                console.error('Ошибка при создании файла конфигурации:', error)
+                logger.main.error('Ошибка при создании файла конфигурации:', error)
                 return { success: false, error: error.message }
             }
 
@@ -451,15 +450,15 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
                 const content =
                     typeof data === 'string' ? data : JSON.stringify(data, null, 2)
                 fs.writeFileSync(filePath, content, 'utf8')
-                console.log('Файл успешно записан:', filePath)
+                logger.main.log('Файл успешно записан:', filePath)
                 return { success: true }
             } catch (error) {
-                console.error('Ошибка при записи файла:', error)
+                logger.main.error('Ошибка при записи файла:', error)
                 return { success: false, error: error.message }
             }
 
         default:
-            console.error('Неизвестный тип события:', eventType)
+            logger.main.error('Неизвестный тип события:', eventType)
             return { success: false, error: 'Неизвестный тип события' }
     }
 })
@@ -487,7 +486,7 @@ ipcMain.on('themeChanged', (event, themeName) => {
 })
 function initializeTheme() {
     selectedTheme = store.get('theme') || 'Default'
-    console.log('Themes: theme changed to:', selectedTheme)
+    logger.main.log('Themes: theme changed to:', selectedTheme)
     setTheme(selectedTheme)
 }
 export const getPath = (args: string) => {
