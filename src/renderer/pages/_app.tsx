@@ -7,6 +7,7 @@ import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import ExtensionPage from './extension'
 import UsersPage from './users'
+import UserProfilePage from './user'
 import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
@@ -108,6 +109,14 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <UsersPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/user/:param',
+            element: (
+                <ErrorBoundary>
+                    <UserProfilePage />
                 </ErrorBoundary>
             ),
         },

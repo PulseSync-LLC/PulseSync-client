@@ -12,6 +12,7 @@ import { MdAllOut, MdHourglassEmpty } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
+import { Link } from 'react-router-dom'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -345,6 +346,11 @@ export default function UsersPage() {
                                                                     user.createdAt,
                                                                 ).toLocaleDateString()}
                                                             </span>
+                                                            <Link
+                                                                to={`/user/${user.username}`}
+                                                            >
+                                                                Перейти в профиль
+                                                            </Link>
                                                         </div>
                                                     </div>
                                                     <div
