@@ -9,6 +9,7 @@ export default gql`
             bannerHash
             bannerType
             username
+            nickname
             perms
             id
             createdAt

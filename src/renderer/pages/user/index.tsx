@@ -1,27 +1,53 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { useQuery } from '@apollo/client'
-import getUserByParamQuery from '../../api/queries/user/getUserByParam.query'
 import config from '../../api/config'
 
 import Layout from '../../components/layout'
 
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './userProfile.module.scss'
+import apolloClient from '../../api/apolloClient'
+import findUserByName from '../../api/queries/user/findUserByName.query'
+import UserInterface from '../../api/interfaces/user.interface'
+import userInitials from '../../api/initials/user.initials'
 
 function UserProfilePage() {
     const { param } = useParams()
-
-    const { data, loading, error } = useQuery(getUserByParamQuery, {
-        variables: { param },
-        skip: !param,
-        fetchPolicy: 'no-cache',
-    })
-
+    const [user, setUser] = useState<UserInterface>(userInitials)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
     const [backgroundStyle, setBackgroundStyle] = useState<React.CSSProperties>({})
 
     useEffect(() => {
-        const user = data?.getUserByParam
+        if (!param) return
+
+        const fetchData = async () => {
+            setLoading(true)
+            setError(null)
+            try {
+                const res = await apolloClient.query({
+                    query: findUserByName,
+                    variables: { name: param },
+                    fetchPolicy: 'no-cache',
+                })
+                if(res.data.findUserByName === null) {
+                    setError('User not found')
+                }
+                else {
+                    setUser(res.data.findUserByName)
+                }
+            } catch (err) {
+                setError(err)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchData()
+    }, [param])
+
+    useEffect(() => {
         if (!user) return
 
         if (user.bannerHash && user.bannerHash !== 'default_banner') {
@@ -50,7 +76,7 @@ function UserProfilePage() {
                     'linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)',
             })
         }
-    }, [data])
+    }, [user])
 
     if (!param) {
         return (
@@ -76,7 +102,6 @@ function UserProfilePage() {
         )
     }
 
-    const user = data?.getUserByParam
     if (!user) {
         return (
             <Layout title="Профиль пользователя">

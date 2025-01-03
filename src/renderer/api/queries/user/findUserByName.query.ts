@@ -1,8 +1,8 @@
 import gql from 'graphql-tag'
 
 export default gql`
-    query GetUserByParam($param: String!) {
-        getUserByParam(param: $param) {
+    query findUserByName($name: String!) {
+        findUserByName(name: $name) {
             id
             username
             nickname

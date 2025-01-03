@@ -1,6 +1,7 @@
 export default interface UserInterface {
     id: string
     username: string
+    nickname: string
     createdAt: string
     status: string
     avatar: string
