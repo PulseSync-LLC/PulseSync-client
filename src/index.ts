@@ -14,7 +14,7 @@ import { getNativeImg } from './main/utils'
 import './main/modules/index'
 import path from 'path'
 import * as fs from 'original-fs'
-import { store } from './main/modules/storage'
+import { initializeStore, store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import { rpc_connect } from './main/modules/discordRpc'
 import corsAnywhereServer from 'cors-anywhere'
@@ -45,6 +45,7 @@ export let corsAnywherePort: string | number
 export let mainWindow: BrowserWindow
 export let updated = false
 export let inSleepMode = false
+let hardwareAcceleration = false
 
 let preloaderWindow: BrowserWindow
 let availableThemes: Theme[] = []
@@ -67,6 +68,14 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     height: 40,
 })
 app.setAppUserModelId('pulsesync.app')
+initializeStore().then(() => {
+    logger.main.info('Store initialized')
+    hardwareAcceleration = store.get('settings.hardwareAcceleration', true);
+    if (!hardwareAcceleration) {
+        app.disableHardwareAcceleration();
+    }
+})
+
 
 Sentry.init({
     debug: false,
@@ -132,8 +141,8 @@ const createWindow = (): void => {
             nodeIntegration: true,
             devTools: isAppDev,
             webSecurity: false,
-            webgl: true,
-            enableBlinkFeatures: 'WebGL2',
+            webgl: hardwareAcceleration,
+            enableBlinkFeatures: hardwareAcceleration ? 'WebGL2' : '',
         },
     })
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((e) => {

@@ -33,6 +33,4 @@ async function initializeStore() {
     }
 }
 
-initializeStore()
-
 export { store, initializeStore }

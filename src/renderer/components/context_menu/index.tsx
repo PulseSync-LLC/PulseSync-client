@@ -91,30 +91,52 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'autoTray':
                 updatedSettings.autoStartInTray = status
                 window.electron.store.set('settings.autoStartInTray', status)
+                toast.success(
+                    `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`
+                )
                 break
             case 'autoStart':
                 updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
                 window.desktopEvents?.send('autoStartApp', status)
+                toast.success(
+                    `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`
+                )
                 break
             case 'autoStartMusic':
                 updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
+                toast.success(
+                    `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`
+                )
                 break
             case 'writeMetadataToggle':
                 updatedSettings.writeMetadataAfterDownload = status
-                window.electron.store.set(
-                    'settings.writeMetadataAfterDownload',
-                    status,
+                window.electron.store.set('settings.writeMetadataAfterDownload', status)
+                toast.success(
+                    `Опция "Запись метаданных после загрузки" ${status ? 'включена' : 'выключена'}`
                 )
                 break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
+                toast.success(
+                    `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`
+                )
                 break
             case 'deletePextAfterImport':
                 updatedSettings.deletePextAfterImport = status
                 window.electron.store.set('settings.deletePextAfterImport', status)
+                toast.success(
+                    `Включена функция удаления .pext после импорта темы`
+                )
+                break
+            case 'hardwareAcceleration':
+                updatedSettings.hardwareAcceleration = status
+                window.electron.store.set('settings.hardwareAcceleration', status)
+                toast.success(
+                    'Изменения вступят в силу после перезапуска приложения'
+                )
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -179,8 +201,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 className={menuStyles.contextButton}
                 onClick={() => {
                     onToggle()
-                    const newState = !checked
-                    toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
                 }}
             >
                 <span>{title}</span>
@@ -219,8 +239,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             ),
             onClick: (event) => {
                 onToggle()
-                const newState = !checked
-                toast.success(`${title} ${newState ? 'включён' : 'выключен'}`)
             },
         }
     }
@@ -257,6 +275,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 'Скрыть окно при нажатии на «X»',
                 app.settings.closeAppInTray,
                 () => toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
+            ),
+            createToggleButton(
+                'Аппаратное ускорение',
+                app.settings.hardwareAcceleration,
+                () => toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
             createToggleButton(
                 'Удалять .pext после импорта темы?',
