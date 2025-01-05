@@ -257,7 +257,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             {
                 label: 'Проверить обновления мода',
-                onClick: () => window.getModInfo(),
+                onClick: () => window.getModInfo(app),
                 disabled: !app.mod.installed,
             },
             { label: 'Скрипт мода на GitHub', onClick: openGitHub },
