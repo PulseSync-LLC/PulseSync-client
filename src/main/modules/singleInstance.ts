@@ -17,14 +17,12 @@ export const checkForSingleInstance = (): void => {
     if (isFirstInstance) {
         const [window] = BrowserWindow.getAllWindows()
         app.on('second-instance', (event: Electron.Event, commandLine: string[]) => {
-            console.log(commandLine)
             if (window) {
                 if (window.isMinimized()) {
                     window.restore()
                     logger.main.info('Restore window')
                 }
                 const lastCommandLineArg = commandLine.pop()
-                console.log(lastCommandLineArg)
                 if (lastCommandLineArg) {
                     if (checkIsDeeplink(lastCommandLineArg)) {
                         navigateToDeeplink(window, lastCommandLineArg)

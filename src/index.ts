@@ -79,6 +79,7 @@ initializeStore().then(() => {
 
 Sentry.init({
     debug: false,
+    attachStacktrace: true,
     dsn: config.SENTRY_DSN,
     enableRendererProfiling: true,
     enableTracing: true,
@@ -536,7 +537,7 @@ export async function prestartCheck() {
 
         return setTimeout(async () => {
             app.quit()
-        }, 1000)
+        }, 2500)
     }
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))

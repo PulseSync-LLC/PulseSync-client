@@ -1,6 +1,7 @@
 import { app, nativeImage, NativeImage } from 'electron'
 import path from 'path'
 import ffmpeg from 'fluent-ffmpeg'
+import logger from './modules/logger'
 
 const getNativeImgFromUrl = async (url: string): Promise<NativeImage> => {
     const res = await fetch(`https://${url.replaceAll('%%', '100x100')}`)
@@ -36,14 +37,14 @@ export function convertToMP3(
             .audioCodec('libmp3lame')
             .audioBitrate(320)
             .on('start', () => {
-                console.log(`Начата конвертация файла: ${inputFilePath}`)
+                logger.main.info(`Начата конвертация файла: ${inputFilePath}`)
             })
             .on('error', (err) => {
-                console.error(`Ошибка конвертации: ${err.message}`)
+                logger.main.error(`Ошибка конвертации: ${err.message}`)
                 reject(err)
             })
             .on('end', () => {
-                console.log(
+                logger.main.info(
                     `Конвертация завершена. Файл сохранен: ${outputFilePath}`,
                 )
                 resolve(outputFilePath)

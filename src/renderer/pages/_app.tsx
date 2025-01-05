@@ -358,8 +358,6 @@ function App() {
             const { data } = res
 
             if (data && data.getMod) {
-                console.log(currentApp.mod.version)
-                console.log(!currentApp.mod.version)
                 const info = (data.getMod as ModInterface[])
                     .filter(
                         (info) =>
@@ -373,6 +371,12 @@ function App() {
 
                 if (info.length > 0) {
                     setMod(info)
+                    if(currentApp.mod.installed && currentApp.mod.version < info[0].modVersion) {
+                        window.desktopEvents?.send('show-notification', {
+                            title: 'Доступно обновление мода',
+                            body: `Версия ${info[0].modVersion} доступна для установки.`,
+                        });
+                    }
                 } else {
                     console.log('Нет доступных обновлений')
                 }
@@ -527,7 +531,6 @@ function App() {
                     },
                 })
                 if (data.updateAvailable) {
-                    console.log(data)
                     window.desktopEvents?.on(
                         'download-update-progress',
                         (event, value) => {
@@ -570,9 +573,6 @@ function App() {
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
             await authorize()
-        }
-        ;(window as any).tests = async (args: any) => {
-            console.log(app.mod)
         }
         ;(window as any).refreshThemes = async (args: any) => {
             window.desktopEvents
@@ -636,7 +636,6 @@ const Player: React.FC<any> = ({ children }) => {
                 if (typeof window !== 'undefined') {
                     if (app.discordRpc.status) {
                         window.desktopEvents?.on('trackinfo', (event, data) => {
-                            console.log(data)
                             let coverImg: any
                             if (data.track?.coverUri) {
                                 coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`

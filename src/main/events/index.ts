@@ -61,7 +61,6 @@ export const handleEvents = (window: BrowserWindow): void => {
         if (version) return version
     })
     ipcMain.on('openPath', async (event, data) => {
-        console.log(data)
         switch (data.action) {
             case 'appPath':
                 const appPath = app.getAppPath()
@@ -156,7 +155,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                                 .pipe(fs.createWriteStream(filePath))
                                 .on('finish', async () => {
                                     console.log('File downloaded:', filePath)
-                                    console.log(val.metadata)
                                     if (val.metadata) {
                                         const extension = path
                                             .extname(filePath)
@@ -171,7 +169,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                                                 '.aac64he',
                                             ].includes(extension)
                                         ) {
-                                            console.log('Converting to MP3...')
                                             const mp3Path = filePath.replace(
                                                 extension,
                                                 '.mp3',
@@ -179,10 +176,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                                             try {
                                                 await convertToMP3(filePath, mp3Path)
                                                 fs.unlinkSync(filePath)
-                                                console.log(
-                                                    'Conversion completed:',
-                                                    mp3Path,
-                                                )
                                                 await writeMetadata(
                                                     mp3Path,
                                                     val.track,
@@ -201,9 +194,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                                                 )
                                             }
                                         } else {
-                                            console.log(
-                                                'File is already in MP3 format. Setting metadata...',
-                                            )
                                             await writeMetadata(filePath, val.track)
                                             mainWindow.webContents.send(
                                                 'download-track-finished',

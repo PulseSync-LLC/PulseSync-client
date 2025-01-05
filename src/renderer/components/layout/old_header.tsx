@@ -66,7 +66,6 @@ const OldHeader: React.FC<p> = () => {
         button: '',
     })
     const getStoredPlayStatus = () => {
-        console.log('Retrieving playStatus from localStorage')
         return storedStatus === 'playing' ||
             storedStatus === 'pause' ||
             storedStatus === 'null'

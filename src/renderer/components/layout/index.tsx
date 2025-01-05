@@ -36,7 +36,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const downloadToastIdRef = useRef<string | null>(null)
 
     useEffect(() => {
-        console.log(modInfo)
         if (modInfo.length > 0) {
             setLoadingPatchInfo(false)
         } else {

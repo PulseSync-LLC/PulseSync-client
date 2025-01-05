@@ -10,14 +10,10 @@ import { Snowfall } from 'react-snowfall'
 
 function App() {
     Modal.setAppElement('#root')
-    const root = ReactDOM.createRoot(document.getElementById('root'))
-
-    root.render(
+    ReactDOM.createRoot(document.getElementById('root')).render(
         <ErrorBoundary>
-            <ApolloProvider client={apolloClient}>
-                <Snowfall />
-                <AppPage />
-            </ApolloProvider>
+            <Snowfall />
+            <AppPage />
         </ErrorBoundary>,
     )
 }
