@@ -28,7 +28,7 @@ import * as inputStyle from '../../../../static/styles/page/textInputContainer.m
 import playerContext from '../../../renderer/api/context/player.context'
 import { object, string } from 'yup'
 import toast from '../../api/toast'
-import config from '../../api/config'
+import config, { isDevmark } from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
@@ -603,6 +603,7 @@ const OldHeader: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
+                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD</div>}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>

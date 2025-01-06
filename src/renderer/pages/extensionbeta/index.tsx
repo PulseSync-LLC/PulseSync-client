@@ -10,6 +10,8 @@ import CustomCheckbox from '../../components/checkbox_props'
 import toast from '../../api/toast'
 import userContext from '../../api/context/user.context'
 import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
+import FileAddImg from './../../../../static/assets/stratis-icons/file-add.svg'
+import MoreImg from './../../../../static/assets/stratis-icons/more.svg'
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
@@ -26,8 +28,12 @@ export default function ExtensionPage() {
         window.electron.store.get('themes.hideEnabled') || false,
     )
     const [filterVisible, setFilterVisible] = useState(false)
+    const [optionMenu, setOprionMenu] = useState(false)
+
+    const filterButtonRef = useRef<HTMLButtonElement>(null)
+    const optionButtonRef = useRef<HTMLButtonElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-    const buttonRef = useRef<HTMLButtonElement>(null)
+
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
         new Set(window.electron.store.get('themes.selectedTags') || []),
     )
@@ -171,19 +177,33 @@ export default function ExtensionPage() {
         setColumnsCount(columns)
     }
 
-    const toggleFilter = () => setFilterVisible((prev) => !prev)
+    const toggleMenu = (menu: 'filter' | 'option') => {
+        if (menu === 'filter') {
+            setFilterVisible((prev) => {
+                if (!prev) setOprionMenu(false)
+                return !prev
+            })
+        } else if (menu === 'option') {
+            setOprionMenu((prev) => {
+                if (!prev) setFilterVisible(false)
+                return !prev
+            })
+        }
+    }
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node
 
             if (
-                filterVisible &&
                 containerRef.current &&
                 !containerRef.current.contains(target) &&
-                buttonRef.current &&
-                !buttonRef.current.contains(target)
+                filterButtonRef.current &&
+                !filterButtonRef.current.contains(target) &&
+                optionButtonRef.current &&
+                !optionButtonRef.current.contains(target)
             ) {
+                setOprionMenu(false)
                 setFilterVisible(false)
             }
         }
@@ -192,22 +212,7 @@ export default function ExtensionPage() {
         return () => {
             document.removeEventListener('mousedown', handleClickOutside)
         }
-    }, [filterVisible])
-
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: {
-            opacity: 1,
-            transition: {
-                staggerChildren: 0.1,
-            },
-        },
-    }
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 40 },
-        visible: { opacity: 1, y: 0 },
-    }
+    }, [])
 
     return (
         <Layout title="Стилизация">
@@ -242,29 +247,56 @@ export default function ExtensionPage() {
                                     )}
                                 </div>
                                 <button
-                                    className={extensionStyles.toolbarButton}
-                                    onClick={() =>
-                                        window.desktopEvents.send('openPath', {
-                                            action: 'themePath',
-                                        })
-                                    }
+                                    ref={optionButtonRef}
+                                    className={`${extensionStyles.toolbarButton} ${
+                                        optionMenu
+                                            ? extensionStyles.toolbarButtonActive
+                                            : ''
+                                    }`}
+                                    onClick={(e) => toggleMenu('option')}
                                 >
-                                    <FileImg />
+                                    <MoreImg />
                                 </button>
+                                {optionMenu && (
+                                    <div
+                                        className={extensionStyles.containerOtional}
+                                        ref={containerRef}
+                                    >
+                                        <button
+                                            className={`${extensionStyles.toolbarButton} ${extensionStyles.refreshButton}`}
+                                            onClick={reloadThemes}
+                                        >
+                                            <ArrowRefreshImg /> Перезагрузить
+                                            расширения
+                                        </button>
+                                        <button
+                                            className={extensionStyles.toolbarButton}
+                                            onClick={() =>
+                                                window.desktopEvents.send(
+                                                    'openPath',
+                                                    {
+                                                        action: 'themePath',
+                                                    },
+                                                )
+                                            }
+                                        >
+                                            <FileImg /> Директория аддонов
+                                        </button>
+                                        <button
+                                            className={`${extensionStyles.toolbarButton}`}
+                                        >
+                                            <FileAddImg /> Создать новое расширение
+                                        </button>
+                                    </div>
+                                )}
                                 <button
-                                    className={`${extensionStyles.toolbarButton} ${extensionStyles.refreshButton}`}
-                                    onClick={reloadThemes}
-                                >
-                                    <ArrowRefreshImg />
-                                </button>
-                                <button
-                                    ref={buttonRef}
+                                    ref={filterButtonRef}
                                     className={`${extensionStyles.toolbarButton} ${
                                         filterVisible
                                             ? extensionStyles.toolbarButtonActive
                                             : ''
                                     }`}
-                                    onClick={toggleFilter}
+                                    onClick={(e) => toggleMenu('filter')}
                                 >
                                     <FilterImg />
                                     {activeTagCount > 0 && (
@@ -278,7 +310,7 @@ export default function ExtensionPage() {
                             </div>
                             {filterVisible && (
                                 <div
-                                    className={extensionStyles.containerSearch}
+                                    className={extensionStyles.containerFilter}
                                     ref={containerRef}
                                 >
                                     <div className={extensionStyles.tagsSection}>
@@ -365,20 +397,14 @@ export default function ExtensionPage() {
                                                 className={extensionStyles.line}
                                             ></div>
                                         </div>
-                                        <motion.div
+                                        <div
                                             className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
-                                            variants={containerVariants}
-                                            initial="hidden"
-                                            animate="visible"
                                         >
                                             {filteredEnabledThemes.map((item) => (
-                                                <motion.div
-                                                    key={item.name}
-                                                    variants={itemVariants}
-                                                >
+                                                <div key={item.name}>
                                                     <ExtensionCard
                                                         theme={item}
                                                         isChecked={true}
@@ -391,9 +417,9 @@ export default function ExtensionPage() {
                                                                 : 'dimmed'
                                                         }
                                                     />
-                                                </motion.div>
+                                                </div>
                                             ))}
-                                        </motion.div>
+                                        </div>
                                     </div>
                                 )}
                                 {filteredDisabledThemes.length > 0 && (
@@ -416,20 +442,14 @@ export default function ExtensionPage() {
                                                 className={extensionStyles.line}
                                             ></div>
                                         </div>
-                                        <motion.div
+                                        <div
                                             className={extensionStyles.grid}
                                             style={{
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
-                                            variants={containerVariants}
-                                            initial="hidden"
-                                            animate="visible"
                                         >
                                             {filteredDisabledThemes.map((item) => (
-                                                <motion.div
-                                                    key={item.name}
-                                                    variants={itemVariants}
-                                                >
+                                                <div key={item.name}>
                                                     <ExtensionCard
                                                         theme={item}
                                                         isChecked={false}
@@ -442,9 +462,9 @@ export default function ExtensionPage() {
                                                                 : 'dimmed'
                                                         }
                                                     />
-                                                </motion.div>
+                                                </div>
                                             ))}
-                                        </motion.div>
+                                        </div>
                                     </div>
                                 )}
                             </div>

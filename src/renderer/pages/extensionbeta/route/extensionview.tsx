@@ -51,11 +51,9 @@ const ExtensionViewPage: React.FC = () => {
     const [themeActive, setThemeActive] = useState(activatedTheme !== 'Default')
     const [bannerExpanded, setBannerExpanded] = useState(false)
     const [bannerHeight, setBannerHeight] = useState(84)
-    const [bannerOpacity, setBannerOpacity] = useState(1)
     const [activeTab, setActiveTab] = useState('Overview')
     const [configData, setConfigData] = useState<ThemeConfig | null>(null)
     const [editMode, setEditMode] = useState(false)
-    const [transitionsEnabled, setTransitionsEnabled] = useState(true)
     const [markdownData, setMarkdownData] = useState<string>('')
     const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
     const [newSectionTitle, setNewSectionTitle] = useState('')
@@ -731,10 +729,10 @@ const ExtensionViewPage: React.FC = () => {
                                 <div
                                     className={localStyles.bannerBackground}
                                     style={{
-                                        transition: transitionsEnabled
+                                        transition: true
                                             ? 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease'
                                             : 'none',
-                                        opacity: bannerOpacity,
+                                        opacity: '1',
                                         backgroundImage: `url(${bannerImage})`,
                                         backgroundSize: 'cover',
                                         height: `${bannerHeight}px`,

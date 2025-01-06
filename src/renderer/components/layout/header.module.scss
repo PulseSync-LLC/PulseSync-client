@@ -701,3 +701,21 @@
         opacity: 1;
     }
 }
+
+
+
+.dev {
+    opacity: 1;
+    color: #1e2027;
+    background: #fff34c;
+    padding: 2px 12px;
+    font-size: 12px;
+    font-weight: 1000;
+    position: absolute;
+    bottom: 0px;
+    right: 0;
+    left: 0;
+    justify-self: center;
+    text-align: center;
+    width: -webkit-fill-available;
+}

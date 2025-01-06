@@ -20,6 +20,7 @@ import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import { Toaster, toast } from 'react-hot-toast-magic'
 import * as pageStyles from './layout.module.scss'
+import { isDevmark } from '../../api/config'
 
 interface LayoutProps {
     title: string
@@ -212,6 +213,22 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         })
     }
 
+    useEffect(() => {
+        if (isDevmark) {
+            document.body.style.border = "3px solid #fff34c";
+            document.body.style.borderRadius = "10px";
+        } else {
+            document.body.style.border = "";
+            document.body.style.borderRadius = "";
+        }
+    
+        return () => {
+            document.body.style.border = "";
+            document.body.style.borderRadius = "";
+        };
+    }, [isDevmark]);
+    
+
     if (loadingPatchInfo) {
         return <Preloader />
     }
@@ -223,7 +240,16 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             </Helmet>
             <div className={pageStyles.children}>
                 <OldHeader goBack={goBack} />
-                <div className={pageStyles.main_window}>
+                <div
+                    className={pageStyles.main_window}
+                    style={
+                        isDevmark
+                            ? {
+                                  bottom: '20px',
+                              }
+                            : {}
+                    }
+                >
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/trackinfo">
