@@ -2,7 +2,7 @@ import * as http from 'http'
 import * as fs from 'fs'
 import * as path from 'path'
 import { app, ipcMain } from 'electron'
-import { mainWindow } from '../../index'
+import { mainWindow, selectedTheme } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
@@ -15,7 +15,6 @@ import { store } from './storage'
 
 const eventEmitter = new EventEmitter()
 let data: any = {}
-let selectedTheme: string = 'Default'
 let server: http.Server | null = null
 let ws: WebSocketServer | null = null
 
@@ -299,7 +298,6 @@ export { eventEmitter }
 
 export const setTheme = (theme: string) => {
     if (!authorized) return
-    selectedTheme = theme
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
     const themePath = path.join(themesPath, selectedTheme)
     const metadataPath = path.join(themePath, 'metadata.json')

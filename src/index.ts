@@ -49,7 +49,7 @@ let hardwareAcceleration = false
 
 let preloaderWindow: BrowserWindow
 let availableThemes: Theme[] = []
-let selectedTheme: string
+export let selectedTheme: string
 const defaultTheme = {
     name: 'Default',
     image: 'url',
