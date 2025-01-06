@@ -346,11 +346,11 @@ export default function UsersPage() {
                                                                     user.createdAt,
                                                                 ).toLocaleDateString()}
                                                             </span>
-                                                            {/* <Link
-                                                                to={`/user/${user.username}`}
-                                                            >
-                                                                Перейти в профиль
-                                                            </Link> */}
+                                                            {/*<Link*/}
+                                                            {/*    to={`/user/${user.username}`}*/}
+                                                            {/*>*/}
+                                                            {/*    Перейти в профиль*/}
+                                                            {/*</Link>*/}
                                                         </div>
                                                     </div>
                                                     <div

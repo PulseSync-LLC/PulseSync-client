@@ -1,4 +1,3 @@
-// src/renderer/index.tsx или renderer.ts (или любой основной файл, где вы поднимаете React):
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import Modal from 'react-modal'

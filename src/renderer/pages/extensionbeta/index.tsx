@@ -284,6 +284,17 @@ export default function ExtensionPage() {
                                         </button>
                                         <button
                                             className={`${extensionStyles.toolbarButton}`}
+                                            onClick={() =>
+                                                window.desktopEvents.invoke(
+                                                    'create-new-extension',
+                                                ).then((res) => {
+                                                    if (res.success) {
+                                                        toast.success("Новое расширение создано: " + res.name)
+                                                        setThemes([])
+                                                        loadThemes()
+                                                    }
+                                                })
+                                            }
                                         >
                                             <FileAddImg /> Создать новое расширение
                                         </button>

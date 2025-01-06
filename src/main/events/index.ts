@@ -405,6 +405,51 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.handle('checkSleepMode', async (event, data) => {
         return inSleepMode
     })
+
+    ipcMain.handle('create-new-extension', async (event, args) => {
+        try {
+            console.log("test")
+            const defaultTheme = {
+                name: 'New Extension',
+                image: 'url',
+                author: 'Your Name',
+                description: 'Default theme.',
+                version: '1.0.0',
+                css: 'style.css',
+                script: 'script.js',
+            }
+
+            const defaultCssContent = `{}`
+
+            const defaultScriptContent = ``
+            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+            if (!fs.existsSync(extensionsPath)) {
+                fs.mkdirSync(extensionsPath);
+            }
+
+            const defaultName = 'New Extension';
+            let newName = defaultName;
+            let counter = 1;
+
+            const existingExtensions = fs.readdirSync(extensionsPath);
+
+            while (existingExtensions.includes(newName)) {
+                counter++;
+                newName = `${defaultName} ${counter}`;
+                defaultTheme.name = newName;
+            }
+
+            const extensionPath = path.join(extensionsPath, newName);
+            fs.mkdirSync(extensionPath);
+            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultTheme, null, 2));
+            fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent);
+            fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent);
+            return { success: true, name: newName };
+        } catch (error) {
+            logger.main.error('Ошибка при создании нового расширения:', error);
+            return { success: false, error: error.message };
+        }
+    });
     ipcMain.handle('exportTheme', async (event, data) => {
         /**
          * Создаёт файл с расширением .pext, содержащий папку по указанному пути
