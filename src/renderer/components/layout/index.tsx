@@ -18,7 +18,7 @@ import Preloader from '../preloader'
 
 import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
-import { Toaster, toast } from 'react-hot-toast-magic'
+import { Toaster, toast } from 'react-hot-toast'
 import * as pageStyles from './layout.module.scss'
 import { isDevmark } from '../../api/config'
 

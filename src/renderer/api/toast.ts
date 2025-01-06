@@ -1,4 +1,4 @@
-import toast, { Renderable, ToastOptions } from 'react-hot-toast-magic'
+import toast, { Renderable, ToastOptions } from 'react-hot-toast'
 
 const style = {
     background: '#292C36',
@@ -13,16 +13,14 @@ const iToast = {
         createToast('success', message, options),
     error: (message: Renderable, options?: any) =>
         createToast('error', message, options),
-    info: (message: Renderable, options?: any) =>
-        createToast('info', message, options),
-    warn: (message: Renderable, options?: any) =>
-        createToast('warn', message, options),
+    custom: (message: Renderable, options?: any) =>
+        createToast('custom', message, options),
     loading: (message: Renderable, options?: any) =>
         createToast('loading', message, options),
 }
 
 function createToast(
-    type: 'success' | 'error' | 'loading' | 'warn' | 'info',
+    type: 'success' | 'error' | 'loading' | 'custom',
     message: Renderable,
     options?: ToastOptions,
 ) {

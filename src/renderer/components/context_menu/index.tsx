@@ -4,7 +4,7 @@ import userContext from '../../api/context/user.context'
 import playerContext from '../../api/context/player.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
-import hotToast from 'react-hot-toast-magic'
+import hotToast from 'react-hot-toast'
 import toast from '../../api/toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import SettingsInitials from '../../api/initials/settings.initials'

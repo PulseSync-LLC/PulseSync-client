@@ -12,7 +12,7 @@ import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
-import hotToast, { Toaster } from 'react-hot-toast-magic'
+import hotToast, { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
 import { Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
@@ -524,10 +524,10 @@ function App() {
                         toast.success("RPC: " + data.message)
                         break
                     case 'info':
-                        toast.info("RPC: " + data.message)
+                        toast.success("RPC: " + data.message)
                         break
                     case 'warn':
-                        toast.warn("RPC: " + data.message)
+                        toast.success("RPC: " + data.message)
                         break
                 }
             })
