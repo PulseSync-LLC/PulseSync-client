@@ -17,6 +17,10 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
         client.user?.setActivity(activity).catch((e) => {
             logger.discordRpc.error(e)
+            mainWindow.webContents.send('rpc-log', {
+                message: "Ошибка установки активности",
+                type: "error"
+            })
         })
     } else if (!changeId) {
         rpc_connect()
@@ -29,6 +33,7 @@ function updateAppId(newAppId: string) {
     if (newAppId === config.CLIENT_ID) return
     changeId = true
     store.set('discordRpc.appId', newAppId)
+    client.removeAllListeners();
     client
         .destroy()
         .then(() => {
@@ -44,35 +49,69 @@ ipcMain.on('discordrpc-clearstate', () => {
 })
 
 function rpc_connect() {
-    const customId = store.get('discordRpc.appId')
-    clientId = customId.length > 0 ? customId : config.CLIENT_ID
+    if (client) {
+        client.destroy().catch((e) => {
+            logger.discordRpc.error('Ошибка уничтожения клиента перед созданием нового: ', e);
+            mainWindow.webContents.send('rpc-log', {
+                message: "Ошибка удаления активности",
+                type: "error"
+            });
+        });
+        client.removeAllListeners();
+    }
+
+    const customId = store.get('discordRpc.appId');
+    clientId = customId.length > 0 ? customId : config.CLIENT_ID;
+
     client = new Client({
         clientId,
-        transport: {
-            type: 'ipc',
-        },
-    })
+        transport: { type: 'ipc' },
+    });
+
     client.login().catch((e) => {
-        logger.discordRpc.error(e)
-    })
+        logger.discordRpc.error(e);
+        mainWindow.webContents.send('rpc-log', {
+            message: "Ошибка установки активности",
+            type: "error"
+        });
+    });
+
     client.on('ready', () => {
-        if (changeId) changeId = false
-        rpcConnected = true
-        logger.discordRpc.info('discordRpc state: connected')
-    })
+        rpcConnected = true;
+        if (changeId) changeId = false;
+        logger.discordRpc.info('discordRpc state: connected');
+        mainWindow.webContents.send('rpc-log', {
+            message: "Успешное подключение",
+            type: "success"
+        });
+    });
+
     client.on('disconnected', () => {
-        rpcConnected = false
-        logger.discordRpc.info('discordRpc state: disconnected')
-    })
+        rpcConnected = false;
+        logger.discordRpc.info('discordRpc state: disconnected');
+        mainWindow.webContents.send('rpc-log', {
+            message: "Отключение",
+            type: "info"
+        });
+    });
 
     client.on('error', () => {
-        rpcConnected = false
-        logger.discordRpc.error('discordRpc state: error')
-    })
+        rpcConnected = false;
+        logger.discordRpc.error('discordRpc state: error');
+        mainWindow.webContents.send('rpc-log', {
+            message: "Ошибка подключения",
+            type: "error"
+        });
+    });
+
     client.on('close', () => {
-        rpcConnected = false
-        logger.discordRpc.error('discordRpc state: closed')
-    })
+        rpcConnected = false;
+        logger.discordRpc.error('discordRpc state: closed');
+        mainWindow.webContents.send('rpc-log', {
+            message: "Ошибка подключения",
+            type: "error"
+        });
+    });
 }
 export const setRpcStatus = (status: boolean) => {
     logger.discordRpc.info('discordRpc state: ' + status)
@@ -82,8 +121,13 @@ export const setRpcStatus = (status: boolean) => {
     if (status && !rpcConnected) {
         rpc_connect()
     } else {
+        client.removeAllListeners();
         client.destroy().catch((e) => {
             logger.discordRpc.error(e)
+            mainWindow.webContents.send('rpc-log', {
+                message: "Ошибка удаления активности",
+                type: "error"
+            })
         })
         rpcConnected = false
     }

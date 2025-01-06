@@ -27,6 +27,8 @@ interface p {
     appInfo: AppInfoInterface[]
     modInfo: ModInterface[]
     setMod: (mod: any) => void
+    features: Record<string, boolean>
+    setFeatures: (features: Record<string, boolean>) => void
 }
 
 const UserContext = createContext<p>({
@@ -45,6 +47,8 @@ const UserContext = createContext<p>({
     appInfo: AppinfoInitials,
     modInfo: modInitials,
     setMod: () => void 0,
+    features: {},
+    setFeatures: () => void 0,
 })
 
 export default UserContext

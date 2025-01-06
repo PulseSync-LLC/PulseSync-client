@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
@@ -58,6 +58,7 @@ function App() {
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
+    const [features, setFeatures] = useState({});
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
@@ -340,7 +341,10 @@ function App() {
         setSocketConnected(false)
         await router.navigate('/', { replace: true })
     })
-
+    socket.on("feature_toggles", (data) => {
+        console.log(data)
+        setFeatures(data);
+    });
     useEffect(() => {
         if (socketError === 1 || socketError === 0) {
             toast.error('Сервер не доступен')
@@ -511,6 +515,22 @@ function App() {
                     },
                 }))
             })
+            window.desktopEvents.on('rpc-log', (event, data) => {
+                switch (data.type) {
+                    case 'error':
+                        toast.error("RPC: " + data.message)
+                        break
+                    case 'success':
+                        toast.success("RPC: " + data.message)
+                        break
+                    case 'info':
+                        toast.info("RPC: " + data.message)
+                        break
+                    case 'warn':
+                        toast.warn("RPC: " + data.message)
+                        break
+                }
+            })
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
                 setApp((prevSettings) => ({
                     ...prevSettings,
@@ -608,6 +628,8 @@ function App() {
                     themes,
                     setMod: setMod,
                     modInfo: modInfo,
+                    features,
+                    setFeatures,
                 }}
             >
                 <Player>
@@ -627,9 +649,12 @@ function App() {
 }
 
 const Player: React.FC<any> = ({ children }) => {
-    const { user, app, socket, socketConnected } = useContext(UserContext)
+    const { user, app, socket, socketConnected, features } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
-
+    const lastSentTrack = useRef({
+        title: null,
+        status: null,
+    });
     useEffect(() => {
         if (user.id !== '-1') {
             ;(async () => {
@@ -841,12 +866,20 @@ const Player: React.FC<any> = ({ children }) => {
             }
         }
     }, [app.settings, user, track, app.discordRpc])
-    // useEffect(() => {
-    //     console.log(track)
-    //     if(socket && track.event === "trackChange" || track.event === "seek") {
-    //         socket.emit('send_track', track)
-    //     }
-    // }, [track])
+    useEffect(() => {
+        if (socket && features.sendTrack && track.title !== '') {
+            const { title, status } = track;
+
+            if (
+                title !== lastSentTrack.current.title ||
+                status !== lastSentTrack.current.status
+            ) {
+                socket.emit('send_track', track);
+
+                lastSentTrack.current = { title, status };
+            }
+        }
+    }, [socket, track, features.sendTrack]);
     return (
         <PlayerContext.Provider
             value={{
