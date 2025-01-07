@@ -1,6 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import {
+    MdArchitecture,
     MdConnectWithoutContact,
     MdDownload,
     MdExtension,
@@ -20,7 +21,7 @@ import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import { Toaster, toast } from 'react-hot-toast'
 import * as pageStyles from './layout.module.scss'
-import { isDevmark } from '../../api/config'
+import { isDev, isDevmark } from '../../api/config'
 
 interface LayoutProps {
     title: string
@@ -215,19 +216,18 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     useEffect(() => {
         if (isDevmark) {
-            document.body.style.border = "3px solid #fff34c";
-            document.body.style.borderRadius = "10px";
+            document.body.style.border = '3px solid #fff34c'
+            document.body.style.borderRadius = '10px'
         } else {
-            document.body.style.border = "";
-            document.body.style.borderRadius = "";
+            document.body.style.border = ''
+            document.body.style.borderRadius = ''
         }
-    
+
         return () => {
-            document.body.style.border = "";
-            document.body.style.borderRadius = "";
-        };
-    }, [isDevmark]);
-    
+            document.body.style.border = ''
+            document.body.style.borderRadius = ''
+        }
+    }, [isDevmark])
 
     if (loadingPatchInfo) {
         return <Preloader />
@@ -270,6 +270,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                         </div>
                         <div className={pageStyles.navigation_buttons}>
+                            {isDev && (
+                                <NavButtonPulse to="/dev">
+                                    <MdArchitecture size={24} />
+                                </NavButtonPulse>
+                            )}
                             {updateAvailable && (
                                 <button
                                     onClick={() => {
@@ -361,7 +366,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     {children}
                 </div>
             </div>
-            <Toaster />
         </HelmetProvider>
     )
 }

@@ -26,7 +26,7 @@ import * as theme from './trackinfo.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import playerContext from '../../../renderer/api/context/player.context'
 import { object, string } from 'yup'
-import toast from '../../api/toast'
+import toast from '../toast'
 import config from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
@@ -370,7 +370,7 @@ const Header: React.FC<p> = memo(() => {
         }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
-                toast.success('Успешный выход')
+                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
             }

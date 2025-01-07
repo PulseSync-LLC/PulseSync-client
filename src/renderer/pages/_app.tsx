@@ -2,6 +2,7 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
+import Dev from './dev'
 import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
@@ -19,7 +20,7 @@ import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
 import { io } from 'socket.io-client'
 import UserContext from '../api/context/user.context'
-import toast from '../api/toast'
+import toast from '../components/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
 import trackInitials from '../api/initials/track.initials'
@@ -58,7 +59,7 @@ function App() {
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
-    const [features, setFeatures] = useState({});
+    const [features, setFeatures] = useState({})
 
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
@@ -78,6 +79,14 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <AuthPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/dev',
+            element: (
+                <ErrorBoundary>
+                    <Dev />
                 </ErrorBoundary>
             ),
         },
@@ -161,7 +170,11 @@ function App() {
                         retryCount--
                         return false
                     } else {
-                        toast.error('Превышено количество попыток подключения.')
+                        toast.custom(
+                            'error',
+                            'Отдохни менчик :)',
+                            'Превышено количество попыток подключения.',
+                        )
                         window.desktopEvents?.send('authStatus', false)
                         setLoading(false)
                         return false
@@ -169,7 +182,7 @@ function App() {
                 }
 
                 const sendErrorAuthNotify = (message: string) => {
-                    toast.error(message)
+                    toast.custom('error', 'Ошибка', message)
                     window.desktopEvents?.send('show-notification', {
                         title: 'Ошибка авторизации 😡',
                         body: message,
@@ -208,7 +221,11 @@ function App() {
                             retryCount--
                             return false
                         } else {
-                            toast.error('Сервер недоступен. Попробуйте позже.')
+                            toast.custom(
+                                'error',
+                                'Пинг-понг',
+                                'Сервер недоступен. Попробуйте позже.',
+                            )
                             window.desktopEvents?.send('authStatus', false)
                             setLoading(false)
                             return false
@@ -244,7 +261,11 @@ function App() {
                         }
                     } else {
                         Sentry.captureException(e)
-                        toast.error('Неизвестная ошибка авторизации.')
+                        toast.custom(
+                            'error',
+                            'Может у тебя нет доступа?',
+                            'Неизвестная ошибка авторизации.',
+                        )
                         window.desktopEvents?.send('authStatus', false)
                         setLoading(false)
                         return false
@@ -313,7 +334,7 @@ function App() {
 
     socket.on('connect', () => {
         console.log('Socket connected')
-        toast.success('Соединение установлено')
+        toast.custom('success', 'Фух', 'Соединение установлено')
         socket.emit('connection')
         setSocket(socket)
         setSocketConnected(true)
@@ -341,15 +362,15 @@ function App() {
         setSocketConnected(false)
         await router.navigate('/', { replace: true })
     })
-    socket.on("feature_toggles", (data) => {
+    socket.on('feature_toggles', (data) => {
         console.log(data)
-        setFeatures(data);
-    });
+        setFeatures(data)
+    })
     useEffect(() => {
         if (socketError === 1 || socketError === 0) {
-            toast.error('Сервер не доступен')
+            toast.custom('error', 'Что-то не так!', 'Сервер не доступен')
         } else if (socketConnected) {
-            toast.success('Соединение восстановлено')
+            toast.custom('success', 'На связи', 'Соединение восстановлено')
         }
     }, [socketError])
     const fetchModInfo = async (currentApp: SettingsInterface) => {
@@ -375,11 +396,14 @@ function App() {
 
                 if (info.length > 0) {
                     setMod(info)
-                    if(currentApp.mod.installed && currentApp.mod.version < info[0].modVersion) {
+                    if (
+                        currentApp.mod.installed &&
+                        currentApp.mod.version < info[0].modVersion
+                    ) {
                         window.desktopEvents?.send('show-notification', {
                             title: 'Доступно обновление мода',
                             body: `Версия ${info[0].modVersion} доступна для установки.`,
-                        });
+                        })
                     }
                 } else {
                     console.log('Нет доступных обновлений')
@@ -518,16 +542,24 @@ function App() {
             window.desktopEvents.on('rpc-log', (event, data) => {
                 switch (data.type) {
                     case 'error':
-                        toast.error("RPC: " + data.message)
+                        toast.custom('error', 'Ошибка.', 'RPC: ' + data.message)
                         break
                     case 'success':
-                        toast.success("RPC: " + data.message)
+                        toast.custom(
+                            'success',
+                            'Предупреждение.',
+                            'RPC: ' + data.message,
+                        )
                         break
                     case 'info':
-                        toast.success("RPC: " + data.message)
+                        toast.custom('info', 'Информация.', 'RPC: ' + data.message)
                         break
                     case 'warn':
-                        toast.success("RPC: " + data.message)
+                        toast.custom(
+                            'warning',
+                            'Предупреждение.',
+                            'RPC: ' + data.message,
+                        )
                         break
                 }
             })
@@ -554,7 +586,9 @@ function App() {
                     window.desktopEvents?.on(
                         'download-update-progress',
                         (event, value) => {
-                            toast.loading(
+                            toast.custom(
+                                'loading',
+                                'Загрузка.',
                                 <>
                                     <span>Загрузка обновления</span>
                                     <b style={{ marginLeft: '.5em' }}>
@@ -564,6 +598,7 @@ function App() {
                                 {
                                     id: toastId,
                                 },
+                                value,
                             )
                         },
                     )
@@ -571,15 +606,24 @@ function App() {
                         hotToast.dismiss(toastId),
                     )
                     window.desktopEvents?.once('download-update-failed', () =>
-                        toast.error('Ошибка загрузки обновления', {
+                        toast.custom(
+                            'error',
+                            'Ошибка.',
+                            'Ошибка загрузки обновления',
+                            {
+                                id: toastId,
+                            },
+                        ),
+                    )
+                    window.desktopEvents?.once('download-update-finished', () =>
+                        toast.custom('success', 'Успешно.', 'Обновление загружено', {
                             id: toastId,
                         }),
                     )
-                    window.desktopEvents?.once('download-update-finished', () =>
-                        toast.success('Обновление загружено', { id: toastId }),
-                    )
                 } else {
-                    toast.error('Обновления не найдены', { id: toastId })
+                    toast.custom('error', 'Ошибка.', 'Обновления не найдены', {
+                        id: toastId,
+                    })
                 }
             })
             const loadSettings = async () => {
@@ -604,13 +648,13 @@ function App() {
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
             await fetchModInfo(currentApp).then(() => {
-                toast.success('Информация о моде обновлена')
+                toast.custom('success', 'Всё ок!', 'Информация о моде обновлена')
             })
         }
     }
     return (
         <div className="app-wrapper">
-            <Toaster />
+            <Toaster position="bottom-center" reverseOrder={false} />
             <UserContext.Provider
                 value={{
                     user,
@@ -654,7 +698,7 @@ const Player: React.FC<any> = ({ children }) => {
     const lastSentTrack = useRef({
         title: null,
         status: null,
-    });
+    })
     useEffect(() => {
         if (user.id !== '-1') {
             ;(async () => {
@@ -868,18 +912,18 @@ const Player: React.FC<any> = ({ children }) => {
     }, [app.settings, user, track, app.discordRpc])
     useEffect(() => {
         if (socket && features.sendTrack && track.title !== '') {
-            const { title, status } = track;
+            const { title, status } = track
 
             if (
                 title !== lastSentTrack.current.title ||
                 status !== lastSentTrack.current.status
             ) {
-                socket.emit('send_track', track);
+                socket.emit('send_track', track)
 
-                lastSentTrack.current = { title, status };
+                lastSentTrack.current = { title, status }
             }
         }
-    }, [socket, track, features.sendTrack]);
+    }, [socket, track, features.sendTrack])
     return (
         <PlayerContext.Provider
             value={{

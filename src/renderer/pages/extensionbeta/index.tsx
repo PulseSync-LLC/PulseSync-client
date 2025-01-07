@@ -7,7 +7,7 @@ import ExtensionCard from '../../components/extensionCard'
 import ThemeInterface from '../../api/interfaces/theme.interface'
 import stringSimilarity from 'string-similarity'
 import CustomCheckbox from '../../components/checkbox_props'
-import toast from '../../api/toast'
+import toast from '../../components/toast'
 import userContext from '../../api/context/user.context'
 import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
 import FileAddImg from './../../../../static/assets/stratis-icons/file-add.svg'
@@ -69,7 +69,7 @@ export default function ExtensionPage() {
     const reloadThemes = () => {
         setThemes([])
         loadThemes()
-        toast.success('Темы перезагружены')
+        toast.custom('success', 'Сделано', 'Темы перезагружены')
     }
 
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
@@ -285,15 +285,20 @@ export default function ExtensionPage() {
                                         <button
                                             className={`${extensionStyles.toolbarButton}`}
                                             onClick={() =>
-                                                window.desktopEvents.invoke(
-                                                    'create-new-extension',
-                                                ).then((res) => {
-                                                    if (res.success) {
-                                                        toast.success("Новое расширение создано: " + res.name)
-                                                        setThemes([])
-                                                        loadThemes()
-                                                    }
-                                                })
+                                                window.desktopEvents
+                                                    .invoke('create-new-extension')
+                                                    .then((res) => {
+                                                        if (res.success) {
+                                                            toast.custom(
+                                                                'success',
+                                                                'Вжух!',
+                                                                'Новое расширение создано: ' +
+                                                                    res.name,
+                                                            )
+                                                            setThemes([])
+                                                            loadThemes()
+                                                        }
+                                                    })
                                             }
                                         >
                                             <FileAddImg /> Создать новое расширение

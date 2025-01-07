@@ -5,7 +5,7 @@ import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.sv
 import FileExport from './../../../../static/assets/stratis-icons/file-export.svg'
 import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
 import ThemeInterface from '../../api/interfaces/theme.interface'
-import toast from '../../api/toast'
+import toast from '../toast'
 
 export interface MenuItem {
     label?: string
@@ -59,7 +59,7 @@ export const createContextMenuActions = (
                 })
                 .then((result) => {
                     if (result) {
-                        toast.success('Успешный экспорт')
+                        toast.custom('success', `Готово`, 'Успешный экспорт')
                     }
                 })
                 .catch((error) => {

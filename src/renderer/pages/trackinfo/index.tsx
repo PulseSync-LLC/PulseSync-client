@@ -15,7 +15,7 @@ import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { MdClose, MdContentCopy } from 'react-icons/md'
-import toast from '../../api/toast'
+import toast from '../../components/toast'
 import { replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
@@ -80,7 +80,7 @@ export default function TrackInfoPage() {
         setModalAnim(false)
         setTimeout(() => setModal(false), 200)
         await navigator.clipboard.writeText(value)
-        toast.success('Скопировано в буфер обмена')
+        toast.custom('success', 'Крутяк', 'Скопировано в буфер обмена')
     }
     const getChangedValues = (initialValues: any, currentValues: any) => {
         const changedValues: any = {}

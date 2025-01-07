@@ -27,7 +27,7 @@ import * as theme from './trackinfo.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import playerContext from '../../../renderer/api/context/player.context'
 import { object, string } from 'yup'
-import toast from '../../api/toast'
+import toast from '../toast'
 import config, { isDevmark } from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
@@ -402,7 +402,7 @@ const OldHeader: React.FC<p> = () => {
         }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
-                toast.success('Успешный выход')
+                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
             }
@@ -482,16 +482,24 @@ const OldHeader: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.success('Аватар успешно загружен!')
+                toast.custom('success', 'Пожалуйста', 'Аватар успешно загружен!')
             } else {
                 setAvatarProgress(-1)
-                toast.error('Неизвестная ошибка при загрузке аватара')
+                toast.custom(
+                    'error',
+                    'Извините',
+                    'Неизвестная ошибка при загрузке аватара',
+                )
             }
         } catch (error) {
             if (error.response.data.message === 'FILE_TOO_LARGE') {
-                toast.error('Размер файла превышает 5мб')
+                toast.custom('error', 'Так-так', 'Размер файла превышает 5мб')
             } else {
-                toast.error('Ошибка при загрузке аватара')
+                toast.custom(
+                    'error',
+                    'Ай блин',
+                    'Ошибка при загрузке аватара, попробуй ещё раз',
+                )
                 Sentry.captureException(error)
             }
             setAvatarProgress(-1)
@@ -534,19 +542,27 @@ const OldHeader: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.success('Баннер успешно загружен!')
+                toast.custom('success', 'Пожалуйста', 'Баннер успешно загружен!')
                 console.log('Баннер загружен:', data.hash, data.type)
             } else {
                 setBannerProgress(-1)
-                toast.error('Неизвестная ошибка при загрузке баннера')
+                toast.custom(
+                    'error',
+                    'Извините',
+                    'Неизвестная ошибка при загрузке баннера',
+                )
                 console.error('Ошибка при загрузке баннера:', data)
             }
         } catch (error) {
             console.log(error)
             if (error.response.data.message === 'FILE_TOO_LARGE') {
-                toast.error('Размер файла превышает 5мб')
+                toast.custom('error', 'Так-так', 'Размер файла превышает 5мб')
             } else {
-                toast.error('Ошибка при загрузке баннера')
+                toast.custom(
+                    'error',
+                    'Ай блин',
+                    'Ошибка при загрузке баннера, попробуй ещё раз',
+                )
                 Sentry.captureException(error)
             }
             setBannerProgress(-1)
@@ -603,7 +619,9 @@ const OldHeader: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
-                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD</div>}
+                        {isDevmark && (
+                            <div className={styles.dev}>DEVELOPMENT BUILD</div>
+                        )}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>

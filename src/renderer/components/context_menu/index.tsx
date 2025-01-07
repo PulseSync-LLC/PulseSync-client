@@ -5,7 +5,7 @@ import playerContext from '../../api/context/player.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import hotToast from 'react-hot-toast'
-import toast from '../../api/toast'
+import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import SettingsInitials from '../../api/initials/settings.initials'
 import settingsInitials from '../../api/initials/settings.initials'
@@ -49,13 +49,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
 
         const handleFailure = (event: any, args: any) => {
-            toast.error(`Ошибка удаления мода: ${args.error}`, {
-                id: toastId,
-            })
+            toast.custom(
+                'error',
+                `Что-то не так`,
+                `Ошибка удаления мода: ${args.error}`,
+                {
+                    id: toastId,
+                },
+            )
         }
 
         const handleSuccess = (event: any, args: any) => {
-            toast.success(`Мод удален успешно`, {
+            toast.custom('success', `Готово`, `Мод удален успешно`, {
                 id: toastId,
             })
             setApp((prevApp: SettingsInterface) => {
@@ -91,51 +96,68 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'autoTray':
                 updatedSettings.autoStartInTray = status
                 window.electron.store.set('settings.autoStartInTray', status)
-                toast.success(
-                    `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
             case 'autoStart':
                 updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
                 window.desktopEvents?.send('autoStartApp', status)
-                toast.success(
-                    `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
             case 'autoStartMusic':
                 updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
-                toast.success(
-                    `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
             case 'writeMetadataToggle':
                 updatedSettings.writeMetadataAfterDownload = status
-                window.electron.store.set('settings.writeMetadataAfterDownload', status)
-                toast.success(
-                    `Опция "Запись метаданных после загрузки" ${status ? 'включена' : 'выключена'}`
+                window.electron.store.set(
+                    'settings.writeMetadataAfterDownload',
+                    status,
+                )
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Запись метаданных после загрузки" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
-                toast.success(
-                    `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
             case 'deletePextAfterImport':
                 updatedSettings.deletePextAfterImport = status
                 window.electron.store.set('settings.deletePextAfterImport', status)
-                toast.success(
-                    `Включена функция удаления .pext после импорта темы`
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Включена функция удаления .pext после импорта темы`,
                 )
                 break
             case 'hardwareAcceleration':
                 updatedSettings.hardwareAcceleration = status
                 window.electron.store.set('settings.hardwareAcceleration', status)
-                toast.success(
-                    'Изменения вступят в силу после перезапуска приложения'
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    'Изменения вступят в силу после перезапуска приложения',
                 )
                 break
         }
@@ -153,12 +175,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
 
         window.desktopEvents?.on('download-track-progress', (event, value) => {
-            toast.loading(
+            toast.custom(
+                'loading',
+                `Загрузка`,
                 <>
                     <span>Загрузка</span>
-                    <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
                 </>,
                 { id: toastId },
+                value,
             )
         })
 
@@ -172,10 +196,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             hotToast.dismiss(toastId),
         )
         window.desktopEvents?.once('download-track-failed', () =>
-            toast.error('Ошибка загрузки трека', { id: toastId }),
+            toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
+                id: toastId,
+            }),
         )
         window.desktopEvents?.once('download-track-finished', () => {
-            toast.success('Загрузка завершена', { id: toastId })
+            toast.custom('success', `Готово`, 'Загрузка завершена', { id: toastId })
             window.desktopEvents?.removeAllListeners('download-track-progress')
         })
     }
@@ -279,7 +305,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton(
                 'Аппаратное ускорение',
                 app.settings.hardwareAcceleration,
-                () => toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
+                () =>
+                    toggleSetting(
+                        'hardwareAcceleration',
+                        !app.settings.hardwareAcceleration,
+                    ),
             ),
             createToggleButton(
                 'Удалять .pext после импорта темы?',
@@ -324,7 +354,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 label: 'Собрать логи в архив',
                 onClick: () => {
                     window.desktopEvents.send('getLogArchive')
-                    toast.success('Успешно')
+                    toast.custom('success', `Готово`, 'Скоро открою папку')
                 },
             },
         ]),

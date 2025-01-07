@@ -1,0 +1,116 @@
+.toast {
+    transition: all 0.5s ease;
+    display: flex;
+    align-items: center;
+    border-radius: 8px;
+    background-color: #292c36;
+    padding: 10px 10px 10px 10px;
+    opacity: 0;
+    transform: translateY(150px);
+    outline: 2px solid var(--colorToast);
+}
+
+.toastVisible {
+    transition: all 0.5s ease;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.toastHidden {
+    transition: all 0.5s ease;
+    opacity: 0;
+    transform: translateY(150px);
+}
+
+.iconContainer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    margin-right: 10px;
+    position: relative;
+}
+
+.progressCircle {
+    position: relative;
+    width: 50px;
+    height: 50px;
+}
+
+.circularProgress {
+    width: 100%;
+    height: 100%;
+    transform: rotate(-90deg);
+}
+
+.circleBg {
+    fill: none;
+    stroke: var(--colorToast);
+    opacity: 0.5;
+    stroke-width: 4;
+}
+
+.circle {
+    fill: none;
+    stroke: var(--colorToast);
+    stroke-width: 4;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+}
+
+.progressText {
+    position: absolute;
+    display: flex;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    font-weight: bold;
+    color: #ffffff;
+    align-items: center;
+    justify-content: center;
+}
+
+.textContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 5px 10px;
+    gap: 1px;
+    background: var(--colorToast);
+    border-radius: 5px;
+    flex: none;
+}
+
+.title {
+    font-weight: 900;
+    font-size: 16px;
+
+    color: #2f2e22;
+}
+
+.message {
+    font-weight: 700;
+    font-size: 14px;
+
+    color: #2f2e22;
+}
+
+.dismissButton {
+    transition: all 0.5s ease;
+    cursor: pointer;
+    display: flex;
+    width: fit-content;
+    height: fit-content;
+    background: transparent;
+    padding: 7px;
+    margin: 8px;
+    border: 0;
+    border-radius: 4px;
+    &:hover {
+        background: var(--colorToast);
+        background: #363944;
+    }
+}
