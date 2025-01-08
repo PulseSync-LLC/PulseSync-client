@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { JSX, useEffect, useState } from 'react'
 import toast, { Renderable, ToastOptions, Toast } from 'react-hot-toast'
 import * as styles from './toast.module.scss'
 
