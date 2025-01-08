@@ -64,6 +64,7 @@
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
         "@mui/joy": "^5.0.0-beta.51",
+        "@radix-ui/react-tooltip": "^1.1.6",
         "@sentry/electron": "^5.9.0",
         "@svgr/webpack": "^8.1.0",
         "@types/adm-zip": "^0.5.7",

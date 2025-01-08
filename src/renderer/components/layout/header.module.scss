@@ -106,11 +106,6 @@
                         background: #262a35;
                     }
 
-                    &:hover .tooltip {
-                        visibility: visible;
-                        opacity: 1;
-                    }
-
                     & > .imageDetail {
                         position: relative;
                         display: flex;
@@ -250,11 +245,6 @@
 
                     &:hover {
                         background: #262a35;
-                    }
-
-                    &:hover .tooltip {
-                        visibility: visible;
-                        opacity: 1;
                     }
 
                     & > .user_avatar {
@@ -445,32 +435,6 @@
                                 top: 10px;
                                 padding: 3px;
                                 gap: 3px;
-
-                                & > .badge {
-                                    position: relative;
-                                    display: flex;
-                                    flex-direction: row;
-                                    align-items: center;
-
-                                    img {
-                                        width: 24px;
-                                        height: 24px;
-                                        background: transparent;
-                                        cursor: pointer;
-                                    }
-
-                                    &:hover .tooltip {
-                                        visibility: visible;
-                                        opacity: 1;
-                                        left: unset;
-                                        top: 35px;
-                                        transform: translateX(-80%);
-                                    }
-                                }
-
-                                * path {
-                                    stroke: none;
-                                }
                             }
                         }
 
@@ -655,29 +619,6 @@
     }
 }
 
-.tooltip {
-    visibility: hidden;
-
-    width: auto;
-    max-width: fit-content;
-    white-space: nowrap;
-    box-shadow: 0px 0px 8px 5px rgba(0, 0, 0, 0.25);
-    background: var(--Main);
-    outline: 1px solid var(--BorderColor);
-    border-radius: var(--BorderRadius);
-    color: #fff;
-    text-align: center;
-    padding: 5px 15px;
-    position: absolute;
-    z-index: 99999999999;
-    top: 125%;
-    left: 50%;
-    transform: translateX(-50%);
-
-    opacity: 0;
-    transition: opacity 0.3s;
-}
-
 .hoverUpload {
     cursor: pointer;
     transition: var(--transition);
@@ -702,7 +643,19 @@
     }
 }
 
+.badge {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
 
+    img {
+        width: 24px;
+        height: 24px;
+        background: transparent;
+        cursor: pointer;
+    }
+}
 
 .dev {
     opacity: 1;

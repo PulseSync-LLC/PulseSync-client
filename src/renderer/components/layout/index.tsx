@@ -22,6 +22,7 @@ import SettingsInterface from '../../api/interfaces/settings.interface'
 import { Toaster, toast } from 'react-hot-toast'
 import * as pageStyles from './layout.module.scss'
 import { isDev, isDevmark } from '../../api/config'
+import TooltipButton from '../tooltip_button'
 
 interface LayoutProps {
     title: string
@@ -252,39 +253,57 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 >
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/trackinfo">
-                                <DiscordIcon height={24} width={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/extensionbeta">
-                                <MdExtension size={24} />
-                                <div className={pageStyles.betatest}>beta</div>
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/users">
-                                <MdPeople size={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/store" disabled>
-                                <MdStoreMallDirectory size={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/contact" disabled>
-                                <MdConnectWithoutContact size={24} />
-                            </NavButtonPulse>
+                            <TooltipButton tooltipText="Track Info">
+                                <NavButtonPulse to="/trackinfo">
+                                    <DiscordIcon height={24} width={24} />
+                                </NavButtonPulse>
+                            </TooltipButton>
+
+                            <TooltipButton tooltipText="Extension Beta">
+                                <NavButtonPulse to="/extensionbeta">
+                                    <MdExtension size={24} />
+                                    <div className={pageStyles.betatest}>beta</div>
+                                </NavButtonPulse>
+                            </TooltipButton>
+
+                            <TooltipButton tooltipText="Users">
+                                <NavButtonPulse to="/users">
+                                    <MdPeople size={24} />
+                                </NavButtonPulse>
+                            </TooltipButton>
+
+                            <TooltipButton
+                                tooltipText="Store"
+                                as="div"
+                                className={pageStyles.disabled}
+                            >
+                                <NavButtonPulse to="/store" disabled>
+                                    <MdStoreMallDirectory size={24} />
+                                </NavButtonPulse>
+                            </TooltipButton>
                         </div>
                         <div className={pageStyles.navigation_buttons}>
                             {isDev && (
-                                <NavButtonPulse to="/dev">
-                                    <MdArchitecture size={24} />
-                                </NavButtonPulse>
+                                <TooltipButton tooltipText="Development">
+                                    <NavButtonPulse to="/dev">
+                                        <MdArchitecture size={24} />
+                                    </NavButtonPulse>
+                                </TooltipButton>
                             )}
                             {updateAvailable && (
-                                <button
-                                    onClick={() => {
-                                        setUpdate(false)
-                                        window.desktopEvents?.send('update-install')
-                                    }}
-                                    className={pageStyles.update_download}
-                                >
-                                    <MdDownload size={24} />
-                                </button>
+                                <TooltipButton tooltipText="Install Update">
+                                    <button
+                                        onClick={() => {
+                                            setUpdate(false)
+                                            window.desktopEvents?.send(
+                                                'update-install',
+                                            )
+                                        }}
+                                        className={pageStyles.update_download}
+                                    >
+                                        <MdDownload size={24} />
+                                    </button>
+                                </TooltipButton>
                             )}
                         </div>
                     </div>

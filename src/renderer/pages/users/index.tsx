@@ -13,6 +13,7 @@ import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
 import { Link } from 'react-router-dom'
+import TooltipButton from '../../components/tooltip_button'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -365,17 +366,24 @@ export default function UsersPage() {
                                                                         a.level,
                                                                 )
                                                                 .map((_badge) => (
-                                                                    <div
-                                                                        className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
-                                                                        key={`${_badge.type}-${_badge.level}`}
+                                                                    <TooltipButton
+                                                                        tooltipText={
+                                                                            _badge.name
+                                                                        }
+                                                                        side="bottom"
                                                                     >
-                                                                        <img
-                                                                            src={`static/assets/badges/${_badge.type}.svg`}
-                                                                            alt={
-                                                                                _badge.name
-                                                                            }
-                                                                        />
-                                                                    </div>
+                                                                        <div
+                                                                            className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
+                                                                            key={`${_badge.type}-${_badge.level}`}
+                                                                        >
+                                                                            <img
+                                                                                src={`static/assets/badges/${_badge.type}.svg`}
+                                                                                alt={
+                                                                                    _badge.name
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </TooltipButton>
                                                                 ))}
                                                     </div>
                                                 </div>

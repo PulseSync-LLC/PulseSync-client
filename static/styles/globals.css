@@ -55,6 +55,10 @@
     stroke: none;
 }
 
+#_rht_toaster {
+    inset: 50px 6px !important;
+}
+
 textarea {
     resize: none;
 }

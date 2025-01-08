@@ -37,6 +37,8 @@ import UserInterface from '../../api/interfaces/user.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
 
+import TooltipButton from '../tooltip_button'
+
 interface p {
     goBack?: boolean
 }
@@ -402,7 +404,11 @@ const OldHeader: React.FC<p> = () => {
         }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
-                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
+                toast.custom(
+                    'success',
+                    `До встречи ${user.nickname}`,
+                    'Успешный выход',
+                )
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
             }
@@ -1026,30 +1032,28 @@ const OldHeader: React.FC<p> = () => {
                                                                         a.level,
                                                                 )
                                                                 .map((_badge) => (
-                                                                    <div
-                                                                        className={
-                                                                            styles.badge
+                                                                    <TooltipButton
+                                                                        tooltipText={
+                                                                            _badge.name
                                                                         }
-                                                                        key={
-                                                                            _badge.type
-                                                                        }
+                                                                        side='bottom'
                                                                     >
-                                                                        <img
-                                                                            src={`static/assets/badges/${_badge.type}.svg`}
-                                                                            alt={
+                                                                        <div
+                                                                            className={
+                                                                                styles.badge
+                                                                            }
+                                                                            key={
                                                                                 _badge.type
                                                                             }
-                                                                        />
-                                                                        <span
-                                                                            className={
-                                                                                styles.tooltip
-                                                                            }
                                                                         >
-                                                                            {
-                                                                                _badge.name
-                                                                            }
-                                                                        </span>
-                                                                    </div>
+                                                                            <img
+                                                                                src={`static/assets/badges/${_badge.type}.svg`}
+                                                                                alt={
+                                                                                    _badge.type
+                                                                                }
+                                                                            />
+                                                                        </div>
+                                                                    </TooltipButton>
                                                                 ))}
                                                     </div>
                                                 </div>
