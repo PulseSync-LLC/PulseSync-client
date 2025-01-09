@@ -3,22 +3,28 @@ import gql from 'graphql-tag'
 export default gql`
     query users {
         getMe {
-            avatarHash
-            avatarType
-            status
-            bannerHash
-            bannerType
+            id
             username
             nickname
             perms
-            id
             createdAt
+            ban {
+                uuid
+                createdAt
+            }
+            avatarHash
+            avatarType
+            bannerHash
+            bannerType
             badges {
                 uuid
                 name
                 type
                 level
             }
+            status
+            lastOnline
+            currentTrack
         }
     }
 `

@@ -1,13 +1,15 @@
 export default interface UserInterface {
     id: string
+    avatar: string
+    banner: string
     username: string
     nickname: string
-    createdAt: string
+    createdAt: number
     status: string
-    avatar: string
+    lastOnline: string
+    currentTrack: any[] | null
     avatarHash: string
     avatarType: string
-    banner: string
     bannerHash: string
     bannerType: string
     perms: string

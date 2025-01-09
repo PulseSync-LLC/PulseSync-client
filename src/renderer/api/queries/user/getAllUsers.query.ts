@@ -26,6 +26,8 @@ export default gql`
                 bannerType
                 perms
                 status
+                lastOnline
+                currentTrack
                 ban {
                     uuid
                     createdAt

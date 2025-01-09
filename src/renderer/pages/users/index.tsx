@@ -343,6 +343,52 @@ export default function UsersPage() {
                                                                     styles.userDate
                                                                 }
                                                             >
+                                                                {user.status ===
+                                                                'online' ? (
+                                                                    <>
+                                                                        Сейчас в сети
+                                                                    </>
+                                                                ) : (
+                                                                    <>
+                                                                        Был в сети:{' '}
+                                                                        {new Date(
+                                                                            user.lastOnline,
+                                                                        ).toLocaleString()}
+                                                                    </>
+                                                                )}
+                                                            </span>
+
+                                                            {user.currentTrack !==
+                                                                null && (
+                                                                <span
+                                                                    className={
+                                                                        styles.userDate
+                                                                    }
+                                                                >
+                                                                    {user.currentTrack.map(
+                                                                        (track) => (
+                                                                            <span
+                                                                                key={
+                                                                                    track
+                                                                                        .major
+                                                                                        .id
+                                                                                }
+                                                                            >
+                                                                                Слушает:{' '}
+                                                                                {
+                                                                                    track.title
+                                                                                }
+                                                                            </span>
+                                                                        ),
+                                                                    )}
+                                                                </span>
+                                                            )}
+                                                            <span
+                                                                className={
+                                                                    styles.userDate
+                                                                }
+                                                            >
+                                                                Создан:{' '}
                                                                 {new Date(
                                                                     user.createdAt,
                                                                 ).toLocaleDateString()}

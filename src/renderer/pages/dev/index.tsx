@@ -79,6 +79,11 @@ function Dev() {
     return (
         <Layout title="Dev">
             <div className={`${globalStyles.page} ${styles.devPage}`}>
+                <iframe
+                    src="monitoring.pulsesync.dev/grafana/d-solo/PTSqcpJWk/pulsesync-backend?orgId=1&timezone=browser&var-instance=$__all&theme=dark&panelId=13&__feature.dashboardSceneSolo"
+                    width="450"
+                    height="200"
+                ></iframe>
                 <h1 className={styles.header}>Тестирование Уведомлений</h1>
                 <div className={styles.buttonContainer}>
                     <button
