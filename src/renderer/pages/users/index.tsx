@@ -8,13 +8,14 @@ import apolloClient from '../../api/apolloClient'
 import toast from 'react-hot-toast'
 import { FaSortUp, FaSortDown } from 'react-icons/fa'
 import debounce from 'lodash.debounce'
-import { MdAllOut, MdHourglassEmpty } from 'react-icons/md'
+import { MdAllOut, MdHourglassEmpty, MdLink, MdOpenInBrowser } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
 import { Link } from 'react-router-dom'
 import TooltipButton from '../../components/tooltip_button'
 import { Track } from '../../api/interfaces/track.interface'
+import { timeAgo } from '../../utils/utils'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -352,31 +353,124 @@ export default function UsersPage() {
                                                                 ) : (
                                                                     <>
                                                                         Был в сети:{' '}
-                                                                        {new Date(Number(user.lastOnline)).toLocaleString()}
+                                                                        {timeAgo(
+                                                                            Number(
+                                                                                user.lastOnline,
+                                                                            ),
+                                                                        )}
                                                                     </>
                                                                 )}
                                                             </span>
-
-                                                            {user.currentTrack && (
-                                                                <span
-                                                                    className={
-                                                                        styles.userDate
-                                                                    }
-                                                                >
-                                                                    <span
-                                                                        key={
-                                                                            user.currentTrack
-                                                                                .major
-                                                                                .id
+                                                            {user.currentTrack &&
+                                                                user.currentTrack
+                                                                    .status ===
+                                                                    'playing' && (
+                                                                    <TooltipButton
+                                                                        tooltipText={
+                                                                            <div
+                                                                                className={
+                                                                                    styles.tarckInfo
+                                                                                }
+                                                                            >
+                                                                                <div>
+                                                                                    <strong>
+                                                                                        Трек:
+                                                                                    </strong>{' '}
+                                                                                    {
+                                                                                        user
+                                                                                            .currentTrack
+                                                                                            .title
+                                                                                    }
+                                                                                </div>
+                                                                                <div>
+                                                                                    <strong>
+                                                                                        Исполнители:
+                                                                                    </strong>{' '}
+                                                                                    {user.currentTrack.artists
+                                                                                        .map(
+                                                                                            (
+                                                                                                artist,
+                                                                                            ) =>
+                                                                                                artist.name,
+                                                                                        )
+                                                                                        .join(
+                                                                                            ', ',
+                                                                                        )}
+                                                                                </div>
+                                                                                {user
+                                                                                    .currentTrack
+                                                                                    .trackSource !==
+                                                                                    'UGC' && (
+                                                                                    <>
+                                                                                        <div>
+                                                                                            <strong>
+                                                                                                Альбом:
+                                                                                            </strong>{' '}
+                                                                                            {user.currentTrack.albums
+                                                                                                .map(
+                                                                                                    (
+                                                                                                        album,
+                                                                                                    ) =>
+                                                                                                        album.title,
+                                                                                                )
+                                                                                                .join(
+                                                                                                    ', ',
+                                                                                                )}
+                                                                                        </div>
+                                                                                        <button
+                                                                                            onClick={() => {
+                                                                                                const linkTitle =
+                                                                                                    user
+                                                                                                        .currentTrack
+                                                                                                        .albums[0]
+                                                                                                        .id
+                                                                                                window.open(
+                                                                                                    `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${user.currentTrack.realId}`,
+                                                                                                )
+                                                                                            }}
+                                                                                            className={
+                                                                                                styles.trackButton
+                                                                                            }
+                                                                                        >
+                                                                                            <MdOpenInBrowser
+                                                                                                size={
+                                                                                                    24
+                                                                                                }
+                                                                                            />
+                                                                                            Открыть
+                                                                                            в
+                                                                                            Яндекс.Музыке{' '}
+                                                                                        </button>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
                                                                         }
+                                                                        side="bottom"
                                                                     >
-                                                                        Слушает:{' '}
-                                                                        {
-                                                                            user.currentTrack.title
-                                                                        }
-                                                                    </span>
-                                                                </span>
-                                                            )}
+                                                                        <span
+                                                                            className={
+                                                                                styles.userDate
+                                                                            }
+                                                                        >
+                                                                            <span
+                                                                                key={
+                                                                                    user
+                                                                                        .currentTrack
+                                                                                        .major
+                                                                                        .id
+                                                                                }
+                                                                            >
+                                                                                Слушает:{' '}
+                                                                                {
+                                                                                    user
+                                                                                        .currentTrack
+                                                                                        .title
+                                                                                }
+                                                                            </span>
+                                                                        </span>
+                                                                    </TooltipButton>
+                                                                )}
+
                                                             <span
                                                                 className={
                                                                     styles.userDate

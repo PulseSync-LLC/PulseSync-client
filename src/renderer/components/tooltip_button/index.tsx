@@ -3,7 +3,7 @@ import * as Tooltip from '@radix-ui/react-tooltip'
 import * as styles from './tooltip.module.scss'
 
 interface TooltipButtonProps {
-    tooltipText: string
+    tooltipText: React.ReactNode
     children: React.ReactNode
     onClick?: () => void
     side?: 'top' | 'right' | 'bottom' | 'left'

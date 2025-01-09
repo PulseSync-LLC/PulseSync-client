@@ -220,7 +220,7 @@
 
 .cardHeader {
     display: flex;
-    align-items: center;
+    align-items: flex-start;
     gap: 15px;
     margin-bottom: 15px;
 }
@@ -246,6 +246,11 @@
 .userDate {
     font-size: 14px;
     color: #b6c7ff;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .userBadges {
@@ -335,5 +340,32 @@
 
     &:hover:not(:disabled) {
         background-color: #4c79ff;
+    }
+}
+
+.tarckInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.trackButton {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    width: fit-content;
+    height: fit-content;
+    padding: 10px 15px;
+    font-weight: 600;
+    background-color: #3468f2;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    cursor: pointer;
+    font-size: 14px;
+    transition: var(--transition);
+
+    &:hover {
+        background-color: #2d56c5;
     }
 }

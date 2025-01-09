@@ -20,6 +20,7 @@ button {
 	animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
 	will-change: transform, opacity;
     z-index: 9999;
+    white-space: pre-line;
 }
 .TooltipContent[data-state="delayed-open"][data-side="top"] {
 	animation-name: slideDownAndFade;
