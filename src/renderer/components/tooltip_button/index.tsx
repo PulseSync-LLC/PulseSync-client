@@ -8,7 +8,7 @@ interface TooltipButtonProps {
     onClick?: () => void
     side?: 'top' | 'right' | 'bottom' | 'left'
     dataSide?: 'top' | 'right' | 'bottom' | 'left'
-    as?: 'button' | 'div'
+    as?: 'button' | 'div' | 'span';
     className?: string
 }
 
