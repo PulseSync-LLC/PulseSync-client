@@ -54,14 +54,26 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleProgress = (event: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
-                toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, {
-                    id: downloadToastIdRef.current,
-                    duration: Infinity,
-                }, progress)
+                toast.custom(
+                    'loading',
+                    `Прогресс загрузки: ${progress}%`,
+                    `Загружаю`,
+                    {
+                        id: downloadToastIdRef.current,
+                        duration: Infinity,
+                    },
+                    progress,
+                )
             } else {
-                const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, {
-                    duration: Infinity,
-                }, progress)
+                const id = toast.custom(
+                    'loading',
+                    `Прогресс загрузки: ${progress}%`,
+                    `Загружаю`,
+                    {
+                        duration: Infinity,
+                    },
+                    progress,
+                )
                 downloadToastIdRef.current = id
             }
         }
@@ -226,42 +238,28 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 >
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <TooltipButton tooltipText="Track Info" as={'div'}>
-                                <NavButtonPulse to="/trackinfo">
-                                    <DiscordIcon height={24} width={24} />
-                                </NavButtonPulse>
-                            </TooltipButton>
-
-                            <TooltipButton tooltipText="Extension Beta" as={'div'}>
-                                <NavButtonPulse to="/extensionbeta">
-                                    <MdExtension size={24} />
-                                    <div className={pageStyles.betatest}>beta</div>
-                                </NavButtonPulse>
-                            </TooltipButton>
-
-                            <TooltipButton tooltipText="Users" as={'div'}>
-                                <NavButtonPulse to="/users">
-                                    <MdPeople size={24} />
-                                </NavButtonPulse>
-                            </TooltipButton>
-
-                            <TooltipButton
-                                tooltipText="Store"
-                                as="div"
-                                className={pageStyles.disabled}
+                            <NavButtonPulse to="/trackinfo" text="Track Info">
+                                <DiscordIcon height={24} width={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse
+                                to="/extensionbeta"
+                                text="Extension Beta"
                             >
-                                <NavButtonPulse to="/store" disabled>
-                                    <MdStoreMallDirectory size={24} />
-                                </NavButtonPulse>
-                            </TooltipButton>
+                                <MdExtension size={24} />
+                                <div className={pageStyles.betatest}>beta</div>
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/users" text="Users">
+                                <MdPeople size={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/store" text="Store" disabled>
+                                <MdStoreMallDirectory size={24} />
+                            </NavButtonPulse>
                         </div>
                         <div className={pageStyles.navigation_buttons}>
                             {isDev && (
-                                <TooltipButton tooltipText="Development" as={'div'}>
-                                    <NavButtonPulse to="/dev">
-                                        <MdHandyman size={24} />
-                                    </NavButtonPulse>
-                                </TooltipButton>
+                                <NavButtonPulse to="/dev" text="Development">
+                                    <MdHandyman size={24} />
+                                </NavButtonPulse>
                             )}
                             {updateAvailable && (
                                 <TooltipButton

@@ -9,6 +9,7 @@ interface TooltipButtonProps {
     side?: 'top' | 'right' | 'bottom' | 'left'
     dataSide?: 'top' | 'right' | 'bottom' | 'left'
     as?: 'button' | 'div' | 'span'
+    disabled?: boolean
     className?: string
 }
 
@@ -19,6 +20,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
     children,
     onClick,
     as = 'button',
+    disabled,
     className,
 }) => {
     const Component = as
@@ -26,7 +28,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
         <Tooltip.Provider delayDuration={100} skipDelayDuration={100}>
             <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                    <Component onClick={onClick} className={className}>
+                    <Component onClick={onClick} className={className} disabled={disabled}>
                         {children}
                     </Component>
                 </Tooltip.Trigger>

@@ -67,6 +67,10 @@ a {
     text-decoration: none;
 }
 
+a.disabled {
+    cursor: not-allowed;
+}
+
 a.active > button {
     background: var(--panelsColor);
     border: none;

@@ -16,22 +16,17 @@
 
     &:hover {
         background: #292c36;
-        &:hover {
-            & > svg {
-                fill: white;
-            }
-        }
-        &:disabled {
-            opacity: 0.5;
-            background: transparent;
-            border: none;
-            & > svg {
-                fill: var(--NavigationIconDefaultSvgColor);
-            }
+        & > svg {
+            fill: white;
         }
     }
 
     &:disabled {
         opacity: 0.5;
+        background: transparent;
+        border: none;
+        & > svg {
+            fill: var(--NavigationIconDefaultSvgColor);
+        }
     }
 }
