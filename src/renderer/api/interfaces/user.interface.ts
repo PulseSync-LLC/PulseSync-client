@@ -1,3 +1,5 @@
+import { Track } from './track.interface'
+
 export default interface UserInterface {
     id: string
     avatar: string
@@ -7,7 +9,7 @@ export default interface UserInterface {
     createdAt: number
     status: string
     lastOnline: string
-    currentTrack: any[] | null
+    currentTrack: Track
     avatarHash: string
     avatarType: string
     bannerHash: string

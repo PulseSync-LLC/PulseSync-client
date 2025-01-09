@@ -14,6 +14,7 @@ import { motion } from 'framer-motion'
 import config from '../../api/config'
 import { Link } from 'react-router-dom'
 import TooltipButton from '../../components/tooltip_button'
+import { Track } from '../../api/interfaces/track.interface'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -351,36 +352,29 @@ export default function UsersPage() {
                                                                 ) : (
                                                                     <>
                                                                         Был в сети:{' '}
-                                                                        {new Date(
-                                                                            user.lastOnline,
-                                                                        ).toLocaleString()}
+                                                                        {new Date(Number(user.lastOnline)).toLocaleString()}
                                                                     </>
                                                                 )}
                                                             </span>
 
-                                                            {user.currentTrack !==
-                                                                null && (
+                                                            {user.currentTrack && (
                                                                 <span
                                                                     className={
                                                                         styles.userDate
                                                                     }
                                                                 >
-                                                                    {user.currentTrack.map(
-                                                                        (track) => (
-                                                                            <span
-                                                                                key={
-                                                                                    track
-                                                                                        .major
-                                                                                        .id
-                                                                                }
-                                                                            >
-                                                                                Слушает:{' '}
-                                                                                {
-                                                                                    track.title
-                                                                                }
-                                                                            </span>
-                                                                        ),
-                                                                    )}
+                                                                    <span
+                                                                        key={
+                                                                            user.currentTrack
+                                                                                .major
+                                                                                .id
+                                                                        }
+                                                                    >
+                                                                        Слушает:{' '}
+                                                                        {
+                                                                            user.currentTrack.title
+                                                                        }
+                                                                    </span>
                                                                 </span>
                                                             )}
                                                             <span
