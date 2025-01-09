@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import * as cm from './contextMenu.module.scss'
 import { MenuItem } from './sectionConfig'
+import TooltipButton from '../tooltip_button'
 
 interface ContextMenuProps {
     items: MenuItem[]
@@ -49,13 +50,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             {items
                 .filter((item) => item.show)
                 .map((item, index) => (
-                    <div
+                    <TooltipButton
+                        tooltipText={item.label}
+                        side="top"
                         key={index}
                         className={cm.contextMenuItem}
                         onClick={item.onClick}
                     >
                         {item.icon && <span className={cm.icon}>{item.icon}</span>}
-                    </div>
+                    </TooltipButton>
                 ))}
         </div>
     )
