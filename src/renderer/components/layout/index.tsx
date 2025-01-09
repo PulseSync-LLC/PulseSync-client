@@ -252,20 +252,20 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 >
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <TooltipButton tooltipText="Track Info" as={"div"}>
+                            <TooltipButton tooltipText="Track Info" as={'div'}>
                                 <NavButtonPulse to="/trackinfo">
                                     <DiscordIcon height={24} width={24} />
                                 </NavButtonPulse>
                             </TooltipButton>
 
-                            <TooltipButton tooltipText="Extension Beta" as={"div"}>
+                            <TooltipButton tooltipText="Extension Beta" as={'div'}>
                                 <NavButtonPulse to="/extensionbeta">
                                     <MdExtension size={24} />
                                     <div className={pageStyles.betatest}>beta</div>
                                 </NavButtonPulse>
                             </TooltipButton>
 
-                            <TooltipButton tooltipText="Users" as={"div"}>
+                            <TooltipButton tooltipText="Users" as={'div'}>
                                 <NavButtonPulse to="/users">
                                     <MdPeople size={24} />
                                 </NavButtonPulse>
@@ -283,14 +283,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         </div>
                         <div className={pageStyles.navigation_buttons}>
                             {isDev && (
-                                <TooltipButton tooltipText="Development" as={"div"}>
+                                <TooltipButton tooltipText="Development" as={'div'}>
                                     <NavButtonPulse to="/dev">
                                         <MdHandyman size={24} />
                                     </NavButtonPulse>
                                 </TooltipButton>
                             )}
                             {updateAvailable && (
-                                <TooltipButton tooltipText="Install Update" as={"div"}>
+                                <TooltipButton
+                                    tooltipText="Install Update"
+                                    as={'div'}
+                                >
                                     <button
                                         onClick={() => {
                                             setUpdate(false)

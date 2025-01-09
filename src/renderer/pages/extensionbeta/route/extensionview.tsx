@@ -494,7 +494,6 @@ const ExtensionViewPage: React.FC = () => {
         if (isTextItem(item) && item.buttons[buttonIndex]) {
             const button = item.buttons[buttonIndex]
             button[key] = newValue
-            // НИЗАЧТО НЕ ИЗМЕНЯЕМ defaultParameter ЗДЕСЬ
             setConfigData(updatedConfig)
             writeConfigFile(updatedConfig)
         }

@@ -1036,7 +1036,7 @@ const OldHeader: React.FC<p> = () => {
                                                                         tooltipText={
                                                                             _badge.name
                                                                         }
-                                                                        side='bottom'
+                                                                        side="bottom"
                                                                     >
                                                                         <div
                                                                             className={

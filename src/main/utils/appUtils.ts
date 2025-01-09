@@ -12,7 +12,7 @@ interface ProcessInfo {
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     try {
-        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH` // Используем tasklist для поиска процесса
+        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
         const { stdout } = await execAsync(command, { encoding: 'utf8' })
 
         const processes = stdout.split('\n').filter((line) => line.trim() !== '')
@@ -83,10 +83,7 @@ export const isMac = () => {
 }
 
 export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
-    return crypto
-        .createHash('sha256')
-        .update(asarPath) // Здесь предполагается, что asarPath будет содержать файл для хэширования
-        .digest('hex')
+    return crypto.createHash('sha256').update(asarPath).digest('hex')
 }
 
 export default closeYandexMusic

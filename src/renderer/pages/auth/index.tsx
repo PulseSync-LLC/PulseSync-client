@@ -30,22 +30,28 @@ export default function AuthPage() {
             navigate('/trackinfo', { replace: true })
         }
     }, [user.id, navigate])
+    const readAndSendFile = async () => {
+        try {
+            const response = await fetch('./static/assets/policy/terms.ru.md')
+            const fileContent = await response.text()
 
+            window.desktopEvents.send('open-file', fileContent)
+        } catch (error) {
+            console.error('Ошибка чтения файла:', error)
+        }
+    }
     useEffect(() => {
         const handleMouseMove = (e: { clientX: any; clientY: any }) => {
             const { innerWidth, innerHeight } = window
             const mouseX = e.clientX
             const mouseY = e.clientY
 
-            // Calculate the center of the screen
             const centerX = innerWidth / 2
             const centerY = innerHeight / 2
 
-            // Calculate the offset from the center
             const offsetX = (mouseX - centerX) / centerX
             const offsetY = (mouseY - centerY) / centerY
 
-            // Define movement intensity for each image
             const movementIntensity = [
                 { ref: img1Ref, factor: 20, rotation: 5 },
                 { ref: img2Ref, factor: 40, rotation: -5 },
@@ -115,7 +121,9 @@ export default function AuthPage() {
                         Нажимая на “Авторизация через Discord”, вы соглашаетесь с{' '}
                         <br />
                         <a
-                            href="https://ya.ru"
+                            onClick={async () => {
+                                await readAndSendFile()
+                            }}
                             target="_blank"
                             rel="noopener noreferrer"
                         >

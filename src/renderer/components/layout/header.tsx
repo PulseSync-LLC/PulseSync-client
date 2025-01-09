@@ -370,7 +370,11 @@ const Header: React.FC<p> = memo(() => {
         }).then(async (r) => {
             const res = await r.json()
             if (res.ok) {
-                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
+                toast.custom(
+                    'success',
+                    `До встречи ${user.nickname}`,
+                    'Успешный выход',
+                )
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
             }

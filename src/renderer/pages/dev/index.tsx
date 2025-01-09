@@ -32,14 +32,13 @@ function Dev() {
     }
 
     const handleDownload = () => {
-        const duration = 6000 // 6 секунд
-        const intervalTime = 100 // Интервал обновления в мс
-        const steps = duration / intervalTime // Количество шагов
-        const step = 100 / steps // Прирост прогресса за шаг
+        const duration = 6000
+        const intervalTime = 100
+        const steps = duration / intervalTime
+        const step = 100 / steps
 
         let progress = 0
 
-        // Инициализируем уведомление
         toast.custom(
             'loading',
             'Скачивание',
@@ -51,13 +50,12 @@ function Dev() {
             progress,
         )
 
-        // Обновляем прогресс каждые 100 мс
         const interval = setInterval(() => {
             progress += step
 
             if (progress >= 100) {
                 clearInterval(interval)
-                progress = 100 // Устанавливаем точное значение 100%
+                progress = 100
                 toast.custom('success', 'Готово', 'Скачивание завершено!', {
                     id: 'download-toast',
                 })

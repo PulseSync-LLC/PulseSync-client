@@ -18,6 +18,7 @@ import { Track } from '../../renderer/api/interfaces/track.interface'
 import NodeID3 from 'node-id3'
 import ffmpeg from 'fluent-ffmpeg'
 import isAppDev from 'electron-is-dev'
+import { exec } from 'child_process'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -46,6 +47,10 @@ export const handleEvents = (window: BrowserWindow): void => {
         else mainWindow.maximize()
     })
     ipcMain.on('before-quit', async () => {
+        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+        if (fs.existsSync(tempFilePath)) {
+            fs.rmSync(tempFilePath)
+        }
         mainWindow.close()
     })
     ipcMain.on('electron-window-close', (event, val) => {
@@ -55,6 +60,38 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('electron-corsanywhereport', (event) => {
         event.returnValue = corsAnywherePort
+    })
+    ipcMain.on('open-file', (event, markdownContent) => {
+        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+        fs.writeFile(tempFilePath, markdownContent, (err) => {
+            if (err) {
+                logger.main.error('Error writing to file:', err)
+                return
+            }
+            let command = ''
+            if (process.platform === 'win32') {
+                command = `"${tempFilePath}"`
+            } else if (process.platform === 'darwin') {
+                command = `open "${tempFilePath}"`
+            } else {
+                command = `xdg-open "${tempFilePath}"`
+            }
+
+            const child = exec(command, (error) => {
+                if (error) {
+                    logger.main.error('Error opening the file:', error)
+                    return
+                }
+
+                fs.unlink(tempFilePath, (unlinkErr) => {
+                    if (unlinkErr) {
+                        logger.main.error('Error deleting the file:', unlinkErr)
+                    } else {
+                        logger.main.log('Temporary file successfully deleted')
+                    }
+                })
+            })
+        })
     })
     ipcMain.handle('getVersion', async (event) => {
         const version = app.getVersion()
@@ -144,10 +181,12 @@ export const handleEvents = (window: BrowserWindow): void => {
                                     totalFileSize,
                                 )
                                 mainWindow.setProgressBar(percent / 100)
-                                mainWindow.webContents.send(
-                                    'download-track-progress',
-                                    percent,
-                                )
+                                if (percent <= 98 && val.metadata) {
+                                    mainWindow.webContents.send(
+                                        'download-track-progress',
+                                        percent,
+                                    )
+                                }
                             })
 
                             const filePath = result.filePath
@@ -176,13 +215,19 @@ export const handleEvents = (window: BrowserWindow): void => {
                                             try {
                                                 await convertToMP3(filePath, mp3Path)
                                                 fs.unlinkSync(filePath)
+                                                mainWindow.webContents.send(
+                                                    'download-track-progress',
+                                                    100,
+                                                )
                                                 await writeMetadata(
                                                     mp3Path,
                                                     val.track,
                                                 )
-                                                mainWindow.webContents.send(
-                                                    'download-track-finished',
-                                                )
+                                                setTimeout(() => {
+                                                    mainWindow.webContents.send(
+                                                        'download-track-finished',
+                                                    )
+                                                }, 1000)
                                                 shell.showItemInFolder(mp3Path)
                                             } catch (err) {
                                                 console.error(
@@ -202,8 +247,14 @@ export const handleEvents = (window: BrowserWindow): void => {
                                         }
                                     }
                                     mainWindow.webContents.send(
-                                        'download-track-finished',
+                                        'download-track-progress',
+                                        100,
                                     )
+                                    setTimeout(() => {
+                                        mainWindow.webContents.send(
+                                            'download-track-finished',
+                                        )
+                                    }, 1000)
                                     shell.showItemInFolder(filePath)
                                     mainWindow.setProgressBar(-1)
                                 })
@@ -408,7 +459,7 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.handle('create-new-extension', async (event, args) => {
         try {
-            console.log("test")
+            console.log('test')
             const defaultTheme = {
                 name: 'New Extension',
                 image: 'url',
@@ -422,34 +473,47 @@ export const handleEvents = (window: BrowserWindow): void => {
             const defaultCssContent = `{}`
 
             const defaultScriptContent = ``
-            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+            const extensionsPath = path.join(
+                app.getPath('appData'),
+                'PulseSync',
+                'themes',
+            )
             if (!fs.existsSync(extensionsPath)) {
-                fs.mkdirSync(extensionsPath);
+                fs.mkdirSync(extensionsPath)
             }
 
-            const defaultName = 'New Extension';
-            let newName = defaultName;
-            let counter = 1;
+            const defaultName = 'New Extension'
+            let newName = defaultName
+            let counter = 1
 
-            const existingExtensions = fs.readdirSync(extensionsPath);
+            const existingExtensions = fs.readdirSync(extensionsPath)
 
             while (existingExtensions.includes(newName)) {
-                counter++;
-                newName = `${defaultName} ${counter}`;
-                defaultTheme.name = newName;
+                counter++
+                newName = `${defaultName} ${counter}`
+                defaultTheme.name = newName
             }
 
-            const extensionPath = path.join(extensionsPath, newName);
-            fs.mkdirSync(extensionPath);
-            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultTheme, null, 2));
-            fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent);
-            fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent);
-            return { success: true, name: newName };
+            const extensionPath = path.join(extensionsPath, newName)
+            fs.mkdirSync(extensionPath)
+            fs.writeFileSync(
+                path.join(extensionPath, 'metadata.json'),
+                JSON.stringify(defaultTheme, null, 2),
+            )
+            fs.writeFileSync(
+                path.join(extensionPath, 'style.css'),
+                defaultCssContent,
+            )
+            fs.writeFileSync(
+                path.join(extensionPath, 'script.js'),
+                defaultScriptContent,
+            )
+            return { success: true, name: newName }
         } catch (error) {
-            logger.main.error('Ошибка при создании нового расширения:', error);
-            return { success: false, error: error.message };
+            logger.main.error('Ошибка при создании нового расширения:', error)
+            return { success: false, error: error.message }
         }
-    });
+    })
     ipcMain.handle('exportTheme', async (event, data) => {
         /**
          * Создаёт файл с расширением .pext, содержащий папку по указанному пути

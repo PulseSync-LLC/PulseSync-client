@@ -39,37 +39,48 @@ export const compareVersions = (v1: string, v2: string) => {
     return 0
 }
 
-
 export const timeAgo = (timestamp: number) => {
-    const now = new Date().getTime();
-    const diff = now - timestamp;
+    const now = new Date().getTime()
+    const diff = now - timestamp
 
-    const seconds = Math.floor(diff / 1000);
-    const minutes = Math.floor(seconds / 60);
-    const hours = Math.floor(minutes / 60);
-    const days = Math.floor(hours / 24);
-    const weeks = Math.floor(days / 7);
-    const months = Math.floor(days / 30);
-    const years = Math.floor(days / 365);
+    const seconds = Math.floor(diff / 1000)
+    const minutes = Math.floor(seconds / 60)
+    const hours = Math.floor(minutes / 60)
+    const days = Math.floor(hours / 24)
+    const weeks = Math.floor(days / 7)
+    const months = Math.floor(days / 30)
+    const years = Math.floor(days / 365)
 
-    const pluralize = (number: number, singular: string, few: string, many: string, singularAccusative?: string) => {
-        const mod10 = number % 10;
-        const mod100 = number % 100;
+    const pluralize = (
+        number: number,
+        singular: string,
+        few: string,
+        many: string,
+        singularAccusative?: string,
+    ) => {
+        const mod10 = number % 10
+        const mod100 = number % 100
 
         if (mod10 === 1 && mod100 !== 11) {
-            return `${number} ${singularAccusative ?? singular}`;
+            return `${number} ${singularAccusative ?? singular}`
         }
         if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-            return `${number} ${few}`;
+            return `${number} ${few}`
         }
-        return `${number} ${many}`;
-    };
+        return `${number} ${many}`
+    }
 
-    if (seconds < 60) return pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад';
-    if (minutes < 60) return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад';
-    if (hours < 24) return pluralize(hours, 'час', 'часа', 'часов') + ' назад';
-    if (days < 7) return pluralize(days, 'день', 'дня', 'дней', 'день') + ' назад';
-    if (weeks < 4) return pluralize(weeks, 'неделя', 'недели', 'недель', 'неделю') + ' назад';
-    if (months < 12) return pluralize(months, 'месяц', 'месяца', 'месяцев', 'месяц') + ' назад';
-    return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад';
-};
+    if (seconds < 60)
+        return (
+            pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
+        )
+    if (minutes < 60)
+        return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад'
+    if (hours < 24) return pluralize(hours, 'час', 'часа', 'часов') + ' назад'
+    if (days < 7) return pluralize(days, 'день', 'дня', 'дней', 'день') + ' назад'
+    if (weeks < 4)
+        return pluralize(weeks, 'неделя', 'недели', 'недель', 'неделю') + ' назад'
+    if (months < 12)
+        return pluralize(months, 'месяц', 'месяца', 'месяцев', 'месяц') + ' назад'
+    return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад'
+}

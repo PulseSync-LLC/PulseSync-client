@@ -8,7 +8,7 @@ interface TooltipButtonProps {
     onClick?: () => void
     side?: 'top' | 'right' | 'bottom' | 'left'
     dataSide?: 'top' | 'right' | 'bottom' | 'left'
-    as?: 'button' | 'div' | 'span';
+    as?: 'button' | 'div' | 'span'
     className?: string
 }
 
@@ -30,8 +30,13 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                         {children}
                     </Component>
                 </Tooltip.Trigger>
-                <Tooltip.Portal >
-                    <Tooltip.Content className={styles.TooltipContent} data-side={dataSide} side={side} sideOffset={5}>
+                <Tooltip.Portal>
+                    <Tooltip.Content
+                        className={styles.TooltipContent}
+                        data-side={dataSide}
+                        side={side}
+                        sideOffset={5}
+                    >
                         {tooltipText}
                         <Tooltip.Arrow className={styles.TooltipArrow} />
                     </Tooltip.Content>
