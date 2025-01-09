@@ -36,6 +36,7 @@ import axios from 'axios'
 import UserInterface from '../../api/interfaces/user.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 
 import TooltipButton from '../tooltip_button'
 
@@ -1110,13 +1111,15 @@ const OldHeader: React.FC<p> = () => {
                                                     <div
                                                         className={styles.user_info}
                                                     >
-                                                        <div
+                                                        <Link
+                                                            to={`/user/${user.username}`}
+                                                            key={user.id}
                                                             className={
                                                                 styles.username
                                                             }
                                                         >
-                                                            {user.username}
-                                                        </div>
+                                                            {user.nickname}
+                                                        </Link>
                                                         <div
                                                             className={
                                                                 styles.usertag
@@ -1139,6 +1142,13 @@ const OldHeader: React.FC<p> = () => {
                                             <div
                                                 className={styles.user_menu_buttons}
                                             >
+                                                <Link
+                                                    to={`/user/${user.username}`}
+                                                    key={user.id}
+                                                    className={styles.menu_button}
+                                                >
+                                                    Мой профиль
+                                                </Link>
                                                 <button
                                                     className={styles.menu_button}
                                                     disabled

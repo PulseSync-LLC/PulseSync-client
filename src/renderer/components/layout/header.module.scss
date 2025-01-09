@@ -443,6 +443,7 @@
                             position: absolute;
                             left: 20px;
                             top: 70px;
+                            z-index: 1;
 
                             & > .overlay {
                                 display: flex;
@@ -526,7 +527,6 @@
                             width: -webkit-fill-available;
                             position: relative;
                             isolation: isolate;
-                            pointer-events: none;
 
                             & > .user_info {
                                 display: flex;
@@ -541,6 +541,10 @@
                                     font-size: 18px;
                                     line-height: 110%;
                                     color: #fff;
+
+                                    &:hover {
+                                        text-decoration: underline;
+                                    }
                                 }
                                 & > .usertag {
                                     font-weight: 700;

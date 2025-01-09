@@ -301,7 +301,8 @@ export default function UsersPage() {
                                     {users.length > 0 ? (
                                         <div className={styles.userGrid}>
                                             {users.map((user) => (
-                                                <div
+                                                <Link
+                                                    to={`/user/${user.username}`}
                                                     key={user.id}
                                                     className={styles.userCard}
                                                     style={{
@@ -481,11 +482,6 @@ export default function UsersPage() {
                                                                     user.createdAt,
                                                                 ).toLocaleDateString()}
                                                             </span>
-                                                            {/*<Link*/}
-                                                            {/*    to={`/user/${user.username}`}*/}
-                                                            {/*>*/}
-                                                            {/*    Перейти в профиль*/}
-                                                            {/*</Link>*/}
                                                         </div>
                                                     </div>
                                                     <div
@@ -520,7 +516,7 @@ export default function UsersPage() {
                                                                     </TooltipButton>
                                                                 ))}
                                                     </div>
-                                                </div>
+                                                </Link>
                                             ))}
                                         </div>
                                     ) : (

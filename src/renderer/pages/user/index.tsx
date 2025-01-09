@@ -12,6 +12,7 @@ import findUserByName from '../../api/queries/user/findUserByName.query'
 import UserInterface from '../../api/interfaces/user.interface'
 import userInitials from '../../api/initials/user.initials'
 import { MdKeyboardArrowDown, MdMoreHoriz } from 'react-icons/md'
+import TooltipButton from '../../components/tooltip_button'
 
 function UserProfilePage() {
     const { param } = useParams()
@@ -147,94 +148,6 @@ function UserProfilePage() {
     const badges = Array.isArray(user.badges) ? user.badges : []
 
     return (
-        // <Layout title={`Профиль ${user.username}`}>
-        //     <div className={globalStyles.page}>
-        //         <div className={globalStyles.container}>
-        //             <div className={globalStyles.main_container}>
-        //                 <div
-        //                     className={styles.bannerContainer}
-        //                     style={backgroundStyle}
-        //                 >
-        //                     <div className={styles.overlay}>
-        //                         <div className={styles.profileInfo}>
-        //                             <img
-        //                                 className={styles.avatar}
-        //                                 src={bannerUrl}
-        //                                 alt="Banner"
-        //                                 onError={(e) => {
-        //                                     ;(
-        //                                         e.currentTarget as HTMLImageElement
-        //                                     ).src =
-        //                                         './static/assets/images/undef.png'
-        //                                 }}
-        //                             />
-        //                             <img
-        //                                 className={styles.avatar}
-        //                                 src={avatarUrl}
-        //                                 alt="Avatar"
-        //                                 onError={(e) => {
-        //                                     ;(
-        //                                         e.currentTarget as HTMLImageElement
-        //                                     ).src =
-        //                                         './static/assets/images/undef.png'
-        //                                 }}
-        //                             />
-
-        //                             <div className={styles.nameBlock}>
-        //                                 <h2 className={styles.username}>
-        //                                     {user.username}
-        //                                 </h2>
-        //                                 {user.nickname && (
-        //                                     <p className={styles.nickname}>
-        //                                         Nickname: {user.nickname}
-        //                                     </p>
-        //                                 )}
-        //                                 {user.status && (
-        //                                     <p className={styles.status}>
-        //                                         Status: {user.status}
-        //                                     </p>
-        //                                 )}
-        //                             </div>
-        //                         </div>
-        //                     </div>
-        //                 </div>
-        //                 <div className={globalStyles.container30x15}>
-        //                     <div className={styles.badgesContainer}>
-        //                         <h3>Значки</h3>
-        //                         {badges.length > 0 ? (
-        //                             <div className={styles.badgesGrid}>
-        //                                 {badges.map((badge: any) => (
-        //                                     <div
-        //                                         className={styles.badgeCard}
-        //                                         key={badge.uuid}
-        //                                     >
-        //                                         <p className={styles.badgeName}>
-        //                                             {badge.name}
-        //                                         </p>
-        //                                         <p className={styles.badgeType}>
-        //                                             Type: {badge.type}
-        //                                         </p>
-        //                                         <p className={styles.badgeLevel}>
-        //                                             Level: {badge.level}
-        //                                         </p>
-        //                                     </div>
-        //                                 ))}
-        //                             </div>
-        //                         ) : (
-        //                             <p>Нет значков</p>
-        //                         )}
-        //                     </div>
-        //                     <div style={{ marginTop: 20 }}>
-        //                         <Link to="/users" className={styles.backLink}>
-        //                             ← Вернуться к списку пользователей
-        //                         </Link>
-        //                     </div>
-        //                 </div>
-        //             </div>
-        //         </div>
-        //     </div>
-        // </Layout>
-
         <Layout title={`Профиль ${user.username}`}>
             <div className={globalStyles.page}>
                 <div className={globalStyles.container}>
@@ -244,9 +157,8 @@ function UserProfilePage() {
                                 <div
                                     className={styles.bannerBackground}
                                     style={{
-                                        transition: true
-                                            ? 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease'
-                                            : 'none',
+                                        transition:
+                                            'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
                                         opacity: '1',
                                         backgroundImage: `url(${bannerUrl})`,
                                         backgroundSize: 'cover',
@@ -284,11 +196,11 @@ function UserProfilePage() {
                                         />
                                     </Button>
                                 </div>
-                                <div className={styles.themeInfo}>
-                                    <div className={styles.themeHeader}>
-                                        <div className={styles.containerLeft}>
+                                <div className={styles.userInfo}>
+                                    <div className={styles.userHeader}>
+                                        <div className={styles.userContainerLeft}>
                                             <img
-                                                className={styles.themeImage}
+                                                className={styles.userImage}
                                                 src={avatarUrl}
                                                 alt="Avatar"
                                                 onError={(e) => {
@@ -300,30 +212,69 @@ function UserProfilePage() {
                                                 width="100"
                                                 height="100"
                                             />
+
+                                            <div className={styles.userInfoText}>
+                                                <div className={styles.userName}>
+                                                    {user.nickname || 'Без никнейма'}{' '}
+                                                    <div
+                                                        className={styles.userBadges}
+                                                    >
+                                                        {user.badges.length > 0 &&
+                                                            user.badges
+                                                                .sort(
+                                                                    (a, b) =>
+                                                                        b.level -
+                                                                        a.level,
+                                                                )
+                                                                .map((_badge) => (
+                                                                    <TooltipButton
+                                                                        tooltipText={
+                                                                            _badge.name
+                                                                        }
+                                                                        side="top"
+                                                                        className={
+                                                                            styles.badge
+                                                                        }
+                                                                        key={
+                                                                            _badge.type
+                                                                        }
+                                                                    >
+                                                                        <img
+                                                                            src={`static/assets/badges/${_badge.type}.svg`}
+                                                                            alt={
+                                                                                _badge.type
+                                                                            }
+                                                                        />
+                                                                    </TooltipButton>
+                                                                ))}
+                                                    </div>
+                                                </div>
+                                                <div className={styles.userUsername}>
+                                                    @{user.username}
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
                                     <div className={styles.rightContainer}>
-                                        <div>
-                                            <div
-                                                className={
-                                                    styles.miniButtonsContainer
-                                                }
+                                        <TooltipButton
+                                            tooltipText={'Скоро'}
+                                            side="top"
+                                            className={styles.miniButtonsContainer}
+                                        >
+                                            <Button
+                                                disabled
+                                                className={`${styles.defaultButton}`}
                                             >
-                                                <Button
-                                                    className={`${styles.defaultButton}`}
-                                                    title={'{ Add friend }'}
-                                                >
-                                                    {'{ Add friend }'}
-                                                </Button>
-                                                <Button
-                                                    className={styles.miniButton}
-                                                    title="More"
-                                                >
-                                                    <MdMoreHoriz size={20} />
-                                                </Button>
-                                            </div>
-                                        </div>
+                                                {'Добавить в друзья'}
+                                            </Button>
+                                            <Button
+                                                disabled
+                                                className={styles.miniButton}
+                                            >
+                                                <MdMoreHoriz size={20} />
+                                            </Button>
+                                        </TooltipButton>
                                     </div>
                                 </div>
                             </div>
