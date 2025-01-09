@@ -38,7 +38,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const showLoadingToast = (event: any, message: string) => {
-        const toastId = toast.custom('loading', 'Ожидайте', message)
+        const toastId = toast.custom('info', 'Ожидайте', message)
 
         const handleFailure = (event: any, args: any) => {
             toast.custom(
@@ -157,19 +157,21 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
-        const toastId = toast.custom('loading', 'Ожидайте', 'Загрузка...')
+        const toastId = toast.custom('info', 'Ожидаю', 'Выберите путь', null, null, Infinity)
 
         window.desktopEvents?.on('download-track-progress', (event, value) => {
+            const roundedValue = Math.round(value);
             toast.custom(
                 'loading',
                 `Загрузка`,
                 <>
-                    <span>Загрузка</span>
+                    <span>Загрузка {roundedValue}%</span>
                 </>,
                 { id: toastId },
-                value,
-            )
-        })
+                roundedValue,
+            );
+        });
+        
 
         window.electron.downloadTrack({
             track: currentTrack,
