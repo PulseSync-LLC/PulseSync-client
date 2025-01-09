@@ -4,7 +4,6 @@ import userContext from '../../api/context/user.context'
 import playerContext from '../../api/context/player.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
-import hotToast from 'react-hot-toast'
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import SettingsInitials from '../../api/initials/settings.initials'
@@ -39,14 +38,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const showLoadingToast = (event: any, message: string) => {
-        const toastId = hotToast.loading(message, {
-            style: {
-                background: '#292C36',
-                color: '#ffffff',
-                border: 'solid 1px #363944',
-                borderRadius: '8px',
-            },
-        })
+        const toastId = toast.custom('loading', 'Ожидайте', message)
 
         const handleFailure = (event: any, args: any) => {
             toast.custom(
@@ -165,14 +157,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
-        const toastId = hotToast.loading('Загрузка...', {
-            style: {
-                background: '#292C36',
-                color: '#ffffff',
-                border: 'solid 1px #363944',
-                borderRadius: '8px',
-            },
-        })
+        const toastId = toast.custom('loading', 'Ожидайте', 'Загрузка...')
 
         window.desktopEvents?.on('download-track-progress', (event, value) => {
             toast.custom(
@@ -193,7 +178,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
 
         window.desktopEvents?.once('download-track-cancelled', () =>
-            hotToast.dismiss(toastId),
+            toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
+                id: toastId,
+            }),
         )
         window.desktopEvents?.once('download-track-failed', () =>
             toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {

@@ -13,7 +13,7 @@ import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
-import hotToast, { Toaster } from 'react-hot-toast'
+import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
 import { Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
@@ -573,15 +573,8 @@ function App() {
                 }))
             })
             window.desktopEvents?.on('check-update', (event, data) => {
-                let toastId: string
-                toastId = hotToast.loading('Проверка обновлений', {
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
-                })
+                let toastId = toast.custom('loading', 'Проверка обновлений', "Ожидайте...")
+                
                 if (data.updateAvailable) {
                     window.desktopEvents?.on(
                         'download-update-progress',
@@ -603,7 +596,14 @@ function App() {
                         },
                     )
                     window.desktopEvents?.once('download-update-cancelled', () =>
-                        hotToast.dismiss(toastId),
+                        toast.custom(
+                            'error',
+                            'Ошибка.',
+                            'Загрузка обновления отменена',
+                            {
+                                id: toastId,
+                            },
+                        ),
                     )
                     window.desktopEvents?.once('download-update-failed', () =>
                         toast.custom(

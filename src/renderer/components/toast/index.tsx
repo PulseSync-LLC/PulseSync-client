@@ -34,7 +34,7 @@ function createToast(
         customType,
     )
 
-    toast.custom(
+    const toastId = toast.custom(
         (t: Toast) => (
             <ToastComponent
                 t={t}
@@ -51,6 +51,8 @@ function createToast(
             duration: isPersistent ? Infinity : duration,
         },
     )
+
+    return toastId;
 }
 
 const ToastComponent = ({

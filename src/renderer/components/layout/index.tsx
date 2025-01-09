@@ -18,7 +18,7 @@ import Preloader from '../preloader'
 
 import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
-import { Toaster, toast } from 'react-hot-toast'
+import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
 import { isDev, isDevmark } from '../../api/config'
 import TooltipButton from '../tooltip_button'
@@ -54,49 +54,39 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleProgress = (event: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
-                toast.loading(`Прогресс загрузки: ${progress}%`, {
+                toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, {
                     id: downloadToastIdRef.current,
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
                     duration: Infinity,
-                })
+                }, progress)
             } else {
-                const id = toast.loading(`Прогресс загрузки: ${progress}%`, {
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
+                const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, {
                     duration: Infinity,
-                })
+                }, progress)
                 downloadToastIdRef.current = id
             }
         }
 
         const handleSuccess = (event: any, data: any) => {
             if (downloadToastIdRef.current) {
-                toast.dismiss(downloadToastIdRef.current)
+                toast.custom('success', `Обновление прошло успешно`, `Готово`, {
+                    id: downloadToastIdRef.current,
+                })
                 downloadToastIdRef.current = null
             }
-            toast.success(
-                data.message ||
-                    (app.mod.installed
-                        ? 'Обновление прошло успешно!'
-                        : 'Установка прошла успешно!'),
-                {
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
-                },
-            )
+            // toast.success(
+            //     data.message ||
+            //         (app.mod.installed
+            //             ? 'Обновление прошло успешно!'
+            //             : 'Установка прошла успешно!'),
+            //     {
+            //         style: {
+            //             background: '#292C36',
+            //             color: '#ffffff',
+            //             border: 'solid 1px #363944',
+            //             borderRadius: '8px',
+            //         },
+            //     },
+            // )
 
             if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
@@ -109,14 +99,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 }))
                 setForceInstallEnabled(false)
             } else {
-                toast.error('Ошибка обновления', {
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
-                })
+                toast.custom('error', 'Что-то не так', 'Ошибка обновления')
             }
 
             setIsUpdating(false)
@@ -124,22 +107,27 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleFailure = (event: any, error: any) => {
             if (downloadToastIdRef.current) {
-                toast.dismiss(downloadToastIdRef.current)
+                // toast.dismiss(downloadToastIdRef.current)
+                toast.custom(
+                    'error',
+                    `Что-то не так`,
+                    `Ошибка обновления: ${error.error}`,
+                    {
+                        id: downloadToastIdRef.current,
+                    },
+                )
                 downloadToastIdRef.current = null
             }
-            toast.error(
+            toast.custom(
+                'error',
+                `Что-то не так`,
                 `${
                     app.mod.installed
                         ? 'Обновление не удалось'
                         : 'Установка не удалась!'
                 }: ${error.error}`,
                 {
-                    style: {
-                        background: '#292C36',
-                        color: '#ffffff',
-                        border: 'solid 1px #363944',
-                        borderRadius: '8px',
-                    },
+                    id: downloadToastIdRef.current,
                 },
             )
             if (error.type === 'version_mismatch') {
@@ -168,41 +156,27 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
-            toast('Обновление уже запущено!', {
-                icon: 'ℹ️',
-                style: {
-                    background: '#292C36',
-                    color: '#ffffff',
-                    border: 'solid 1px #363944',
-                    borderRadius: '8px',
-                },
-            })
+            toast.custom('info', `Обновление уже запущено.`, 'Информация')
             return
         }
 
         if (modInfo.length === 0) {
-            toast.error('Нет доступных обновлений для установки.', {
-                style: {
-                    background: '#292C36',
-                    color: '#ffffff',
-                    border: 'solid 1px #363944',
-                    borderRadius: '8px',
-                },
-            })
+            toast.custom(
+                'error',
+                `Нет доступных обновлений для установки.`,
+                'Ошибка загрузки обновления',
+            )
             return
         }
 
         setIsUpdating(true)
 
-        const id = toast.loading('Начало загрузки обновления...', {
-            style: {
-                background: '#292C36',
-                color: '#ffffff',
-                border: 'solid 1px #363944',
-                borderRadius: '8px',
-            },
-            duration: Infinity,
-        })
+        const id = toast.custom(
+            'loading',
+            'Начало загрузки обновления...',
+            'Ожидайте...',
+        )
+
         downloadToastIdRef.current = id
 
         const { modVersion, downloadUrl, checksum } = modInfo[0]
