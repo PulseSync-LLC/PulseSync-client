@@ -6,20 +6,21 @@
     background-color: #292c36;
     padding: 10px 10px 10px 10px;
     opacity: 0;
-    transform: translateY(150px);
-    outline: 2px solid var(--colorToast);
+    transform: translateY(-150px);
+    // outline: 2px solid var(--colorToast);
+    box-shadow: 0px 0px 15px 2px rgba(0, 0, 0, 0.25);
 }
 
 .toastVisible {
-    transition: all 0.5s ease;
+    transition: all 1s cubic-bezier(0.11, 1.86, 0.27, 0.93);
     opacity: 1;
     transform: translateY(0);
 }
 
 .toastHidden {
-    transition: all 0.5s ease;
+    transition: all 1s cubic-bezier(0.11, 1.86, 0.27, 0.93);
     opacity: 0;
-    transform: translateY(150px);
+    transform: translateY(-150px);
 }
 
 .iconContainer {
@@ -29,7 +30,6 @@
     justify-content: center;
     width: 50px;
     height: 50px;
-    margin-right: 10px;
     position: relative;
 }
 
@@ -79,7 +79,8 @@
     align-items: flex-start;
     padding: 5px 10px;
     gap: 1px;
-    background: var(--colorToast);
+    // background: var(--colorToast);
+    background: transparent;
     border-radius: 5px;
     flex: none;
 }
@@ -88,14 +89,16 @@
     font-weight: 900;
     font-size: 16px;
 
-    color: #2f2e22;
+    // color: #2f2e22;
+    color: var(--colorToast);
 }
 
 .message {
     font-weight: 700;
     font-size: 14px;
 
-    color: #2f2e22;
+    // color: #2f2e22;
+    color: var(--colorToast);
 }
 
 .dismissButton {

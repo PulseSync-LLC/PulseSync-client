@@ -654,7 +654,7 @@ function App() {
     }
     return (
         <div className="app-wrapper">
-            <Toaster position="bottom-center" reverseOrder={false} />
+            <Toaster position="top-center" reverseOrder={false} />
             <UserContext.Provider
                 value={{
                     user,

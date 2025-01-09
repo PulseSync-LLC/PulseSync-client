@@ -143,7 +143,7 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
                             }
                             title="Сбросить значение"
                         >
-                            <MdRestore />
+                            <MdRestore scale={28} />
                         </button>
                     )}
                 </>

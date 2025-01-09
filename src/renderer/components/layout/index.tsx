@@ -1,10 +1,9 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from 'react-helmet-async'
 import {
-    MdArchitecture,
-    MdConnectWithoutContact,
     MdDownload,
     MdExtension,
+    MdHandyman,
     MdKeyboardArrowRight,
     MdOutlineWarningAmber,
     MdPeople,
@@ -286,7 +285,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             {isDev && (
                                 <TooltipButton tooltipText="Development">
                                     <NavButtonPulse to="/dev">
-                                        <MdArchitecture size={24} />
+                                        <MdHandyman size={24} />
                                     </NavButtonPulse>
                                 </TooltipButton>
                             )}
