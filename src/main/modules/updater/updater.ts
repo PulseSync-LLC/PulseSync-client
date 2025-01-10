@@ -45,7 +45,7 @@ class Updater {
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
-
+            mainWindow.setProgressBar(-1);
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
                 logger.updater.log('This update should be installed now')
                 this.install()
@@ -118,6 +118,8 @@ class Updater {
                     this.updateStatus = UpdateStatus.DOWNLOADED
                     logger.updater.info(`Download result: ${downloadResult}`)
                     mainWindow.webContents.send('download-update-finished')
+                    mainWindow.setProgressBar(-1);
+                    mainWindow.flashFrame(true)
                     mainWindow.webContents.send('UPDATE_APP_DATA', {
                         update: true,
                     })
@@ -133,11 +135,13 @@ class Updater {
     async check(): Promise<UpdateStatus> {
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
-            if (this.updateStatus === UpdateStatus.DOWNLOADED)
+            if (this.updateStatus === UpdateStatus.DOWNLOADED) {
                 mainWindow.webContents.send(
                     'update-available',
                     this.latestAvailableVersion,
                 )
+                mainWindow.flashFrame(true)
+            }
             return this.updateStatus
         }
 

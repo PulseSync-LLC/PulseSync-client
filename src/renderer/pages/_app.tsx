@@ -605,13 +605,15 @@ function App() {
                             },
                         ),
                     )
-                    window.desktopEvents?.once('download-update-finished', () =>
-                        toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                            id: toastId,
-                        }),
+                    window.desktopEvents?.once('download-update-finished', () => {
+                            toast.custom('success', 'Успешно.', 'Обновление загружено', {
+                                id: toastId
+                            })
+                            setUpdate(true)
+                        }
                     )
                 } else {
-                    toast.custom('info', 'О как.', 'Обновления не найдены', {
+                    toast.custom('info', 'О как...', 'Обновление не найдено', {
                         id: toastId,
                     })
                 }

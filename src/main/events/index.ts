@@ -327,6 +327,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         updater.start()
         updater.onUpdate((version) => {
             mainWindow.webContents.send('update-available', version)
+            mainWindow.flashFrame(true)
         })
     })
     ipcMain.on('update-rpcSettings', async (event, data) => {
@@ -554,6 +555,7 @@ export const handleAppEvents = (window: BrowserWindow): void => {
 export const checkOrFindUpdate = async () => {
     logger.updater.info('Check update')
     const checkUpdate = await updater.check()
+
     if (checkUpdate === UpdateStatus.DOWNLOADING) {
         mainWindow.webContents.send('check-update', {
             updateAvailable: true,

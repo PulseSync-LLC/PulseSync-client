@@ -1,7 +1,7 @@
 {
     "name": "pulsesyncapp",
     "productName": "PulseSync",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "PulseSync app for desktops",
     "main": ".webpack/main",
     "scripts": {

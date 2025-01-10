@@ -489,7 +489,7 @@ const OldHeader: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Баннер успешно загружен!');
+                toast.custom('success', 'Готово', 'Аватар успешно загружен!');
             } else {
                 setAvatarProgress(-1)
                 toast.custom(
@@ -549,7 +549,7 @@ const OldHeader: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Аватар успешно загружен!');
+                toast.custom('success', 'Готово', 'Баннер успешно загружен!');
                 console.log('Баннер загружен:', data.hash, data.type)
             } else {
                 setBannerProgress(-1)
