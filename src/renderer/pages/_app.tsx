@@ -595,16 +595,6 @@ function App() {
                             )
                         },
                     )
-                    window.desktopEvents?.once('download-update-cancelled', () =>
-                        toast.custom(
-                            'error',
-                            'Ошибка.',
-                            'Загрузка обновления отменена',
-                            {
-                                id: toastId,
-                            },
-                        ),
-                    )
                     window.desktopEvents?.once('download-update-failed', () =>
                         toast.custom(
                             'error',
@@ -621,7 +611,7 @@ function App() {
                         }),
                     )
                 } else {
-                    toast.custom('error', 'Ошибка.', 'Обновления не найдены', {
+                    toast.custom('info', 'О как.', 'Обновления не найдены', {
                         id: toastId,
                     })
                 }

@@ -331,21 +331,13 @@ export default function TrackInfoPage() {
                                 <div className={theme.discordRpc}>
                                     <img
                                         className={theme.userBanner}
-                                        src={
-                                            user.bannerHash
-                                                ? `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-                                                : 'static/assets/images/no_banner.png'
-                                        }
+                                        src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
                                         alt=""
                                     />
                                     <div>
                                         <img
                                             className={theme.userAvatar}
-                                            src={
-                                                user.avatarHash
-                                                    ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
-                                                    : 'static/assets/images/undef.png'
-                                            }
+                                            src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                             alt=""
                                         />
                                         <div className={theme.userName}>

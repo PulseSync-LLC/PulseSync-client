@@ -227,7 +227,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                                     mainWindow.webContents.send(
                                                         'download-track-finished',
                                                     )
-                                                }, 1000)
+                                                }, 1500)
                                                 shell.showItemInFolder(mp3Path)
                                             } catch (err) {
                                                 console.error(
@@ -254,7 +254,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                         mainWindow.webContents.send(
                                             'download-track-finished',
                                         )
-                                    }, 1000)
+                                    }, 1500)
                                     shell.showItemInFolder(filePath)
                                     mainWindow.setProgressBar(-1)
                                 })

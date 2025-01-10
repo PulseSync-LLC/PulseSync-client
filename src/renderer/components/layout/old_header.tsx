@@ -489,7 +489,7 @@ const OldHeader: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.custom('success', 'Пожалуйста', 'Аватар успешно загружен!')
+                toast.custom('success', 'Готово', 'Баннер успешно загружен!');
             } else {
                 setAvatarProgress(-1)
                 toast.custom(
@@ -549,7 +549,7 @@ const OldHeader: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.custom('success', 'Пожалуйста', 'Баннер успешно загружен!')
+                toast.custom('success', 'Готово', 'Аватар успешно загружен!');
                 console.log('Баннер загружен:', data.hash, data.type)
             } else {
                 setBannerProgress(-1)
@@ -1111,15 +1111,14 @@ const OldHeader: React.FC<p> = () => {
                                                     <div
                                                         className={styles.user_info}
                                                     >
-                                                        <Link
-                                                            to={`/user/${user.username}`}
+                                                        <div
                                                             key={user.id}
                                                             className={
                                                                 styles.username
                                                             }
                                                         >
                                                             {user.nickname}
-                                                        </Link>
+                                                        </div>
                                                         <div
                                                             className={
                                                                 styles.usertag
@@ -1142,13 +1141,13 @@ const OldHeader: React.FC<p> = () => {
                                             <div
                                                 className={styles.user_menu_buttons}
                                             >
-                                                <Link
-                                                    to={`/user/${user.username}`}
-                                                    key={user.id}
-                                                    className={styles.menu_button}
-                                                >
-                                                    Мой профиль
-                                                </Link>
+                                                {/*<Link*/}
+                                                {/*    to={`/user/${user.username}`}*/}
+                                                {/*    key={user.id}*/}
+                                                {/*    className={styles.menu_button}*/}
+                                                {/*>*/}
+                                                {/*    Мой профиль*/}
+                                                {/*</Link>*/}
                                                 <button
                                                     className={styles.menu_button}
                                                     disabled

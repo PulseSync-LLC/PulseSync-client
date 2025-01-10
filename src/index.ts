@@ -70,15 +70,15 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
 app.setAppUserModelId('pulsesync.app')
 initializeStore().then(() => {
     logger.main.info('Store initialized')
-    hardwareAcceleration = store.get('settings.hardwareAcceleration', true);
+    hardwareAcceleration = store.get('settings.hardwareAcceleration', true)
     if (!hardwareAcceleration) {
-        app.disableHardwareAcceleration();
+        app.disableHardwareAcceleration()
     }
 })
 
 
 Sentry.init({
-    debug: false,
+    debug: isAppDev,
     attachStacktrace: true,
     dsn: config.SENTRY_DSN,
     enableRendererProfiling: true,

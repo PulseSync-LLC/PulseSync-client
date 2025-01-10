@@ -302,7 +302,7 @@ export default function UsersPage() {
                                         <div className={styles.userGrid}>
                                             {users.map((user) => (
                                                 <Link
-                                                    to={`/user/${user.username}`}
+                                                    to={`/users`}
                                                     key={user.id}
                                                     className={styles.userCard}
                                                     style={{

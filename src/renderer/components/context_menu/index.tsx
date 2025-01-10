@@ -158,7 +158,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const downloadTrack = (event: any) => {
         const toastId = toast.custom('info', 'Ожидаю', 'Выберите путь', null, null, Infinity)
-
+        const cleanListeners = () => {
+            window.desktopEvents?.removeAllListeners('download-track-progress')
+            window.desktopEvents?.removeAllListeners('download-track-cancelled')
+            window.desktopEvents?.removeAllListeners('download-track-finished')
+        }
         window.desktopEvents?.on('download-track-progress', (event, value) => {
             const roundedValue = Math.round(value);
             toast.custom(
@@ -179,19 +183,24 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             metadata: app.settings.writeMetadataAfterDownload,
         })
 
-        window.desktopEvents?.once('download-track-cancelled', () =>
-            toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
-                id: toastId,
-            }),
+        window.desktopEvents?.once('download-track-cancelled', () => {
+                toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
+                    id: toastId
+                })
+                cleanListeners()
+            }
         )
-        window.desktopEvents?.once('download-track-failed', () =>
-            toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
-                id: toastId,
-            }),
+        window.desktopEvents?.once('download-track-failed', () => {
+                toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
+                    id: toastId
+                })
+                cleanListeners()
+            }
         )
         window.desktopEvents?.once('download-track-finished', () => {
+            console.log(toastId)
             toast.custom('success', `Готово`, 'Загрузка завершена', { id: toastId })
-            window.desktopEvents?.removeAllListeners('download-track-progress')
+            cleanListeners()
         })
     }
 
@@ -350,7 +359,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     ]
 
     return (
-        <div className={menuStyles.patchMenu}>
+        <div className={menuStyles.modMenu}>
             {buttonConfigs.map((section, index) => (
                 <React.Fragment key={index}>
                     {section.content ? (
