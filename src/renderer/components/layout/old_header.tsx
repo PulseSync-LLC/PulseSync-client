@@ -489,28 +489,27 @@ const OldHeader: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Аватар успешно загружен!');
+                toast.custom('success', 'Готово', 'Аватар успешно загружен!')
             } else {
                 setAvatarProgress(-1)
                 toast.custom(
                     'error',
-                    'Извините',
+                    'Ой...',
                     'Неизвестная ошибка при загрузке аватара',
                 )
             }
         } catch (error) {
-            if (error.response.data.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 5мб')
+            if (error.response?.data?.message === 'FILE_TOO_LARGE') {
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else {
                 toast.custom(
                     'error',
-                    'Ай блин',
+                    'Ой...',
                     'Ошибка при загрузке аватара, попробуй ещё раз',
                 )
                 Sentry.captureException(error)
             }
             setAvatarProgress(-1)
-            console.error('Error uploading avatar:', error)
         }
     }
 
@@ -540,7 +539,6 @@ const OldHeader: React.FC<p> = () => {
             )
 
             const data = response.data
-            console.log('Загрузка баннера ответ сервера:', data)
 
             if (data && data.ok) {
                 setBannerProgress(-1)
@@ -549,25 +547,22 @@ const OldHeader: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Баннер успешно загружен!');
-                console.log('Баннер загружен:', data.hash, data.type)
+                toast.custom('success', 'Готово', 'Баннер успешно загружен!')
             } else {
                 setBannerProgress(-1)
                 toast.custom(
                     'error',
-                    'Извините',
+                    'Ой...',
                     'Неизвестная ошибка при загрузке баннера',
                 )
-                console.error('Ошибка при загрузке баннера:', data)
             }
         } catch (error) {
-            console.log(error)
             if (error.response.data.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 5мб')
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else {
                 toast.custom(
                     'error',
-                    'Ай блин',
+                    'Ой...',
                     'Ошибка при загрузке баннера, попробуй ещё раз',
                 )
                 Sentry.captureException(error)

@@ -157,14 +157,21 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
-        const toastId = toast.custom('info', 'Ожидаю', 'Выберите путь', null, null, Infinity)
+        const toastId = toast.custom(
+            'info',
+            'Ожидаю',
+            'Выберите путь',
+            null,
+            null,
+            Infinity,
+        )
         const cleanListeners = () => {
             window.desktopEvents?.removeAllListeners('download-track-progress')
             window.desktopEvents?.removeAllListeners('download-track-cancelled')
             window.desktopEvents?.removeAllListeners('download-track-finished')
         }
         window.desktopEvents?.on('download-track-progress', (event, value) => {
-            const roundedValue = Math.round(value);
+            const roundedValue = Math.round(value)
             toast.custom(
                 'loading',
                 `Загрузка`,
@@ -173,9 +180,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 </>,
                 { id: toastId },
                 roundedValue,
-            );
-        });
-        
+            )
+        })
 
         window.electron.downloadTrack({
             track: currentTrack,
@@ -184,19 +190,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
-                toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
-                    id: toastId
-                })
-                cleanListeners()
-            }
-        )
+            toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
+                id: toastId,
+            })
+            cleanListeners()
+        })
         window.desktopEvents?.once('download-track-failed', () => {
-                toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
-                    id: toastId
-                })
-                cleanListeners()
-            }
-        )
+            toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
+                id: toastId,
+            })
+            cleanListeners()
+        })
         window.desktopEvents?.once('download-track-finished', () => {
             console.log(toastId)
             toast.custom('success', `Готово`, 'Загрузка завершена', { id: toastId })

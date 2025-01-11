@@ -52,7 +52,7 @@ function createToast(
         },
     )
 
-    return toastId;
+    return toastId
 }
 
 const ToastComponent = ({

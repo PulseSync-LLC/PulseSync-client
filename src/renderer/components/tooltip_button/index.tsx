@@ -28,7 +28,11 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
         <Tooltip.Provider delayDuration={100} skipDelayDuration={100}>
             <Tooltip.Root>
                 <Tooltip.Trigger asChild>
-                    <Component onClick={onClick} className={className} disabled={disabled}>
+                    <Component
+                        onClick={onClick}
+                        className={className}
+                        disabled={disabled}
+                    >
                         {children}
                     </Component>
                 </Tooltip.Trigger>

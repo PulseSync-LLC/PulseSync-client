@@ -83,7 +83,11 @@ export default function UsersPage() {
                 })
                 .catch((e) => {
                     console.error(e)
-                    toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
+                    toast.custom(
+                        'error',
+                        'Ошибка',
+                        'Произошла ошибка при получении пользователей!',
+                    )
                     setLoading(false)
                 })
         }, 300),

@@ -172,7 +172,7 @@ function App() {
                     } else {
                         toast.custom(
                             'error',
-                            'Отдохни менчик :)',
+                            'Отдохни чуток:)',
                             'Превышено количество попыток подключения.',
                         )
                         window.desktopEvents?.send('authStatus', false)
@@ -181,10 +181,10 @@ function App() {
                     }
                 }
 
-                const sendErrorAuthNotify = (message: string) => {
-                    toast.custom('error', 'Ошибка', message)
+                const sendErrorAuthNotify = (message: string, title?: string) => {
+                    toast.custom('error', 'Ошибка', message, null, null, 10000)
                     window.desktopEvents?.send('show-notification', {
-                        title: 'Ошибка авторизации 😡',
+                        title: `Ошибка авторизации 😡 ${title ? title : ''}`,
                         body: message,
                     })
                 }
@@ -231,10 +231,14 @@ function App() {
                             return false
                         }
                     } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
+                        const isDeprecated = e.graphQLErrors.some(
+                            (error: any) =>
+                                error.extensions?.originalError?.error ===
+                                'DEPRECATED_VERSION',
+                        )
                         const isForbidden = e.graphQLErrors.some(
                             (error: any) => error.extensions?.code === 'FORBIDDEN',
                         )
-
                         if (isForbidden) {
                             sendErrorAuthNotify(
                                 'Ваша сессия истекла. Пожалуйста, войдите снова.',
@@ -246,10 +250,10 @@ function App() {
                             setUser(userInitials)
                             window.desktopEvents?.send('authStatus', false)
                             return false
-                        } else {
-                            Sentry.captureException(e)
+                        } else if (isDeprecated) {
                             sendErrorAuthNotify(
-                                'Ошибка авторизации. Пожалуйста, попробуйте снова.',
+                                'Ошибка авторизации. Данная версия приложения устарела. Скачать новую версию можно через дискорд по команде /getlink ',
+                                'Данная версия приложения устарела',
                             )
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
@@ -363,7 +367,6 @@ function App() {
         await router.navigate('/', { replace: true })
     })
     socket.on('feature_toggles', (data) => {
-        console.log(data)
         setFeatures(data)
     })
     useEffect(() => {
@@ -573,8 +576,12 @@ function App() {
                 }))
             })
             window.desktopEvents?.on('check-update', (event, data) => {
-                let toastId = toast.custom('loading', 'Проверка обновлений', "Ожидайте...")
-                
+                let toastId = toast.custom(
+                    'loading',
+                    'Проверка обновлений',
+                    'Ожидайте...',
+                )
+
                 if (data.updateAvailable) {
                     window.desktopEvents?.on(
                         'download-update-progress',
@@ -606,12 +613,11 @@ function App() {
                         ),
                     )
                     window.desktopEvents?.once('download-update-finished', () => {
-                            toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                                id: toastId
-                            })
-                            setUpdate(true)
-                        }
-                    )
+                        toast.custom('success', 'Успешно.', 'Обновление загружено', {
+                            id: toastId,
+                        })
+                        setUpdate(true)
+                    })
                 } else {
                     toast.custom('info', 'О как...', 'Обновление не найдено', {
                         id: toastId,

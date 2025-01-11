@@ -1,5 +1,5 @@
 import * as semver from 'semver'
-import { app } from 'electron'
+import { app, dialog } from 'electron'
 import { autoUpdater, ProgressInfo } from 'electron-updater'
 import { state } from '../state'
 import { UpdateUrgency } from './constants/updateUrgency'
@@ -33,7 +33,7 @@ class Updater {
         autoUpdater.autoRunAppAfterInstall = true
 
         autoUpdater.on('error', (error) => {
-            logger.updater.log('Updater error', error)
+            logger.updater.error('Updater error', error)
         })
 
         autoUpdater.on('checking-for-update', () => {
@@ -45,7 +45,7 @@ class Updater {
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
-            mainWindow.setProgressBar(-1);
+            mainWindow.setProgressBar(-1)
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
                 logger.updater.log('This update should be installed now')
                 this.install()
@@ -118,7 +118,7 @@ class Updater {
                     this.updateStatus = UpdateStatus.DOWNLOADED
                     logger.updater.info(`Download result: ${downloadResult}`)
                     mainWindow.webContents.send('download-update-finished')
-                    mainWindow.setProgressBar(-1);
+                    mainWindow.setProgressBar(-1)
                     mainWindow.flashFrame(true)
                     mainWindow.webContents.send('UPDATE_APP_DATA', {
                         update: true,
@@ -156,7 +156,20 @@ class Updater {
             }
             this.updateApplier(updateResult)
         } catch (error) {
-            logger.updater.error('Update check error', error)
+            if (
+                error.code === 'ENOENT' &&
+                error.path &&
+                error.path.endsWith('app-update.yml')
+            ) {
+                logger.updater.error(`File app-update.yml not found.`, error)
+                dialog.showErrorBox(
+                    'Ошибка',
+                    'Файлы приложения повреждены. Переустановите приложение.',
+                )
+                app.quit()
+            } else {
+                logger.updater.error('Error: checking for updates', error)
+            }
         }
         return this.updateStatus
     }

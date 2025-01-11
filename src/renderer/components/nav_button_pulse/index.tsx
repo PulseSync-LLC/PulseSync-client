@@ -20,7 +20,13 @@ const NavButtonPulse: React.FC<NavButtonPulseProps> = ({
         <NavLink
             to={disabled ? null : to}
             className={({ isActive, isPending }) =>
-                disabled ? 'disabled' : isPending ? 'pending' : isActive ? 'active' : ''
+                disabled
+                    ? 'disabled'
+                    : isPending
+                      ? 'pending'
+                      : isActive
+                        ? 'active'
+                        : ''
             }
         >
             <TooltipButton

@@ -5,8 +5,10 @@ import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin'
 import config from './src/config.json'
 import webpack from 'webpack'
+import packageJson from './package.json'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
+const releaseVersion = packageJson.version
 
 export const plugins = [
     new ForkTsCheckerWebpackPlugin({
@@ -28,5 +30,8 @@ export const plugins = [
     //     org: 'pulsesync',
     //     project: 'electron',
     //     authToken: config.SENTRY_KEY,
+    //     release: {
+    //         name: releaseVersion
+    //     },
     // }),
 ]
