@@ -5,7 +5,6 @@ import { useEffect, useState, useCallback } from 'react'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
-import toast from 'react-hot-toast'
 import { FaSortUp, FaSortDown } from 'react-icons/fa'
 import debounce from 'lodash.debounce'
 import { MdAllOut, MdHourglassEmpty, MdLink, MdOpenInBrowser } from 'react-icons/md'
@@ -16,6 +15,7 @@ import { Link } from 'react-router-dom'
 import TooltipButton from '../../components/tooltip_button'
 import { Track } from '../../api/interfaces/track.interface'
 import { timeAgo } from '../../utils/utils'
+import toast from '../../components/toast'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -83,7 +83,7 @@ export default function UsersPage() {
                 })
                 .catch((e) => {
                     console.error(e)
-                    toast.error('Произошла ошибка!')
+                    toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
                     setLoading(false)
                 })
         }, 300),
