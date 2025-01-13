@@ -11,6 +11,7 @@ interface TooltipButtonProps {
     as?: 'button' | 'div' | 'span'
     disabled?: boolean
     className?: string
+    style?: React.CSSProperties
 }
 
 const TooltipButton: React.FC<TooltipButtonProps> = ({
@@ -22,6 +23,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
     as = 'button',
     disabled,
     className,
+    style
 }) => {
     const Component = as
     return (
@@ -32,6 +34,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                         onClick={onClick}
                         className={className}
                         disabled={disabled}
+                        style={style}
                     >
                         {children}
                     </Component>

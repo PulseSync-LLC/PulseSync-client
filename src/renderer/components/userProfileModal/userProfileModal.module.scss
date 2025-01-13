@@ -1,0 +1,238 @@
+.overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 9999;
+    padding-top: 50px;
+}
+
+.modalContainer {
+    position: relative;
+    background: #1e2027;
+    border-radius: 8px 8px 0 0;
+    width: 80%;
+    max-width: 700px;
+    max-height: 80vh;
+    min-height: 100%;
+    overflow: auto;
+    outline: 1px #3e424c solid;
+}
+
+.closeButton {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    font-size: 20px;
+    color: #fff;
+    cursor: pointer;
+    z-index: 2;
+
+    &:hover {
+        color: #ffdddd;
+    }
+}
+
+.modalContent {
+    display: flex;
+    flex-direction: column;
+}
+
+.loading {
+    padding: 20px;
+    text-align: center;
+    color: #fff;
+}
+
+.bannerBackground {
+    background-position: 50% 50%;
+    background-repeat: no-repeat;
+    width: 100%;
+    position: relative;
+    transition: var(--transition, 0.3s);
+
+    border-radius: 8px 8px 0 0;
+}
+
+.hideButton {
+    opacity: 0.25;
+    transition: 0.3s;
+    cursor: pointer;
+
+    position: absolute;
+    right: 30px;
+    bottom: 22px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    border: none;
+
+    background: #272a33;
+    color: #ffffff;
+    border-radius: 50%;
+
+    &:hover {
+        background: #333742;
+        opacity: 1;
+    }
+}
+
+.userInfo {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 15px 30px;
+    justify-content: space-between;
+    background: #292c36;
+
+    &::after {
+        content: '';
+        background: #363944;
+        width: 100%;
+        height: 1px;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+    }
+}
+
+.userHeader {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    gap: 2px;
+    width: -webkit-fill-available;
+}
+
+.userContainerLeft {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+    position: relative;
+
+    .userImage {
+        width: 100px;
+        height: 100px;
+        position: absolute;
+        top: -64px;
+
+        .avatarWrapper {
+            outline: 5px solid #292c36;
+            border-radius: 16px;
+            object-fit: cover;
+            z-index: 0;
+        }
+
+        .statusIndicator {
+            --sizeStatus: 25px;
+            position: absolute;
+            bottom: -5px;
+            right: -5px;
+            width: var(--sizeStatus);
+            height: var(--sizeStatus);
+            border-radius: 50%;
+            border: 4px solid #292c36;
+            box-sizing: border-box;
+            cursor: default;
+        }
+    }
+
+    .userInfoText {
+        padding-left: 114px;
+
+        .userName {
+            font-weight: 900;
+            font-size: 20px;
+            line-height: 110%;
+            display: flex;
+            gap: 5px;
+            color: #ffffff;
+
+            .userBadges {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                gap: 3px;
+
+                .badge {
+                    width: 20px;
+                    height: 20px;
+                }
+            }
+        }
+
+        .userUsername {
+            font-weight: 500;
+            font-size: 12px;
+            line-height: 110%;
+            color: #e1e1e1;
+        }
+    }
+}
+
+.rightContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 15px;
+}
+
+.defaultButton {
+    transition: 0.3s;
+    background-color: #3468f2;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+
+    &:hover {
+        background-color: #2553d1;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        &:hover {
+            background-color: #3468f2;
+        }
+    }
+}
+
+.miniButton {
+    transition: 0.3s;
+    border: none;
+    color: #ffffff;
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 10px;
+    gap: 10px;
+    border-radius: 8px;
+
+    &:hover {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+
+        &:hover {
+            background: transparent;
+        }
+    }
+}

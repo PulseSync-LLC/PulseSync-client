@@ -4,27 +4,27 @@ export default gql`
     query users {
         getMe {
             id
+            avatarHash
+            avatarType
             username
-            nickname
-            perms
             createdAt
+            bannerHash
+            bannerType
+            perms
+            status
+            lastOnline
+            currentTrack
             ban {
                 uuid
                 createdAt
             }
-            avatarHash
-            avatarType
-            bannerHash
-            bannerType
             badges {
                 uuid
                 name
                 type
                 level
+                createdAt
             }
-            status
-            lastOnline
-            currentTrack
         }
     }
 `

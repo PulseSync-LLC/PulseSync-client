@@ -16,6 +16,7 @@ import TooltipButton from '../../components/tooltip_button'
 import { Track } from '../../api/interfaces/track.interface'
 import { timeAgo } from '../../utils/utils'
 import toast from '../../components/toast'
+import { useUserProfileModal } from '../../context/UserProfileModalContext'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -24,6 +25,7 @@ export default function UsersPage() {
     const [maxPages, setMaxPages] = useState(1)
     const [sorting, setSorting] = useState([{ id: 'createdAt', desc: false }])
     const [search, setSearch] = useState('')
+    const { openUserProfile } = useUserProfileModal()
 
     const loadingText = 'Загрузка...'.split('')
 
@@ -305,8 +307,10 @@ export default function UsersPage() {
                                     {users.length > 0 ? (
                                         <div className={styles.userGrid}>
                                             {users.map((user) => (
-                                                <Link
-                                                    to={`/users`}
+                                                <button
+                                                onClick={() =>
+                                                    openUserProfile(user.username)
+                                                }
                                                     key={user.id}
                                                     className={styles.userCard}
                                                     style={{
@@ -520,7 +524,7 @@ export default function UsersPage() {
                                                                     </TooltipButton>
                                                                 ))}
                                                     </div>
-                                                </Link>
+                                                </button>
                                             ))}
                                         </div>
                                     ) : (

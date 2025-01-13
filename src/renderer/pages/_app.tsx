@@ -8,7 +8,6 @@ import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import ExtensionPage from './extension'
 import UsersPage from './users'
-import UserProfilePage from './user'
 import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
@@ -49,6 +48,7 @@ import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
+import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -119,14 +119,6 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <UsersPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/user/:param',
-            element: (
-                <ErrorBoundary>
-                    <UserProfilePage />
                 </ErrorBoundary>
             ),
         },
@@ -676,7 +668,9 @@ function App() {
                             {loading ? (
                                 <Preloader />
                             ) : (
-                                <RouterProvider router={router} />
+                                <UserProfileModalProvider>
+                                    <RouterProvider router={router} />
+                                </UserProfileModalProvider>
                             )}
                         </CssVarsProvider>
                     </SkeletonTheme>
