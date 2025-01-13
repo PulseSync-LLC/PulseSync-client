@@ -23,7 +23,6 @@ import config from '../../api/config'
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
-    const context = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
     const [verText, setVerText] = useState(null)
     const [modal, setModal] = useState(false)
@@ -325,6 +324,12 @@ export default function TrackInfoPage() {
                                             >
                                                 Включить кнопку (PulseSync Project)
                                             </CheckboxNav>
+                                            <CheckboxNav
+                                                checkType="displayPause"
+                                                description="Активируйте этот параметр, чтобы показывать трек на паузе."
+                                            >
+                                                Показывать трек на паузе
+                                            </CheckboxNav>
                                         </div>
                                     </div>
                                 </form>
@@ -597,6 +602,31 @@ export default function TrackInfoPage() {
                                                         size={18}
                                                         onClick={() =>
                                                             copyValues('{artist}')
+                                                        }
+                                                    />
+                                                </button>
+                                                <button
+                                                    className={
+                                                        theme.modalContextButton
+                                                    }
+                                                >
+                                                    <div
+                                                        className={theme.contextInfo}
+                                                    >
+                                                        <div
+                                                            className={
+                                                                theme.contextPreview
+                                                            }
+                                                        >
+                                                            album
+                                                        </div>
+                                                        - название альбома
+                                                    </div>
+                                                    <MdContentCopy
+                                                        cursor={'pointer'}
+                                                        size={18}
+                                                        onClick={() =>
+                                                            copyValues('{album}')
                                                         }
                                                     />
                                                 </button>

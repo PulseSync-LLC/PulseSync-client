@@ -27,6 +27,7 @@ const settingsInitials: SettingsInterface = {
         appId: '',
         enableRpcButtonListen: false,
         enableGithubButton: true,
+        displayPause: false,
         status: false,
         details: '',
         state: '',

@@ -134,6 +134,7 @@
                 height: fit-content;
 
                 .modalContextButton {
+                    all: inherit;
                     display: flex;
                     flex-direction: row;
                     align-items: center;

@@ -23,10 +23,11 @@ export interface Tokens {
 export interface discordRpc {
     appId: string
     status: boolean
-    enableRpcButtonListen: boolean
     details: string
     state: string
     button: string
+    displayPause: boolean
+    enableRpcButtonListen: boolean
     enableGithubButton: boolean
 }
 

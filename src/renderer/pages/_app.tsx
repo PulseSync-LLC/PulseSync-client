@@ -548,11 +548,7 @@ function App() {
                         toast.custom('error', 'Ошибка.', 'RPC: ' + data.message)
                         break
                     case 'success':
-                        toast.custom(
-                            'success',
-                            'Предупреждение.',
-                            'RPC: ' + data.message,
-                        )
+                        toast.custom('success', 'Успешно.', 'RPC: ' + data.message)
                         break
                     case 'info':
                         toast.custom('info', 'Информация.', 'RPC: ' + data.message)
@@ -802,7 +798,7 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id, app.discordRpc.status])
 
     const getCoverImage = (track: Track): string => {
-        return track.albumArt || track.coverUri || track.ogImage || ''
+        return track.albumArt || track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
     const getTrackStartTime = (track: Track): number => {
@@ -821,7 +817,7 @@ const Player: React.FC<any> = ({ children }) => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (
                 track.title === '' ||
-                track.status === 'paused' ||
+                (track.status === 'paused' && !app.discordRpc.displayPause) ||
                 (track.timestamps[0] === 0 && track.timestamps[1] === 0)
             ) {
                 window.discordRpc.clearActivity()
@@ -838,8 +834,6 @@ const Player: React.FC<any> = ({ children }) => {
 
                 const activity: any = {
                     type: 2,
-                    startTimestamp,
-                    endTimestamp,
                     largeImageKey: getCoverImage(track),
                     smallImageKey:
                         'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png',
@@ -856,10 +850,16 @@ const Player: React.FC<any> = ({ children }) => {
                             : fixStrings(artistName),
                 }
 
-                if (app.discordRpc.state.length > 0) {
-                    activity.state =
-                        fixStrings(replaceParams(app.discordRpc.state, track)) ||
-                        'Музыка играет'
+                if (track.status === 'paused' && app.discordRpc.displayPause) {
+                    activity.smallImageText = 'Paused'
+                    activity.smallImageKey =
+                        'https://cdn.discordapp.com/app-assets/984031241357647892/1328177768810156184.png?size=256'
+                    activity.details = fixStrings(track.title)
+                    delete activity.startTimestamp
+                    delete activity.endTimestamp
+                } else {
+                    activity.startTimestamp = startTimestamp
+                    activity.endTimestamp = endTimestamp
                 }
 
                 activity.buttons = []
@@ -893,17 +893,19 @@ const Player: React.FC<any> = ({ children }) => {
                         url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev`,
                     })
                 }
+
                 if (activity.buttons.length === 0) {
                     delete activity.buttons
                 }
 
                 if (!track.artists || track.artists.length === 0) {
-                    setTrack((prevTrack: Track) => ({
+                    setTrack((prevTrack) => ({
                         ...prevTrack,
                         title: `${track.title} - Нейромузыка`,
                     }))
                     activity.details = fixStrings(`${track.title} - Нейромузыка`)
                 }
+
                 window.discordRpc.setActivity(activity)
             }
         }

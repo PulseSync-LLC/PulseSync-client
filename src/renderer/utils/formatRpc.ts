@@ -7,6 +7,7 @@ export const replaceParams = (str: any, track: Track) => {
     return str
         .replace('{track}', track.title || '')
         .replace('{artist}', track.artists.map((a) => a.name).join(', ') || '')
+        .replace('{album}', track.albums.map((a) => a.title).join(', ') || '')
 }
 export function fixStrings(string: string): string {
     if (!string) return string
