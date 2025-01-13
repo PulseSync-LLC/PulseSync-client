@@ -1,11 +1,9 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import Modal from 'react-modal'
-import { ApolloProvider } from '@apollo/client'
-import apolloClient from './api/apolloClient'
 import AppPage from './pages/_app'
-import ErrorBoundary from './components/errorBoundary'
 import { Snowfall } from 'react-snowfall'
+import ErrorBoundary from './components/errorBoundary/errorBoundary'
 
 function App() {
     Modal.setAppElement('#root')

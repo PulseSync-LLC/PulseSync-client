@@ -19,6 +19,8 @@ export interface Track {
     albumArt: string
     timestamps: number[]
     realId: string
+    imageUrl: string
+    id: string
     title: string
     major: {
         id: number

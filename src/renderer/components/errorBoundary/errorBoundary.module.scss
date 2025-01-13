@@ -1,0 +1,43 @@
+$error-color: #ff5555;
+$text-color: #ffffff;
+$secondary-text-color: #bbbbbb;
+$background-color: #1e1e1e;
+$border-color: #444;
+$font-family: 'Arial, sans-serif';
+
+.errorBoundary {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    color: $text-color;
+    font-family: $font-family;
+    padding: 1rem;
+
+    h1 {
+        font-size: 2rem;
+        margin-bottom: 1rem;
+        color: $error-color;
+    }
+
+    p {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+        color: $secondary-text-color;
+    }
+
+    pre {
+        cursor: pointer;
+        background-color: $background-color;
+        padding: 1rem;
+        border-radius: 8px;
+        color: $text-color;
+        font-size: 0.875rem;
+        white-space: pre-wrap;
+        max-width: 90%;
+        overflow-x: auto;
+        border: 1px solid $border-color;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+}

@@ -42,13 +42,13 @@ import {
 } from '../utils/utils'
 import ThemeInterface from '../api/interfaces/theme.interface'
 import ThemeInitials from '../api/initials/theme.initials'
-import ErrorBoundary from '../components/errorBoundary'
 import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
+import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -716,6 +716,8 @@ const Player: React.FC<any> = ({ children }) => {
                                 trackSource: data.track?.trackSource,
                                 timestamps: timecodes,
                                 realId: data.track?.realId ?? '',
+                                imageUrl: data.track?.imageUrl ?? '',
+                                id: data.track?.id ?? '',
                                 title: data.track?.title ?? '',
                                 artists:
                                     data.track?.artists?.map((artist: any) => ({
@@ -798,7 +800,12 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id, app.discordRpc.status])
 
     const getCoverImage = (track: Track): string => {
-        return track.albumArt || track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
+        return (
+            track.albumArt ||
+            track.coverUri ||
+            track.ogImage ||
+            'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
+        )
     }
 
     const getTrackStartTime = (track: Track): number => {
@@ -843,11 +850,11 @@ const Player: React.FC<any> = ({ children }) => {
                             ? fixStrings(
                                   replaceParams(app.discordRpc.details, track),
                               )
-                            : fixStrings(track.title),
+                            : fixStrings(track.title || 'Unknown Track'),
                     state:
                         app.discordRpc.state.length > 0
                             ? fixStrings(replaceParams(app.discordRpc.state, track))
-                            : fixStrings(artistName),
+                            : fixStrings(artistName || 'Unknown Artist'),
                 }
 
                 if (track.status === 'paused' && app.discordRpc.displayPause) {
@@ -857,7 +864,7 @@ const Player: React.FC<any> = ({ children }) => {
                     activity.details = fixStrings(track.title)
                     delete activity.startTimestamp
                     delete activity.endTimestamp
-                } else {
+                } else if (!track.id.includes('generative')) {
                     activity.startTimestamp = startTimestamp
                     activity.endTimestamp = endTimestamp
                 }
@@ -866,6 +873,7 @@ const Player: React.FC<any> = ({ children }) => {
 
                 if (
                     track.trackSource !== 'UGC' &&
+                    !track.id.includes('generative') &&
                     app.discordRpc.enableRpcButtonListen
                 ) {
                     const linkTitle = track.albums[0].id
@@ -877,6 +885,7 @@ const Player: React.FC<any> = ({ children }) => {
                     })
                 } else if (
                     track.trackSource === 'UGC' &&
+                    !track.id.includes('generative') &&
                     app.discordRpc.enableRpcButtonListen
                 ) {
                     activity.buttons.push({
@@ -898,14 +907,36 @@ const Player: React.FC<any> = ({ children }) => {
                     delete activity.buttons
                 }
 
-                if (!track.artists || track.artists.length === 0) {
-                    setTrack((prevTrack) => ({
-                        ...prevTrack,
-                        title: `${track.title} - Нейромузыка`,
-                    }))
-                    activity.details = fixStrings(`${track.title} - Нейромузыка`)
-                }
+                if (
+                    (!track.artists || track.artists.length === 0) &&
+                    track.trackSource !== 'UGC'
+                ) {
+                    setTrack((prevTrack) => {
+                        if (
+                            prevTrack.title &&
+                            prevTrack.title.endsWith(' - Нейромузыка')
+                        ) {
+                            return prevTrack
+                        }
+                        return {
+                            ...prevTrack,
+                            title: `${track.title} - Нейромузыка`,
+                        }
+                    })
 
+                    if (!track.title.endsWith(' - Нейромузыка')) {
+                        activity.details = fixStrings(`${track.title} - Нейромузыка`)
+                    } else {
+                        activity.details = fixStrings(track.title)
+                    }
+
+                    if (track.imageUrl.includes('%%')) {
+                        activity.largeImageKey = `https://${track.imageUrl.replace('%%', '1000x1000')}`
+                    }
+
+                    delete activity.state
+                }
+                console.log(activity)
                 window.discordRpc.setActivity(activity)
             }
         }

@@ -411,16 +411,26 @@ export default function TrackInfoPage() {
                                                                                   .state,
                                                                               currentTrack,
                                                                           )
-                                                                        : currentTrack.artists
-                                                                              .map(
-                                                                                  (
-                                                                                      x,
-                                                                                  ) =>
-                                                                                      x.name,
+                                                                        : currentTrack.artists &&
+                                                                            currentTrack
+                                                                                .artists
+                                                                                .length >
+                                                                                0
+                                                                          ? currentTrack.artists
+                                                                                .map(
+                                                                                    (
+                                                                                        x,
+                                                                                    ) =>
+                                                                                        x.name,
+                                                                                )
+                                                                                .join(
+                                                                                    ', ',
+                                                                                )
+                                                                          : !currentTrack.id.includes(
+                                                                                  'generative',
                                                                               )
-                                                                              .join(
-                                                                                  ', ',
-                                                                              )}
+                                                                            ? 'Unknown Artist'
+                                                                            : null}
                                                                 </div>
                                                                 {/*{currentTrack*/}
                                                                 {/*    .timestamps*/}

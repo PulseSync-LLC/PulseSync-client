@@ -20,6 +20,8 @@ const TrackInitials: Track = {
     timestamps: [0, 0],
     url: '',
     realId: '',
+    imageUrl: '',
+    id: '',
     title: '',
     major: {
         id: 0,

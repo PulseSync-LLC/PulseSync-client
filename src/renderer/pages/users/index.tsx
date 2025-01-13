@@ -355,7 +355,7 @@ export default function UsersPage() {
                                                                     <>
                                                                         Сейчас в сети
                                                                     </>
-                                                                ) : (
+                                                                ) : user.lastOnline ? (
                                                                     <>
                                                                         Был в сети:{' '}
                                                                         {timeAgo(
@@ -364,7 +364,7 @@ export default function UsersPage() {
                                                                             ),
                                                                         )}
                                                                     </>
-                                                                )}
+                                                                ) : null}
                                                             </span>
                                                             {user.currentTrack &&
                                                                 user.currentTrack
