@@ -12,6 +12,7 @@ export default gql`
             bannerType
             status
             createdAt
+            currentTrack
             ban {
                 uuid
                 createdAt
