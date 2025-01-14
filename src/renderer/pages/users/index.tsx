@@ -7,7 +7,7 @@ import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
 import { FaSortUp, FaSortDown } from 'react-icons/fa'
 import debounce from 'lodash.debounce'
-import { MdAllOut, MdHourglassEmpty, MdOpenInBrowser } from 'react-icons/md'
+import { MdAllOut, MdHourglassEmpty } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
@@ -15,8 +15,6 @@ import TooltipButton from '../../components/tooltip_button'
 import { timeAgo } from '../../utils/utils'
 import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
-import { Track } from '../../api/interfaces/track.interface'
-
 
 function getStatusColor(user: UserInterface) {
   if (user.currentTrack && user.currentTrack.status === 'playing') {

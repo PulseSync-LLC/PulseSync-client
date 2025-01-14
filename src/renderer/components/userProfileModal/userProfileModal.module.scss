@@ -4,12 +4,24 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 9999;
     padding-top: 50px;
-}
-
-.modalContainer {
+    z-index: 9999;
+    transition: all 0.3s ease;
+    opacity: 0;
+    background: rgba(0, 0, 0, 0);
+  }
+  
+  .overlay.open {
+    opacity: 1;
+    background: rgba(0, 0, 0, 0.5);
+  }
+  
+  .overlay.closed {
+    opacity: 0;
+    background: rgba(0, 0, 0, 0);
+  }
+  
+  .modalContainer {
     position: relative;
     background: #1e2027;
     border-radius: 8px;
@@ -19,7 +31,20 @@
     min-height: 650px;
     overflow: auto;
     outline: 1px #3e424c solid;
-}
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 0;
+    transform: translateY(-40px);
+  }
+  
+  .modalContainer.open {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  
+  .modalContainer.closed {
+    opacity: 0;
+    transform: translateY(-40px);
+  }
 
 .closeButton {
     position: absolute;
@@ -54,7 +79,6 @@
     width: 100%;
     position: relative;
     transition: var(--transition, 0.3s);
-
     border-radius: 8px 8px 0 0;
 }
 
@@ -62,17 +86,14 @@
     opacity: 0.25;
     transition: 0.3s;
     cursor: pointer;
-
     position: absolute;
     right: 30px;
     bottom: 22px;
-
     display: flex;
     justify-content: center;
     align-items: center;
     padding: 10px;
     border: none;
-
     background: #272a33;
     color: #ffffff;
     border-radius: 50%;
@@ -103,7 +124,7 @@
     }
 }
 
-.buttonNowPlaying{
+.buttonNowPlaying {
     background: #ffd562;
     padding: 15px 30px;
     color: #1f222b;
@@ -213,6 +234,7 @@
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+
         &:hover {
             background-color: #3468f2;
         }
@@ -250,7 +272,6 @@
     flex-direction: column;
     gap: 7px;
 }
-
 
 .trackButton {
     display: flex;
