@@ -4,14 +4,16 @@ export default gql`
     query findUserByName($name: String!) {
         findUserByName(name: $name) {
             id
-            username
-            nickname
             avatarHash
             avatarType
+            username
+            nickname
+            createdAt
             bannerHash
             bannerType
+            perms
             status
-            createdAt
+            lastOnline
             currentTrack
             ban {
                 uuid
@@ -22,6 +24,7 @@ export default gql`
                 name
                 type
                 level
+                createdAt
             }
         }
     }

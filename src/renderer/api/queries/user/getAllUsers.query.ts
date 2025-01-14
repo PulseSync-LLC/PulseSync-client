@@ -20,6 +20,7 @@ export default gql`
                 id
                 avatarHash
                 avatarType
+                nickname
                 username
                 createdAt
                 bannerHash

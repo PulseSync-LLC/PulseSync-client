@@ -199,6 +199,17 @@
     gap: 20px;
 }
 
+.statusCircle {
+    position: absolute;
+    bottom: -3px;
+    right: -7px;
+    width: 14px;
+    height: 14px;
+    border: 5px solid #292c36;
+    border-radius: 50%;
+}
+
+
 .userCard {
     cursor: pointer;
     background: #292c36;
@@ -222,13 +233,12 @@
     display: flex;
     align-items: flex-start;
     gap: 15px;
-    margin-bottom: 15px;
 }
 
 .userAvatar {
     width: 60px;
     height: 60px;
-    border-radius: 20%;
+    border-radius: 15%;
     object-fit: cover;
     background: white;
 }
@@ -341,32 +351,5 @@
 
     &:hover:not(:disabled) {
         background-color: #4c79ff;
-    }
-}
-
-.tarckInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-}
-
-.trackButton {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: fit-content;
-    height: fit-content;
-    padding: 5px 15px;
-    font-weight: 600;
-    background-color: #3468f2;
-    border: none;
-    border-radius: 44px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 14px;
-    transition: var(--transition);
-
-    &:hover {
-        background-color: #2d56c5;
     }
 }

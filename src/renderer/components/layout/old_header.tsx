@@ -39,6 +39,7 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 
 import TooltipButton from '../tooltip_button'
+import { useUserProfileModal } from '../../../renderer/context/UserProfileModalContext'
 
 interface p {
     goBack?: boolean
@@ -61,6 +62,8 @@ const OldHeader: React.FC<p> = () => {
     const [modal, setModal] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
+    const { openUserProfile } = useUserProfileModal()
+
     const fixedTheme = { charCount: inputStyle.charCount }
     const [previousValues, setPreviousValues] = useState({
         appId: '',
@@ -1107,6 +1110,11 @@ const OldHeader: React.FC<p> = () => {
                                                         className={styles.user_info}
                                                     >
                                                         <div
+                                                            onClick={() =>
+                                                                openUserProfile(
+                                                                    user.username,
+                                                                )
+                                                            }
                                                             key={user.id}
                                                             className={
                                                                 styles.username
