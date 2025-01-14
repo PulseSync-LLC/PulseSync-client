@@ -111,7 +111,7 @@ export default function UsersPage() {
   )
 
   useEffect(() => {
-    debouncedFetchUsers(page, 50, sorting, search)
+    debouncedFetchUsers(page, 51, sorting, search)
   }, [sorting, page, search, debouncedFetchUsers])
 
   const handlePageChange = (newPage: number) => {
