@@ -27,13 +27,14 @@ import {
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendTheme, setTheme } from './main/modules/httpServer'
-import { handleAppEvents } from './main/events'
+import { handleAppEvents, updateAvailable } from './main/events'
 import { getPathToYandexMusic } from './main/utils/appUtils'
 import Theme from './renderer/api/interfaces/theme.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { handleMod } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
+import { getUpdater } from './main/modules/updater/updater'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -75,7 +76,6 @@ initializeStore().then(() => {
         app.disableHardwareAcceleration()
     }
 })
-
 
 Sentry.init({
     debug: isAppDev,
@@ -179,6 +179,9 @@ const createWindow = (): void => {
         inSleepMode = true
     })
     powerMonitor.on('resume', () => {
+        if(inSleepMode && updateAvailable) {
+            getUpdater().install()
+        }
         inSleepMode = false
     })
 }

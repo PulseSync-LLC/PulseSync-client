@@ -1115,7 +1115,7 @@ const OldHeader: React.FC<p> = () => {
                                                                     user.username,
                                                                 )
                                                             }
-                                                            key={user.id}
+                                                            key={user.username}
                                                             className={
                                                                 styles.username
                                                             }
@@ -1144,13 +1144,17 @@ const OldHeader: React.FC<p> = () => {
                                             <div
                                                 className={styles.user_menu_buttons}
                                             >
-                                                {/*<Link*/}
-                                                {/*    to={`/user/${user.username}`}*/}
-                                                {/*    key={user.id}*/}
-                                                {/*    className={styles.menu_button}*/}
-                                                {/*>*/}
-                                                {/*    Мой профиль*/}
-                                                {/*</Link>*/}
+                                                <button
+                                                    onClick={() =>
+                                                        openUserProfile(
+                                                            user.username,
+                                                        )
+                                                    }
+                                                    key={user.id}
+                                                    className={styles.menu_button}
+                                                >
+                                                    Мой профиль
+                                                </button>
                                                 <button
                                                     className={styles.menu_button}
                                                     disabled

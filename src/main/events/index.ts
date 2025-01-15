@@ -25,7 +25,7 @@ let reqModal = 0
 const ffmpegPath = isAppDev
     ? path.join(__dirname, '..', '..', 'modules', 'ffmpeg.exe')
     : path.join(__dirname, '..', '..', '..', '..', 'modules', 'ffmpeg.exe')
-
+export let updateAvailable = false
 ffmpeg.setFfmpegPath(ffmpegPath)
 export let authorized = false
 export const handleEvents = (window: BrowserWindow): void => {
@@ -61,6 +61,9 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', (event) => {
         event.returnValue = corsAnywherePort
     })
+    ipcMain.on('open-external', async (event, url) => {
+        exec(`start "" "${url}"`);
+    });
     ipcMain.on('open-file', (event, markdownContent) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
         fs.writeFile(tempFilePath, markdownContent, (err) => {
@@ -292,7 +295,7 @@ export const handleEvents = (window: BrowserWindow): void => {
 
         const tags = {
             title: track.title,
-            artist: track.artists.map((artist) => artist.name).join(', '),
+            artist: track.artists.map((artist) => artist.name).join(', ') || 'Unknown Artist',
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
@@ -328,6 +331,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         updater.onUpdate((version) => {
             mainWindow.webContents.send('update-available', version)
             mainWindow.flashFrame(true)
+            updateAvailable = true
         })
     })
     ipcMain.on('update-rpcSettings', async (event, data) => {
@@ -560,10 +564,12 @@ export const checkOrFindUpdate = async () => {
         mainWindow.webContents.send('check-update', {
             updateAvailable: true,
         })
+        updateAvailable = true
     } else if (checkUpdate === UpdateStatus.DOWNLOADED) {
         mainWindow.webContents.send('check-update', {
             updateAvailable: true,
         })
+        updateAvailable = true
         mainWindow.webContents.send('download-update-finished')
     }
 }

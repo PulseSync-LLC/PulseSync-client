@@ -255,9 +255,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                                 e.stopPropagation()
                                                 const albumId =
                                                     user.currentTrack.albums[0].id
-                                                window.open(
-                                                    `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`,
-                                                )
+                                                window.desktopEvents.send('open-external', `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`);
                                             }}
                                             className={styles.trackButton}
                                         >
