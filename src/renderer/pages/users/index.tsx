@@ -48,6 +48,14 @@ export default function UsersPage() {
         },
     }
 
+    const isUserInactive = (lastOnline: string | null) => {
+        if (!lastOnline) return false
+        const lastOnlineDate = new Date(Number(lastOnline))
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        return lastOnlineDate < oneWeekAgo
+    }
+
     const defaultBackground = {
         background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
         backgroundSize: 'cover',
@@ -340,6 +348,9 @@ export default function UsersPage() {
                                                     getStatusColor(user)
                                                 const statusTooltip =
                                                     getStatusTooltip(user)
+                                                const inactive = isUserInactive(
+                                                    user.lastOnline,
+                                                )
                                                 return (
                                                     <button
                                                         key={user.id}
@@ -350,6 +361,9 @@ export default function UsersPage() {
                                                             )
                                                         }
                                                         style={{
+                                                            opacity: inactive
+                                                                ? 0.3
+                                                                : 1,
                                                             background:
                                                                 user.bannerHash
                                                                     ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}) no-repeat center center`
