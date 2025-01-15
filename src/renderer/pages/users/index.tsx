@@ -423,16 +423,6 @@ export default function UsersPage() {
                                                                           ? `Был в сети: ${timeAgo(Number(user.lastOnline))}`
                                                                           : ''}
                                                                 </span>
-                                                                <span
-                                                                    className={
-                                                                        styles.userDate
-                                                                    }
-                                                                >
-                                                                    Создан:{' '}
-                                                                    {new Date(
-                                                                        user.createdAt,
-                                                                    ).toLocaleDateString()}
-                                                                </span>
                                                             </div>
                                                         </div>
                                                         <div
