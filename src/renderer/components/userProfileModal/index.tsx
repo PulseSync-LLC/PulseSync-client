@@ -202,6 +202,10 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                             }
                         />
                     </Button>
+                    <div className={styles.dateCreate}>
+                        Дата регистрации:{' '}
+                        {new Date(user.createdAt).toLocaleDateString()}
+                    </div>
                 </div>
 
                 <div className={styles.userInfo}>

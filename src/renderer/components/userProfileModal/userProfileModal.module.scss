@@ -74,17 +74,39 @@
     background-repeat: no-repeat;
     width: 100%;
     position: relative;
-    transition: var(--transition, 0.3s);
     border-radius: 8px 8px 0 0;
+    display: flex;
+    flex-direction: row-reverse;
+    gap: 5px;
+    align-items: flex-end;
+    padding: 5px 30px;
+}
+
+.dateCreate {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8px 15px;
+    height: 24px;
+
+    background: #272a33;
+    border-radius: 8px;
+
+    font-family: 'Nunito Sans';
+    font-style: normal;
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #ffffff;
 }
 
 .hideButton {
-    opacity: 0.25;
+    opacity: 1;
     transition: 0.3s;
     cursor: pointer;
-    position: absolute;
-    right: 30px;
-    bottom: 22px;
+    height: fit-content;
     display: flex;
     justify-content: center;
     align-items: center;
@@ -92,11 +114,10 @@
     border: none;
     background: #272a33;
     color: #ffffff;
-    border-radius: 50%;
+    border-radius: 8px;
 
     &:hover {
         background: #333742;
-        opacity: 1;
     }
 }
 
@@ -218,7 +239,7 @@
     align-items: flex-start;
     padding: 10px 15px;
     gap: 10px;
-    
+
     color: #fff;
     background: #363b49;
     border-radius: 8px;
@@ -244,7 +265,7 @@
     align-items: flex-start;
     padding: 10px 15px;
     gap: 10px;
-    
+
     color: #fff;
     background: #363b49;
     border-radius: 8px;
