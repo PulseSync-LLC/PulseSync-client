@@ -7,36 +7,21 @@ import UserInterface from '../../api/interfaces/user.interface'
 
 import Button from '../button'
 import TooltipButton from '../tooltip_button'
-import { MdKeyboardArrowDown, MdMoreHoriz, MdOpenInBrowser } from 'react-icons/md'
+import {
+    MdKeyboardArrowDown,
+    MdMoreHoriz,
+    MdOpenInBrowser,
+    MdPersonAddAlt1,
+} from 'react-icons/md'
 
 import * as styles from './userProfileModal.module.scss'
-import { timeAgo } from '../../../renderer/utils/utils'
+import { getStatusColor, getStatusTooltip } from '../../utils/userStatus'
+import { motion } from 'framer-motion'
 
 interface UserProfileModalProps {
     isOpen: boolean
     onClose: () => void
     username: string
-}
-
-const getStatusColor = (user: UserInterface): string => {
-    if (user.currentTrack && user.currentTrack.status === 'playing') return '#FFD562'
-    if (user.status === 'online') return '#62FF79'
-    return '#B0B0B0'
-}
-
-const getStatusTooltip = (user: UserInterface): string => {
-    if (user.currentTrack && user.currentTrack.status === 'playing') {
-        if (user.currentTrack.title) {
-            const artists = user.currentTrack.artists
-                ?.map((artist) => artist.name)
-                .join(', ')
-            return `Слушает: ${user.currentTrack.title} — ${artists}`
-        }
-        return 'Слушает музыку'
-    }
-    if (user.status === 'online') return 'Сейчас в сети'
-    if (user.lastOnline) return `Был в сети: ${timeAgo(Number(user.lastOnline))}`
-    return 'Не в сети'
 }
 
 const UserProfileModal: FC<UserProfileModalProps> = ({
@@ -123,8 +108,58 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
 
     if (!shouldRender) return null
 
+    const loadingText = 'Загрузка...'.split('')
+    const containerVariants = {
+        animate: {
+            transition: { staggerChildren: 0.1 },
+        },
+    }
+    const letterVariants = {
+        initial: { y: 0 },
+        animate: {
+            y: [0, -10, 0],
+            transition: {
+                y: {
+                    repeat: Infinity,
+                    repeatType: 'loop',
+                    duration: 1,
+                    ease: 'easeInOut',
+                },
+            },
+        },
+    }
+
     const renderContent = () => {
-        if (loading) return <div className={styles.loading}>Загрузка профиля...</div>
+        if (loading)
+            return (
+                <div className={styles.loadingWrapper}>
+                    <div className={styles.loading}>
+                        <motion.div
+                            variants={containerVariants}
+                            initial="initial"
+                            animate="animate"
+                            style={{
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                            }}
+                        >
+                            {loadingText.map((char, index) => (
+                                <motion.span
+                                    key={index}
+                                    variants={letterVariants}
+                                    style={{
+                                        display: 'inline-block',
+                                        marginRight: '2px',
+                                    }}
+                                >
+                                    {char}
+                                </motion.span>
+                            ))}
+                        </motion.div>
+                    </div>
+                </div>
+            )
         if (error) return <p>Ошибка: {error?.message || String(error)}</p>
         if (!user || !user.id || user.id === '-1')
             return <p>Пользователь не найден</p>
@@ -228,7 +263,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                             side="top"
                         >
                             <Button disabled className={styles.defaultButton}>
-                                Добавить в друзья
+                                <MdPersonAddAlt1 size={20} />
                             </Button>
                             <Button disabled className={styles.miniButton}>
                                 <MdMoreHoriz size={20} />
@@ -255,7 +290,10 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                                 e.stopPropagation()
                                                 const albumId =
                                                     user.currentTrack.albums[0].id
-                                                window.desktopEvents.send('open-external', `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`);
+                                                window.desktopEvents.send(
+                                                    'open-external',
+                                                    `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`,
+                                                )
                                             }}
                                             className={styles.trackButton}
                                         >

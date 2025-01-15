@@ -9,19 +9,19 @@
     transition: all 0.3s ease;
     opacity: 0;
     background: rgba(0, 0, 0, 0);
-  }
-  
-  .overlay.open {
+}
+
+.overlay.open {
     opacity: 1;
     background: rgba(0, 0, 0, 0.5);
-  }
-  
-  .overlay.closed {
+}
+
+.overlay.closed {
     opacity: 0;
     background: rgba(0, 0, 0, 0);
-  }
-  
-  .modalContainer {
+}
+
+.modalContainer {
     position: relative;
     background: #1e2027;
     border-radius: 8px;
@@ -31,20 +31,22 @@
     min-height: 650px;
     overflow: auto;
     outline: 1px #3e424c solid;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
     opacity: 0;
     transform: translateY(-40px);
-  }
-  
-  .modalContainer.open {
+}
+
+.modalContainer.open {
     opacity: 1;
     transform: translateY(0);
-  }
-  
-  .modalContainer.closed {
+}
+
+.modalContainer.closed {
     opacity: 0;
     transform: translateY(-40px);
-  }
+}
 
 .closeButton {
     position: absolute;
@@ -65,12 +67,6 @@
 .modalContent {
     display: flex;
     flex-direction: column;
-}
-
-.loading {
-    padding: 20px;
-    text-align: center;
-    color: #fff;
 }
 
 .bannerBackground {
@@ -125,9 +121,9 @@
 }
 
 .buttonNowPlaying {
-    background: #ffd562;
+    background: #e64988;
     padding: 15px 30px;
-    color: #1f222b;
+    color: #fff;
     font-size: 14px;
     font-weight: 900;
 }
@@ -212,23 +208,23 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 15px;
+    gap: 5px;
 }
 
 .defaultButton {
-    transition: 0.3s;
-    background-color: #3468f2;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px 15px;
+    gap: 10px;
+    
     color: #fff;
-    padding: 10px 20px;
-    border: none;
+    background: #363b49;
     border-radius: 8px;
-    cursor: pointer;
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 140%;
 
     &:hover {
-        background-color: #2553d1;
+        background-color: #444956;
     }
 
     &:disabled {
@@ -236,25 +232,25 @@
         cursor: not-allowed;
 
         &:hover {
-            background-color: #3468f2;
+            background-color: #363b49;
         }
     }
 }
 
 .miniButton {
-    transition: 0.3s;
-    border: none;
-    color: #ffffff;
-    cursor: pointer;
     display: flex;
+    flex-direction: row;
     justify-content: center;
-    align-items: center;
-    padding: 10px;
+    align-items: flex-start;
+    padding: 10px 15px;
     gap: 10px;
+    
+    color: #fff;
+    background: #363b49;
     border-radius: 8px;
 
     &:hover {
-        background: rgba(0, 0, 0, 0.2);
+        background-color: #444956;
     }
 
     &:disabled {
@@ -262,7 +258,7 @@
         cursor: not-allowed;
 
         &:hover {
-            background: transparent;
+            background-color: #363b49;
         }
     }
 }
@@ -281,7 +277,7 @@
     height: fit-content;
     padding: 5px 15px;
     font-weight: 600;
-    background-color: #3468f2;
+    background-color: #e64988;
     border: none;
     border-radius: 44px;
     color: #fff;
@@ -290,6 +286,32 @@
     transition: var(--transition);
 
     &:hover {
-        background-color: #2d56c5;
+        background-color: #d13d78;
     }
+}
+
+.loadingWrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+}
+
+.loading {
+    display: flex;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    position: absolute;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: x-large;
 }

@@ -15,37 +15,7 @@ import TooltipButton from '../../components/tooltip_button'
 import { timeAgo } from '../../utils/utils'
 import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
-
-function getStatusColor(user: UserInterface) {
-    if (user.currentTrack && user.currentTrack.status === 'playing') {
-        return '#FFD562'
-    }
-    if (user.status === 'online') {
-        return '#62FF79'
-    }
-    return '#B0B0B0'
-}
-
-function getStatusTooltip(user: UserInterface) {
-    if (user.currentTrack && user.currentTrack.status === 'playing') {
-        if (user.currentTrack.title) {
-            const artists = user.currentTrack.artists
-                ?.map((artist) => artist.name)
-                .join(', ')
-            return `Слушает: ${user.currentTrack.title} — ${artists}`
-        }
-        return 'Слушает музыку'
-    }
-
-    if (user.status === 'online') {
-        return 'Сейчас в сети'
-    }
-
-    if (user.lastOnline) {
-        return `Был в сети: ${timeAgo(Number(user.lastOnline))}`
-    }
-    return 'Не в сети'
-}
+import { getStatusColor, getStatusTooltip } from '../../utils/userStatus'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
