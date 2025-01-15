@@ -413,7 +413,7 @@ export default function UsersPage() {
                                                                 </span>
                                                                 <span
                                                                     className={
-                                                                        styles.userDate
+                                                                        styles.userStatus
                                                                     }
                                                                 >
                                                                     {user.status ===
