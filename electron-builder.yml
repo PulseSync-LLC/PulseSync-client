@@ -1,7 +1,7 @@
 appId: pulsesync.app
 productName: PulseSync
 artifactName: pulsesync-app-${version}-setup.${ext}
-copyright: 'Copyright (C) 2024 PulseSync LLC'
+copyright: 'Copyright (C) 2025 PulseSync LLC'
 
 directories:
     output: release

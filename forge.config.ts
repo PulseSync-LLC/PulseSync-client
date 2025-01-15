@@ -18,7 +18,7 @@ const forge_config: ForgeConfig = {
     packagerConfig: {
         icon: './icons/win/icon.ico',
         name: 'PulseSync',
-        appCopyright: 'Copyright (C) 2024 PulseSync LLC',
+        appCopyright: 'Copyright (C) 2025 PulseSync LLC',
         asar: true,
         win32metadata: {
             CompanyName: 'PulseSync LLC',
