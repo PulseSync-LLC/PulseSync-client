@@ -40,6 +40,7 @@ declare global {
             ) => void
             removeListener: (channel: string) => void
             getVersion: (version: string) => string
+            isAppDev: () => boolean
         }
         refreshThemes: () => void
         getModInfo: (args?: any) => void

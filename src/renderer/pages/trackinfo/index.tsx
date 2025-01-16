@@ -24,7 +24,6 @@ export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
-    const [verText, setVerText] = useState(null)
     const [modal, setModal] = useState(false)
     const [modalAnim, setModalAnim] = useState(false)
     const [previousValues, setPreviousValues] = useState({
@@ -91,11 +90,6 @@ export default function TrackInfoPage() {
         return changedValues
     }
     useEffect(() => {
-        setVerText(
-            `2.${Math.floor(Math.random() * 10)}.${Math.floor(Math.random() * 10)}`,
-        )
-    }, [])
-    useEffect(() => {
         setPreviousValues({
             ...(previousValues as any),
             appId: app.discordRpc.appId,
@@ -148,7 +142,7 @@ export default function TrackInfoPage() {
                     <div ref={containerRef} className={styles.main_container}>
                         <Container
                             titleName={'Discord RPC'}
-                            description={`Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord. (Продлена жизнь страницы до ${verText})`}
+                            description={`Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord`}
                             imageName={'discord'}
                             onClick={() => {
                                 if (app.discordRpc.status) {

@@ -61,6 +61,9 @@ export const handleEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', (event) => {
         event.returnValue = corsAnywherePort
     })
+    ipcMain.on('electron-isdev', (event) => {
+        event.returnValue = isAppDev
+    })
     ipcMain.on('open-external', async (event, url) => {
         exec(`start "" "${url}"`);
     });

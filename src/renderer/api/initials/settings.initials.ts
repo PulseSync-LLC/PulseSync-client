@@ -9,6 +9,7 @@ const settingsInitials: SettingsInterface = {
         deletePextAfterImport: false,
         closeAppInTray: false,
         writeMetadataAfterDownload: false,
+        devSocket: false,
     },
     info: {
         version: '',

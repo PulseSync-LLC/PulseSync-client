@@ -39,6 +39,9 @@ contextBridge.exposeInMainWorld('electron', {
     corsAnywherePort() {
         return ipcRenderer.sendSync('electron-corsanywhereport')
     },
+    isAppDev() {
+        return ipcRenderer.sendSync('electron-isdev')
+    },
     downloadTrack(url: any) {
         ipcRenderer.send('download-track', url)
     },

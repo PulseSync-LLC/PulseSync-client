@@ -6,6 +6,7 @@ export interface Settings {
     deletePextAfterImport: boolean
     closeAppInTray: boolean
     writeMetadataAfterDownload: boolean
+    devSocket: boolean
 }
 export interface Info {
     version: string

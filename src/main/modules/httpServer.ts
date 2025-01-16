@@ -124,6 +124,7 @@ const initializeServer = () => {
 }
 
 ipcMain.on('websocket-start', async (event, _) => {
+    if(isAppDev && !store.get('settings.devSocket')) return
     logger.main.log('Received websocket-start event. Starting WebSocket server...')
     startWebSocketServer()
 })

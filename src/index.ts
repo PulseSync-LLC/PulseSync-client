@@ -77,13 +77,16 @@ initializeStore().then(() => {
     }
 })
 
-Sentry.init({
-    debug: isAppDev,
-    attachStacktrace: true,
-    dsn: config.SENTRY_DSN,
-    enableRendererProfiling: true,
-    enableTracing: true,
-})
+if(!isAppDev) {
+    console.log('Sentry enabled')
+    Sentry.init({
+        debug: isAppDev,
+        attachStacktrace: true,
+        dsn: config.SENTRY_DSN,
+        enableRendererProfiling: true,
+        enableTracing: true,
+    })
+}
 
 function checkCLIArguments() {
     const args = process.argv.slice(1)

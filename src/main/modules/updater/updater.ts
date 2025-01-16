@@ -6,6 +6,7 @@ import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
 import { mainWindow } from '../../../index'
+import isAppDev from 'electron-is-dev'
 
 type UpdateInfo = {
     version: string
@@ -161,12 +162,14 @@ class Updater {
                 error.path &&
                 error.path.endsWith('app-update.yml')
             ) {
-                logger.updater.error(`File app-update.yml not found.`, error)
-                dialog.showErrorBox(
-                    'Ошибка',
-                    'Файлы приложения повреждены. Переустановите приложение.',
-                )
-                app.quit()
+                if(!isAppDev){
+                    logger.updater.error(`File app-update.yml not found.`, error)
+                    dialog.showErrorBox(
+                        'Ошибка',
+                        'Файлы приложения повреждены. Переустановите приложение.',
+                    )
+                    app.quit()
+                }
             } else {
                 logger.updater.error('Error: checking for updates', error)
             }

@@ -17,6 +17,7 @@ interface SectionItem {
     label: React.ReactNode
     onClick: (event: any) => void
     disabled?: boolean
+    isDev?: boolean
 }
 
 interface SectionConfig {
@@ -152,6 +153,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     'Изменения вступят в силу после перезапуска приложения',
                 )
                 break
+            case 'devSocket':
+                updatedSettings.devSocket = status
+                window.electron.store.set('settings.devSocket', status)
+                console.log(updatedSettings.devSocket)
+                updatedSettings.devSocket ? window.desktopEvents.send('websocket-start') : window.desktopEvents.send('websocket-stop')
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    'Статус вебсокета изменен',
+                )
+                break
         }
         setApp({ ...app, settings: updatedSettings })
     }
@@ -249,7 +261,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         title: string,
         checked: boolean,
         onToggle: () => void,
+        isDev?: boolean,
     ): SectionItem {
+        if (isDev && !window.electron.isAppDev()) {
+            return null
+        }
         return {
             label: (
                 <>
@@ -359,6 +375,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     toast.custom('success', `Готово`, 'Скоро открою папку')
                 },
             },
+            createToggleButton(
+                'Статус вебсокета',
+                app.settings.devSocket,
+                () => {
+                    toggleSetting(
+                        'devSocket',
+                        !app.settings.devSocket,
+                    )
+                },
+                window.electron.isAppDev(),
+            ),
         ]),
     ]
 
@@ -378,7 +405,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                             )}
                             {section.buttons && (
                                 <div className={menuStyles.showButtons}>
-                                    {section.buttons.map((button, i) => (
+                                    {section.buttons
+                                        .filter((button) => !button.isDev || (button.isDev && window.electron.isAppDev())).map((button, i) => (
                                         <button
                                             key={i}
                                             className={menuStyles.contextButton}
