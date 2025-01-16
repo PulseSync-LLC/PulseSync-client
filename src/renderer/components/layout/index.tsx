@@ -80,26 +80,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleSuccess = (event: any, data: any) => {
             if (downloadToastIdRef.current) {
-                toast.custom('success', `Обновление прошло успешно`, `Готово`, {
+                toast.custom('success', data.message ||
+                    (app.mod.installed
+                        ? 'Обновление прошло успешно!'
+                        : 'Установка прошла успешно!')
+                    , `Готово`, {
                     id: downloadToastIdRef.current,
                 })
                 downloadToastIdRef.current = null
             }
-            // toast.success(
-            //     data.message ||
-            //         (app.mod.installed
-            //             ? 'Обновление прошло успешно!'
-            //             : 'Установка прошла успешно!'),
-            //     {
-            //         style: {
-            //             background: '#292C36',
-            //             color: '#ffffff',
-            //             border: 'solid 1px #363944',
-            //             borderRadius: '8px',
-            //         },
-            //     },
-            // )
-
             if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
                     ...prevApp,
@@ -119,29 +108,31 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleFailure = (event: any, error: any) => {
             if (downloadToastIdRef.current) {
-                // toast.dismiss(downloadToastIdRef.current)
                 toast.custom(
                     'error',
                     `Что-то не так`,
-                    `Ошибка обновления: ${error.error}`,
+                    `${
+                        app.mod.installed
+                            ? 'Обновление не удалось'
+                            : 'Установка не удалась!'
+                    }: ${error.error}`,
                     {
                         id: downloadToastIdRef.current,
                     },
                 )
                 downloadToastIdRef.current = null
             }
-            toast.custom(
-                'error',
-                `Что-то не так`,
-                `${
-                    app.mod.installed
-                        ? 'Обновление не удалось'
-                        : 'Установка не удалась!'
-                }: ${error.error}`,
-                {
-                    id: downloadToastIdRef.current,
-                },
-            )
+            else {
+                toast.custom(
+                    'error',
+                    `Что-то не так`,
+                    `${
+                        app.mod.installed
+                            ? 'Обновление не удалось'
+                            : 'Установка не удалась!'
+                    }: ${error.error}`,
+                )
+            }
             if (error.type === 'version_mismatch') {
                 setForceInstallEnabled(true)
             }

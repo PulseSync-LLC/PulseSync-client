@@ -686,6 +686,7 @@ const Player: React.FC<any> = ({ children }) => {
     const lastSentTrack = useRef({
         title: null,
         status: null,
+        progressPlayed: null,
     })
     useEffect(() => {
         if (user.id !== '-1') {
@@ -703,6 +704,7 @@ const Player: React.FC<any> = ({ children }) => {
                                 ...prevTrack,
                                 status: data.status ?? '',
                                 event: data.event,
+                                progress: data.progress,
                                 speed: data.speed,
                                 volume: data.volume,
                                 url: data.url ?? '',
@@ -937,18 +939,23 @@ const Player: React.FC<any> = ({ children }) => {
     }, [app.settings, user, track, app.discordRpc])
     useEffect(() => {
         if (socket && features.sendTrack && track.title !== '') {
-            const { title, status } = track
+            const { title, status, progress } = track;
 
             if (
                 title !== lastSentTrack.current.title ||
-                status !== lastSentTrack.current.status
+                status !== lastSentTrack.current.status ||
+                progress.played !== lastSentTrack.current.progressPlayed
             ) {
-                socket.emit('send_track', track)
+                socket.emit('send_track', track);
 
-                lastSentTrack.current = { title, status }
+                lastSentTrack.current = {
+                    title,
+                    status,
+                    progressPlayed: progress.played,
+                };
             }
         }
-    }, [socket, track, features.sendTrack])
+    }, [socket, track, features.sendTrack]);
     return (
         <PlayerContext.Provider
             value={{
