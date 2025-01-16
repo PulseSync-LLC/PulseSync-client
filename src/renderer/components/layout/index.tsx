@@ -35,7 +35,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const [isUpdating, setIsUpdating] = useState(false)
     const [loadingPatchInfo, setLoadingPatchInfo] = useState(true)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
+    const [modUpdateState, setModUpdateState] = useState({
+        isVersionOutdated: false,
+        updateUrl: '',
+    })
     const downloadToastIdRef = useRef<string | null>(null)
+    const toastReference = useRef<string | null>(null)
 
     useEffect(() => {
         if (modInfo.length > 0) {
@@ -80,13 +85,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleSuccess = (event: any, data: any) => {
             if (downloadToastIdRef.current) {
-                toast.custom('success', data.message ||
-                    (app.mod.installed
-                        ? 'Обновление прошло успешно!'
-                        : 'Установка прошла успешно!')
-                    , `Готово`, {
-                    id: downloadToastIdRef.current,
-                })
+                toast.custom(
+                    'success',
+                    data.message ||
+                        (app.mod.installed
+                            ? 'Обновление прошло успешно!'
+                            : 'Установка прошла успешно!'),
+                    `Готово`,
+                    {
+                        id: downloadToastIdRef.current,
+                    },
+                )
                 downloadToastIdRef.current = null
             }
             if (modInfo.length > 0) {
@@ -94,8 +103,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     ...prevApp,
                     mod: {
                         ...prevApp.mod,
-                        installed: true,
-                        version: modInfo[0].modVersion,
+                        ...(prevApp.mod.installed
+                            ? { updated: true, version: modInfo[0].modVersion }
+                            : { installed: true, version: modInfo[0].modVersion }),
                     },
                 }))
                 setForceInstallEnabled(false)
@@ -121,8 +131,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 )
                 downloadToastIdRef.current = null
-            }
-            else {
+            } else {
                 toast.custom(
                     'error',
                     `Что-то не так`,
@@ -136,6 +145,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (error.type === 'version_mismatch') {
                 setForceInstallEnabled(true)
             }
+            if (error.type === 'version_outdated') {
+                setModUpdateState({
+                    isVersionOutdated: true,
+                    updateUrl: error.url,
+                })
+            }
             setIsUpdating(false)
         }
 
@@ -144,19 +159,105 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
 
         window.desktopEvents?.on('download-progress', handleProgress)
-        window.desktopEvents?.on('update-success', handleSuccess)
-        window.desktopEvents?.on('update-failure', handleFailure)
+        window.desktopEvents?.on('download-success', handleSuccess)
+        window.desktopEvents?.on('download-failure', handleFailure)
         window.desktopEvents?.on('update-available', handleUpdateAvailable)
 
         return () => {
             window.desktopEvents?.removeAllListeners('download-progress')
-            window.desktopEvents?.removeAllListeners('update-success')
-            window.desktopEvents?.removeAllListeners('update-failure')
+            window.desktopEvents?.removeAllListeners('download-success')
+            window.desktopEvents?.removeAllListeners('download-failure')
             window.desktopEvents?.removeAllListeners('update-available')
             ;(window as any).__listenersAdded = false
         }
     }, [modInfo])
 
+    useEffect(() => {
+        const isListenersAttached = (window as any).__musicEventListeners
+        if (isListenersAttached) return
+
+        ;(window as any).__musicEventListeners = true
+
+        const onProgressUpdate = (
+            event: any,
+            { progress }: { progress: number },
+        ) => {
+            if (toastReference.current) {
+                toast.custom(
+                    'loading',
+                    `Загрузка: ${progress}%`,
+                    'Процесс обновления',
+                    { id: toastReference.current, duration: Infinity },
+                    progress,
+                )
+            } else {
+                const toastId = toast.custom(
+                    'loading',
+                    `Загрузка: ${progress}%`,
+                    'Процесс обновления',
+                    { duration: Infinity },
+                    progress,
+                )
+                toastReference.current = toastId
+            }
+        }
+
+        const onUpdateFailure = (event: any, error: any) => {
+            if (toastReference.current) {
+                toast.custom(
+                    'error',
+                    `Ошибка: ${error.error}`,
+                    'Не удалось выполнить обновление',
+                    { id: toastReference.current },
+                )
+                toastReference.current = null
+            } else {
+                toast.custom(
+                    'error',
+                    `Ошибка: ${error.error}`,
+                    'Не удалось выполнить обновление',
+                )
+            }
+        }
+
+        const onExecutionComplete = (event: any, data: any) => {
+            if (toastReference.current) {
+                toast.custom(
+                    'success',
+                    'Успешно!',
+                    'Обновление Я.Музыки прошло успешно.',
+                    {
+                        id: toastReference.current,
+                    },
+                )
+                toastReference.current = null
+                setModUpdateState({
+                    isVersionOutdated: false,
+                    updateUrl: '',
+                })
+            }
+        }
+
+        window.desktopEvents?.on('update-music-progress', onProgressUpdate)
+        window.desktopEvents?.on('update-music-failure', onUpdateFailure)
+        window.desktopEvents?.on(
+            'update-music-execution-success',
+            onExecutionComplete,
+        )
+
+        return () => {
+            window.desktopEvents?.removeAllListeners('update-music-progress')
+            window.desktopEvents?.removeAllListeners('update-music-failure')
+            window.desktopEvents?.removeAllListeners(
+                'update-music-execution-success',
+            )
+            ;(window as any).__musicEventListeners = false
+        }
+    }, [])
+
+    const updateYandexMusic = () => {
+        window.desktopEvents?.send('update-yandex-music', modUpdateState.updateUrl)
+    }
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
             toast.custom('info', `Обновление уже запущено.`, 'Информация')
@@ -322,19 +423,38 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                     ? 'Обновить'
                                                     : 'Установить'}
                                             </button>
-                                            {isForceInstallEnabled && (
+                                            {isForceInstallEnabled &&
+                                                !modUpdateState.isVersionOutdated && (
+                                                    <button
+                                                        className={
+                                                            pageStyles.patch_button
+                                                        }
+                                                        onClick={() =>
+                                                            startUpdate(true)
+                                                        }
+                                                    >
+                                                        <MdOutlineWarningAmber
+                                                            size={20}
+                                                        />
+                                                        {app.mod.installed
+                                                            ? 'Все равно обновить'
+                                                            : 'Все равно установить'}
+                                                    </button>
+                                                )}
+
+                                            {modUpdateState.isVersionOutdated && (
                                                 <button
                                                     className={
                                                         pageStyles.patch_button
                                                     }
-                                                    onClick={() => startUpdate(true)}
+                                                    onClick={() =>
+                                                        updateYandexMusic()
+                                                    }
                                                 >
                                                     <MdOutlineWarningAmber
                                                         size={20}
                                                     />
-                                                    {app.mod.installed
-                                                        ? 'Все равно обновить'
-                                                        : 'Все равно установить'}
+                                                    Обновить Яндекс.Музыку
                                                 </button>
                                             )}
                                         </div>

@@ -11,11 +11,12 @@ import settingsInitials from '../../api/initials/settings.initials'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
+    modModalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }> // Новый параметр
 }
 
 interface SectionItem {
     label: React.ReactNode
-    onClick: (event: any) => void
+    onClick?: (event: any) => void
     disabled?: boolean
     isDev?: boolean
 }
@@ -26,7 +27,7 @@ interface SectionConfig {
     content?: React.ReactNode
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
     const { app, setApp, setMod, modInfo } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
@@ -157,12 +158,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
                 console.log(updatedSettings.devSocket)
-                updatedSettings.devSocket ? window.desktopEvents.send('websocket-start') : window.desktopEvents.send('websocket-stop')
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    'Статус вебсокета изменен',
-                )
+                updatedSettings.devSocket
+                    ? window.desktopEvents.send('websocket-start')
+                    : window.desktopEvents.send('websocket-stop')
+                toast.custom('success', `Готово`, 'Статус вебсокета изменен')
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -295,6 +294,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         ),
         createButtonSection('Мод', [
             {
+                label: `Apollo v${app.mod.version}`,
+                onClick: () => modModalRef.current?.openModal(),
+            },
+            {
                 label: 'Удалить мод',
                 onClick: deleteMod,
                 disabled: !app.mod.installed,
@@ -379,10 +382,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 'Статус вебсокета',
                 app.settings.devSocket,
                 () => {
-                    toggleSetting(
-                        'devSocket',
-                        !app.settings.devSocket,
-                    )
+                    toggleSetting('devSocket', !app.settings.devSocket)
                 },
                 window.electron.isAppDev(),
             ),
@@ -406,16 +406,22 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                             {section.buttons && (
                                 <div className={menuStyles.showButtons}>
                                     {section.buttons
-                                        .filter((button) => !button.isDev || (button.isDev && window.electron.isAppDev())).map((button, i) => (
-                                        <button
-                                            key={i}
-                                            className={menuStyles.contextButton}
-                                            onClick={button.onClick}
-                                            disabled={button.disabled}
-                                        >
-                                            {button.label}
-                                        </button>
-                                    ))}
+                                        .filter(
+                                            (button) =>
+                                                !button.isDev ||
+                                                (button.isDev &&
+                                                    window.electron.isAppDev()),
+                                        )
+                                        .map((button, i) => (
+                                            <button
+                                                key={i}
+                                                className={menuStyles.contextButton}
+                                                onClick={button.onClick}
+                                                disabled={button.disabled}
+                                            >
+                                                {button.label}
+                                            </button>
+                                        ))}
                                 </div>
                             )}
                         </div>

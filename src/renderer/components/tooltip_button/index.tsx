@@ -23,7 +23,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
     as = 'button',
     disabled,
     className,
-    style
+    style,
 }) => {
     const Component = as
     return (

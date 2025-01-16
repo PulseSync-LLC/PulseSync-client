@@ -77,7 +77,7 @@ initializeStore().then(() => {
     }
 })
 
-if(!isAppDev) {
+if (!isAppDev) {
     console.log('Sentry enabled')
     Sentry.init({
         debug: isAppDev,
@@ -182,7 +182,7 @@ const createWindow = (): void => {
         inSleepMode = true
     })
     powerMonitor.on('resume', () => {
-        if(inSleepMode && updateAvailable) {
+        if (inSleepMode && updateAvailable) {
             getUpdater().install()
         }
         inSleepMode = false

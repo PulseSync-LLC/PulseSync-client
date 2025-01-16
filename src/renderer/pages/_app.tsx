@@ -401,7 +401,7 @@ function App() {
                         })
                     }
                 } else {
-                    console.log('Нет доступных обновлений')
+                    toast.custom('info', 'Всё ок!', 'Нет доступных обновлений мода')
                 }
             } else {
                 console.error('Invalid response format for getMod:', data)
@@ -633,9 +633,7 @@ function App() {
                 })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
-            await fetchModInfo(currentApp).then(() => {
-                toast.custom('success', 'Всё ок!', 'Информация о моде обновлена')
-            })
+            await fetchModInfo(currentApp)
         }
     }
     return (
@@ -939,23 +937,23 @@ const Player: React.FC<any> = ({ children }) => {
     }, [app.settings, user, track, app.discordRpc])
     useEffect(() => {
         if (socket && features.sendTrack && track.title !== '') {
-            const { title, status, progress } = track;
+            const { title, status, progress } = track
 
             if (
                 title !== lastSentTrack.current.title ||
                 status !== lastSentTrack.current.status ||
                 progress.played !== lastSentTrack.current.progressPlayed
             ) {
-                socket.emit('send_track', track);
+                socket.emit('send_track', track)
 
                 lastSentTrack.current = {
                     title,
                     status,
                     progressPlayed: progress.played,
-                };
+                }
             }
         }
-    }, [socket, track, features.sendTrack]);
+    }, [socket, track, features.sendTrack])
     return (
         <PlayerContext.Provider
             value={{

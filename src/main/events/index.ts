@@ -18,7 +18,8 @@ import { Track } from '../../renderer/api/interfaces/track.interface'
 import NodeID3 from 'node-id3'
 import ffmpeg from 'fluent-ffmpeg'
 import isAppDev from 'electron-is-dev'
-import { exec } from 'child_process'
+import { exec, execFile } from 'child_process'
+import axios from 'axios'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -65,8 +66,8 @@ export const handleEvents = (window: BrowserWindow): void => {
         event.returnValue = isAppDev
     })
     ipcMain.on('open-external', async (event, url) => {
-        exec(`start "" "${url}"`);
-    });
+        exec(`start "" "${url}"`)
+    })
     ipcMain.on('open-file', (event, markdownContent) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
         fs.writeFile(tempFilePath, markdownContent, (err) => {
@@ -298,7 +299,9 @@ export const handleEvents = (window: BrowserWindow): void => {
 
         const tags = {
             title: track.title,
-            artist: track.artists.map((artist) => artist.name).join(', ') || 'Unknown Artist',
+            artist:
+                track.artists.map((artist) => artist.name).join(', ') ||
+                'Unknown Artist',
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
@@ -553,6 +556,84 @@ export const handleEvents = (window: BrowserWindow): void => {
             return true
         } catch (error) {
             logger.main.error('Error while creating archive file', error.message)
+        }
+    })
+    ipcMain.on('update-yandex-music', async (event, data) => {
+        if (!data) {
+            event.reply('update-music-failure', {
+                success: false,
+                error: 'No download URL provided.',
+            })
+            return
+        }
+
+        try {
+            const url = data
+            const fileName = path.basename(url)
+            const downloadPath = path.join(__dirname, 'downloads', fileName)
+
+            fs.mkdirSync(path.dirname(downloadPath), { recursive: true })
+
+            const response = await axios({
+                url,
+                method: 'GET',
+                responseType: 'stream',
+            })
+
+            const totalLength = response.headers['content-length']
+            let downloadedLength = 0
+
+            const writer = fs.createWriteStream(downloadPath)
+
+            response.data.on('data', (chunk: string | any[]) => {
+                downloadedLength += chunk.length
+                const progress = downloadedLength / totalLength
+
+                event.reply('update-music-progress', {
+                    progress: Math.round(progress * 100),
+                })
+                mainWindow.setProgressBar(progress)
+            })
+
+            response.data.pipe(writer)
+
+            writer.on('finish', () => {
+                writer.close()
+                mainWindow.setProgressBar(-1)
+                fs.chmodSync(downloadPath, 0o755)
+
+                setTimeout(() => {
+                    execFile(downloadPath, (error) => {
+                        if (error) {
+                            event.reply('update-music-failure', {
+                                success: false,
+                                error: `Failed to execute the file: ${error.message}`,
+                            })
+                            return
+                        }
+
+                        event.reply('update-music-execution-success', {
+                            success: true,
+                            message: 'File executed successfully.',
+                        })
+                    })
+                }, 100)
+            })
+
+            writer.on('error', (error) => {
+                fs.unlinkSync(downloadPath)
+                mainWindow.setProgressBar(-1)
+                event.reply('update-music-failure', {
+                    success: false,
+                    error: `Error saving file: ${error.message}`,
+                })
+            })
+        } catch (error) {
+            mainWindow.setProgressBar(-1)
+            event.reply('update-music-failure', {
+                success: false,
+                error: `Error downloading file: ${error.message}`,
+            })
         }
     })
 }

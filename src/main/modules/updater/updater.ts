@@ -162,7 +162,7 @@ class Updater {
                 error.path &&
                 error.path.endsWith('app-update.yml')
             ) {
-                if(!isAppDev){
+                if (!isAppDev) {
                     logger.updater.error(`File app-update.yml not found.`, error)
                     dialog.showErrorBox(
                         'Ошибка',

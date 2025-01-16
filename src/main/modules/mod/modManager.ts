@@ -48,20 +48,28 @@ export const handleModEvents = (window: BrowserWindow): void => {
                 )
                 if (!force) {
                     try {
-                        const compatible = await checkModCompatibility(
+                        const compatibilityResult = await checkModCompatibility(
                             version,
                             yandexMusicVersion,
                         )
-                        if (!compatible) {
-                            event.reply('update-failure', {
+
+                        if (
+                            !compatibilityResult.success &&
+                            compatibilityResult.code === 'YANDEX_VERSION_OUTDATED'
+                        ) {
+                            event.reply('download-failure', {
                                 success: false,
-                                error: 'Этот мод не совместим с текущей версией Яндекс Музыки.',
-                                type: 'version_mismatch',
+                                error:
+                                    compatibilityResult.message ||
+                                    'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                                type: 'version_outdated',
+                                url: compatibilityResult.url,
+                                requiredVersion: compatibilityResult.requiredVersion,
                             })
                             return
                         }
                     } catch (error) {
-                        event.reply('update-failure', {
+                        event.reply('download-failure', {
                             success: false,
                             error: `Ошибка при проверке совместимости мода: ${error.message}`,
                         })
@@ -103,7 +111,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     mainWindow.setProgressBar(-1)
                 }
 
-                event.reply('update-failure', {
+                event.reply('download-failure', {
                     success: false,
                     error: error.message,
                 })
@@ -178,22 +186,42 @@ const getYandexMusicVersion = async (): Promise<string> => {
 const checkModCompatibility = async (
     modVersion: string,
     yandexMusicVersion: string,
-): Promise<boolean> => {
+): Promise<{
+    success: boolean
+    message?: string
+    code?: string
+    url?: string
+    requiredVersion?: string
+}> => {
     try {
-        const response = await axios.get(
-            `${config.SERVER_URL}/api/v1/mod/check?yandexVersion=${yandexMusicVersion}&modVersion=${modVersion}`,
-        )
+        const response = await axios.get(`${config.SERVER_URL}/api/v1/mod/check`, {
+            params: {
+                yandexVersion: yandexMusicVersion,
+                modVersion: modVersion,
+            },
+        })
 
         const data = response.data
-
-        if (data.error && data.statusCode === 404) {
-            return false
+        if (data.error) {
+            return {
+                success: false,
+                message: data.error,
+            }
         }
-
-        return data.compatible || false
+        return {
+            success: data.success || false,
+            message: data.message,
+            code: data.code,
+            url: data.url,
+            requiredVersion: data.requiredVersion,
+        }
     } catch (error) {
         logger.main.error('Error checking mod compatibility:', error)
-        return false
+
+        return {
+            success: false,
+            message: 'An error occurred while checking mod compatibility.',
+        }
     }
 }
 
@@ -215,7 +243,7 @@ const downloadAndUpdateFile = async (
                 logger.main.info(
                     'app.asar file already matches the required checksum. Installation complete.',
                 )
-                event.reply('update-success', {
+                event.reply('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
                 })
@@ -275,7 +303,7 @@ const downloadAndUpdateFile = async (
             }
             Sentry.captureException(err)
             logger.http.error('Download error:', err.message)
-            event.reply('update-failure', {
+            event.reply('download-failure', {
                 success: false,
                 error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте ваше интернет-соединение.',
             })
@@ -299,7 +327,7 @@ const downloadAndUpdateFile = async (
                     if (hex !== checksum) {
                         fs.unlinkSync(tempFilePath)
                         logger.main.error('Checksum mismatch')
-                        event.reply('update-failure', {
+                        event.reply('download-failure', {
                             success: false,
                             error: 'Checksum не совпадает',
                         })
@@ -311,8 +339,8 @@ const downloadAndUpdateFile = async (
                 store.set('mod.version', modVersion)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
-
-                event.reply('update-success', { success: true })
+                mainWindow.webContents.send('showModModal')
+                event.reply('download-success', { success: true })
             } catch (e) {
                 fs.unlink(tempFilePath, () => {})
                 logger.main.error('Error writing file:', e)
@@ -320,7 +348,7 @@ const downloadAndUpdateFile = async (
                 if (mainWindow) {
                     mainWindow.setProgressBar(-1)
                 }
-                event.reply('update-failure', { success: false, error: e.message })
+                event.reply('download-failure', { success: false, error: e.message })
             }
         })
 
@@ -331,7 +359,7 @@ const downloadAndUpdateFile = async (
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
-            event.reply('update-failure', { success: false, error: err.message })
+            event.reply('download-failure', { success: false, error: err.message })
         })
     } catch (err) {
         fs.unlink(tempFilePath, () => {})
@@ -340,7 +368,7 @@ const downloadAndUpdateFile = async (
         if (mainWindow) {
             mainWindow.setProgressBar(-1)
         }
-        event.reply('update-failure', { success: false, error: err.message })
+        event.reply('download-failure', { success: false, error: err.message })
     }
 }
 

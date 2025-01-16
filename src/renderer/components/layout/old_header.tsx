@@ -1,7 +1,5 @@
 import React, {
     CSSProperties,
-    memo,
-    useCallback,
     useContext,
     useEffect,
     useMemo,
@@ -23,24 +21,19 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '../modal/modal.modules.scss'
 import * as styles from './header.module.scss'
-import * as theme from './trackinfo.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
-import playerContext from '../../../renderer/api/context/player.context'
-import { object, string } from 'yup'
 import toast from '../toast'
 import config, { isDevmark } from '../../api/config'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
 import axios from 'axios'
-import UserInterface from '../../api/interfaces/user.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
-
 import TooltipButton from '../tooltip_button'
-import { useUserProfileModal } from '../../../renderer/context/UserProfileModalContext'
-
+import { useUserProfileModal } from '../../context/UserProfileModalContext'
+import client from '../../api/apolloClient'
+import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 interface p {
     goBack?: boolean
 }
@@ -49,17 +42,23 @@ const OldHeader: React.FC<p> = () => {
     const storedStatus = localStorage.getItem('playStatus')
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
-    const { currentTrack } = useContext(playerContext)
-    const [currentTime, setCurrentTime] = useState<number>(0)
     const [avatarProgress, setAvatarProgress] = useState(-1)
     const [bannerProgress, setBannerProgress] = useState(-1)
-    const previousStatusRef = useRef<string | null>(null)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
-    const [rickRollClick, setRickRoll] = useState(false)
-    const { user, appInfo, app, setUser, setApp } = useContext(userContext)
+    const { user, appInfo, app, setUser, setApp, modInfo } = useContext(userContext)
     const [modal, setModal] = useState(false)
+    const updateModalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
+        null,
+    )
+    const [modModal, setModModal] = useState(false)
+    const modModalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
+        null,
+    )
+    const [modChangesInfo, setModChangesInfo] = useState([])
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
     const { openUserProfile } = useUserProfileModal()
@@ -273,10 +272,11 @@ const OldHeader: React.FC<p> = () => {
     // });
     const openModal = () => setModal(true)
     const closeModal = () => setModal(false)
+    const openModModal = () => setModModal(true)
+    const closeModModal = () => setModModal(false)
 
-    const modalRef = useRef<{ openModal: () => void; closeModal: () => void }>(null)
-
-    modalRef.current = { openModal, closeModal }
+    updateModalRef.current = { openModal, closeModal }
+    modModalRef.current = { openModal: openModModal, closeModal: closeModModal }
     const toggleMenu = () => {
         if (isUserCardOpen) {
             setIsUserCardOpen(false)
@@ -354,6 +354,13 @@ const OldHeader: React.FC<p> = () => {
                     openModal()
                 }
             })
+            window.desktopEvents?.on('showModModal', () => {
+                openModModal()
+            })
+            return () => {
+                window.desktopEvents?.removeAllListeners('showModModal')
+                window.desktopEvents?.removeAllListeners('needModalUpdate')
+            }
         }
     }, [])
 
@@ -574,6 +581,33 @@ const OldHeader: React.FC<p> = () => {
             console.error('Error uploading banner:', error)
         }
     }
+    useEffect(() => {
+        if (!app.mod.installed) return
+
+        const fetchModData = async () => {
+            try {
+                setLoading(true)
+                const { data } = await client.query({
+                    query: GetModUpdates,
+                    variables: { modVersion: app.mod.version },
+                })
+                console.log('Fetched data:', data)
+                setModChangesInfo(data.getChangelogEntries)
+            } catch (err) {
+                console.error('Error fetching mod data:', err)
+                setError(err.message)
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        fetchModData()
+    }, [modModal, app.mod, modInfo]) // Зависимости: modModal, modInfo
+    useEffect(() => {
+        console.log('modModal:', modModal)
+        console.log('modInfo:', modInfo)
+    }, [modModal, modInfo])
+
     return (
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
@@ -595,6 +629,50 @@ const OldHeader: React.FC<p> = () => {
                                 <hr />
                             </div>
                         ))}
+                </div>
+            </Modal>
+            <Modal
+                title="Последние обновления мода"
+                isOpen={modModal}
+                reqClose={closeModModal}
+            >
+                <div className={modalStyles.updateModal}>
+                    {loading && <p>Loading...</p>}
+                    {error && <p>Error: {error}</p>}
+                    {!loading &&
+                        !error &&
+                        modChangesInfo.length > 0 &&
+                        modChangesInfo.map((info) => (
+                            <div key={info.id}>
+                                <div className={modalStyles.version_info}>
+                                    <h3>{info.version}</h3>
+                                    <span>{formatDate(info.createdAt)}</span>
+                                </div>
+
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    components={{
+                                        a: ({ href, children }) => (
+                                            <a
+                                                href={href}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                            >
+                                                {children}
+                                            </a>
+                                        ),
+                                    }}
+                                >
+                                    {Array.isArray(info.description)
+                                        ? info.description.join('\n')
+                                        : info.description || ''}
+                                </ReactMarkdown>
+                                <hr />
+                            </div>
+                        ))}
+                    {!loading && !error && modChangesInfo.length === 0 && (
+                        <p>No updates found.</p>
+                    )}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
@@ -620,7 +698,12 @@ const OldHeader: React.FC<p> = () => {
                                     {user.id != '-1' && <ArrowDown />}
                                 </div>
                             </button>
-                            {isMenuOpen && <ContextMenu modalRef={modalRef} />}
+                            {isMenuOpen && (
+                                <ContextMenu
+                                    modalRef={updateModalRef}
+                                    modModalRef={modModalRef}
+                                />
+                            )}
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
