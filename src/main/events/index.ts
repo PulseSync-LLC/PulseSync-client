@@ -570,8 +570,12 @@ export const handleEvents = (window: BrowserWindow): void => {
         try {
             const url = data
             const fileName = path.basename(url)
-            const downloadPath = path.join(__dirname, 'downloads', fileName)
-
+            const downloadPath = path.join(
+                app.getPath('appData'),
+                'PulseSync',
+                'downloads',
+                fileName
+            )
             fs.mkdirSync(path.dirname(downloadPath), { recursive: true })
 
             const response = await axios({
@@ -616,6 +620,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                             success: true,
                             message: 'File executed successfully.',
                         })
+                        fs.unlinkSync(downloadPath)
                     })
                 }, 100)
             })

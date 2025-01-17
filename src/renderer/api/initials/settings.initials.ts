@@ -10,6 +10,7 @@ const settingsInitials: SettingsInterface = {
         closeAppInTray: false,
         writeMetadataAfterDownload: false,
         devSocket: false,
+        showModModalAfterInstall: true,
     },
     info: {
         version: '',
@@ -18,6 +19,7 @@ const settingsInitials: SettingsInterface = {
         version: '',
         musicVersion: '',
         installed: false,
+        showModal: true,
         updated: false,
         changelog: [],
     },

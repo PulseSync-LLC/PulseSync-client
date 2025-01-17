@@ -6,6 +6,7 @@ import {
     MdHandyman,
     MdKeyboardArrowRight,
     MdOutlineWarningAmber,
+    MdOutlineInstallDesktop,
     MdPeople,
     MdStoreMallDirectory,
     MdUpdate,
@@ -22,6 +23,8 @@ import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
 import { isDev, isDevmark } from '../../api/config'
 import TooltipButton from '../tooltip_button'
+import store from '../../api/store/store'
+import { openModal } from '../../api/store/modalSlice'
 
 interface LayoutProps {
     title: string
@@ -33,7 +36,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { app, setApp, updateAvailable, setUpdate, modInfo } =
         useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
-    const [loadingPatchInfo, setLoadingPatchInfo] = useState(true)
+    const [isMusicUpdating, setIsMusicUpdating] = useState(false)
+    const [loadingModInfo, setLoadingModInfo] = useState(true)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
     const [modUpdateState, setModUpdateState] = useState({
         isVersionOutdated: false,
@@ -44,9 +48,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     useEffect(() => {
         if (modInfo.length > 0) {
-            setLoadingPatchInfo(false)
+            setLoadingModInfo(false)
         } else {
-            setLoadingPatchInfo(false)
+            setLoadingModInfo(false)
         }
     }, [modInfo])
 
@@ -98,6 +102,16 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 )
                 downloadToastIdRef.current = null
             }
+            else {
+                toast.custom(
+                    'success',
+                    data.message ||
+                    (app.mod.installed
+                        ? 'Обновление прошло успешно!'
+                        : 'Установка прошла успешно!'),
+                    `Готово`,
+                )
+            }
             if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
                     ...prevApp,
@@ -108,6 +122,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             : { installed: true, version: modInfo[0].modVersion }),
                     },
                 }))
+                if (modInfo[0].showModal || app.settings.showModModalAfterInstall) {
+                    store.dispatch(openModal())
+                }
                 setForceInstallEnabled(false)
             } else {
                 toast.custom('error', 'Что-то не так', 'Ошибка обновления')
@@ -120,29 +137,33 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (downloadToastIdRef.current) {
                 toast.custom(
                     'error',
-                    `Что-то не так`,
+                    'Произошла ошибка',
                     `${
-                        app.mod.installed
-                            ? 'Обновление не удалось'
-                            : 'Установка не удалась!'
-                    }: ${error.error}`,
+                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
+                            ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
+                            : app.mod.installed
+                                ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
+                                : `Установка мода не удалась. Попробуйте ещё раз.`
+                    }`,
                     {
                         id: downloadToastIdRef.current,
-                    },
+                    }
                 )
                 downloadToastIdRef.current = null
             } else {
                 toast.custom(
                     'error',
-                    `Что-то не так`,
+                    'Произошла ошибка',
                     `${
-                        app.mod.installed
-                            ? 'Обновление не удалось'
-                            : 'Установка не удалась!'
-                    }: ${error.error}`,
+                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
+                            ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
+                            : app.mod.installed
+                                ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
+                                : `Установка мода не удалась. Попробуйте ещё раз.`
+                    }`
                 )
             }
-            if (error.type === 'version_mismatch') {
+            if (error.type === 'version_too_new') {
                 setForceInstallEnabled(true)
             }
             if (error.type === 'version_outdated') {
@@ -175,7 +196,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     useEffect(() => {
         const isListenersAttached = (window as any).__musicEventListeners
         if (isListenersAttached) return
-
         ;(window as any).__musicEventListeners = true
 
         const onProgressUpdate = (
@@ -218,6 +238,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     'Не удалось выполнить обновление',
                 )
             }
+            setIsMusicUpdating(false)
         }
 
         const onExecutionComplete = (event: any, data: any) => {
@@ -235,6 +256,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     isVersionOutdated: false,
                     updateUrl: '',
                 })
+                setIsMusicUpdating(false)
             }
         }
 
@@ -256,7 +278,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }, [])
 
     const updateYandexMusic = () => {
+        if (isMusicUpdating) {
+            toast.custom('info', `Обновление уже запущено.`, 'Информация')
+            return
+        }
         window.desktopEvents?.send('update-yandex-music', modUpdateState.updateUrl)
+        setIsMusicUpdating(true)
     }
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
@@ -307,7 +334,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [isDevmark])
 
-    if (loadingPatchInfo) {
+    if (loadingModInfo) {
         return <Preloader />
     }
 
@@ -451,7 +478,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                         updateYandexMusic()
                                                     }
                                                 >
-                                                    <MdOutlineWarningAmber
+                                                    <MdOutlineInstallDesktop
                                                         size={20}
                                                     />
                                                     Обновить Яндекс.Музыку

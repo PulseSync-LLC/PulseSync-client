@@ -34,6 +34,9 @@ import TooltipButton from '../tooltip_button'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
 import client from '../../api/apolloClient'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
+import { useDispatch, useSelector } from 'react-redux'
+import { RootState } from '../../api/store/store'
+import { closeModal, openModal } from '../../api/store/modalSlice'
 interface p {
     goBack?: boolean
 }
@@ -49,13 +52,16 @@ const OldHeader: React.FC<p> = () => {
     const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
     const { user, appInfo, app, setUser, setApp, modInfo } = useContext(userContext)
     const [modal, setModal] = useState(false)
-    const updateModalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
-        null,
-    )
-    const [modModal, setModModal] = useState(false)
+    const updateModalRef = useRef<{
+        openUpdateModal: () => void
+        closeUpdateModal: () => void
+    }>(null)
     const modModalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
         null,
     )
+
+    const dispatch = useDispatch()
+    const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
     const [modChangesInfo, setModChangesInfo] = useState([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
@@ -270,13 +276,14 @@ const OldHeader: React.FC<p> = () => {
     //         val => !val || val.length <= 30,
     //     ),
     // });
-    const openModal = () => setModal(true)
-    const closeModal = () => setModal(false)
-    const openModModal = () => setModModal(true)
-    const closeModModal = () => setModModal(false)
+    const openUpdateModal = () => setModal(true)
+    const closeUpdateModal = () => setModal(false)
 
-    updateModalRef.current = { openModal, closeModal }
+    const openModModal = () => dispatch(openModal())
+    const closeModModal = () => dispatch(closeModal())
+
     modModalRef.current = { openModal: openModModal, closeModal: closeModModal }
+    updateModalRef.current = { openUpdateModal, closeUpdateModal }
     const toggleMenu = () => {
         if (isUserCardOpen) {
             setIsUserCardOpen(false)
@@ -351,7 +358,7 @@ const OldHeader: React.FC<p> = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke('needModalUpdate').then((value) => {
                 if (value) {
-                    openModal()
+                    openUpdateModal()
                 }
             })
             window.desktopEvents?.on('showModModal', () => {
@@ -602,15 +609,19 @@ const OldHeader: React.FC<p> = () => {
         }
 
         fetchModData()
-    }, [modModal, app.mod, modInfo]) // Зависимости: modModal, modInfo
+    }, [isModModalOpen, app.mod, modInfo])
     useEffect(() => {
-        console.log('modModal:', modModal)
+        console.log('modModal:', isModModalOpen)
         console.log('modInfo:', modInfo)
-    }, [modModal, modInfo])
+    }, [isModModalOpen, modInfo])
 
     return (
         <>
-            <Modal title="Последние обновления" isOpen={modal} reqClose={closeModal}>
+            <Modal
+                title="Последние обновления"
+                isOpen={modal}
+                reqClose={closeUpdateModal}
+            >
                 <div className={modalStyles.updateModal}>
                     {memoizedAppInfo
                         .filter((info) => info.version <= app.info.version)
@@ -633,7 +644,7 @@ const OldHeader: React.FC<p> = () => {
             </Modal>
             <Modal
                 title="Последние обновления мода"
-                isOpen={modModal}
+                isOpen={isModModalOpen}
                 reqClose={closeModModal}
             >
                 <div className={modalStyles.updateModal}>
@@ -671,7 +682,7 @@ const OldHeader: React.FC<p> = () => {
                             </div>
                         ))}
                     {!loading && !error && modChangesInfo.length === 0 && (
-                        <p>No updates found.</p>
+                        <p>Список изменений не найден.</p>
                     )}
                 </div>
             </Modal>
@@ -698,12 +709,7 @@ const OldHeader: React.FC<p> = () => {
                                     {user.id != '-1' && <ArrowDown />}
                                 </div>
                             </button>
-                            {isMenuOpen && (
-                                <ContextMenu
-                                    modalRef={updateModalRef}
-                                    modModalRef={modModalRef}
-                                />
-                            )}
+                            {isMenuOpen && <ContextMenu modalRef={updateModalRef} />}
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>

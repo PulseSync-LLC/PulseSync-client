@@ -7,6 +7,7 @@ export interface Settings {
     closeAppInTray: boolean
     writeMetadataAfterDownload: boolean
     devSocket: boolean
+    showModModalAfterInstall: boolean
 }
 export interface Info {
     version: string
@@ -17,6 +18,7 @@ export interface Mod {
     changelog: string[]
     installed: boolean
     updated: boolean
+    showModal: boolean
 }
 export interface Tokens {
     token: string

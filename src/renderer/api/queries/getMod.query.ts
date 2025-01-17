@@ -8,6 +8,7 @@ export default gql`
             modVersion
             downloadUrl
             createdAt
+            showModal
             checksum
         }
     }

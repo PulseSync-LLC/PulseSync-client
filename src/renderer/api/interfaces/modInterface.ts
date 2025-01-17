@@ -4,6 +4,7 @@ export interface ModInterface {
     musicVersion: string
     checksum: string
     downloadUrl: string
+    showModal: string
     createdAt: string
     changelog: string
 }

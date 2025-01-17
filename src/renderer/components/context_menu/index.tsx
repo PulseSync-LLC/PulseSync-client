@@ -8,10 +8,14 @@ import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import SettingsInitials from '../../api/initials/settings.initials'
 import settingsInitials from '../../api/initials/settings.initials'
+import store from '../../api/store/store'
+import { openModal } from '../../api/store/modalSlice'
 
 interface ContextMenuProps {
-    modalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }>
-    modModalRef: React.RefObject<{ openModal: () => void; closeModal: () => void }> // Новый параметр
+    modalRef: React.RefObject<{
+        openUpdateModal: () => void
+        closeUpdateModal: () => void
+    }>
 }
 
 interface SectionItem {
@@ -27,12 +31,12 @@ interface SectionConfig {
     content?: React.ReactNode
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { app, setApp, setMod, modInfo } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
-    const openModal = () => {
-        modalRef.current?.openModal()
+    const openUpdateModal = () => {
+        modalRef.current?.openUpdateModal()
     }
 
     const openAppDirectory = () => {
@@ -162,6 +166,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
                     ? window.desktopEvents.send('websocket-start')
                     : window.desktopEvents.send('websocket-stop')
                 toast.custom('success', `Готово`, 'Статус вебсокета изменен')
+                break
+            case 'showModModalAfterInstall':
+                updatedSettings.showModModalAfterInstall = status
+                window.electron.store.set(
+                    'settings.showModModalAfterInstall',
+                    status,
+                )
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Показывать список изменений после установки" ${status ? 'включена' : 'выключена'}`,
+                )
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -294,8 +310,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
         ),
         createButtonSection('Мод', [
             {
-                label: `Apollo v${app.mod.version}`,
-                onClick: () => modModalRef.current?.openModal(),
+                label: app.mod.installed
+                    ? `Apollo v${app.mod.version}`
+                    : 'Не установлен',
+                onClick: () => store.dispatch(openModal()),
+                disabled: !app.mod.installed,
             },
             {
                 label: 'Удалить мод',
@@ -307,7 +326,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
                 onClick: () => window.getModInfo(app),
                 disabled: !app.mod.installed,
             },
-            { label: 'Скрипт мода на GitHub', onClick: openGitHub },
+            createToggleButton(
+                'Показывать список изменений после установки?',
+                app.settings.showModModalAfterInstall,
+                () =>
+                    toggleSetting(
+                        'showModModalAfterInstall',
+                        !app.settings.showModModalAfterInstall,
+                    ),
+            ),
         ]),
         createButtonSection('Настройки приложения', [
             createToggleButton('Автотрей', app.settings.autoStartInTray, () =>
@@ -366,7 +393,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
             },
         ]),
         createButtonSection('Особое', [
-            { label: `Beta v${app.info.version}`, onClick: openModal },
+            { label: `Beta v${app.info.version}`, onClick: openUpdateModal },
             {
                 label: 'Проверить обновления',
                 onClick: () => window.desktopEvents?.send('checkUpdate'),
@@ -384,7 +411,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
                 () => {
                     toggleSetting('devSocket', !app.settings.devSocket)
                 },
-                window.electron.isAppDev(),
+                true,
             ),
         ]),
     ]
@@ -406,11 +433,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef, modModalRef }) => {
                             {section.buttons && (
                                 <div className={menuStyles.showButtons}>
                                     {section.buttons
+                                        ?.filter(Boolean)
                                         .filter(
                                             (button) =>
-                                                !button.isDev ||
-                                                (button.isDev &&
-                                                    window.electron.isAppDev()),
+                                                !button.isDev || (button.isDev && window.electron.isAppDev()),
                                         )
                                         .map((button, i) => (
                                             <button

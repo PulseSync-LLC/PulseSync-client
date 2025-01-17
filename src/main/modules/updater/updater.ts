@@ -152,7 +152,7 @@ class Updater {
                 body: `PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения`,
             })
             if (!updateResult) {
-                logger.updater.log('No update found')
+                logger.updater.log('Обновлений не найдено')
                 return null
             }
             this.updateApplier(updateResult)
