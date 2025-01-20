@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import { MdDelete, MdRestore } from 'react-icons/md'
 import * as styles from './ConfigurationItem.module.scss'
 import { ButtonAction, Item, TextItem, isTextItem } from './types'
@@ -43,7 +43,12 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
     removeItem,
 }) => {
     let isDifferent = false
-
+    const inputRef = useRef<HTMLInputElement>(null)
+    useEffect(() => {
+        if (inputRef.current) {
+            inputRef.current.focus()
+        }
+    }, [item.id])
     switch (item.type) {
         case 'button':
             isDifferent = item.bool !== item.defaultParameter
@@ -91,6 +96,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         <label className={styles.label}>ID (строка):</label>
                         <input
                             type="text"
+                            ref={inputRef}
                             className={styles.input}
                             value={item.id}
                             onChange={(e) =>

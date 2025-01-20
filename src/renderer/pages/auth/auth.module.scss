@@ -1,5 +1,6 @@
 .main_window {
     display: flex;
+    overflow: hidden;
     height: -webkit-fill-available;
     width: -webkit-fill-available;
     justify-content: center;

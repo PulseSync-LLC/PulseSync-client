@@ -101,14 +101,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 )
                 downloadToastIdRef.current = null
-            }
-            else {
+            } else {
                 toast.custom(
                     'success',
                     data.message ||
-                    (app.mod.installed
-                        ? 'Обновление прошло успешно!'
-                        : 'Установка прошла успешно!'),
+                        (app.mod.installed
+                            ? 'Обновление прошло успешно!'
+                            : 'Установка прошла успешно!'),
                     `Готово`,
                 )
             }
@@ -139,15 +138,19 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     'error',
                     'Произошла ошибка',
                     `${
-                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
+                        [
+                            'version_too_new',
+                            'version_outdated',
+                            'checksum_mismatch',
+                        ].includes(error.type)
                             ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
                             : app.mod.installed
-                                ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
-                                : `Установка мода не удалась. Попробуйте ещё раз.`
+                              ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
+                              : `Установка мода не удалась. Попробуйте ещё раз.`
                     }`,
                     {
                         id: downloadToastIdRef.current,
-                    }
+                    },
                 )
                 downloadToastIdRef.current = null
             } else {
@@ -155,12 +158,16 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     'error',
                     'Произошла ошибка',
                     `${
-                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
+                        [
+                            'version_too_new',
+                            'version_outdated',
+                            'checksum_mismatch',
+                        ].includes(error.type)
                             ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
                             : app.mod.installed
-                                ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
-                                : `Установка мода не удалась. Попробуйте ещё раз.`
-                    }`
+                              ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
+                              : `Установка мода не удалась. Попробуйте ещё раз.`
+                    }`,
                 )
             }
             if (error.type === 'version_too_new') {

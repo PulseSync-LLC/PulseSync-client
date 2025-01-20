@@ -138,7 +138,9 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     store.delete('mod.musicVersion')
                     store.set('mod.installed', false)
 
-                    mainWindow.webContents.send('remove-mod-success', { success: true })
+                    mainWindow.webContents.send('remove-mod-success', {
+                        success: true,
+                    })
                 } else {
                     mainWindow.webContents.send('remove-mod-failure', {
                         success: false,
@@ -342,7 +344,7 @@ const downloadAndUpdateFile = async (
                         logger.main.error('Checksum mismatch')
                         mainWindow.webContents.send('download-failure', {
                             success: false,
-                            type: "checksum_mismatch",
+                            type: 'checksum_mismatch',
                             error: 'Ошибка при проверке целостности файла. Попробуйте скачать еще раз.',
                         })
                         return
@@ -354,7 +356,9 @@ const downloadAndUpdateFile = async (
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
                 setTimeout(() => {
-                    mainWindow.webContents.send('download-success', { success: true })
+                    mainWindow.webContents.send('download-success', {
+                        success: true,
+                    })
                 }, 1500)
             } catch (e) {
                 fs.unlink(tempFilePath, () => {})
@@ -363,7 +367,10 @@ const downloadAndUpdateFile = async (
                 if (mainWindow) {
                     mainWindow.setProgressBar(-1)
                 }
-                mainWindow.webContents.send('download-failure', { success: false, error: e.message })
+                mainWindow.webContents.send('download-failure', {
+                    success: false,
+                    error: e.message,
+                })
             }
         })
 
@@ -374,7 +381,10 @@ const downloadAndUpdateFile = async (
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
-            mainWindow.webContents.send('download-failure', { success: false, error: err.message })
+            mainWindow.webContents.send('download-failure', {
+                success: false,
+                error: err.message,
+            })
         })
     } catch (err) {
         fs.unlink(tempFilePath, () => {})
@@ -383,7 +393,10 @@ const downloadAndUpdateFile = async (
         if (mainWindow) {
             mainWindow.setProgressBar(-1)
         }
-        mainWindow.webContents.send('download-failure', { success: false, error: err.message })
+        mainWindow.webContents.send('download-failure', {
+            success: false,
+            error: err.message,
+        })
     }
 }
 

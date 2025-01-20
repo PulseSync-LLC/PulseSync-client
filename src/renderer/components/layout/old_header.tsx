@@ -598,10 +598,8 @@ const OldHeader: React.FC<p> = () => {
                     query: GetModUpdates,
                     variables: { modVersion: app.mod.version },
                 })
-                console.log('Fetched data:', data)
                 setModChangesInfo(data.getChangelogEntries)
             } catch (err) {
-                console.error('Error fetching mod data:', err)
                 setError(err.message)
             } finally {
                 setLoading(false)
@@ -610,10 +608,6 @@ const OldHeader: React.FC<p> = () => {
 
         fetchModData()
     }, [isModModalOpen, app.mod, modInfo])
-    useEffect(() => {
-        console.log('modModal:', isModModalOpen)
-        console.log('modInfo:', modInfo)
-    }, [isModModalOpen, modInfo])
 
     return (
         <>

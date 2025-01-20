@@ -56,6 +56,10 @@ log4js.configure({
             type: 'file',
             filename: path.join(LOG_PATH, 'crash.log'),
         },
+        debugLog: {
+            type: 'file',
+            filename: path.join(LOG_PATH, 'debug.log'),
+        },
         discordRpc: {
             type: 'file',
             filename: path.join(LOG_PATH, 'discordRpc.log'),
@@ -91,6 +95,10 @@ log4js.configure({
             appenders: ['out', 'crashLog'],
             level: 'debug',
         },
+        debug: {
+            appenders: ['out', 'debugLog'],
+            level: 'debug',
+        },
         discordRpc: {
             appenders: ['out', 'discordRpc'],
             level: 'debug',
@@ -108,5 +116,6 @@ export default {
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
     crash: log4js.getLogger('crash'),
+    debug: log4js.getLogger('debug'),
     discordRpc: log4js.getLogger('discordRpc'),
 }

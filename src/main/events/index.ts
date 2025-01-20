@@ -574,7 +574,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                 app.getPath('appData'),
                 'PulseSync',
                 'downloads',
-                fileName
+                fileName,
             )
             fs.mkdirSync(path.dirname(downloadPath), { recursive: true })
 

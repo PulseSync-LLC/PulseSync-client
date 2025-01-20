@@ -9,11 +9,13 @@ import config from '../../api/config'
 import AppNameLogo from './../../../../static/assets/icon/AppName.svg'
 
 import * as pageStyles from './auth.module.scss'
+import { RootState } from '../../api/store/store'
+import { useSelector } from 'react-redux'
 
 export default function AuthPage() {
     const navigate = useNavigate()
     const { user, app } = useContext(userContext)
-
+    const isDeprecated = useSelector((state: RootState) => state.app.isDeprecated)
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)
@@ -24,12 +26,16 @@ export default function AuthPage() {
         window.open(config.SERVER_URL + '/auth/discord')
         navigate('/auth/callback', { replace: true })
     }
+    const checkUpdate = () => {
+        window.desktopEvents?.send('checkUpdate')
+    }
 
     useEffect(() => {
         if (user.id !== '-1') {
             navigate('/trackinfo', { replace: true })
         }
     }, [user.id, navigate])
+
     const readAndSendFile = async () => {
         try {
             const response = await fetch('./static/assets/policy/terms.ru.md')
@@ -76,7 +82,14 @@ export default function AuthPage() {
             window.removeEventListener('mousemove', handleMouseMove)
         }
     }, [])
-
+    window.addEventListener('keydown', (event) => {
+        if (
+            (event.ctrlKey && event.code === 'KeyR') ||
+            event.key.toLowerCase() === 'f5'
+        ) {
+            event.preventDefault()
+        }
+    })
     return (
         <>
             <OldHeader />
@@ -111,25 +124,41 @@ export default function AuthPage() {
                     <div className={pageStyles.logoName}>
                         <AppNameLogo />
                     </div>
-                    <button
-                        className={pageStyles.discordAuth}
-                        onClick={startAuthProcess}
-                    >
-                        Авторизация через Discord
-                    </button>
-                    <span className={pageStyles.terms}>
-                        Нажимая на “Авторизация через Discord”, вы соглашаетесь с{' '}
-                        <br />
-                        <a
-                            onClick={async () => {
-                                await readAndSendFile()
-                            }}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                        >
-                            Соглашением об использовании программы
-                        </a>
-                    </span>
+                    {isDeprecated ? (
+                        <>
+                            <button
+                                className={pageStyles.discordAuth}
+                                onClick={checkUpdate}
+                            >
+                                Проверить обновления
+                            </button>
+                            <span className={pageStyles.terms}>
+                                Приложение устарело и требует обновления 😡😡😡
+                            </span>
+                        </>
+                    ) : (
+                        <>
+                            <button
+                                className={pageStyles.discordAuth}
+                                onClick={startAuthProcess}
+                            >
+                                Авторизация через Discord
+                            </button>
+                            <span className={pageStyles.terms}>
+                                Нажимая на “Авторизация через Discord”, вы
+                                соглашаетесь с <br />
+                                <a
+                                    onClick={async () => {
+                                        await readAndSendFile()
+                                    }}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                >
+                                    Соглашением об использовании программы
+                                </a>
+                            </span>
+                        </>
+                    )}
                 </div>
             </div>
         </>

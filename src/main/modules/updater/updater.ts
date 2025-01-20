@@ -32,7 +32,7 @@ class Updater {
         this.commonConfig = this.commonConfig || {}
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
-
+        autoUpdater.disableWebInstaller = true
         autoUpdater.on('error', (error) => {
             logger.updater.error('Updater error', error)
         })
@@ -129,6 +129,7 @@ class Updater {
             .catch((error) => {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
+                mainWindow.setProgressBar(-1)
                 mainWindow.webContents.send('download-update-failed')
             })
     }

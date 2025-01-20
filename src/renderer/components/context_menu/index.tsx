@@ -436,7 +436,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                                         ?.filter(Boolean)
                                         .filter(
                                             (button) =>
-                                                !button.isDev || (button.isDev && window.electron.isAppDev()),
+                                                !button.isDev ||
+                                                (button.isDev &&
+                                                    window.electron.isAppDev()),
                                         )
                                         .map((button, i) => (
                                             <button

@@ -16,7 +16,7 @@ let rpcConnected = false
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
         client.user?.setActivity(activity).catch((e) => {
-            logger.discordRpc.error(e)
+            logger.debug.error(e)
             mainWindow.webContents.send('rpc-log', {
                 message: 'Ошибка установки активности',
                 type: 'error',
@@ -72,7 +72,7 @@ function rpc_connect() {
     })
 
     client.login().catch((e) => {
-        logger.discordRpc.error(e)
+        logger.debug.error(e)
         mainWindow.webContents.send('rpc-log', {
             message: 'Ошибка установки активности',
             type: 'error',
@@ -126,7 +126,7 @@ export const setRpcStatus = (status: boolean) => {
     } else {
         client.removeAllListeners()
         client.destroy().catch((e) => {
-            logger.discordRpc.error(e)
+            logger.debug.error(e)
             mainWindow.webContents.send('rpc-log', {
                 message: 'Ошибка удаления активности',
                 type: 'error',

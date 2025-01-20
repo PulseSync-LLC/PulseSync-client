@@ -49,6 +49,8 @@ import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
+import { useDispatch } from 'react-redux'
+import { setDeprecatedStatus } from '../api/store/appSlice'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -60,11 +62,10 @@ function App() {
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
     const [features, setFeatures] = useState({})
-
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
-
     const [loading, setLoading] = useState(true)
+    const toastReference = useRef<string | null>(null)
     const socket = io(config.SOCKET_URL, {
         path: '/ws',
         autoConnect: false,
@@ -73,6 +74,7 @@ function App() {
         },
     })
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
+    const dispatch = useDispatch()
     const router = createHashRouter([
         {
             path: '/',
@@ -244,9 +246,11 @@ function App() {
                             return false
                         } else if (isDeprecated) {
                             sendErrorAuthNotify(
-                                'Ошибка авторизации. Данная версия приложения устарела. Скачать новую версию можно через дискорд по команде /getlink ',
+                                'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
                                 'Данная версия приложения устарела',
                             )
+                            window.desktopEvents?.send('updater-start')
+                            dispatch(setDeprecatedStatus(true))
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
                             }
@@ -360,6 +364,17 @@ function App() {
     })
     socket.on('feature_toggles', (data) => {
         setFeatures(data)
+    })
+    socket.on('deprecated_version', () => {
+        toast.custom(
+            'error',
+            'Внимание!',
+            'Ваша версия приложения устарела 😡 и скоро пректит работу. Пожалуйста, обновите приложение.',
+        )
+        window.desktopEvents.send('show-notification', {
+            title: 'Внимание!',
+            body: 'Ваша версия приложения устарела 😡 и скоро прекратит работу. Пожалуйста, обновите приложение.',
+        })
     })
     useEffect(() => {
         if (socketError === 1 || socketError === 0) {
@@ -564,58 +579,79 @@ function App() {
                 }))
             })
             window.desktopEvents?.on('check-update', (event, data) => {
-                let toastId = toast.custom(
-                    'loading',
-                    'Проверка обновлений',
-                    'Ожидайте...',
-                )
+                if (!toastReference.current) {
+                    toastReference.current = toast.custom(
+                        'loading',
+                        'Проверка обновлений',
+                        'Ожидайте...',
+                    )
+                }
 
                 if (data.updateAvailable) {
-                    window.desktopEvents?.on(
-                        'download-update-progress',
-                        (event, value) => {
-                            toast.custom(
-                                'loading',
-                                'Загрузка.',
-                                <>
-                                    <span>Загрузка обновления</span>
-                                    <b style={{ marginLeft: '.5em' }}>
-                                        {Math.floor(value)}%
-                                    </b>
-                                </>,
-                                {
-                                    id: toastId,
-                                },
-                                value,
-                            )
-                        },
-                    )
-                    window.desktopEvents?.once('download-update-failed', () =>
+                    const onDownloadProgress = (event: any, value: any) => {
+                        toast.custom(
+                            'loading',
+                            'Загрузка.',
+                            <>
+                                <span>Загрузка обновления</span>
+                                <b style={{ marginLeft: '.5em' }}>
+                                    {Math.floor(value)}%
+                                </b>
+                            </>,
+                            { id: toastReference.current },
+                            value,
+                        )
+                    }
+
+                    const onDownloadFailed = () => {
                         toast.custom(
                             'error',
                             'Ошибка.',
                             'Ошибка загрузки обновления',
-                            {
-                                id: toastId,
-                            },
-                        ),
-                    )
-                    window.desktopEvents?.once('download-update-finished', () => {
+                            { id: toastReference.current },
+                        )
+                        toastReference.current = null
+                    }
+
+                    const onDownloadFinished = () => {
                         toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                            id: toastId,
+                            id: toastReference.current,
                         })
+                        toastReference.current = null
                         setUpdate(true)
-                    })
+                    }
+
+                    window.desktopEvents?.on(
+                        'download-update-progress',
+                        onDownloadProgress,
+                    )
+                    window.desktopEvents?.on(
+                        'download-update-failed',
+                        onDownloadFailed,
+                    )
+                    window.desktopEvents?.on(
+                        'download-update-finished',
+                        onDownloadFinished,
+                    )
                 } else {
                     toast.custom('info', 'О как...', 'Обновление не найдено', {
-                        id: toastId,
+                        id: toastReference.current,
                     })
+                    toastReference.current = null
                 }
             })
             const loadSettings = async () => {
                 await fetchSettings(setApp)
             }
             loadSettings()
+        }
+        return () => {
+            window.desktopEvents.removeAllListeners('download-update-progress')
+            window.desktopEvents.removeAllListeners('download-update-failed')
+            window.desktopEvents.removeAllListeners('download-update-finished')
+            window.desktopEvents.removeAllListeners('check-update')
+            window.desktopEvents.removeAllListeners('discordRpcState')
+            window.desktopEvents.removeAllListeners('rpc-log')
         }
     }, [])
 
@@ -930,7 +966,6 @@ const Player: React.FC<any> = ({ children }) => {
 
                     delete activity.state
                 }
-                console.log(activity)
                 window.discordRpc.setActivity(activity)
             }
         }
