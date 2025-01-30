@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, shell, Notification } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
 import https from 'https'
@@ -143,33 +143,45 @@ export const handleEvents = (window: BrowserWindow): void => {
             val: {
                 url: string
                 track: Track
-                metadata: boolean /* trackInfo: Track */
+                metadata: boolean
             },
         ) => {
             const musicDir = app.getPath('music')
             const downloadDir = path.join(musicDir, 'PulseSyncMusic')
-            const fileExtension = val.url
-                .split('/')
-                .reverse()[0]
-                .split('.')
-                .pop()
-                ?.toLowerCase()
-            const cleanedFileExtension =
-                fileExtension === '320' ? 'mp3' : fileExtension
+            function getExtensionFromUrl(url: string): string {
+                const cleanUrl = url.split('?')[0]
+                let filenamePart = cleanUrl.split('/').pop()?.toLowerCase() || ''
 
+                if (filenamePart.includes('-mp4')) {
+                    filenamePart = filenamePart.replace('-mp4', '')
+                    if (filenamePart.includes('.')) {
+                        return filenamePart.split('.').pop() || ''
+                    } else {
+                        return filenamePart
+                    }
+                } else {
+                    if (filenamePart.includes('.')) {
+                        return filenamePart.split('.').pop() || ''
+                    } else {
+                        return filenamePart
+                    }
+                }
+            }
+            const fileExtension = getExtensionFromUrl(val.url) || 'mp3'
+            const safeTitle = val.track.title.replace(/[?"/\\*:\|<>]/g, '')
+            const safeArtists = val.track.artists
+                .map((x) => x.name)
+                .join(', ')
+                .replace(/[?"/\\*:\|<>]/g, '')
+
+            const defaultSavePath = path.join(
+                downloadDir,
+                `${safeTitle} - ${safeArtists}.${fileExtension}`,
+            )
             dialog
                 .showSaveDialog(mainWindow, {
-                    title: 'Сохранить как',
-                    defaultPath: path.join(
-                        downloadDir,
-                        `${val.track.title.replace(new RegExp('[?"/\\\\*:\\|<>]', 'g'), '')} - ${val.track.artists
-                            .map((x) => x.name)
-                            .join(', ')
-                            .replace(
-                                new RegExp('[?"/\\\\*:\\|<>]', 'g'),
-                                '',
-                            )}.${cleanedFileExtension}`,
-                    ),
+                    title: 'Сохранить трек',
+                    defaultPath: defaultSavePath,
                     filters: [{ name: 'Трек', extensions: [fileExtension] }],
                 })
                 .then((result) => {
@@ -188,7 +200,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                     totalFileSize,
                                 )
                                 mainWindow.setProgressBar(percent / 100)
-                                if (percent <= 98 && val.metadata) {
+                                if (percent <= 98) {
                                     mainWindow.webContents.send(
                                         'download-track-progress',
                                         percent,
@@ -200,7 +212,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                             response
                                 .pipe(fs.createWriteStream(filePath))
                                 .on('finish', async () => {
-                                    console.log('File downloaded:', filePath)
                                     if (val.metadata) {
                                         const extension = path
                                             .extname(filePath)
@@ -237,10 +248,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                                                 }, 1500)
                                                 shell.showItemInFolder(mp3Path)
                                             } catch (err) {
-                                                console.error(
-                                                    'Conversion error:',
-                                                    err,
-                                                )
+                                               logger.main.error('Ошибка конвертации в mp3:', err)
                                                 mainWindow.webContents.send(
                                                     'download-track-failed',
                                                 )
@@ -310,7 +318,7 @@ export const handleEvents = (window: BrowserWindow): void => {
 
         const success = NodeID3.write(tags, filePath)
         if (success) {
-            console.log('Метаданные успешно записаны:', filePath)
+            logger.main.info('Метаданные успешно записаны.')
         } else {
             throw new Error('Ошибка записи метаданных.')
         }
@@ -366,8 +374,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         } else return false
     })
     ipcMain.on('authStatus', async (event, data) => {
-        console.log('authStatus', data)
-        if (data) {
+        if (data && store.get('discordRpc.status')) {
             await rpc_connect()
         }
         authorized = data

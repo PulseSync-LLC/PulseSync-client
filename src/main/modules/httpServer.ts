@@ -1,7 +1,7 @@
 import * as http from 'http'
 import * as fs from 'fs'
 import * as path from 'path'
-import { app, ipcMain } from 'electron'
+import { app, dialog, ipcMain } from 'electron'
 import { mainWindow, selectedTheme } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
@@ -17,18 +17,18 @@ const eventEmitter = new EventEmitter()
 let data: any = {}
 let server: http.Server | null = null
 let ws: WebSocketServer | null = null
-
+let attempt = 0
 const startWebSocketServer = () => {
     if (!isFirstInstance) return
     if (ws) {
         ws.clients.forEach((client) => client.close())
         ws.close()
-        logger.main.log('Existing WebSocket server closed.')
+        logger.http.log('Existing WebSocket server closed.')
     }
 
     if (server) {
         server.close(() => {
-            logger.main.log('HTTP server closed for WebSocket restart.')
+            logger.http.log('HTTP server closed for WebSocket restart.')
             initializeServer()
         })
     } else {
@@ -40,18 +40,18 @@ const stopWebSocketServer = () => {
         if (ws) {
             ws.clients.forEach((client) => client.close())
             ws.close()
-            logger.main.log('WebSocket server stopped.')
+            logger.http.log('WebSocket server stopped.')
             ws = null
         }
 
         if (server) {
             server.close(() => {
-                logger.main.log('HTTP server closed.')
+                logger.http.log('HTTP server closed.')
                 server = null
             })
         }
     } catch (error) {
-        logger.main.error('Error while stopping WebSocket server:', error)
+        logger.http.error('Error while stopping WebSocket server:', error)
     }
 }
 const initializeServer = () => {
@@ -60,7 +60,7 @@ const initializeServer = () => {
 
     ws.on('connection', (socket) => {
         if (!authorized) return socket.close()
-        logger.main.log('New client connected')
+        logger.http.log('New client connected')
 
         socket.send(
             JSON.stringify({ type: 'welcome', message: 'Connected to server' }),
@@ -77,7 +77,7 @@ const initializeServer = () => {
         })
 
         socket.on('close', () => {
-            logger.main.log('Client disconnected')
+            logger.http.log('Client disconnected')
             data.status = 'null'
             mainWindow.webContents.send('trackinfo', {
                 data: {
@@ -86,7 +86,19 @@ const initializeServer = () => {
                 },
             })
         })
+        socket.on('error', (error: any) => {
+            if (error.code === 'EPIPE') {
+                logger.http.warn('Attempted to write to closed WebSocket');
+            } else {
+                logger.http.error('WebSocket error:', error);
+            }
+        });
     })
+    ws.on('error', (error) => {
+        if (error.message.includes('unexpected response')) {
+            logger.http.error('Unexpected WebSocket server response:', error);
+        }
+    });
 
     server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
         if (req.method === 'OPTIONS') {
@@ -119,22 +131,42 @@ const initializeServer = () => {
     })
 
     server.listen(config.PORT, () => {
-        logger.main.log(`WebSocket server started on port ${config.PORT}`)
+        logger.http.log(`WebSocket server started on port ${config.PORT}`)
+        attempt = 0
     })
+    server.on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+            logger.http.error(`Port ${config.PORT} is already in use.`);
+            if (attempt > 5) {
+                dialog.showErrorBox('Ошибка', `Не удалось запустить вебсокет сервер. Порт ${config.PORT} занят.`);
+                return app.quit()
+            }
+            attempt++;
+            setTimeout(() => {
+                server.close();
+                server.listen(config.PORT, () => {
+                    attempt = 0;
+                    logger.http.log(`WebSocket server restarted on port ${config.PORT}`);
+                });
+            }, 1000);
+        } else {
+            logger.http.error('HTTP server error:', error);
+        }
+    });
 }
 
 ipcMain.on('websocket-start', async (event, _) => {
     if (isAppDev && !store.get('settings.devSocket')) return
-    logger.main.log('Received websocket-start event. Starting WebSocket server...')
+    logger.http.log('Received websocket-start event. Starting WebSocket server...')
     startWebSocketServer()
 })
 
 ipcMain.on('websocket-stop', async (event, _) => {
-    logger.main.log('Received websocket-stop event. Stopping WebSocket server...')
+    logger.http.log('Received websocket-stop event. Stopping WebSocket server...')
     stopWebSocketServer()
 })
 ipcMain.on('websocket-restart', async (event, _) => {
-    logger.main.log(
+    logger.http.log(
         'Received websocket-restart event. Restarting WebSocket server...',
     )
     stopWebSocketServer()
@@ -167,7 +199,7 @@ const handleGetHandleRequest = (
             res.end(JSON.stringify({ error: 'Handle events data not found' }))
         }
     } catch (error) {
-        logger.main.error('Error reading handle events:', error)
+        logger.http.error('Error reading handle events:', error)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Error reading handle events' }))
     }
@@ -266,7 +298,7 @@ const getFilePathInAssets = (
     assetsPath: string,
 ): string | null => {
     const filePath = findFileInDirectory(filename, assetsPath)
-    logger.main.log('File Path:', filePath)
+    logger.http.log('File Path:', filePath)
     return filePath
 }
 
@@ -397,7 +429,7 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
 }
 
 ipcMain.on('getTrackInfo', async (event, _) => {
-    logger.main.log('Returning current track data')
+    logger.http.log('Returning current track data')
     if (!ws) return
     ws.clients.forEach((x) =>
         x.send(

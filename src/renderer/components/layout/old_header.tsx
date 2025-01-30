@@ -14,7 +14,6 @@ import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'
-import Skeleton from 'react-loading-skeleton'
 import Modal from '../modal'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -37,12 +36,13 @@ import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../api/store/store'
 import { closeModal, openModal } from '../../api/store/modalSlice'
+import { Track } from '../../api/interfaces/track.interface'
+import playerContext from '../../api/context/player.context'
 interface p {
     goBack?: boolean
 }
 
 const OldHeader: React.FC<p> = () => {
-    const storedStatus = localStorage.getItem('playStatus')
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -50,7 +50,8 @@ const OldHeader: React.FC<p> = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const [isDiscordRpcCardOpen, setIsDiscordRpcCardOpen] = useState(false)
-    const { user, appInfo, app, setUser, setApp, modInfo } = useContext(userContext)
+    const { user, appInfo, app, setUser, modInfo } = useContext(userContext)
+    const { currentTrack } = useContext(playerContext)
     const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
@@ -70,94 +71,8 @@ const OldHeader: React.FC<p> = () => {
     const { openUserProfile } = useUserProfileModal()
 
     const fixedTheme = { charCount: inputStyle.charCount }
-    const [previousValues, setPreviousValues] = useState({
-        appId: '',
-        details: '',
-        state: '',
-        button: '',
-    })
-    const getStoredPlayStatus = () => {
-        return storedStatus === 'playing' ||
-            storedStatus === 'pause' ||
-            storedStatus === 'null'
-            ? storedStatus
-            : 'null'
-    }
 
-    // const normalizeStatus = (status: string | undefined): 'playing' | 'pause' | 'null' => {
-    //     console.log('normalizeStatus called with:', status);
-    //     if (status === 'play' || status === 'playing') return 'playing';
-    //     if (status === 'pause') return 'pause';
-    //     return 'null';
-    // };
-    //
-    // const initialPlayStatus = currentTrack
-    //     ? normalizeStatus(currentTrack.status)
-    //     : getStoredPlayStatus();
-    //
-    // console.log('Initial playStatus:', initialPlayStatus);
-    //
-    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(
-        getStoredPlayStatus(),
-    )
-    //
-    // useEffect(() => {
-    //     if (currentTrack && typeof currentTrack.status === 'string') {
-    //         const normalizedStatus = normalizeStatus(currentTrack.status);
-    //         console.log('Updating playStatus based on currentTrack:', normalizedStatus);
-    //         if (playStatus !== normalizedStatus) {
-    //             setPlayStatus(normalizedStatus);
-    //         }
-    //     }
-    // }, [currentTrack]);
-    //
-    // useEffect(() => {
-    //     console.log('useEffect [playStatus] triggered with playStatus:', playStatus);
-    //     let interval: NodeJS.Timeout | undefined;
-    //
-    //     const fetchTrackInfo = async () => {
-    //         const data = await window.desktopEvents.invoke('getTrackInfo');
-    //         console.log('Fetched track info:', data);
-    //         if (data) {
-    //             const normalizedStatus = normalizeStatus(data.status);
-    //             console.log('Normalized fetched status:', normalizedStatus);
-    //             if (playStatus !== normalizedStatus) {
-    //                 console.log('Updating playStatus to:', normalizedStatus);
-    //                 setPlayStatus(normalizedStatus);
-    //                 previousStatusRef.current = normalizedStatus;
-    //             } else {
-    //                 console.log('Fetched status matches current playStatus');
-    //             }
-    //         } else {
-    //             console.log('No data received, setting playStatus to null');
-    //             setPlayStatus('null');
-    //             previousStatusRef.current = 'null';
-    //         }
-    //     };
-    //
-    //     if (playStatus === 'null') {
-    //         console.log('playStatus is null, starting interval to fetch track info');
-    //         interval = setInterval(() => {
-    //             fetchTrackInfo();
-    //         }, 5000);
-    //     } else if (interval) {
-    //         console.log('Clearing interval as playStatus is not null');
-    //         clearInterval(interval);
-    //     }
-    //
-    //     return () => {
-    //         if (interval) {
-    //             console.log('Cleaning up interval on unmount');
-    //             clearInterval(interval);
-    //         }
-    //     };
-    // }, [playStatus]);
-    //
-    //
-    // useEffect(() => {
-    //     console.log('Saving playStatus to localStorage:', playStatus);
-    //     localStorage.setItem('playStatus', playStatus);
-    // }, [playStatus]);
+    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
     //
     // const renderPlayerStatus = () => {
     //     const statusText = playStatus === 'playing'
@@ -332,23 +247,23 @@ const OldHeader: React.FC<p> = () => {
     const statusColors = {
         playing: '#62FF79',
         pause: '#60C2FF',
-        null: '#FFD562', // old #FF6289
+        null: '#FFD562',
     }
-    // useEffect(() => {
-    //     const handleDataUpdate = (data: Track) => {
-    //         if (data) {
-    //             if (data.status === 'play') {
-    //                 setPlayStatus('playing');
-    //             } else if (data.status === 'pause') {
-    //                 setPlayStatus('pause');
-    //             } else {
-    //                 setPlayStatus('null');
-    //             }
-    //         }
-    //     };
-    //     handleDataUpdate(currentTrack);
-    // }, [currentTrack]);
-    //
+    useEffect(() => {
+        const handleDataUpdate = (data: Track) => {
+            if (data) {
+                if (data.event === 'play') {
+                    setPlayStatus('playing');
+                } else if (data.event === 'paused') {
+                    setPlayStatus('pause');
+                } else {
+                    setPlayStatus('null');
+                }
+            }
+        };
+        handleDataUpdate(currentTrack);
+    }, [currentTrack]);
+
     useEffect(() => {
         const color = statusColors[playStatus] || statusColors.null
         document.documentElement.style.setProperty('--statusColor', color)
@@ -429,6 +344,7 @@ const OldHeader: React.FC<p> = () => {
                 )
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
+                await client.resetStore()
             }
         })
     }
@@ -517,14 +433,16 @@ const OldHeader: React.FC<p> = () => {
             }
         } catch (error) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб');
+            } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
+                toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена');
             } else {
                 toast.custom(
                     'error',
                     'Ой...',
-                    'Ошибка при загрузке аватара, попробуй ещё раз',
-                )
-                Sentry.captureException(error)
+                    'Ошибка при загрузке аватара, попробуй ещё раз'
+                );
+                Sentry.captureException(error);
             }
             setAvatarProgress(-1)
         }
@@ -574,8 +492,10 @@ const OldHeader: React.FC<p> = () => {
                 )
             }
         } catch (error) {
-            if (error.response.data.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+            if (error.response?.data?.message === 'FILE_TOO_LARGE') {
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб');
+            } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
+                toast.custom('error', 'Доступ запрещён', 'Загрузка баннера запрещена');
             } else {
                 toast.custom(
                     'error',
@@ -713,284 +633,6 @@ const OldHeader: React.FC<p> = () => {
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
-                                    {/*<div*/}
-                                    {/*    className={styles.rpcStatus}*/}
-                                    {/*    onClick={toggleDiscordRpcContainer}*/}
-                                    {/*>*/}
-                                    {/*    <div className={styles.imageDetail}>*/}
-                                    {/*        <img*/}
-                                    {/*            className={styles.image}*/}
-                                    {/*            src={currentTrack?.albumArt || ''}*/}
-                                    {/*            alt={currentTrack?.title || 'Track image'}*/}
-                                    {/*        />*/}
-                                    {/*    </div>*/}
-                                    {/*    <div className={styles.rpcDetail}>*/}
-                                    {/*        <div className={styles.rpcTitle}>*/}
-                                    {/*            {currentTrack?.title || 'No Title'}*/}
-                                    {/*        </div>*/}
-                                    {/*        <div className={styles.rpcAuthor}>*/}
-                                    {/*            {currentTrack.artists.map( x => x.name ).join( ', ' )}*/}
-                                    {/*        </div>*/}
-                                    {/*    </div>*/}
-                                    {/*</div>*/}
-                                    {/*{isDiscordRpcCardOpen && (*/}
-                                    {/*    <div className={styles.rpcCard}>*/}
-                                    {/*        <div className={styles.titleRpc}>*/}
-                                    {/*            Настроить статус*/}
-                                    {/*        </div>*/}
-                                    {/*        <div className={styles.settingsContainer}>*/}
-                                    {/*            <div className={styles.options}>*/}
-                                    {/*                <CheckboxNav*/}
-                                    {/*                    checkType="toggleRpcStatus"*/}
-                                    {/*                    description={*/}
-                                    {/*                        'Активируйте этот параметр, чтобы ваш текущий ' +*/}
-                                    {/*                        'статус отображался в Discord.'*/}
-                                    {/*                    }*/}
-                                    {/*                >*/}
-                                    {/*                    Включить RPC*/}
-                                    {/*                </CheckboxNav>*/}
-                                    {/*            </div>*/}
-                                    {/*            <div className={theme.userRPC}>*/}
-                                    {/*                <div className={theme.status}>*/}
-                                    {/*                    Слушает PulseSync*/}
-                                    {/*                </div>*/}
-                                    {/*                <div className={theme.statusRPC}>*/}
-                                    {/*                    <div>*/}
-                                    {/*                        {app.discordRpc.status &&*/}
-                                    {/*                        currentTrack !== trackInitials ? (*/}
-                                    {/*                            <div className={theme.flex_container}>*/}
-                                    {/*                                <img*/}
-                                    {/*                                    className={theme.img}*/}
-                                    {/*                                    src={*/}
-                                    {/*                                        currentTrack.albumArt ||*/}
-                                    {/*                                        './static/assets/logo/logoapp.png'*/}
-                                    {/*                                    }*/}
-                                    {/*                                    alt=""*/}
-                                    {/*                                />*/}
-                                    {/*                                <div className={theme.gap}>*/}
-                                    {/*                                    <div className={theme.name}>*/}
-                                    {/*                                        {app.discordRpc.details.length > 0*/}
-                                    {/*                                            ? replaceParams(*/}
-                                    {/*                                                app.discordRpc.details,*/}
-                                    {/*                                                currentTrack,*/}
-                                    {/*                                            )*/}
-                                    {/*                                            : `${currentTrack.title} - ${currentTrack.artists.map( x => x.name ).join( ', ' )}`}*/}
-                                    {/*                                    </div>*/}
-                                    {/*                                    {currentTrack.timestamps.length > 0 && (*/}
-                                    {/*                                        <div className={theme.time}>*/}
-                                    {/*                                            {app.discordRpc.state.length > 0*/}
-                                    {/*                                                ? replaceParams(*/}
-                                    {/*                                                    app.discordRpc.state,*/}
-                                    {/*                                                    currentTrack,*/}
-                                    {/*                                                )*/}
-                                    {/*                                                : `${currentTrack.timestamps[0]} - ${*/}
-                                    {/*                                                    currentTrack.timestamps[1]*/}
-                                    {/*                                                }`}*/}
-                                    {/*                                        </div>*/}
-                                    {/*                                    )}*/}
-                                    {/*                                    <div className={theme.timeline}>*/}
-                                    {/*  <span>*/}
-                                    {/*    {formatTime(currentTime)}*/}
-                                    {/*  </span>*/}
-                                    {/*                                        <div className={theme.timeline_line}>*/}
-                                    {/*                                            <div*/}
-                                    {/*                                                className={*/}
-                                    {/*                                                    theme.timeline_progress*/}
-                                    {/*                                                }*/}
-                                    {/*                                                style={{*/}
-                                    {/*                                                    width: `${progress}%`,*/}
-                                    {/*                                                }}*/}
-                                    {/*                                            ></div>*/}
-                                    {/*                                        </div>*/}
-                                    {/*                                        <span>*/}
-                                    {/*    {formatTime(trackEnd)}*/}
-                                    {/*  </span>*/}
-                                    {/*                                    </div>*/}
-                                    {/*                                </div>*/}
-                                    {/*                            </div>*/}
-                                    {/*                        ) : (*/}
-                                    {/*                            <div className={theme.flex_container}>*/}
-                                    {/*                                <Skeleton width={58} height={58} />*/}
-                                    {/*                                <div className={theme.gap}>*/}
-                                    {/*                                    <Skeleton*/}
-                                    {/*                                        width={190}*/}
-                                    {/*                                        height={16}*/}
-                                    {/*                                    />*/}
-                                    {/*                                    <Skeleton*/}
-                                    {/*                                        width={80}*/}
-                                    {/*                                        height={16}*/}
-                                    {/*                                    />*/}
-                                    {/*                                    <div className={theme.timeline}>*/}
-                                    {/*                                        <Skeleton*/}
-                                    {/*                                            width={200}*/}
-                                    {/*                                            height={6}*/}
-                                    {/*                                        />*/}
-                                    {/*                                    </div>*/}
-                                    {/*                                </div>*/}
-                                    {/*                            </div>*/}
-                                    {/*                        )}*/}
-                                    {/*                    </div>*/}
-                                    {/*                    <div className={theme.buttonRpc}>*/}
-                                    {/*                        <div*/}
-                                    {/*                            className={theme.button}*/}
-                                    {/*                            onClick={() => {*/}
-                                    {/*                                setRickRoll(!rickRollClick);*/}
-                                    {/*                            }}*/}
-                                    {/*                        >*/}
-                                    {/*                            {app.discordRpc.button.length > 0*/}
-                                    {/*                                ? app.discordRpc.button*/}
-                                    {/*                                : '✌️ Open in Yandex Music'}*/}
-                                    {/*                        </div>*/}
-                                    {/*                        {rickRollClick && (*/}
-                                    {/*                            <video*/}
-                                    {/*                                width="600"*/}
-                                    {/*                                autoPlay*/}
-                                    {/*                                loop*/}
-                                    {/*                            >*/}
-                                    {/*                                <source*/}
-                                    {/*                                    src="https://s3.pulsesync.dev/files/heheheha.mp4"*/}
-                                    {/*                                    type="video/mp4"*/}
-                                    {/*                                />*/}
-                                    {/*                            </video>*/}
-                                    {/*                        )}*/}
-                                    {/*                        <div*/}
-                                    {/*                            className={theme.button}*/}
-                                    {/*                            onClick={() => {*/}
-                                    {/*                                window.open(*/}
-                                    {/*                                    'https://github.com/PulseSync-LLC/' +*/}
-                                    {/*                                    'YMusic-DRPC/tree/patcher-ts',*/}
-                                    {/*                                );*/}
-                                    {/*                            }}*/}
-                                    {/*                        >*/}
-                                    {/*                            ♡ PulseSync Project*/}
-                                    {/*                        </div>*/}
-                                    {/*                    </div>*/}
-                                    {/*                </div>*/}
-                                    {/*            </div>*/}
-                                    {/*            <div className={styles.options}>*/}
-                                    {/*                <div*/}
-                                    {/*                    className={*/}
-                                    {/*                        inputStyle.textInputContainer*/}
-                                    {/*                    }*/}
-                                    {/*                >*/}
-                                    {/*                    <div>App ID</div>*/}
-                                    {/*                    <input*/}
-                                    {/*                        type="text"*/}
-                                    {/*                        name="appId"*/}
-                                    {/*                        aria-errormessage={*/}
-                                    {/*                            (formik.errors as any)['appId']*/}
-                                    {/*                        }*/}
-                                    {/*                        placeholder="984031241357647892"*/}
-                                    {/*                        className={inputStyle.styledInput}*/}
-                                    {/*                        value={formik.values.appId}*/}
-                                    {/*                        onChange={formik.handleChange}*/}
-                                    {/*                        onBlur={e => {*/}
-                                    {/*                            outInputChecker(e);*/}
-                                    {/*                        }}*/}
-                                    {/*                    />*/}
-                                    {/*                    {formik.touched.appId &&*/}
-                                    {/*                    formik.errors.appId ? (*/}
-                                    {/*                        <div className={inputStyle.error}>*/}
-                                    {/*                            {formik.errors.appId}*/}
-                                    {/*                        </div>*/}
-                                    {/*                    ) : null}*/}
-                                    {/*                </div>*/}
-                                    {/*                <div*/}
-                                    {/*                    className={*/}
-                                    {/*                        inputStyle.textInputContainer*/}
-                                    {/*                    }*/}
-                                    {/*                >*/}
-                                    {/*                    <div>Details</div>*/}
-                                    {/*                    <input*/}
-                                    {/*                        type="text"*/}
-                                    {/*                        name="details"*/}
-                                    {/*                        placeholder="enter text"*/}
-                                    {/*                        className={inputStyle.styledInput}*/}
-                                    {/*                        value={formik.values.details}*/}
-                                    {/*                        onChange={formik.handleChange}*/}
-                                    {/*                        onBlur={e => {*/}
-                                    {/*                            outInputChecker(e);*/}
-                                    {/*                        }}*/}
-                                    {/*                    />*/}
-                                    {/*                    {formik.touched.details &&*/}
-                                    {/*                    formik.errors.details ? (*/}
-                                    {/*                        <div className={inputStyle.error}>*/}
-                                    {/*                            {formik.errors.details}*/}
-                                    {/*                        </div>*/}
-                                    {/*                    ) : null}*/}
-                                    {/*                </div>*/}
-                                    {/*                <div*/}
-                                    {/*                    className={*/}
-                                    {/*                        inputStyle.textInputContainer*/}
-                                    {/*                    }*/}
-                                    {/*                >*/}
-                                    {/*                    <div>State</div>*/}
-                                    {/*                    <input*/}
-                                    {/*                        type="text"*/}
-                                    {/*                        name="state"*/}
-                                    {/*                        placeholder="enter text"*/}
-                                    {/*                        className={inputStyle.styledInput}*/}
-                                    {/*                        value={formik.values.state}*/}
-                                    {/*                        onChange={formik.handleChange}*/}
-                                    {/*                        onBlur={e => {*/}
-                                    {/*                            outInputChecker(e);*/}
-                                    {/*                        }}*/}
-                                    {/*                    />*/}
-                                    {/*                    {formik.touched.state &&*/}
-                                    {/*                    formik.errors.state ? (*/}
-                                    {/*                        <div className={inputStyle.error}>*/}
-                                    {/*                            {formik.errors.state}*/}
-                                    {/*                        </div>*/}
-                                    {/*                    ) : null}*/}
-                                    {/*                </div>*/}
-                                    {/*            </div>*/}
-                                    {/*            <div className={styles.options}>*/}
-                                    {/*                <CheckboxNav*/}
-                                    {/*                    checkType="enableRpcButtonListen"*/}
-                                    {/*                    description="Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord."*/}
-                                    {/*                >*/}
-                                    {/*                    Включить кнопку (Слушать)*/}
-                                    {/*                </CheckboxNav>*/}
-                                    {/*                <div*/}
-                                    {/*                    className={*/}
-                                    {/*                        inputStyle.textInputContainer*/}
-                                    {/*                    }*/}
-                                    {/*                >*/}
-                                    {/*                    <div>Button</div>*/}
-                                    {/*                    <input*/}
-                                    {/*                        type="text"*/}
-                                    {/*                        name="button"*/}
-                                    {/*                        placeholder="enter text"*/}
-                                    {/*                        className={inputStyle.styledInput}*/}
-                                    {/*                        value={formik.values.button}*/}
-                                    {/*                        onChange={formik.handleChange}*/}
-                                    {/*                        onBlur={e => {*/}
-                                    {/*                            outInputChecker(e);*/}
-                                    {/*                        }}*/}
-                                    {/*                    />*/}
-                                    {/*                    {formik.touched.button &&*/}
-                                    {/*                    formik.errors.button ? (*/}
-                                    {/*                        <div className={inputStyle.error}>*/}
-                                    {/*                            {formik.errors.button}*/}
-                                    {/*                        </div>*/}
-                                    {/*                    ) : null}*/}
-                                    {/*                </div>*/}
-                                    {/*                <CheckboxNav*/}
-                                    {/*                    disabled={*/}
-                                    {/*                        !user.badges.some(*/}
-                                    {/*                            badge =>*/}
-                                    {/*                                badge.type === 'supporter',*/}
-                                    {/*                        )*/}
-                                    {/*                    }*/}
-                                    {/*                    checkType="enableGithubButton"*/}
-                                    {/*                    description="Активируйте этот параметр, чтобы показать что вы любите разработчиков."*/}
-                                    {/*                >*/}
-                                    {/*                    Включить кнопку (PulseSync Project)*/}
-                                    {/*                </CheckboxNav>*/}
-                                    {/*            </div>*/}
-                                    {/*        </div>*/}
-                                    {/*    </div>*/}
-                                    {/*)}*/}
                                     <div
                                         className={styles.user_container}
                                         onClick={toggleUserContainer}
