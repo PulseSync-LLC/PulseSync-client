@@ -560,10 +560,6 @@ export async function prestartCheck() {
     if (!store.has('settings.closeAppInTray')) {
         store.set('settings.closeAppInTray', true)
     }
-    if (store.has('discordRpc.status') && store.get('discordRpc.status')) {
-        rpc_connect()
-    }
-
     if (
         (store.has('mod.installed') && store.get('mod.installed')) ||
         store.get('mod.version')

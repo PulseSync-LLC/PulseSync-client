@@ -59,6 +59,7 @@ function createTray() {
             label: 'Проверить обновления',
             click: async () => {
                 await checkOrFindUpdate()
+                mainWindow.webContents.send('check-mod-update')
             },
         }),
     )

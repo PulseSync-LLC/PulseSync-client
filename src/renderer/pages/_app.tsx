@@ -549,6 +549,9 @@ function App() {
                     },
                 }))
             })
+            window.desktopEvents?.on('check-mod-update', async (event, data) => {
+                await fetchModInfo(app)
+            })
             window.desktopEvents.on('rpc-log', (event, data) => {
                 switch (data.type) {
                     case 'error':

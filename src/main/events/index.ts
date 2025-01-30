@@ -11,7 +11,7 @@ import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
-import { updateAppId } from '../modules/discordRpc'
+import { rpc_connect, updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
@@ -367,6 +367,9 @@ export const handleEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on('authStatus', async (event, data) => {
         console.log('authStatus', data)
+        if (data) {
+            await rpc_connect()
+        }
         authorized = data
     })
     ipcMain.on('renderer-log', async (event, data) => {
