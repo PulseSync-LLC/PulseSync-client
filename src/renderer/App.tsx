@@ -15,7 +15,6 @@ function App() {
                 <Snowfall />
                 <AppPage />
             </ErrorBoundary>
-            ,
         </Provider>,
     )
 }

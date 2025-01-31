@@ -40,8 +40,10 @@ export const compareVersions = (v1: string, v2: string) => {
 }
 
 export const timeAgo = (timestamp: number) => {
-    const now = new Date().getTime()
-    const diff = now - timestamp
+    const now = Date.now()
+    let diff = now - timestamp
+
+    if (diff < 0) diff = 0
 
     const seconds = Math.floor(diff / 1000)
     const minutes = Math.floor(seconds / 60)
@@ -70,17 +72,19 @@ export const timeAgo = (timestamp: number) => {
         return `${number} ${many}`
     }
 
-    if (seconds < 60)
-        return (
-            pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
-        )
-    if (minutes < 60)
+    if (seconds < 60) {
+        return pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
+    } else if (minutes < 60) {
         return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад'
-    if (hours < 24) return pluralize(hours, 'час', 'часа', 'часов') + ' назад'
-    if (days < 7) return pluralize(days, 'день', 'дня', 'дней', 'день') + ' назад'
-    if (weeks < 4)
+    } else if (hours < 24) {
+        return pluralize(hours, 'час', 'часа', 'часов') + ' назад'
+    } else if (days < 7) {
+        return pluralize(days, 'день', 'дня', 'дней', 'день') + ' назад'
+    } else if (days < 30) {
         return pluralize(weeks, 'неделя', 'недели', 'недель', 'неделю') + ' назад'
-    if (months < 12)
+    } else if (days < 365) {
         return pluralize(months, 'месяц', 'месяца', 'месяцев', 'месяц') + ' назад'
-    return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад'
+    } else {
+        return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад'
+    }
 }

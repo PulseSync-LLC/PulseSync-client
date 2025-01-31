@@ -11,24 +11,24 @@ log4js.configure({
         },
         alldateFileLog: {
             type: 'file',
-            filename: path.join(LOG_PATH, 'log'),
+            filename: path.join(LOG_PATH, 'log.log'),
             AlwaysInCludePattern: true,
         },
         httpLog: {
             type: 'file',
-            filename: path.join(LOG_PATH, 'http'),
+            filename: path.join(LOG_PATH, 'http.log'),
             KeepfileExt: true,
             alwaysIncludePattern: true,
         },
         errorsLog: {
             type: 'file',
-            filename: path.join(LOG_PATH, 'errors'),
+            filename: path.join(LOG_PATH, 'errors.log'),
             KeepfileExt: true,
             alwaysIncludePattern: true,
         },
         renderProcessLog: {
             type: 'file',
-            filename: path.join(LOG_PATH, 'renderer'),
+            filename: path.join(LOG_PATH, 'renderer.log'),
             keepFileExt: true,
             alwaysIncludePattern: true,
         },

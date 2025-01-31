@@ -252,7 +252,7 @@ const OldHeader: React.FC<p> = () => {
     useEffect(() => {
         const handleDataUpdate = (data: Track) => {
             if (data) {
-                if (data.event === 'play') {
+                if (data.event === 'play' || data.event === 'seek') {
                     setPlayStatus('playing');
                 } else if (data.event === 'paused') {
                     setPlayStatus('pause');
