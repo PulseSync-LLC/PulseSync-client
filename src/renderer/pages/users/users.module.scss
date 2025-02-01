@@ -1,40 +1,60 @@
 /* src/pages/users/users.module.scss */
+.previewImage {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background-size: cover;
+}
 
 .searchContainer {
     width: -webkit-fill-available;
     display: flex;
     flex-direction: column;
-    border-bottom: 1px solid #363944;
-    padding: 20px 30px 0px;
-    gap: 30px;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 20px 0px 25px 0;
+    gap: 20px;
     background-size: cover !important;
-
-    & > .titlePage {
-        font-weight: 900;
-        font-size: 23px;
-        line-height: 140%;
-
-        color: #ffffff;
-    }
+    z-index: 1;
 
     & > .BoxContainer {
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
+        justify-content: space-between;
         align-items: flex-start;
-        padding: 0px;
-        gap: 10px;
+        width: -webkit-fill-available;
+        padding: 0px 30px;
+        gap: 5px;
+
+        & > .titlePage {
+            font-weight: 900;
+            font-size: 23px;
+            line-height: 140%;
+
+            color: #ffffff;
+        }
 
         & > .searchBoxContainer {
+            transition: var(--transition);
             position: relative;
             display: flex;
             flex-direction: row;
             align-items: center;
-            padding: 14px 23px;
+            padding: 6px 15px;
             gap: 10px;
-            width: -webkit-fill-available;
+            width: 140px;
 
-            background: rgb(20 21 24 / 50%);
-            border-radius: 16px;
+            background: rgba(149, 157, 186, 0.2);
+            border-radius: 90px;
+
+            &:hover {
+                & > .searchInput {
+                    &::placeholder {
+                        color: #9ca5c4 !important;
+                    }
+                }
+            }
 
             & > .searchInput {
                 position: absolute;
@@ -46,8 +66,6 @@
                 background: none;
                 padding-left: 53px;
 
-                font-family: 'Nunito Sans';
-                font-style: normal;
                 font-weight: 700;
                 font-size: 16px;
                 line-height: 140%;
@@ -56,7 +74,7 @@
 
                 &::placeholder {
                     transition: var(--transition);
-                    color: #575b6d;
+                    color: white;
                 }
 
                 color: #ffffff;
@@ -67,7 +85,7 @@
                     background: #474d61;
 
                     &::placeholder {
-                        color: #595f74 !important;
+                        color: #9ca5c4 !important;
                     }
                 }
 
@@ -81,84 +99,71 @@
                 }
             }
         }
+    }
+}
 
-        & > .userNav {
-            box-sizing: border-box;
+.userNav {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 10px 30px;
+    gap: 10px;
+    width: -webkit-fill-available;
+    z-index: 1;
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: unset;
+    background: #1e2027e0;
+    backdrop-filter: saturate(180%) blur(15px);
 
+    & > .userNavContainer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0px;
+        gap: 5px;
+
+        & > .userNavButton {
+            transition: var(--transition);
             display: flex;
             flex-direction: row;
-            justify-content: space-between;
-            align-items: flex-start;
+            justify-content: center;
+            align-items: center;
+            padding: 6px 15px;
+            gap: 10px;
 
-            gap: 8px;
-            width: -webkit-fill-available;
+            background: rgba(149, 157, 186, 0.2);
+            border-radius: 90px;
 
-            & > .userNavContainer {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
+            font-weight: 700;
+            font-size: 14px;
+            line-height: 140%;
 
-                & > .userNavButton {
-                    transition: var(--transition);
-                    box-sizing: border-box;
-                    position: relative;
+            color: #959dba;
 
-                    display: flex;
-                    flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 10px 15px;
-                    gap: 10px;
+            &:hover {
+                cursor: pointer;
+                color: #ffffff;
+            }
 
-                    border: none;
-                    background: transparent;
+            &:disabled {
+                opacity: 0.5;
+
+                &:hover {
+                    cursor: not-allowed;
                     color: #959dba;
-
-                    &::after {
-                        transition: var(--transition);
-                        content: '';
-                        position: absolute;
-                        display: block;
-                        bottom: 0px;
-                        width: -webkit-fill-available;
-                        height: 0px;
-                        background: #3468f2;
-                    }
-
-                    &:hover {
-                        cursor: pointer;
-                        color: #ffffff;
-
-                        &::after {
-                            bottom: -1px;
-                            height: 2px;
-                        }
-                    }
-
-                    &:disabled {
-                        opacity: 0.5;
-
-                        &:hover {
-                            cursor: not-allowed;
-                            color: #959dba;
-
-                            &::after {
-                                bottom: 0px;
-                                height: 0px;
-                            }
-                        }
-                    }
                 }
+            }
+        }
 
-                & > .activeSort {
-                    color: #ffffff;
-
-                    &::after {
-                        bottom: -1px;
-                        height: 2px;
-                        background: #3468f2;
-                    }
-                }
+        & > .activeSort {
+            color: #1b311e;
+            background: #75e987;
+            &:hover {
+                color: #111f12;
             }
         }
     }
@@ -196,7 +201,7 @@
 .userGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 20px;
+    gap: 10px;
 }
 
 .statusCircle {
@@ -220,6 +225,7 @@
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     transition: var(--transition);
     outline: 0px solid transparent;
+    height: fit-content;
 
     &:hover {
         background: #2f323d;
@@ -309,7 +315,7 @@
 .paginationButtonLR {
     width: fit-content;
     height: 30px;
-    background-color: #363944;
+    background: rgba(149, 157, 186, 0.2);
     border-radius: 18px;
     transition: var(--transition);
     box-sizing: border-box;
@@ -321,17 +327,18 @@
     padding: 10px 15px;
     gap: 10px;
     border: none;
-    color: #ffffff;
+    color: #959dba;
     cursor: pointer;
 }
 
 .paginationButton {
     padding: 0px 11px;
     width: fit-content;
+    background: rgba(149, 157, 186, 0.2);
     height: 30px;
     border: none;
-    background-color: transparent;
-    color: #fff;
+    background: transparent;
+    color: #959dba;
     cursor: pointer;
     transition: var(--transition);
     border-radius: 18px;
@@ -339,16 +346,33 @@
 
 .paginationButtonLR,
 .paginationButton {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #959dba;
+
+    &:hover {
+        color: #111f12;
+    }
+
     &.active {
-        background-color: #4c79ff;
+        color: #1b311e;
+        background: #75e987;
+        &:hover {
+            color: #111f12;
+        }
     }
 
     &:disabled {
         opacity: 0.5;
         cursor: not-allowed;
+        &:hover {
+            color: #959dba;
+        }
     }
 
     &:hover:not(:disabled) {
-        background-color: #4c79ff;
+        background: #75e987;
     }
 }

@@ -22,6 +22,16 @@
     position: relative;
 }
 
+.containerUsesPage {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 15px 30px;
+    gap: 15px;
+    width: 100%;
+    position: relative;
+}
+
 .container0x0 {
     display: flex;
     flex-direction: column;

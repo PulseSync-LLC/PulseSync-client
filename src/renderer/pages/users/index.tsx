@@ -5,17 +5,21 @@ import { useEffect, useState, useCallback } from 'react'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
-import { FaSortUp, FaSortDown } from 'react-icons/fa'
 import debounce from 'lodash.debounce'
-import { MdAllOut, MdHourglassEmpty, MdAccessTime } from 'react-icons/md'
+import {
+    MdAllOut,
+    MdHourglassEmpty,
+    MdAccessTime,
+    MdKeyboardArrowDown,
+    MdKeyboardArrowUp,
+} from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
-import TooltipButton from '../../components/tooltip_button'
-import { timeAgo } from '../../utils/utils'
 import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
-import { getStatusColor, getStatusTooltip } from '../../utils/userStatus'
+import UserCard from '../../components/userCard'
+import Button from '../../components/button'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -57,7 +61,7 @@ export default function UsersPage() {
     }
 
     const defaultBackground = {
-        background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
+        background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)`,
         backgroundSize: 'cover',
     }
     const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
@@ -157,9 +161,9 @@ export default function UsersPage() {
     const getSortIcon = (field: string) => {
         if (sorting.length === 0 || sorting[0].id !== field) return null
         return sorting[0].desc ? (
-            <FaSortDown className={styles.sortIcon} />
+            <MdKeyboardArrowDown className={styles.sortIcon} />
         ) : (
-            <FaSortUp className={styles.sortIcon} />
+            <MdKeyboardArrowUp className={styles.sortIcon} />
         )
     }
 
@@ -179,33 +183,33 @@ export default function UsersPage() {
 
         for (let i = startPage; i <= endPage; i++) {
             pages.push(
-                <button
+                <Button
                     key={i}
                     className={`${styles.paginationButton} ${i === page ? styles.active : ''}`}
                     onClick={() => handlePageChange(i)}
                 >
                     {i}
-                </button>,
+                </Button>,
             )
         }
 
         return (
             <div className={styles.pagination}>
-                <button
+                <Button
                     className={styles.paginationButtonLR}
                     onClick={() => handlePageChange(page - 1)}
                     disabled={page === 1}
                 >
                     Назад
-                </button>
+                </Button>
                 {startPage > 1 && (
                     <>
-                        <button
+                        <Button
                             className={styles.paginationButton}
                             onClick={() => handlePageChange(1)}
                         >
                             1
-                        </button>
+                        </Button>
                         {startPage > 2 && (
                             <span className={styles.ellipsis}>...</span>
                         )}
@@ -217,21 +221,21 @@ export default function UsersPage() {
                         {endPage < maxPages - 1 && (
                             <span className={styles.ellipsis}>...</span>
                         )}
-                        <button
+                        <Button
                             className={styles.paginationButton}
                             onClick={() => handlePageChange(maxPages)}
                         >
                             {maxPages}
-                        </button>
+                        </Button>
                     </>
                 )}
-                <button
+                <Button
                     className={styles.paginationButtonLR}
                     onClick={() => handlePageChange(page + 1)}
                     disabled={page === maxPages}
                 >
                     Вперед
-                </button>
+                </Button>
             </div>
         )
     }
@@ -247,7 +251,7 @@ export default function UsersPage() {
             img.src = `${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}`
             img.onload = () => {
                 setBackgroundStyle({
-                    background: `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}) no-repeat center center`,
+                    background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%), url(${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}) no-repeat center center`,
                     backgroundSize: 'cover',
                 })
             }
@@ -260,233 +264,135 @@ export default function UsersPage() {
         }
     }, [users])
 
+    const [isSticky, setIsSticky] = useState(false)
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const nav = document.querySelector(`.${styles.userNav}`);
+            if (nav) {
+                const rect = nav.getBoundingClientRect();
+                console.log("userNav position:", rect.top); // Вывод в консоль
+                setIsSticky(rect.top <= 0);
+            }
+
+            const rect = nav.getBoundingClientRect();
+            console.log("userNav position:", rect.top); // Вывод в консоль
+        };
+    
+        window.addEventListener("scroll", handleScroll);
+        return () => {
+            window.removeEventListener("scroll", handleScroll);
+        };
+    }, []);
+    
+
     return (
         <Layout title="Пользователи">
             <div className={globalStyles.page}>
                 <div className={globalStyles.container}>
                     <div className={globalStyles.main_container}>
-                        <div
-                            className={styles.searchContainer}
-                            style={backgroundStyle}
-                        >
-                            <div className={styles.titlePage}>Пользователи</div>
-                            <div className={styles.BoxContainer}>
-                                <div className={styles.searchBoxContainer}>
-                                    <SearchImg />
-                                    <input
-                                        className={styles.searchInput}
-                                        type="text"
-                                        placeholder="Поиск..."
-                                        value={search}
-                                        onChange={(e) => {
-                                            setSearch(e.target.value)
-                                            setPage(1)
-                                        }}
-                                    />
-                                </div>
-                                <div className={styles.userNav}>
-                                    <div className={styles.userNavContainer}>
-                                        <button
-                                            className={`${styles.userNavButton} ${isFieldSorted('lastOnline') ? styles.activeSort : ''}`}
-                                            onClick={() => handleSort('lastOnline')}
-                                        >
-                                            <MdAccessTime /> Последняя активность{' '}
-                                            {getSortIcon('lastOnline')}
-                                        </button>
-                                        <button
-                                            className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
-                                            onClick={() => handleSort('createdAt')}
-                                        >
-                                            <MdHourglassEmpty /> Дата регистрации{' '}
-                                            {getSortIcon('createdAt')}
-                                        </button>
-                                        <button
-                                            className={`${styles.userNavButton} ${isFieldSorted('username') ? styles.activeSort : ''}`}
-                                            onClick={() => handleSort('username')}
-                                        >
-                                            <MdAllOut /> Имя пользователя{' '}
-                                            {getSortIcon('username')}
-                                        </button>
+                        <div className={globalStyles.container0x0}>
+                            <div
+                                style={backgroundStyle}
+                                className={styles.previewImage}
+                            ></div>
+                            <div className={styles.searchContainer}>
+                                <div className={styles.BoxContainer}>
+                                    <div className={styles.titlePage}>
+                                        Пользователи
                                     </div>
-                                    {users.length > 0 && renderPagination()}
+                                    <div className={styles.searchBoxContainer}>
+                                        <SearchImg />
+                                        <input
+                                            className={styles.searchInput}
+                                            type="text"
+                                            placeholder="Поиск..."
+                                            value={search}
+                                            onChange={(e) => {
+                                                setSearch(e.target.value)
+                                                setPage(1)
+                                            }}
+                                        />
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        <div className={globalStyles.container30x15}>
-                            {loading ? (
-                                <div className={styles.loading}>
-                                    <motion.div
-                                        variants={containerVariants}
-                                        initial="initial"
-                                        animate="animate"
-                                        style={{
-                                            display: 'flex',
-                                            justifyContent: 'center',
-                                            alignItems: 'center',
-                                        }}
+                            <div
+                                className={`${styles.userNav} ${isSticky ? styles.sticky : ''}`}
+                            >
+                                <div className={styles.userNavContainer}>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('lastOnline') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('lastOnline')}
                                     >
-                                        {loadingText.map((char, index) => (
-                                            <motion.span
-                                                key={index}
-                                                variants={letterVariants}
-                                                style={{
-                                                    display: 'inline-block',
-                                                    marginRight: '2px',
-                                                }}
-                                            >
-                                                {char}
-                                            </motion.span>
-                                        ))}
-                                    </motion.div>
+                                        <MdAccessTime /> Последняя активность{' '}
+                                        {getSortIcon('lastOnline')}
+                                    </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('createdAt')}
+                                    >
+                                        <MdHourglassEmpty /> Дата регистрации{' '}
+                                        {getSortIcon('createdAt')}
+                                    </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('username') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('username')}
+                                    >
+                                        <MdAllOut /> Имя пользователя{' '}
+                                        {getSortIcon('username')}
+                                    </Button>
                                 </div>
-                            ) : (
-                                <div className={styles.userPage}>
-                                    {users.length > 0 ? (
-                                        <div className={styles.userGrid}>
-                                            {users.map((user) => {
-                                                const statusColor =
-                                                    getStatusColor(user)
-                                                const statusTooltip =
-                                                    getStatusTooltip(user)
-                                                const inactive = isUserInactive(
-                                                    user.lastOnline,
-                                                )
-                                                return (
-                                                    <button
+                                {users.length > 0 && renderPagination()}
+                            </div>
+                            <div className={globalStyles.containerUsesPage}>
+                                {/* начало */}
+                                {loading ? (
+                                    <div className={styles.loading}>
+                                        <motion.div
+                                            variants={containerVariants}
+                                            initial="initial"
+                                            animate="animate"
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            {loadingText.map((char, index) => (
+                                                <motion.span
+                                                    key={index}
+                                                    variants={letterVariants}
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        marginRight: '2px',
+                                                    }}
+                                                >
+                                                    {char}
+                                                </motion.span>
+                                            ))}
+                                        </motion.div>
+                                    </div>
+                                ) : (
+                                    <div className={styles.userPage}>
+                                        {users.length > 0 ? (
+                                            <div className={styles.userGrid}>
+                                                {users.map((user: UserInterface) => (
+                                                    <UserCard
                                                         key={user.id}
-                                                        className={styles.userCard}
-                                                        onClick={() =>
-                                                            openUserProfile(
-                                                                user.username,
-                                                            )
-                                                        }
-                                                        style={{
-                                                            opacity: inactive
-                                                                ? 0.3
-                                                                : 1,
-                                                            background:
-                                                                user.bannerHash
-                                                                    ? `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}) no-repeat center center`
-                                                                    : `linear-gradient(90deg, #292C36 0%, rgba(41, 44, 54, 0.82) 100%)`,
-                                                            backgroundSize: 'cover',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={
-                                                                styles.cardHeader
-                                                            }
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    position:
-                                                                        'relative',
-                                                                }}
-                                                            >
-                                                                <img
-                                                                    className={
-                                                                        styles.userAvatar
-                                                                    }
-                                                                    src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
-                                                                    alt={
-                                                                        user.username
-                                                                    }
-                                                                    onError={(e) => {
-                                                                        ;(
-                                                                            e.currentTarget as HTMLImageElement
-                                                                        ).src =
-                                                                            './static/assets/images/undef.png'
-                                                                    }}
-                                                                />
-                                                                <TooltipButton
-                                                                    tooltipText={
-                                                                        statusTooltip
-                                                                    }
-                                                                    side="top"
-                                                                    className={
-                                                                        styles.statusCircle
-                                                                    }
-                                                                    style={{
-                                                                        backgroundColor:
-                                                                            statusColor,
-                                                                    }}
-                                                                >
-                                                                    <></>
-                                                                </TooltipButton>
-                                                            </div>
-                                                            <div
-                                                                className={
-                                                                    styles.userInfo
-                                                                }
-                                                            >
-                                                                <span
-                                                                    className={
-                                                                        styles.username
-                                                                    }
-                                                                >
-                                                                    {user.username}
-                                                                </span>
-                                                                <span
-                                                                    className={
-                                                                        styles.userStatus
-                                                                    }
-                                                                >
-                                                                    {user.status ===
-                                                                    'online'
-                                                                        ? 'Сейчас в сети'
-                                                                        : user.lastOnline
-                                                                          ? `Был в сети: ${timeAgo(Number(user.lastOnline))}`
-                                                                          : ''}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-                                                        <div
-                                                            className={
-                                                                styles.userBadges
-                                                            }
-                                                        >
-                                                            {user.badges.length >
-                                                                0 &&
-                                                                user.badges
-                                                                    .slice()
-                                                                    .sort(
-                                                                        (a, b) =>
-                                                                            b.level -
-                                                                            a.level,
-                                                                    )
-                                                                    .map(
-                                                                        (_badge) => (
-                                                                            <TooltipButton
-                                                                                key={`${_badge.type}-${_badge.level}`}
-                                                                                tooltipText={
-                                                                                    _badge.name
-                                                                                }
-                                                                                side="bottom"
-                                                                            >
-                                                                                <div
-                                                                                    className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
-                                                                                >
-                                                                                    <img
-                                                                                        src={`static/assets/badges/${_badge.type}.svg`}
-                                                                                        alt={
-                                                                                            _badge.name
-                                                                                        }
-                                                                                    />
-                                                                                </div>
-                                                                            </TooltipButton>
-                                                                        ),
-                                                                    )}
-                                                        </div>
-                                                    </button>
-                                                )
-                                            })}
-                                        </div>
-                                    ) : (
-                                        <div className={styles.noResults}>
-                                            Нет результатов
-                                        </div>
-                                    )}
-                                </div>
-                            )}
+                                                        user={user}
+                                                        onClick={openUserProfile}
+                                                    />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className={styles.noResults}>
+                                                Нет результатов
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                                {/* конец */}
+                            </div>
                         </div>
                     </div>
                 </div>

@@ -1,5 +1,6 @@
 import React from 'react'
 import * as styles from './container.module.scss'
+import Button from '../button'
 
 interface p {
     titleName: string
@@ -36,7 +37,7 @@ const Container: React.FC<p> = ({
                             <div className={styles.description}>{description}</div>
                         </div>
                     </div>
-                    {onClick && <button onClick={onClick}>{buttonName}</button>}
+                    {onClick && <Button onClick={onClick}>{buttonName}</Button>}
                     {children}
                 </div>
             </div>

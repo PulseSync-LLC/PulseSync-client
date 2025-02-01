@@ -289,7 +289,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                                 .map((album) => album.title)
                                                 .join(', ')}
                                         </div>
-                                        <button
+                                        <Button
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 const albumId =
@@ -303,7 +303,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                         >
                                             <MdOpenInBrowser size={24} /> Открыть в
                                             Яндекс.Музыке
-                                        </button>
+                                        </Button>
                                     </>
                                 )}
                             </div>
