@@ -34,13 +34,17 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
     resetButtonConfig,
     handleRemoveButton,
 }) => {
+    const [localId, setLocalId] = useState(button.id)
     const [localName, setLocalName] = useState(button.name)
     const [localText, setLocalText] = useState(button.text)
+    const [localDefault, setLocalDefault] = useState(button.defaultParameter || '')
 
     useEffect(() => {
+        setLocalId(button.id)
         setLocalName(button.name)
         setLocalText(button.text)
-    }, [button.name, button.text])
+        setLocalDefault(button.defaultParameter || '')
+    }, [button.id, button.name, button.text, button.defaultParameter])
 
     const isDifferent = button.text !== (button.defaultParameter || button.text)
 
@@ -48,6 +52,25 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
         <div className={styles.buttonField}>
             {editMode ? (
                 <>
+                    <div className={styles.field}>
+                        <label className={styles.label}>ID (строка):</label>
+                        <input
+                            type="text"
+                            className={styles.input}
+                            value={localId}
+                            onChange={(e) => setLocalId(e.target.value)}
+                            onBlur={(e) =>
+                                updateButtonConfig(
+                                    sectionIndex,
+                                    itemIndex,
+                                    buttonIndex,
+                                    'id',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Укажите ID"
+                        />
+                    </div>
                     <div className={styles.field}>
                         <label className={styles.label}>
                             Название текста (строка):
@@ -88,6 +111,27 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
                                 )
                             }
                             placeholder="Текст"
+                        />
+                    </div>
+                    <div className={styles.field}>
+                        <label className={styles.label}>
+                            Дефолтное значение (строка):
+                        </label>
+                        <input
+                            type="text"
+                            className={styles.input}
+                            value={localDefault}
+                            onChange={(e) => setLocalDefault(e.target.value)}
+                            onBlur={(e) =>
+                                updateButtonConfig(
+                                    sectionIndex,
+                                    itemIndex,
+                                    buttonIndex,
+                                    'defaultParameter',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Текст по умолчанию"
                         />
                     </div>
                     {isDifferent && (
