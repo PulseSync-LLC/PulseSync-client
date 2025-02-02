@@ -12,7 +12,6 @@ function App() {
     ReactDOM.createRoot(document.getElementById('root')).render(
         <Provider store={store}>
             <ErrorBoundary>
-                <Snowfall />
                 <AppPage />
             </ErrorBoundary>
         </Provider>,

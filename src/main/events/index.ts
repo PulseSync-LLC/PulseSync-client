@@ -148,6 +148,7 @@ export const handleEvents = (window: BrowserWindow): void => {
         ) => {
             const musicDir = app.getPath('music')
             const downloadDir = path.join(musicDir, 'PulseSyncMusic')
+
             function getExtensionFromUrl(url: string): string {
                 const cleanUrl = url.split('?')[0]
                 let filenamePart = cleanUrl.split('/').pop()?.toLowerCase() || ''

@@ -271,12 +271,8 @@ export default function UsersPage() {
             const nav = document.querySelector(`.${styles.userNav}`);
             if (nav) {
                 const rect = nav.getBoundingClientRect();
-                console.log("userNav position:", rect.top); // Вывод в консоль
                 setIsSticky(rect.top <= 0);
             }
-
-            const rect = nav.getBoundingClientRect();
-            console.log("userNav position:", rect.top); // Вывод в консоль
         };
     
         window.addEventListener("scroll", handleScroll);
@@ -345,7 +341,6 @@ export default function UsersPage() {
                                 {users.length > 0 && renderPagination()}
                             </div>
                             <div className={globalStyles.containerUsesPage}>
-                                {/* начало */}
                                 {loading ? (
                                     <div className={styles.loading}>
                                         <motion.div
@@ -391,7 +386,6 @@ export default function UsersPage() {
                                         )}
                                     </div>
                                 )}
-                                {/* конец */}
                             </div>
                         </div>
                     </div>

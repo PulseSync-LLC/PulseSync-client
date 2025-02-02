@@ -152,7 +152,6 @@ const createWindow = (): void => {
     mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((e) => {
         console.error(e)
     })
-
     mainWindow.once('ready-to-show', () => {
         preloaderWindow.close()
         preloaderWindow.destroy()
@@ -512,13 +511,6 @@ export const getPath = (args: string) => {
 app.whenReady().then(async () => {
     if (isAppDev) {
         try {
-            // if ((session.defaultSession as any).loadExtension) {
-            //     return (session.defaultSession as any)
-            //         .loadExtension(getPath("jdkknkkbebbapilgoeccciglkfbmbnfm"))
-            //         .then((ext: { name: string }) => {
-            //             return Promise.resolve(ext.name);
-            //         });
-            // }
             if ((session.defaultSession as any).loadExtension) {
                 return (session.defaultSession as any)
                     .loadExtension(getPath('fmkadmapgofadopljbjfkapdkoienihi'))
