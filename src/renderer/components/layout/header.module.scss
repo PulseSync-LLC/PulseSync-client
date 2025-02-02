@@ -258,7 +258,7 @@
                             --size: 38px;
                             width: var(--size);
                             height: var(--size);
-                            border-radius: 47px;
+                            border-radius: 8px;
 
                             flex: none;
                             order: 0;
@@ -270,8 +270,8 @@
 
                         & > .status {
                             position: absolute;
-                            bottom: 1px;
-                            right: 1px;
+                            bottom: -1px;
+    right: -2px;
                             outline: solid 3px #20232c;
                             border-radius: 50%;
 
@@ -454,7 +454,7 @@
                                 left: -3px;
                                 right: -3px;
                                 bottom: -3px;
-                                border-radius: 100%;
+                                border-radius: 18px;
                                 outline: 2px solid #1b1e26;
                                 z-index: 2;
                                 pointer-events: none;
@@ -465,15 +465,10 @@
                                     left: 0;
                                     width: 100%;
                                     height: 100%;
-                                    border-radius: 50%;
+                                    border-radius: 18px;
                                     background: conic-gradient(
-                                        #4c79ff 0% var(--progress),
+                                        #4c79ff96 0% var(--progress),
                                         transparent var(--progress) 100%
-                                    );
-                                    mask: radial-gradient(
-                                        farthest-side,
-                                        transparent calc(100% - 4px),
-                                        black 0
                                     );
 
                                     z-index: 3;
@@ -487,7 +482,7 @@
                                 --size: 85px;
                                 width: var(--size);
                                 height: var(--size);
-                                border-radius: 100px;
+                                border-radius: 18px;
 
                                 outline: 4px solid #1b1e26;
 
@@ -502,8 +497,8 @@
                             & > .status {
                                 pointer-events: none;
                                 position: absolute;
-                                bottom: 2px;
-                                right: 2px;
+                                bottom: -2px;
+                                right: -5px;
                                 outline: 4px solid #1b1e26;
                                 border-radius: 50%;
                                 z-index: 2;
@@ -638,7 +633,7 @@
     right: 0;
     bottom: 0;
     top: 0;
-    border-radius: 99px;
+    border-radius: 8px;
     text-align: center;
     font-size: 12px;
     font-weight: 700;
