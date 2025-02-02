@@ -12,6 +12,7 @@ interface TooltipButtonProps {
     disabled?: boolean
     className?: string
     style?: React.CSSProperties
+    styleComponent?: React.CSSProperties
 }
 
 const TooltipButton: React.FC<TooltipButtonProps> = ({
@@ -24,6 +25,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
     disabled,
     className,
     style,
+    styleComponent,
 }) => {
     const Component = as
     return (
@@ -45,6 +47,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                         data-side={dataSide}
                         side={side}
                         sideOffset={5}
+                        style={styleComponent}
                     >
                         {tooltipText}
                         <Tooltip.Arrow className={styles.TooltipArrow} />

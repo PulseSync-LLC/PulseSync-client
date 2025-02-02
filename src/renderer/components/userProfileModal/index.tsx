@@ -203,8 +203,64 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                         />
                     </Button>
                     <div className={styles.dateCreate}>
-                        Дата регистрации:{' '}
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {new Date(user.createdAt) <= new Date(2025, 0, 17) ? (
+                            <TooltipButton
+                                styleComponent={{
+                                    padding: 0,
+                                    background: 'transparent',
+                                }}
+                                tooltipText={
+                                    <div className={styles.dateCreateTooltip}>
+                                        {new Date(user.createdAt).toLocaleString(
+                                            'ru-RU',
+                                            {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit',
+                                            },
+                                        )}
+                                    </div>
+                                }
+                                side="top"
+                            >
+                                Здесь с самого начала
+                            </TooltipButton>
+                        ) : (
+                            <TooltipButton
+                                styleComponent={{
+                                    padding: 0,
+                                    background: 'transparent',
+                                }}
+                                tooltipText={
+                                    <div className={styles.dateCreateTooltip}>
+                                        {new Date(user.createdAt).toLocaleString(
+                                            'ru-RU',
+                                            {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric',
+                                                hour: '2-digit',
+                                                minute: '2-digit',
+                                                second: '2-digit',
+                                            },
+                                        )}
+                                    </div>
+                                }
+                                side="top"
+                            >
+                                Дата регистрации:{' '}
+                                {new Date(user.createdAt).toLocaleDateString(
+                                    'ru-RU',
+                                    {
+                                        month: 'long',
+                                        year: 'numeric',
+                                    },
+                                )}
+                            </TooltipButton>
+                        )}
                     </div>
                 </div>
 
