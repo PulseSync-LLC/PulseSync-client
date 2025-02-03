@@ -32,7 +32,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, setMod, modInfo } = useContext(userContext)
+    const { app, setApp, features } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
 
     const openUpdateModal = () => {
@@ -184,6 +184,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
+        if(!features.trackDownload) {
+            toast.custom('error', 'Ой...', 'Функция загрузки треков временно отключена')
+            return
+        }
         const toastId = toast.custom(
             'info',
             'Ожидаю',
@@ -373,7 +377,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: `Скачать ${currentTrack.title} в папку музыка`,
                 onClick: downloadTrack,
-                disabled: true,
+                disabled: !currentTrack.url,
             },
             createToggleButton(
                 'Запись метаданных в трек',
