@@ -2,6 +2,7 @@ import { useEffect, useState, FC } from 'react'
 import apolloClient from '../../api/apolloClient'
 import config from '../../api/config'
 import findUserByName from '../../api/queries/user/findUserByName.query'
+import { GET_USER_ACHIEVEMENTS } from '../../api/queries/user/achievement/userAchievement.query'
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
 
@@ -36,6 +37,10 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
     const [bannerExpanded, setBannerExpanded] = useState<boolean>(false)
     const [shouldRender, setShouldRender] = useState(isOpen)
     const [animationClass, setAnimationClass] = useState(styles.closed)
+    // Новое состояние для достижений
+    const [achievements, setAchievements] = useState<any[]>([])
+    const [achievementsLoading, setAchievementsLoading] = useState<boolean>(false)
+    const [achievementsError, setAchievementsError] = useState<any>(null)
 
     useEffect(() => {
         if (isOpen) {
@@ -80,6 +85,32 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
             .catch(setError)
             .finally(() => setLoading(false))
     }, [isOpen, username])
+
+    useEffect(() => {
+        if (user && user.id && user.id !== '-1') {
+            console.log('user.id type:', user.id, 'value:', user.id);
+
+            setAchievementsLoading(true)
+            apolloClient
+                .query({
+                    query: GET_USER_ACHIEVEMENTS,
+                    variables: { userId: user.id },
+                    fetchPolicy: 'no-cache',
+                })
+                .then((res) => {
+                    console.log(
+                        'Fetched achievements:',
+                        res.data.getUserAchievements,
+                    )
+                    setAchievements(res.data.getUserAchievements)
+                })
+                .catch((err) => {
+                    console.error('Error fetching achievements:', err)
+                    setAchievementsError(err)
+                })
+                .finally(() => setAchievementsLoading(false))
+        }
+    }, [user])
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null
@@ -330,6 +361,35 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                             </Button>
                         </TooltipButton>
                     </div>
+                </div>
+
+                <div className={styles.achievementsSection}>
+                    <h2>Достижения</h2>
+                    {achievementsLoading && <p>Загрузка достижений...</p>}
+                    {achievementsError && (
+                        <p>
+                            Ошибка при загрузке достижений:{' '}
+                            {achievementsError.message || String(achievementsError)}
+                        </p>
+                    )}
+                    {!achievementsLoading && achievements.length === 0 ? (
+                        <p>Нет достижений</p>
+                    ) : (
+                        achievements.map((achievement) => (
+                            <div
+                                key={achievement.id}
+                                className={styles.achievementItem}
+                            >
+                                <h3>{achievement.achievement.title}</h3>
+                                <p>{achievement.achievement.description}</p>
+                                <p>
+                                    Прогресс: {achievement.progressCurrent}/
+                                    {achievement.progressTotal}
+                                </p>
+                                <p>Статус: {achievement.status}</p>
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {user.currentTrack && user.currentTrack.status === 'playing' && (
