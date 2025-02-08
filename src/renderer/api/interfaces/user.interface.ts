@@ -15,5 +15,6 @@ export default interface UserInterface {
     bannerHash: string
     bannerType: string
     perms: string
+    userAchievements: any[]
     badges: any[]
 }

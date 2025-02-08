@@ -1,8 +1,10 @@
 import { useEffect, useState, FC } from 'react'
 import apolloClient from '../../api/apolloClient'
 import config from '../../api/config'
+
 import findUserByName from '../../api/queries/user/findUserByName.query'
-import { GET_USER_ACHIEVEMENTS } from '../../api/queries/user/achievement/userAchievement.query'
+import getAchievements from '../../api/queries/user/getAchievements.query'
+
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
 
@@ -16,6 +18,7 @@ import {
 } from 'react-icons/md'
 
 import * as styles from './userProfileModal.module.scss'
+
 import { getStatusColor, getStatusTooltip } from '../../utils/userStatus'
 import { motion } from 'framer-motion'
 
@@ -33,14 +36,17 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<any>(null)
+
     const [bannerHeight, setBannerHeight] = useState<number>(184)
     const [bannerExpanded, setBannerExpanded] = useState<boolean>(false)
+
     const [shouldRender, setShouldRender] = useState(isOpen)
     const [animationClass, setAnimationClass] = useState(styles.closed)
-    // Новое состояние для достижений
-    const [achievements, setAchievements] = useState<any[]>([])
-    const [achievementsLoading, setAchievementsLoading] = useState<boolean>(false)
-    const [achievementsError, setAchievementsError] = useState<any>(null)
+
+    const [allAchievements, setAllAchievements] = useState<any[]>([])
+    const [allAchievementsLoading, setAllAchievementsLoading] =
+        useState<boolean>(false)
+    const [allAchievementsError, setAllAchievementsError] = useState<any>(null)
 
     useEffect(() => {
         if (isOpen) {
@@ -76,7 +82,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                 fetchPolicy: 'no-cache',
             })
             .then((res) => {
-                if (res.data.findUserByName === null) {
+                if (!res.data.findUserByName) {
                     setError('User not found')
                 } else {
                     setUser(res.data.findUserByName)
@@ -87,30 +93,30 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
     }, [isOpen, username])
 
     useEffect(() => {
-        if (user && user.id && user.id !== '-1') {
-            console.log('user.id type:', user.id, 'value:', user.id);
-
-            setAchievementsLoading(true)
-            apolloClient
-                .query({
-                    query: GET_USER_ACHIEVEMENTS,
-                    variables: { userId: user.id },
-                    fetchPolicy: 'no-cache',
-                })
-                .then((res) => {
-                    console.log(
-                        'Fetched achievements:',
-                        res.data.getUserAchievements,
-                    )
-                    setAchievements(res.data.getUserAchievements)
-                })
-                .catch((err) => {
-                    console.error('Error fetching achievements:', err)
-                    setAchievementsError(err)
-                })
-                .finally(() => setAchievementsLoading(false))
-        }
-    }, [user])
+        setAllAchievementsLoading(true)
+        apolloClient
+            .query({
+                query: getAchievements,
+                variables: {
+                    page: 1,
+                    pageSize: 100,
+                    search: '',
+                    sortOptions: [],
+                },
+                fetchPolicy: 'no-cache',
+            })
+            .then((res) => {
+                if (res.data?.getAchievements?.achievements) {
+                    setAllAchievements(res.data.getAchievements.achievements)
+                }
+            })
+            .catch((err) => {
+                setAllAchievementsError(err)
+            })
+            .finally(() => {
+                setAllAchievementsLoading(false)
+            })
+    }, [])
 
     useEffect(() => {
         let interval: NodeJS.Timeout | null = null
@@ -161,7 +167,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
     }
 
     const renderContent = () => {
-        if (loading)
+        if (loading) {
             return (
                 <div className={styles.loadingWrapper}>
                     <div className={styles.loading}>
@@ -191,9 +197,15 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                     </div>
                 </div>
             )
-        if (error) return <p>Ошибка: {error?.message || String(error)}</p>
-        if (!user || !user.id || user.id === '-1')
+        }
+
+        if (error) {
+            return <p>Ошибка: {error?.message || String(error)}</p>
+        }
+
+        if (!user || !user.id || user.id === '-1') {
             return <p>Пользователь не найден</p>
+        }
 
         const bannerUrl = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
         const avatarUrl = `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
@@ -236,23 +248,17 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                     <div className={styles.dateCreate}>
                         {new Date(user.createdAt) <= new Date(2025, 0, 17) ? (
                             <TooltipButton
-                                styleComponent={{
-                                    padding: 0,
-                                    background: 'transparent',
-                                }}
+                                styleComponent={{ padding: 0, background: 'transparent' }}
                                 tooltipText={
                                     <div className={styles.dateCreateTooltip}>
-                                        {new Date(user.createdAt).toLocaleString(
-                                            'ru-RU',
-                                            {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                            },
-                                        )}
+                                        {new Date(user.createdAt).toLocaleString('ru-RU', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                        })}
                                     </div>
                                 }
                                 side="top"
@@ -261,35 +267,26 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                             </TooltipButton>
                         ) : (
                             <TooltipButton
-                                styleComponent={{
-                                    padding: 0,
-                                    background: 'transparent',
-                                }}
+                                styleComponent={{ padding: 0, background: 'transparent' }}
                                 tooltipText={
                                     <div className={styles.dateCreateTooltip}>
-                                        {new Date(user.createdAt).toLocaleString(
-                                            'ru-RU',
-                                            {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                            },
-                                        )}
+                                        {new Date(user.createdAt).toLocaleString('ru-RU', {
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                        })}
                                     </div>
                                 }
                                 side="top"
                             >
                                 Дата регистрации:{' '}
-                                {new Date(user.createdAt).toLocaleDateString(
-                                    'ru-RU',
-                                    {
-                                        month: 'long',
-                                        year: 'numeric',
-                                    },
-                                )}
+                                {new Date(user.createdAt).toLocaleDateString('ru-RU', {
+                                    month: 'long',
+                                    year: 'numeric',
+                                })}
                             </TooltipButton>
                         )}
                     </div>
@@ -304,7 +301,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                     src={avatarUrl}
                                     alt="Avatar"
                                     onError={(e) => {
-                                        ;(e.currentTarget as HTMLImageElement).src =
+                                        (e.currentTarget as HTMLImageElement).src =
                                             './static/assets/images/undef.png'
                                     }}
                                     width="100"
@@ -332,7 +329,7 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                                         tooltipText={_badge.name}
                                                         side="top"
                                                         className={styles.badge}
-                                                        key={_badge.type}
+                                                        key={_badge.uuid}
                                                     >
                                                         <img
                                                             src={`static/assets/badges/${_badge.type}.svg`}
@@ -365,30 +362,86 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
 
                 <div className={styles.achievementsSection}>
                     <h2>Достижения</h2>
-                    {achievementsLoading && <p>Загрузка достижений...</p>}
-                    {achievementsError && (
+
+                    {allAchievementsLoading && <p>Загрузка достижений...</p>}
+                    {allAchievementsError && (
                         <p>
                             Ошибка при загрузке достижений:{' '}
-                            {achievementsError.message || String(achievementsError)}
+                            {allAchievementsError.message ||
+                                String(allAchievementsError)}
                         </p>
                     )}
-                    {!achievementsLoading && achievements.length === 0 ? (
-                        <p>Нет достижений</p>
-                    ) : (
-                        achievements.map((achievement) => (
-                            <div
-                                key={achievement.id}
-                                className={styles.achievementItem}
-                            >
-                                <h3>{achievement.achievement.title}</h3>
-                                <p>{achievement.achievement.description}</p>
-                                <p>
-                                    Прогресс: {achievement.progressCurrent}/
-                                    {achievement.progressTotal}
-                                </p>
-                                <p>Статус: {achievement.status}</p>
-                            </div>
-                        ))
+
+                    {!allAchievementsLoading && allAchievements.length === 0 && (
+                        <p>Нет доступных достижений</p>
+                    )}
+
+                    {!allAchievementsLoading && allAchievements.length > 0 && (
+                        <div className={styles.achievementsList}>
+                            {allAchievements.map((ach) => {
+                                const userAch = user.userAchievements?.find(
+                                    (ua) => ua.achievement.id === ach.id
+                                )
+                                const userAchStatus = userAch?.status
+                                const userAchProgressCurrent =
+                                    userAch?.progressCurrent ?? 0
+                                const userAchProgressTotal =
+                                    userAch?.progressTotal ?? 0
+
+                                const statusLower = userAchStatus?.toLowerCase()
+                                const isCompleted = statusLower === 'completed'
+                                const isInProgress = statusLower === 'in_progress'
+
+                                const itemClassNames = [
+                                    styles.achievementItem,
+                                    isCompleted && styles.completed,
+                                    isInProgress && styles.inProgress,
+                                ]
+                                    .filter(Boolean)
+                                    .join(' ')
+
+                                return (
+                                    <div key={ach.id} className={itemClassNames}>
+                                        <div className={styles.achievementHeader}>
+                                            <img
+                                                className={styles.achievementIcon}
+                                                src={
+                                                    ach.imageUrl ||
+                                                    'static/assets/images/achievement_placeholder.png'
+                                                }
+                                                alt={ach.title}
+                                                onError={(e) => {
+                                                    (
+                                                        e.currentTarget as HTMLImageElement
+                                                    ).src =
+                                                        'static/assets/images/achievement_placeholder.png'
+                                                }}
+                                            />
+                                            <h3>{ach.title}</h3>
+                                        </div>
+                                        <p>{ach.description}</p>
+
+                                        {userAch ? (
+                                            <>
+                                                <p>
+                                                    Статус:{' '}
+                                                    <strong>{userAchStatus}</strong>
+                                                </p>
+                                                <p>
+                                                    Прогресс:{' '}
+                                                    {userAchProgressCurrent}/
+                                                    {userAchProgressTotal}
+                                                </p>
+                                            </>
+                                        ) : (
+                                            <p style={{ opacity: 0.8 }}>
+                                                Не начато
+                                            </p>
+                                        )}
+                                    </div>
+                                )
+                            })}
+                        </div>
                     )}
                 </div>
 
@@ -409,16 +462,21 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                                             onClick={(e) => {
                                                 e.stopPropagation()
                                                 const albumId =
-                                                    user.currentTrack.albums[0].id
+                                                    user.currentTrack.albums[0]
+                                                        .id
                                                 window.desktopEvents.send(
                                                     'open-external',
-                                                    `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`,
+                                                    `yandexmusic://album/${encodeURIComponent(
+                                                        albumId
+                                                    )}/track/${
+                                                        user.currentTrack.realId
+                                                    }`
                                                 )
                                             }}
                                             className={styles.trackButton}
                                         >
-                                            <MdOpenInBrowser size={24} /> Открыть в
-                                            Яндекс.Музыке
+                                            <MdOpenInBrowser size={24} />{' '}
+                                            Открыть в Яндекс.Музыке
                                         </Button>
                                     </>
                                 )}

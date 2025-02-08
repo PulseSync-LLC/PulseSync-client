@@ -15,16 +15,45 @@ export default gql`
             status
             lastOnline
             currentTrack
+
             ban {
                 uuid
                 createdAt
             }
+
             badges {
                 uuid
                 name
                 type
                 level
                 createdAt
+            }
+
+            isFriend
+
+            userAchievements {
+                id
+                status
+                progressCurrent
+                progressTotal
+                criteriaProgress {
+                    id
+                    name
+                    isCompleted
+                }
+                achievement {
+                    id
+                    title
+                    description
+                    hint
+                    imageUrl
+                    type
+                    difficulty
+                    points
+                    createdAt
+                    progressCompleted
+                    progressTotal
+                }
             }
         }
     }

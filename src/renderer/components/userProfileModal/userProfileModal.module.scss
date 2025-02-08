@@ -9,19 +9,19 @@
     transition: all 0.3s ease;
     opacity: 0;
     background: rgba(0, 0, 0, 0);
-}
-
-.overlay.open {
-    opacity: 1;
-    background: rgba(0, 0, 0, 0.5);
-}
-
-.overlay.closed {
-    opacity: 0;
-    background: rgba(0, 0, 0, 0);
-}
-
-.modalContainer {
+  
+    &.open {
+      opacity: 1;
+      background: rgba(0, 0, 0, 0.5);
+    }
+  
+    &.closed {
+      opacity: 0;
+      background: rgba(0, 0, 0, 0);
+    }
+  }
+  
+  .modalContainer {
     position: relative;
     background: #1e2027;
     border-radius: 8px;
@@ -31,24 +31,22 @@
     min-height: 650px;
     overflow: auto;
     outline: 1px #3e424c solid;
-    transition:
-        opacity 0.3s ease,
-        transform 0.3s ease;
+    transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 0;
     transform: translateY(-40px);
-}
-
-.modalContainer.open {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.modalContainer.closed {
-    opacity: 0;
-    transform: translateY(-40px);
-}
-
-.closeButton {
+  
+    &.open {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  
+    &.closed {
+      opacity: 0;
+      transform: translateY(-40px);
+    }
+  }
+  
+  .closeButton {
     position: absolute;
     top: 12px;
     right: 12px;
@@ -58,18 +56,18 @@
     color: #fff;
     cursor: pointer;
     z-index: 2;
-
+  
     &:hover {
-        color: #ffdddd;
+      color: #ffdddd;
     }
-}
-
-.modalContent {
+  }
+  
+  .modalContent {
     display: flex;
     flex-direction: column;
-}
-
-.bannerBackground {
+  }
+  
+  .bannerBackground {
     background-position: 50% 50%;
     background-repeat: no-repeat;
     width: 100%;
@@ -80,43 +78,37 @@
     gap: 5px;
     align-items: flex-end;
     padding: 5px 30px;
-}
-
-.dateCreate {
+  }
+  
+  .dateCreate {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
     padding: 8px 15px;
     height: 24px;
-
     background: #272a33;
     border-radius: 8px;
-
     font-weight: 600;
     font-size: 14px;
     line-height: 140%;
-
     color: #ffffff;
-}
-
-.dateCreateTooltip {
+  }
+  
+  .dateCreateTooltip {
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
     padding: 3px 8px;
-
     background: #272a33c9;
-
     font-weight: 600;
     font-size: 12px;
     line-height: 140%;
-
     color: #ffffff;
-}
-
-.hideButton {
+  }
+  
+  .hideButton {
     opacity: 1;
     transition: 0.3s;
     cursor: pointer;
@@ -129,13 +121,13 @@
     background: #272a33;
     color: #ffffff;
     border-radius: 8px;
-
+  
     &:hover {
-        background: #333742;
+      background: #333742;
     }
-}
-
-.userInfo {
+  }
+  
+  .userInfo {
     position: relative;
     display: flex;
     flex-direction: row;
@@ -143,168 +135,168 @@
     padding: 15px 30px;
     justify-content: space-between;
     background: #292c36;
-
+  
     &::after {
-        content: '';
-        background: #363944;
-        width: 100%;
-        height: 1px;
-        position: absolute;
-        bottom: 0;
-        left: 0;
+      content: '';
+      background: #363944;
+      width: 100%;
+      height: 1px;
+      position: absolute;
+      bottom: 0;
+      left: 0;
     }
-}
-
-.buttonNowPlaying {
+  }
+  
+  .buttonNowPlaying {
     background: #e64988;
     padding: 15px 30px;
     color: #fff;
     font-size: 14px;
     font-weight: 900;
-}
-
-.userHeader {
+  }
+  
+  .userHeader {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
     align-items: center;
     gap: 2px;
     width: -webkit-fill-available;
-}
-
-.userContainerLeft {
+  }
+  
+  .userContainerLeft {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 15px;
     position: relative;
-
+  
     .userImage {
-        width: 100px;
-        height: 100px;
+      width: 100px;
+      height: 100px;
+      position: absolute;
+      top: -64px;
+  
+      .avatarWrapper {
+        outline: 5px solid #292c36;
+        border-radius: 16px;
+        object-fit: cover;
+        background: white;
+      }
+  
+      .statusIndicator {
+        --sizeStatus: 18px;
         position: absolute;
-        top: -64px;
-
-        .avatarWrapper {
-            outline: 5px solid #292c36;
-            border-radius: 16px;
-            object-fit: cover;
-            background: white;
-        }
-
-        .statusIndicator {
-            --sizeStatus: 18px;
-            position: absolute;
-            bottom: -5px;
-            right: -5px;
-            width: var(--sizeStatus);
-            height: var(--sizeStatus);
-            border-radius: 50%;
-            outline: 6px solid #292c36;
-            box-sizing: border-box;
-            cursor: pointer;
-        }
+        bottom: -5px;
+        right: -5px;
+        width: var(--sizeStatus);
+        height: var(--sizeStatus);
+        border-radius: 50%;
+        outline: 6px solid #292c36;
+        box-sizing: border-box;
+        cursor: pointer;
+      }
     }
-
+  
     .userInfoText {
-        padding-left: 114px;
-
-        .userName {
-            font-weight: 900;
-            font-size: 20px;
-            line-height: 110%;
-            display: flex;
-            gap: 5px;
-            color: #ffffff;
-
-            .userBadges {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                gap: 3px;
-
-                .badge {
-                    width: 20px;
-                    height: 20px;
-                }
-            }
+      padding-left: 114px;
+  
+      .userName {
+        font-weight: 900;
+        font-size: 20px;
+        line-height: 110%;
+        display: flex;
+        gap: 5px;
+        color: #ffffff;
+  
+        .userBadges {
+          display: flex;
+          flex-direction: row;
+          align-items: center;
+          gap: 3px;
+  
+          .badge {
+            width: 20px;
+            height: 20px;
+          }
         }
-
-        .userUsername {
-            font-weight: 500;
-            font-size: 12px;
-            line-height: 110%;
-            color: #e1e1e1;
-        }
+      }
+  
+      .userUsername {
+        font-weight: 500;
+        font-size: 12px;
+        line-height: 110%;
+        color: #e1e1e1;
+      }
     }
-}
-
-.rightContainer {
+  }
+  
+  .rightContainer {
     display: flex;
     flex-direction: row;
     align-items: center;
     gap: 5px;
-}
-
-.defaultButton {
+  }
+  
+  .defaultButton {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: flex-start;
     padding: 10px 15px;
     gap: 10px;
-
+  
     color: #fff;
     background: #363b49;
     border-radius: 8px;
-
+  
     &:hover {
-        background-color: #444956;
+      background-color: #444956;
     }
-
+  
     &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-
-        &:hover {
-            background-color: #363b49;
-        }
+      opacity: 0.5;
+      cursor: not-allowed;
+  
+      &:hover {
+        background-color: #363b49;
+      }
     }
-}
-
-.miniButton {
+  }
+  
+  .miniButton {
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: flex-start;
     padding: 10px 15px;
     gap: 10px;
-
+  
     color: #fff;
     background: #363b49;
     border-radius: 8px;
-
+  
     &:hover {
-        background-color: #444956;
+      background-color: #444956;
     }
-
+  
     &:disabled {
-        opacity: 0.5;
-        cursor: not-allowed;
-
-        &:hover {
-            background-color: #363b49;
-        }
+      opacity: 0.5;
+      cursor: not-allowed;
+  
+      &:hover {
+        background-color: #363b49;
+      }
     }
-}
-
-.tarckInfo {
+  }
+  
+  .tarckInfo {
     display: flex;
     flex-direction: column;
     gap: 7px;
-}
-
-.trackButton {
+  }
+  
+  .trackButton {
     display: flex;
     align-items: center;
     gap: 6px;
@@ -318,14 +310,14 @@
     color: #fff;
     cursor: pointer;
     font-size: 14px;
-    transition: var(--transition);
-
+    transition: 0.2s background-color ease;
+  
     &:hover {
-        background-color: #d13d78;
+      background-color: #d13d78;
     }
-}
-
-.loadingWrapper {
+  }
+  
+  .loadingWrapper {
     display: flex;
     justify-content: center;
     align-items: center;
@@ -334,9 +326,9 @@
     right: 0;
     top: 0;
     bottom: 0;
-}
-
-.loading {
+  }
+  
+  .loading {
     display: flex;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
@@ -349,4 +341,69 @@
     justify-content: center;
     color: white;
     font-size: x-large;
-}
+  }
+  
+  /* +++++++++++++++++++++++++
+     СЕКЦИЯ для достижений
+     +++++++++++++++++++++++++ */
+  .achievementsSection {
+    padding: 20px 30px;
+  
+    h2 {
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #fff;
+    }
+  
+    p {
+      color: #ccc;
+      font-size: 14px;
+      margin: 4px 0;
+    }
+  
+    .achievementsList {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+    }
+  
+    .achievementItem {
+      background: #2f3240;
+      border: 1px solid #424654;
+      border-radius: 8px;
+      padding: 15px;
+      min-width: 200px;
+      flex: 1 1 200px;
+      max-width: calc(50% - 15px);
+  
+      .achievementHeader {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+  
+        .achievementIcon {
+          width: 40px;
+          height: 40px;
+          border-radius: 4px;
+          object-fit: cover;
+        }
+  
+        h3 {
+          font-size: 16px;
+          color: #ffffff;
+          margin: 0;
+        }
+      }
+    }
+  
+    /* Пример выделения для выполненной/в процессе ачивки */
+    .completed {
+      border-color: #2fa82f; /* зелёный */
+    }
+  
+    .inProgress {
+      border-color: #ffc107; /* жёлтый */
+    }
+  }
+  
