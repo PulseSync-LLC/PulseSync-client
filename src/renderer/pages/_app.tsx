@@ -980,14 +980,14 @@ const Player: React.FC<any> = ({ children }) => {
             if (
                 title !== lastSentTrack.current.title ||
                 status !== lastSentTrack.current.status ||
-                progress.played !== lastSentTrack.current.progressPlayed
+                progress.position !== lastSentTrack.current.progressPlayed
             ) {
                 socket.emit('send_track', track)
 
                 lastSentTrack.current = {
                     title,
                     status,
-                    progressPlayed: progress.played,
+                    progressPlayed: progress.position,
                 }
             }
         }
