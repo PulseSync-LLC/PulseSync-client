@@ -36,6 +36,7 @@ export default gql`
                 status
                 progressCurrent
                 progressTotal
+                completedAt
                 criteriaProgress {
                     id
                     name

@@ -1,5 +1,10 @@
 .userCard {
     cursor: pointer;
+    
+    background-position: 50% 50% !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
+
     position: relative;
     border-radius: 8px;
     display: flex;

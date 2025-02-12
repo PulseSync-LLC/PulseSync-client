@@ -9,93 +9,92 @@
     transition: all 0.3s ease;
     opacity: 0;
     background: rgba(0, 0, 0, 0);
-  
+
     &.open {
-      opacity: 1;
-      background: rgba(0, 0, 0, 0.5);
+        opacity: 1;
+        background: #1e222ddb;
+        backdrop-filter: saturate(100%) blur(10px);
     }
-  
+
     &.closed {
-      opacity: 0;
-      background: rgba(0, 0, 0, 0);
+        opacity: 0;
+        background: #1e222d00;
+        backdrop-filter: saturate(100%) blur(0px);
     }
-  }
-  
-  .modalContainer {
+}
+
+.modalContainer {
     position: relative;
     background: #1e2027;
     border-radius: 8px;
     width: 80%;
-    max-width: 700px;
-    max-height: 80vh;
+    max-width: 750px;
+    max-height: 85vh;
     min-height: 650px;
     overflow: auto;
     outline: 1px #3e424c solid;
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s ease;
     opacity: 0;
     transform: translateY(-40px);
-  
+
     &.open {
-      opacity: 1;
-      transform: translateY(0);
+        opacity: 1;
+        transform: translateY(0);
     }
-  
+
     &.closed {
-      opacity: 0;
-      transform: translateY(-40px);
+        opacity: 0;
+        transform: translateY(-40px);
     }
-  }
-  
-  .closeButton {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    background: transparent;
-    border: none;
-    font-size: 20px;
-    color: #fff;
-    cursor: pointer;
-    z-index: 2;
-  
-    &:hover {
-      color: #ffdddd;
-    }
-  }
-  
-  .modalContent {
-    display: flex;
-    flex-direction: column;
-  }
-  
-  .bannerBackground {
-    background-position: 50% 50%;
-    background-repeat: no-repeat;
+}
+
+// .closeButton {
+//     position: absolute;
+//     top: 12px;
+//     right: 12px;
+//     background: transparent;
+//     border: none;
+//     font-size: 20px;
+//     color: #fff;
+//     cursor: pointer;
+//     z-index: 2;
+
+//     &:hover {
+//         color: #ffdddd;
+//     }
+// }
+
+// .modalContent {
+//     display: flex;
+//     flex-direction: column;
+// }
+
+.bannerBackground {
+    background-position: 50% 50% !important;
+    background-size: cover !important;
+    background-repeat: no-repeat !important;
     width: 100%;
+    height: 350px;
     position: relative;
-    border-radius: 8px 8px 0 0;
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 5px;
-    align-items: flex-end;
-    padding: 5px 30px;
-  }
-  
-  .dateCreate {
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 8px 15px;
-    height: 24px;
-    background: #272a33;
-    border-radius: 8px;
+    gap: 15px;
+    align-items: flex-end;
+    padding: 15px 30px;
+    justify-content: flex-end;
+}
+
+.dateCreate {
     font-weight: 600;
-    font-size: 14px;
-    line-height: 140%;
-    color: #ffffff;
-  }
-  
-  .dateCreateTooltip {
+    font-size: 12px;
+    line-height: 110%;
+
+    color: #e1e1e1;
+}
+
+.dateCreateTooltip {
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -106,304 +105,288 @@
     font-size: 12px;
     line-height: 140%;
     color: #ffffff;
-  }
-  
-  .hideButton {
-    opacity: 1;
-    transition: 0.3s;
-    cursor: pointer;
-    height: fit-content;
+}
+
+// .hideButton {
+//     opacity: 1;
+//     transition: 0.3s;
+//     cursor: pointer;
+//     height: fit-content;
+//     display: flex;
+//     justify-content: center;
+//     align-items: center;
+//     padding: 10px;
+//     border: none;
+//     background: #272a33;
+//     color: #ffffff;
+//     border-radius: 8px;
+
+//     &:hover {
+//         background: #333742;
+//     }
+// }
+
+// .userInfo {
+//     position: relative;
+//     display: flex;
+//     flex-direction: row;
+//     align-items: center;
+//     padding: 15px 30px;
+//     justify-content: space-between;
+//     background: #292c36;
+
+//     &::after {
+//         content: '';
+//         background: #363944;
+//         width: 100%;
+//         height: 1px;
+//         position: absolute;
+//         bottom: 0;
+//         left: 0;
+//     }
+// }
+
+// .buttonNowPlaying {
+//     background: #e64988;
+//     padding: 15px 30px;
+//     color: #fff;
+//     font-size: 14px;
+//     font-weight: 900;
+// }
+
+// .userHeader {
+//     display: flex;
+//     flex-direction: row;
+//     justify-content: space-between;
+//     align-items: center;
+//     gap: 2px;
+//     width: -webkit-fill-available;
+// }
+
+// .userContainerLeft {
+//     display: flex;
+//     flex-direction: row;
+//     align-items: center;
+//     gap: 15px;
+//     position: relative;
+
+.userInfo {
     display: flex;
+    flex-direction: column;
     justify-content: center;
-    align-items: center;
-    padding: 10px;
-    border: none;
-    background: #272a33;
-    color: #ffffff;
-    border-radius: 8px;
-  
-    &:hover {
-      background: #333742;
-    }
-  }
-  
-  .userInfo {
-    position: relative;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 3px;
+}
+
+.userImage {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 15px 30px;
-    justify-content: space-between;
-    background: #292c36;
-  
-    &::after {
-      content: '';
-      background: #363944;
-      width: 100%;
-      height: 1px;
-      position: absolute;
-      bottom: 0;
-      left: 0;
-    }
-  }
-  
-  .buttonNowPlaying {
-    background: #e64988;
-    padding: 15px 30px;
-    color: #fff;
-    font-size: 14px;
-    font-weight: 900;
-  }
-  
-  .userHeader {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
-    align-items: center;
-    gap: 2px;
-    width: -webkit-fill-available;
-  }
-  
-  .userContainerLeft {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 0px;
     gap: 15px;
-    position: relative;
-  
-    .userImage {
-      width: 100px;
-      height: 100px;
-      position: absolute;
-      top: -64px;
-  
-      .avatarWrapper {
-        outline: 5px solid #292c36;
+
+    width: 100%;
+
+    .avatarWrapper {
         border-radius: 16px;
         object-fit: cover;
         background: white;
-      }
-  
-      .statusIndicator {
-        --sizeStatus: 18px;
-        position: absolute;
-        bottom: -5px;
-        right: -5px;
-        width: var(--sizeStatus);
-        height: var(--sizeStatus);
-        border-radius: 50%;
-        outline: 6px solid #292c36;
-        box-sizing: border-box;
-        cursor: pointer;
-      }
     }
-  
-    .userInfoText {
-      padding-left: 114px;
-  
-      .userName {
-        font-weight: 900;
-        font-size: 20px;
-        line-height: 110%;
+}
+
+//     .userInfoText {
+//         padding-left: 114px;
+
+.userName {
+    font-weight: 900;
+    font-size: 20px;
+    line-height: 110%;
+    display: flex;
+    gap: 5px;
+    color: #ffffff;
+
+    .userBadges {
         display: flex;
-        gap: 5px;
-        color: #ffffff;
-  
-        .userBadges {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 3px;
-  
-          .badge {
+        flex-direction: row;
+        align-items: center;
+        gap: 3px;
+
+        .badge {
             width: 20px;
             height: 20px;
-          }
         }
-      }
-  
-      .userUsername {
-        font-weight: 500;
-        font-size: 12px;
-        line-height: 110%;
-        color: #e1e1e1;
-      }
     }
-  }
-  
-  .rightContainer {
+}
+
+.userUsername {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 110%;
+    color: #e1e1e1;
+}
+
+.userButtons {
     display: flex;
     flex-direction: row;
     align-items: center;
-    gap: 5px;
-  }
-  
-  .defaultButton {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 10px 15px;
+    padding: 0px;
     gap: 10px;
-  
-    color: #fff;
-    background: #363b49;
-    border-radius: 8px;
-  
-    &:hover {
-      background-color: #444956;
-    }
-  
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-  
-      &:hover {
-        background-color: #363b49;
-      }
-    }
-  }
-  
-  .miniButton {
-    display: flex;
-    flex-direction: row;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 10px 15px;
-    gap: 10px;
-  
-    color: #fff;
-    background: #363b49;
-    border-radius: 8px;
-  
-    &:hover {
-      background-color: #444956;
-    }
-  
-    &:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-  
-      &:hover {
-        background-color: #363b49;
-      }
-    }
-  }
-  
-  .tarckInfo {
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-  }
-  
-  .trackButton {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    width: fit-content;
-    height: fit-content;
-    padding: 5px 15px;
-    font-weight: 600;
-    background-color: #e64988;
-    border: none;
-    border-radius: 44px;
-    color: #fff;
+    width: 100%;
+}
+
+.buttonAddFriend {
     cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px 15px;
+    gap: 10px;
+
+    width: 100%;
+
+    background: #ffffff;
+    border-radius: 8px;
+
+    font-weight: 700;
     font-size: 14px;
-    transition: 0.2s background-color ease;
-  
-    &:hover {
-      background-color: #d13d78;
-    }
-  }
-  
-  .loadingWrapper {
+    line-height: 140%;
+
+    color: #474c5c;
+}
+
+.buttonPersonal {
+    cursor: pointer;
     display: flex;
+    flex-direction: row;
     justify-content: center;
-    align-items: center;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
-  }
-  
-  .loading {
-    display: flex;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
-    top: 0;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    position: absolute;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: x-large;
-  }
-  
-  /* +++++++++++++++++++++++++
-     СЕКЦИЯ для достижений
-     +++++++++++++++++++++++++ */
-  .achievementsSection {
-    padding: 20px 30px;
-  
-    h2 {
-      font-size: 18px;
-      margin-bottom: 15px;
-      color: #fff;
-    }
-  
-    p {
-      color: #ccc;
-      font-size: 14px;
-      margin: 4px 0;
-    }
-  
-    .achievementsList {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 15px;
-    }
-  
-    .achievementItem {
-      background: #2f3240;
-      border: 1px solid #424654;
-      border-radius: 8px;
-      padding: 15px;
-      min-width: 200px;
-      flex: 1 1 200px;
-      max-width: calc(50% - 15px);
-  
-      .achievementHeader {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        margin-bottom: 10px;
-  
-        .achievementIcon {
-          width: 40px;
-          height: 40px;
-          border-radius: 4px;
-          object-fit: cover;
-        }
-  
-        h3 {
-          font-size: 16px;
-          color: #ffffff;
-          margin: 0;
-        }
-      }
-    }
-  
-    /* Пример выделения для выполненной/в процессе ачивки */
-    .completed {
-      border-color: #2fa82f; /* зелёный */
-    }
-  
-    .inProgress {
-      border-color: #ffc107; /* жёлтый */
-    }
-  }
-  
+    align-items: flex-start;
+    padding: 10px 10px;
+    gap: 10px;
+
+    background: #474c5c;
+    border-radius: 8px;
+
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #b3bad4;
+}
+
+// }
+// }
+
+// .rightContainer {
+//     display: flex;
+//     flex-direction: row;
+//     align-items: center;
+//     gap: 5px;
+// }
+
+// .defaultButton {
+//     display: flex;
+//     flex-direction: row;
+//     justify-content: center;
+//     align-items: flex-start;
+//     padding: 10px 15px;
+//     gap: 10px;
+
+//     color: #fff;
+//     background: #363b49;
+//     border-radius: 8px;
+
+//     &:hover {
+//         background-color: #444956;
+//     }
+
+//     &:disabled {
+//         opacity: 0.5;
+//         cursor: not-allowed;
+
+//         &:hover {
+//             background-color: #363b49;
+//         }
+//     }
+// }
+
+// .miniButton {
+//     display: flex;
+//     flex-direction: row;
+//     justify-content: center;
+//     align-items: flex-start;
+//     padding: 10px 15px;
+//     gap: 10px;
+
+//     color: #fff;
+//     background: #363b49;
+//     border-radius: 8px;
+
+//     &:hover {
+//         background-color: #444956;
+//     }
+
+//     &:disabled {
+//         opacity: 0.5;
+//         cursor: not-allowed;
+
+//         &:hover {
+//             background-color: #363b49;
+//         }
+//     }
+// }
+
+// .tarckInfo {
+//     display: flex;
+//     flex-direction: column;
+//     gap: 7px;
+// }
+
+// .trackButton {
+//     display: flex;
+//     align-items: center;
+//     gap: 6px;
+//     width: fit-content;
+//     height: fit-content;
+//     padding: 5px 15px;
+//     font-weight: 600;
+//     background-color: #e64988;
+//     border: none;
+//     border-radius: 44px;
+//     color: #fff;
+//     cursor: pointer;
+//     font-size: 14px;
+//     transition: 0.2s background-color ease;
+
+//     &:hover {
+//         background-color: #d13d78;
+//     }
+// }
+
+// .loadingWrapper {
+//     display: flex;
+//     justify-content: center;
+//     align-items: center;
+//     position: absolute;
+//     left: 0;
+//     right: 0;
+//     top: 0;
+//     bottom: 0;
+// }
+
+// .loading {
+//     display: flex;
+//     width: -webkit-fill-available;
+//     height: -webkit-fill-available;
+//     top: 0;
+//     bottom: 0;
+//     left: 0;
+//     right: 0;
+//     position: absolute;
+//     align-items: center;
+//     justify-content: center;
+//     color: white;
+//     font-size: x-large;
+// }

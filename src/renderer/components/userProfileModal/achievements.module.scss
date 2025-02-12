@@ -1,0 +1,222 @@
+.achievementList {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 5px;
+    width: 100%;
+}
+
+.achievementCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #474c5c;
+    border-radius: 15px;
+    padding: 10px 15px;
+    gap: 10px;
+    width: 100%;
+}
+
+.achievementHeader {
+    display: flex;
+    gap: 15px;
+}
+
+.achievementCompletedAt {
+    font-weight: 500;
+    font-size: 10px;
+    line-height: 140%;
+
+    color: #8e98b8;
+}
+
+.image {
+    position: relative;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    object-fit: cover;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    background: #393d4a;
+
+    font-weight: 900;
+    font-size: 24px;
+
+    color: #bac8f4;
+}
+
+.imageSolid {
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-end;
+    align-items: flex-end;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    width: 46px;
+    height: 46px;
+    background: rgba(117, 233, 135, 0.22);
+    border-radius: 8px;
+
+    color: #75e987;
+}
+
+.achievementInfo {
+    flex-grow: 1;
+    width: min-content;
+}
+
+.achievementTitle {
+    font-weight: 900;
+    font-size: 16px;
+    line-height: 140%;
+    color: #ffffff;
+}
+
+.contentWrapper {
+    position: relative;
+}
+
+.achievementDescription,
+.achievementHint {
+    transition: opacity 0.3s ease;
+    width: 100%;
+    color: #bac8f4;
+}
+
+.achievementDescription {
+    opacity: 1;
+}
+.achievementHint {
+    opacity: 0;
+}
+
+.buttonsItem {
+    display: flex;
+    gap: 5px;
+}
+
+.editButton,
+.deleteButton,
+.expandButton {
+    transition: var(--transition);
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-radius: 33px;
+    padding: 4px 10px;
+    gap: 10px;
+
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 19px;
+}
+
+.editButton {
+    height: fit-content;
+    background: #5a76ff;
+    color: white;
+
+    &:hover {
+        background: #8196ff;
+    }
+}
+
+.deleteButton {
+    height: fit-content;
+    background: #dc4d4d;
+    color: white;
+
+    &:hover {
+        background: #e77474;
+    }
+}
+
+.expandButton {
+    height: fit-content;
+    background: none;
+    color: white;
+    border-radius: 100%;
+    padding: 4px 4px;
+
+    > svg {
+        transition: var(--transition);
+    }
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.158);
+    }
+}
+
+.rotatedArrow {
+    rotate: 180deg;
+}
+
+.trackList {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 0px 10px 61px;
+    gap: 3px;
+    background: #393d4a;
+    border-radius: 8px;
+    width: 100%;
+}
+
+.trackItem {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 140%;
+
+    color: #99a4c9;
+}
+
+.criteriaDone {
+    color: #ffffff;
+}
+
+.achievementFooter {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+}
+
+.goal,
+.points,
+.difficulty {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 4px 12px;
+    gap: 5px;
+
+    background: #393d4a;
+    border-radius: 8px;
+
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 140%;
+}
+
+.goal {
+    color: #ff9292;
+}
+
+.points {
+    color: #ff9292;
+}
+
+.difficulty {
+    color: #ff9292;
+}
