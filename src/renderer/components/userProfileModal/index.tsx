@@ -250,9 +250,17 @@ const UserProfileModal: FC<UserProfileModalProps> = ({
                         {isCompleted && (
                             <div className={achv.achievementCompletedAt}>
                                 {userAch?.completedAt
-                                    ? new Date(
-                                          userAch.completedAt,
-                                      ).toLocaleDateString()
+                                    ? new Date(Number(userAch.completedAt)).toLocaleString(
+                                          'ru-RU',
+                                          {
+                                              year: 'numeric',
+                                              month: 'long',
+                                              day: 'numeric',
+                                              hour: '2-digit',
+                                              minute: '2-digit',
+                                              second: '2-digit',
+                                          },
+                                      )
                                     : 'Неизвестно'}
                             </div>
                         )}
