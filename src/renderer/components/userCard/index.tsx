@@ -82,7 +82,8 @@ const isInactive = (lastOnline?: number) => {
 const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
     const statusColor = getStatusColor(user)
     const statusColorDark = getStatusColor(user, true)
-    const statusUser = getStatus(user)
+    const [statusUser, setStatusUser] = useState(getStatus(user))
+    const [isStatusVisible, setIsStatusVisible] = useState(true)
 
     const sortedBadges = useMemo(
         () => user.badges.slice().sort((a, b) => b.level - a.level),
@@ -116,6 +117,37 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
         [user.avatarHash, user.avatarType, isHovered],
     )
 
+    useEffect(() => {
+        let timeoutId: NodeJS.Timeout | null = null
+
+        const updateStatus = () => {
+            if (user.currentTrack && user.currentTrack.status === 'playing') {
+                setIsStatusVisible(false)
+
+                setTimeout(() => {
+                    const currentStatus = getStatus(user, false)
+                    const fullStatus = getStatus(user, true)
+
+                    setStatusUser((prevStatus) =>
+                        prevStatus === 'Слушает' ? fullStatus : 'Слушает',
+                    )
+
+                    setIsStatusVisible(true)
+                }, 500)
+            }
+        }
+
+        if (user.currentTrack && user.currentTrack.status === 'playing') {
+            timeoutId = setTimeout(updateStatus, 10000)
+        }
+
+        return () => {
+            if (timeoutId) {
+                clearTimeout(timeoutId)
+            }
+        }
+    }, [user, statusUser])
+
     if (!isVisible) {
         return (
             <div
@@ -147,7 +179,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                 onClick={() => onClick(user.username)}
                 style={
                     {
-                        '--statusColor': statusColor,
+                        '--statusColorProfile': statusColor,
                         '--statusColorDark': statusColorDark,
                         opacity: isInactive(Number(user.lastOnline)) ? 0.3 : 1,
                         background: bannerBackground,
@@ -211,7 +243,15 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                         </Button>
                     </TooltipButton>
                 </div>
-                <div className={styles.userStatusInfo}>{statusUser}</div>
+                <div className={styles.userStatusInfo}>
+                    <div
+                        className={`${styles.statusText} ${
+                            isStatusVisible ? styles.fadeIn : styles.fadeOut
+                        }`}
+                    >
+                        {statusUser}
+                    </div>
+                </div>
             </button>
         </div>
     )

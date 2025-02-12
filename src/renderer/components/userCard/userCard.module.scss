@@ -1,6 +1,6 @@
 .userCard {
     cursor: pointer;
-    
+
     background-position: 50% 50% !important;
     background-size: cover !important;
     background-repeat: no-repeat !important;
@@ -12,9 +12,11 @@
     justify-content: space-between;
     transition: var(--transition);
     outline: 2px solid transparent;
+    width: -webkit-fill-available;
+    min-width: -webkit-fill-available;
 
     &:hover {
-        outline: 2px solid var(--statusColor);
+        outline: 2px solid var(--statusColorProfile);
         border-radius: 9px;
     }
 }
@@ -124,16 +126,49 @@
 }
 
 .userStatusInfo {
-    background: var(--statusColor);
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 6px 24px 6px 100px;
-    gap: 8px;
-    border-radius: 0 0 8px 8px;
+    background: var(--statusColorProfile);
 
+    padding: 6px 10px;
+    border-radius: 0 0 8px 8px;
     font-weight: 700;
     font-size: 14px;
+    text-wrap-mode: nowrap;
+    overflow: hidden;
+    hyphens: auto;
+    display: block;
+    position: relative;
+    text-overflow: ellipsis;
 
     color: var(--statusColorDark);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+    }
+}
+
+.statusText {
+    animation-duration: 0.5s;
+    animation-fill-mode: forwards;
+}
+
+.fadeIn {
+    animation-name: fadeIn;
+}
+
+.fadeOut {
+    animation-name: fadeOut;
 }

@@ -15,32 +15,19 @@ export const getStatusColor = (user: UserInterface, dark?: boolean): string => {
         return '#56B2EB'
     }
     if (dark) {
-        return '#9b9b9b'
+        return '#5d6275'
     }
-    return '#444444'
+    return '#353845'
 }
 
-export const getStatusTooltip = (user: UserInterface): string => {
+export const getStatus = (user: UserInterface, full?: boolean): string => {
     if (user.currentTrack && user.currentTrack.status === 'playing') {
-        if (user.currentTrack.title) {
+        if (full) {
             const artists = user.currentTrack.artists
                 ?.map((artist) => artist.name)
                 .join(', ')
-            return `Слушает: ${user.currentTrack.title} — ${artists}`
+            return `${user.currentTrack.title} — ${artists}`
         }
-        return 'Слушает музыку'
-    }
-    if (user.status === 'online') {
-        return 'В сети'
-    }
-    if (user.lastOnline) {
-        return `Был в сети ${timeAgo(Number(user.lastOnline))}`
-    }
-    return 'Не в сети'
-}
-
-export const getStatus = (user: UserInterface): string => {
-    if (user.currentTrack && user.currentTrack.status === 'playing') {
         return 'Слушает'
     }
     if (user.status === 'online') {
@@ -50,4 +37,30 @@ export const getStatus = (user: UserInterface): string => {
         return `Был в сети ${timeAgo(Number(user.lastOnline))}`
     }
     return 'Не в сети'
+}
+
+export const getDynamicStatus = (
+    user: UserInterface,
+    callback: (status: string) => void,
+): (() => void) => {
+    let timeoutId: NodeJS.Timeout | null = null
+
+    const updateStatus = () => {
+        if (user.currentTrack && user.currentTrack.status === 'playing') {
+            const currentStatus = getStatus(user, false)
+            const fullStatus = getStatus(user, true) 
+
+            callback(currentStatus === 'Слушает' ? fullStatus : 'Слушает')
+
+            timeoutId = setTimeout(updateStatus, 3000)
+        }
+    }
+
+    updateStatus()
+
+    return () => {
+        if (timeoutId) {
+            clearTimeout(timeoutId)
+        }
+    }
 }

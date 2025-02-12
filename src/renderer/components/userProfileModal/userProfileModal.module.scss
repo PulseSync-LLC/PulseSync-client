@@ -50,27 +50,6 @@
     }
 }
 
-// .closeButton {
-//     position: absolute;
-//     top: 12px;
-//     right: 12px;
-//     background: transparent;
-//     border: none;
-//     font-size: 20px;
-//     color: #fff;
-//     cursor: pointer;
-//     z-index: 2;
-
-//     &:hover {
-//         color: #ffdddd;
-//     }
-// }
-
-// .modalContent {
-//     display: flex;
-//     flex-direction: column;
-// }
-
 .bannerBackground {
     background-position: 50% 50% !important;
     background-size: cover !important;
@@ -107,69 +86,6 @@
     color: #ffffff;
 }
 
-// .hideButton {
-//     opacity: 1;
-//     transition: 0.3s;
-//     cursor: pointer;
-//     height: fit-content;
-//     display: flex;
-//     justify-content: center;
-//     align-items: center;
-//     padding: 10px;
-//     border: none;
-//     background: #272a33;
-//     color: #ffffff;
-//     border-radius: 8px;
-
-//     &:hover {
-//         background: #333742;
-//     }
-// }
-
-// .userInfo {
-//     position: relative;
-//     display: flex;
-//     flex-direction: row;
-//     align-items: center;
-//     padding: 15px 30px;
-//     justify-content: space-between;
-//     background: #292c36;
-
-//     &::after {
-//         content: '';
-//         background: #363944;
-//         width: 100%;
-//         height: 1px;
-//         position: absolute;
-//         bottom: 0;
-//         left: 0;
-//     }
-// }
-
-// .buttonNowPlaying {
-//     background: #e64988;
-//     padding: 15px 30px;
-//     color: #fff;
-//     font-size: 14px;
-//     font-weight: 900;
-// }
-
-// .userHeader {
-//     display: flex;
-//     flex-direction: row;
-//     justify-content: space-between;
-//     align-items: center;
-//     gap: 2px;
-//     width: -webkit-fill-available;
-// }
-
-// .userContainerLeft {
-//     display: flex;
-//     flex-direction: row;
-//     align-items: center;
-//     gap: 15px;
-//     position: relative;
-
 .userInfo {
     display: flex;
     flex-direction: column;
@@ -195,9 +111,6 @@
         background: white;
     }
 }
-
-//     .userInfoText {
-//         padding-left: 114px;
 
 .userName {
     font-weight: 900;
@@ -237,6 +150,7 @@
 }
 
 .buttonAddFriend {
+    transition: var(--transition);
     cursor: pointer;
     display: flex;
     flex-direction: row;
@@ -255,9 +169,14 @@
     line-height: 140%;
 
     color: #474c5c;
+
+    &:hover {
+        background: #d7d7d7;
+    }
 }
 
 .buttonPersonal {
+    transition: var(--transition);
     cursor: pointer;
     display: flex;
     flex-direction: row;
@@ -274,119 +193,113 @@
     line-height: 140%;
 
     color: #b3bad4;
+
+    &:hover {
+        background: #5b6070;
+    }
 }
 
-// }
-// }
+.userStatusInfo {
+    transition: var(--transition);
+    background: var(--statusColorProfile);
 
-// .rightContainer {
-//     display: flex;
-//     flex-direction: row;
-//     align-items: center;
-//     gap: 5px;
-// }
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 30px;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    justify-content: space-between;
 
-// .defaultButton {
-//     display: flex;
-//     flex-direction: row;
-//     justify-content: center;
-//     align-items: flex-start;
-//     padding: 10px 15px;
-//     gap: 10px;
+    color: var(--statusColorDark);
+}
 
-//     color: #fff;
-//     background: #363b49;
-//     border-radius: 8px;
+.hoverEffect {
+    transition: var(--transition);
 
-//     &:hover {
-//         background-color: #444956;
-//     }
+    &:hover {
+        padding: 10px 50px;
+        transform: scale(1.055);
+    }
+}
 
-//     &:disabled {
-//         opacity: 0.5;
-//         cursor: not-allowed;
+.titleHeader {
+    font-weight: 900;
+    font-size: 18px;
+    line-height: 140%;
 
-//         &:hover {
-//             background-color: #363b49;
-//         }
-//     }
-// }
+    color: #ffffff;
+}
 
-// .miniButton {
-//     display: flex;
-//     flex-direction: row;
-//     justify-content: center;
-//     align-items: flex-start;
-//     padding: 10px 15px;
-//     gap: 10px;
+.descriptionHeader {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
 
-//     color: #fff;
-//     background: #363b49;
-//     border-radius: 8px;
+    color: #c4cce7;
+}
 
-//     &:hover {
-//         background-color: #444956;
-//     }
+.achievementsSection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 30px;
+    gap: 15px;
 
-//     &:disabled {
-//         opacity: 0.5;
-//         cursor: not-allowed;
+    width: 100%;
 
-//         &:hover {
-//             background-color: #363b49;
-//         }
-//     }
-// }
+    background: #292c36;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+}
 
-// .tarckInfo {
-//     display: flex;
-//     flex-direction: column;
-//     gap: 7px;
-// }
+.userPageDown {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 5px 0px;
+    gap: 5px;
+}
 
-// .trackButton {
-//     display: flex;
-//     align-items: center;
-//     gap: 6px;
-//     width: fit-content;
-//     height: fit-content;
-//     padding: 5px 15px;
-//     font-weight: 600;
-//     background-color: #e64988;
-//     border: none;
-//     border-radius: 44px;
-//     color: #fff;
-//     cursor: pointer;
-//     font-size: 14px;
-//     transition: 0.2s background-color ease;
+.achievementsList {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 5px;
 
-//     &:hover {
-//         background-color: #d13d78;
-//     }
-// }
+    width: 100%;
+}
 
-// .loadingWrapper {
-//     display: flex;
-//     justify-content: center;
-//     align-items: center;
-//     position: absolute;
-//     left: 0;
-//     right: 0;
-//     top: 0;
-//     bottom: 0;
-// }
+.achievementsListContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 5px;
 
-// .loading {
-//     display: flex;
-//     width: -webkit-fill-available;
-//     height: -webkit-fill-available;
-//     top: 0;
-//     bottom: 0;
-//     left: 0;
-//     right: 0;
-//     position: absolute;
-//     align-items: center;
-//     justify-content: center;
-//     color: white;
-//     font-size: x-large;
-// }
+    width: -webkit-fill-available;
+}
+
+.achievementsListTitle {
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #c4cce7;
+}
+
+.noAchievementsMessage {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 140%;
+    color: #bac8f4;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #474c5c;
+    border-radius: 8px;
+    padding: 10px 15px;
+    gap: 10px;
+    width: 100%;
+}
