@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 import apolloClient from '../../api/apolloClient'
 import config from '../../api/config'
 import findUserByName from '../../api/queries/user/findUserByName.query'
@@ -21,6 +21,7 @@ import * as styles from './userProfileModal.module.scss'
 import * as achv from './achievements.module.scss'
 import { getStatus, getStatusColor } from '../../utils/userStatus'
 import { motion } from 'framer-motion'
+import userContext from '../../api/context/user.context'
 
 interface UserProfileModalProps {
     isOpen: boolean
@@ -34,7 +35,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     username,
 }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
-    const [user, setUser] = useState<UserInterface>(userInitials)
+    const [userProfile, setUserProfile] = useState<UserInterface>(userInitials)
+    const { user, app } = useContext(userContext)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<any>(null)
     const [allAchievements, setAllAchievements] = useState<any[]>([])
@@ -44,9 +46,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const [shouldRender, setShouldRender] = useState(isOpen)
     const [animationClass, setAnimationClass] = useState(styles.closed)
 
-    const statusColor = getStatusColor(user)
-    const statusColorDark = getStatusColor(user, true)
-    const statusUser = getStatus(user, true)
+    const statusColor = getStatusColor(userProfile)
+    const statusColorDark = getStatusColor(userProfile, true)
+    const statusUser = getStatus(userProfile, true)
 
     useEffect(() => {
         if (isOpen) {
@@ -71,7 +73,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     useEffect(() => {
         if (!isOpen || !username) return
 
-        setUser(userInitials)
+        setUserProfile(userInitials)
         setLoading(true)
         setError(null)
 
@@ -85,7 +87,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 if (!res.data.findUserByName) {
                     setError('User not found')
                 } else {
-                    setUser(res.data.findUserByName)
+                    setUserProfile(res.data.findUserByName)
                 }
             })
             .catch(setError)
@@ -127,7 +129,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
 
     const renderAchievementItem = (ach: any) => {
-        const userAch = user.userAchievements?.find(
+        const userAch = userProfile.userAchievements?.find(
             (ua) => ua.achievement.id === ach.id,
         )
         const statusLower = userAch?.status?.toLowerCase() || 'not_started'
@@ -225,7 +227,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 <MdHistoryEdu size={24} />
                             </TooltipButton>
                         )}
-                        {((isInProgress || isCompleted) && username === user.username) && (
+                        {((isInProgress || isCompleted) && username === userProfile.username) && (
                             <button
                                 className={achv.expandButton}
                                 onClick={() => toggleExpand(ach.id)}
@@ -342,26 +344,26 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             return <p>Ошибка: {error?.message || String(error)}</p>
         }
 
-        if (!user || !user.id || user.id === '-1') {
+        if (!userProfile || !userProfile.id || userProfile.id === '-1') {
             return <p>Пользователь не найден</p>
         }
 
-        const bannerUrl = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-        const avatarUrl = `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
+        const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`
+        const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`
 
         return (
             <>
                 <div
                     onClick={(e) => {
                         if (
-                            user.currentTrack &&
-                            user.currentTrack.status === 'playing'
+                            userProfile.currentTrack &&
+                            userProfile.currentTrack.status === 'playing'
                         ) {
                             e.stopPropagation()
-                            const albumId = user.currentTrack.albums[0].id
+                            const albumId = userProfile.currentTrack.albums[0].id
                             window.desktopEvents.send(
                                 'open-external',
-                                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${user.currentTrack.realId}`,
+                                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
                             )
                         }
                     }}
@@ -370,22 +372,22 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             '--statusColorProfile': statusColor,
                             '--statusColorDark': statusColorDark,
                             cursor:
-                                user.currentTrack &&
-                                user.currentTrack.status === 'playing'
+                                userProfile.currentTrack &&
+                                userProfile.currentTrack.status === 'playing'
                                     ? 'pointer'
                                     : 'default',
                         } as React.CSSProperties
                     }
                     className={`${styles.userStatusInfo} ${
-                        user.currentTrack && user.currentTrack.status === 'playing'
+                        userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
                             ? styles.hoverEffect
                             : ''
                     }`}
                 >
-                    {user.currentTrack && user.currentTrack.status === 'playing'
+                    {userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
                         ? `Слушает: ${statusUser}`
                         : statusUser}
-                    {user.currentTrack && user.currentTrack.status === 'playing' && (
+                    {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && (
                         <MdOpenInNew size={20} />
                     )}
                 </div>
@@ -410,7 +412,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.dateCreate}>
-                                {new Date(user.createdAt) <=
+                                {new Date(userProfile.createdAt) <=
                                 new Date(2025, 0, 17) ? (
                                     <TooltipButton
                                         styleComponent={{
@@ -422,7 +424,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                 className={styles.dateCreateTooltip}
                                             >
                                                 {new Date(
-                                                    user.createdAt,
+                                                    userProfile.createdAt,
                                                 ).toLocaleString('ru-RU', {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -448,7 +450,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                 className={styles.dateCreateTooltip}
                                             >
                                                 {new Date(
-                                                    user.createdAt,
+                                                    userProfile.createdAt,
                                                 ).toLocaleString('ru-RU', {
                                                     year: 'numeric',
                                                     month: 'long',
@@ -462,7 +464,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         side="top"
                                     >
                                         Дата регистрации:{' '}
-                                        {new Date(user.createdAt).toLocaleDateString(
+                                        {new Date(userProfile.createdAt).toLocaleDateString(
                                             'ru-RU',
                                             {
                                                 month: 'long',
@@ -473,10 +475,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 )}
                             </div>
                             <div className={styles.userName}>
-                                {user.nickname || 'Без никнейма'}
+                                {userProfile.nickname || 'Без никнейма'}
                                 <div className={styles.userBadges}>
-                                    {Array.isArray(user.badges) &&
-                                        user.badges
+                                    {Array.isArray(userProfile.badges) &&
+                                        userProfile.badges
                                             .sort((a, b) => b.level - a.level)
                                             .map((_badge) => (
                                                 <TooltipButton
@@ -494,14 +496,20 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 </div>
                             </div>
                             <div className={styles.userUsername}>
-                                @{user.username}
+                                @{userProfile.username}
                             </div>
                         </div>
                     </div>
                     <div className={styles.userButtons}>
-                        <Button className={styles.buttonAddFriend}>
-                            <MdPersonAdd size={20} /> Добавить в друзья
-                        </Button>
+                        {user.username !== username ? (
+                            <Button className={styles.buttonAddFriend}>
+                                <MdPersonAdd size={20} /> Добавить в друзья
+                            </Button>
+                        ) : (
+                            <Button className={styles.buttonAddFriend}>
+                                <MdPersonAdd size={20} /> Редактировать профиль
+                            </Button>
+                        )}
                         <Button className={styles.buttonPersonal}>
                             <MdSettings size={20} />
                         </Button>
@@ -538,7 +546,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         {allAchievements
                                             .filter((ach) => {
                                                 const userAch =
-                                                    user.userAchievements?.find(
+                                                    userProfile.userAchievements?.find(
                                                         (ua) =>
                                                             ua.achievement.id ===
                                                             ach.id,
@@ -570,7 +578,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                             )}
                                     </div>
                                     {allAchievements.filter((ach) => {
-                                        const userAch = user.userAchievements?.find(
+                                        const userAch = userProfile.userAchievements?.find(
                                             (ua) => ua.achievement.id === ach.id,
                                         )
                                         return (
@@ -593,7 +601,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         {allAchievements
                                             .filter((ach) => {
                                                 const userAch =
-                                                    user.userAchievements?.find(
+                                                    userProfile.userAchievements?.find(
                                                         (ua) =>
                                                             ua.achievement.id ===
                                                             ach.id,
@@ -608,13 +616,13 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                             })
                                             .sort((a, b) => {
                                                 const userAchA =
-                                                    user.userAchievements?.find(
+                                                    userProfile.userAchievements?.find(
                                                         (ua) =>
                                                             ua.achievement.id ===
                                                             a.id,
                                                     )
                                                 const userAchB =
-                                                    user.userAchievements?.find(
+                                                    userProfile.userAchievements?.find(
                                                         (ua) =>
                                                             ua.achievement.id ===
                                                             b.id,

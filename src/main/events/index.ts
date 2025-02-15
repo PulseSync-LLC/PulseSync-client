@@ -189,7 +189,6 @@ export const handleEvents = (window: BrowserWindow): void => {
                 .then((result) => {
                     if (!result.canceled) {
                         const filePath = result.filePath
-                        console.log(val.track.downloadInfo?.transport)
                         if (val.track.downloadInfo?.transport === 'encraw') {
                             https
                                 .get(val.url, (response) => {
@@ -636,15 +635,16 @@ export const handleEvents = (window: BrowserWindow): void => {
 
     ipcMain.handle('create-new-extension', async (event, args) => {
         try {
-            console.log('test')
             const defaultTheme = {
                 name: 'New Extension',
-                image: 'url',
+                image: 'test.png',
+                banner: 'test.png',
                 author: 'Your Name',
-                description: 'Default theme.',
                 version: '1.0.0',
+                description: 'Default theme.',
                 css: 'style.css',
                 script: 'script.js',
+                tags: ["PulseSync"],
             }
 
             const defaultCssContent = `{}`
