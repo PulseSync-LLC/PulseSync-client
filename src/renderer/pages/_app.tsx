@@ -739,6 +739,7 @@ const Player: React.FC<any> = ({ children }) => {
                             const timecodes = data.timecodes ?? [0, 0]
                             setTrack((prevTrack) => ({
                                 ...prevTrack,
+                                downloadInfo: data.downloadInfo || null,
                                 status: data.status ?? '',
                                 event: data.event,
                                 progress: data.progress,
@@ -976,7 +977,6 @@ const Player: React.FC<any> = ({ children }) => {
     useEffect(() => {
         if (socket && features.sendTrack && track.title !== '') {
             const { title, status, progress } = track
-
             if (
                 title !== lastSentTrack.current.title ||
                 status !== lastSentTrack.current.status ||

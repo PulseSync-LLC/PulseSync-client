@@ -15,11 +15,12 @@ import { rpc_connect, updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
-import NodeID3 from 'node-id3'
+import NodeID3, { Tags } from 'node-id3'
 import ffmpeg from 'fluent-ffmpeg'
 import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
 import axios from 'axios'
+import { decryptData } from '../../renderer/utils/track'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -142,7 +143,7 @@ export const handleEvents = (window: BrowserWindow): void => {
             event,
             val: {
                 url: string
-                track: Track
+                track: Track & { downloadInfo?: { transport: string; key: string } }
                 metadata: boolean
             },
         ) => {
@@ -187,94 +188,252 @@ export const handleEvents = (window: BrowserWindow): void => {
                 })
                 .then((result) => {
                     if (!result.canceled) {
-                        https.get(val.url, (response) => {
-                            const totalFileSize = parseInt(
-                                response.headers['content-length'],
-                                10,
-                            )
-                            let downloadedBytes = 0
-
-                            response.on('data', (chunk) => {
-                                downloadedBytes += chunk.length
-                                const percent = getPercent(
-                                    downloadedBytes,
-                                    totalFileSize,
-                                )
-                                mainWindow.setProgressBar(percent / 100)
-                                if (percent <= 98) {
-                                    mainWindow.webContents.send(
-                                        'download-track-progress',
-                                        percent,
+                        const filePath = result.filePath
+                        console.log(val.track.downloadInfo?.transport)
+                        if (val.track.downloadInfo?.transport === 'encraw') {
+                            https
+                                .get(val.url, (response) => {
+                                    const chunks: Buffer[] = []
+                                    let downloadedBytes = 0
+                                    const totalFileSize = parseInt(
+                                        response.headers['content-length'] as string,
+                                        10,
                                     )
-                                }
-                            })
-
-                            const filePath = result.filePath
-                            response
-                                .pipe(fs.createWriteStream(filePath))
-                                .on('finish', async () => {
-                                    if (val.metadata) {
-                                        const extension = path
-                                            .extname(filePath)
-                                            .toLowerCase()
-                                        if (
-                                            [
-                                                '.flac',
-                                                '.aac',
-                                                '.aac256',
-                                                '.aac128',
-                                                '.aac64g',
-                                                '.aac64he',
-                                            ].includes(extension)
-                                        ) {
-                                            const mp3Path = filePath.replace(
-                                                extension,
-                                                '.mp3',
+                                    response.on('data', (chunk) => {
+                                        chunks.push(chunk)
+                                        downloadedBytes += chunk.length
+                                        const percent = getPercent(
+                                            downloadedBytes,
+                                            totalFileSize,
+                                        )
+                                        mainWindow.setProgressBar(percent / 100)
+                                        if (percent <= 98) {
+                                            mainWindow.webContents.send(
+                                                'download-track-progress',
+                                                percent,
                                             )
-                                            try {
-                                                await convertToMP3(filePath, mp3Path)
-                                                fs.unlinkSync(filePath)
-                                                mainWindow.webContents.send(
-                                                    'download-track-progress',
-                                                    100,
+                                        }
+                                    })
+
+                                    response.on('end', async () => {
+                                        try {
+                                            const encryptedBuffer =
+                                                Buffer.concat(chunks)
+                                            const arrayBuffer =
+                                                encryptedBuffer.buffer.slice(
+                                                    encryptedBuffer.byteOffset,
+                                                    encryptedBuffer.byteOffset +
+                                                        encryptedBuffer.byteLength,
                                                 )
-                                                await writeMetadata(
-                                                    mp3Path,
-                                                    val.track,
-                                                )
-                                                setTimeout(() => {
+                                            const decryptedArrayBuffer =
+                                                await decryptData({
+                                                    key: val.track.downloadInfo.key,
+                                                    data: arrayBuffer,
+                                                })
+                                            const decryptedBuffer =
+                                                Buffer.from(decryptedArrayBuffer)
+                                            fs.writeFileSync(
+                                                filePath,
+                                                decryptedBuffer,
+                                            )
+
+                                            if (val.metadata) {
+                                                const extension = path
+                                                    .extname(filePath)
+                                                    .toLowerCase()
+                                                if (
+                                                    [
+                                                        '.flac',
+                                                        '.aac',
+                                                        '.aac256',
+                                                        '.aac128',
+                                                        '.aac64g',
+                                                        '.aac64he',
+                                                    ].includes(extension)
+                                                ) {
+                                                    const mp3Path = filePath.replace(
+                                                        extension,
+                                                        '.mp3',
+                                                    )
+                                                    try {
+                                                        await convertToMP3(
+                                                            filePath,
+                                                            mp3Path,
+                                                        )
+                                                        fs.unlinkSync(filePath)
+                                                        mainWindow.webContents.send(
+                                                            'download-track-progress',
+                                                            100,
+                                                        )
+                                                        await writeMetadata(
+                                                            mp3Path,
+                                                            val.track,
+                                                        )
+                                                        setTimeout(() => {
+                                                            mainWindow.webContents.send(
+                                                                'download-track-finished',
+                                                            )
+                                                        }, 1500)
+                                                        shell.showItemInFolder(
+                                                            mp3Path,
+                                                        )
+                                                    } catch (err) {
+                                                        logger.main.error(
+                                                            'Ошибка конвертации в mp3:',
+                                                            err,
+                                                        )
+                                                        mainWindow.webContents.send(
+                                                            'download-track-failed',
+                                                        )
+                                                    }
+                                                } else {
+                                                    await writeMetadata(
+                                                        filePath,
+                                                        val.track,
+                                                    )
                                                     mainWindow.webContents.send(
                                                         'download-track-finished',
                                                     )
-                                                }, 1500)
-                                                shell.showItemInFolder(mp3Path)
-                                            } catch (err) {
-                                               logger.main.error('Ошибка конвертации в mp3:', err)
-                                                mainWindow.webContents.send(
-                                                    'download-track-failed',
-                                                )
+                                                    shell.showItemInFolder(filePath)
+                                                }
                                             }
-                                        } else {
-                                            await writeMetadata(filePath, val.track)
                                             mainWindow.webContents.send(
-                                                'download-track-finished',
+                                                'download-track-progress',
+                                                100,
                                             )
+                                            setTimeout(() => {
+                                                mainWindow.webContents.send(
+                                                    'download-track-finished',
+                                                )
+                                            }, 1500)
                                             shell.showItemInFolder(filePath)
+                                            mainWindow.setProgressBar(-1)
+                                        } catch (err) {
+                                            logger.main.error(
+                                                'Error while decrypting or saving the file:',
+                                                err,
+                                            )
+                                            mainWindow.webContents.send(
+                                                'download-track-failed',
+                                            )
                                         }
-                                    }
-                                    mainWindow.webContents.send(
-                                        'download-track-progress',
-                                        100,
-                                    )
-                                    setTimeout(() => {
-                                        mainWindow.webContents.send(
-                                            'download-track-finished',
-                                        )
-                                    }, 1500)
-                                    shell.showItemInFolder(filePath)
-                                    mainWindow.setProgressBar(-1)
+                                    })
                                 })
-                        })
+                                .on('error', (err) => {
+                                    logger.main.error(
+                                        'Error while downloading:',
+                                        err,
+                                    )
+                                    mainWindow.webContents.send(
+                                        'download-track-failed',
+                                    )
+                                })
+                        } else {
+                            https
+                                .get(val.url, (response) => {
+                                    const totalFileSize = parseInt(
+                                        response.headers['content-length'] as string,
+                                        10,
+                                    )
+                                    let downloadedBytes = 0
+                                    response.on('data', (chunk) => {
+                                        downloadedBytes += chunk.length
+                                        const percent = getPercent(
+                                            downloadedBytes,
+                                            totalFileSize,
+                                        )
+                                        mainWindow.setProgressBar(percent / 100)
+                                        if (percent <= 98) {
+                                            mainWindow.webContents.send(
+                                                'download-track-progress',
+                                                percent,
+                                            )
+                                        }
+                                    })
+
+                                    const fileStream = fs.createWriteStream(filePath)
+                                    response
+                                        .pipe(fileStream)
+                                        .on('finish', async () => {
+                                            if (val.metadata) {
+                                                const extension = path
+                                                    .extname(filePath)
+                                                    .toLowerCase()
+                                                if (
+                                                    [
+                                                        '.flac',
+                                                        '.aac',
+                                                        '.aac256',
+                                                        '.aac128',
+                                                        '.aac64g',
+                                                        '.aac64he',
+                                                    ].includes(extension)
+                                                ) {
+                                                    const mp3Path = filePath.replace(
+                                                        extension,
+                                                        '.mp3',
+                                                    )
+                                                    try {
+                                                        await convertToMP3(
+                                                            filePath,
+                                                            mp3Path,
+                                                        )
+                                                        fs.unlinkSync(filePath)
+                                                        mainWindow.webContents.send(
+                                                            'download-track-progress',
+                                                            100,
+                                                        )
+                                                        await writeMetadata(
+                                                            mp3Path,
+                                                            val.track,
+                                                        )
+                                                        setTimeout(() => {
+                                                            mainWindow.webContents.send(
+                                                                'download-track-finished',
+                                                            )
+                                                        }, 1500)
+                                                        shell.showItemInFolder(
+                                                            mp3Path,
+                                                        )
+                                                    } catch (err) {
+                                                        logger.main.error(
+                                                            'Ошибка конвертации в mp3:',
+                                                            err,
+                                                        )
+                                                        mainWindow.webContents.send(
+                                                            'download-track-failed',
+                                                        )
+                                                    }
+                                                } else {
+                                                    await writeMetadata(
+                                                        filePath,
+                                                        val.track,
+                                                    )
+                                                    mainWindow.webContents.send(
+                                                        'download-track-finished',
+                                                    )
+                                                    shell.showItemInFolder(filePath)
+                                                }
+                                            }
+                                            mainWindow.webContents.send(
+                                                'download-track-progress',
+                                                100,
+                                            )
+                                            setTimeout(() => {
+                                                mainWindow.webContents.send(
+                                                    'download-track-finished',
+                                                )
+                                            }, 1500)
+                                            shell.showItemInFolder(filePath)
+                                            mainWindow.setProgressBar(-1)
+                                        })
+                                })
+                                .on('error', () => {
+                                    mainWindow.webContents.send(
+                                        'download-track-failed',
+                                    )
+                                })
+                        }
                     } else {
                         mainWindow.webContents.send('download-track-cancelled')
                     }
@@ -306,7 +465,7 @@ export const handleEvents = (window: BrowserWindow): void => {
             coverBuffer = Buffer.from(await coverRes.arrayBuffer())
         }
 
-        const tags = {
+        const tags: Tags = {
             title: track.title,
             artist:
                 track.artists.map((artist) => artist.name).join(', ') ||
@@ -314,23 +473,19 @@ export const handleEvents = (window: BrowserWindow): void => {
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
-            APIC: coverBuffer || track.coverUri,
+            APIC: coverBuffer,
         }
 
         const success = NodeID3.write(tags, filePath)
         if (success) {
-            logger.main.info('Метаданные успешно записаны.')
+            logger.main.info('Metadata successfully written.')
         } else {
-            throw new Error('Ошибка записи метаданных.')
+            throw new Error('Error writing metadata.')
         }
     }
     ipcMain.on('get-music-device', (event) => {
         si.system().then((data) => {
-            event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${
-                data.manufacturer
-            }; model=${data.model}; clid=WindowsPhone; device_id=${
-                data.uuid
-            }; uuid=${v4({ random: Buffer.from(data.uuid) })}`
+            event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4({ random: Buffer.from(data.uuid) })}`
         })
     })
     ipcMain.on('autoStartApp', async (event, data) => {
@@ -532,16 +687,11 @@ export const handleEvents = (window: BrowserWindow): void => {
             )
             return { success: true, name: newName }
         } catch (error) {
-            logger.main.error('Ошибка при создании нового расширения:', error)
+            logger.main.error('Error creating new extension:', error)
             return { success: false, error: error.message }
         }
     })
     ipcMain.handle('exportTheme', async (event, data) => {
-        /**
-         * Создаёт файл с расширением .pext, содержащий папку по указанному пути
-         * @param folderPath Путь к папке, которую нужно заархивировать
-         * @param outputFilePath Путь для сохранения созданного файла с расширением .pext
-         */
         try {
             if (!fs.existsSync(data.path)) {
                 logger.main.error('Folder not found.')

@@ -72,7 +72,9 @@ const OldHeader: React.FC<p> = () => {
 
     const fixedTheme = { charCount: inputStyle.charCount }
 
-    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
+    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(
+        'null',
+    )
     //
     // const renderPlayerStatus = () => {
     //     const statusText = playStatus === 'playing'
@@ -253,16 +255,16 @@ const OldHeader: React.FC<p> = () => {
         const handleDataUpdate = (data: Track) => {
             if (data) {
                 if (data.event === 'play' || data.event === 'seek') {
-                    setPlayStatus('playing');
+                    setPlayStatus('playing')
                 } else if (data.event === 'paused') {
-                    setPlayStatus('pause');
+                    setPlayStatus('pause')
                 } else {
-                    setPlayStatus('null');
+                    setPlayStatus('null')
                 }
             }
-        };
-        handleDataUpdate(currentTrack);
-    }, [currentTrack]);
+        }
+        handleDataUpdate(currentTrack)
+    }, [currentTrack])
 
     useEffect(() => {
         const color = statusColors[playStatus] || statusColors.null
@@ -433,16 +435,20 @@ const OldHeader: React.FC<p> = () => {
             }
         } catch (error) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб');
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена');
+                toast.custom(
+                    'error',
+                    'Доступ запрещён',
+                    'Загрузка аватара запрещена',
+                )
             } else {
                 toast.custom(
                     'error',
                     'Ой...',
-                    'Ошибка при загрузке аватара, попробуй ещё раз'
-                );
-                Sentry.captureException(error);
+                    'Ошибка при загрузке аватара, попробуй ещё раз',
+                )
+                Sentry.captureException(error)
             }
             setAvatarProgress(-1)
         }
@@ -493,9 +499,13 @@ const OldHeader: React.FC<p> = () => {
             }
         } catch (error) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб');
+                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка баннера запрещена');
+                toast.custom(
+                    'error',
+                    'Доступ запрещён',
+                    'Загрузка баннера запрещена',
+                )
             } else {
                 toast.custom(
                     'error',

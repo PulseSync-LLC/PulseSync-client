@@ -331,13 +331,13 @@ export default function TrackInfoPage() {
                                     <img
                                         className={theme.userBanner}
                                         src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
-                                        alt=""
+                                        alt={user.bannerHash}
                                     />
                                     <div>
                                         <img
                                             className={theme.userAvatar}
                                             src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
-                                            alt=""
+                                            alt={user.avatarHash}
                                         />
                                         <div className={theme.userName}>
                                             {user.username}
@@ -349,8 +349,8 @@ export default function TrackInfoPage() {
                                             <div className={theme.statusRPC}>
                                                 <div>
                                                     {app.discordRpc.status &&
-                                                    currentTrack !==
-                                                        trackInitials ? (
+                                                    currentTrack.status !==
+                                                        trackInitials.status ? (
                                                         <div
                                                             className={
                                                                 theme.flex_container
@@ -420,11 +420,7 @@ export default function TrackInfoPage() {
                                                                                 .join(
                                                                                     ', ',
                                                                                 )
-                                                                          : !currentTrack.id.includes(
-                                                                                  'generative',
-                                                                              )
-                                                                            ? 'Unknown Artist'
-                                                                            : null}
+                                                                          : null}
                                                                 </div>
                                                                 {/*{currentTrack*/}
                                                                 {/*    .timestamps*/}

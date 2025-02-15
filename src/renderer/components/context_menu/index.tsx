@@ -184,8 +184,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadTrack = (event: any) => {
-        if(!features.trackDownload) {
-            toast.custom('error', 'Ой...', 'Функция загрузки треков временно отключена')
+        if (!features.trackDownload) {
+            toast.custom(
+                'error',
+                'Ой...',
+                'Функция загрузки треков временно отключена',
+            )
             return
         }
         const toastId = toast.custom(
@@ -221,13 +225,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
-            toast.custom('error', `Походу ошибочка`, 'Скачивание трека отменено', {
+            toast.custom('error', `Походу В С Ё`, 'Скачивание трека отменено', {
                 id: toastId,
             })
             cleanListeners()
         })
         window.desktopEvents?.once('download-track-failed', () => {
-            toast.custom('error', `Походу ошибочка`, 'Ошибка загрузки трека', {
+            toast.custom('error', `Походу В С Ё`, 'Ошибка загрузки трека', {
                 id: toastId,
             })
             cleanListeners()
@@ -377,7 +381,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: `Скачать ${currentTrack.title} в папку музыка`,
                 onClick: downloadTrack,
-                disabled: !currentTrack.url,
+                disabled: !currentTrack.url || !currentTrack.downloadInfo,
             },
             createToggleButton(
                 'Запись метаданных в трек',

@@ -48,7 +48,7 @@ export const getDynamicStatus = (
     const updateStatus = () => {
         if (user.currentTrack && user.currentTrack.status === 'playing') {
             const currentStatus = getStatus(user, false)
-            const fullStatus = getStatus(user, true) 
+            const fullStatus = getStatus(user, true)
 
             callback(currentStatus === 'Слушает' ? fullStatus : 'Слушает')
 

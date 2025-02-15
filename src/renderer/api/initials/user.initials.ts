@@ -16,6 +16,7 @@ const UserInitials: UserInterface = {
     nickname: '',
     perms: 'default',
     badges: [],
+    userAchievements: [],
 }
 
 export default UserInitials

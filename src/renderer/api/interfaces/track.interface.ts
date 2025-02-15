@@ -1,3 +1,16 @@
+export interface DownloadInfo {
+    trackId: string
+    quality: string
+    codec: string
+    bitrate: number
+    transport: string
+    key: string
+    size: number
+    gain: boolean
+    urls: string[]
+    url: string
+    realId: string
+}
 export interface Progress {
     duration: number
     loaded: number
@@ -53,6 +66,7 @@ export interface Track {
     trackSource: string
     specialAudioResources: string[]
     liked: boolean
+    downloadInfo: DownloadInfo
 }
 
 export interface Artist {

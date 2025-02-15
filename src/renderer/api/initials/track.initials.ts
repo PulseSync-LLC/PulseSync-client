@@ -119,6 +119,19 @@ const TrackInitials: Track = {
     trackSource: '',
     specialAudioResources: [],
     liked: false,
+    downloadInfo: {
+        trackId: '',
+        quality: '',
+        codec: '',
+        bitrate: 0,
+        transport: '',
+        key: '',
+        size: 0,
+        gain: false,
+        urls: [],
+        url: '',
+        realId: '',
+    },
 }
 
 export default TrackInitials

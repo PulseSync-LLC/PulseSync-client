@@ -181,13 +181,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             </div>
                             <img
                                 className={achv.image}
-                                src={
-                                    ach.imageUrl ||
-                                    'static/assets/images/achievement_placeholder.png'
-                                }
+                                src={ach.imageUrl || 'static/assets/images/O^O.png'}
                                 onError={(e) => {
                                     ;(e.currentTarget as HTMLImageElement).src =
-                                        'static/assets/images/achievement_placeholder.png'
+                                        'static/assets/images/O^O.png'
                                 }}
                                 alt={ach.title}
                             />
@@ -228,7 +225,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 <MdHistoryEdu size={24} />
                             </TooltipButton>
                         )}
-                        {(isInProgress || isCompleted) && (
+                        {((isInProgress || isCompleted) && username === user.username) && (
                             <button
                                 className={achv.expandButton}
                                 onClick={() => toggleExpand(ach.id)}

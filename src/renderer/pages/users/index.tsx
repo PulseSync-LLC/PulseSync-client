@@ -268,19 +268,18 @@ export default function UsersPage() {
 
     useEffect(() => {
         const handleScroll = () => {
-            const nav = document.querySelector(`.${styles.userNav}`);
+            const nav = document.querySelector(`.${styles.userNav}`)
             if (nav) {
-                const rect = nav.getBoundingClientRect();
-                setIsSticky(rect.top <= 0);
+                const rect = nav.getBoundingClientRect()
+                setIsSticky(rect.top <= 0)
             }
-        };
-    
-        window.addEventListener("scroll", handleScroll);
+        }
+
+        window.addEventListener('scroll', handleScroll)
         return () => {
-            window.removeEventListener("scroll", handleScroll);
-        };
-    }, []);
-    
+            window.removeEventListener('scroll', handleScroll)
+        }
+    }, [])
 
     return (
         <Layout title="Пользователи">

@@ -88,17 +88,17 @@ const initializeServer = () => {
         })
         socket.on('error', (error: any) => {
             if (error.code === 'EPIPE') {
-                logger.http.warn('Attempted to write to closed WebSocket');
+                logger.http.warn('Attempted to write to closed WebSocket')
             } else {
-                logger.http.error('WebSocket error:', error);
+                logger.http.error('WebSocket error:', error)
             }
-        });
+        })
     })
     ws.on('error', (error) => {
         if (error.message.includes('unexpected response')) {
-            logger.http.error('Unexpected WebSocket server response:', error);
+            logger.http.error('Unexpected WebSocket server response:', error)
         }
-    });
+    })
 
     server.on('request', (req: http.IncomingMessage, res: http.ServerResponse) => {
         if (req.method === 'OPTIONS') {
@@ -136,23 +136,28 @@ const initializeServer = () => {
     })
     server.on('error', (error: any) => {
         if (error.code === 'EADDRINUSE') {
-            logger.http.error(`Port ${config.PORT} is already in use.`);
+            logger.http.error(`Port ${config.PORT} is already in use.`)
             if (attempt > 5) {
-                dialog.showErrorBox('Ошибка', `Не удалось запустить вебсокет сервер. Порт ${config.PORT} занят.`);
+                dialog.showErrorBox(
+                    'Ошибка',
+                    `Не удалось запустить вебсокет сервер. Порт ${config.PORT} занят.`,
+                )
                 return app.quit()
             }
-            attempt++;
+            attempt++
             setTimeout(() => {
-                server.close();
+                server.close()
                 server.listen(config.PORT, () => {
-                    attempt = 0;
-                    logger.http.log(`WebSocket server restarted on port ${config.PORT}`);
-                });
-            }, 1000);
+                    attempt = 0
+                    logger.http.log(
+                        `WebSocket server restarted on port ${config.PORT}`,
+                    )
+                })
+            }, 1000)
         } else {
-            logger.http.error('HTTP server error:', error);
+            logger.http.error('HTTP server error:', error)
         }
-    });
+    })
 }
 
 ipcMain.on('websocket-start', async (event, _) => {

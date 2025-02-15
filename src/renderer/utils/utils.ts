@@ -73,7 +73,9 @@ export const timeAgo = (timestamp: number) => {
     }
 
     if (seconds < 60) {
-        return pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
+        return (
+            pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
+        )
     } else if (minutes < 60) {
         return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад'
     } else if (hours < 24) {
