@@ -108,7 +108,7 @@
         "log4js": "^6.9.1",
         "markdown-loader": "^8.0.0",
         "marked": "^15.0.7",
-        "node-id3": "^0.2.6",
+        "node-id3": "^0.2.7",
         "node-polyfill-webpack-plugin": "^4.1.0",
         "original-fs": "^1.2.0",
         "os-browserify": "^0.3.0",

@@ -15,7 +15,7 @@ import { rpc_connect, updateAppId } from '../modules/discordRpc'
 import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import { Track } from '../../renderer/api/interfaces/track.interface'
-import NodeID3, { Tags } from 'node-id3'
+import NodeID3 from 'node-id3'
 import ffmpeg from 'fluent-ffmpeg'
 import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
@@ -464,17 +464,22 @@ export const handleEvents = (window: BrowserWindow): void => {
             coverBuffer = Buffer.from(await coverRes.arrayBuffer())
         }
 
-        const tags: Tags = {
+        const tags: NodeID3.Tags = {
             title: track.title,
-            artist:
-                track.artists.map((artist) => artist.name).join(', ') ||
-                'Unknown Artist',
+            artist: track.artists.map(artist => artist.name).join(', ') || 'Unknown Artist',
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
-            APIC: coverBuffer,
-        }
-
+            image: {
+                mime: 'image/jpeg',
+                type: {
+                    id: NodeID3.TagConstants.AttachedPicture.PictureType.FRONT_COVER,
+                },
+                description: 'cover',
+                imageBuffer: coverBuffer,
+            },
+            generalObject: []
+        };
         const success = NodeID3.write(tags, filePath)
         if (success) {
             logger.main.info('Metadata successfully written.')
