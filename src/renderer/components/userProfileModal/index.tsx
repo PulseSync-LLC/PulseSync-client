@@ -227,21 +227,22 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 <MdHistoryEdu size={24} />
                             </TooltipButton>
                         )}
-                        {((isInProgress || isCompleted) && username === userProfile.username) && (
-                            <button
-                                className={achv.expandButton}
-                                onClick={() => toggleExpand(ach.id)}
-                            >
-                                <MdKeyboardArrowDown
-                                    size={24}
-                                    className={
-                                        expandedIndexes.includes(ach.id)
-                                            ? achv.rotatedArrow
-                                            : ''
-                                    }
-                                />
-                            </button>
-                        )}
+                        {(isInProgress || isCompleted) &&
+                            username === user.username && (
+                                <button
+                                    className={achv.expandButton}
+                                    onClick={() => toggleExpand(ach.id)}
+                                >
+                                    <MdKeyboardArrowDown
+                                        size={24}
+                                        className={
+                                            expandedIndexes.includes(ach.id)
+                                                ? achv.rotatedArrow
+                                                : ''
+                                        }
+                                    />
+                                </button>
+                            )}
                     </div>
                 </div>
 
@@ -379,17 +380,20 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         } as React.CSSProperties
                     }
                     className={`${styles.userStatusInfo} ${
-                        userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
+                        userProfile.currentTrack &&
+                        userProfile.currentTrack.status === 'playing'
                             ? styles.hoverEffect
                             : ''
                     }`}
                 >
-                    {userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
+                    {userProfile.currentTrack &&
+                    userProfile.currentTrack.status === 'playing'
                         ? `Слушает: ${statusUser}`
                         : statusUser}
-                    {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && (
-                        <MdOpenInNew size={20} />
-                    )}
+                    {userProfile.currentTrack &&
+                        userProfile.currentTrack.status === 'playing' && (
+                            <MdOpenInNew size={20} />
+                        )}
                 </div>
                 <div
                     className={styles.bannerBackground}
@@ -464,13 +468,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         side="top"
                                     >
                                         Дата регистрации:{' '}
-                                        {new Date(userProfile.createdAt).toLocaleDateString(
-                                            'ru-RU',
-                                            {
-                                                month: 'long',
-                                                year: 'numeric',
-                                            },
-                                        )}
+                                        {new Date(
+                                            userProfile.createdAt,
+                                        ).toLocaleDateString('ru-RU', {
+                                            month: 'long',
+                                            year: 'numeric',
+                                        })}
                                     </TooltipButton>
                                 )}
                             </div>
@@ -578,9 +581,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                             )}
                                     </div>
                                     {allAchievements.filter((ach) => {
-                                        const userAch = userProfile.userAchievements?.find(
-                                            (ua) => ua.achievement.id === ach.id,
-                                        )
+                                        const userAch =
+                                            userProfile.userAchievements?.find(
+                                                (ua) => ua.achievement.id === ach.id,
+                                            )
                                         return (
                                             userAch?.status?.toLowerCase() ===
                                             'completed'

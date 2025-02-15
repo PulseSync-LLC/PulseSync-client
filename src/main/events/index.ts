@@ -466,7 +466,9 @@ export const handleEvents = (window: BrowserWindow): void => {
 
         const tags: NodeID3.Tags = {
             title: track.title,
-            artist: track.artists.map(artist => artist.name).join(', ') || 'Unknown Artist',
+            artist:
+                track.artists.map((artist) => artist.name).join(', ') ||
+                'Unknown Artist',
             album: track.albums[0]?.title || 'Unknown Album',
             year: track.albums[0]?.year.toString(),
             genre: track.albums[0]?.genre || 'Unknown',
@@ -478,8 +480,8 @@ export const handleEvents = (window: BrowserWindow): void => {
                 description: 'cover',
                 imageBuffer: coverBuffer,
             },
-            generalObject: []
-        };
+            generalObject: [],
+        }
         const success = NodeID3.write(tags, filePath)
         if (success) {
             logger.main.info('Metadata successfully written.')
@@ -649,7 +651,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                 description: 'Default theme.',
                 css: 'style.css',
                 script: 'script.js',
-                tags: ["PulseSync"],
+                tags: ['PulseSync'],
             }
 
             const defaultCssContent = `{}`
