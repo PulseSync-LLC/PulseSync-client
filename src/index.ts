@@ -1,6 +1,6 @@
 import {
     app,
-    BrowserWindow,
+    BrowserWindow, dialog,
     ipcMain,
     nativeTheme,
     Notification,
@@ -532,7 +532,12 @@ export async function prestartCheck() {
             title: 'Яндекс Музыка не найдена 😡',
             body: 'Пожалуйста, откройте приложение после установки музыки',
         }).show()
-
+        await dialog.showMessageBox({
+            type: 'info',
+            title: 'Яндекс Музыка не найдена 😡',
+            message: 'Пожалуйста, откройте приложение после установки музыки',
+            buttons: ['OK']
+        });
         return setTimeout(async () => {
             app.quit()
         }, 2500)
