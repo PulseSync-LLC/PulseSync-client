@@ -6,6 +6,7 @@ import TooltipButton from '../tooltip_button'
 import { getStatusColor, getStatus } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
 import { MdMoreHoriz, MdPersonAddAlt1 } from 'react-icons/md'
+import LevelBadge from '../LevelBadge'
 
 interface UserCardProps {
     user: UserInterface
@@ -210,6 +211,14 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                                 </div>
                             </div>
                             <div className={styles.userBadges}>
+                                <TooltipButton
+                                    tooltipText={`Уровень ${user.levelInfo.currentLevel}`}
+                                    side="bottom"
+                                >
+                                    <LevelBadge
+                                        level={user.levelInfo.currentLevel}
+                                    />
+                                </TooltipButton>
                                 {sortedBadges.map((_badge) => (
                                     <TooltipButton
                                         key={`${_badge.type}-${_badge.level}`}

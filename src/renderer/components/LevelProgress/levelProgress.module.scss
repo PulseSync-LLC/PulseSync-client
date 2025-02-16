@@ -1,0 +1,83 @@
+.level_progress {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 8px 12px 12px;
+    gap: 8px;
+    width: 100%;
+    background: #474c5c;
+    border-radius: 14px;
+
+    .level_header {
+        display: flex;
+        justify-content: space-between;
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 140%;
+        color: #c4cce7;
+        flex: none;
+    }
+
+    .progress_bar {
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 4px;
+        gap: 10px;
+        isolation: isolate;
+        width: 651px;
+        height: 37px;
+        background: rgba(201, 214, 255, 0.5);
+        outline: 4px solid rgba(154, 165, 200, 0.5);
+        border-radius: 8px;
+
+        .progress_fill {
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: -webkit-fill-available;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: row;
+            justify-content: flex-end;
+            align-items: center;
+            background: linear-gradient(90deg, #8aa3ff80 0%, #88a2ff 100%);
+            border-radius: 8px;
+        }
+
+        .progress_content {
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            z-index: 1;
+
+            .level_box {
+                color: white;
+                font-size: 14px;
+                font-weight: bold;
+                display: flex;
+                justify-content: space-around;
+                align-items: center;
+                margin: 5px;
+                width: 29px;
+                height: 29px;
+                background: rgb(141 149 175);
+                outline: 4px solid rgb(184 195 230 / 24%);
+                border-radius: 4px;
+            }
+
+            .points {
+                font-weight: 800;
+                font-size: 14px;
+                line-height: 140%;
+
+                color: #464e68;
+            }
+        }
+    }
+}

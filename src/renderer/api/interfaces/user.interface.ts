@@ -15,6 +15,12 @@ export default interface UserInterface {
     bannerHash: string
     bannerType: string
     perms: string
+    levelInfo: {
+        totalPoints: number;
+        currentLevel: number;
+        nextLevelThreshold: number;
+        pointsToNextLevel: number;
+    };
     userAchievements: any[]
     badges: any[]
 }

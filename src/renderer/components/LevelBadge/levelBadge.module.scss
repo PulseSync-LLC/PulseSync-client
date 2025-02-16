@@ -1,0 +1,18 @@
+.background {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 1px 7px;
+    gap: 10px;
+
+    border-radius: 4px;
+
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 16px;
+
+    color: #ffffff;
+
+    text-shadow: 0px -1px 4px rgba(0, 0, 0, 0.3);
+}

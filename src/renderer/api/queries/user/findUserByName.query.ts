@@ -31,6 +31,13 @@ export default gql`
 
             isFriend
 
+            levelInfo {
+                totalPoints
+                currentLevel
+                nextLevelThreshold
+                pointsToNextLevel
+            }
+
             userAchievements {
                 id
                 status

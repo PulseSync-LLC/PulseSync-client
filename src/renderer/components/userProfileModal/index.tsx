@@ -22,6 +22,8 @@ import * as achv from './achievements.module.scss'
 import { getStatus, getStatusColor } from '../../utils/userStatus'
 import { motion } from 'framer-motion'
 import userContext from '../../api/context/user.context'
+import LevelProgress from '../LevelProgress'
+import LevelBadge from '../LevelBadge'
 
 interface UserProfileModalProps {
     isOpen: boolean
@@ -480,6 +482,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             <div className={styles.userName}>
                                 {userProfile.nickname || 'Без никнейма'}
                                 <div className={styles.userBadges}>
+                                    <TooltipButton
+                                        tooltipText={`Уровень ${userProfile.levelInfo.currentLevel}`}
+                                        side="top"
+                                    >
+                                        <LevelBadge
+                                            level={
+                                                userProfile.levelInfo.currentLevel
+                                            }
+                                        />
+                                    </TooltipButton>
                                     {Array.isArray(userProfile.badges) &&
                                         userProfile.badges
                                             .sort((a, b) => b.level - a.level)
@@ -529,6 +541,17 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 Достигайте самого высокого уровня.
                             </div>
                         </div>
+
+                        <LevelProgress
+                            totalPoints={userProfile.levelInfo.totalPoints}
+                            currentLevel={userProfile.levelInfo.currentLevel}
+                            nextLevelThreshold={
+                                userProfile.levelInfo.nextLevelThreshold
+                            }
+                            pointsToNextLevel={
+                                userProfile.levelInfo.pointsToNextLevel
+                            }
+                        />
 
                         {allAchievementsLoading && <p>Загрузка достижений...</p>}
                         {allAchievementsError && (

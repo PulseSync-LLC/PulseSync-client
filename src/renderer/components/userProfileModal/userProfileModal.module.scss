@@ -86,6 +86,20 @@
     color: #ffffff;
 }
 
+.levelBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #ffcc00, #ff8800);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
+}
+
 .userInfo {
     display: flex;
     flex-direction: column;

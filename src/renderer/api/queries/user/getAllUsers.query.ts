@@ -39,6 +39,12 @@ export default gql`
                     level
                     createdAt
                 }
+                levelInfo {
+                    totalPoints
+                    currentLevel
+                    nextLevelThreshold
+                    pointsToNextLevel
+                }
             }
         }
     }
