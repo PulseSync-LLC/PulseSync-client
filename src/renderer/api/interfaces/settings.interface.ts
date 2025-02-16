@@ -6,6 +6,7 @@ export interface Settings {
     deletePextAfterImport: boolean
     closeAppInTray: boolean
     devSocket: boolean
+    askSavePath: boolean
     showModModalAfterInstall: boolean
 }
 export interface Info {

@@ -8,7 +8,7 @@ const settingsInitials: SettingsInterface = {
         hardwareAcceleration: true,
         deletePextAfterImport: false,
         closeAppInTray: false,
-        writeMetadataAfterDownload: false,
+        askSavePath: false,
         devSocket: false,
         showModModalAfterInstall: true,
     },

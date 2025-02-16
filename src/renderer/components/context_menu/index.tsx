@@ -119,6 +119,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
+            case 'askSavePath':
+                updatedSettings.askSavePath = status
+                window.electron.store.set(
+                    'settings.askSavePath',
+                    status,
+                )
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Спрашивать куда сохранять трек?" ${status ? 'включена' : 'выключена'}`,
+                )
+                break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
@@ -208,7 +220,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
         window.electron.downloadTrack({
             track: currentTrack,
-            url: currentTrack.url
+            url: currentTrack.url,
+            askSavePath: app.settings.askSavePath
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
@@ -370,6 +383,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: downloadTrack,
                 disabled: !currentTrack.url || !currentTrack.downloadInfo.quality,
             },
+            createToggleButton(
+                'Спрашивать куда сохранять трек?',
+                app.settings.askSavePath,
+                () =>
+                    toggleSetting(
+                        'askSavePath',
+                        !app.settings.askSavePath,
+                    ),
+            ),
             {
                 label: 'Директория со скаченной музыкой',
                 onClick: () =>

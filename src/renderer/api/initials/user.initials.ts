@@ -17,6 +17,12 @@ const UserInitials: UserInterface = {
     perms: 'default',
     badges: [],
     userAchievements: [],
+    levelInfo: {
+        totalPoints: 0,
+        currentLevel: 0,
+        nextLevelThreshold: 0,
+        pointsToNextLevel: 0
+    },
 }
 
 export default UserInitials
