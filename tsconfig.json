@@ -1,24 +1,36 @@
 {
-  "compilerOptions": {
-    "target": "ES2022",
-    "lib": ["ES2016.Array.Include", "ES2021", "DOM", "DOM.Iterable", "ScriptHost"],
-    "allowJs": true,
-    "maxNodeModuleJsDepth": 10,
-    "module": "commonjs",
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "noImplicitAny": true,
-    "allowSyntheticDefaultImports": true,
-    "sourceMap": true,
-    "baseUrl": ".",
-    "outDir": "dist",
-    "moduleResolution": "node",
-    "jsx": "react-jsx",
-    "resolveJsonModule": true,
-    "paths": {
-      "*": ["node_modules/*"],
-      "@/*": ["static/*"]
+    "compilerOptions": {
+        "target": "ES2022",
+        "lib": [
+            "ES2016.Array.Include",
+            "ES2021",
+            "DOM",
+            "DOM.Iterable",
+            "ScriptHost"
+        ],
+        "allowJs": true,
+        "maxNodeModuleJsDepth": 10,
+        "module": "commonjs",
+        "skipLibCheck": true,
+        "noImplicitAny": true,
+        "allowSyntheticDefaultImports": true,
+        "sourceMap": true,
+        "baseUrl": ".",
+        "outDir": "dist",
+        "moduleResolution": "node",
+        "jsx": "react-jsx",
+        "resolveJsonModule": true,
+        "esModuleInterop": true,
+        "paths": {
+            "*": ["node_modules/*"],
+            "@/*": ["static/*"]
+        }
     },
-  },
-  "include": ["src/**/*", "styles.d.ts", "window.d.ts", "cors-anywhere.d.ts", "declarations.d.ts"]
+    "include": [
+        "src/**/*",
+        "styles.d.ts",
+        "window.d.ts",
+        "cors-anywhere.d.ts",
+        "declarations.d.ts"
+    ]
 }

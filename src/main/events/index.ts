@@ -17,8 +17,8 @@ import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
 import axios from 'axios'
-import {Track} from "../../renderer/api/interfaces/track.interface";
-import {downloadTrack} from "./handlers/downloadTrack";
+import { Track } from '../../renderer/api/interfaces/track.interface'
+import { downloadTrack } from './handlers/downloadTrack'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -131,13 +131,19 @@ export const handleEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on('download-track', async (event, val: {
-        url: string,
-        track: Track,
-        askSavePath: boolean
-    }) => {
-        await downloadTrack(event, val)
-    });
+    ipcMain.on(
+        'download-track',
+        async (
+            event,
+            val: {
+                url: string
+                track: Track
+                askSavePath: boolean
+            },
+        ) => {
+            await downloadTrack(event, val)
+        },
+    )
     ipcMain.on('get-music-device', (event) => {
         si.system().then((data) => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4({ random: Buffer.from(data.uuid) })}`

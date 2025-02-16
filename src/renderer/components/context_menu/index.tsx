@@ -121,10 +121,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 break
             case 'askSavePath':
                 updatedSettings.askSavePath = status
-                window.electron.store.set(
-                    'settings.askSavePath',
-                    status,
-                )
+                window.electron.store.set('settings.askSavePath', status)
                 toast.custom(
                     'success',
                     `Готово`,
@@ -221,7 +218,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.electron.downloadTrack({
             track: currentTrack,
             url: currentTrack.url,
-            askSavePath: app.settings.askSavePath
+            askSavePath: app.settings.askSavePath,
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
@@ -386,11 +383,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton(
                 'Спрашивать куда сохранять трек?',
                 app.settings.askSavePath,
-                () =>
-                    toggleSetting(
-                        'askSavePath',
-                        !app.settings.askSavePath,
-                    ),
+                () => toggleSetting('askSavePath', !app.settings.askSavePath),
             ),
             {
                 label: 'Директория со скаченной музыкой',

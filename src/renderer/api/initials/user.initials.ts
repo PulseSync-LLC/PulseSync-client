@@ -21,7 +21,7 @@ const UserInitials: UserInterface = {
         totalPoints: 0,
         currentLevel: 0,
         nextLevelThreshold: 0,
-        pointsToNextLevel: 0
+        pointsToNextLevel: 0,
     },
 }
 
