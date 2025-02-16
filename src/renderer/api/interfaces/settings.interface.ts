@@ -5,7 +5,6 @@ export interface Settings {
     hardwareAcceleration: boolean
     deletePextAfterImport: boolean
     closeAppInTray: boolean
-    writeMetadataAfterDownload: boolean
     devSocket: boolean
     showModModalAfterInstall: boolean
 }

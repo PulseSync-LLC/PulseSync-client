@@ -119,18 +119,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
-            case 'writeMetadataToggle':
-                updatedSettings.writeMetadataAfterDownload = status
-                window.electron.store.set(
-                    'settings.writeMetadataAfterDownload',
-                    status,
-                )
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Запись метаданных после загрузки" ${status ? 'включена' : 'выключена'}`,
-                )
-                break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
@@ -220,8 +208,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
         window.electron.downloadTrack({
             track: currentTrack,
-            url: currentTrack.url,
-            metadata: app.settings.writeMetadataAfterDownload,
+            url: currentTrack.url
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
@@ -381,17 +368,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: `Скачать ${currentTrack.title} в папку музыка`,
                 onClick: downloadTrack,
-                disabled: !currentTrack.url || !currentTrack.downloadInfo,
+                disabled: !currentTrack.url || !currentTrack.downloadInfo.quality,
             },
-            createToggleButton(
-                'Запись метаданных в трек',
-                app.settings.writeMetadataAfterDownload,
-                () =>
-                    toggleSetting(
-                        'writeMetadataToggle',
-                        !app.settings.writeMetadataAfterDownload,
-                    ),
-            ),
             {
                 label: 'Директория со скаченной музыкой',
                 onClick: () =>
