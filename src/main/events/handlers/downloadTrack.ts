@@ -47,7 +47,7 @@ export async function downloadTrack(
             filters: [{ name: 'Трек', extensions: [fileExtension] }],
         })
         if (canceled || !selectedPath || !val.url) {
-            return
+            return mainWindow.webContents.send('download-track-cancelled')
         }
         filePath = selectedPath
     } else {
