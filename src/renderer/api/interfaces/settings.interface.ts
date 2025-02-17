@@ -7,6 +7,7 @@ export interface Settings {
     closeAppInTray: boolean
     devSocket: boolean
     askSavePath: boolean
+    saveAsMp3: boolean
     showModModalAfterInstall: boolean
 }
 export interface Info {

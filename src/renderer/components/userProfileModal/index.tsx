@@ -1,8 +1,8 @@
 import React, { useContext, useEffect, useState } from 'react'
+import { motion } from 'framer-motion'
 import apolloClient from '../../api/apolloClient'
 import config from '../../api/config'
-import findUserByName from '../../api/queries/user/findUserByName.query'
-import getAchievements from '../../api/queries/user/getAchievements.query'
+import getUserProfileQuery from '../../api/queries/user/getUserProfile.query'
 import toggleFollowMutation from '../../api/mutations/toggleFollow.query'
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
@@ -25,7 +25,6 @@ import {
 import * as styles from './userProfileModal.module.scss'
 import * as achv from './achievements.module.scss'
 import { getStatus, getStatusColor } from '../../utils/userStatus'
-import { motion } from 'framer-motion'
 import userContext from '../../api/context/user.context'
 import LevelProgress from '../LevelProgress'
 import LevelBadge from '../LevelBadge'
@@ -36,24 +35,22 @@ interface UserProfileModalProps {
     username: string
 }
 
+interface ExtendedUser extends UserInterface {
+    allAchievements?: any[]
+}
+
 const UserProfileModal: React.FC<UserProfileModalProps> = ({
     isOpen,
     onClose,
     username,
 }) => {
+    const [userProfile, setUserProfile] = useState<ExtendedUser>(userInitials)
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
-    const [userProfile, setUserProfile] = useState<UserInterface>(userInitials)
     const [isHovered, setIsHovered] = useState(false)
-    const [isFollowing, setIsFollowing] = useState(false)
-    const [areFriends, setAreFriends] = useState(false)
     const [friendStatusLoading, setFriendStatusLoading] = useState(false)
     const { user } = useContext(userContext)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<any>(null)
-    const [allAchievements, setAllAchievements] = useState<any[]>([])
-    const [allAchievementsLoading, setAllAchievementsLoading] =
-        useState<boolean>(false)
-    const [allAchievementsError, setAllAchievementsError] = useState<any>(null)
     const [shouldRender, setShouldRender] = useState(isOpen)
     const [animationClass, setAnimationClass] = useState(styles.closed)
 
@@ -61,7 +58,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const statusColorDark = getStatusColor(userProfile, true)
     const statusUser = getStatus(userProfile, true)
 
-    // Управление рендерингом модального окна по isOpen
     useEffect(() => {
         if (isOpen) {
             setShouldRender(true)
@@ -82,7 +78,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         }
     }, [isOpen])
 
-    // Загрузка профиля пользователя по имени
     useEffect(() => {
         if (!isOpen || !username) return
 
@@ -92,56 +87,34 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
         apolloClient
             .query({
-                query: findUserByName,
-                variables: { name: username },
-                fetchPolicy: 'no-cache',
-            })
-            .then((res) => {
-                if (!res.data.findUserByName) {
-                    setError('User not found')
-                } else {
-                    setUserProfile(res.data.findUserByName)
-                    if (res.data.findUserByName.isFriend !== undefined) {
-                        setAreFriends(res.data.findUserByName.isFriend)
-                    }
-                }
-            })
-            .catch(setError)
-            .finally(() => setLoading(false))
-    }, [isOpen, username])
-
-    // Загрузка достижений
-    useEffect(() => {
-        setAllAchievementsLoading(true)
-        apolloClient
-            .query({
-                query: getAchievements,
+                query: getUserProfileQuery,
                 variables: {
+                    name: username,
                     page: 1,
-                    pageSize: 100,
+                    pageSize: 50,
                     search: '',
                     sortOptions: [],
                 },
                 fetchPolicy: 'no-cache',
             })
             .then((res) => {
-                if (res.data?.getAchievements?.achievements) {
-                    setAllAchievements(res.data.getAchievements.achievements)
+                if (!res.data.findUserByName) {
+                    setError('Пользователь не найден')
+                } else {
+                    setUserProfile({
+                        ...res.data.findUserByName,
+                        allAchievements:
+                            res.data.getAchievements?.achievements || [],
+                    })
                 }
             })
-            .catch((err) => {
-                setAllAchievementsError(err)
-            })
-            .finally(() => {
-                setAllAchievementsLoading(false)
-            })
-    }, [])
+            .catch(setError)
+            .finally(() => setLoading(false))
+    }, [isOpen, username])
 
     const toggleExpand = (id: number) => {
-        setExpandedIndexes((prevIndexes) =>
-            prevIndexes.includes(id)
-                ? prevIndexes.filter((i) => i !== id)
-                : [...prevIndexes, id],
+        setExpandedIndexes((prev) =>
+            prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
         )
     }
 
@@ -153,8 +126,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 variables: { targetId: userProfile.id },
             })
             if (data && data.toggleFollow) {
-                setIsFollowing(data.toggleFollow.isFollowing)
-                setAreFriends(data.toggleFollow.areFriends)
+                setUserProfile((prev) => ({
+                    ...prev,
+                    isFollowing: data.toggleFollow.isFollowing,
+                    isFriend: data.toggleFollow.areFriends,
+                }))
             }
         } catch (error) {
             console.error('Ошибка при запросе на добавление в друзья', error)
@@ -183,18 +159,18 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         let hoverIcon = <MdPersonOff size={20} />
         let buttonClass = styles.buttonAddFriendWhite
 
-        if (isFollowing) {
-            buttonTextNormal = 'Подписан'
-            buttonTextHover = 'Отписаться'
-            normalIcon = <MdHowToReg size={20} />
-            hoverIcon = <MdPersonRemove size={20} />
-            buttonClass = styles.buttonUnsubscribe
-        } else if (areFriends && userProfile.isFriend) {
+        if (userProfile.isFriend) {
             buttonTextNormal = 'Друзья'
             buttonTextHover = 'Удалить из друзей'
             normalIcon = <MdPeopleAlt size={20} />
             hoverIcon = <MdPersonOff size={20} />
             buttonClass = styles.buttonRemoveFriend
+        } else if (userProfile.isFollowing) {
+            buttonTextNormal = 'Подписан'
+            buttonTextHover = 'Отписаться'
+            normalIcon = <MdHowToReg size={20} />
+            hoverIcon = <MdPersonRemove size={20} />
+            buttonClass = styles.buttonUnsubscribe
         }
 
         return (
@@ -227,7 +203,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             HARD: 'Сложно',
             EXTREME: 'Экстремально',
         }
-
         const difficultyLabel =
             difficultyMap[ach.difficulty.toUpperCase()] ?? 'Неизвестно'
         const difficultyColors = {
@@ -236,7 +211,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             HARD: '#FF9292',
             EXTREME: '#BA82FF',
         }
-
         const difficultyColor =
             difficultyColors[
                 ach.difficulty.toUpperCase() as
@@ -337,9 +311,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             {userAch.criteriaProgress.map((crit: any) => (
                                 <div
                                     key={crit.id}
-                                    className={`${achv.trackItem} ${
-                                        crit.isCompleted ? achv.criteriaDone : ''
-                                    }`}
+                                    className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}
                                 >
                                     {crit.isCompleted ? crit.name : 'Неизвестно'}
                                 </div>
@@ -374,9 +346,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     const loadingText = 'Загрузка...'.split('')
     const containerVariants = {
-        animate: {
-            transition: { staggerChildren: 0.1 },
-        },
+        animate: { transition: { staggerChildren: 0.1 } },
     }
     const letterVariants = {
         initial: { y: 0 },
@@ -449,9 +419,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             const albumId = userProfile.currentTrack.albums[0].id
                             window.desktopEvents.send(
                                 'open-external',
-                                `yandexmusic://album/${encodeURIComponent(
-                                    albumId,
-                                )}/track/${userProfile.currentTrack.realId}`,
+                                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
                             )
                         }
                     }}
@@ -625,22 +593,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 userProfile.levelInfo.pointsToNextLevel
                             }
                         />
-                        {allAchievementsLoading && <p>Загрузка достижений...</p>}
-                        {allAchievementsError && (
-                            <p>
-                                Ошибка при загрузке достижений:{' '}
-                                {allAchievementsError.message ||
-                                    String(allAchievementsError)}
-                            </p>
-                        )}
-                        {!allAchievementsLoading && allAchievements.length > 0 && (
+                        {userProfile.allAchievements &&
+                        userProfile.allAchievements.length > 0 ? (
                             <>
                                 <div className={styles.achievementsListContainer}>
                                     <div className={styles.achievementsListTitle}>
                                         Выполненные
                                     </div>
                                     <div className={styles.achievementsList}>
-                                        {allAchievements
+                                        {userProfile.allAchievements
                                             .filter((ach) => {
                                                 const userAch =
                                                     userProfile.userAchievements?.find(
@@ -673,7 +634,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                 renderAchievementItem(ach),
                                             )}
                                     </div>
-                                    {allAchievements.filter((ach) => {
+                                    {userProfile.allAchievements.filter((ach) => {
                                         const userAch =
                                             userProfile.userAchievements?.find(
                                                 (ua) => ua.achievement.id === ach.id,
@@ -695,7 +656,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                         Неполученные достижения
                                     </div>
                                     <div className={styles.achievementsList}>
-                                        {allAchievements
+                                        {userProfile.allAchievements
                                             .filter((ach) => {
                                                 const userAch =
                                                     userProfile.userAchievements?.find(
@@ -761,6 +722,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                     </div>
                                 </div>
                             </>
+                        ) : (
+                            <p>Нет достижений</p>
                         )}
                     </div>
                 </div>

@@ -128,6 +128,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     `Опция "Спрашивать куда сохранять трек?" ${status ? 'включена' : 'выключена'}`,
                 )
                 break
+            case 'saveAsMp3':
+                updatedSettings.saveAsMp3 = status
+                window.electron.store.set('settings.saveAsMp3', status)
+                toast.custom(
+                    'success',
+                    `Готово`,
+                    `Опция "Сохранять в формате mp3?" ${status ? 'включена' : 'выключена'}`,
+                )
+                break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
@@ -219,6 +228,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             track: currentTrack,
             url: currentTrack.url,
             askSavePath: app.settings.askSavePath,
+            saveAsMp3: app.settings.saveAsMp3,
         })
 
         window.desktopEvents?.once('download-track-cancelled', () => {
@@ -384,6 +394,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 'Спрашивать куда сохранять трек?',
                 app.settings.askSavePath,
                 () => toggleSetting('askSavePath', !app.settings.askSavePath),
+            ),
+            createToggleButton(
+                'Сохранять в формате mp3?',
+                app.settings.saveAsMp3,
+                () => toggleSetting('saveAsMp3', !app.settings.saveAsMp3),
             ),
             {
                 label: 'Директория со скаченной музыкой',

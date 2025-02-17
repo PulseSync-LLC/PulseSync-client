@@ -31,7 +31,10 @@ export const plugins = [
     //     project: 'electron',
     //     authToken: config.SENTRY_KEY,
     //     release: {
-    //         name: releaseVersion
+    //         name: releaseVersion,
+    //     },
+    //     errorHandler: (err) => {
+    //         console.warn(err)
     //     },
     // }),
 ]

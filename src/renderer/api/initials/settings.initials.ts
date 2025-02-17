@@ -9,6 +9,7 @@ const settingsInitials: SettingsInterface = {
         deletePextAfterImport: false,
         closeAppInTray: false,
         askSavePath: false,
+        saveAsMp3: false,
         devSocket: false,
         showModModalAfterInstall: true,
     },

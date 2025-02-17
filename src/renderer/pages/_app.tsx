@@ -729,100 +729,84 @@ const Player: React.FC<any> = ({ children }) => {
         if (user.id !== '-1') {
             ;(async () => {
                 if (typeof window !== 'undefined') {
-                    if (app.discordRpc.status) {
-                        window.desktopEvents?.on('trackinfo', (event, data) => {
-                            let coverImg: any
-                            if (data.track?.coverUri) {
-                                coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
-                            }
+                    window.desktopEvents?.on('trackinfo', (event, data) => {
+                        let coverImg: any
+                        if (data.track?.coverUri) {
+                            coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
+                        }
 
-                            const timecodes = data.timecodes ?? [0, 0]
-                            setTrack((prevTrack) => ({
-                                ...prevTrack,
-                                downloadInfo: data.downloadInfo || null,
-                                status: data.status ?? '',
-                                event: data.event,
-                                progress: data.progress,
-                                speed: data.speed,
-                                volume: data.volume,
-                                url: data.url ?? '',
-                                albumArt: coverImg,
-                                trackSource: data.track?.trackSource,
-                                timestamps: timecodes,
-                                realId: data.track?.realId ?? '',
-                                imageUrl: data.track?.imageUrl ?? '',
-                                id: data.track?.id ?? '',
-                                title: data.track?.title ?? '',
-                                artists:
-                                    data.track?.artists?.map((artist: any) => ({
-                                        id: artist.id ?? null,
-                                        name: artist.name ?? 'Unknown Artist',
-                                        various: artist.various ?? false,
-                                        composer: artist.composer ?? false,
-                                        available: artist.available ?? false,
-                                        cover: {
-                                            type: artist.cover?.type ?? null,
-                                            uri: artist.cover?.uri ?? null,
-                                            prefix: artist.cover?.prefix ?? null,
-                                        },
-                                        genres: artist.genres ?? [],
-                                        disclaimers: artist.disclaimers ?? [],
-                                    })) ?? [],
-                                albums:
-                                    data.track?.albums?.map((album: any) => ({
-                                        id: album.id ?? 0,
-                                        title: album.title ?? '',
-                                        type: album.type ?? '',
-                                        metaType: album.metaType ?? '',
-                                        year: album.year ?? 0,
-                                        releaseDate: album.releaseDate ?? '',
-                                        coverUri: album.coverUri ?? '',
-                                        ogImage: album.ogImage ?? '',
-                                        genre: album.genre ?? '',
-                                        trackCount: album.trackCount ?? 0,
-                                        likesCount: album.likesCount ?? 0,
-                                        recent: album.recent ?? false,
-                                        veryImportant: album.veryImportant ?? false,
-                                        artists:
-                                            data.track?.artists?.map(
-                                                (artist: any) => ({
-                                                    id: artist.id ?? null,
-                                                    name:
-                                                        artist.name ??
-                                                        'Unknown Artist',
-                                                    various: artist.various ?? false,
-                                                    composer:
-                                                        artist.composer ?? false,
-                                                    available:
-                                                        artist.available ?? false,
-                                                    cover: {
-                                                        type:
-                                                            artist.cover?.type ??
-                                                            null,
-                                                        uri:
-                                                            artist.cover?.uri ??
-                                                            null,
-                                                        prefix:
-                                                            artist.cover?.prefix ??
-                                                            null,
-                                                    },
-                                                    genres: artist.genres ?? [],
-                                                    disclaimers:
-                                                        artist.disclaimers ?? [],
-                                                }),
-                                            ) ?? [],
-                                    })) ?? [],
-                                coverUri: data.track?.coverUri ?? '',
-                                ogImage: data.track?.ogImage ?? null,
-                                lyricsAvailable: data.track?.lyricsAvailable ?? null,
-                                type: data.track?.type ?? null,
-                                rememberPosition:
-                                    data.track?.rememberPosition ?? null,
-                                trackSharingFlag:
-                                    data.track?.trackSharingFlag ?? null,
-                            }))
-                        })
-                    } else {
+                        const timecodes = data.timecodes ?? [0, 0]
+                        setTrack((prevTrack) => ({
+                            ...prevTrack,
+                            downloadInfo: data.downloadInfo || null,
+                            status: data.status ?? '',
+                            event: data.event,
+                            progress: data.progress,
+                            speed: data.speed,
+                            volume: data.volume,
+                            url: data.url ?? '',
+                            albumArt: coverImg,
+                            trackSource: data.track?.trackSource,
+                            timestamps: timecodes,
+                            realId: data.track?.realId ?? '',
+                            imageUrl: data.track?.imageUrl ?? '',
+                            id: data.track?.id ?? '',
+                            title: data.track?.title ?? '',
+                            artists:
+                                data.track?.artists?.map((artist: any) => ({
+                                    id: artist.id ?? null,
+                                    name: artist.name ?? 'Unknown Artist',
+                                    various: artist.various ?? false,
+                                    composer: artist.composer ?? false,
+                                    available: artist.available ?? false,
+                                    cover: {
+                                        type: artist.cover?.type ?? null,
+                                        uri: artist.cover?.uri ?? null,
+                                        prefix: artist.cover?.prefix ?? null,
+                                    },
+                                    genres: artist.genres ?? [],
+                                    disclaimers: artist.disclaimers ?? [],
+                                })) ?? [],
+                            albums:
+                                data.track?.albums?.map((album: any) => ({
+                                    id: album.id ?? 0,
+                                    title: album.title ?? '',
+                                    type: album.type ?? '',
+                                    metaType: album.metaType ?? '',
+                                    year: album.year ?? 0,
+                                    releaseDate: album.releaseDate ?? '',
+                                    coverUri: album.coverUri ?? '',
+                                    ogImage: album.ogImage ?? '',
+                                    genre: album.genre ?? '',
+                                    trackCount: album.trackCount ?? 0,
+                                    likesCount: album.likesCount ?? 0,
+                                    recent: album.recent ?? false,
+                                    veryImportant: album.veryImportant ?? false,
+                                    artists:
+                                        data.track?.artists?.map((artist: any) => ({
+                                            id: artist.id ?? null,
+                                            name: artist.name ?? 'Unknown Artist',
+                                            various: artist.various ?? false,
+                                            composer: artist.composer ?? false,
+                                            available: artist.available ?? false,
+                                            cover: {
+                                                type: artist.cover?.type ?? null,
+                                                uri: artist.cover?.uri ?? null,
+                                                prefix: artist.cover?.prefix ?? null,
+                                            },
+                                            genres: artist.genres ?? [],
+                                            disclaimers: artist.disclaimers ?? [],
+                                        })) ?? [],
+                                })) ?? [],
+                            coverUri: data.track?.coverUri ?? '',
+                            ogImage: data.track?.ogImage ?? null,
+                            lyricsAvailable: data.track?.lyricsAvailable ?? null,
+                            type: data.track?.type ?? null,
+                            rememberPosition: data.track?.rememberPosition ?? null,
+                            trackSharingFlag: data.track?.trackSharingFlag ?? null,
+                        }))
+                    })
+                    return () => {
                         window.desktopEvents?.removeAllListeners('trackinfo')
                         setTrack(trackInitials)
                     }
@@ -894,7 +878,7 @@ const Player: React.FC<any> = ({ children }) => {
                 if (track.status === 'paused' && app.discordRpc.displayPause) {
                     activity.smallImageText = 'Paused'
                     activity.smallImageKey =
-                        'https://cdn.discordapp.com/app-assets/984031241357647892/1328177768810156184.png?size=256'
+                        'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
                     activity.details = fixStrings(track.title)
                     delete activity.startTimestamp
                     delete activity.endTimestamp

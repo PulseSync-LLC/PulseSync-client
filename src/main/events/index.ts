@@ -139,6 +139,7 @@ export const handleEvents = (window: BrowserWindow): void => {
                 url: string
                 track: Track
                 askSavePath: boolean
+                saveAsMp3: boolean
             },
         ) => {
             await downloadTrack(event, val)

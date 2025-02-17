@@ -16,6 +16,7 @@ export default interface UserInterface {
     bannerType: string
     perms: string
     isFriend: boolean
+    isFollowing: boolean
     levelInfo: {
         totalPoints: number
         currentLevel: number

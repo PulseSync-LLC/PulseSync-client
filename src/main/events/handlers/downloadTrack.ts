@@ -23,14 +23,18 @@ export async function downloadTrack(
         url: string
         track: Track
         askSavePath: boolean
+        saveAsMp3: boolean
     },
 ) {
     const musicDir = app.getPath('music')
     const downloadDir = path.join(musicDir, 'PulseSyncMusic')
 
-    const fileExtension = val.track.downloadInfo.codec
-        .replaceAll(/(he-)?aac/g, 'm4a')
-        .replace(/(.*)-mp4/, '$1')
+    const fileExtension = val.saveAsMp3
+        ? 'mp3'
+        : val.track.downloadInfo.codec
+              .replaceAll(/(he-)?aac/g, 'm4a')
+              .replace(/(.*)-mp4/, '$1')
+
     const defaultFilepath = path.join(
         downloadDir,
         `${artists2string(val.track?.artists)} — ${val.track?.title}.`.replace(
@@ -120,7 +124,14 @@ export async function downloadTrack(
                     if (withCover) {
                         ffmpegCommand += `-map 1 `
                     }
-                    ffmpegCommand += `-c:a copy `
+                    if (val.track.downloadInfo.codec === 'mp3') {
+                        ffmpegCommand += `-id3v2_version 3 -c:a copy `
+                    } else if (val.saveAsMp3) {
+                        ffmpegCommand += `-c:a libmp3lame -b:a 320k -id3v2_version 3 `
+                    } else {
+                        ffmpegCommand += `-c:a copy `
+                    }
+
                     if (withCover) {
                         ffmpegCommand += `-c:v mjpeg -metadata:s:v title="Album cover" -metadata:s:v comment="Cover (front)" -disposition:v attached_pic `
                     }
