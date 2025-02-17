@@ -15,6 +15,7 @@ export default interface UserInterface {
     bannerHash: string
     bannerType: string
     perms: string
+    isFriend: boolean
     levelInfo: {
         totalPoints: number
         currentLevel: number

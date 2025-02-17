@@ -12,6 +12,7 @@ import {
     MdAccessTime,
     MdKeyboardArrowDown,
     MdKeyboardArrowUp,
+    MdLeaderboard,
 } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
@@ -321,6 +322,13 @@ export default function UsersPage() {
                                     >
                                         <MdAccessTime /> Последняя активность{' '}
                                         {getSortIcon('lastOnline')}
+                                    </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('totalPoints') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('totalPoints')}
+                                    >
+                                        <MdLeaderboard /> Уровень{' '}
+                                        {getSortIcon('totalPoints')}
                                     </Button>
                                     <Button
                                         className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}

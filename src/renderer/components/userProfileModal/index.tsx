@@ -3,6 +3,7 @@ import apolloClient from '../../api/apolloClient'
 import config from '../../api/config'
 import findUserByName from '../../api/queries/user/findUserByName.query'
 import getAchievements from '../../api/queries/user/getAchievements.query'
+import toggleFollowMutation from '../../api/mutations/toggleFollow.query'
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
 import Button from '../button'
@@ -10,10 +11,14 @@ import TooltipButton from '../tooltip_button'
 import {
     MdCheckCircle,
     MdHistoryEdu,
+    MdHowToReg,
     MdKeyboardArrowDown,
     MdMoreHoriz,
     MdOpenInNew,
+    MdPeopleAlt,
     MdPersonAdd,
+    MdPersonOff,
+    MdPersonRemove,
     MdSettings,
     MdStar,
 } from 'react-icons/md'
@@ -38,7 +43,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const [userProfile, setUserProfile] = useState<UserInterface>(userInitials)
-    const { user, app } = useContext(userContext)
+    const [isHovered, setIsHovered] = useState(false)
+    const [isFollowing, setIsFollowing] = useState(false)
+    const [areFriends, setAreFriends] = useState(false)
+    const [friendStatusLoading, setFriendStatusLoading] = useState(false)
+    const { user } = useContext(userContext)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<any>(null)
     const [allAchievements, setAllAchievements] = useState<any[]>([])
@@ -52,6 +61,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const statusColorDark = getStatusColor(userProfile, true)
     const statusUser = getStatus(userProfile, true)
 
+    // Управление рендерингом модального окна по isOpen
     useEffect(() => {
         if (isOpen) {
             setShouldRender(true)
@@ -72,6 +82,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         }
     }, [isOpen])
 
+    // Загрузка профиля пользователя по имени
     useEffect(() => {
         if (!isOpen || !username) return
 
@@ -90,12 +101,16 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     setError('User not found')
                 } else {
                     setUserProfile(res.data.findUserByName)
+                    if (res.data.findUserByName.isFriend !== undefined) {
+                        setAreFriends(res.data.findUserByName.isFriend)
+                    }
                 }
             })
             .catch(setError)
             .finally(() => setLoading(false))
     }, [isOpen, username])
 
+    // Загрузка достижений
     useEffect(() => {
         setAllAchievementsLoading(true)
         apolloClient
@@ -127,6 +142,72 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             prevIndexes.includes(id)
                 ? prevIndexes.filter((i) => i !== id)
                 : [...prevIndexes, id],
+        )
+    }
+
+    const handleToggleFollow = async () => {
+        try {
+            setFriendStatusLoading(true)
+            const { data } = await apolloClient.mutate({
+                mutation: toggleFollowMutation,
+                variables: { targetId: userProfile.id },
+            })
+            if (data && data.toggleFollow) {
+                setIsFollowing(data.toggleFollow.isFollowing)
+                setAreFriends(data.toggleFollow.areFriends)
+            }
+        } catch (error) {
+            console.error('Ошибка при запросе на добавление в друзья', error)
+        } finally {
+            setFriendStatusLoading(false)
+        }
+    }
+
+    const renderFriendButton = () => {
+        if (user.username === username) {
+            return (
+                <>
+                    <Button className={styles.buttonAddFriend}>
+                        <MdPersonAdd size={20} /> Редактировать профиль
+                    </Button>
+                    <Button className={styles.buttonPersonal}>
+                        <MdSettings size={20} />
+                    </Button>
+                </>
+            )
+        }
+
+        let buttonTextNormal = 'Добавить в друзья'
+        let buttonTextHover = 'Подписаться'
+        let normalIcon = <MdPersonAdd size={20} />
+        let hoverIcon = <MdPersonOff size={20} />
+        let buttonClass = styles.buttonAddFriendWhite
+
+        if (isFollowing) {
+            buttonTextNormal = 'Подписан'
+            buttonTextHover = 'Отписаться'
+            normalIcon = <MdHowToReg size={20} />
+            hoverIcon = <MdPersonRemove size={20} />
+            buttonClass = styles.buttonUnsubscribe
+        } else if (areFriends && userProfile.isFriend) {
+            buttonTextNormal = 'Друзья'
+            buttonTextHover = 'Удалить из друзей'
+            normalIcon = <MdPeopleAlt size={20} />
+            hoverIcon = <MdPersonOff size={20} />
+            buttonClass = styles.buttonRemoveFriend
+        }
+
+        return (
+            <Button
+                type="button"
+                className={`${styles.friendActionButton} ${buttonClass}`}
+                onClick={handleToggleFollow}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+            >
+                {isHovered ? hoverIcon : normalIcon}{' '}
+                {isHovered ? buttonTextHover : buttonTextNormal}
+            </Button>
         )
     }
 
@@ -256,7 +337,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             {userAch.criteriaProgress.map((crit: any) => (
                                 <div
                                     key={crit.id}
-                                    className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}
+                                    className={`${achv.trackItem} ${
+                                        crit.isCompleted ? achv.criteriaDone : ''
+                                    }`}
                                 >
                                     {crit.isCompleted ? crit.name : 'Неизвестно'}
                                 </div>
@@ -311,7 +394,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     }
 
     const renderContent = () => {
-        if (loading) {
+        if (loading || friendStatusLoading) {
             return (
                 <div className={styles.loadingWrapper}>
                     <div className={styles.loading}>
@@ -366,7 +449,9 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                             const albumId = userProfile.currentTrack.albums[0].id
                             window.desktopEvents.send(
                                 'open-external',
-                                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
+                                `yandexmusic://album/${encodeURIComponent(
+                                    albumId,
+                                )}/track/${userProfile.currentTrack.realId}`,
                             )
                         }
                     }}
@@ -516,18 +601,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         </div>
                     </div>
                     <div className={styles.userButtons}>
-                        {user.username !== username ? (
-                            <Button className={styles.buttonAddFriend}>
-                                <MdPersonAdd size={20} /> Добавить в друзья
-                            </Button>
-                        ) : (
-                            <Button className={styles.buttonAddFriend}>
-                                <MdPersonAdd size={20} /> Редактировать профиль
-                            </Button>
-                        )}
-                        <Button className={styles.buttonPersonal}>
-                            <MdSettings size={20} />
-                        </Button>
+                        {renderFriendButton()}
                         <Button className={styles.buttonPersonal}>
                             <MdMoreHoriz size={20} />
                         </Button>
@@ -541,7 +615,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 Достигайте самого высокого уровня.
                             </div>
                         </div>
-
                         <LevelProgress
                             totalPoints={userProfile.levelInfo.totalPoints}
                             currentLevel={userProfile.levelInfo.currentLevel}
@@ -552,7 +625,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 userProfile.levelInfo.pointsToNextLevel
                             }
                         />
-
                         {allAchievementsLoading && <p>Загрузка достижений...</p>}
                         {allAchievementsError && (
                             <p>
@@ -561,7 +633,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                     String(allAchievementsError)}
                             </p>
                         )}
-
                         {!allAchievementsLoading && allAchievements.length > 0 && (
                             <>
                                 <div className={styles.achievementsListContainer}>
@@ -589,7 +660,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                     HARD: 3,
                                                     EXTREME: 4,
                                                 }
-
                                                 return (
                                                     difficultyPriority[
                                                         a.difficulty.toUpperCase() as keyof typeof difficultyPriority
@@ -654,14 +724,12 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                             ua.achievement.id ===
                                                             b.id,
                                                     )
-
                                                 const difficultyPriority = {
                                                     EASY: 1,
                                                     NORMAL: 2,
                                                     HARD: 3,
                                                     EXTREME: 4,
                                                 }
-
                                                 if (
                                                     userAchA?.status?.toLowerCase() ===
                                                         'in_progress' &&
@@ -678,7 +746,6 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                                 ) {
                                                     return 1
                                                 }
-
                                                 return (
                                                     difficultyPriority[
                                                         a.difficulty.toUpperCase() as keyof typeof difficultyPriority

@@ -163,6 +163,56 @@
     width: 100%;
 }
 
+.friendActionButton {
+    transition: 0.2s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+    border-radius: 8px;
+    padding: 10px 15px;
+    gap: 8px;
+    width: -webkit-fill-available;
+
+    svg {
+        margin-right: 5px;
+    }
+
+    &:hover {
+        filter: brightness(1.05);
+    }
+}
+
+.buttonAddFriendWhite {
+    background: #ffffff;
+    color: #474c5c;
+
+    &:hover {
+        background: #f0f0f0;
+    }
+}
+
+.buttonUnsubscribe {
+    background: #686ae0;
+    color: #ffffff;
+
+    &:hover {
+        background: #5859b8;
+    }
+}
+
+.buttonRemoveFriend {
+    background: #e14677;
+    color: #ffffff;
+
+    &:hover {
+        background: #ac395d;
+    }
+}
+
 .buttonAddFriend {
     transition: var(--transition);
     cursor: pointer;
