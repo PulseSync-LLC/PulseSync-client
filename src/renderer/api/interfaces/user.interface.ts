@@ -20,8 +20,8 @@ export default interface UserInterface {
     levelInfo: {
         totalPoints: number
         currentLevel: number
-        nextLevelThreshold: number
-        pointsToNextLevel: number
+        currentLevelThreshold: number
+        progressInCurrentLevel: number
     }
     userAchievements: any[]
     badges: any[]

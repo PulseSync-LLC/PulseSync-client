@@ -18,10 +18,10 @@ const GET_USER_PROFILE_QUERY = gql`
             avatarHash
             avatarType
             levelInfo {
-                currentLevel
                 totalPoints
-                nextLevelThreshold
-                pointsToNextLevel
+                currentLevel
+                progressInCurrentLevel
+                currentLevelThreshold
             }
             badges {
                 uuid

@@ -34,8 +34,8 @@ export default gql`
             levelInfo {
                 totalPoints
                 currentLevel
-                nextLevelThreshold
-                pointsToNextLevel
+                progressInCurrentLevel
+                currentLevelThreshold
             }
 
             userAchievements {

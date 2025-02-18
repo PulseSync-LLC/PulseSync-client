@@ -587,11 +587,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         <LevelProgress
                             totalPoints={userProfile.levelInfo.totalPoints}
                             currentLevel={userProfile.levelInfo.currentLevel}
-                            nextLevelThreshold={
-                                userProfile.levelInfo.nextLevelThreshold
+                            progressInCurrentLevel={
+                                userProfile.levelInfo.progressInCurrentLevel
                             }
-                            pointsToNextLevel={
-                                userProfile.levelInfo.pointsToNextLevel
+                            currentLevelThreshold={
+                                userProfile.levelInfo.currentLevelThreshold
                             }
                         />
                         {userProfile.allAchievements &&

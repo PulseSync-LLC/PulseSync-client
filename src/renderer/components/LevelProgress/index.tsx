@@ -1,21 +1,20 @@
-import React from 'react'
-import * as style from './levelProgress.module.scss'
+import React from 'react';
+import * as style from './levelProgress.module.scss';
 
 interface LevelProgressProps {
-    totalPoints: number
-    currentLevel: number
-    nextLevelThreshold: number
-    pointsToNextLevel: number
+    totalPoints: number;
+    currentLevel: number;
+    progressInCurrentLevel: number;
+    currentLevelThreshold: number;
 }
 
 const LevelProgress: React.FC<LevelProgressProps> = ({
     totalPoints,
     currentLevel,
-    nextLevelThreshold,
-    pointsToNextLevel,
+    progressInCurrentLevel,
+    currentLevelThreshold,
 }) => {
-    const progressPercentage =
-        ((nextLevelThreshold - pointsToNextLevel) / nextLevelThreshold) * 100
+    const progressPercentage = (progressInCurrentLevel / currentLevelThreshold) * 100;
 
     return (
         <div className={style.level_progress}>
@@ -31,14 +30,13 @@ const LevelProgress: React.FC<LevelProgressProps> = ({
                 <div className={style.progress_content}>
                     <div className={style.level_box}>{currentLevel}</div>
                     <div className={style.points}>
-                        ⭐ {nextLevelThreshold - pointsToNextLevel}/
-                        {nextLevelThreshold}
+                        ⭐ {progressInCurrentLevel}/{currentLevelThreshold}
                     </div>
                     <div className={style.level_box}>{currentLevel + 1}</div>
                 </div>
             </div>
         </div>
-    )
-}
+    );
+};
 
-export default LevelProgress
+export default LevelProgress;
