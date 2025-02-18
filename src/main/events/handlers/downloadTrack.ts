@@ -105,7 +105,8 @@ export async function downloadTrack(
                     if (val.track.coverUri) {
                         coverPath = path.join(tempDir, 'cover.jpg')
                         const coverUrl =
-                            'https://' + val.track.coverUri.replace('%%', '400x400')
+                            'https://' +
+                            val.track.coverUri.replace('%%', '1000x1000')
                         const coverResponse = await fetch(coverUrl)
                         const coverBuffer = Buffer.from(
                             await coverResponse.arrayBuffer(),

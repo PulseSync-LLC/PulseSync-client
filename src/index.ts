@@ -614,12 +614,6 @@ app.on('render-process-gone', (event, webContents, detailed) => {
         app.exit(0)
     }
 })
-/* setInterval(() => {
-    let metadata = getTrackInfo()
-    if (Object.keys(metadata).length >= 1) {
-        mainWindow.webContents.send('trackinfo', metadata)
-    }
-}, 5000) */
 
 eventEmitter.on('dataUpdated', (newData) => {
     if (mainWindow && mainWindow.webContents) {

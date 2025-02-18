@@ -81,17 +81,16 @@ export default function AuthPage() {
                 (event.ctrlKey && event.code === 'KeyR') ||
                 event.key.toLowerCase() === 'f5'
             ) {
-                event.preventDefault();
+                event.preventDefault()
             }
-        };
+        }
 
         window.addEventListener('mousemove', handleMouseMove)
-        window.addEventListener('keydown', handleKeyDown);
-
+        window.addEventListener('keydown', handleKeyDown)
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove)
-            window.removeEventListener('keydown', handleKeyDown);
+            window.removeEventListener('keydown', handleKeyDown)
         }
     }, [])
 

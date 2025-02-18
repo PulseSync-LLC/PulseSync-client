@@ -1,11 +1,11 @@
-import React from 'react';
-import * as style from './levelProgress.module.scss';
+import React from 'react'
+import * as style from './levelProgress.module.scss'
 
 interface LevelProgressProps {
-    totalPoints: number;
-    currentLevel: number;
-    progressInCurrentLevel: number;
-    currentLevelThreshold: number;
+    totalPoints: number
+    currentLevel: number
+    progressInCurrentLevel: number
+    currentLevelThreshold: number
 }
 
 const LevelProgress: React.FC<LevelProgressProps> = ({
@@ -14,13 +14,13 @@ const LevelProgress: React.FC<LevelProgressProps> = ({
     progressInCurrentLevel,
     currentLevelThreshold,
 }) => {
-    const progressPercentage = (progressInCurrentLevel / currentLevelThreshold) * 100;
+    const progressPercentage = (progressInCurrentLevel / currentLevelThreshold) * 100
 
     return (
         <div className={style.level_progress}>
             <div className={style.level_header}>
                 <span>Уровень {currentLevel}</span>
-                <span>Всего очков: {totalPoints}</span>
+                <span>Всего очков за все уровни: {totalPoints}</span>
             </div>
             <div className={style.progress_bar}>
                 <div
@@ -36,7 +36,7 @@ const LevelProgress: React.FC<LevelProgressProps> = ({
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default LevelProgress;
+export default LevelProgress

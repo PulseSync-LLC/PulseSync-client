@@ -718,7 +718,7 @@ function App() {
 }
 
 const Player: React.FC<any> = ({ children }) => {
-    const { user, app, socket, socketConnected, features } = useContext(UserContext)
+    const { user, app, socket, features } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({
         title: null,

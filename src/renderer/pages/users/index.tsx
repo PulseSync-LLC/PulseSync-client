@@ -324,13 +324,6 @@ export default function UsersPage() {
                                         {getSortIcon('lastOnline')}
                                     </Button>
                                     <Button
-                                        className={`${styles.userNavButton} ${isFieldSorted('totalPoints') ? styles.activeSort : ''}`}
-                                        onClick={() => handleSort('totalPoints')}
-                                    >
-                                        <MdLeaderboard /> Уровень{' '}
-                                        {getSortIcon('totalPoints')}
-                                    </Button>
-                                    <Button
                                         className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
                                         onClick={() => handleSort('createdAt')}
                                     >

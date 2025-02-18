@@ -33,9 +33,13 @@ const forge_config: ForgeConfig = {
                 macUpdateManifestBaseUrl: `${config.UPDATE_URL}/beta/darwin/${arch}`,
             }),
         },
-        // new MakerDMG({}),
-        // new MakerRpm({}),
-        // new MakerDeb({}),
+        new MakerDMG({
+            name: 'PulseSync',
+            background: './static/assets/images/no_banner.png',
+            icon: './icons/mac/icon.icns',
+            format: 'ULFO',
+            overwrite: true,
+        }),
     ],
     plugins: [
         new WebpackPlugin({
@@ -81,15 +85,12 @@ const forge_config: ForgeConfig = {
             console.log(
                 `build app ${platform}-${arch} with electron ${electronVersion}`,
             )
-            const isMac = () => {
-                return os.platform() === 'darwin'
-            }
+            const isMac = () => os.platform() === 'darwin'
             if (!isMac()) {
                 const outDir = path.join(buildPath, '..', '..', 'modules')
                 const sourceDir = path.join(__dirname, 'modules')
                 await fs.ensureDir(outDir)
                 await fs.copy(sourceDir, outDir)
-
                 console.log(`Copied modules to ${outDir}`)
             }
         },
