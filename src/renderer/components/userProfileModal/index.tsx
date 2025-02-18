@@ -143,10 +143,10 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         if (user.username === username) {
             return (
                 <>
-                    <Button className={styles.buttonAddFriend}>
+                    <Button className={styles.buttonAddFriend} disabled>
                         <MdPersonAdd size={20} /> Редактировать профиль
                     </Button>
-                    <Button className={styles.buttonPersonal}>
+                    <Button className={styles.buttonPersonal} disabled>
                         <MdSettings size={20} />
                     </Button>
                 </>
@@ -176,6 +176,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
         return (
             <Button
                 type="button"
+                disabled
                 className={`${styles.friendActionButton} ${buttonClass}`}
                 onClick={handleToggleFollow}
                 onMouseEnter={() => setIsHovered(true)}

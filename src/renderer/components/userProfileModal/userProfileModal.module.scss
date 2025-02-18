@@ -193,6 +193,9 @@
     &:hover {
         background: #f0f0f0;
     }
+    &:disabled {
+        opacity: 0.5;
+    }
 }
 
 .buttonUnsubscribe {
@@ -202,6 +205,9 @@
     &:hover {
         background: #5859b8;
     }
+    &:disabled {
+        opacity: 0.5;
+    }
 }
 
 .buttonRemoveFriend {
@@ -210,6 +216,9 @@
 
     &:hover {
         background: #ac395d;
+    }
+    &:disabled {
+        opacity: 0.5;
     }
 }
 
@@ -237,6 +246,9 @@
     &:hover {
         background: #d7d7d7;
     }
+    &:disabled {
+        opacity: 0.5;
+    }
 }
 
 .buttonPersonal {
@@ -260,6 +272,9 @@
 
     &:hover {
         background: #5b6070;
+    }
+    &:disabled {
+        opacity: 0.5;
     }
 }
 
