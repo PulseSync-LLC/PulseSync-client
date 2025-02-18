@@ -43,6 +43,7 @@ const GET_USER_PROFILE_QUERY = gql`
                     isCompleted
                 }
             }
+            status
             currentTrack
             isFriend
             isFollowing

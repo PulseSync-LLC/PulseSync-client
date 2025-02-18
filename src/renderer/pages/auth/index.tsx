@@ -76,20 +76,25 @@ export default function AuthPage() {
             })
         }
 
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (
+                (event.ctrlKey && event.code === 'KeyR') ||
+                event.key.toLowerCase() === 'f5'
+            ) {
+                event.preventDefault();
+            }
+        };
+
         window.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('keydown', handleKeyDown);
+
 
         return () => {
             window.removeEventListener('mousemove', handleMouseMove)
+            window.removeEventListener('keydown', handleKeyDown);
         }
     }, [])
-    window.addEventListener('keydown', (event) => {
-        if (
-            (event.ctrlKey && event.code === 'KeyR') ||
-            event.key.toLowerCase() === 'f5'
-        ) {
-            event.preventDefault()
-        }
-    })
+
     return (
         <>
             <OldHeader />
