@@ -388,7 +388,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: `Скачать ${currentTrack.title} в папку музыка`,
                 onClick: downloadTrack,
-                disabled: !currentTrack.url || !currentTrack.downloadInfo.quality,
+                disabled: !currentTrack.url || !currentTrack.downloadInfo?.quality,
             },
             createToggleButton(
                 'Спрашивать куда сохранять трек?',

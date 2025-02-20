@@ -307,7 +307,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 {expandedIndexes.includes(ach.id) &&
                     userAch?.criteriaProgress &&
                     Array.isArray(userAch.criteriaProgress) &&
-                    userAch.criteriaProgress.length > 0 && (
+                    userAch.criteriaProgress.length > 0 &&
+                    user.username === username && (
                         <div className={achv.trackList}>
                             {userAch.criteriaProgress.map((crit: any) => (
                                 <div
@@ -318,8 +319,8 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 </div>
                             ))}
                         </div>
-                    )}
-
+                    )
+                }
                 <div className={achv.achievementFooter}>
                     {!isCompleted && (
                         <div

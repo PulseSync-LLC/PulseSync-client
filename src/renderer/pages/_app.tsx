@@ -815,7 +815,7 @@ const Player: React.FC<any> = ({ children }) => {
         } else {
             window.discordRpc.clearActivity()
         }
-    }, [user.id, app.discordRpc.status])
+    }, [user.id])
 
     const getCoverImage = (track: Track): string => {
         return (
