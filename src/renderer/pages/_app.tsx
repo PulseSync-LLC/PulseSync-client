@@ -59,7 +59,7 @@ function App() {
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
-    const [themes, setAddons] = useState<AddonInterface[]>(AddonInitials)
+    const [addons, setAddons] = useState<AddonInterface[]>(AddonInitials)
     const [features, setFeatures] = useState({})
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<AddonInterface | null>(null)
@@ -683,7 +683,7 @@ function App() {
                     setUpdate,
                     appInfo,
                     setAddons,
-                    themes,
+                    addons,
                     setMod: setMod,
                     modInfo: modInfo,
                     features,

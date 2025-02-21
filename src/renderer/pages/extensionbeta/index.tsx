@@ -21,7 +21,7 @@ export default function ExtensionPage() {
     const [currentAddonName, setCurrentAddonName] = useState(
         window.electron.store.get('addons.theme') || 'Default',
     )
-    const { themes, setAddons } = useContext(userContext)
+    const { addons, setAddons } = useContext(userContext)
     const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(
@@ -121,7 +121,7 @@ export default function ExtensionPage() {
 
     const getFilteredAddons = (themeType: string) => {
         const filtered = filterAndSortAddons(
-            filterAddonsByTags(themes, selectedTags),
+            filterAddonsByTags(addons, selectedTags),
         )
         return themeType === currentAddonName
             ? filtered.filter((item) => item.name === currentAddonName)
@@ -133,10 +133,10 @@ export default function ExtensionPage() {
     const filteredEnabledAddons = hideEnabled ? [] : enabledAddons
     const filteredDisabledAddons = hideEnabled ? disabledAddons : disabledAddons
 
-    const allTags = Array.from(new Set(themes.flatMap((item) => item.tags || [])))
+    const allTags = Array.from(new Set(addons.flatMap((item) => item.tags || [])))
     const tagCounts = allTags.reduce(
         (acc, tag) => {
-            acc[tag] = themes.filter((item) => item.tags?.includes(tag)).length
+            acc[tag] = addons.filter((item) => item.tags?.includes(tag)).length
             return acc
         },
         {} as Record<string, number>,
@@ -161,7 +161,7 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.name < b.name ? -1 : 1))
     }
 
-    const filteredAddons = filterAddons(themes)
+    const filteredAddons = filterAddons(addons)
 
     useEffect(() => {
         setMaxAddonCount((prevCount) => Math.max(prevCount, filteredAddons.length))

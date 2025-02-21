@@ -21,7 +21,7 @@ interface p {
     app: SettingsInterface
     setApp: (settingsData: any) => void
     setUpdate: (state: boolean) => void
-    themes: AddonInterface[]
+    addons: AddonInterface[]
     setAddons: (themes: any) => void
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]
@@ -40,7 +40,7 @@ const UserContext = createContext<p>({
     socketConnected: false,
     app: settingsInitials,
     setApp: () => void 0,
-    themes: AddonInitials,
+    addons: AddonInitials,
     setAddons: () => void 0,
     setUpdate: () => void 0,
     updateAvailable: false,
