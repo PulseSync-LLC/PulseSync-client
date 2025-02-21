@@ -615,7 +615,7 @@ app.on('render-process-gone', (event, webContents, detailed) => {
     }
 })
 
-eventEmitter.on('dataUpdated', (newData) => {
+eventEmitter.on('DATA_UPDATED', (newData) => {
     if (mainWindow && mainWindow.webContents) {
         mainWindow.webContents.send('trackinfo', newData)
     }

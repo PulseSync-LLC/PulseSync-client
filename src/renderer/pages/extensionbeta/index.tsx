@@ -76,8 +76,8 @@ export default function ExtensionPage() {
         const newTheme = isChecked ? themeName : 'Default'
         window.electron.store.set('theme', newTheme)
         setCurrentThemeName(newTheme)
-        window.desktopEvents.send('themeChanged', 'Default')
-        window.desktopEvents.send('themeChanged', newTheme)
+        window.desktopEvents?.send('themeChanged', 'Default')
+        window.desktopEvents?.send('themeChanged', newTheme)
     }
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -272,7 +272,7 @@ export default function ExtensionPage() {
                                         <button
                                             className={extensionStyles.toolbarButton}
                                             onClick={() =>
-                                                window.desktopEvents.send(
+                                                window.desktopEvents?.send(
                                                     'openPath',
                                                     {
                                                         action: 'themePath',

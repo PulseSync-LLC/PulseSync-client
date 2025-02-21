@@ -107,7 +107,7 @@
 //         let interval: NodeJS.Timeout | undefined
 //
 //         const fetchTrackInfo = async () => {
-//             const data = await window.desktopEvents.invoke('getTrackInfo')
+//             const data = await window.desktopEvents?.invoke('GET_TRACK_INFO')
 //             console.log('Fetched track info:', data)
 //             if (data) {
 //                 const normalizedStatus = normalizeStatus(data.status)

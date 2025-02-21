@@ -371,7 +371,7 @@ function App() {
             'Внимание!',
             'Ваша версия приложения устарела 😡 и скоро пректит работу. Пожалуйста, обновите приложение.',
         )
-        window.desktopEvents.send('show-notification', {
+        window.desktopEvents?.send('show-notification', {
             title: 'Внимание!',
             body: 'Ваша версия приложения устарела 😡 и скоро прекратит работу. Пожалуйста, обновите приложение.',
         })
@@ -466,7 +466,7 @@ function App() {
                 })
                 window.electron.store.set('discordRpc.enableGithubButton', true)
             }
-            window.desktopEvents?.send('websocket-start')
+            window.desktopEvents?.send('WEBSOCKET_START')
             window.desktopEvents
                 .invoke('getThemes')
                 .then((fetchedThemes: ThemeInterface[]) => {
@@ -552,7 +552,7 @@ function App() {
             window.desktopEvents?.on('check-mod-update', async (event, data) => {
                 await fetchModInfo(app)
             })
-            window.desktopEvents.on('rpc-log', (event, data) => {
+            window.desktopEvents?.on('rpc-log', (event, data) => {
                 switch (data.type) {
                     case 'error':
                         toast.custom('error', 'Ошибка.', 'RPC: ' + data.message)
@@ -649,12 +649,12 @@ function App() {
             loadSettings()
         }
         return () => {
-            window.desktopEvents.removeAllListeners('download-update-progress')
-            window.desktopEvents.removeAllListeners('download-update-failed')
-            window.desktopEvents.removeAllListeners('download-update-finished')
-            window.desktopEvents.removeAllListeners('check-update')
-            window.desktopEvents.removeAllListeners('discordRpcState')
-            window.desktopEvents.removeAllListeners('rpc-log')
+            window.desktopEvents?.removeAllListeners('download-update-progress')
+            window.desktopEvents?.removeAllListeners('download-update-failed')
+            window.desktopEvents?.removeAllListeners('download-update-finished')
+            window.desktopEvents?.removeAllListeners('check-update')
+            window.desktopEvents?.removeAllListeners('discordRpcState')
+            window.desktopEvents?.removeAllListeners('rpc-log')
         }
     }, [])
 

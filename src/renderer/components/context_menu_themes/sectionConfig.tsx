@@ -42,7 +42,7 @@ export const createContextMenuActions = (
     {
         label: `Директория аддона ${currentTheme.name}`,
         onClick: () =>
-            window.desktopEvents.send('openPath', {
+            window.desktopEvents?.send('openPath', {
                 action: 'theme',
                 themeName: currentTheme.name,
             }),

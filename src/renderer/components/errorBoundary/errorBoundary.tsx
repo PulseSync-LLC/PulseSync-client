@@ -24,7 +24,7 @@ class ErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        window.desktopEvents.send('log-error', {
+        window.desktopEvents?.send('log-error', {
             type: 'react-error-boundary',
             message: error.message,
             stack: error.stack,

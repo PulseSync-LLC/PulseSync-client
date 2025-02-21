@@ -38,12 +38,12 @@ export default function ThemePage() {
         if (isChecked) {
             window.electron.store.set('theme', themeName)
             setSelectedTheme(themeName)
-            window.desktopEvents.send('themeChanged', 'Default')
-            window.desktopEvents.send('themeChanged', themeName)
+            window.desktopEvents?.send('themeChanged', 'Default')
+            window.desktopEvents?.send('themeChanged', themeName)
         } else {
             window.electron.store.set('theme', 'Default')
             setSelectedTheme('Default')
-            window.desktopEvents.send('themeChanged', 'Default')
+            window.desktopEvents?.send('themeChanged', 'Default')
         }
     }
 
@@ -59,7 +59,7 @@ export default function ThemePage() {
                             }
                             imageName={'extension'}
                             onClick={() =>
-                                window.desktopEvents.send('openPath', {
+                                window.desktopEvents?.send('openPath', {
                                     action: 'themePath',
                                 })
                             }

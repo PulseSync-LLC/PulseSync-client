@@ -419,7 +419,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                         ) {
                             e.stopPropagation()
                             const albumId = userProfile.currentTrack.albums[0].id
-                            window.desktopEvents.send(
+                            window.desktopEvents?.send(
                                 'open-external',
                                 `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
                             )

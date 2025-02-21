@@ -49,7 +49,7 @@ const Checkbox: React.FC<Props> = ({
         } else {
             switch (checkType) {
                 case 'toggleRpcStatus':
-                    window.desktopEvents.send('getTrackInfo')
+                    window.desktopEvents?.send('GET_TRACK_INFO')
                     window.discordRpc.discordRpc(event.target.checked)
                     setApp({
                         ...app,
@@ -61,7 +61,7 @@ const Checkbox: React.FC<Props> = ({
                     break
                 case 'enableRpcButtonListen':
                     window.discordRpc.clearActivity()
-                    window.desktopEvents.send('getTrackInfo')
+                    window.desktopEvents?.send('GET_TRACK_INFO')
                     window.electron.store.set(
                         'discordRpc.enableRpcButtonListen',
                         event.target.checked,
@@ -76,7 +76,7 @@ const Checkbox: React.FC<Props> = ({
                     break
                 case 'enableGithubButton':
                     window.discordRpc.clearActivity()
-                    window.desktopEvents.send('getTrackInfo')
+                    window.desktopEvents?.send('GET_TRACK_INFO')
                     window.electron.store.set(
                         'discordRpc.enableGithubButton',
                         event.target.checked,
@@ -91,7 +91,7 @@ const Checkbox: React.FC<Props> = ({
                     break
                 case 'displayPause':
                     window.discordRpc.clearActivity()
-                    window.desktopEvents.send('getTrackInfo')
+                    window.desktopEvents?.send('GET_TRACK_INFO')
                     window.electron.store.set(
                         'discordRpc.displayPause',
                         event.target.checked,

@@ -40,7 +40,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const openAppDirectory = () => {
-        window.desktopEvents.send('openPath', { action: 'appPath' })
+        window.desktopEvents?.send('openPath', { action: 'appPath' })
     }
 
     const showLoadingToast = (event: any, message: string) => {
@@ -81,7 +81,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const deleteMod = (e: any) => {
         showLoadingToast(e, 'Удаление мода...')
-        window.desktopEvents.send('remove-mod')
+        window.desktopEvents?.send('remove-mod')
     }
 
     const openGitHub = () => {
@@ -169,8 +169,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 window.electron.store.set('settings.devSocket', status)
                 console.log(updatedSettings.devSocket)
                 updatedSettings.devSocket
-                    ? window.desktopEvents.send('websocket-start')
-                    : window.desktopEvents.send('websocket-stop')
+                    ? window.desktopEvents?.send('WEBSOCKET_START')
+                    : window.desktopEvents?.send('WEBSOCKET_STOP')
                 toast.custom('success', `Готово`, 'Статус вебсокета изменен')
                 break
             case 'showModModalAfterInstall':
@@ -403,7 +403,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: 'Директория со скаченной музыкой',
                 onClick: () =>
-                    window.desktopEvents.send('openPath', {
+                    window.desktopEvents?.send('openPath', {
                         action: 'musicPath',
                     }),
             },
@@ -417,7 +417,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             {
                 label: 'Собрать логи в архив',
                 onClick: () => {
-                    window.desktopEvents.send('getLogArchive')
+                    window.desktopEvents?.send('getLogArchive')
                     toast.custom('success', `Готово`, 'Скоро открою папку')
                 },
             },

@@ -122,7 +122,7 @@ const ExtensionViewPage: React.FC = () => {
         const newTheme = themeActive ? 'Default' : currentTheme?.name || 'Default'
         window.electron.store.set('theme', newTheme)
         setActivatedTheme(newTheme)
-        window.desktopEvents.send('themeChanged', newTheme)
+        window.desktopEvents?.send('themeChanged', newTheme)
         setThemeActive(!themeActive)
     }
 
@@ -154,8 +154,8 @@ const ExtensionViewPage: React.FC = () => {
         const newTheme = currentTheme?.name || 'Default'
         window.electron.store.set('theme', newTheme)
         setActivatedTheme(newTheme)
-        window.desktopEvents.send('themeChanged', 'Default')
-        window.desktopEvents.send('themeChanged', newTheme)
+        window.desktopEvents?.send('themeChanged', 'Default')
+        window.desktopEvents?.send('themeChanged', newTheme)
         setThemeActive(true)
     }
 
@@ -212,7 +212,7 @@ const ExtensionViewPage: React.FC = () => {
         const checkConfigFile = async () => {
             if (currentTheme) {
                 const configPath = path.join(currentTheme.path, 'handleEvents.json')
-                const exists = await window.desktopEvents.invoke(
+                const exists = await window.desktopEvents?.invoke(
                     'file-event',
                     'check-file-exists',
                     configPath,
@@ -220,7 +220,7 @@ const ExtensionViewPage: React.FC = () => {
                 setConfigFileExists(exists)
 
                 if (exists) {
-                    const configContent = await window.desktopEvents.invoke(
+                    const configContent = await window.desktopEvents?.invoke(
                         'file-event',
                         'read-file',
                         configPath,
@@ -365,7 +365,7 @@ const ExtensionViewPage: React.FC = () => {
                 ],
             }
 
-            const result = await window.desktopEvents.invoke(
+            const result = await window.desktopEvents?.invoke(
                 'file-event',
                 'create-config-file',
                 configPath,
@@ -388,7 +388,7 @@ const ExtensionViewPage: React.FC = () => {
         if (currentTheme) {
             const configPath = path.join(currentTheme.path, 'handleEvents.json')
             try {
-                await window.desktopEvents.invoke(
+                await window.desktopEvents?.invoke(
                     'file-event',
                     'write-file',
                     configPath,

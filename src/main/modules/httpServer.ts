@@ -18,6 +18,7 @@ let data: any = {}
 let server: http.Server | null = null
 let ws: WebSocketServer | null = null
 let attempt = 0
+
 const startWebSocketServer = () => {
     if (!isFirstInstance) return
     if (ws) {
@@ -35,6 +36,7 @@ const startWebSocketServer = () => {
         initializeServer()
     }
 }
+
 const stopWebSocketServer = () => {
     try {
         if (ws) {
@@ -54,6 +56,7 @@ const stopWebSocketServer = () => {
         logger.http.error('Error while stopping WebSocket server:', error)
     }
 }
+
 const initializeServer = () => {
     server = http.createServer()
     ws = new WebSocketServer({ server })
@@ -63,15 +66,16 @@ const initializeServer = () => {
         logger.http.log('New client connected')
 
         socket.send(
-            JSON.stringify({ type: 'welcome', message: 'Connected to server' }),
+            JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }),
         )
         sendTheme(true, true)
         setTimeout(() => {
             sendTheme(true)
         }, 1000)
+
         socket.on('message', (message: any) => {
             const data = JSON.parse(message)
-            if (data.type === 'update_data') {
+            if (data.type === 'UPDATE_DATA') {
                 updateData(data.data)
             }
         })
@@ -86,6 +90,7 @@ const initializeServer = () => {
                 },
             })
         })
+
         socket.on('error', (error: any) => {
             if (error.code === 'EPIPE') {
                 logger.http.warn('Attempted to write to closed WebSocket')
@@ -94,6 +99,7 @@ const initializeServer = () => {
             }
         })
     })
+
     ws.on('error', (error) => {
         if (error.message.includes('unexpected response')) {
             logger.http.error('Unexpected WebSocket server response:', error)
@@ -134,6 +140,7 @@ const initializeServer = () => {
         logger.http.log(`WebSocket server started on port ${config.PORT}`)
         attempt = 0
     })
+
     server.on('error', (error: any) => {
         if (error.code === 'EADDRINUSE') {
             logger.http.error(`Port ${config.PORT} is already in use.`)
@@ -160,25 +167,27 @@ const initializeServer = () => {
     })
 }
 
-ipcMain.on('websocket-start', async (event, _) => {
+ipcMain.on('WEBSOCKET_START', async (event, _) => {
     if (isAppDev && !store.get('settings.devSocket')) return
-    logger.http.log('Received websocket-start event. Starting WebSocket server...')
+    logger.http.log('Received WEBSOCKET_START event. Starting WebSocket server...')
     startWebSocketServer()
 })
 
-ipcMain.on('websocket-stop', async (event, _) => {
-    logger.http.log('Received websocket-stop event. Stopping WebSocket server...')
+ipcMain.on('WEBSOCKET_STOP', async (event, _) => {
+    logger.http.log('Received WEBSOCKET_STOP event. Stopping WebSocket server...')
     stopWebSocketServer()
 })
-ipcMain.on('websocket-restart', async (event, _) => {
+
+ipcMain.on('WEBSOCKET_RESTART', async (event, _) => {
     logger.http.log(
-        'Received websocket-restart event. Restarting WebSocket server...',
+        'Received WEBSOCKET_RESTART event. Restarting WebSocket server...',
     )
     stopWebSocketServer()
     setTimeout(() => {
         startWebSocketServer()
     }, 1500)
 })
+
 const handleGetHandleRequest = (
     req: http.IncomingMessage,
     res: http.ServerResponse,
@@ -329,7 +338,7 @@ export const getTrackInfo = () => {
 
 export const updateData = (newData: any) => {
     data = newData
-    eventEmitter.emit('dataUpdated', newData)
+    eventEmitter.emit('DATA_UPDATED', newData)
 }
 
 export { eventEmitter }
@@ -359,6 +368,12 @@ export const setTheme = (theme: string) => {
         cssContent = fs.readFileSync(styleCSS, 'utf8')
     }
 
+    const themeData = {
+        name: selectedTheme,
+        css: cssContent || '{}',
+        script: jsContent || '',
+    }
+
     const waitForSocket = new Promise<void>((resolve) => {
         const interval = setInterval(() => {
             if (ws && ws.clients && ws.clients.size > 0) {
@@ -373,9 +388,8 @@ export const setTheme = (theme: string) => {
             x.send(
                 JSON.stringify({
                     ok: true,
-                    css: cssContent || '{}',
-                    script: jsContent || '',
-                    type: 'theme',
+                    theme: themeData,
+                    type: 'THEME',
                 }),
             ),
         )
@@ -408,13 +422,20 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
     if (fs.existsSync(styleCSS)) {
         cssContent = fs.readFileSync(styleCSS, 'utf8')
     }
+
+    const themeData = {
+        name: store.get('theme') || 'Default',
+        css: cssContent || '{}',
+        script: jsContent || '',
+    }
+
     if (!ws) return
     if (!withJs) {
         ws.clients.forEach((x) =>
             x.send(
                 JSON.stringify({
                     ok: true,
-                    css: cssContent || '{}',
+                    theme: themeData,
                     type: 'update_css',
                 }),
             ),
@@ -424,23 +445,21 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
             x.send(
                 JSON.stringify({
                     ok: true,
-                    css: cssContent || '{}',
-                    script: jsContent || '',
+                    theme: themeData,
                     type: 'theme',
                 }),
             ),
         )
-    }
 }
 
-ipcMain.on('getTrackInfo', async (event, _) => {
+ipcMain.on('GET_TRACK_INFO', async (event, _) => {
     logger.http.log('Returning current track data')
     if (!ws) return
     ws.clients.forEach((x) =>
         x.send(
             JSON.stringify({
                 ok: true,
-                type: 'getTrackInfo',
+                type: 'GET_TRACK_INFO',
             }),
         ),
     )

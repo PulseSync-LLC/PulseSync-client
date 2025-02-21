@@ -110,7 +110,7 @@ export default function TrackInfoPage() {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
-                window.desktopEvents?.send('getTrackInfo')
+                window.desktopEvents?.send('GET_TRACK_INFO')
                 setPreviousValues(values)
                 setApp({
                     ...app,
@@ -146,10 +146,10 @@ export default function TrackInfoPage() {
                             imageName={'discord'}
                             onClick={() => {
                                 if (app.discordRpc.status) {
-                                    window.desktopEvents.send('getTrackInfo')
+                                    window.desktopEvents?.send('GET_TRACK_INFO')
                                     window.discordRpc.discordRpc(false)
                                 } else {
-                                    window.desktopEvents.send('getTrackInfo')
+                                    window.desktopEvents?.send('GET_TRACK_INFO')
                                     window.discordRpc.discordRpc(true)
                                 }
                                 setApp({

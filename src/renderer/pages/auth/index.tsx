@@ -41,7 +41,7 @@ export default function AuthPage() {
             const response = await fetch('./static/assets/policy/terms.ru.md')
             const fileContent = await response.text()
 
-            window.desktopEvents.send('open-file', fileContent)
+            window.desktopEvents?.send('open-file', fileContent)
         } catch (error) {
             console.error('Ошибка чтения файла:', error)
         }
