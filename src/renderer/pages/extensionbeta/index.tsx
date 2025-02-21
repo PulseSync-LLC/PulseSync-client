@@ -15,7 +15,6 @@ import MoreImg from './../../../../static/assets/stratis-icons/more.svg'
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
-import { motion } from 'framer-motion'
 
 export default function ExtensionPage() {
     const [currentAddonName, setCurrentAddonName] = useState(
@@ -28,7 +27,7 @@ export default function ExtensionPage() {
         window.electron.store.get('addons.hideEnabled') || false,
     )
     const [filterVisible, setFilterVisible] = useState(false)
-    const [optionMenu, setOprionMenu] = useState(false)
+    const [optionMenu, setOptionMenu] = useState(false)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -52,13 +51,19 @@ export default function ExtensionPage() {
                 .then((fetchedAddons: AddonInterface[]) => {
                     setAddons(fetchedAddons)
                 })
-                .catch((error) => console.error('Ошибка при загрузке тем:', error))
+                .catch((error) =>
+                    console.error('Ошибка при загрузке аддонов:', error),
+                )
         }
     }
 
     useEffect(() => {
         if (selectedTagFromURL) {
-            setSelectedTags((prevTags) => new Set(prevTags).add(selectedTagFromURL))
+            setSelectedTags((prevTags) => {
+                const copy = new Set(prevTags)
+                copy.add(selectedTagFromURL)
+                return copy
+            })
         }
     }, [selectedTagFromURL])
 
@@ -69,13 +74,14 @@ export default function ExtensionPage() {
     const reloadAddons = () => {
         setAddons([])
         loadAddons()
-        toast.custom('success', 'Сделано', 'Темы перезагружены')
+        toast.custom('success', 'Сделано', 'Расширения перезагружены')
     }
 
-    const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
-        const newAddon = isChecked ? themeName : 'Default'
+    const handleCheckboxChange = (addonName: string, isChecked: boolean) => {
+        const newAddon = isChecked ? addonName : 'Default'
         window.electron.store.set('addons.theme', newAddon)
         setCurrentAddonName(newAddon)
+
         window.desktopEvents?.send('themeChanged', 'Default')
         window.desktopEvents?.send('themeChanged', newAddon)
     }
@@ -114,24 +120,10 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    const filterAddonsByTags = (themeList: AddonInterface[], tags: Set<string>) => {
-        if (tags.size === 0) return themeList
-        return themeList.filter((item) => item.tags?.some((tag) => tags.has(tag)))
+    const filterAddonsByTags = (addonList: AddonInterface[], tags: Set<string>) => {
+        if (tags.size === 0) return addonList
+        return addonList.filter((item) => item.tags?.some((tag) => tags.has(tag)))
     }
-
-    const getFilteredAddons = (themeType: string) => {
-        const filtered = filterAndSortAddons(
-            filterAddonsByTags(themes, selectedTags),
-        )
-        return themeType === currentAddonName
-            ? filtered.filter((item) => item.name === currentAddonName)
-            : filtered.filter((item) => item.name !== currentAddonName)
-    }
-
-    const enabledAddons = getFilteredAddons(currentAddonName)
-    const disabledAddons = getFilteredAddons('other')
-    const filteredEnabledAddons = hideEnabled ? [] : enabledAddons
-    const filteredDisabledAddons = hideEnabled ? disabledAddons : disabledAddons
 
     const allTags = Array.from(new Set(themes.flatMap((item) => item.tags || [])))
     const tagCounts = allTags.reduce(
@@ -142,30 +134,30 @@ export default function ExtensionPage() {
         {} as Record<string, number>,
     )
 
-    const filterAddons = (themeList: AddonInterface[]) => {
-        return themeList
-            .filter(
-                (item) =>
-                    item.name.toLowerCase() !== 'default' &&
-                    (item.name.toLowerCase().includes(searchQuery) ||
-                        item.author.toLowerCase().includes(searchQuery) ||
-                        stringSimilarity.compareTwoStrings(
-                            item.name.toLowerCase(),
-                            searchQuery,
-                        ) > 0.35 ||
-                        stringSimilarity.compareTwoStrings(
-                            item.author.toLowerCase(),
-                            searchQuery,
-                        ) > 0.35),
-            )
-            .sort((a, b) => (a.name < b.name ? -1 : 1))
+    const getMergedSortedAddons = () => {
+        let filtered = filterAddonsByTags(themes, selectedTags)
+        filtered = filterAndSortAddons(filtered)
+
+        if (hideEnabled) {
+            filtered = filtered.filter((item) => item.name !== currentAddonName)
+        }
+
+        filtered.sort((a, b) => {
+            const aEnabled = a.name === currentAddonName
+            const bEnabled = b.name === currentAddonName
+            if (aEnabled && !bEnabled) return -1
+            if (!aEnabled && bEnabled) return 1
+            return 0
+        })
+
+        return filtered
     }
 
-    const filteredAddons = filterAddons(themes)
+    const mergedAddons = getMergedSortedAddons()
 
     useEffect(() => {
-        setMaxAddonCount((prevCount) => Math.max(prevCount, filteredAddons.length))
-    }, [filteredAddons])
+        setMaxAddonCount((prev) => Math.max(prev, mergedAddons.length))
+    }, [mergedAddons])
 
     useEffect(() => {
         window.electron.store.set('addons.selectedTags', Array.from(selectedTags))
@@ -180,11 +172,11 @@ export default function ExtensionPage() {
     const toggleMenu = (menu: 'filter' | 'option') => {
         if (menu === 'filter') {
             setFilterVisible((prev) => {
-                if (!prev) setOprionMenu(false)
+                if (!prev) setOptionMenu(false)
                 return !prev
             })
         } else if (menu === 'option') {
-            setOprionMenu((prev) => {
+            setOptionMenu((prev) => {
                 if (!prev) setFilterVisible(false)
                 return !prev
             })
@@ -194,7 +186,6 @@ export default function ExtensionPage() {
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node
-
             if (
                 containerRef.current &&
                 !containerRef.current.contains(target) &&
@@ -203,7 +194,7 @@ export default function ExtensionPage() {
                 optionButtonRef.current &&
                 !optionButtonRef.current.contains(target)
             ) {
-                setOprionMenu(false)
+                setOptionMenu(false)
                 setFilterVisible(false)
             }
         }
@@ -230,17 +221,17 @@ export default function ExtensionPage() {
                                         onChange={handleSearchChange}
                                         placeholder="Введите название расширения"
                                     />
-                                    {filteredAddons.length > 0 &&
-                                        filteredAddons.length < maxAddonCount && (
+                                    {mergedAddons.length > 0 &&
+                                        mergedAddons.length < maxAddonCount && (
                                             <div
                                                 className={
                                                     extensionStyles.searchLabel
                                                 }
                                             >
-                                                Найдено: {filteredAddons.length}
+                                                Найдено: {mergedAddons.length}
                                             </div>
                                         )}
-                                    {filteredAddons.length === 0 && (
+                                    {mergedAddons.length === 0 && (
                                         <div className={extensionStyles.searchLabel}>
                                             Ничего не найдено
                                         </div>
@@ -253,7 +244,7 @@ export default function ExtensionPage() {
                                             ? extensionStyles.toolbarButtonActive
                                             : ''
                                     }`}
-                                    onClick={(e) => toggleMenu('option')}
+                                    onClick={() => toggleMenu('option')}
                                 >
                                     <MoreImg />
                                 </button>
@@ -274,16 +265,14 @@ export default function ExtensionPage() {
                                             onClick={() =>
                                                 window.desktopEvents?.send(
                                                     'openPath',
-                                                    {
-                                                        action: 'themePath',
-                                                    },
+                                                    { action: 'themePath' },
                                                 )
                                             }
                                         >
                                             <FileImg /> Директория аддонов
                                         </button>
                                         <button
-                                            className={`${extensionStyles.toolbarButton}`}
+                                            className={extensionStyles.toolbarButton}
                                             onClick={() =>
                                                 window.desktopEvents
                                                     .invoke('create-new-extension')
@@ -312,7 +301,7 @@ export default function ExtensionPage() {
                                             ? extensionStyles.toolbarButtonActive
                                             : ''
                                     }`}
-                                    onClick={(e) => toggleMenu('filter')}
+                                    onClick={() => toggleMenu('filter')}
                                 >
                                     <FilterImg />
                                     {activeTagCount > 0 && (
@@ -363,7 +352,7 @@ export default function ExtensionPage() {
                                             <CustomCheckbox
                                                 checked={hideEnabled}
                                                 onChange={handleHideEnabledChange}
-                                                label="Скрыть включенные"
+                                                label="Скрыть включённые"
                                                 className={
                                                     hideEnabled
                                                         ? extensionStyles.selectedTag
@@ -390,99 +379,36 @@ export default function ExtensionPage() {
                                 </div>
                             )}
                         </div>
-
                         <div className={globalStyles.container30x15}>
                             <div className={extensionStyles.preview}>
-                                {filteredEnabledAddons.length > 0 && (
+                                <div className={extensionStyles.previewSelection}>
                                     <div
-                                        className={extensionStyles.previewSelection}
+                                        className={extensionStyles.grid}
+                                        style={{
+                                            gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
+                                        }}
                                     >
-                                        <div
-                                            className={
-                                                extensionStyles.selectionContainerLable
-                                            }
-                                        >
-                                            <div
-                                                className={
-                                                    extensionStyles.labelSelection
-                                                }
-                                            >
-                                                Enable
-                                            </div>
-                                            <div
-                                                className={extensionStyles.line}
-                                            ></div>
-                                        </div>
-                                        <div
-                                            className={extensionStyles.grid}
-                                            style={{
-                                                gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                                            }}
-                                        >
-                                            {filteredEnabledAddons.map((item) => (
-                                                <div key={item.name}>
-                                                    <ExtensionCard
-                                                        theme={item}
-                                                        isChecked={true}
-                                                        onCheckboxChange={
-                                                            handleCheckboxChange
-                                                        }
-                                                        className={
-                                                            item.matches
-                                                                ? 'highlight'
-                                                                : 'dimmed'
-                                                        }
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
+                                        {mergedAddons.map((item) => {
+                                            const checked =
+                                                item.name === currentAddonName
+                                            return (
+                                                <ExtensionCard
+                                                    key={item.name}
+                                                    theme={item}
+                                                    isChecked={checked}
+                                                    onCheckboxChange={
+                                                        handleCheckboxChange
+                                                    }
+                                                    className={
+                                                        item.matches
+                                                            ? 'highlight'
+                                                            : 'dimmed'
+                                                    }
+                                                />
+                                            )
+                                        })}
                                     </div>
-                                )}
-                                {filteredDisabledAddons.length > 0 && (
-                                    <div
-                                        className={extensionStyles.previewSelection}
-                                    >
-                                        <div
-                                            className={
-                                                extensionStyles.selectionContainerLable
-                                            }
-                                        >
-                                            <div
-                                                className={
-                                                    extensionStyles.labelSelection
-                                                }
-                                            >
-                                                Disable
-                                            </div>
-                                            <div
-                                                className={extensionStyles.line}
-                                            ></div>
-                                        </div>
-                                        <div
-                                            className={extensionStyles.grid}
-                                            style={{
-                                                gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                                            }}
-                                        >
-                                            {filteredDisabledAddons.map((item) => (
-                                                <div key={item.name}>
-                                                    <ExtensionCard
-                                                        theme={item}
-                                                        isChecked={false}
-                                                        onCheckboxChange={
-                                                            handleCheckboxChange
-                                                        }
-                                                        className={
-                                                            item.matches
-                                                                ? 'highlight'
-                                                                : 'dimmed'
-                                                        }
-                                                    />
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
+                                </div>
                             </div>
                         </div>
                     </div>

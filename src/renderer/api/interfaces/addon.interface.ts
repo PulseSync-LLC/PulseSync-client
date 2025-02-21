@@ -1,4 +1,5 @@
 export default interface AddonInterface {
+    matches: any
     name: string
     image: string
     banner: string
