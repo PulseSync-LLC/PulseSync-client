@@ -42,7 +42,7 @@ declare global {
             getVersion: (version: string) => string
             isAppDev: () => boolean
         }
-        refreshThemes: () => void
+        refreshAddons: () => void
         getModInfo: (args?: any) => void
         discordRpc: {
             discordRpc: (val: boolean) => void

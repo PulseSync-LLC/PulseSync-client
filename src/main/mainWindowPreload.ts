@@ -50,7 +50,7 @@ contextBridge.exposeInMainWorld('electron', {
     checkSelectedStyle: () => ipcRenderer.send('checkSelectedStyle'),
     selectStyle: (name: any, author: any) =>
         ipcRenderer.send('selectStyle', name, author),
-    getThemesList: () => ipcRenderer.send('getThemesList'),
+    getAddonsList: () => ipcRenderer.send('getAddonsList'),
     checkFileExists: () => ipcRenderer.send('checkFileExists'),
     getVersion: () => ipcRenderer.send('getVersion'),
 })

@@ -1,12 +1,12 @@
 import React, { useEffect } from 'react'
 
-interface Theme {
+interface Addon {
     charCount: string
 }
 
 export function useCharCount(
     containerRef: React.RefObject<HTMLDivElement>,
-    theme: Theme,
+    theme: Addon,
 ) {
     useEffect(() => {
         const container = containerRef.current

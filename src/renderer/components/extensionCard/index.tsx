@@ -1,6 +1,6 @@
 import React, { CSSProperties, useState, useEffect, useRef } from 'react'
 import * as cardStyles from './card.module.scss'
-import ThemeInterface from '../../api/interfaces/theme.interface'
+import AddonInterface from '../../api/interfaces/addon.interface'
 import ContextMenu from '../../components/context_menu_themes'
 import { createContextMenuActions } from '../../components/context_menu_themes/sectionConfig'
 import { useNavigate } from 'react-router'
@@ -10,7 +10,7 @@ import ReactMarkdown from 'react-markdown'
 import useInView from '../../hooks/useInView'
 
 interface ExtensionCardProps {
-    theme: ThemeInterface
+    theme: AddonInterface
     isChecked: boolean
     onCheckboxChange: (themeName: string, isChecked: boolean) => void
     children?: any
@@ -147,7 +147,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                 <img
                     className={cardStyles.themeImage}
                     src={imageSrc}
-                    alt="Theme image"
+                    alt="Addon image"
                     loading="lazy"
                 />
                 <div className={cardStyles.themeDetail}>

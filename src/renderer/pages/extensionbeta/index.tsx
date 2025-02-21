@@ -4,7 +4,7 @@ import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as extensionStyles from './extension.module.scss'
 import ExtensionCard from '../../components/extensionCard'
-import ThemeInterface from '../../api/interfaces/theme.interface'
+import AddonInterface from '../../api/interfaces/addon.interface'
 import stringSimilarity from 'string-similarity'
 import CustomCheckbox from '../../components/checkbox_props'
 import toast from '../../components/toast'
@@ -18,14 +18,14 @@ import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 
 export default function ExtensionPage() {
-    const [currentThemeName, setCurrentThemeName] = useState(
-        window.electron.store.get('theme') || 'Default',
+    const [currentAddonName, setCurrentAddonName] = useState(
+        window.electron.store.get('addons.theme') || 'Default',
     )
-    const { themes, setThemes } = useContext(userContext)
-    const [maxThemeCount, setMaxThemeCount] = useState(0)
+    const { themes, setAddons } = useContext(userContext)
+    const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(
-        window.electron.store.get('themes.hideEnabled') || false,
+        window.electron.store.get('addons.hideEnabled') || false,
     )
     const [filterVisible, setFilterVisible] = useState(false)
     const [optionMenu, setOprionMenu] = useState(false)
@@ -35,22 +35,22 @@ export default function ExtensionPage() {
     const containerRef = useRef<HTMLDivElement>(null)
 
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
-        new Set(window.electron.store.get('themes.selectedTags') || []),
+        new Set(window.electron.store.get('addons.selectedTags') || []),
     )
     const [columnsCount, setColumnsCount] = useState(
-        window.electron.store.get('themes.columnsCount') || 3,
+        window.electron.store.get('addons.columnsCount') || 3,
     )
 
     const [searchParams] = useSearchParams()
     const selectedTagFromURL = searchParams.get('selectedTag')
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
 
-    const loadThemes = () => {
+    const loadAddons = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
-                .invoke('getThemes')
-                .then((fetchedThemes: ThemeInterface[]) => {
-                    setThemes(fetchedThemes)
+                .invoke('getAddons')
+                .then((fetchedAddons: AddonInterface[]) => {
+                    setAddons(fetchedAddons)
                 })
                 .catch((error) => console.error('Ошибка при загрузке тем:', error))
         }
@@ -63,21 +63,21 @@ export default function ExtensionPage() {
     }, [selectedTagFromURL])
 
     useEffect(() => {
-        loadThemes()
+        loadAddons()
     }, [])
 
-    const reloadThemes = () => {
-        setThemes([])
-        loadThemes()
+    const reloadAddons = () => {
+        setAddons([])
+        loadAddons()
         toast.custom('success', 'Сделано', 'Темы перезагружены')
     }
 
     const handleCheckboxChange = (themeName: string, isChecked: boolean) => {
-        const newTheme = isChecked ? themeName : 'Default'
-        window.electron.store.set('theme', newTheme)
-        setCurrentThemeName(newTheme)
+        const newAddon = isChecked ? themeName : 'Default'
+        window.electron.store.set('addons.theme', newAddon)
+        setCurrentAddonName(newAddon)
         window.desktopEvents?.send('themeChanged', 'Default')
-        window.desktopEvents?.send('themeChanged', newTheme)
+        window.desktopEvents?.send('themeChanged', newAddon)
     }
 
     const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -94,7 +94,7 @@ export default function ExtensionPage() {
         setSelectedTags(updatedTags)
     }
 
-    const filterAndSortThemes = (themeList: ThemeInterface[]) => {
+    const filterAndSortAddons = (themeList: AddonInterface[]) => {
         return themeList
             .filter((item) => item.name !== 'Default')
             .map((item) => ({
@@ -114,24 +114,24 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    const filterThemesByTags = (themeList: ThemeInterface[], tags: Set<string>) => {
+    const filterAddonsByTags = (themeList: AddonInterface[], tags: Set<string>) => {
         if (tags.size === 0) return themeList
         return themeList.filter((item) => item.tags?.some((tag) => tags.has(tag)))
     }
 
-    const getFilteredThemes = (themeType: string) => {
-        const filtered = filterAndSortThemes(
-            filterThemesByTags(themes, selectedTags),
+    const getFilteredAddons = (themeType: string) => {
+        const filtered = filterAndSortAddons(
+            filterAddonsByTags(themes, selectedTags),
         )
-        return themeType === currentThemeName
-            ? filtered.filter((item) => item.name === currentThemeName)
-            : filtered.filter((item) => item.name !== currentThemeName)
+        return themeType === currentAddonName
+            ? filtered.filter((item) => item.name === currentAddonName)
+            : filtered.filter((item) => item.name !== currentAddonName)
     }
 
-    const enabledThemes = getFilteredThemes(currentThemeName)
-    const disabledThemes = getFilteredThemes('other')
-    const filteredEnabledThemes = hideEnabled ? [] : enabledThemes
-    const filteredDisabledThemes = hideEnabled ? disabledThemes : disabledThemes
+    const enabledAddons = getFilteredAddons(currentAddonName)
+    const disabledAddons = getFilteredAddons('other')
+    const filteredEnabledAddons = hideEnabled ? [] : enabledAddons
+    const filteredDisabledAddons = hideEnabled ? disabledAddons : disabledAddons
 
     const allTags = Array.from(new Set(themes.flatMap((item) => item.tags || [])))
     const tagCounts = allTags.reduce(
@@ -142,7 +142,7 @@ export default function ExtensionPage() {
         {} as Record<string, number>,
     )
 
-    const filterThemes = (themeList: ThemeInterface[]) => {
+    const filterAddons = (themeList: AddonInterface[]) => {
         return themeList
             .filter(
                 (item) =>
@@ -161,16 +161,16 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.name < b.name ? -1 : 1))
     }
 
-    const filteredThemes = filterThemes(themes)
+    const filteredAddons = filterAddons(themes)
 
     useEffect(() => {
-        setMaxThemeCount((prevCount) => Math.max(prevCount, filteredThemes.length))
-    }, [filteredThemes])
+        setMaxAddonCount((prevCount) => Math.max(prevCount, filteredAddons.length))
+    }, [filteredAddons])
 
     useEffect(() => {
-        window.electron.store.set('themes.selectedTags', Array.from(selectedTags))
-        window.electron.store.set('themes.columnsCount', columnsCount)
-        window.electron.store.set('themes.hideEnabled', hideEnabled)
+        window.electron.store.set('addons.selectedTags', Array.from(selectedTags))
+        window.electron.store.set('addons.columnsCount', columnsCount)
+        window.electron.store.set('addons.hideEnabled', hideEnabled)
     }, [selectedTags, columnsCount, hideEnabled])
 
     const handleColumnsChange = (columns: number) => {
@@ -230,17 +230,17 @@ export default function ExtensionPage() {
                                         onChange={handleSearchChange}
                                         placeholder="Введите название расширения"
                                     />
-                                    {filteredThemes.length > 0 &&
-                                        filteredThemes.length < maxThemeCount && (
+                                    {filteredAddons.length > 0 &&
+                                        filteredAddons.length < maxAddonCount && (
                                             <div
                                                 className={
                                                     extensionStyles.searchLabel
                                                 }
                                             >
-                                                Найдено: {filteredThemes.length}
+                                                Найдено: {filteredAddons.length}
                                             </div>
                                         )}
-                                    {filteredThemes.length === 0 && (
+                                    {filteredAddons.length === 0 && (
                                         <div className={extensionStyles.searchLabel}>
                                             Ничего не найдено
                                         </div>
@@ -264,7 +264,7 @@ export default function ExtensionPage() {
                                     >
                                         <button
                                             className={`${extensionStyles.toolbarButton} ${extensionStyles.refreshButton}`}
-                                            onClick={reloadThemes}
+                                            onClick={reloadAddons}
                                         >
                                             <ArrowRefreshImg /> Перезагрузить
                                             расширения
@@ -295,8 +295,8 @@ export default function ExtensionPage() {
                                                                 'Новое расширение создано: ' +
                                                                     res.name,
                                                             )
-                                                            setThemes([])
-                                                            loadThemes()
+                                                            setAddons([])
+                                                            loadAddons()
                                                         }
                                                     })
                                             }
@@ -393,7 +393,7 @@ export default function ExtensionPage() {
 
                         <div className={globalStyles.container30x15}>
                             <div className={extensionStyles.preview}>
-                                {filteredEnabledThemes.length > 0 && (
+                                {filteredEnabledAddons.length > 0 && (
                                     <div
                                         className={extensionStyles.previewSelection}
                                     >
@@ -419,7 +419,7 @@ export default function ExtensionPage() {
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
                                         >
-                                            {filteredEnabledThemes.map((item) => (
+                                            {filteredEnabledAddons.map((item) => (
                                                 <div key={item.name}>
                                                     <ExtensionCard
                                                         theme={item}
@@ -438,7 +438,7 @@ export default function ExtensionPage() {
                                         </div>
                                     </div>
                                 )}
-                                {filteredDisabledThemes.length > 0 && (
+                                {filteredDisabledAddons.length > 0 && (
                                     <div
                                         className={extensionStyles.previewSelection}
                                     >
@@ -464,7 +464,7 @@ export default function ExtensionPage() {
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
                                         >
-                                            {filteredDisabledThemes.map((item) => (
+                                            {filteredDisabledAddons.map((item) => (
                                                 <div key={item.name}>
                                                     <ExtensionCard
                                                         theme={item}

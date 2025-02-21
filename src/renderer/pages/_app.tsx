@@ -6,7 +6,6 @@ import Dev from './dev'
 import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
-import ExtensionPage from './extension'
 import UsersPage from './users'
 import ExtensionBetaPage from './extensionbeta'
 import ExtensionViewPage from './extensionbeta/route/extensionview'
@@ -39,8 +38,8 @@ import {
     compareVersions,
     notifyUserRetries,
 } from '../utils/utils'
-import ThemeInterface from '../api/interfaces/theme.interface'
-import ThemeInitials from '../api/initials/theme.initials'
+import AddonInterface from '../api/interfaces/addon.interface'
+import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
@@ -60,10 +59,10 @@ function App() {
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
-    const [themes, setThemes] = useState<ThemeInterface[]>(ThemeInitials)
+    const [themes, setAddons] = useState<AddonInterface[]>(AddonInitials)
     const [features, setFeatures] = useState({})
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
-    const [navigateState, setNavigateState] = useState<ThemeInterface | null>(null)
+    const [navigateState, setNavigateState] = useState<AddonInterface | null>(null)
     const [loading, setLoading] = useState(true)
     const toastReference = useRef<string | null>(null)
     const socket = io(config.SOCKET_URL, {
@@ -105,14 +104,6 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <TrackInfoPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/extension',
-            element: (
-                <ErrorBoundary>
-                    <ExtensionPage />
                 </ErrorBoundary>
             ),
         },
@@ -468,9 +459,9 @@ function App() {
             }
             window.desktopEvents?.send('WEBSOCKET_START')
             window.desktopEvents
-                .invoke('getThemes')
-                .then((fetchedThemes: ThemeInterface[]) => {
-                    setThemes(fetchedThemes)
+                .invoke('getAddons')
+                .then((fetchedAddons: AddonInterface[]) => {
+                    setAddons(fetchedAddons)
                 })
 
             return () => {
@@ -495,20 +486,20 @@ function App() {
     }
 
     useEffect(() => {
-        const handleOpenTheme = (event: any, data: string) => {
+        const handleOpenAddon = (event: any, data: string) => {
             window.desktopEvents
-                ?.invoke('getThemes')
-                .then((fetchedThemes: ThemeInterface[]) => {
-                    const foundTheme = fetchedThemes.find((t) => t.name === data)
-                    if (foundTheme) {
-                        setThemes(fetchedThemes)
-                        setNavigateTo(`/extensionbeta/${foundTheme.name}`)
-                        setNavigateState(foundTheme)
+                ?.invoke('getAddons')
+                .then((fetchedAddons: AddonInterface[]) => {
+                    const foundAddon = fetchedAddons.find((t) => t.name === data)
+                    if (foundAddon) {
+                        setAddons(fetchedAddons)
+                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
+                        setNavigateState(foundAddon)
                     }
                 })
                 .catch((error) => console.error('Error getting themes:', error))
         }
-        window.desktopEvents?.on('open-theme', handleOpenTheme)
+        window.desktopEvents?.on('open-theme', handleOpenAddon)
 
         window.desktopEvents?.on('check-file-exists', (filePath) =>
             invokeFileEvent('check-file-exists', filePath),
@@ -663,11 +654,11 @@ function App() {
             window.electron.store.set('tokens.token', args)
             await authorize()
         }
-        ;(window as any).refreshThemes = async (args: any) => {
+        ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents
-                .invoke('getThemes')
-                .then((fetchedThemes: ThemeInterface[]) => {
-                    setThemes(fetchedThemes)
+                .invoke('getAddons')
+                .then((fetchedAddons: AddonInterface[]) => {
+                    setAddons(fetchedAddons)
                     router.navigate('/extensionbeta', { replace: true })
                 })
         }
@@ -691,7 +682,7 @@ function App() {
                     updateAvailable,
                     setUpdate,
                     appInfo,
-                    setThemes,
+                    setAddons,
                     themes,
                     setMod: setMod,
                     modInfo: modInfo,

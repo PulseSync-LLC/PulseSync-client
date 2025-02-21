@@ -1,7 +1,6 @@
-import ThemeInterface from '../interfaces/theme.interface'
-import { AppInfoInterface } from '../interfaces/appinfo.interface'
+import AddonInterface from '../interfaces/addon.interface'
 
-const ThemeInitials: ThemeInterface[] = [
+const AddonInitials: AddonInterface[] = [
     {
         name: 'Default',
         image: 'url',
@@ -13,6 +12,7 @@ const ThemeInitials: ThemeInterface[] = [
         lastModified: 0,
         size: 0,
         tags: [],
+        type: 'theme',
     },
 ]
-export default ThemeInitials
+export default AddonInitials

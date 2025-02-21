@@ -4,7 +4,7 @@ import CheckOff from './../../../../static/assets/stratis-icons/minus-square-off
 import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.svg'
 import FileExport from './../../../../static/assets/stratis-icons/file-export.svg'
 import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
-import ThemeInterface from '../../api/interfaces/theme.interface'
+import AddonInterface from '../../api/interfaces/addon.interface'
 import toast from '../toast'
 
 export interface MenuItem {
@@ -25,37 +25,37 @@ export const createContextMenuActions = (
     handleToggleCheck: (themeName: string, isChecked: boolean) => void,
     checkedState: boolean = false,
     actionVisibility: ActionVisibility = {},
-    currentTheme: ThemeInterface,
+    currentAddon: AddonInterface,
 ): MenuItem[] => [
     {
         label: checkedState
-            ? `Выключить ${currentTheme.name}`
-            : `Включить ${currentTheme.name}`,
+            ? `Выключить ${currentAddon.name}`
+            : `Включить ${currentAddon.name}`,
         onClick: () => {
             if (handleToggleCheck) {
-                handleToggleCheck(currentTheme.name, !checkedState)
+                handleToggleCheck(currentAddon.name, !checkedState)
             }
         },
         show: actionVisibility.showCheck ?? true,
         icon: checkedState ? <CheckOn /> : <CheckOff />,
     },
     {
-        label: `Директория аддона ${currentTheme.name}`,
+        label: `Директория аддона ${currentAddon.name}`,
         onClick: () =>
             window.desktopEvents?.send('openPath', {
                 action: 'theme',
-                themeName: currentTheme.name,
+                themeName: currentAddon.name,
             }),
         show: actionVisibility.showDirectory ?? false,
         icon: <FileDirectory />,
     },
     {
-        label: `Экспорт ${currentTheme.name}`,
+        label: `Экспорт ${currentAddon.name}`,
         onClick: () => {
             window.desktopEvents
-                .invoke('exportTheme', {
-                    path: currentTheme.path,
-                    name: currentTheme.name,
+                .invoke('exportAddon', {
+                    path: currentAddon.path,
+                    name: currentAddon.name,
                 })
                 .then((result) => {
                     if (result) {
@@ -70,12 +70,12 @@ export const createContextMenuActions = (
         icon: <FileExport />,
     },
     {
-        label: `Страница темы ${currentTheme.name}`,
+        label: `Страница темы ${currentAddon.name}`,
         onClick: () => console.log('Страница темы'),
         show: false,
     },
     {
-        label: `Опубликовать ${currentTheme.name}`,
+        label: `Опубликовать ${currentAddon.name}`,
         onClick: () => console.log('Опубликовать'),
         show: false,
     },
@@ -85,24 +85,24 @@ export const createContextMenuActions = (
         show: false,
     },
     {
-        label: `Удалить ${currentTheme.name}`,
+        label: `Удалить ${currentAddon.name}`,
         onClick: () => {
             const confirmation = window.confirm(
-                `Вы уверены, что хотите удалить тему "${currentTheme.name}"? Это действие нельзя будет отменить.`,
+                `Вы уверены, что хотите удалить тему "${currentAddon.name}"? Это действие нельзя будет отменить.`,
             )
             if (confirmation) {
-                const themeDirPath = currentTheme.path
+                const themeDirPath = currentAddon.path
                 window.desktopEvents
-                    .invoke('deleteThemeDirectory', themeDirPath)
+                    .invoke('deleteAddonDirectory', themeDirPath)
                     .then(() => {
-                        window.refreshThemes()
+                        window.refreshAddons()
                         console.log(
-                            `Тема "${currentTheme.name}" и связанные файлы удалены.`,
+                            `Тема "${currentAddon.name}" и связанные файлы удалены.`,
                         )
                     })
                     .catch((error) => {
                         console.error(
-                            `Ошибка при удалении темы "${currentTheme.name}":`,
+                            `Ошибка при удалении темы "${currentAddon.name}":`,
                             error,
                         )
                     })

@@ -27,10 +27,10 @@ import {
 } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { eventEmitter, sendTheme, setTheme } from './main/modules/httpServer'
+import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
 import { getPathToYandexMusic } from './main/utils/appUtils'
-import Theme from './renderer/api/interfaces/theme.interface'
+import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { handleMod } from './main/modules/mod/modManager'
@@ -50,9 +50,9 @@ export let inSleepMode = false
 let hardwareAcceleration = false
 
 let preloaderWindow: BrowserWindow
-let availableThemes: Theme[] = []
-export let selectedTheme: string
-const defaultTheme = {
+let availableAddons: Addon[] = []
+export let selectedAddon: string
+const defaultAddon = {
     name: 'Default',
     image: 'url',
     author: 'Your Name',
@@ -274,40 +274,40 @@ app.on('ready', async () => {
     handleDeeplink(mainWindow)
     createTray()
 })
-function createDefaultThemeIfNotExists(themesFolderPath: string) {
-    const defaultThemePath = path.join(themesFolderPath, defaultTheme.name)
+function createDefaultAddonIfNotExists(themesFolderPath: string) {
+    const defaultAddonPath = path.join(themesFolderPath, defaultAddon.name)
     try {
-        if (!fs.existsSync(defaultThemePath)) {
-            fs.mkdirSync(defaultThemePath, { recursive: true })
-            fs.mkdirSync(path.join(themesFolderPath, defaultTheme.name, 'Assets'), {
+        if (!fs.existsSync(defaultAddonPath)) {
+            fs.mkdirSync(defaultAddonPath, { recursive: true })
+            fs.mkdirSync(path.join(themesFolderPath, defaultAddon.name, 'Assets'), {
                 recursive: true,
             })
 
-            const metadataPath = path.join(defaultThemePath, 'metadata.json')
-            const cssPath = path.join(defaultThemePath, defaultTheme.css)
-            const scriptPath = path.join(defaultThemePath, defaultTheme.script)
+            const metadataPath = path.join(defaultAddonPath, 'metadata.json')
+            const cssPath = path.join(defaultAddonPath, defaultAddon.css)
+            const scriptPath = path.join(defaultAddonPath, defaultAddon.script)
 
             fs.writeFileSync(
                 metadataPath,
-                JSON.stringify(defaultTheme, null, 2),
+                JSON.stringify(defaultAddon, null, 2),
                 'utf-8',
             )
             fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
             fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
-            logger.main.info(`Themes: default theme created at ${defaultThemePath}.`)
+            logger.main.info(`Addons: default theme created at ${defaultAddonPath}.`)
         }
     } catch (err) {
-        logger.main.error('Theme: error creating default theme:', err)
+        logger.main.error('Addon: error creating default theme:', err)
     }
 }
-async function loadThemes(): Promise<Theme[]> {
+async function loadAddons(): Promise<Addon[]> {
     const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
 
     try {
-        createDefaultThemeIfNotExists(themesFolderPath)
+        createDefaultAddonIfNotExists(themesFolderPath)
         const folders = await fs.promises.readdir(themesFolderPath)
-        availableThemes = []
+        availableAddons = []
 
         for (const folder of folders) {
             const themeFolderPath = path.join(themesFolderPath, folder)
@@ -349,7 +349,7 @@ async function loadThemes(): Promise<Theme[]> {
                     const versionMatch = metadata.version.match(versionRegex)
                     if (!versionMatch) {
                         logger.main.log(
-                            `Themes: No valid version found in theme ${metadataFilePath}. Setting version to 1.0.0`,
+                            `Addons: No valid version found in theme ${metadataFilePath}. Setting version to 1.0.0`,
                         )
                         metadata.version = '1.0.0'
                         await fs.promises
@@ -360,7 +360,7 @@ async function loadThemes(): Promise<Theme[]> {
                             )
                             .catch((err) => {
                                 logger.main.error(
-                                    `Themes: error writing metadata.json in theme ${folder}:`,
+                                    `Addons: error writing metadata.json in theme ${folder}:`,
                                     err,
                                 )
                             })
@@ -370,21 +370,21 @@ async function loadThemes(): Promise<Theme[]> {
                     metadata.lastModified = diffString
                     metadata.path = themeFolderPath
                     metadata.size = formatSizeUnits(folderSize)
-                    availableThemes.push(metadata)
+                    availableAddons.push(metadata)
                 } catch (err) {
                     logger.main.error(
-                        `Themes: error reading or parsing metadata.json in theme ${folder}:`,
+                        `Addons: error reading or parsing metadata.json in theme ${folder}:`,
                         err,
                     )
                 }
             } else {
                 logger.main.error(
-                    `Themes: metadata.json not found in theme ${folder}`,
+                    `Addons: metadata.json not found in theme ${folder}`,
                 )
             }
         }
 
-        return availableThemes
+        return availableAddons
     } catch (err) {
         logger.main.error('Error reading themes directory:', err)
         throw err
@@ -423,11 +423,11 @@ const getFolderSize = async (folderPath: any) => {
 
     return totalSize
 }
-ipcMain.handle('getThemes', async () => {
+ipcMain.handle('getAddons', async () => {
     try {
-        return await loadThemes()
+        return await loadAddons()
     } catch (error) {
-        logger.main.error('Themes: Error loading themes:', error)
+        logger.main.error('Addons: Error loading themes:', error)
     }
 })
 
@@ -479,7 +479,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
     }
 })
 
-ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
+ipcMain.handle('deleteAddonDirectory', async (event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {
             await fs.promises.rm(themeDirectoryPath, {
@@ -496,14 +496,14 @@ ipcMain.handle('deleteThemeDirectory', async (event, themeDirectoryPath) => {
 })
 
 ipcMain.on('themeChanged', (event, themeName) => {
-    logger.main.info(`Themes: theme changed to: ${themeName}`)
-    selectedTheme = themeName
-    setTheme(selectedTheme)
+    logger.main.info(`Addons: theme changed to: ${themeName}`)
+    selectedAddon = themeName
+    setAddon(selectedAddon)
 })
-function initializeTheme() {
-    selectedTheme = store.get('theme') || 'Default'
-    logger.main.log('Themes: theme changed to:', selectedTheme)
-    setTheme(selectedTheme)
+function initializeAddon() {
+    selectedAddon = store.get('addons.theme') || 'Default'
+    logger.main.log('Addons: theme changed to:', selectedAddon)
+    setAddon(selectedAddon)
 }
 export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
@@ -569,7 +569,7 @@ export async function prestartCheck() {
     } else if (fs.existsSync(asarCopy)) {
         store.set('mod.installed', true)
     }
-    initializeTheme()
+    initializeAddon()
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
     logger.main.info(app.getPath('appData'))
     const watcher = chokidar.watch(themesPath, {
@@ -579,15 +579,15 @@ export async function prestartCheck() {
     watcher
         .on('add', (path) => {
             logger.main.info(`File ${path} has been added`)
-            sendTheme(false)
+            sendAddon(false)
         })
         .on('change', (path) => {
             logger.main.info(`File ${path} has been changed`)
-            sendTheme(false)
+            sendAddon(false)
         })
         .on('unlink', (path) => {
             logger.main.info(`File ${path} has been removed`)
-            sendTheme(false)
+            sendAddon(false)
         })
 }
 app.on('window-all-closed', () => {

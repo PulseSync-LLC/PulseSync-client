@@ -24,11 +24,11 @@ import {
 import Layout from '../../../components/layout'
 import Button from '../../../components/button'
 import ViewModal from '../../../components/context_menu_themes/viewModal'
-import ThemeInterface from '../../../api/interfaces/theme.interface'
+import AddonInterface from '../../../api/interfaces/addon.interface'
 import { createContextMenuActions } from '../../../components/context_menu_themes/sectionConfig'
 import ConfigurationSettings from '../../../components/сonfigurationSettings/ConfigurationSettings'
 import {
-    ThemeConfig,
+    AddonConfig,
     Item,
     TextItem,
     ButtonAction,
@@ -41,18 +41,18 @@ import * as localStyles from './extensionview.module.scss'
 
 const ExtensionViewPage: React.FC = () => {
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
-    const [currentTheme, setCurrentTheme] = useState<ThemeInterface | null>(null)
+    const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
     const [bannerImage, setBannerImage] = useState(
         'static/assets/images/no_themeBackground.png',
     )
-    const [activatedTheme, setActivatedTheme] = useState(
-        window.electron.store.get('theme') || 'Default',
+    const [activatedAddon, setActivatedAddon] = useState(
+        window.electron.store.get('addons.theme') || 'Default',
     )
-    const [themeActive, setThemeActive] = useState(activatedTheme !== 'Default')
+    const [themeActive, setAddonActive] = useState(activatedAddon !== 'Default')
     const [bannerExpanded, setBannerExpanded] = useState(false)
     const [bannerHeight, setBannerHeight] = useState(84)
     const [activeTab, setActiveTab] = useState('Overview')
-    const [configData, setConfigData] = useState<ThemeConfig | null>(null)
+    const [configData, setConfigData] = useState<AddonConfig | null>(null)
     const [editMode, setEditMode] = useState(false)
     const [markdownData, setMarkdownData] = useState<string>('')
     const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
@@ -63,9 +63,9 @@ const ExtensionViewPage: React.FC = () => {
     const navigate = useNavigate()
 
     useEffect(() => {
-        const receivedTheme = location.state?.theme as ThemeInterface
-        if (receivedTheme) {
-            setCurrentTheme(receivedTheme)
+        const receivedAddon = location.state?.theme as AddonInterface
+        if (receivedAddon) {
+            setCurrentAddon(receivedAddon)
         } else {
             navigate('/extensionbeta', { replace: false })
         }
@@ -93,37 +93,37 @@ const ExtensionViewPage: React.FC = () => {
     }, [contextMenuVisible])
 
     useEffect(() => {
-        if (currentTheme) {
+        if (currentAddon) {
             const expandedStates =
-                window.electron.store.get('themes.themeIsExpanded') || {}
-            if (!expandedStates.hasOwnProperty(currentTheme.name)) {
-                expandedStates[currentTheme.name] = false
-                window.electron.store.set('themes.themeIsExpanded', expandedStates)
+                window.electron.store.get('addons.themeIsExpanded') || {}
+            if (!expandedStates.hasOwnProperty(currentAddon.name)) {
+                expandedStates[currentAddon.name] = false
+                window.electron.store.set('addons.themeIsExpanded', expandedStates)
             }
-            const initialExpanded = expandedStates[currentTheme.name]
+            const initialExpanded = expandedStates[currentAddon.name]
             setBannerExpanded(initialExpanded)
             setBannerHeight(initialExpanded ? 277 : 84)
         }
-    }, [currentTheme])
+    }, [currentAddon])
 
     const toggleBanner = () => {
         const newState = !bannerExpanded
         setBannerExpanded(newState)
 
-        if (currentTheme) {
+        if (currentAddon) {
             const expandedStates =
-                window.electron.store.get('themes.themeIsExpanded') || {}
-            expandedStates[currentTheme.name] = newState
-            window.electron.store.set('themes.themeIsExpanded', expandedStates)
+                window.electron.store.get('addons.themeIsExpanded') || {}
+            expandedStates[currentAddon.name] = newState
+            window.electron.store.set('addons.themeIsExpanded', expandedStates)
         }
     }
 
-    const toggleThemeActivation = () => {
-        const newTheme = themeActive ? 'Default' : currentTheme?.name || 'Default'
-        window.electron.store.set('theme', newTheme)
-        setActivatedTheme(newTheme)
-        window.desktopEvents?.send('themeChanged', newTheme)
-        setThemeActive(!themeActive)
+    const toggleAddonActivation = () => {
+        const newAddon = themeActive ? 'Default' : currentAddon?.name || 'Default'
+        window.electron.store.set('addons.theme', newAddon)
+        setActivatedAddon(newAddon)
+        window.desktopEvents?.send('themeChanged', newAddon)
+        setAddonActive(!themeActive)
     }
 
     useEffect(() => {
@@ -150,19 +150,19 @@ const ExtensionViewPage: React.FC = () => {
         }
     }, [bannerExpanded])
 
-    const activateTheme = () => {
-        const newTheme = currentTheme?.name || 'Default'
-        window.electron.store.set('theme', newTheme)
-        setActivatedTheme(newTheme)
+    const activateAddon = () => {
+        const newAddon = currentAddon?.name || 'Default'
+        window.electron.store.set('addons.theme', newAddon)
+        setActivatedAddon(newAddon)
         window.desktopEvents?.send('themeChanged', 'Default')
-        window.desktopEvents?.send('themeChanged', newTheme)
-        setThemeActive(true)
+        window.desktopEvents?.send('themeChanged', newAddon)
+        setAddonActive(true)
     }
 
     useEffect(() => {
-        const savedTheme = window.electron.store.get('theme')
-        setActivatedTheme(savedTheme)
-        setThemeActive(savedTheme !== 'Default')
+        const savedAddon = window.electron.store.get('addons.theme')
+        setActivatedAddon(savedAddon)
+        setAddonActive(savedAddon !== 'Default')
     }, [])
 
     const getEncodedPath = (p: string) => {
@@ -176,9 +176,9 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     useEffect(() => {
-        if (currentTheme?.path && currentTheme.banner) {
+        if (currentAddon?.path && currentAddon.banner) {
             const bannerPath = getEncodedPath(
-                `${currentTheme.path}/${currentTheme.banner}`,
+                `${currentAddon.path}/${currentAddon.banner}`,
             )
             fetch(bannerPath)
                 .then((res) => {
@@ -192,11 +192,11 @@ const ExtensionViewPage: React.FC = () => {
                     setBannerImage('static/assets/images/no_themeBackground.png')
                 })
         }
-    }, [currentTheme])
+    }, [currentAddon])
 
     useEffect(() => {
-        if (currentTheme) {
-            const readmePath = `${currentTheme.path}/README.md`
+        if (currentAddon) {
+            const readmePath = `${currentAddon.path}/README.md`
             fetch(readmePath)
                 .then((response) => response.text())
                 .then((data) => {
@@ -206,12 +206,12 @@ const ExtensionViewPage: React.FC = () => {
                     console.error('Ошибка при загрузке README.md:')
                 })
         }
-    }, [currentTheme])
+    }, [currentAddon])
 
     useEffect(() => {
         const checkConfigFile = async () => {
-            if (currentTheme) {
-                const configPath = path.join(currentTheme.path, 'handleEvents.json')
+            if (currentAddon) {
+                const configPath = path.join(currentAddon.path, 'handleEvents.json')
                 const exists = await window.desktopEvents?.invoke(
                     'file-event',
                     'check-file-exists',
@@ -226,7 +226,7 @@ const ExtensionViewPage: React.FC = () => {
                         configPath,
                     )
                     try {
-                        const parsedConfig: ThemeConfig = JSON.parse(configContent)
+                        const parsedConfig: AddonConfig = JSON.parse(configContent)
                         const upgradedConfig = upgradeConfig(parsedConfig)
                         setConfigData(upgradedConfig)
                     } catch (error) {
@@ -240,12 +240,12 @@ const ExtensionViewPage: React.FC = () => {
             }
         }
 
-        if (currentTheme) {
+        if (currentAddon) {
             checkConfigFile()
         }
-    }, [currentTheme])
+    }, [currentAddon])
 
-    const upgradeConfig = (config: ThemeConfig): ThemeConfig => {
+    const upgradeConfig = (config: AddonConfig): AddonConfig => {
         const upgradedConfig = structuredClone(config)
 
         upgradedConfig.sections.forEach((section) => {
@@ -281,9 +281,9 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const createDefaultConfig = async () => {
-        if (currentTheme) {
-            const configPath = path.join(currentTheme.path, 'handleEvents.json')
-            const defaultContent: ThemeConfig = {
+        if (currentAddon) {
+            const configPath = path.join(currentAddon.path, 'handleEvents.json')
+            const defaultContent: AddonConfig = {
                 sections: [
                     {
                         title: 'Действия',
@@ -384,9 +384,9 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    const writeConfigFile = async (updatedConfig: ThemeConfig) => {
-        if (currentTheme) {
-            const configPath = path.join(currentTheme.path, 'handleEvents.json')
+    const writeConfigFile = async (updatedConfig: AddonConfig) => {
+        if (currentAddon) {
+            const configPath = path.join(currentAddon.path, 'handleEvents.json')
             try {
                 await window.desktopEvents?.invoke(
                     'file-event',
@@ -639,7 +639,7 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const renderActiveTabContent = () => {
-        if (!currentTheme) return null
+        if (!currentAddon) return null
 
         switch (activeTab) {
             case 'Overview':
@@ -652,7 +652,7 @@ const ExtensionViewPage: React.FC = () => {
                                 rehypePlugins={[rehypeRaw]}
                                 components={{ a: MarkdownLink }}
                             >
-                                {markdownData || currentTheme.description}
+                                {markdownData || currentAddon.description}
                             </ReactMarkdown>
                         </div>
                     </div>
@@ -700,7 +700,7 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    if (!currentTheme) return null
+    if (!currentAddon) return null
 
     return (
         <Layout title="Стилизация">
@@ -774,8 +774,8 @@ const ExtensionViewPage: React.FC = () => {
                                         <div className={localStyles.containerLeft}>
                                             <img
                                                 className={localStyles.themeImage}
-                                                src={`${currentTheme.path}/${currentTheme.image}`}
-                                                alt={`${currentTheme.name} image`}
+                                                src={`${currentAddon.path}/${currentAddon.image}`}
+                                                alt={`${currentAddon.name} image`}
                                                 width="100"
                                                 height="100"
                                                 onError={(e) => {
@@ -802,7 +802,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     <div
                                                         className={localStyles.title}
                                                     >
-                                                        {currentTheme.name ||
+                                                        {currentAddon.name ||
                                                             'Название недоступно'}
                                                     </div>
                                                     <Button
@@ -822,17 +822,17 @@ const ExtensionViewPage: React.FC = () => {
                                                         localStyles.authorInfo
                                                     }
                                                 >
-                                                    {currentTheme.author && (
+                                                    {currentAddon.author && (
                                                         <div>
-                                                            {currentTheme.author}
+                                                            {currentAddon.author}
                                                         </div>
                                                     )}{' '}
                                                     -{' '}
-                                                    {currentTheme.lastModified && (
+                                                    {currentAddon.lastModified && (
                                                         <div>
                                                             Last update:{' '}
                                                             {
-                                                                currentTheme.lastModified
+                                                                currentAddon.lastModified
                                                             }
                                                         </div>
                                                     )}
@@ -846,23 +846,23 @@ const ExtensionViewPage: React.FC = () => {
                                             className={localStyles.detailsContainer}
                                         >
                                             <div className={localStyles.detailInfo}>
-                                                {currentTheme.version && (
+                                                {currentAddon.version && (
                                                     <div className={localStyles.box}>
                                                         <MdDesignServices />{' '}
-                                                        {currentTheme.version}
+                                                        {currentAddon.version}
                                                     </div>
                                                 )}
-                                                {currentTheme.size !== undefined && (
+                                                {currentAddon.size !== undefined && (
                                                     <div className={localStyles.box}>
                                                         <MdFolder />{' '}
-                                                        {currentTheme.size}
+                                                        {currentAddon.size}
                                                     </div>
                                                 )}
                                             </div>
                                             <div className={localStyles.detailInfo}>
-                                                {Array.isArray(currentTheme.tags) &&
-                                                    currentTheme.tags.length > 0 &&
-                                                    currentTheme.tags.map((tag) => (
+                                                {Array.isArray(currentAddon.tags) &&
+                                                    currentAddon.tags.length > 0 &&
+                                                    currentAddon.tags.map((tag) => (
                                                         <Button
                                                             key={tag}
                                                             className={
@@ -887,28 +887,28 @@ const ExtensionViewPage: React.FC = () => {
                                             >
                                                 <Button
                                                     className={`${localStyles.defaultButton} ${
-                                                        activatedTheme ===
-                                                        currentTheme.name
+                                                        activatedAddon ===
+                                                        currentAddon.name
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
                                                     onClick={
-                                                        activatedTheme !==
-                                                        currentTheme.name
-                                                            ? activateTheme
-                                                            : toggleThemeActivation
+                                                        activatedAddon !==
+                                                        currentAddon.name
+                                                            ? activateAddon
+                                                            : toggleAddonActivation
                                                     }
                                                     title={
-                                                        activatedTheme !==
-                                                        currentTheme.name
+                                                        activatedAddon !==
+                                                        currentAddon.name
                                                             ? 'Включить тему'
                                                             : themeActive
                                                               ? 'Выключить тему'
                                                               : 'Включить тему'
                                                     }
                                                 >
-                                                    {activatedTheme !==
-                                                    currentTheme.name
+                                                    {activatedAddon !==
+                                                    currentAddon.name
                                                         ? 'Включить'
                                                         : themeActive
                                                           ? 'Выключить'
@@ -928,7 +928,7 @@ const ExtensionViewPage: React.FC = () => {
                                                     <MdMoreHoriz size={20} />
                                                 </Button>
                                             </div>
-                                            {contextMenuVisible && currentTheme && (
+                                            {contextMenuVisible && currentAddon && (
                                                 <ViewModal
                                                     items={createContextMenuActions(
                                                         undefined,
@@ -939,7 +939,7 @@ const ExtensionViewPage: React.FC = () => {
                                                             showExport: true,
                                                             showDelete: true,
                                                         },
-                                                        currentTheme,
+                                                        currentAddon,
                                                     )}
                                                 />
                                             )}

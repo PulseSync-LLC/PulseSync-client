@@ -70,7 +70,7 @@ const OldHeader: React.FC<p> = () => {
     const userCardRef = useRef<HTMLDivElement>(null)
     const { openUserProfile } = useUserProfileModal()
 
-    const fixedTheme = { charCount: inputStyle.charCount }
+    const fixedAddon = { charCount: inputStyle.charCount }
 
     const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(
         'null',
@@ -368,7 +368,7 @@ const OldHeader: React.FC<p> = () => {
             </a>
         )
     }
-    useCharCount(containerRef, fixedTheme)
+    useCharCount(containerRef, fixedAddon)
 
     // if (isNaN(trackStart) || isNaN(trackEnd)) {
     //     return <div>Error: Invalid track timecodes</div>;

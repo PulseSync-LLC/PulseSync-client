@@ -54,7 +54,7 @@
 //     const { user, appInfo, app, setUser, setApp } = useContext(userContext)
 //     const [modal, setModal] = useState(false)
 //     const containerRef = useRef<HTMLDivElement>(null)
-//     const fixedTheme = { charCount: inputStyle.charCount }
+//     const fixedAddon = { charCount: inputStyle.charCount }
 //     const [previousValues, setPreviousValues] = useState({
 //         appId: '',
 //         details: '',
@@ -398,7 +398,7 @@
 //             </a>
 //         )
 //     }
-//     useCharCount(containerRef, fixedTheme)
+//     useCharCount(containerRef, fixedAddon)
 //
 //     if (isNaN(trackStart) || isNaN(trackEnd)) {
 //         return <div>Error: Invalid track timecodes</div>

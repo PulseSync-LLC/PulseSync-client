@@ -2,7 +2,7 @@ import * as http from 'http'
 import * as fs from 'fs'
 import * as path from 'path'
 import { app, dialog, ipcMain } from 'electron'
-import { mainWindow, selectedTheme } from '../../index'
+import { mainWindow, selectedAddon } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
@@ -68,9 +68,9 @@ const initializeServer = () => {
         socket.send(
             JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }),
         )
-        sendTheme(true, true)
+        sendAddon(true, true)
         setTimeout(() => {
-            sendTheme(true)
+            sendAddon(true)
         }, 1000)
 
         socket.on('message', (message: any) => {
@@ -197,7 +197,7 @@ const handleGetHandleRequest = (
             app.getPath('appData'),
             'PulseSync',
             'themes',
-            selectedTheme,
+            selectedAddon,
             'handleEvents.json',
         )
 
@@ -225,7 +225,7 @@ const handleGetAssetsRequest = (
 ) => {
     try {
         const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
-        const themePath = path.join(themesPath, selectedTheme)
+        const themePath = path.join(themesPath, selectedAddon)
         const assetsPath = path.join(themePath, 'Assets')
 
         if (fs.existsSync(assetsPath)) {
@@ -257,7 +257,7 @@ const handleGetAssetFileRequest = (
 ) => {
     try {
         const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
-        const themePath = path.join(themesPath, selectedTheme)
+        const themePath = path.join(themesPath, selectedAddon)
         const assetsPath = path.join(themePath, 'Assets')
         const fileName = req.url!.substring('/assets/'.length)
         const filePath = getFilePathInAssets(fileName, assetsPath)
@@ -343,10 +343,10 @@ export const updateData = (newData: any) => {
 
 export { eventEmitter }
 
-export const setTheme = (theme: string) => {
+export const setAddon = (theme: string) => {
     if (!authorized) return
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
-    const themePath = path.join(themesPath, selectedTheme)
+    const themePath = path.join(themesPath, selectedAddon)
     const metadataPath = path.join(themePath, 'metadata.json')
 
     if (!fs.existsSync(metadataPath)) {
@@ -369,7 +369,7 @@ export const setTheme = (theme: string) => {
     }
 
     const themeData = {
-        name: selectedTheme,
+        name: selectedAddon,
         css: cssContent || '{}',
         script: jsContent || '',
     }
@@ -396,11 +396,11 @@ export const setTheme = (theme: string) => {
     })
 }
 
-export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
+export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
     const themePath = path.join(
         themesPath,
-        themeDef ? 'Default' : store.get('theme') || 'Default',
+        themeDef ? 'Default' : store.get('addons.theme') || 'Default',
     )
     const metadataPath = path.join(themePath, 'metadata.json')
 
@@ -424,7 +424,7 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
     }
 
     const themeData = {
-        name: store.get('theme') || 'Default',
+        name: store.get('addons.theme') || 'Default',
         css: cssContent || '{}',
         script: jsContent || '',
     }
@@ -450,6 +450,7 @@ export const sendTheme = (withJs: boolean, themeDef?: boolean) => {
                 }),
             ),
         )
+    }
 }
 
 ipcMain.on('GET_TRACK_INFO', async (event, _) => {

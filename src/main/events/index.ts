@@ -403,7 +403,7 @@ const registerSleepModeEvent = (window: BrowserWindow): void => {
 const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle('create-new-extension', async (event, args) => {
         try {
-            const defaultTheme = {
+            const defaultAddon = {
                 name: 'New Extension',
                 image: 'test.png',
                 banner: 'test.png',
@@ -431,13 +431,13 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             while (existingExtensions.includes(newName)) {
                 counter++
                 newName = `${defaultName} ${counter}`
-                defaultTheme.name = newName
+                defaultAddon.name = newName
             }
             const extensionPath = path.join(extensionsPath, newName)
             fs.mkdirSync(extensionPath)
             fs.writeFileSync(
                 path.join(extensionPath, 'metadata.json'),
-                JSON.stringify(defaultTheme, null, 2),
+                JSON.stringify(defaultAddon, null, 2),
             )
             fs.writeFileSync(
                 path.join(extensionPath, 'style.css'),
@@ -454,7 +454,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle('exportTheme', async (event, data) => {
+    ipcMain.handle('exportAddon', async (event, data) => {
         try {
             if (!fs.existsSync(data.path)) {
                 logger.main.error('Folder not found.')

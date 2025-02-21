@@ -2,10 +2,10 @@ import React from 'react'
 import ConfigurationSection from './ConfigurationSection'
 import { MdAdd } from 'react-icons/md'
 import * as styles from './ConfigurationSettings.module.scss'
-import { ThemeConfig, ButtonAction } from './types'
+import { AddonConfig, ButtonAction } from './types'
 
 interface ConfigurationSettingsProps {
-    configData: ThemeConfig
+    configData: AddonConfig
     editMode: boolean
     updateConfigField: (
         sectionIndex: number,

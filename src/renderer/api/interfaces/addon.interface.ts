@@ -1,4 +1,4 @@
-export default interface ThemeInterface {
+export default interface AddonInterface {
     name: string
     image: string
     banner: string
@@ -9,4 +9,5 @@ export default interface ThemeInterface {
     lastModified: number
     size: number
     tags: string[]
+    type: string
 }

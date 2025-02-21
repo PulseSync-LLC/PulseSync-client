@@ -132,8 +132,8 @@ export default function TrackInfoPage() {
     }
 
     const containerRef = useRef<HTMLDivElement>(null)
-    const fixedTheme = { charCount: inputStyle.charCount }
-    useCharCount(containerRef, fixedTheme)
+    const fixedAddon = { charCount: inputStyle.charCount }
+    useCharCount(containerRef, fixedAddon)
 
     return (
         <Layout title="Discord RPC">
