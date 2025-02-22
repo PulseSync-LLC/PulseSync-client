@@ -16,9 +16,6 @@ import {
     MdSettings,
     MdStickyNote2,
     MdStoreMallDirectory,
-    MdAdd,
-    MdDelete,
-    MdRestore,
 } from 'react-icons/md'
 
 import Layout from '../../../components/layout'
@@ -40,15 +37,21 @@ import * as globalStyles from '../../../../../static/styles/page/index.module.sc
 import * as localStyles from './extensionview.module.scss'
 
 const ExtensionViewPage: React.FC = () => {
-    const [contextMenuVisible, setContextMenuVisible] = useState(false)
+    const [activatedTheme, setActivatedTheme] = useState<string>(
+        window.electron.store.get('addons.theme') || 'Default',
+    )
+
+    const [enabledScripts, setEnabledScripts] = useState<string[]>(
+        window.electron.store.get('addons.scripts') || [],
+    )
+
     const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
+    const [contextMenuVisible, setContextMenuVisible] = useState(false)
     const [bannerImage, setBannerImage] = useState(
         'static/assets/images/no_themeBackground.png',
     )
-    const [activatedAddon, setActivatedAddon] = useState(
-        window.electron.store.get('addons.theme') || 'Default',
-    )
-    const [themeActive, setAddonActive] = useState(activatedAddon !== 'Default')
+
+    const [themeActive, setThemeActive] = useState(activatedTheme !== 'Default')
     const [bannerExpanded, setBannerExpanded] = useState(false)
     const [bannerHeight, setBannerHeight] = useState(84)
     const [activeTab, setActiveTab] = useState('Overview')
@@ -57,10 +60,17 @@ const ExtensionViewPage: React.FC = () => {
     const [markdownData, setMarkdownData] = useState<string>('')
     const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
     const [newSectionTitle, setNewSectionTitle] = useState('')
-
     const menuElementRef = useRef<HTMLDivElement>(null)
     const location = useLocation()
     const navigate = useNavigate()
+
+    useEffect(() => {
+        window.electron.store.set('addons.scripts', enabledScripts)
+    }, [enabledScripts])
+
+    useEffect(() => {
+        window.electron.store.set('addons.theme', activatedTheme)
+    }, [activatedTheme])
 
     useEffect(() => {
         const receivedAddon = location.state?.theme as AddonInterface
@@ -80,13 +90,11 @@ const ExtensionViewPage: React.FC = () => {
                 setContextMenuVisible(false)
             }
         }
-
         if (contextMenuVisible) {
             document.addEventListener('mousedown', clickOutsideHandler)
         } else {
             document.removeEventListener('mousedown', clickOutsideHandler)
         }
-
         return () => {
             document.removeEventListener('mousedown', clickOutsideHandler)
         }
@@ -109,21 +117,12 @@ const ExtensionViewPage: React.FC = () => {
     const toggleBanner = () => {
         const newState = !bannerExpanded
         setBannerExpanded(newState)
-
         if (currentAddon) {
             const expandedStates =
                 window.electron.store.get('addons.themeIsExpanded') || {}
             expandedStates[currentAddon.name] = newState
             window.electron.store.set('addons.themeIsExpanded', expandedStates)
         }
-    }
-
-    const toggleAddonActivation = () => {
-        const newAddon = themeActive ? 'Default' : currentAddon?.name || 'Default'
-        window.electron.store.set('addons.theme', newAddon)
-        setActivatedAddon(newAddon)
-        window.desktopEvents?.send('themeChanged', newAddon)
-        setAddonActive(!themeActive)
     }
 
     useEffect(() => {
@@ -143,31 +142,11 @@ const ExtensionViewPage: React.FC = () => {
                 return prev + step
             })
         }
-
         interval = setInterval(animateBannerHeight, 5)
         return () => {
             if (interval) clearInterval(interval)
         }
     }, [bannerExpanded])
-
-    const activateAddon = () => {
-        const newAddon = currentAddon?.name || 'Default'
-        window.electron.store.set('addons.theme', newAddon)
-        setActivatedAddon(newAddon)
-        window.desktopEvents?.send('themeChanged', 'Default')
-        window.desktopEvents?.send('themeChanged', newAddon)
-        setAddonActive(true)
-    }
-
-    useEffect(() => {
-        const savedAddon = window.electron.store.get('addons.theme')
-        setActivatedAddon(savedAddon)
-        setAddonActive(savedAddon !== 'Default')
-    }, [])
-
-    const getEncodedPath = (p: string) => {
-        return encodeURI(p.replace(/\\/g, '/'))
-    }
 
     const changeTag = (tag: string) => {
         navigate(`/extensionbeta?selectedTag=${encodeURIComponent(tag)}`, {
@@ -175,6 +154,57 @@ const ExtensionViewPage: React.FC = () => {
         })
     }
 
+    const handleToggleAddon = () => {
+        if (!currentAddon) return
+
+        if (currentAddon.type === 'theme') {
+            if (activatedTheme === currentAddon.name) {
+                setActivatedTheme('Default')
+                window.desktopEvents?.send('themeChanged', 'Default')
+                setThemeActive(false)
+            } else {
+                setActivatedTheme(currentAddon.name)
+                window.desktopEvents?.send('themeChanged', 'Default')
+                window.desktopEvents?.send('themeChanged', currentAddon.name)
+                setThemeActive(true)
+            }
+        } else {
+            const isScriptEnabled = enabledScripts.includes(currentAddon.name)
+            if (isScriptEnabled) {
+                setEnabledScripts((prev) =>
+                    prev.filter((item) => item !== currentAddon.name),
+                )
+            } else {
+                setEnabledScripts((prev) => [...prev, currentAddon.name])
+            }
+        }
+    }
+
+    const getToggleButtonText = () => {
+        if (!currentAddon) return ''
+        if (currentAddon.type === 'theme') {
+            return activatedTheme === currentAddon.name ? 'Выключить' : 'Включить'
+        } else {
+            return enabledScripts.includes(currentAddon.name)
+                ? 'Выключить'
+                : 'Включить'
+        }
+    }
+
+    const getToggleTitle = () => {
+        if (!currentAddon) return ''
+        if (currentAddon.type === 'theme') {
+            const isActive = activatedTheme === currentAddon.name
+            return isActive ? 'Выключить тему' : 'Включить тему'
+        } else {
+            const isActive = enabledScripts.includes(currentAddon.name)
+            return isActive ? 'Выключить скрипт' : 'Включить скрипт'
+        }
+    }
+
+    const getEncodedPath = (p: string) => {
+        return encodeURI(p.replace(/\\/g, '/'))
+    }
     useEffect(() => {
         if (currentAddon?.path && currentAddon.banner) {
             const bannerPath = getEncodedPath(
@@ -239,7 +269,6 @@ const ExtensionViewPage: React.FC = () => {
                 }
             }
         }
-
         if (currentAddon) {
             checkConfigFile()
         }
@@ -247,7 +276,6 @@ const ExtensionViewPage: React.FC = () => {
 
     const upgradeConfig = (config: AddonConfig): AddonConfig => {
         const upgradedConfig = structuredClone(config)
-
         upgradedConfig.sections.forEach((section) => {
             section.items.forEach((item) => {
                 switch (item.type) {
@@ -276,7 +304,6 @@ const ExtensionViewPage: React.FC = () => {
                 }
             })
         })
-
         return upgradedConfig
     }
 
@@ -401,57 +428,37 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    const setNestedValue = (obj: any, path: string, value: any) => {
-        console.log(`Setting path: ${path} to value: ${value}`)
-        const keys = path.replace(/\[(\d+)\]/g, '.$1').split('.')
+    function isTextItem(item: Item): item is TextItem {
+        return item.type === 'text'
+    }
+
+    const setNestedValue = (obj: any, pathStr: string, value: any) => {
+        const keys = pathStr.replace(/\[(\d+)\]/g, '.$1').split('.')
         let current = obj
         for (let i = 0; i < keys.length - 1; i++) {
-            let key = keys[i]
-            let nextKey = keys[i + 1]
-            let index = Number(key)
-
+            const key = keys[i]
+            const nextKey = keys[i + 1]
+            const index = Number(key)
             if (Array.isArray(current)) {
-                if (isNaN(index)) {
-                    console.error(
-                        `Ожидался числовой индекс массива, но получил: ${key}`,
-                    )
-                    return
-                }
+                if (isNaN(index)) return
                 if (!current[index]) {
                     current[index] = isNaN(Number(nextKey)) ? {} : []
-                    console.log(
-                        `Initialized array index ${index} as ${isNaN(Number(nextKey)) ? '{}' : '[]'}`,
-                    )
                 }
                 current = current[index]
             } else {
                 if (!(key in current) || current[key] === null) {
                     current[key] = isNaN(Number(nextKey)) ? {} : []
-                    console.log(
-                        `Initialized key '${key}' as ${isNaN(Number(nextKey)) ? '{}' : '[]'}`,
-                    )
                 }
                 current = current[key]
             }
         }
         const lastKey = keys[keys.length - 1]
         if (Array.isArray(current)) {
-            const index = Number(lastKey)
-            if (isNaN(index)) {
-                console.error(
-                    `Ожидался числовой индекс массива, но получил: ${lastKey}`,
-                )
-                return
-            }
-            if (!current[index]) {
-                current[index] = {}
-                console.log(`Initialized array index ${index} as {}`)
-            }
-            current[index] = value
-            console.log(`Set array[${index}].${lastKey} = ${value}`)
+            const idx = Number(lastKey)
+            if (isNaN(idx)) return
+            current[idx] = value
         } else {
             current[lastKey] = value
-            console.log(`Set ${lastKey} = ${value}`)
         }
     }
 
@@ -462,20 +469,13 @@ const ExtensionViewPage: React.FC = () => {
         value: any,
     ) => {
         if (!configData) return
-
-        console.log(
-            `Updating field: section ${sectionIndex}, item ${itemIndex}, key '${key}' to value: '${value}'`,
-        )
-
         const updatedConfig = structuredClone(configData)
-
         if (itemIndex !== null) {
             const item = updatedConfig.sections[sectionIndex].items[itemIndex]
             setNestedValue(item, key, value)
         } else {
             setNestedValue(updatedConfig.sections[sectionIndex], key, value)
         }
-
         setConfigData(updatedConfig)
         writeConfigFile(updatedConfig)
     }
@@ -489,7 +489,6 @@ const ExtensionViewPage: React.FC = () => {
     ) => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
-
         const item = updatedConfig.sections[sectionIndex].items[itemIndex]
         if (isTextItem(item) && item.buttons[buttonIndex]) {
             const button = item.buttons[buttonIndex]
@@ -532,14 +531,13 @@ const ExtensionViewPage: React.FC = () => {
                 button.text = button.defaultParameter || button.text
                 setConfigData(updatedConfig)
                 writeConfigFile(updatedConfig)
-            } else {
-                console.error(`Кнопка с индексом ${buttonIndex} отсутствует.`)
             }
         }
     }
 
     const addSection = () => {
         if (!newSectionTitle.trim()) return
+        if (!configData) return
         const updatedConfig = structuredClone(configData)
         updatedConfig.sections.push({
             title: newSectionTitle.trim(),
@@ -551,6 +549,7 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const removeSection = (sectionIndex: number) => {
+        if (!configData) return
         const updatedConfig = structuredClone(configData)
         updatedConfig.sections.splice(sectionIndex, 1)
         setConfigData(updatedConfig)
@@ -558,8 +557,8 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const addItem = (sectionIndex: number, itemType: string) => {
+        if (!configData) return
         let newItem: Item
-
         switch (itemType) {
             case 'button':
                 newItem = {
@@ -612,7 +611,6 @@ const ExtensionViewPage: React.FC = () => {
             default:
                 return
         }
-
         const updatedConfig = structuredClone(configData)
         updatedConfig.sections[sectionIndex].items.push(newItem)
         setConfigData(updatedConfig)
@@ -620,6 +618,7 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     const removeItem = (sectionIndex: number, itemIndex: number) => {
+        if (!configData) return
         const updatedConfig = structuredClone(configData)
         updatedConfig.sections[sectionIndex].items.splice(itemIndex, 1)
         setConfigData(updatedConfig)
@@ -634,13 +633,8 @@ const ExtensionViewPage: React.FC = () => {
         )
     }
 
-    function isTextItem(item: Item): item is TextItem {
-        return item.type === 'text'
-    }
-
     const renderActiveTabContent = () => {
         if (!currentAddon) return null
-
         switch (activeTab) {
             case 'Overview':
                 return (
@@ -672,7 +666,6 @@ const ExtensionViewPage: React.FC = () => {
                         </div>
                     )
                 }
-
                 return configData ? (
                     <ConfigurationSettings
                         configData={configData}
@@ -728,9 +721,8 @@ const ExtensionViewPage: React.FC = () => {
                                 <div
                                     className={localStyles.bannerBackground}
                                     style={{
-                                        transition: true
-                                            ? 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease'
-                                            : 'none',
+                                        transition:
+                                            'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
                                         opacity: '1',
                                         backgroundImage: `url(${bannerImage})`,
                                         backgroundSize: 'cover',
@@ -887,32 +879,22 @@ const ExtensionViewPage: React.FC = () => {
                                             >
                                                 <Button
                                                     className={`${localStyles.defaultButton} ${
-                                                        activatedAddon ===
-                                                        currentAddon.name
+                                                        (currentAddon.type ===
+                                                            'theme' &&
+                                                            activatedTheme ===
+                                                                currentAddon.name) ||
+                                                        (currentAddon.type ===
+                                                            'script' &&
+                                                            enabledScripts.includes(
+                                                                currentAddon.name,
+                                                            ))
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
-                                                    onClick={
-                                                        activatedAddon !==
-                                                        currentAddon.name
-                                                            ? activateAddon
-                                                            : toggleAddonActivation
-                                                    }
-                                                    title={
-                                                        activatedAddon !==
-                                                        currentAddon.name
-                                                            ? 'Включить тему'
-                                                            : themeActive
-                                                              ? 'Выключить тему'
-                                                              : 'Включить тему'
-                                                    }
+                                                    onClick={handleToggleAddon}
+                                                    title={getToggleTitle()}
                                                 >
-                                                    {activatedAddon !==
-                                                    currentAddon.name
-                                                        ? 'Включить'
-                                                        : themeActive
-                                                          ? 'Выключить'
-                                                          : 'Включить'}
+                                                    {getToggleButtonText()}
                                                 </Button>
                                                 <Button
                                                     className={
@@ -998,15 +980,15 @@ const ExtensionViewPage: React.FC = () => {
                                     {editMode && activeTab === 'Settings' && (
                                         <div className={localStyles.howAlert}>
                                             Подробную информацию о том, как с этим
-                                            работать, можно найти в нашем{' '}
+                                            работать, можно найти в&nbsp;
                                             <a
                                                 href="https://discord.gg/qy42uGTzRy"
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                             >
-                                                Discord канале
-                                            </a>{' '}
-                                            в разделе extension!
+                                                нашем Discord
+                                            </a>
+                                            !
                                         </div>
                                     )}
                                     {renderActiveTabContent()}

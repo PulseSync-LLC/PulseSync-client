@@ -17,10 +17,15 @@ import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 
 export default function ExtensionPage() {
-    const [currentAddonName, setCurrentAddonName] = useState(
+    const { addons, setAddons } = useContext(userContext)
+
+    const [currentTheme, setCurrentTheme] = useState(
         window.electron.store.get('addons.theme') || 'Default',
     )
-    const { addons, setAddons } = useContext(userContext)
+    const [enabledScripts, setEnabledScripts] = useState<string[]>(
+        window.electron.store.get('addons.scripts') || [],
+    )
+
     const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(
@@ -28,18 +33,15 @@ export default function ExtensionPage() {
     )
     const [filterVisible, setFilterVisible] = useState(false)
     const [optionMenu, setOptionMenu] = useState(false)
-
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
         new Set(window.electron.store.get('addons.selectedTags') || []),
     )
     const [columnsCount, setColumnsCount] = useState(
         window.electron.store.get('addons.columnsCount') || 3,
     )
-
     const [searchParams] = useSearchParams()
     const selectedTagFromURL = searchParams.get('selectedTag')
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
@@ -59,8 +61,8 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         if (selectedTagFromURL) {
-            setSelectedTags((prevTags) => {
-                const copy = new Set(prevTags)
+            setSelectedTags((prev) => {
+                const copy = new Set(prev)
                 copy.add(selectedTagFromURL)
                 return copy
             })
@@ -71,37 +73,62 @@ export default function ExtensionPage() {
         loadAddons()
     }, [])
 
+    useEffect(() => {
+        window.electron.store.set('addons.scripts', enabledScripts)
+    }, [enabledScripts])
+
+    useEffect(() => {
+        window.electron.store.set('addons.theme', currentTheme)
+    }, [currentTheme])
+
     const reloadAddons = () => {
         setAddons([])
         loadAddons()
         toast.custom('success', 'Сделано', 'Расширения перезагружены')
     }
 
-    const handleCheckboxChange = (addonName: string, isChecked: boolean) => {
-        const newAddon = isChecked ? addonName : 'Default'
-        window.electron.store.set('addons.theme', newAddon)
-        setCurrentAddonName(newAddon)
-
-        window.desktopEvents?.send('themeChanged', 'Default')
-        window.desktopEvents?.send('themeChanged', newAddon)
+    const handleCheckboxChange = (addon: AddonInterface, newChecked: boolean) => {
+        if (addon.type === 'theme') {
+            if (newChecked) {
+                setCurrentTheme(addon.name)
+                window.desktopEvents?.send('themeChanged', 'Default')
+                window.desktopEvents?.send('themeChanged', addon.name)
+            } else {
+                setCurrentTheme('Default')
+                window.desktopEvents?.send('themeChanged', 'Default')
+            }
+        } else {
+            if (newChecked) {
+                setEnabledScripts((prev) => {
+                    if (!prev.includes(addon.name)) {
+                        return [...prev, addon.name]
+                    }
+                    return prev
+                })
+            } else {
+                setEnabledScripts((prev) =>
+                    prev.filter((scriptName) => scriptName !== addon.name),
+                )
+            }
+        }
     }
 
-    const handleSearchChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setSearchQuery(event.target.value.toLowerCase())
+    const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setSearchQuery(e.target.value.toLowerCase())
     }
 
-    const handleHideEnabledChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        setHideEnabled(event.target.checked)
+    const handleHideEnabledChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        setHideEnabled(e.target.checked)
     }
 
     const handleTagChange = (tag: string) => {
-        const updatedTags = new Set(selectedTags)
-        updatedTags.has(tag) ? updatedTags.delete(tag) : updatedTags.add(tag)
-        setSelectedTags(updatedTags)
+        const updated = new Set(selectedTags)
+        updated.has(tag) ? updated.delete(tag) : updated.add(tag)
+        setSelectedTags(updated)
     }
 
-    const filterAndSortAddons = (themeList: AddonInterface[]) => {
-        return themeList
+    const filterAndSortAddons = (list: AddonInterface[]) => {
+        return list
             .filter((item) => item.name !== 'Default')
             .map((item) => ({
                 ...item,
@@ -120,49 +147,45 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    const filterAddonsByTags = (addonList: AddonInterface[], tags: Set<string>) => {
-        if (tags.size === 0) return addonList
-        return addonList.filter((item) => item.tags?.some((tag) => tags.has(tag)))
+    const filterAddonsByTags = (list: AddonInterface[], tags: Set<string>) => {
+        if (tags.size === 0) return list
+        return list.filter((item) => item.tags?.some((t) => tags.has(t)))
     }
 
-    const getFilteredAddons = (themeType: string) => {
-        const filtered = filterAndSortAddons(
-            filterAddonsByTags(addons, selectedTags),
-        )
-        return themeType === currentAddonName
-            ? filtered.filter((item) => item.name === currentAddonName)
-            : filtered.filter((item) => item.name !== currentAddonName)
+    function getPriority(
+        addon: AddonInterface,
+        currentTheme: string,
+        enabledScripts: string[],
+    ) {
+        const isTheme = addon.type === 'theme'
+        const isEnabledTheme = isTheme && addon.name === currentTheme
+        if (isEnabledTheme) return 0
+
+        const isScript = addon.type === 'script'
+        const isEnabledScript = isScript && enabledScripts.includes(addon.name)
+        if (isEnabledScript) return 1
+
+        return 2
     }
 
-    const enabledAddons = getFilteredAddons(currentAddonName)
-    const disabledAddons = getFilteredAddons('other')
-    const filteredEnabledAddons = hideEnabled ? [] : enabledAddons
-    const filteredDisabledAddons = hideEnabled ? disabledAddons : disabledAddons
-
-    const allTags = Array.from(new Set(addons.flatMap((item) => item.tags || [])))
-
-    const tagCounts = allTags.reduce(
-        (acc, tag) => {
-            acc[tag] = addons.filter((item) => item.tags?.includes(tag)).length
-            return acc
-        },
-        {} as Record<string, number>,
-    )
-
-    const getMergedSortedAddons = () => {
+    function getMergedSortedAddons(): AddonInterface[] {
         let filtered = filterAddonsByTags(addons, selectedTags)
         filtered = filterAndSortAddons(filtered)
 
         if (hideEnabled) {
-            filtered = filtered.filter((item) => item.name !== currentAddonName)
+            filtered = filtered.filter((item) => {
+                if (item.type === 'theme') {
+                    return item.name !== currentTheme
+                } else {
+                    return !enabledScripts.includes(item.name)
+                }
+            })
         }
 
         filtered.sort((a, b) => {
-            const aEnabled = a.name === currentAddonName
-            const bEnabled = b.name === currentAddonName
-            if (aEnabled && !bEnabled) return -1
-            if (!aEnabled && bEnabled) return 1
-            return 0
+            const aPriority = getPriority(a, currentTheme, enabledScripts)
+            const bPriority = getPriority(b, currentTheme, enabledScripts)
+            return aPriority - bPriority
         })
 
         return filtered
@@ -180,8 +203,8 @@ export default function ExtensionPage() {
         window.electron.store.set('addons.hideEnabled', hideEnabled)
     }, [selectedTags, columnsCount, hideEnabled])
 
-    const handleColumnsChange = (columns: number) => {
-        setColumnsCount(columns)
+    const handleColumnsChange = (n: number) => {
+        setColumnsCount(n)
     }
 
     const toggleMenu = (menu: 'filter' | 'option') => {
@@ -190,7 +213,7 @@ export default function ExtensionPage() {
                 if (!prev) setOptionMenu(false)
                 return !prev
             })
-        } else if (menu === 'option') {
+        } else {
             setOptionMenu((prev) => {
                 if (!prev) setFilterVisible(false)
                 return !prev
@@ -374,14 +397,20 @@ export default function ExtensionPage() {
                                                         : ''
                                                 }
                                             />
-                                            {allTags.map((tag) => (
+                                            {Array.from(
+                                                new Set(
+                                                    addons.flatMap(
+                                                        (item) => item.tags || [],
+                                                    ),
+                                                ),
+                                            ).map((tag) => (
                                                 <CustomCheckbox
                                                     key={tag}
                                                     checked={selectedTags.has(tag)}
                                                     onChange={() =>
                                                         handleTagChange(tag)
                                                     }
-                                                    label={`${tag} (${tagCounts[tag]})`}
+                                                    label={tag}
                                                     className={
                                                         selectedTags.has(tag)
                                                             ? extensionStyles.selectedTag
@@ -403,19 +432,30 @@ export default function ExtensionPage() {
                                             gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                         }}
                                     >
-                                        {mergedAddons.map((item) => {
+                                        {mergedAddons.map((addon) => {
                                             const checked =
-                                                item.name === currentAddonName
+                                                addon.type === 'theme'
+                                                    ? addon.name === currentTheme
+                                                    : enabledScripts.includes(
+                                                          addon.name,
+                                                      )
+
                                             return (
                                                 <ExtensionCard
-                                                    key={item.name}
-                                                    theme={item}
+                                                    key={addon.name}
+                                                    theme={addon}
                                                     isChecked={checked}
-                                                    onCheckboxChange={
-                                                        handleCheckboxChange
+                                                    onCheckboxChange={(
+                                                        _unused,
+                                                        newIsChecked,
+                                                    ) =>
+                                                        handleCheckboxChange(
+                                                            addon,
+                                                            newIsChecked,
+                                                        )
                                                     }
                                                     className={
-                                                        item.matches
+                                                        addon.matches
                                                             ? 'highlight'
                                                             : 'dimmed'
                                                     }

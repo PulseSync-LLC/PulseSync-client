@@ -1,5 +1,5 @@
 export default interface AddonInterface {
-    matches: any
+    matches?: boolean
     name: string
     image: string
     banner: string
@@ -10,5 +10,6 @@ export default interface AddonInterface {
     lastModified: number
     size: number
     tags: string[]
-    type: string
+    type: 'theme' | 'script'
+    enabled: boolean
 }

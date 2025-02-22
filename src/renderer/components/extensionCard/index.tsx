@@ -7,6 +7,7 @@ import {
     MdColorLens,
     MdInfoOutline,
     MdTextSnippet,
+    MdWarningAmber,
 } from 'react-icons/md'
 import * as cardStyles from './card.module.scss'
 
@@ -21,14 +22,31 @@ interface ExtensionCardProps {
 const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
     ({ theme, isChecked, onCheckboxChange, className, style }) => {
         const navigate = useNavigate()
-        const [imageSrc, setImageSrc] = useState('static/assets/images/no_themeImage.png')
+        const [imageSrc, setImageSrc] = useState(
+            'static/assets/images/no_themeImage.png',
+        )
         const [bannerSrc, setBannerSrc] = useState(
             'static/assets/images/no_themeBackground.png',
         )
         const [showUserInfo, setShowUserInfo] = useState(false)
-        const [clickAllowed, setClickAllowed] = useState(true)
+        const [showWarnInfo, setShowWarnInfo] = useState(false)
         const cardRef = useRef<HTMLDivElement | null>(null)
         const [bannerRef, isBannerInView] = useInView({ threshold: 0.1 })
+
+        function checkMissingFields(addon: AddonInterface): string[] {
+            const missing: string[] = []
+            if (!addon.name) missing.push('name')
+            if (!addon.author) missing.push('author')
+            if (!addon.description) missing.push('description')
+            if (!addon.version) missing.push('version')
+            if (!addon.image) missing.push('image')
+            if (!addon.banner) missing.push('banner')
+            if (!addon.type) missing.push('type')
+            return missing
+        }
+
+        const missingFields = checkMissingFields(theme)
+
         const getEncodedPath = (p: string) => encodeURI(p.replace(/\\/g, '/'))
 
         useEffect(() => {
@@ -64,15 +82,14 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
         }, [isBannerInView, theme])
 
         const handleClick = () => {
-            if (clickAllowed) {
-                navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
-            }
+            navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
         }
 
         const isTheme = theme.type === 'theme'
         const checkMarkColorClass = isTheme
             ? cardStyles.card__checkMarkTheme
             : cardStyles.card__checkMarkScript
+
         const typeBadgeClass = isTheme
             ? cardStyles.card__typeBadgeTheme
             : cardStyles.card__typeBadgeScript
@@ -91,6 +108,29 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         <MdCheckCircle size={18} />
                     </div>
                 )}
+
+                {missingFields.length > 0 && (
+                    <>
+                        <div
+                            className={cardStyles.card__warnBox}
+                            onMouseEnter={() => setShowWarnInfo(true)}
+                            onMouseLeave={() => setShowWarnInfo(false)}
+                        >
+                            <MdWarningAmber size={18} />
+                        </div>
+                        {showWarnInfo && (
+                            <div className={cardStyles.card__warnTooltip}>
+                                <strong>Исправте ошибкм в metadata.json</strong>
+                                <ul>
+                                    {missingFields.map((field) => (
+                                        <li key={field}>{field}</li>
+                                    ))}
+                                </ul>
+                            </div>
+                        )}
+                    </>
+                )}
+
                 <div
                     className={cardStyles.card__infoIcon}
                     onMouseEnter={() => setShowUserInfo(true)}
@@ -98,6 +138,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                 >
                     <MdInfoOutline size={20} />
                 </div>
+
                 {showUserInfo && (
                     <div
                         className={cardStyles.card__infoTooltip}
@@ -112,6 +153,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         </p>
                     </div>
                 )}
+
                 <div
                     ref={bannerRef}
                     className={`${cardStyles.card__banner} ${cardStyles.card__ratio169}`}
@@ -120,6 +162,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         backgroundSize: 'cover',
                     }}
                 />
+
                 <div className={cardStyles.card__bottom}>
                     <div className={cardStyles.card__bottomLeft}>
                         <img
