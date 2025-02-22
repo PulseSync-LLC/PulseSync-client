@@ -120,7 +120,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         </div>
                         {showWarnInfo && (
                             <div className={cardStyles.card__warnTooltip}>
-                                <strong>Исправте ошибкм в metadata.json</strong>
+                                <strong>Исправьте ошибки в metadata.json</strong>
                                 <ul>
                                     {missingFields.map((field) => (
                                         <li key={field}>{field}</li>
