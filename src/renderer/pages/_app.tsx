@@ -492,6 +492,10 @@ function App() {
                 .then((fetchedAddons: AddonInterface[]) => {
                     const foundAddon = fetchedAddons.find((t) => t.name === data)
                     if (foundAddon) {
+                        if(!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
+                            toast.custom('error', 'Ошибка.', 'У аддона отсутвует поле type или оно некорректно', null, null, 15000)
+                            return
+                        }
                         setAddons(fetchedAddons)
                         setNavigateTo(`/extensionbeta/${foundAddon.name}`)
                         setNavigateState(foundAddon)

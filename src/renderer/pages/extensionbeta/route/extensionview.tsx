@@ -35,6 +35,7 @@ import {
 
 import * as globalStyles from '../../../../../static/styles/page/index.module.scss'
 import * as localStyles from './extensionview.module.scss'
+import addonInitials from '../../../api/initials/addon.initials'
 
 const ExtensionViewPage: React.FC = () => {
     const [activatedTheme, setActivatedTheme] = useState<string>(
@@ -45,6 +46,7 @@ const ExtensionViewPage: React.FC = () => {
         window.electron.store.get('addons.scripts') || [],
     )
 
+    const isFirstRender = useRef(true)
     const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
     const [bannerImage, setBannerImage] = useState(
@@ -65,7 +67,12 @@ const ExtensionViewPage: React.FC = () => {
     const navigate = useNavigate()
 
     useEffect(() => {
+        if (isFirstRender.current) {
+            isFirstRender.current = false
+            return
+        }
         window.electron.store.set('addons.scripts', enabledScripts)
+        window.desktopEvents?.send('REFRESH_EXTENSIONS')
     }, [enabledScripts])
 
     useEffect(() => {
@@ -74,6 +81,7 @@ const ExtensionViewPage: React.FC = () => {
 
     useEffect(() => {
         const receivedAddon = location.state?.theme as AddonInterface
+
         if (receivedAddon) {
             setCurrentAddon(receivedAddon)
         } else {
@@ -157,25 +165,27 @@ const ExtensionViewPage: React.FC = () => {
     const handleToggleAddon = () => {
         if (!currentAddon) return
 
-        if (currentAddon.type === 'theme') {
-            if (activatedTheme === currentAddon.name) {
+        if (currentAddon.type === 'theme' || !currentAddon.type) {
+            if (activatedTheme === currentAddon.directoryName) {
                 setActivatedTheme('Default')
-                window.desktopEvents?.send('themeChanged', 'Default')
+                window.desktopEvents?.send('themeChanged', addonInitials[0])
                 setThemeActive(false)
             } else {
-                setActivatedTheme(currentAddon.name)
-                window.desktopEvents?.send('themeChanged', 'Default')
-                window.desktopEvents?.send('themeChanged', currentAddon.name)
+                setActivatedTheme(currentAddon.directoryName)
+                window.desktopEvents?.send('themeChanged', addonInitials[0])
+                window.desktopEvents?.send('themeChanged', currentAddon)
                 setThemeActive(true)
             }
         } else {
-            const isScriptEnabled = enabledScripts.includes(currentAddon.name)
+            const isScriptEnabled = enabledScripts.includes(
+                currentAddon.directoryName,
+            )
             if (isScriptEnabled) {
                 setEnabledScripts((prev) =>
-                    prev.filter((item) => item !== currentAddon.name),
+                    prev.filter((item) => item !== currentAddon.directoryName),
                 )
             } else {
-                setEnabledScripts((prev) => [...prev, currentAddon.name])
+                setEnabledScripts((prev) => [...prev, currentAddon.directoryName])
             }
         }
     }
@@ -183,9 +193,11 @@ const ExtensionViewPage: React.FC = () => {
     const getToggleButtonText = () => {
         if (!currentAddon) return ''
         if (currentAddon.type === 'theme') {
-            return activatedTheme === currentAddon.name ? 'Выключить' : 'Включить'
+            return activatedTheme === currentAddon.directoryName
+                ? 'Выключить'
+                : 'Включить'
         } else {
-            return enabledScripts.includes(currentAddon.name)
+            return enabledScripts.includes(currentAddon.directoryName)
                 ? 'Выключить'
                 : 'Включить'
         }
@@ -194,10 +206,10 @@ const ExtensionViewPage: React.FC = () => {
     const getToggleTitle = () => {
         if (!currentAddon) return ''
         if (currentAddon.type === 'theme') {
-            const isActive = activatedTheme === currentAddon.name
+            const isActive = activatedTheme === currentAddon.directoryName
             return isActive ? 'Выключить тему' : 'Включить тему'
         } else {
-            const isActive = enabledScripts.includes(currentAddon.name)
+            const isActive = enabledScripts.includes(currentAddon.directoryName)
             return isActive ? 'Выключить скрипт' : 'Включить скрипт'
         }
     }
@@ -640,14 +652,15 @@ const ExtensionViewPage: React.FC = () => {
                 return (
                     <div className={localStyles.galleryContainer}>
                         <div className={localStyles.markdownContent}>
-                            <ReactMarkdown
-                                className={localStyles.markdownText}
-                                remarkPlugins={[remarkGfm, remarkBreaks]}
-                                rehypePlugins={[rehypeRaw]}
-                                components={{ a: MarkdownLink }}
-                            >
-                                {markdownData || currentAddon.description}
-                            </ReactMarkdown>
+                            <div className={localStyles.markdownText}>
+                                <ReactMarkdown
+                                    remarkPlugins={[remarkGfm, remarkBreaks]}
+                                    rehypePlugins={[rehypeRaw]}
+                                    components={{ a: MarkdownLink }}
+                                >
+                                    {markdownData || currentAddon.description}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                     </div>
                 )
@@ -882,15 +895,17 @@ const ExtensionViewPage: React.FC = () => {
                                                         (currentAddon.type ===
                                                             'theme' &&
                                                             activatedTheme ===
-                                                                currentAddon.name) ||
+                                                                currentAddon.directoryName) ||
                                                         (currentAddon.type ===
                                                             'script' &&
                                                             enabledScripts.includes(
-                                                                currentAddon.name,
+                                                                currentAddon.directoryName,
                                                             ))
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
+                                                    disabled={(!currentAddon.type ||
+                                                        (currentAddon.type !== 'theme' && currentAddon.type !== 'script'))}
                                                     onClick={handleToggleAddon}
                                                     title={getToggleTitle()}
                                                 >

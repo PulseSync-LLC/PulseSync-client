@@ -416,6 +416,10 @@
 
     color: #ffffff;
 
+    &:disabled {
+        opacity: 0.5;
+    }
+
     &:hover {
         background: rgba(129, 141, 179, 0.44);
     }
@@ -425,6 +429,9 @@
     transition: var(--transition);
     background: #3468f2;
 
+    &:disabled {
+        opacity: 0.5;
+    }
     &:hover {
         background: rgb(37, 83, 209);
     }

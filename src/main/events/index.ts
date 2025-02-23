@@ -3,14 +3,13 @@ import logger from '../modules/logger'
 import path from 'path'
 import fs from 'fs'
 import * as si from 'systeminformation'
-import os from 'os'
+import os from 'node:os'
 import { v4 } from 'uuid'
 import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, updateAppId } from '../modules/discordRpc'
-import archiver from 'archiver'
 import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
@@ -133,7 +132,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 const themesFolderPath = path.join(
                     app.getPath('appData'),
                     'PulseSync',
-                    'themes',
+                    'addons',
                 )
                 await shell.openPath(themesFolderPath)
                 break
@@ -142,7 +141,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 const themeFolder = path.join(
                     app.getPath('appData'),
                     'PulseSync',
-                    'themes',
+                    'addons',
                     data.themeName,
                 )
                 await shell.openPath(themeFolder)
@@ -343,12 +342,14 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
         const archiveName = `logs-${year}-${month}-${day}.zip`
         const archivePath = path.join(logDirPath, archiveName)
         const userInfo = os.userInfo()
+        let gpuData = await si.graphics()
+
         const systemInfo = {
             appVersion: app.getVersion(),
             osType: os.type(),
             osRelease: os.release(),
             cpu: os.cpus(),
-            memory: os.totalmem(),
+            gpu: gpuData.controllers,
             freeMemory: os.freemem(),
             arch: os.arch(),
             platform: os.platform(),
@@ -359,6 +360,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
                 homedir: userInfo.homedir,
             },
         }
+
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
         try {
             fs.writeFileSync(
@@ -371,23 +373,19 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
                 `Error while creating system-info.json: ${error.message}`,
             )
         }
+
         try {
-            const output = fs.createWriteStream(archivePath)
-            const archive = archiver('zip', { zlib: { level: 9 } })
-            output.on('close', () => {
-                shell.showItemInFolder(archivePath)
-            })
-            archive.on('error', (err) => {
-                logger.main.error(
-                    `Error while creating archive file: ${err.message}`,
-                )
-            })
-            archive.pipe(output)
-            archive.glob('**/*', {
-                cwd: logDirPath,
-                ignore: ['*.zip', archiveName],
-            })
-            await archive.finalize()
+            const zip = new AdmZip()
+
+            zip.addLocalFolder(
+                logDirPath,
+                '',
+                (filePath) => !filePath.endsWith('.zip') && filePath !== archiveName,
+            )
+
+            zip.writeZip(archivePath)
+
+            shell.showItemInFolder(archivePath)
         } catch (error) {
             logger.main.error(`Error while creating archive file: ${error.message}`)
         }
@@ -412,6 +410,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
                 description: 'Default theme.',
                 css: 'style.css',
                 script: 'script.js',
+                type: 'theme',
                 tags: ['PulseSync'],
             }
             const defaultCssContent = `{}`

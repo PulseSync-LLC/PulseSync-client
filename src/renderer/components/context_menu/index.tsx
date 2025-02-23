@@ -245,7 +245,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
         window.desktopEvents?.once('download-track-finished', () => {
             console.log(toastId)
-            toast.custom('success', `Готово`, 'Загрузка завершена', { id: toastId })
+            toast.custom('success', `Готово`, 'Загрузка завершена', {
+                id: toastId,
+            })
             cleanListeners()
         })
     }

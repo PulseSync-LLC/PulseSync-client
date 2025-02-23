@@ -3,6 +3,7 @@ import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
+import fs from 'original-fs'
 
 const execAsync = promisify(exec)
 
@@ -85,5 +86,40 @@ export const isMac = () => {
 export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
     return crypto.createHash('sha256').update(asarPath).digest('hex')
 }
+
+export const formatSizeUnits = (bytes: any) => {
+    if (bytes >= 1073741824) {
+        return (bytes / 1073741824).toFixed(2) + ' GB'
+    } else if (bytes >= 1048576) {
+        return (bytes / 1048576).toFixed(2) + ' MB'
+    } else if (bytes >= 1024) {
+        return (bytes / 1024).toFixed(2) + ' KB'
+    } else if (bytes > 1) {
+        return bytes + ' bytes'
+    } else if (bytes == 1) {
+        return bytes + ' byte'
+    } else {
+        return '0 byte'
+    }
+}
+export const getFolderSize = async (folderPath: any) => {
+    let totalSize = 0
+
+    const files = await fs.promises.readdir(folderPath)
+
+    for (const file of files) {
+        const filePath = path.join(folderPath, file)
+        const stats = await fs.promises.stat(filePath)
+
+        if (stats.isDirectory()) {
+            totalSize += await getFolderSize(filePath)
+        } else {
+            totalSize += stats.size
+        }
+    }
+
+    return totalSize
+}
+export const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 export default closeYandexMusic

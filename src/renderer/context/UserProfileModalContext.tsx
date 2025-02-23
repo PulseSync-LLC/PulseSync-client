@@ -11,9 +11,9 @@ const UserProfileModalContext = createContext<UserProfileModalContextType>({
     closeUserProfile: () => {},
 })
 
-export const UserProfileModalProvider: React.FC<{ children: React.ReactNode }> = ({
-    children,
-}) => {
+export const UserProfileModalProvider: React.FC<{
+    children: React.ReactNode
+}> = ({ children }) => {
     const [selectedUser, setSelectedUser] = useState<string | null>(null)
     const [isModalOpen, setModalOpen] = useState(false)
 

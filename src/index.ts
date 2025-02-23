@@ -3,7 +3,6 @@ import {
     BrowserWindow,
     dialog,
     ipcMain,
-    nativeTheme,
     Notification,
     powerMonitor,
     protocol,
@@ -17,7 +16,6 @@ import path from 'path'
 import * as fs from 'original-fs'
 import { initializeStore, store } from './main/modules/storage'
 import createTray from './main/modules/tray'
-import { rpc_connect } from './main/modules/discordRpc'
 import corsAnywhereServer from 'cors-anywhere'
 import getPort from 'get-port'
 import config from './config.json'
@@ -29,13 +27,14 @@ import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
-import { getPathToYandexMusic } from './main/utils/appUtils'
+import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic } from './main/utils/appUtils'
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { handleMod } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
+import { promisify } from 'util'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -267,7 +266,7 @@ app.on('ready', async () => {
     await corsAnywhere()
     checkCLIArguments()
     createWindow() // Все что связано с mainWindow должно устанавливаться после этого метода
-    checkForSingleInstance()
+    await checkForSingleInstance()
     handleAppEvents(mainWindow)
     handleMod(mainWindow)
     handleDeeplinkOnApplicationStartup()
@@ -302,15 +301,15 @@ function createDefaultAddonIfNotExists(themesFolderPath: string) {
     }
 }
 async function loadAddons(): Promise<Addon[]> {
-    const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const addonsFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
 
     try {
-        createDefaultAddonIfNotExists(themesFolderPath)
-        const folders = await fs.promises.readdir(themesFolderPath)
+        createDefaultAddonIfNotExists(addonsFolderPath)
+        const folders = await fs.promises.readdir(addonsFolderPath)
         availableAddons = []
 
         for (const folder of folders) {
-            const themeFolderPath = path.join(themesFolderPath, folder)
+            const themeFolderPath = path.join(addonsFolderPath, folder)
             const metadataFilePath = path.join(themeFolderPath, 'metadata.json')
 
             if (fs.existsSync(metadataFilePath)) {
@@ -345,7 +344,7 @@ async function loadAddons(): Promise<Addon[]> {
                     }
 
                     const versionRegex = /^\d+(\.\d+){0,2}$/
-                    const metadata = JSON.parse(data)
+                    const metadata = JSON.parse(data) as Addon
                     const versionMatch = metadata.version.match(versionRegex)
                     if (!versionMatch) {
                         logger.main.log(
@@ -370,6 +369,7 @@ async function loadAddons(): Promise<Addon[]> {
                     metadata.lastModified = diffString
                     metadata.path = themeFolderPath
                     metadata.size = formatSizeUnits(folderSize)
+                    metadata.directoryName = folder
                     availableAddons.push(metadata)
                 } catch (err) {
                     logger.main.error(
@@ -390,39 +390,7 @@ async function loadAddons(): Promise<Addon[]> {
         throw err
     }
 }
-const formatSizeUnits = (bytes: any) => {
-    if (bytes >= 1073741824) {
-        return (bytes / 1073741824).toFixed(2) + ' GB'
-    } else if (bytes >= 1048576) {
-        return (bytes / 1048576).toFixed(2) + ' MB'
-    } else if (bytes >= 1024) {
-        return (bytes / 1024).toFixed(2) + ' KB'
-    } else if (bytes > 1) {
-        return bytes + ' bytes'
-    } else if (bytes == 1) {
-        return bytes + ' byte'
-    } else {
-        return '0 byte'
-    }
-}
-const getFolderSize = async (folderPath: any) => {
-    let totalSize = 0
 
-    const files = await fs.promises.readdir(folderPath)
-
-    for (const file of files) {
-        const filePath = path.join(folderPath, file)
-        const stats = await fs.promises.stat(filePath)
-
-        if (stats.isDirectory()) {
-            totalSize += await getFolderSize(filePath)
-        } else {
-            totalSize += stats.size
-        }
-    }
-
-    return totalSize
-}
 ipcMain.handle('getAddons', async () => {
     try {
         return await loadAddons()
@@ -430,8 +398,6 @@ ipcMain.handle('getAddons', async () => {
         logger.main.error('Addons: Error loading themes:', error)
     }
 })
-
-const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
     switch (eventType) {
@@ -495,9 +461,9 @@ ipcMain.handle('deleteAddonDirectory', async (event, themeDirectoryPath) => {
     }
 })
 
-ipcMain.on('themeChanged', (event, themeName) => {
-    logger.main.info(`Addons: theme changed to: ${themeName}`)
-    selectedAddon = themeName
+ipcMain.on('themeChanged', (event, addon: Addon) => {
+    logger.main.info(`Addons: theme changed to: ${addon.directoryName}`)
+    selectedAddon = addon.directoryName
     setAddon(selectedAddon)
 })
 function initializeAddon() {
@@ -533,20 +499,39 @@ export async function prestartCheck() {
             title: 'Яндекс Музыка не найдена 😡',
             body: 'Пожалуйста, откройте приложение после установки музыки',
         }).show()
-        await dialog.showMessageBox({
+        dialog.showMessageBox({
             type: 'info',
             title: 'Яндекс Музыка не найдена 😡',
             message: 'Пожалуйста, откройте приложение после установки музыки',
             buttons: ['OK'],
         })
-        return setTimeout(async () => {
+        setTimeout(async () => {
             app.quit()
         }, 2500)
     }
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
+    const readdir = promisify(fs.readdir);
+    const rename = promisify(fs.rename);
 
+    await (async () => {
+        const pulseSyncPath = path.join(app.getPath('appData'), 'PulseSync');
+        const themesFolderPath = path.join(pulseSyncPath, 'themes');
+        const addonsFolderPath = path.join(pulseSyncPath, 'addons');
+
+        try {
+            const files = await readdir(themesFolderPath);
+            if (files.length) {
+                await rename(themesFolderPath, addonsFolderPath);
+                logger.main.info('Папка themes переименована в addons.');
+            }
+        } catch (err) {
+            if (err.code !== 'ENOENT') {
+                logger.main.error('Ошибка при переименовании папки themes:', err);
+            }
+        }
+    })();
     const asarCopy = path.join(musicPath, 'app.backup.asar')
 
     if (!store.has('discordRpc.enableGithubButton')) {
@@ -570,7 +555,7 @@ export async function prestartCheck() {
         store.set('mod.installed', true)
     }
     initializeAddon()
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     logger.main.info(app.getPath('appData'))
     const watcher = chokidar.watch(themesPath, {
         persistent: true,

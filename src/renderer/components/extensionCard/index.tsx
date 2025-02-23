@@ -85,7 +85,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
             navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
         }
 
-        const isTheme = theme.type === 'theme'
+        const isTheme = theme.type === 'theme' || !theme.type
         const checkMarkColorClass = isTheme
             ? cardStyles.card__checkMarkTheme
             : cardStyles.card__checkMarkScript

@@ -319,8 +319,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                                 </div>
                             ))}
                         </div>
-                    )
-                }
+                    )}
                 <div className={achv.achievementFooter}>
                     {!isCompleted && (
                         <div

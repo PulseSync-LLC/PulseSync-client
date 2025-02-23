@@ -12,6 +12,7 @@ import trackInitials from '../../renderer/api/initials/track.initials'
 import { isFirstInstance } from './singleInstance'
 import config from '../../config.json'
 import { store } from './storage'
+import { parse } from 'url'
 
 const eventEmitter = new EventEmitter()
 let data: any = {}
@@ -21,6 +22,7 @@ let attempt = 0
 
 const startWebSocketServer = () => {
     if (!isFirstInstance) return
+
     if (ws) {
         ws.clients.forEach((client) => client.close())
         ws.close()
@@ -69,8 +71,16 @@ const initializeServer = () => {
             JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }),
         )
         sendAddon(true, true)
-        setTimeout(() => {
+        socket.send(
+            JSON.stringify({
+                ok: true,
+                type: 'REFRESH_EXTENSIONS',
+                addons: [],
+            }),
+        )
+        setTimeout(async () => {
             sendAddon(true)
+            await sendExtensions()
         }, 1000)
 
         socket.on('message', (message: any) => {
@@ -117,17 +127,19 @@ const initializeServer = () => {
             return
         }
 
-        if (req.method === 'GET' && req.url === '/get_handle') {
+        const parsedUrl = parse(req.url!, true)
+
+        if (req.method === 'GET' && parsedUrl.pathname === '/get_handle') {
             handleGetHandleRequest(req, res)
             return
         }
 
-        if (req.method === 'GET' && req.url === '/assets') {
+        if (req.method === 'GET' && parsedUrl.pathname === '/assets') {
             handleGetAssetsRequest(req, res)
             return
         }
 
-        if (req.method === 'GET' && req.url?.startsWith('/assets/')) {
+        if (req.method === 'GET' && parsedUrl.pathname?.startsWith('/assets/')) {
             handleGetAssetFileRequest(req, res)
             return
         }
@@ -193,11 +205,18 @@ const handleGetHandleRequest = (
     res: http.ServerResponse,
 ) => {
     try {
+        const urlObj = parse(req.url!, true)
+        const name = urlObj.query.name as string
+        if (!name) {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            res.end(JSON.stringify({ error: 'Handle events data not found' }))
+            return
+        }
         const handleEventsPath = path.join(
             app.getPath('appData'),
             'PulseSync',
-            'themes',
-            selectedAddon,
+            'addons',
+            name,
             'handleEvents.json',
         )
 
@@ -224,7 +243,7 @@ const handleGetAssetsRequest = (
     res: http.ServerResponse,
 ) => {
     try {
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
         const themePath = path.join(themesPath, selectedAddon)
         const assetsPath = path.join(themePath, 'Assets')
 
@@ -256,7 +275,7 @@ const handleGetAssetFileRequest = (
     res: http.ServerResponse,
 ) => {
     try {
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
         const themePath = path.join(themesPath, selectedAddon)
         const assetsPath = path.join(themePath, 'Assets')
         const fileName = req.url!.substring('/assets/'.length)
@@ -345,7 +364,7 @@ export { eventEmitter }
 
 export const setAddon = (theme: string) => {
     if (!authorized) return
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     const themePath = path.join(themesPath, selectedAddon)
     const metadataPath = path.join(themePath, 'metadata.json')
 
@@ -373,7 +392,13 @@ export const setAddon = (theme: string) => {
         css: cssContent || '{}',
         script: jsContent || '',
     }
-
+    if (
+        (!metadata.type ||
+            (metadata.type !== 'theme' && metadata.type !== 'script')) &&
+        metadata.name !== 'Default'
+    ) {
+        return
+    }
     const waitForSocket = new Promise<void>((resolve) => {
         const interval = setInterval(() => {
             if (ws && ws.clients && ws.clients.size > 0) {
@@ -397,7 +422,7 @@ export const setAddon = (theme: string) => {
 }
 
 export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     const themePath = path.join(
         themesPath,
         themeDef ? 'Default' : store.get('addons.theme') || 'Default',
@@ -428,7 +453,13 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
         css: cssContent || '{}',
         script: jsContent || '',
     }
-
+    if (
+        (!metadata.type ||
+            (metadata.type !== 'theme' && metadata.type !== 'script')) &&
+        !themeDef
+    ) {
+        return
+    }
     if (!ws) return
     if (!withJs) {
         ws.clients.forEach((x) =>
@@ -436,7 +467,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
                 JSON.stringify({
                     ok: true,
                     theme: themeData,
-                    type: 'update_css',
+                    type: 'UPDATE_CSS',
                 }),
             ),
         )
@@ -446,7 +477,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
                 JSON.stringify({
                     ok: true,
                     theme: themeData,
-                    type: 'theme',
+                    type: 'THEME',
                 }),
             ),
         )
@@ -464,6 +495,83 @@ ipcMain.on('GET_TRACK_INFO', async (event, _) => {
             }),
         ),
     )
+})
+
+const sendExtensions = async () => {
+    if (!ws) return
+    const scripts = store.get('addons.scripts')
+    if (!scripts) return
+    logger.http.log('Refreshing extensions')
+
+    const addonsFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const addonsRead = fs.readdirSync(addonsFolderPath)
+
+    const filteredAddons = addonsRead.filter((addon) => scripts.includes(addon))
+
+    const extensionsData = await Promise.all(
+        filteredAddons.map(async (addon) => {
+            const addonPath = path.join(addonsFolderPath, addon)
+            const metadataPath = path.join(addonPath, 'metadata.json')
+
+            if (fs.existsSync(metadataPath)) {
+                try {
+                    const metadata = JSON.parse(
+                        fs.readFileSync(metadataPath, 'utf-8'),
+                    )
+
+                    if (
+                        (!metadata.type ||
+                            (metadata.type !== 'theme' &&
+                                metadata.type !== 'script')) &&
+                        addon !== 'Default'
+                    ) {
+                        return null
+                    }
+
+                    const cssContent = metadata.css
+                        ? fs.readFileSync(
+                              path.join(addonPath, metadata.css),
+                              'utf-8',
+                          )
+                        : null
+                    const scriptContent = metadata.script
+                        ? fs.readFileSync(
+                              path.join(addonPath, metadata.script),
+                              'utf-8',
+                          )
+                        : null
+
+                    return {
+                        addon,
+                        css: cssContent,
+                        script: scriptContent,
+                    }
+                } catch (err) {
+                    logger.http.log(
+                        `Error reading metadata.json for ${addon}: ${err.message}`,
+                    )
+                    return null
+                }
+            }
+            return null
+        }),
+    )
+
+    const validExtensions = extensionsData.filter((item) => item !== null)
+
+    ws.clients.forEach((x) =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                type: 'REFRESH_EXTENSIONS',
+                addons: validExtensions,
+            }),
+        ),
+    )
+}
+
+ipcMain.on('REFRESH_EXTENSIONS', async (event, _) => {
+    sendExtensions()
 })
 
 export default server

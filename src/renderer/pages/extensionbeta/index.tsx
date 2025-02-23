@@ -15,6 +15,7 @@ import MoreImg from './../../../../static/assets/stratis-icons/more.svg'
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import addonInitials from '../../api/initials/addon.initials'
 
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
@@ -90,24 +91,24 @@ export default function ExtensionPage() {
     const handleCheckboxChange = (addon: AddonInterface, newChecked: boolean) => {
         if (addon.type === 'theme') {
             if (newChecked) {
-                setCurrentTheme(addon.name)
-                window.desktopEvents?.send('themeChanged', 'Default')
-                window.desktopEvents?.send('themeChanged', addon.name)
+                setCurrentTheme(addon.directoryName)
+                window.desktopEvents?.send('themeChanged', addonInitials[0])
+                window.desktopEvents?.send('themeChanged', addon)
             } else {
                 setCurrentTheme('Default')
-                window.desktopEvents?.send('themeChanged', 'Default')
+                window.desktopEvents?.send('themeChanged', addonInitials[0])
             }
         } else {
             if (newChecked) {
                 setEnabledScripts((prev) => {
-                    if (!prev.includes(addon.name)) {
-                        return [...prev, addon.name]
+                    if (!prev.includes(addon.directoryName)) {
+                        return [...prev, addon.directoryName]
                     }
                     return prev
                 })
             } else {
                 setEnabledScripts((prev) =>
-                    prev.filter((scriptName) => scriptName !== addon.name),
+                    prev.filter((scriptName) => scriptName !== addon.directoryName),
                 )
             }
         }
@@ -158,11 +159,12 @@ export default function ExtensionPage() {
         enabledScripts: string[],
     ) {
         const isTheme = addon.type === 'theme'
-        const isEnabledTheme = isTheme && addon.name === currentTheme
+        const isEnabledTheme = isTheme && addon.directoryName === currentTheme
         if (isEnabledTheme) return 0
 
         const isScript = addon.type === 'script'
-        const isEnabledScript = isScript && enabledScripts.includes(addon.name)
+        const isEnabledScript =
+            isScript && enabledScripts.includes(addon.directoryName)
         if (isEnabledScript) return 1
 
         return 2
@@ -175,9 +177,9 @@ export default function ExtensionPage() {
         if (hideEnabled) {
             filtered = filtered.filter((item) => {
                 if (item.type === 'theme') {
-                    return item.name !== currentTheme
+                    return item.directoryName !== currentTheme
                 } else {
-                    return !enabledScripts.includes(item.name)
+                    return !enabledScripts.includes(item.directoryName)
                 }
             })
         }
@@ -435,9 +437,10 @@ export default function ExtensionPage() {
                                         {mergedAddons.map((addon) => {
                                             const checked =
                                                 addon.type === 'theme'
-                                                    ? addon.name === currentTheme
+                                                    ? addon.directoryName ===
+                                                      currentTheme
                                                     : enabledScripts.includes(
-                                                          addon.name,
+                                                          addon.directoryName,
                                                       )
 
                                             return (

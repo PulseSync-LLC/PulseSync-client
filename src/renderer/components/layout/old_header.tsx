@@ -57,9 +57,10 @@ const OldHeader: React.FC<p> = () => {
         openUpdateModal: () => void
         closeUpdateModal: () => void
     }>(null)
-    const modModalRef = useRef<{ openModal: () => void; closeModal: () => void }>(
-        null,
-    )
+    const modModalRef = useRef<{
+        openModal: () => void
+        closeModal: () => void
+    }>(null)
 
     const dispatch = useDispatch()
     const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
@@ -199,7 +200,10 @@ const OldHeader: React.FC<p> = () => {
     const openModModal = () => dispatch(openModal())
     const closeModModal = () => dispatch(closeModal())
 
-    modModalRef.current = { openModal: openModModal, closeModal: closeModModal }
+    modModalRef.current = {
+        openModal: openModModal,
+        closeModal: closeModModal,
+    }
     updateModalRef.current = { openUpdateModal, closeUpdateModal }
     const toggleMenu = () => {
         if (isUserCardOpen) {
@@ -254,9 +258,9 @@ const OldHeader: React.FC<p> = () => {
     useEffect(() => {
         const handleDataUpdate = (data: Track) => {
             if (data) {
-                if (data.event === 'play' || data.event === 'seek') {
+                if (data.status === 'playing') {
                     setPlayStatus('playing')
-                } else if (data.event === 'paused') {
+                } else if (data.status === 'paused' || data.status === 'idle') {
                     setPlayStatus('pause')
                 } else {
                     setPlayStatus('null')
@@ -720,7 +724,9 @@ const OldHeader: React.FC<p> = () => {
                                                         className={
                                                             styles.banner_overlay
                                                         }
-                                                        initial={{ width: '0%' }}
+                                                        initial={{
+                                                            width: '0%',
+                                                        }}
                                                         animate={{
                                                             width:
                                                                 bannerProgress !== -1

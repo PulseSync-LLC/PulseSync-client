@@ -44,7 +44,7 @@ export const createContextMenuActions = (
         onClick: () =>
             window.desktopEvents?.send('openPath', {
                 action: 'theme',
-                themeName: currentAddon.name,
+                themeName: currentAddon.directoryName,
             }),
         show: actionVisibility.showDirectory ?? false,
         icon: <FileDirectory />,

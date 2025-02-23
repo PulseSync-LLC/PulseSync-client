@@ -118,7 +118,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         ...prevApp.mod,
                         ...(prevApp.mod.installed
                             ? { updated: true, version: modInfo[0].modVersion }
-                            : { installed: true, version: modInfo[0].modVersion }),
+                            : {
+                                  installed: true,
+                                  version: modInfo[0].modVersion,
+                              }),
                     },
                 }))
                 if (modInfo[0].showModal || app.settings.showModModalAfterInstall) {

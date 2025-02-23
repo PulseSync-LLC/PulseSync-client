@@ -12,29 +12,32 @@ import * as Sentry from '@sentry/electron/main'
 import { store } from './storage'
 export const isFirstInstance = app.requestSingleInstanceLock()
 
-export const checkForSingleInstance = (): void => {
+export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance')
     if (isFirstInstance) {
         const [window] = BrowserWindow.getAllWindows()
-        app.on('second-instance', (event: Electron.Event, commandLine: string[]) => {
-            if (window) {
-                if (window.isMinimized()) {
-                    window.restore()
-                    logger.main.info('Restore window')
-                }
-                const lastCommandLineArg = commandLine.pop()
-                if (lastCommandLineArg) {
-                    if (checkIsDeeplink(lastCommandLineArg)) {
-                        navigateToDeeplink(window, lastCommandLineArg)
-                    } else if (lastCommandLineArg.endsWith('.pext')) {
-                        handlePextFile(lastCommandLineArg)
+        app.on(
+            'second-instance',
+            async (event: Electron.Event, commandLine: string[]) => {
+                if (window) {
+                    if (window.isMinimized()) {
+                        window.restore()
+                        logger.main.info('Restore window')
                     }
+                    const lastCommandLineArg = commandLine.pop()
+                    if (lastCommandLineArg) {
+                        if (checkIsDeeplink(lastCommandLineArg)) {
+                            navigateToDeeplink(window, lastCommandLineArg)
+                        } else if (lastCommandLineArg.endsWith('.pext')) {
+                            await handlePextFile(lastCommandLineArg)
+                        }
+                    }
+                    toggleWindowVisibility(window, true)
+                    logger.main.info('Show window')
                 }
-                toggleWindowVisibility(window, true)
-                logger.main.info('Show window')
-            }
-        })
-        prestartCheck()
+            },
+        )
+        await prestartCheck()
         handleUncaughtException()
     } else {
         app.quit()
@@ -69,7 +72,7 @@ async function handlePextFile(filePath: string) {
         logger.main.error('Name theme missing in metadata.json')
     }
 
-    const outputDir = path.join(app.getPath('userData'), 'themes', themeName)
+    const outputDir = path.join(app.getPath('userData'), 'addons', themeName)
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir)
     }
