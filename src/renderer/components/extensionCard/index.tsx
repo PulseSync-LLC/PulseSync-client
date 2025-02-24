@@ -5,6 +5,7 @@ import AddonInterface from '../../api/interfaces/addon.interface'
 import {
     MdCheckCircle,
     MdColorLens,
+    MdInfo,
     MdInfoOutline,
     MdTextSnippet,
     MdWarningAmber,
@@ -29,19 +30,20 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
             'static/assets/images/no_themeBackground.png',
         )
         const [showUserInfo, setShowUserInfo] = useState(false)
-        const [showWarnInfo, setShowWarnInfo] = useState(false)
         const cardRef = useRef<HTMLDivElement | null>(null)
         const [bannerRef, isBannerInView] = useInView({ threshold: 0.1 })
 
         function checkMissingFields(addon: AddonInterface): string[] {
             const missing: string[] = []
-            if (!addon.name) missing.push('name')
-            if (!addon.author) missing.push('author')
-            if (!addon.description) missing.push('description')
-            if (!addon.version) missing.push('version')
-            if (!addon.image) missing.push('image')
-            if (!addon.banner) missing.push('banner')
-            if (!addon.type) missing.push('type')
+            if (!addon.name) missing.push('Отсутствует name')
+            if (!addon.author) missing.push('Отсутствует author')
+            if (!addon.version) missing.push('Отсутствует version')
+            if (!addon.image) missing.push('Отсутствует image')
+            if (!addon.banner) missing.push('Отсутствует banner')
+            if (!addon.type)
+                missing.push(
+                    'Неопределенный type! type должен быть либо theme либо script',
+                )
             return missing
         }
 
@@ -111,23 +113,14 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
 
                 {missingFields.length > 0 && (
                     <>
-                        <div
-                            className={cardStyles.card__warnBox}
-                            onMouseEnter={() => setShowWarnInfo(true)}
-                            onMouseLeave={() => setShowWarnInfo(false)}
-                        >
-                            <MdWarningAmber size={18} />
+                        <div className={cardStyles.card__warnTooltip}>
+                            <strong>Исправьте ошибки в metadata.json</strong>
+                            <ul>
+                                {missingFields.map((field) => (
+                                    <li key={field}>{field}</li>
+                                ))}
+                            </ul>
                         </div>
-                        {showWarnInfo && (
-                            <div className={cardStyles.card__warnTooltip}>
-                                <strong>Исправьте ошибки в metadata.json</strong>
-                                <ul>
-                                    {missingFields.map((field) => (
-                                        <li key={field}>{field}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
                     </>
                 )}
 
@@ -136,7 +129,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                     onMouseEnter={() => setShowUserInfo(true)}
                     onMouseLeave={() => setShowUserInfo(false)}
                 >
-                    <MdInfoOutline size={20} />
+                    <MdInfo size={20} />
                 </div>
 
                 {showUserInfo && (
@@ -171,9 +164,11 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                             alt="Addon"
                             loading="lazy"
                         />
-                        <span className={cardStyles.card__addonTitle}>
-                            {theme.name} v{theme.version}
-                        </span>
+                        <div className={cardStyles.card__boxTitle}>
+                            <span className={cardStyles.card__addonTitle}>
+                                {theme.name} v{theme.version}
+                            </span>
+                        </div>
                     </div>
                     <div className={cardStyles.card__divider} />
                     <div className={cardStyles.card__bottomRight}>

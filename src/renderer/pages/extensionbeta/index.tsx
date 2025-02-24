@@ -1,3 +1,5 @@
+// ExtensionPage.tsx
+
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Layout from '../../components/layout'
@@ -17,9 +19,22 @@ import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import addonInitials from '../../api/initials/addon.initials'
 
+// Проверяет, какие поля в метаданных не заполнены
+function checkMissingFields(addon: AddonInterface): string[] {
+    const missing: string[] = []
+    if (!addon.name) missing.push('name')
+    if (!addon.author) missing.push('author')
+    if (!addon.version) missing.push('version')
+    if (!addon.image) missing.push('image')
+    if (!addon.banner) missing.push('banner')
+    if (!addon.type) missing.push('type')
+    return missing
+}
+
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
 
+    // Храним «текущую» тему и список включённых скриптов
     const [currentTheme, setCurrentTheme] = useState(
         window.electron.store.get('addons.theme') || 'Default',
     )
@@ -27,6 +42,7 @@ export default function ExtensionPage() {
         window.electron.store.get('addons.scripts') || [],
     )
 
+    // Прочие состояния для UI
     const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(
@@ -34,19 +50,29 @@ export default function ExtensionPage() {
     )
     const [filterVisible, setFilterVisible] = useState(false)
     const [optionMenu, setOptionMenu] = useState(false)
+
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+
+    // Теги
     const [selectedTags, setSelectedTags] = useState<Set<string>>(
         new Set(window.electron.store.get('addons.selectedTags') || []),
     )
+
+    // Число колонок в сетке
     const [columnsCount, setColumnsCount] = useState(
         window.electron.store.get('addons.columnsCount') || 3,
     )
+
+    // Считываем query-параметр
     const [searchParams] = useSearchParams()
     const selectedTagFromURL = searchParams.get('selectedTag')
+
+    // Для отображения числа активных фильтров
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
 
+    // Загрузка аддонов
     const loadAddons = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
@@ -74,6 +100,7 @@ export default function ExtensionPage() {
         loadAddons()
     }, [])
 
+    // Синхронизируем enabledScripts и theme с electron-store
     useEffect(() => {
         window.electron.store.set('addons.scripts', enabledScripts)
     }, [enabledScripts])
@@ -82,23 +109,28 @@ export default function ExtensionPage() {
         window.electron.store.set('addons.theme', currentTheme)
     }, [currentTheme])
 
+    // Кнопка «Перезагрузить расширения»
     const reloadAddons = () => {
         setAddons([])
         loadAddons()
         toast.custom('success', 'Сделано', 'Расширения перезагружены')
     }
 
+    // Включение/выключение темы или скрипта
     const handleCheckboxChange = (addon: AddonInterface, newChecked: boolean) => {
         if (addon.type === 'theme') {
             if (newChecked) {
+                // Включаем тему
                 setCurrentTheme(addon.directoryName)
                 window.desktopEvents?.send('themeChanged', addonInitials[0])
                 window.desktopEvents?.send('themeChanged', addon)
             } else {
+                // Выключаем тему => Default
                 setCurrentTheme('Default')
                 window.desktopEvents?.send('themeChanged', addonInitials[0])
             }
         } else {
+            // Скрипт
             if (newChecked) {
                 setEnabledScripts((prev) => {
                     if (!prev.includes(addon.directoryName)) {
@@ -114,21 +146,25 @@ export default function ExtensionPage() {
         }
     }
 
+    // Поиск
     const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setSearchQuery(e.target.value.toLowerCase())
     }
 
+    // Скрыть включённые
     const handleHideEnabledChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         setHideEnabled(e.target.checked)
     }
 
+    // Смена тега
     const handleTagChange = (tag: string) => {
         const updated = new Set(selectedTags)
         updated.has(tag) ? updated.delete(tag) : updated.add(tag)
         setSelectedTags(updated)
     }
 
-    const filterAndSortAddons = (list: AddonInterface[]) => {
+    // Фильтруем по поиску
+    function filterAndSortAddons(list: AddonInterface[]) {
         return list
             .filter((item) => item.name !== 'Default')
             .map((item) => ({
@@ -148,28 +184,37 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    const filterAddonsByTags = (list: AddonInterface[], tags: Set<string>) => {
+    // Фильтрация по тегам
+    function filterAddonsByTags(list: AddonInterface[], tags: Set<string>) {
         if (tags.size === 0) return list
         return list.filter((item) => item.tags?.some((t) => tags.has(t)))
     }
 
-    function getPriority(
-        addon: AddonInterface,
-        currentTheme: string,
-        enabledScripts: string[],
-    ) {
+    // Сколько полей отсутствует
+    function getMissingCount(addon: AddonInterface): number {
+        return checkMissingFields(addon).length
+    }
+
+    // Приоритет
+    // 0 = включённая тема
+    // 1 = включённый скрипт
+    // 2 = остальное
+    // 999 = есть ошибки (не все поля заполнены)
+    function getPriority(addon: AddonInterface): number {
+        const missingCount = getMissingCount(addon)
+        if (missingCount > 0) {
+            return 999
+        }
         const isTheme = addon.type === 'theme'
         const isEnabledTheme = isTheme && addon.directoryName === currentTheme
         if (isEnabledTheme) return 0
-
         const isScript = addon.type === 'script'
-        const isEnabledScript =
-            isScript && enabledScripts.includes(addon.directoryName)
+        const isEnabledScript = isScript && enabledScripts.includes(addon.directoryName)
         if (isEnabledScript) return 1
-
         return 2
     }
 
+    // Собираем финальный список
     function getMergedSortedAddons(): AddonInterface[] {
         let filtered = filterAddonsByTags(addons, selectedTags)
         filtered = filterAndSortAddons(filtered)
@@ -178,16 +223,23 @@ export default function ExtensionPage() {
             filtered = filtered.filter((item) => {
                 if (item.type === 'theme') {
                     return item.directoryName !== currentTheme
-                } else {
-                    return !enabledScripts.includes(item.directoryName)
                 }
+                return !enabledScripts.includes(item.directoryName)
             })
         }
 
+        // Сортируем
         filtered.sort((a, b) => {
-            const aPriority = getPriority(a, currentTheme, enabledScripts)
-            const bPriority = getPriority(b, currentTheme, enabledScripts)
-            return aPriority - bPriority
+            // Приоритет
+            const priA = getPriority(a)
+            const priB = getPriority(b)
+            if (priA !== priB) {
+                return priA - priB
+            }
+            // Доп. критерий: matches
+            const aMatch = a.matches ? 1 : 0
+            const bMatch = b.matches ? 1 : 0
+            return bMatch - aMatch
         })
 
         return filtered
@@ -196,6 +248,7 @@ export default function ExtensionPage() {
     const mergedAddons = getMergedSortedAddons()
 
     useEffect(() => {
+        // Запоминаем самое большое кол-во, чтобы в UI отобразить «Найдено: ...»
         setMaxAddonCount((prev) => Math.max(prev, mergedAddons.length))
     }, [mergedAddons])
 
@@ -223,6 +276,7 @@ export default function ExtensionPage() {
         }
     }
 
+    // Закрываем выпадашки при клике вне
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node
@@ -238,7 +292,6 @@ export default function ExtensionPage() {
                 setFilterVisible(false)
             }
         }
-
         document.addEventListener('mousedown', handleClickOutside)
         return () => {
             document.removeEventListener('mousedown', handleClickOutside)
@@ -250,6 +303,7 @@ export default function ExtensionPage() {
             <div className={globalStyles.page}>
                 <div className={globalStyles.container}>
                     <div className={globalStyles.main_container}>
+                        {/* Тулбар с поиском, кнопками */}
                         <div className={extensionStyles.toolbar}>
                             <div className={extensionStyles.containerToolbar}>
                                 <div className={extensionStyles.searchContainer}>
@@ -263,11 +317,7 @@ export default function ExtensionPage() {
                                     />
                                     {mergedAddons.length > 0 &&
                                         mergedAddons.length < maxAddonCount && (
-                                            <div
-                                                className={
-                                                    extensionStyles.searchLabel
-                                                }
-                                            >
+                                            <div className={extensionStyles.searchLabel}>
                                                 Найдено: {mergedAddons.length}
                                             </div>
                                         )}
@@ -277,6 +327,7 @@ export default function ExtensionPage() {
                                         </div>
                                     )}
                                 </div>
+
                                 <button
                                     ref={optionButtonRef}
                                     className={`${extensionStyles.toolbarButton} ${
@@ -288,6 +339,7 @@ export default function ExtensionPage() {
                                 >
                                     <MoreImg />
                                 </button>
+
                                 {optionMenu && (
                                     <div
                                         className={extensionStyles.containerOtional}
@@ -334,6 +386,7 @@ export default function ExtensionPage() {
                                         </button>
                                     </div>
                                 )}
+
                                 <button
                                     ref={filterButtonRef}
                                     className={`${extensionStyles.toolbarButton} ${
@@ -353,6 +406,7 @@ export default function ExtensionPage() {
                                     )}
                                 </button>
                             </div>
+
                             {filterVisible && (
                                 <div
                                     className={extensionStyles.containerFilter}
@@ -382,6 +436,7 @@ export default function ExtensionPage() {
                                             ))}
                                         </div>
                                     </div>
+
                                     <div className={extensionStyles.tagsSection}>
                                         <div className={extensionStyles.tagsLabel}>
                                             Tags
@@ -425,6 +480,8 @@ export default function ExtensionPage() {
                                 </div>
                             )}
                         </div>
+
+                        {/* Сетка с аддонами */}
                         <div className={globalStyles.container30x15}>
                             <div className={extensionStyles.preview}>
                                 <div className={extensionStyles.previewSelection}>
@@ -437,8 +494,7 @@ export default function ExtensionPage() {
                                         {mergedAddons.map((addon) => {
                                             const checked =
                                                 addon.type === 'theme'
-                                                    ? addon.directoryName ===
-                                                      currentTheme
+                                                    ? addon.directoryName === currentTheme
                                                     : enabledScripts.includes(
                                                           addon.directoryName,
                                                       )
