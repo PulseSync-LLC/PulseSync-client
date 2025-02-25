@@ -1,54 +1,119 @@
 .overlay {
     position: fixed;
-    inset: 0;
+    bottom: 0;
     display: flex;
+    height: 0%;
+    top: 250px;
+    left: 0;
+    right: 0;
     justify-content: center;
-    align-items: center;
-    padding-top: 50px;
-    z-index: 9999;
-    transition: all 0.3s ease;
-    opacity: 0;
+    align-items: flex-end;
+    transition: cubic-bezier(0.165, 0.84, 0.44, 1) 1s;
+    z-index: 9989;
+    opacity: 1;
     background: rgba(0, 0, 0, 0);
 
     &.open {
-        opacity: 1;
-        background: #1e222ddb;
-        backdrop-filter: saturate(100%) blur(10px);
+        top: 49px;
+        height: 100%;
+        backdrop-filter: saturate(100%) blur(3px);
     }
 
     &.closed {
-        opacity: 0;
-        background: #1e222d00;
+        top: 250px;
+        height: 0%;
         backdrop-filter: saturate(100%) blur(0px);
     }
 }
 
 .modalContainer {
     position: relative;
-    background: #1e2027;
-    border-radius: 8px;
-    width: 80%;
-    max-width: 750px;
-    max-height: 85vh;
-    min-height: 650px;
+    height: -webkit-fill-available;
+    display: flex;
     overflow: auto;
-    outline: 1px #3e424c solid;
-    transition:
-        opacity 0.3s ease,
-        transform 0.3s ease;
-    opacity: 0;
-    transform: translateY(-40px);
+    transition: var(--transition);
+    flex-direction: column;
+    align-items: center;
+    background: #363944;
+    border-radius: 8px 8px 0 0;
 
     &.open {
         opacity: 1;
-        transform: translateY(0);
     }
 
     &.closed {
         opacity: 0;
-        transform: translateY(-40px);
+    }
+
+    & > div {
+        max-width: 1010px;
+        min-width: 930px;
+        width: -webkit-fill-available;
     }
 }
+
+.tabsHeader {
+    justify-content: flex-start;
+    border-bottom: 1px solid #3e424c;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 40px;
+    gap: 14px;
+    background: #424757;
+    text-transform: lowercase;
+}
+
+.tabsHeader button {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    color: #a4aed3;
+    border-radius: 6px;
+    transition: var(--transition);
+
+    &:hover {
+        background: #474e66;
+    }
+}
+
+.tabsHeader button.activeTab {
+    background: #537aff;
+    color: #ffffff;
+
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #ffffff;
+}
+
+.currentTabLabel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 15px 40px;
+    gap: 14px;
+
+    background: #292c36;
+
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 140%;
+
+    color: #ffffff;
+    text-transform: lowercase;
+}
+
+.modalContent {
+    padding: 0;
+}
+
+/* --- Дальше стили для элементов внутри вкладок --- */
 
 .bannerBackground {
     background-position: 50% 50% !important;
@@ -61,7 +126,7 @@
     flex-direction: column;
     gap: 15px;
     align-items: flex-end;
-    padding: 15px 30px;
+    padding: 15px 40px;
     justify-content: flex-end;
 }
 
@@ -69,7 +134,6 @@
     font-weight: 600;
     font-size: 12px;
     line-height: 110%;
-
     color: #e1e1e1;
 }
 
@@ -105,7 +169,6 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    padding: 0px;
     gap: 3px;
 }
 
@@ -114,9 +177,7 @@
     flex-direction: column;
     justify-content: center;
     align-items: flex-start;
-    padding: 0px;
     gap: 15px;
-
     width: 100%;
 
     .avatarWrapper {
@@ -158,7 +219,6 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 0px;
     gap: 10px;
     width: 100%;
 }
@@ -223,7 +283,7 @@
 }
 
 .buttonAddFriend {
-    transition: var(--transition);
+    transition: 0.2s;
     cursor: pointer;
     display: flex;
     flex-direction: row;
@@ -231,16 +291,12 @@
     align-items: flex-start;
     padding: 10px 15px;
     gap: 10px;
-
     width: 100%;
-
     background: #ffffff;
     border-radius: 8px;
-
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;
-
     color: #474c5c;
 
     &:hover {
@@ -252,7 +308,7 @@
 }
 
 .buttonPersonal {
-    transition: var(--transition);
+    transition: 0.2s;
     cursor: pointer;
     display: flex;
     flex-direction: row;
@@ -260,14 +316,11 @@
     align-items: flex-start;
     padding: 10px 10px;
     gap: 10px;
-
     background: #474c5c;
     border-radius: 8px;
-
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;
-
     color: #b3bad4;
 
     &:hover {
@@ -279,23 +332,21 @@
 }
 
 .userStatusInfo {
-    transition: var(--transition);
+    transition: 0.2s;
     background: var(--statusColorProfile);
-
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 6px 30px;
+    padding: 6px 40px;
     gap: 8px;
     font-weight: 700;
     font-size: 15px;
     justify-content: space-between;
-
     color: var(--statusColorDark);
 }
 
 .hoverEffect {
-    transition: var(--transition);
+    transition: 0.2s;
 
     &:hover {
         padding: 10px 50px;
@@ -307,7 +358,6 @@
     font-weight: 900;
     font-size: 18px;
     line-height: 140%;
-
     color: #ffffff;
 }
 
@@ -315,7 +365,6 @@
     font-weight: 400;
     font-size: 14px;
     line-height: 140%;
-
     color: #c4cce7;
 }
 
@@ -323,11 +372,9 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 20px 30px;
+    padding: 20px 40px;
     gap: 15px;
-
     width: 100%;
-
     background: #292c36;
     box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
 }
@@ -344,9 +391,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0px;
     gap: 5px;
-
     width: 100%;
 }
 
@@ -354,9 +399,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0px;
     gap: 5px;
-
     width: -webkit-fill-available;
 }
 
@@ -364,7 +407,6 @@
     font-weight: 900;
     font-size: 14px;
     line-height: 140%;
-
     color: #c4cce7;
 }
 
@@ -381,4 +423,56 @@
     padding: 10px 15px;
     gap: 10px;
     width: 100%;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    text-align: center;
+    height: -webkit-fill-available;
+    min-height: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    color: white;
+    font-weight: 700;
+}
+
+.loader {
+    display: flex;
+    gap: 8px; /* расстояние между точками */
+    margin-bottom: 8px; /* отступ снизу, перед текстом Загрузка */
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background: #ffffff; /* цвет точек */
+    border-radius: 50%;
+    animation: bounce 0.6s infinite alternate;
+}
+
+/* Чтобы точки прыгали не одновременно, сдвигаем тайминги */
+.dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-10px); /* вверх на 10px */
+        opacity: 0.3; /* немного выцветаем */
+    }
 }
