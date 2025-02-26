@@ -135,7 +135,6 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         return (
             <Button
                 type="button"
-                disabled={false}
                 className={`${styles.friendActionButton} ${buttonClass}`}
                 onClick={handleToggleFollow}
                 onMouseEnter={() => setIsHovered(true)}
