@@ -439,6 +439,7 @@ const ExtensionViewPage: React.FC = () => {
             }
         }
     }
+    
 
     function isTextItem(item: Item): item is TextItem {
         return item.type === 'text'
@@ -514,17 +515,34 @@ const ExtensionViewPage: React.FC = () => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
         const item = updatedConfig.sections[sectionIndex].items[itemIndex]
-        if (item.type === 'button') {
-            item.bool = item.defaultParameter
-        } else if (item.type === 'color') {
-            item.input = item.defaultParameter
-        } else if (item.type === 'text') {
-            const textItem = item as TextItem
-            textItem.buttons = textItem.buttons.map((btn) => ({
-                ...btn,
-                text: btn.defaultParameter || btn.text,
-            }))
+
+        switch (item.type) {
+            case 'button':
+                item.bool = item.defaultParameter
+                break
+
+            case 'color':
+                item.input = item.defaultParameter
+                break
+
+            case 'text': {
+                const textItem = item as TextItem
+                textItem.buttons = textItem.buttons.map((btn) => ({
+                    ...btn,
+                    text: btn.defaultParameter ?? btn.text,
+                }))
+                break
+            }
+
+            case 'slider':
+                item.value = item.defaultParameter ?? 0
+                break
+
+            case 'file':
+                item.filePath = item.defaultParameter?.filePath ?? ''
+                break
         }
+
         setConfigData(updatedConfig)
         writeConfigFile(updatedConfig)
     }
@@ -618,6 +636,31 @@ const ExtensionViewPage: React.FC = () => {
                             defaultParameter: '16px',
                         },
                     ],
+                }
+                break
+            case 'slider':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'New Slider',
+                    description: '',
+                    type: 'slider',
+                    min: 0,
+                    max: 100,
+                    step: 1,
+                    value: 50,
+                    defaultParameter: 50,
+                }
+                break
+            case 'file':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'New File',
+                    description: '',
+                    type: 'file',
+                    filePath: '',
+                    defaultParameter: {
+                        filePath: '',
+                    },
                 }
                 break
             default:
@@ -904,8 +947,13 @@ const ExtensionViewPage: React.FC = () => {
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
-                                                    disabled={(!currentAddon.type ||
-                                                        (currentAddon.type !== 'theme' && currentAddon.type !== 'script'))}
+                                                    disabled={
+                                                        !currentAddon.type ||
+                                                        (currentAddon.type !==
+                                                            'theme' &&
+                                                            currentAddon.type !==
+                                                                'script')
+                                                    }
                                                     onClick={handleToggleAddon}
                                                     title={getToggleTitle()}
                                                 >

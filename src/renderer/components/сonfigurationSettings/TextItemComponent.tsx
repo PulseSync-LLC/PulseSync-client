@@ -2,7 +2,7 @@ import React from 'react'
 import { MdAdd } from 'react-icons/md'
 import * as styles from './ConfigurationItem.module.scss'
 import { ButtonAction, TextItem } from './types'
-import ButtonConfig from './ButtonConfig'
+import TextConfig from './TextConfig'
 
 interface TextItemComponentProps {
     sectionIndex: number
@@ -52,10 +52,9 @@ const TextItemComponent: React.FC<TextItemComponentProps> = ({
     }
 
     return (
-        <div className={styles.textContainer}>
-            {editMode && <></>}
+        <>
             {item.buttons.map((button, buttonIndex) => (
-                <ButtonConfig
+                <TextConfig
                     key={buttonIndex}
                     sectionIndex={sectionIndex}
                     itemIndex={itemIndex}
@@ -76,7 +75,7 @@ const TextItemComponent: React.FC<TextItemComponentProps> = ({
                     <MdAdd /> Добавить текст
                 </button>
             )}
-        </div>
+        </>
     )
 }
 

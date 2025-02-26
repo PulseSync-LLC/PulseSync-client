@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
 import fs from 'fs'
@@ -148,6 +148,30 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 break
             }
         }
+    })
+
+    ipcMain.handle('dialog:openFile', async (event) => {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openFile'],
+        })
+        if (canceled || !filePaths.length) {
+            return null
+        }
+
+        const fullPath = filePaths[0]
+        console.log('Selected file path:', fullPath)
+
+        const normalizedPath = path.normalize(fullPath)
+
+        const searchSubstr = path.join('PulseSync', 'addons') + path.sep
+
+        let finalPath = fullPath
+        if (normalizedPath.includes(searchSubstr)) {
+            finalPath = path.basename(normalizedPath)
+        }
+
+        console.log('Returning path to renderer:', finalPath)
+        return finalPath
     })
 }
 

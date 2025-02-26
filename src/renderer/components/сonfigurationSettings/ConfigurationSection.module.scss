@@ -1,10 +1,8 @@
 .section {
-    border: 1px solid #363944;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 24px;
-    background-color: #171a1c;
     height: fit-content;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .sectionHeader {
@@ -50,10 +48,9 @@
 }
 
 .sectionTitle {
-    font-size: 18px;
-    font-weight: bold;
-    color: #bbc2db;
-    margin-bottom: 10px;
+    font-weight: 700;
+    font-size: 12px;
+    color: #aec1ff;
 }
 
 .addItemContainer {

@@ -27,7 +27,7 @@ interface ConfigurationSectionProps {
         itemIndex: number,
         buttonIndex: number,
     ) => void
-    addItem: (sectionIndex: number, itemType: string) => void
+    addItem: (sectionIndex: number, itemType: string) => void 
     removeItem: (sectionIndex: number, itemIndex: number) => void
     removeSection: (sectionIndex: number) => void
 }
@@ -113,6 +113,8 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                         <option value="button">Button</option>
                         <option value="color">Color</option>
                         <option value="text">Text</option>
+                        <option value="slider">Slider</option>
+                        <option value="file">File</option>
                     </select>
                     <button
                         className={styles.addItemButton}

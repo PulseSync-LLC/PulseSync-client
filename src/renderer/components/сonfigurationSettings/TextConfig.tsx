@@ -24,7 +24,7 @@ interface ButtonConfigProps {
     handleRemoveButton: (buttonIndex: number) => void
 }
 
-const ButtonConfig: React.FC<ButtonConfigProps> = ({
+const TextConfig: React.FC<ButtonConfigProps> = ({
     sectionIndex,
     itemIndex,
     buttonIndex,
@@ -196,4 +196,4 @@ const ButtonConfig: React.FC<ButtonConfigProps> = ({
     )
 }
 
-export default ButtonConfig
+export default TextConfig

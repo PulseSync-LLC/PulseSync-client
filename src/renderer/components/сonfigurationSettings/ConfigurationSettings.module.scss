@@ -1,11 +1,14 @@
-.settingsContent {
-    gap: 10px;
-    padding: 24px;
-    background-color: transparent;
-    border-radius: 8px;
+.configContent {
     width: -webkit-fill-available;
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+}
+
+.settingsContent {
+    gap: 20px;
+    padding: 15px 30px;
+    
+    width: -webkit-fill-available;
+    display: flex;
+    flex-direction: column;
 }
 
 .addSectionContainer {

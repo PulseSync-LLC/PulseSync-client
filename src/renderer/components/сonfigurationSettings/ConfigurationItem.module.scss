@@ -1,10 +1,26 @@
 .item {
-    border: 1px solid #363944;
-    border-radius: 8px;
-    padding: 16px;
-    margin-bottom: 16px;
-    background-color: #1f222b;
+    cursor: pointer;
+    position: relative;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    padding: 10px 16px;
+    gap: 10px;
+    background: #3b4052;
+    border-radius: 8px;
+    flex: none;
+    order: 1;
+    align-self: stretch;
+    flex-grow: 0;
+    justify-content: space-between;
+    outline: 2px solid #3b4052;
+
+    &:hover {
+        background: linear-gradient(180deg, #3b4052 0%, #3e486c 100%);
+        outline: 2px solid #698aff;
+        box-shadow: 0px 0px 9.4px 2px rgba(105, 138, 255, 0.25);
+    }
 }
 
 .itemHeader {
@@ -45,8 +61,6 @@
 
 .field {
     display: flex;
-    flex-direction: column;
-    margin-bottom: 12px;
 }
 
 .label {
@@ -72,15 +86,48 @@
 }
 
 .itemName {
-    font-size: 16px;
-    font-weight: bold;
-    color: #f5f8ff;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
 }
 
 .itemDescription {
     font-size: 14px;
     color: #6a728a;
     margin-bottom: 12px;
+}
+
+.itemValue {
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+    color: #ffffff;
+    display: flex;
+}
+
+.itemText {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 4px;
+    width: 100%;
+    margin-top: 5px;
+}
+
+.btEn {
+    color: #c7ffd1;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+}
+
+.btDieb {
+    color: #c3d1ff;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
 }
 
 .buttonContainer {
@@ -91,45 +138,64 @@
 }
 
 .itemButton {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background-color: #3468f2;
-    border: none;
-    border-radius: 4px;
-    color: #fff;
-    cursor: pointer;
-    font-size: 14px;
     transition: var(--transition);
+    width: 22px;
+    height: 22px;
 
-    &:hover {
-        background-color: #2d56c5;
-    }
+    background: #c3d1ff;
+    border: 4px solid #9fafe6;
+    border-radius: 8px;
 
     &.itemButtonActive {
-        background-color: #1cb15a;
-
-        &:hover {
-            background-color: #1b8d4b;
-        }
+        background: #c7ffd1;
+        border: 4px solid #8fd59b;
     }
 }
 
+.changeInput {
+    display: block;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+    color: #ffffff;
+    background: 0;
+
+    &:focus-visible {
+        outline: 0px double #ffffff;
+        width: 80px;
+    }
+}
+
+.changeColorPrewiev {
+    display: block;
+    border: 0 !important;
+    border-radius: 8px !important;
+    width: 25px !important;
+    height: 25px !important;
+}
+
 .resetButton {
+    position: absolute;
+    left: -14px;
+    top: 0;
+    bottom: 0;
+    align-self: center;
     transition: var(--transition);
     transform: rotate(1deg);
     scale: 1;
     padding: 4px;
     border: none;
-    border-radius: 44px;
-    background-color: #ffffff;
-    color: #171a1c;
+    border-radius: 8px;
+    background-color: #bd4747;
+    color: #ffffff;
     cursor: pointer;
     font-size: 17px;
     display: flex;
-    height: 25px;
-    width: 25px;
+    height: 15px;
+    width: 15px;
     text-align: center;
     animation: fadeInScale 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
     align-items: center;
@@ -173,6 +239,11 @@
     gap: 15px;
 }
 
+.readOnlyContainer {
+    display: block;
+    width: -webkit-fill-available;
+}
+
 .colorInput {
     width: 100%;
     height: 40px;
@@ -189,32 +260,40 @@
 
 .buttonField {
     display: flex;
+    position: relative;
     flex-direction: column;
-    gap: 8px;
-    background: linear-gradient(90deg, #3468f21c, #3468f200);
-    border-left: 2px solid #3468f2;
-    padding: 10px 10px;
-    overflow: hidden;
+    align-items: flex-start;
+    padding: 10px 16px;
+    width: 100%;
+    background: #464c62;
+    border-radius: 8px;
+
+    &:hover {
+        background: #5e6685;
+    }
 }
 
 .buttonName {
-    font-size: 14px;
-    color: #6a728a;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+
+    color: #ffffff;
 }
 
 .buttonTextInput {
-    padding: 6px 12px;
+    display: block;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
     color: #ffffff;
-    background: #5b699329;
-    border-radius: 0px;
-    font-size: 14px;
-    border: 0;
-    border-bottom: 3px solid #5b6993;
+    background: 0;
 
     &:focus {
-        border-color: #4d7dff;
-        outline: none;
-        background: #4d7cff3d;
+        outline: 0px;
     }
 }
 
@@ -244,11 +323,15 @@
 
 input[type='color'] {
     cursor: pointer;
-    border-radius: 78px;
     padding: 0;
-    width: 30px;
-    height: 30px;
-    border: 3px solid #fff;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    width: 25px;
+    height: 25px;
+    border-radius: 8px;
 }
 
 input[type='color']::-moz-color-swatch {
@@ -263,6 +346,7 @@ input[type='color']::-webkit-color-swatch-wrapper {
 input[type='color']::-webkit-color-swatch {
     border: none;
 }
+
 
 .removeButton {
     border: none;
@@ -299,3 +383,7 @@ input[type='color']::-webkit-color-swatch {
         background-color: #27ae60;
     }
 }
+
+
+// 
+

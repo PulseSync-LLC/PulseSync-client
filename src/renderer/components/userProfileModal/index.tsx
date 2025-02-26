@@ -137,7 +137,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             >
                 <div className={styles.currentTabLabel}>{renderTabTitle()}</div>
 
-                {/* <div className={styles.tabsHeader}>
+                <div className={styles.tabsHeader}>
                     <button
                         onClick={() => handleTabChange('profile')}
                         className={activeTab === 'profile' ? styles.activeTab : ''}
@@ -156,7 +156,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                     >
                         Настройки
                     </button>
-                </div> */}
+                </div>
 
                 <div className={styles.modalContent}>
                     {activeTab === 'profile' && (
