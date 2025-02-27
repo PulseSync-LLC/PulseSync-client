@@ -1,0 +1,54 @@
+.selectorContainer {
+    position: relative;
+    display: flex;
+    width: 100%;
+    user-select: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.selectedValue {
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+    color: #ffffff;
+    display: flex;
+}
+
+.dropdown {
+    border-radius: 8px;
+}
+
+.arrow {
+    transition: var(--transition);
+    position: absolute;
+    right: 0;
+    top: -5px;
+    display: flex;
+}
+
+.arrow.open {
+    transform: rotate(180deg);
+}
+
+.dropdownOption {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 16px;
+    gap: 10px;
+    border-radius: 8px;
+
+    font-weight: 500;
+    font-size: 13px;
+    line-height: 140%;
+    color: #ffffff;
+    &:hover {
+        background: #5e6685;
+    }
+}
+
+.activeOption {
+    background: #7A8FD2 !important;
+}

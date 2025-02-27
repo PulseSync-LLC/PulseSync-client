@@ -439,7 +439,6 @@ const ExtensionViewPage: React.FC = () => {
             }
         }
     }
-    
 
     function isTextItem(item: Item): item is TextItem {
         return item.type === 'text'
@@ -641,7 +640,7 @@ const ExtensionViewPage: React.FC = () => {
             case 'slider':
                 newItem = {
                     id: `new_${Date.now()}`,
-                    name: 'New Slider',
+                    name: 'Новый слайдер',
                     description: '',
                     type: 'slider',
                     min: 0,
@@ -654,13 +653,37 @@ const ExtensionViewPage: React.FC = () => {
             case 'file':
                 newItem = {
                     id: `new_${Date.now()}`,
-                    name: 'New File',
+                    name: 'Новый файл',
                     description: '',
                     type: 'file',
                     filePath: '',
                     defaultParameter: {
                         filePath: '',
                     },
+                }
+                break
+            case 'selector':
+                newItem = {
+                    id: `new_${Date.now()}`,
+                    name: 'Новый селектор',
+                    description: '',
+                    type: 'selector',
+                    selected: 1,
+                    options: {
+                        '1': {
+                            event: 'center',
+                            name: 'По центру',
+                        },
+                        '2': {
+                            event: 'left',
+                            name: 'Слева',
+                        },
+                        '3': {
+                            event: 'right',
+                            name: 'Справа',
+                        },
+                    },
+                    defaultParameter: 1,
                 }
                 break
             default:

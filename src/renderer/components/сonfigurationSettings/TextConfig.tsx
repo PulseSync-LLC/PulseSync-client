@@ -48,123 +48,61 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
 
     const isDifferent = button.text !== (button.defaultParameter || button.text)
 
-    return (
-        <div className={styles.buttonField}>
-            {editMode ? (
-                <>
-                    <div className={styles.field}>
-                        <label className={styles.label}>ID (строка):</label>
-                        <input
-                            type="text"
-                            className={styles.input}
-                            value={localId}
-                            onChange={(e) => setLocalId(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'id',
-                                    e.target.value,
-                                )
-                            }
-                            placeholder="Укажите ID"
-                        />
-                    </div>
-                    <div className={styles.field}>
-                        <label className={styles.label}>
-                            Название текста (строка):
-                        </label>
-                        <input
-                            type="text"
-                            className={styles.input}
-                            value={localName}
-                            onChange={(e) => setLocalName(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'name',
-                                    e.target.value,
-                                )
-                            }
-                            placeholder="Название текста"
-                        />
-                    </div>
-                    <div className={styles.field}>
-                        <label className={styles.label}>
-                            Текст текста (строка):
-                        </label>
-                        <input
-                            type="text"
-                            className={styles.input}
-                            value={localText}
-                            onChange={(e) => setLocalText(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'text',
-                                    e.target.value,
-                                )
-                            }
-                            placeholder="Текст"
-                        />
-                    </div>
-                    <div className={styles.field}>
-                        <label className={styles.label}>
-                            Дефолтное значение (строка):
-                        </label>
-                        <input
-                            type="text"
-                            className={styles.input}
-                            value={localDefault}
-                            onChange={(e) => setLocalDefault(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'defaultParameter',
-                                    e.target.value,
-                                )
-                            }
-                            placeholder="Текст по умолчанию"
-                        />
-                    </div>
-                    {isDifferent && (
-                        <button
-                            className={styles.resetButton}
-                            onClick={() =>
-                                resetButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                )
-                            }
-                            title="Сбросить значение"
-                        >
-                            <MdRestore />
-                        </button>
-                    )}
-                    <button
-                        className={styles.removeButton}
-                        onClick={() => handleRemoveButton(buttonIndex)}
-                        title="Удалить текст"
-                    >
-                        <MdDelete />
-                    </button>
-                </>
-            ) : (
-                <>
-                    <div className={styles.buttonName}>{button.name}:</div>
+    const EditModeView = () => {
+        return (
+            <div className={styles.buttonFieldEdit}>
+                <div className={styles.fieldEdit}>
+                    <label className={styles.labelEdit}>ID (строка):</label>
                     <input
                         type="text"
-                        className={styles.buttonTextInput}
-                        value={button.text}
-                        onChange={(e) =>
+                        className={styles.inputEdit}
+                        value={localId}
+                        onChange={(e) => setLocalId(e.target.value)}
+                        onBlur={(e) =>
+                            updateButtonConfig(
+                                sectionIndex,
+                                itemIndex,
+                                buttonIndex,
+                                'id',
+                                e.target.value,
+                            )
+                        }
+                        placeholder="Укажите ID"
+                    />
+                </div>
+
+                <div className={styles.fieldEdit}>
+                    <label className={styles.labelEdit}>
+                        Название текста (строка):
+                    </label>
+                    <input
+                        type="text"
+                        className={styles.inputEdit}
+                        value={localName}
+                        onChange={(e) => setLocalName(e.target.value)}
+                        onBlur={(e) =>
+                            updateButtonConfig(
+                                sectionIndex,
+                                itemIndex,
+                                buttonIndex,
+                                'name',
+                                e.target.value,
+                            )
+                        }
+                        placeholder="Название текста"
+                    />
+                </div>
+
+                <div className={styles.fieldEdit}>
+                    <label className={styles.labelEdit}>
+                        Текст текста (строка):
+                    </label>
+                    <input
+                        type="text"
+                        className={styles.inputEdit}
+                        value={localText}
+                        onChange={(e) => setLocalText(e.target.value)}
+                        onBlur={(e) =>
                             updateButtonConfig(
                                 sectionIndex,
                                 itemIndex,
@@ -173,27 +111,90 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                                 e.target.value,
                             )
                         }
-                        title={`Изменить текст ${button.name}`}
+                        placeholder="Текст"
                     />
-                    {isDifferent && (
-                        <button
-                            className={styles.resetButton}
-                            onClick={() =>
-                                resetButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                )
-                            }
-                            title="Сбросить значение"
-                        >
-                            <MdRestore scale={28} />
-                        </button>
-                    )}
-                </>
-            )}
-        </div>
-    )
+                </div>
+
+                <div className={styles.fieldEdit}>
+                    <label className={styles.labelEdit}>
+                        Дефолтное значение (строка):
+                    </label>
+                    <input
+                        type="text"
+                        className={styles.inputEdit}
+                        value={localDefault}
+                        onChange={(e) => setLocalDefault(e.target.value)}
+                        onBlur={(e) =>
+                            updateButtonConfig(
+                                sectionIndex,
+                                itemIndex,
+                                buttonIndex,
+                                'defaultParameter',
+                                e.target.value,
+                            )
+                        }
+                        placeholder="Текст по умолчанию"
+                    />
+                </div>
+
+                {isDifferent && (
+                    <button
+                        className={styles.resetButtonEdit}
+                        onClick={() =>
+                            resetButtonConfig(sectionIndex, itemIndex, buttonIndex)
+                        }
+                        title="Сбросить значение"
+                    >
+                        <MdRestore />
+                    </button>
+                )}
+
+                <button
+                    className={styles.removeItemButtonEdit}
+                    onClick={() => handleRemoveButton(buttonIndex)}
+                    title="Удалить текст"
+                >
+                    <MdDelete />
+                </button>
+            </div>
+        )
+    }
+
+    const NormalModeView = () => {
+        return (
+            <div className={styles.buttonField}>
+                <div className={styles.buttonName}>{button.name}:</div>
+                <input
+                    type="text"
+                    className={styles.buttonTextInput}
+                    value={button.text}
+                    onChange={(e) =>
+                        updateButtonConfig(
+                            sectionIndex,
+                            itemIndex,
+                            buttonIndex,
+                            'text',
+                            e.target.value,
+                        )
+                    }
+                    title={`Изменить текст ${button.name}`}
+                />
+                {isDifferent && (
+                    <button
+                        className={styles.resetButton}
+                        onClick={() =>
+                            resetButtonConfig(sectionIndex, itemIndex, buttonIndex)
+                        }
+                        title="Сбросить значение"
+                    >
+                        <MdRestore />
+                    </button>
+                )}
+            </div>
+        )
+    }
+
+    return editMode ? <EditModeView /> : <NormalModeView />
 }
 
 export default TextConfig

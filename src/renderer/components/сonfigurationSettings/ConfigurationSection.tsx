@@ -115,6 +115,7 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                         <option value="text">Text</option>
                         <option value="slider">Slider</option>
                         <option value="file">File</option>
+                        <option value="selector">selector</option>
                     </select>
                     <button
                         className={styles.addItemButton}
