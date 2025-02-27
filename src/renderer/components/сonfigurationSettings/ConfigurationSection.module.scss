@@ -5,45 +5,56 @@
     gap: 10px;
 }
 
-.sectionHeader {
+.sectionHeaderEdit {
+    transition: var(--transition);
+    position: relative;
     display: flex;
-    justify-content: space-between;
+    flex-direction: row;
     align-items: center;
-    margin-bottom: 16px;
-}
-
-.sectionTitleInput {
-    padding: 6px 12px;
-    color: #ffffff;
-    background: #292c36;
-    font-size: 14px;
+    padding: 10px 16px;
+    margin: 10px -20px;
+    gap: 10px;
+    background: #3b4052;
+    outline: 2px solid #3b4052;
     border-radius: 8px;
-    border: 1px solid #363944;
+    max-height: fit-content;
+    justify-content: space-between;
 
-    &:focus {
-        border-color: #4d7dff;
-        outline: none;
-        background: #4d7cff3d;
+    &:hover {
+        background: linear-gradient(180deg, #3b4052 0%, #3e486c 100%);
+        outline: 2px solid #698aff;
+        box-shadow: 0px 0px 9.4px 2px rgba(105, 138, 255, 0.25);
     }
 }
 
-.removeSectionButton {
-    border: none;
-    color: #e74c3c;
-    background: #e74c3c38;
-    cursor: pointer;
-    height: 30px;
-    width: 30px;
-    border-radius: 8px;
-    font-size: 20px;
-    margin-left: 12px;
+.sectionFieldEdit {
     display: flex;
-    transition: color 0.3s;
-    align-items: center;
-    justify-content: center;
+    flex-direction: column;
+    width: -webkit-fill-available;
+}
 
-    &:hover {
-        color: #ff9084;
+.sectionLabelEdit {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
+}
+
+.sectionInputEdit {
+    display: block;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+    color: #ffffff;
+    background: 0;
+
+    &:focus {
+        border-color: #4d7dff;
+        background: #4d7cff3d;
+        outline: none;
     }
 }
 
@@ -56,8 +67,7 @@
 .addItemContainer {
     display: flex;
     align-items: center;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 10px;
 }
 
 .addItemSelect {
@@ -77,24 +87,73 @@
 }
 
 .addItemButton {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 8px;
-    background-color: #2ecc71;
-    border: none;
-    border-radius: 4px;
-    color: #fff;
     cursor: pointer;
-    font-size: 13px;
     transition: var(--transition);
+    color: white;
+    background: transparent;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    gap: 10px;
+
+    border-radius: 8px;
 
     &:hover {
-        background-color: #27ae60;
+        background-color: #5e6685;
+        color: #d3dcff;
     }
 
     &:disabled {
-        background-color: #95a5a6;
+        background-color: transparent;
         cursor: not-allowed;
     }
+}
+
+.sectionRemoveItemButtonEdit {
+    cursor: pointer;
+    transition: var(--transition);
+    color: white;
+    background: transparent;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    gap: 10px;
+
+    border-radius: 8px;
+
+    &:hover {
+        background-color: #7f424285;
+        color: #ffa4a4;
+    }
+
+    &:disabled {
+        background-color: transparent;
+        cursor: not-allowed;
+    }
+}
+
+.addItemDrag {
+    cursor: move;
+    transition: var(--transition);
+    color: white;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    gap: 10px;
+
+    border-radius: 8px;
+
+    &:hover {
+        color: #d3dcff;
+    }
+}
+
+
+.sectionLine {
+    width: 1px;
+    height: 15px;
+    background-color: #464C62;
 }

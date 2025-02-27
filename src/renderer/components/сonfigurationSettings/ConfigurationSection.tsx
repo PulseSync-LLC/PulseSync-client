@@ -1,6 +1,16 @@
 import React, { useState } from 'react'
 import ConfigurationItem from './ConfigurationItem'
-import { MdAdd, MdDelete } from 'react-icons/md'
+import {
+    MdAdd,
+    MdCrop169,
+    MdDelete,
+    MdDragIndicator,
+    MdFolderOpen,
+    MdInvertColors,
+    MdLinearScale,
+    MdTextFields,
+    MdTune,
+} from 'react-icons/md'
 import * as styles from './ConfigurationSection.module.scss'
 import { Section, Item, ButtonAction } from './types'
 
@@ -27,7 +37,7 @@ interface ConfigurationSectionProps {
         itemIndex: number,
         buttonIndex: number,
     ) => void
-    addItem: (sectionIndex: number, itemType: string) => void 
+    addItem: (sectionIndex: number, itemType: string) => void
     removeItem: (sectionIndex: number, itemIndex: number) => void
     removeSection: (sectionIndex: number) => void
 }
@@ -44,45 +54,93 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
     removeItem,
     removeSection,
 }) => {
-    const [newItemType, setNewItemType] = useState<string>('button')
-
-    const handleAddItemTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        setNewItemType(e.target.value)
-    }
-
     return (
         <div className={styles.section}>
             {editMode ? (
-                <div className={styles.sectionHeader}>
-                    <input
-                        type="text"
-                        className={styles.sectionTitleInput}
-                        value={section.title}
-                        onChange={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                null,
-                                'title',
-                                e.target.value,
-                            )
-                        }
-                        onBlur={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                null,
-                                'title',
-                                e.target.value,
-                            )
-                        }
-                        placeholder="Название секции"
-                    />
-                    <button
-                        className={styles.removeSectionButton}
-                        onClick={() => removeSection(sectionIndex)}
-                        title="Удалить секцию"
-                    >
-                        <MdDelete />
-                    </button>
+                <div className={styles.sectionHeaderEdit}>
+                    <div className={styles.sectionFieldEdit}>
+                        <label className={styles.sectionLabelEdit}>
+                            Название секции:
+                        </label>
+                        <input
+                            type="text"
+                            className={styles.sectionInputEdit}
+                            value={section.title}
+                            onChange={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    null,
+                                    'title',
+                                    e.target.value,
+                                )
+                            }
+                            onBlur={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    null,
+                                    'title',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Название секции"
+                        />
+                    </div>
+                    <div className={styles.addItemContainer}>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'button')}
+                            title="Добавить кнопку"
+                        >
+                            <MdCrop169 size={24} />
+                        </button>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'color')}
+                            title="Добавить цвет"
+                        >
+                            <MdInvertColors size={24} />
+                        </button>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'text')}
+                            title="Добавить текст"
+                        >
+                            <MdTextFields size={24} />
+                        </button>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'slider')}
+                            title="Добавить слайдер"
+                        >
+                            <MdLinearScale size={24} />
+                        </button>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'file')}
+                            title="Добавить файл"
+                        >
+                            <MdFolderOpen size={24} />
+                        </button>
+                        <button
+                            className={styles.addItemButton}
+                            onClick={() => addItem(sectionIndex, 'selector')}
+                            title="Добавить селектор"
+                        >
+                            <MdTune size={24} />
+                        </button>
+                        <button
+                            className={styles.sectionRemoveItemButtonEdit}
+                            onClick={() => removeSection(sectionIndex)}
+                            title="Удалить секцию"
+                        >
+                            <MdDelete size={24} />
+                        </button>
+                        <div className={styles.sectionLine}></div>
+                        {/* drag нужно будет сделать в будующем */}
+                        <button className={styles.addItemDrag}>
+                            <MdDragIndicator size={24} />
+                        </button>
+                    </div>
                 </div>
             ) : (
                 <div className={styles.sectionTitle}>{section.title}</div>
@@ -102,30 +160,6 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                     removeItem={removeItem}
                 />
             ))}
-
-            {editMode && (
-                <div className={styles.addItemContainer}>
-                    <select
-                        value={newItemType}
-                        onChange={handleAddItemTypeChange}
-                        className={styles.addItemSelect}
-                    >
-                        <option value="button">Button</option>
-                        <option value="color">Color</option>
-                        <option value="text">Text</option>
-                        <option value="slider">Slider</option>
-                        <option value="file">File</option>
-                        <option value="selector">selector</option>
-                    </select>
-                    <button
-                        className={styles.addItemButton}
-                        onClick={() => addItem(sectionIndex, newItemType)}
-                        title="Добавить элемент"
-                    >
-                        <MdAdd /> Добавить элемент
-                    </button>
-                </div>
-            )}
         </div>
     )
 }

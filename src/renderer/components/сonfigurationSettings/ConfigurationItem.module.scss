@@ -1,4 +1,3 @@
-
 .item {
     cursor: pointer;
     position: relative;
@@ -201,23 +200,43 @@ input[type='color']::-webkit-color-swatch {
     }
 }
 
-
 .itemEdit {
+    transition: var(--transition);
     position: relative;
     display: flex;
     flex-direction: column;
-    padding: 8px;
-    background: #2f3645;
-    border: 1px solid #4d78f7;
-    border-radius: 6px;
-    gap: 6px;
+    align-items: stretch;
+    padding: 0px 16px 10px 16px;
+    gap: 10px;
+    background: #3b4052;
+    border-radius: 8px;
+    outline: 2px solid #3b4052;
+    max-height: fit-content;
+
+    &:hover {
+        background: linear-gradient(180deg, #3b4052 0%, #3e486c 100%);
+        outline: 2px solid #698aff;
+        box-shadow: 0px 0px 9.4px 2px rgba(105, 138, 255, 0.25);
+
+        & > .itemHeaderEdit {
+            padding: 10px 0 10px 0;
+        }
+    }
 }
 
 .itemHeaderEdit {
+    transition: var(--transition);
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 6px;
+    position: sticky;
+    left: 0;
+    top: 0;
+    right: 0;
+    z-index: 4;
+    background: #3b4052;
+    padding: 10px 0 0px 0;
 }
 
 .itemTypeInfoEdit {
@@ -229,22 +248,57 @@ input[type='color']::-webkit-color-swatch {
     background: #4d78f7;
 }
 
-.removeItemButtonEdit {
-    border: none;
-    color: #e74c3c;
-    background: #e74c3c38;
-    cursor: pointer;
-    height: 24px;
-    width: 24px;
-    border-radius: 6px;
-    font-size: 16px;
+.addItemContainerEdit {
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+}
+
+.removeItemButtonEdit {
+    cursor: pointer;
+    transition: var(--transition);
+    color: white;
+    background: transparent;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    gap: 10px;
+
+    border-radius: 8px;
 
     &:hover {
-        color: #ff9084;
+        background-color: #7f424285;
+        color: #ffa4a4;
     }
+
+    &:disabled {
+        background-color: transparent;
+        cursor: not-allowed;
+    }
+}
+
+.addItemDragEdit {
+    cursor: move;
+    transition: var(--transition);
+    color: white;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px;
+    gap: 10px;
+
+    border-radius: 8px;
+
+    &:hover {
+        color: #d3dcff;
+    }
+}
+
+.lineEdit {
+    width: 1px;
+    height: 15px;
+    background-color: #464c62;
 }
 
 .fieldEdit {
@@ -254,18 +308,22 @@ input[type='color']::-webkit-color-swatch {
 }
 
 .labelEdit {
+    font-weight: 400;
     font-size: 12px;
-    color: #9ba4bb;
-    margin-bottom: 2px;
+    line-height: 140%;
+    color: #ffffff;
 }
 
 .inputEdit {
-    padding: 4px 8px;
+    display: block;
+    border: none;
+    padding: 0;
+    margin: 0;
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
     color: #ffffff;
-    background: #5b699329;
-    font-size: 12px;
-    border: 0;
-    border-bottom: 2px solid #5b6993;
+    background: 0;
 
     &:focus {
         border-color: #4d7dff;
@@ -319,6 +377,13 @@ input[type='color']::-webkit-color-swatch {
     flex-direction: column;
     position: relative;
     gap: 6px;
+    padding: 10px 16px;
+    background: #464c62;
+    border-radius: 8px;
+
+    &:hover {
+        background: #5e6685;
+    }
 }
 
 .colorContainerEdit {

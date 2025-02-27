@@ -11,12 +11,12 @@
     align-items: center;
 
     &:hover {
-      & > .track > .filledTrack {
-        background-color: #708cf9;
-      }
-      & > .track > .customThumb {
-        background-color: #becdff;
-      }
+        & > .track > .filledTrack {
+            background-color: #708cf9;
+        }
+        & > .track > .customThumb {
+            background-color: #becdff;
+        }
     }
 }
 
@@ -47,15 +47,13 @@
 }
 
 .customThumb {
-  top: 50%;
-  transform: translate(-40%, -50%);
-  box-sizing: border-box;
-  position: absolute;
-  width: 14px;
-  min-width: 14px;
-  height: 44px;
-  background: #91aaff;
-  border-radius: 7px;
+    top: 50%;
+    transform: translate(-40%, -50%);
+    box-sizing: border-box;
+    position: absolute;
+    width: 14px;
+    min-width: 14px;
+    height: 44px;
+    background: #91aaff;
+    border-radius: 7px;
 }
-
-

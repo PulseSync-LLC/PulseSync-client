@@ -1,17 +1,13 @@
+// ConfigurationItem.tsx
+
 import React, { useEffect, useRef, useState } from 'react'
 import { MdDelete, MdFolder, MdRestore } from 'react-icons/md'
 import * as styles from './ConfigurationItem.module.scss'
-import {
-    ButtonAction,
-    Item,
-    TextItem,
-    isTextItem,
-    isSelectorItem,
-    SelectorItem,
-} from './types'
+import { ButtonAction, Item, TextItem, isTextItem } from './types'
 import TextItemComponent from './TextItemComponent'
 import CustomSlider from './CustomSlider'
 import CustomSelector, { CustomSelectorRef } from './CustomSelector'
+import { isSelectorItem, SelectorItem } from './types'
 
 interface SliderItem {
     type: 'slider'
@@ -127,7 +123,6 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             setSliderValue((item as SliderItem).value)
         }
     }, [item])
-
     useEffect(() => {
         if (item.type === 'color') {
             setColorValue((item as ColorItem).input)
@@ -173,6 +168,8 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
         }
     }
 
+    const stopPropagation = (e: React.MouseEvent) => e.stopPropagation()
+
     const handleRemoveButton = (buttonIndex: number) => {
         if (!isTextItem(item)) return
         const updatedButtons = item.buttons.filter(
@@ -181,600 +178,115 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
         updateConfigField(sectionIndex, itemIndex, 'buttons', updatedButtons)
     }
 
-    const EditModeView = () => {
-        return (
-            <div className={`${styles.itemEdit}`}>
-                <div className={styles.itemHeaderEdit}>
-                    <span className={styles.itemTypeInfoEdit}>Тип: {item.type}</span>
-                    <button
-                        className={styles.removeItemButtonEdit}
-                        onClick={() => removeItem(sectionIndex, itemIndex)}
-                        title="Удалить элемент"
-                    >
-                        <MdDelete />
-                    </button>
-                </div>
-
-                {}
-                <div className={styles.fieldEdit}>
-                    <label className={styles.labelEdit}>ID (строка):</label>
-                    <input
-                        type="text"
-                        ref={inputRef}
-                        className={styles.inputEdit}
-                        value={item.id}
-                        onChange={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'id',
-                                e.target.value,
-                            )
-                        }
-                        onBlur={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'id',
-                                e.target.value,
-                            )
-                        }
-                        placeholder="Уникальный идентификатор"
-                    />
-                </div>
-
-                {}
-                <div className={styles.fieldEdit}>
-                    <label className={styles.labelEdit}>Название (строка):</label>
-                    <input
-                        type="text"
-                        className={styles.inputEdit}
-                        value={item.name}
-                        onChange={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'name',
-                                e.target.value,
-                            )
-                        }
-                        onBlur={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'name',
-                                e.target.value,
-                            )
-                        }
-                        placeholder="Название элемента"
-                    />
-                </div>
-
-                {}
-                <div className={styles.fieldEdit}>
-                    <label className={styles.labelEdit}>Описание (строка):</label>
-                    <input
-                        type="text"
-                        className={styles.inputEdit}
-                        value={item.description}
-                        onChange={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'description',
-                                e.target.value,
-                            )
-                        }
-                        onBlur={(e) =>
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'description',
-                                e.target.value,
-                            )
-                        }
-                        placeholder="Описание элемента"
-                    />
-                </div>
-
-                {}
-                {item.type === 'button' && (
-                    <div className={styles.buttonContainerEdit}>
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButtonEdit}
-                                onClick={() =>
-                                    resetConfigField(sectionIndex, itemIndex)
-                                }
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
-                        <div className={styles.defaultParameterContainerEdit}>
-                            <label className={styles.defaultLabelEdit}>
-                                Параметр по умолчанию (bool):
-                            </label>
-                            <input
-                                type="checkbox"
-                                checked={item.defaultParameter}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'defaultParameter',
-                                        e.target.checked,
-                                    )
-                                }
-                                title="Изменить параметр по умолчанию"
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {item.type === 'color' && (
-                    <div className={styles.colorContainerEdit}>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>
-                                Input (строка):
-                            </label>
-                            <input
-                                type="text"
-                                className={styles.inputEdit}
-                                value={item.input}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'input',
-                                        e.target.value,
-                                    )
-                                }
-                                onBlur={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'input',
-                                        e.target.value,
-                                    )
-                                }
-                                placeholder="#FFFFFF"
-                            />
-                        </div>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Выбор цвета:</label>
-                            <input
-                                type="color"
-                                className={styles.colorInputEdit}
-                                value={item.input}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'input',
-                                        e.target.value,
-                                    )
-                                }
-                                onBlur={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'input',
-                                        e.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButtonEdit}
-                                onClick={() =>
-                                    resetConfigField(sectionIndex, itemIndex)
-                                }
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
-                        <div className={styles.defaultParameterContainerEdit}>
-                            <label className={styles.defaultLabelEdit}>
-                                Параметр по умолчанию (цвет):
-                            </label>
-                            <div style={{ display: 'flex', gap: '8px' }}>
-                                <input
-                                    type="text"
-                                    className={styles.inputEdit}
-                                    value={item.defaultParameter}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="#FFFFFF"
-                                />
-                                <input
-                                    type="color"
-                                    className={styles.colorInputEdit}
-                                    value={item.defaultParameter}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            e.target.value,
-                                        )
-                                    }
-                                    title="Выбрать цвет по умолчанию"
-                                />
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {item.type === 'slider' && (
-                    <div className={styles.sliderContainerEdit}>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Min:</label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.min}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'min',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Max:</label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.max}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'max',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Step:</label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.step}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'step',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>
-                                Текущее значение:
-                            </label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.value}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'value',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButtonEdit}
-                                onClick={() =>
-                                    resetConfigField(sectionIndex, itemIndex)
-                                }
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
-                        <div className={styles.defaultParameterContainerEdit}>
-                            <label className={styles.defaultLabelEdit}>
-                                Параметр по умолчанию (число):
-                            </label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.defaultParameter ?? 0}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'defaultParameter',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {item.type === 'file' && (
-                    <div className={styles.fileContainerEdit}>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Имя файла:</label>
-                            <input
-                                type="text"
-                                className={styles.inputEdit}
-                                value={item.filePath || ''}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'fileName',
-                                        e.target.value,
-                                    )
-                                }
-                            />
-                        </div>
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButtonEdit}
-                                onClick={(e) => {
-                                    e.stopPropagation()
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'filePath',
-                                        item.defaultParameter?.filePath ?? '',
-                                    )
-                                }}
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
-                        <div className={styles.defaultParameterContainerEdit}>
-                            <label className={styles.defaultLabelEdit}>
-                                Значение по умолчанию (объект filePath / fileName):
-                            </label>
-                            <input
-                                type="text"
-                                className={styles.inputEdit}
-                                placeholder="Путь по умолчанию"
-                                value={item.defaultParameter?.filePath ?? ''}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'defaultParameter',
-                                        {
-                                            ...(item.defaultParameter || {}),
-                                            filePath: e.target.value,
-                                        },
-                                    )
-                                }
-                            />
-                            <input
-                                type="text"
-                                className={styles.inputEdit}
-                                placeholder="Имя файла по умолчанию"
-                                value={item.defaultParameter?.filePath ?? ''}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'defaultParameter',
-                                        {
-                                            ...(item.defaultParameter || {}),
-                                            filePath: e.target.value,
-                                        },
-                                    )
-                                }
-                            />
-                        </div>
-                    </div>
-                )}
-
-                {isTextItem(item) && (
-                    <div className={styles.itemTextEdit}>
-                        <TextItemComponent
-                            sectionIndex={sectionIndex}
-                            itemIndex={itemIndex}
-                            item={item}
-                            editMode={true}
-                            updateButtonConfig={updateButtonConfig}
-                            resetButtonConfig={resetButtonConfig}
-                            updateConfigField={updateConfigField}
-                            handleRemoveButton={handleRemoveButton}
-                        />
-                    </div>
-                )}
-
-                {isSelectorItem(item) && item.type === 'selector' && (
-                    <div className={styles.selectorContainerEdit}>
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>
-                                Выбранное значение:
-                            </label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.selected}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'selected',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
-
-                        <div className={styles.fieldEdit}>
-                            <label className={styles.labelEdit}>Опции:</label>
-                            {Object.entries(item.options).map(([key, option]) => (
-                                <div key={key} className={styles.optionRowEdit}>
-                                    <span>{key}:</span>
-                                    <input
-                                        type="text"
-                                        className={styles.inputEdit}
-                                        value={option.event}
-                                        onChange={(e) => {
-                                            const newOptions = { ...item.options }
-                                            newOptions[key] = {
-                                                ...option,
-                                                event: e.target.value,
-                                            }
-                                            updateConfigField(
-                                                sectionIndex,
-                                                itemIndex,
-                                                'options',
-                                                newOptions,
-                                            )
-                                        }}
-                                        placeholder="event"
-                                    />
-                                    <input
-                                        type="text"
-                                        className={styles.inputEdit}
-                                        value={option.name}
-                                        onChange={(e) => {
-                                            const newOptions = { ...item.options }
-                                            newOptions[key] = {
-                                                ...option,
-                                                name: e.target.value,
-                                            }
-                                            updateConfigField(
-                                                sectionIndex,
-                                                itemIndex,
-                                                'options',
-                                                newOptions,
-                                            )
-                                        }}
-                                        placeholder="name"
-                                    />
-                                    <button
-                                        className={styles.removeOptionButtonEdit}
-                                        onClick={() => {
-                                            const newOptions = { ...item.options }
-                                            delete newOptions[key]
-                                            updateConfigField(
-                                                sectionIndex,
-                                                itemIndex,
-                                                'options',
-                                                newOptions,
-                                            )
-                                        }}
-                                        title="Удалить опцию"
-                                    >
-                                        <MdDelete />
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-
+    return (
+        <div
+            className={
+                editMode
+                    ? styles.itemEdit
+                    : `${styles.item} ${styles['item-' + item.type]}`
+            }
+            onClick={handleContainerClick}
+            onDoubleClick={handleContainerDoubleClick}
+        >
+            {editMode ? (
+                <>
+                    <div className={styles.itemHeaderEdit}>
+                        <span className={styles.itemTypeInfoEdit}>
+                            Тип: {item.type}
+                        </span>
                         <button
-                            className={styles.addOptionButtonEdit}
-                            onClick={() => {
-                                const newKey = Object.keys(item.options).length + 1
-                                const newOptions = {
-                                    ...item.options,
-                                    [newKey]: {
-                                        event: `event_${newKey}`,
-                                        name: `Option ${newKey}`,
-                                    },
-                                }
+                            className={styles.removeItemButtonEdit}
+                            onClick={() => removeItem(sectionIndex, itemIndex)}
+                            title="Удалить элемент"
+                        >
+                            <MdDelete />
+                        </button>
+                    </div>
+                    <div className={styles.fieldEdit}>
+                        <label className={styles.labelEdit}>ID (строка):</label>
+                        <input
+                            type="text"
+                            ref={inputRef}
+                            className={styles.inputEdit}
+                            value={item.id}
+                            onChange={(e) =>
                                 updateConfigField(
                                     sectionIndex,
                                     itemIndex,
-                                    'options',
-                                    newOptions,
+                                    'id',
+                                    e.target.value,
                                 )
-                            }}
-                        >
-                            Добавить опцию
-                        </button>
-
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButtonEdit}
-                                onClick={() =>
-                                    resetConfigField(sectionIndex, itemIndex)
-                                }
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
-
-                        <div className={styles.defaultParameterContainerEdit}>
-                            <label className={styles.defaultLabelEdit}>
-                                Параметр по умолчанию (число):
-                            </label>
-                            <input
-                                type="number"
-                                className={styles.inputEdit}
-                                value={item.defaultParameter ?? ''}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'defaultParameter',
-                                        Number(e.target.value),
-                                    )
-                                }
-                            />
-                        </div>
+                            }
+                            onBlur={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'id',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Уникальный идентификатор"
+                        />
                     </div>
-                )}
-            </div>
-        )
-    }
-
-    const NormalModeView = () => {
-        return (
-            <div
-                className={styles.item}
-                onClick={handleContainerClick}
-                onDoubleClick={handleContainerDoubleClick}
-            >
+                    <div className={styles.fieldEdit}>
+                        <label className={styles.labelEdit}>
+                            Название (строка):
+                        </label>
+                        <input
+                            type="text"
+                            className={styles.inputEdit}
+                            value={item.name}
+                            onChange={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'name',
+                                    e.target.value,
+                                )
+                            }
+                            onBlur={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'name',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Название элемента"
+                        />
+                    </div>
+                    <div className={styles.fieldEdit}>
+                        <label className={styles.labelEdit}>
+                            Описание (строка):
+                        </label>
+                        <input
+                            type="text"
+                            className={styles.inputEdit}
+                            value={item.description}
+                            onChange={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'description',
+                                    e.target.value,
+                                )
+                            }
+                            onBlur={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'description',
+                                    e.target.value,
+                                )
+                            }
+                            placeholder="Описание элемента"
+                        />
+                    </div>
+                </>
+            ) : (
                 <div className={styles.readOnlyContainer}>
                     <div className={styles.itemName}>{item.name}</div>
-
-                    {}
+                    {/* ---- BUTTON ---- */}
                     {item.type === 'button' && (
                         <div
                             className={`${styles.itemValue} ${
@@ -784,8 +296,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {item.bool ? 'Включено' : 'Выключено'}
                         </div>
                     )}
-
-                    {}
+                    {/* ---- SLIDER ---- */}
                     {item.type === 'slider' && (
                         <div className={styles.itemValue}>
                             {sliderEditMode ? (
@@ -809,8 +320,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             )}
                         </div>
                     )}
-
-                    {}
+                    {/* ---- COLOR ---- */}
                     {item.type === 'color' && (
                         <div className={styles.itemValue}>
                             {colorEditMode ? (
@@ -848,20 +358,18 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             )}
                         </div>
                     )}
-
-                    {}
+                    {/* ---- FILE ---- */}
                     {item.type === 'file' && (
                         <div className={styles.itemValue}>Путь: {item.filePath}</div>
                     )}
-
-                    {}
+                    {/* ---- TEXT ---- */}
                     {isTextItem(item) && (
                         <div className={styles.itemText}>
                             <TextItemComponent
                                 sectionIndex={sectionIndex}
                                 itemIndex={itemIndex}
                                 item={item}
-                                editMode={false}
+                                editMode={editMode}
                                 updateButtonConfig={updateButtonConfig}
                                 resetButtonConfig={resetButtonConfig}
                                 updateConfigField={updateConfigField}
@@ -869,11 +377,10 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             />
                         </div>
                     )}
-
-                    {}
-                    {isSelectorItem(item) && item.type === 'selector' && (
+                    {/* ---- SELECTOR (read-only mode) ---- */}
+                    {isSelectorItem(item) && !editMode && (
                         <>
-                            <div className={styles.itemValue}>
+                            <div className={styles.itemValueEdit}>
                                 <CustomSelector
                                     ref={selectorRef}
                                     options={item.options}
@@ -890,7 +397,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             </div>
                             {isDifferent && (
                                 <button
-                                    className={styles.resetButton}
+                                    className={styles.resetButtonEdit}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         updateConfigField(
@@ -908,80 +415,585 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         </>
                     )}
                 </div>
+            )}
 
-                {}
-                {item.type === 'button' && !editMode && isDifferent && (
-                    <button
-                        className={styles.resetButton}
-                        onClick={() => resetConfigField(sectionIndex, itemIndex)}
-                        title="Сбросить значение"
-                    >
-                        <MdRestore />
-                    </button>
-                )}
+            {/* ---- BUTTON extra controls ---- */}
+            {item.type === 'button' && (
+                <div className={styles.buttonContainer}>
+                    {editMode ? (
+                        <>
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButtonEdit}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <label className={styles.defaultLabelEdit}>
+                                    Параметр по умолчанию (bool):
+                                </label>
+                                <input
+                                    type="checkbox"
+                                    checked={item.defaultParameter}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'defaultParameter',
+                                            e.target.checked,
+                                        )
+                                    }
+                                    title="Изменить параметр по умолчанию"
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButton}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
 
-                {item.type === 'slider' && !editMode && isDifferent && (
-                    <button
-                        className={styles.resetButton}
-                        onClick={() => resetConfigField(sectionIndex, itemIndex)}
-                        title="Сбросить"
-                    >
-                        <MdRestore />
-                    </button>
-                )}
+            {/* ---- COLOR extra controls ---- */}
+            {item.type === 'color' && (
+                <div className={styles.colorContainer}>
+                    {editMode ? (
+                        <>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>
+                                    Input (строка):
+                                </label>
+                                <input
+                                    type="text"
+                                    className={styles.inputEdit}
+                                    value={item.input}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'input',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'input',
+                                            e.target.value,
+                                        )
+                                    }
+                                    placeholder="#FFFFFF"
+                                />
+                            </div>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>
+                                    Выбор цвета:
+                                </label>
+                                <input
+                                    type="color"
+                                    className={styles.colorInputEdit}
+                                    value={item.input}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'input',
+                                            e.target.value,
+                                        )
+                                    }
+                                    onBlur={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'input',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButtonEdit}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <label className={styles.defaultLabelEdit}>
+                                    Параметр по умолчанию (цвет):
+                                </label>
+                                <div style={{ display: 'flex', gap: '8px' }}>
+                                    <input
+                                        type="text"
+                                        className={styles.inputEdit}
+                                        value={item.defaultParameter}
+                                        onChange={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        onBlur={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="#FFFFFF"
+                                    />
+                                    <input
+                                        type="color"
+                                        className={styles.colorInputEdit}
+                                        value={item.defaultParameter}
+                                        onChange={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        onBlur={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        title="Выбрать цвет по умолчанию"
+                                    />
+                                </div>
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.colorSelectContainer}>
+                            <input
+                                type="color"
+                                className={styles.colorInput}
+                                value={item.input}
+                                onChange={(e) =>
+                                    updateConfigField(
+                                        sectionIndex,
+                                        itemIndex,
+                                        'input',
+                                        e.target.value,
+                                    )
+                                }
+                                title="Выбрать цвет"
+                            />
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButton}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
 
-                {item.type === 'color' && !editMode && (
-                    <div className={styles.colorSelectContainer}>
+            {/* ---- SLIDER extra controls ---- */}
+            {item.type === 'slider' && (
+                <div className={styles.sliderContainer}>
+                    {editMode ? (
+                        <>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>Min:</label>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={item.min}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'min',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>Max:</label>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={item.max}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'max',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>Step:</label>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={item.step}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'step',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>
+                                    Текущее значение:
+                                </label>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={item.value}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'value',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButtonEdit}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <label className={styles.defaultLabelEdit}>
+                                    Параметр по умолчанию (число):
+                                </label>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={item.defaultParameter ?? 0}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'defaultParameter',
+                                            Number(e.target.value),
+                                        )
+                                    }
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <CustomSlider
+                                min={item.min}
+                                max={item.max}
+                                step={item.step}
+                                value={item.value}
+                                onChange={(e) =>
+                                    updateConfigField(
+                                        sectionIndex,
+                                        itemIndex,
+                                        'value',
+                                        Number(e.target.value),
+                                    )
+                                }
+                            />
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButton}
+                                    onClick={() =>
+                                        resetConfigField(sectionIndex, itemIndex)
+                                    }
+                                    title="Сбросить"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                        </>
+                    )}
+                </div>
+            )}
+
+            {/* ---- FILE extra controls ---- */}
+            {item.type === 'file' && (
+                <div className={styles.fileContainer}>
+                    {editMode ? (
+                        <>
+                            <div className={styles.fieldEdit}>
+                                <label className={styles.labelEdit}>
+                                    Имя файла:
+                                </label>
+                                <input
+                                    type="text"
+                                    className={styles.inputEdit}
+                                    value={item.filePath || ''}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'fileName',
+                                            e.target.value,
+                                        )
+                                    }
+                                />
+                            </div>
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButtonEdit}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'filePath',
+                                            item.defaultParameter?.filePath ?? '',
+                                        )
+                                    }}
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <label className={styles.defaultLabelEdit}>
+                                    Значение по умолчанию (объект filePath):
+                                </label>
+                                <input
+                                    type="text"
+                                    className={styles.inputEdit}
+                                    placeholder="Путь по умолчанию"
+                                    value={item.defaultParameter?.filePath ?? ''}
+                                    onChange={(e) =>
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'defaultParameter',
+                                            {
+                                                ...(item.defaultParameter || {}),
+                                                filePath: e.target.value,
+                                            },
+                                        )
+                                    }
+                                />
+                            </div>
+                        </>
+                    ) : (
+                        <div className={styles.field}>
+                            <MdFolder size={28} color="#C3D1FF" />
+                            {isDifferent && (
+                                <button
+                                    className={styles.resetButton}
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'filePath',
+                                            item.defaultParameter?.filePath ?? '',
+                                        )
+                                    }}
+                                    title="Сбросить значение"
+                                >
+                                    <MdRestore />
+                                </button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* ---- SELECTOR extra controls (edit mode) ---- */}
+            {isSelectorItem(item) && item.type === 'selector' && editMode && (
+                <div className={styles.selectorContainerEdit}>
+                    <div className={styles.fieldEdit}>
+                        <label className={styles.labelEdit}>
+                            Выбранное значение:
+                        </label>
                         <input
-                            type="color"
-                            className={styles.colorInput}
-                            value={(item as ColorItem).input}
+                            type="number"
+                            className={styles.inputEdit}
+                            value={item.selected}
                             onChange={(e) =>
                                 updateConfigField(
                                     sectionIndex,
                                     itemIndex,
-                                    'input',
-                                    e.target.value,
+                                    'selected',
+                                    Number(e.target.value),
                                 )
                             }
-                            title="Выбрать цвет"
                         />
-                        {isDifferent && (
-                            <button
-                                className={styles.resetButton}
-                                onClick={() =>
-                                    resetConfigField(sectionIndex, itemIndex)
-                                }
-                                title="Сбросить значение"
-                            >
-                                <MdRestore />
-                            </button>
-                        )}
                     </div>
-                )}
 
-                {item.type === 'file' && !editMode && isDifferent && (
+                    <div className={styles.fieldEdit}>
+                        <label className={styles.labelEdit}>Опции:</label>
+                        {Object.entries(item.options).map(([key, option]) => (
+                            <div key={key} className={styles.optionRowEdit}>
+                                <span>{key}:</span>
+                                <input
+                                    type="text"
+                                    className={styles.inputEdit}
+                                    value={option.event}
+                                    onChange={(e) => {
+                                        const newOptions = { ...item.options }
+                                        newOptions[key] = {
+                                            ...option,
+                                            event: e.target.value,
+                                        }
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'options',
+                                            newOptions,
+                                        )
+                                    }}
+                                    placeholder="event"
+                                />
+                                <input
+                                    type="text"
+                                    className={styles.inputEdit}
+                                    value={option.name}
+                                    onChange={(e) => {
+                                        const newOptions = { ...item.options }
+                                        newOptions[key] = {
+                                            ...option,
+                                            name: e.target.value,
+                                        }
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'options',
+                                            newOptions,
+                                        )
+                                    }}
+                                    placeholder="name"
+                                />
+                                <button
+                                    className={styles.removeOptionButtonEdit}
+                                    onClick={() => {
+                                        const newOptions = { ...item.options }
+                                        delete newOptions[key]
+                                        updateConfigField(
+                                            sectionIndex,
+                                            itemIndex,
+                                            'options',
+                                            newOptions,
+                                        )
+                                    }}
+                                    title="Удалить опцию"
+                                >
+                                    <MdDelete />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
                     <button
-                        className={styles.resetButton}
-                        onClick={(e) => {
-                            e.stopPropagation()
+                        className={styles.addOptionButtonEdit}
+                        onClick={() => {
+                            const newKey = Object.keys(item.options).length + 1
+                            const newOptions = {
+                                ...item.options,
+                                [newKey]: {
+                                    event: `event_${newKey}`,
+                                    name: `Option ${newKey}`,
+                                },
+                            }
                             updateConfigField(
                                 sectionIndex,
                                 itemIndex,
-                                'filePath',
-                                item.defaultParameter?.filePath ?? '',
+                                'options',
+                                newOptions,
                             )
                         }}
-                        title="Сбросить значение"
                     >
-                        <MdRestore />
+                        Добавить опцию
                     </button>
-                )}
-            </div>
-        )
-    }
 
-    return editMode ? <EditModeView /> : <NormalModeView />
+                    {isDifferent && (
+                        <button
+                            className={styles.resetButtonEdit}
+                            onClick={() => resetConfigField(sectionIndex, itemIndex)}
+                            title="Сбросить значение"
+                        >
+                            <MdRestore />
+                        </button>
+                    )}
+
+                    <div className={styles.defaultParameterContainerEdit}>
+                        <label className={styles.defaultLabelEdit}>
+                            Параметр по умолчанию (число):
+                        </label>
+                        <input
+                            type="number"
+                            className={styles.inputEdit}
+                            value={item.defaultParameter ?? ''}
+                            onChange={(e) =>
+                                updateConfigField(
+                                    sectionIndex,
+                                    itemIndex,
+                                    'defaultParameter',
+                                    Number(e.target.value),
+                                )
+                            }
+                        />
+                    </div>
+                </div>
+            )}
+            {isTextItem(item) && editMode && (
+                <TextItemComponent
+                    sectionIndex={sectionIndex}
+                    itemIndex={itemIndex}
+                    item={item}
+                    editMode={editMode}
+                    updateButtonConfig={updateButtonConfig}
+                    resetButtonConfig={resetButtonConfig}
+                    updateConfigField={updateConfigField}
+                    handleRemoveButton={handleRemoveButton}
+                />
+            )}
+        </div>
+    )
 }
 
 export default ConfigurationItem
