@@ -17,6 +17,19 @@
     }
 }
 
+.itemHeader {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0px;
+    gap: 5px;
+}
+
+.tip {
+    display: flex;
+    align-items: center;
+}
+
 .buttonField {
     display: flex;
     position: relative;
@@ -24,7 +37,7 @@
     align-items: flex-start;
     padding: 10px 16px;
     width: 100%;
-    background: #464c62;
+    background: #6d75917a;
     border-radius: 8px;
 
     &:hover {
@@ -69,7 +82,7 @@
 
 .resetButton {
     position: absolute;
-    left: -14px;
+    left: -27px;
     top: 0;
     bottom: 0;
     align-self: center;
@@ -82,7 +95,7 @@
     cursor: pointer;
     font-size: 17px;
     display: flex;
-    height: 15px;
+    height: -webkit-fill-available;
     width: 15px;
     text-align: center;
     align-items: center;
@@ -206,7 +219,7 @@ input[type='color']::-webkit-color-swatch {
     display: flex;
     flex-direction: column;
     align-items: stretch;
-    padding: 0px 16px 10px 16px;
+    padding: 10px 16px;
     gap: 10px;
     background: #3b4052;
     border-radius: 8px;
@@ -217,10 +230,6 @@ input[type='color']::-webkit-color-swatch {
         background: linear-gradient(180deg, #3b4052 0%, #3e486c 100%);
         outline: 2px solid #698aff;
         box-shadow: 0px 0px 9.4px 2px rgba(105, 138, 255, 0.25);
-
-        & > .itemHeaderEdit {
-            padding: 10px 0 10px 0;
-        }
     }
 }
 
@@ -229,23 +238,14 @@ input[type='color']::-webkit-color-swatch {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 6px;
-    position: sticky;
-    left: 0;
-    top: 0;
-    right: 0;
-    z-index: 4;
-    background: #3b4052;
-    padding: 10px 0 0px 0;
 }
 
 .itemTypeInfoEdit {
-    font-size: 12px;
-    color: #ffffff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 700;
-    background: #4d78f7;
+    font-size: 14px;
+    color: #bacbff;
+    margin: 0 -17px;
+    padding-left: 11px;
+    border-left: 7px solid;
 }
 
 .addItemContainerEdit {
@@ -279,7 +279,8 @@ input[type='color']::-webkit-color-swatch {
 }
 
 .addItemDragEdit {
-    cursor: move;
+    opacity: 0.4;
+    cursor: not-allowed;
     transition: var(--transition);
     color: white;
     display: flex;
@@ -298,13 +299,12 @@ input[type='color']::-webkit-color-swatch {
 .lineEdit {
     width: 1px;
     height: 15px;
-    background-color: #464c62;
+    background-color: #6d75917a;
 }
 
 .fieldEdit {
     display: flex;
     flex-direction: column;
-    margin-bottom: 4px;
 }
 
 .labelEdit {
@@ -319,6 +319,7 @@ input[type='color']::-webkit-color-swatch {
     border: none;
     padding: 0;
     margin: 0;
+    width: -webkit-fill-available;
     font-weight: 500;
     font-size: 18px;
     line-height: 140%;
@@ -326,15 +327,18 @@ input[type='color']::-webkit-color-swatch {
     background: 0;
 
     &:focus {
-        border-color: #4d7dff;
-        background: #4d7cff3d;
+        color: #b8c5e9;
         outline: none;
+    }
+
+    &::placeholder {
+        color: #b0c0ec;
     }
 }
 
 .resetButtonEdit {
     position: absolute;
-    left: -12px;
+    left: -27px;
     top: 0;
     bottom: 0;
     padding: 2px;
@@ -345,10 +349,10 @@ input[type='color']::-webkit-color-swatch {
     cursor: pointer;
     font-size: 15px;
     display: flex;
-    height: 14px;
-    width: 14px;
+    height: fit-content;
+    width: 15px;
     align-items: center;
-    justify-content: center;
+    z-index: 6;
     animation: fadeInScale 0.3s cubic-bezier(0.23, 1, 0.32, 1) forwards;
 
     &:hover {
@@ -359,31 +363,40 @@ input[type='color']::-webkit-color-swatch {
 .defaultParameterContainerEdit {
     display: flex;
     flex-direction: column;
-    gap: 6px;
-    margin-top: 4px;
-    padding: 6px;
-    background: #1a1c24;
-    border-radius: 4px;
-    outline: 1px solid #474d61;
+    position: relative;
+    padding: 10px 16px;
+    background: #6d75917a;
+    border-radius: 8px;
+    align-items: flex-start;
+
+    &:hover {
+        background: #5e6685;
+    }
 }
 
 .defaultLabelEdit {
+    pointer-events: none;
     font-size: 12px;
-    color: #a1bbff;
+    color: #fff;
 }
 
 .buttonFieldEdit {
     display: flex;
     flex-direction: column;
     position: relative;
-    gap: 6px;
     padding: 10px 16px;
-    background: #464c62;
+    background: #6d75917a;
     border-radius: 8px;
 
     &:hover {
         background: #5e6685;
     }
+}
+
+.buttonContainer {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
 }
 
 .colorContainerEdit {
@@ -404,7 +417,6 @@ input[type='color']::-webkit-color-swatch {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
-    position: relative;
 }
 
 .fileContainerEdit {
@@ -430,9 +442,23 @@ input[type='color']::-webkit-color-swatch {
 
 .optionRowEdit {
     display: flex;
-    align-items: center;
     gap: 6px;
-    margin-bottom: 4px;
+    color: #fff;
+    align-items: center;
+}
+
+.keyEdit {
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    padding: 10px 16px;
+    background: #6d75917a;
+    border-radius: 8px;
+    align-items: flex-start;
+
+    &:hover {
+        background: #5e6685;
+    }
 }
 
 .addOptionButtonEdit {

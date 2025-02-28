@@ -1,13 +1,20 @@
 // ConfigurationItem.tsx
 
 import React, { useEffect, useRef, useState } from 'react'
-import { MdDelete, MdFolder, MdRestore } from 'react-icons/md'
+import {
+    MdDelete,
+    MdDragIndicator,
+    MdFolder,
+    MdHelp,
+    MdRestore,
+} from 'react-icons/md'
 import * as styles from './ConfigurationItem.module.scss'
 import { ButtonAction, Item, TextItem, isTextItem } from './types'
 import TextItemComponent from './TextItemComponent'
 import CustomSlider from './CustomSlider'
 import CustomSelector, { CustomSelectorRef } from './CustomSelector'
 import { isSelectorItem, SelectorItem } from './types'
+import TooltipButton from '../tooltip_button'
 
 interface SliderItem {
     type: 'slider'
@@ -129,9 +136,36 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
         }
     }, [item])
 
+    const finishSliderCheck = () => {
+        if (item.type === 'slider') {
+            const sliderItem = item as SliderItem
+
+            let correctedDefault = sliderItem.defaultParameter
+            if (correctedDefault < sliderItem.min) correctedDefault = sliderItem.min
+            if (correctedDefault > sliderItem.max) correctedDefault = sliderItem.max
+
+            if (correctedDefault !== sliderItem.defaultParameter) {
+                updateConfigField(
+                    sectionIndex,
+                    itemIndex,
+                    'defaultParameter',
+                    correctedDefault,
+                )
+            }
+
+            let correctedValue = sliderItem.value
+            if (correctedValue < sliderItem.min) correctedValue = sliderItem.min
+            if (correctedValue > sliderItem.max) correctedValue = sliderItem.max
+
+            if (correctedValue !== sliderItem.value) {
+                updateConfigField(sectionIndex, itemIndex, 'value', correctedValue)
+            }
+        }
+        setSliderEditMode(false)
+    }
+
     const finishSliderEdit = () => {
         updateConfigField(sectionIndex, itemIndex, 'value', sliderValue)
-        setSliderEditMode(false)
     }
 
     const finishColorEdit = () => {
@@ -194,16 +228,22 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         <span className={styles.itemTypeInfoEdit}>
                             Тип: {item.type}
                         </span>
-                        <button
-                            className={styles.removeItemButtonEdit}
-                            onClick={() => removeItem(sectionIndex, itemIndex)}
-                            title="Удалить элемент"
-                        >
-                            <MdDelete />
-                        </button>
+                        <div className={styles.addItemContainerEdit}>
+                            <button
+                                className={styles.removeItemButtonEdit}
+                                onClick={() => removeItem(sectionIndex, itemIndex)}
+                                title="Удалить секцию"
+                            >
+                                <MdDelete size={24} />
+                            </button>
+                            <div className={styles.lineEdit}></div>
+                            <button className={styles.addItemDragEdit}>
+                                <MdDragIndicator size={24} />
+                            </button>
+                        </div>
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>ID (строка):</label>
+                        <div className={styles.labelEdit}>ID (строка):</div>
                         <input
                             type="text"
                             ref={inputRef}
@@ -229,9 +269,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         />
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Название (строка):
-                        </label>
+                        <div className={styles.labelEdit}>Название (строка):</div>
                         <input
                             type="text"
                             className={styles.inputEdit}
@@ -256,9 +294,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                         />
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Описание (строка):
-                        </label>
+                        <div className={styles.labelEdit}>Описание (строка):</div>
                         <input
                             type="text"
                             className={styles.inputEdit}
@@ -285,7 +321,22 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 </>
             ) : (
                 <div className={styles.readOnlyContainer}>
-                    <div className={styles.itemName}>{item.name}</div>
+                    <div className={styles.itemHeader}>
+                        <div className={styles.itemName}>{item.name}</div>
+                        {item.description && (
+                            <TooltipButton
+                                className={styles.tip}
+                                side="right"
+                                tooltipText={
+                                    <div className={styles.itemName}>
+                                        {item.description}
+                                    </div>
+                                }
+                            >
+                                <MdHelp size={14} color="white" />
+                            </TooltipButton>
+                        )}
+                    </div>
                     {/* ---- BUTTON ---- */}
                     {item.type === 'button' && (
                         <div
@@ -397,7 +448,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             </div>
                             {isDifferent && (
                                 <button
-                                    className={styles.resetButtonEdit}
+                                    className={styles.resetButton}
                                     onClick={(e) => {
                                         e.stopPropagation()
                                         updateConfigField(
@@ -419,7 +470,17 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
 
             {/* ---- BUTTON extra controls ---- */}
             {item.type === 'button' && (
-                <div className={styles.buttonContainer}>
+                <div
+                    className={styles.buttonContainer}
+                    onClick={() =>
+                        updateConfigField(
+                            sectionIndex,
+                            itemIndex,
+                            'defaultParameter',
+                            !item.defaultParameter,
+                        )
+                    }
+                >
                     {editMode ? (
                         <>
                             {isDifferent && (
@@ -434,22 +495,20 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <label className={styles.defaultLabelEdit}>
+                                <div className={styles.defaultLabelEdit}>
                                     Параметр по умолчанию (bool):
-                                </label>
-                                <input
-                                    type="checkbox"
-                                    checked={item.defaultParameter}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            e.target.checked,
-                                        )
-                                    }
-                                    title="Изменить параметр по умолчанию"
-                                />
+                                </div>
+                                <div
+                                    className={`${styles.itemValue} ${
+                                        item.defaultParameter
+                                            ? styles.btEn
+                                            : styles.btDieb
+                                    }`}
+                                >
+                                    {item.defaultParameter
+                                        ? 'Включено'
+                                        : 'Выключено'}
+                                </div>
                             </div>
                         </>
                     ) : (
@@ -475,59 +534,6 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 <div className={styles.colorContainer}>
                     {editMode ? (
                         <>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>
-                                    Input (строка):
-                                </label>
-                                <input
-                                    type="text"
-                                    className={styles.inputEdit}
-                                    value={item.input}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'input',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'input',
-                                            e.target.value,
-                                        )
-                                    }
-                                    placeholder="#FFFFFF"
-                                />
-                            </div>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>
-                                    Выбор цвета:
-                                </label>
-                                <input
-                                    type="color"
-                                    className={styles.colorInputEdit}
-                                    value={item.input}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'input',
-                                            e.target.value,
-                                        )
-                                    }
-                                    onBlur={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'input',
-                                            e.target.value,
-                                        )
-                                    }
-                                />
-                            </div>
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
@@ -540,32 +546,16 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <label className={styles.defaultLabelEdit}>
+                                <div className={styles.defaultLabelEdit}>
                                     Параметр по умолчанию (цвет):
-                                </label>
-                                <div style={{ display: 'flex', gap: '8px' }}>
-                                    <input
-                                        type="text"
-                                        className={styles.inputEdit}
-                                        value={item.defaultParameter}
-                                        onChange={(e) =>
-                                            updateConfigField(
-                                                sectionIndex,
-                                                itemIndex,
-                                                'defaultParameter',
-                                                e.target.value,
-                                            )
-                                        }
-                                        onBlur={(e) =>
-                                            updateConfigField(
-                                                sectionIndex,
-                                                itemIndex,
-                                                'defaultParameter',
-                                                e.target.value,
-                                            )
-                                        }
-                                        placeholder="#FFFFFF"
-                                    />
+                                </div>
+                                <div
+                                    style={{
+                                        display: 'flex',
+                                        gap: '8px',
+                                        width: '100%',
+                                    }}
+                                >
                                     <input
                                         type="color"
                                         className={styles.colorInputEdit}
@@ -587,6 +577,28 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                             )
                                         }
                                         title="Выбрать цвет по умолчанию"
+                                    />
+                                    <input
+                                        type="text"
+                                        className={styles.inputEdit}
+                                        value={item.defaultParameter}
+                                        onChange={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        onBlur={(e) =>
+                                            updateConfigField(
+                                                sectionIndex,
+                                                itemIndex,
+                                                'defaultParameter',
+                                                e.target.value,
+                                            )
+                                        }
+                                        placeholder="#FFFFFF"
                                     />
                                 </div>
                             </div>
@@ -625,11 +637,11 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
 
             {/* ---- SLIDER extra controls ---- */}
             {item.type === 'slider' && (
-                <div className={styles.sliderContainer}>
+                <div className={styles.sliderContainerEdit}>
                     {editMode ? (
                         <>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>Min:</label>
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <div className={styles.defaultLabelEdit}>Min:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
@@ -642,10 +654,14 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                             Number(e.target.value),
                                         )
                                     }
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') finishSliderCheck()
+                                    }}
                                 />
                             </div>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>Max:</label>
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <div className={styles.defaultLabelEdit}>Max:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
@@ -658,10 +674,14 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                             Number(e.target.value),
                                         )
                                     }
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') finishSliderCheck()
+                                    }}
                                 />
                             </div>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>Step:</label>
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <div className={styles.defaultLabelEdit}>Step:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
@@ -674,24 +694,10 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                             Number(e.target.value),
                                         )
                                     }
-                                />
-                            </div>
-                            <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>
-                                    Текущее значение:
-                                </label>
-                                <input
-                                    type="number"
-                                    className={styles.inputEdit}
-                                    value={item.value}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'value',
-                                            Number(e.target.value),
-                                        )
-                                    }
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') finishSliderCheck()
+                                    }}
                                 />
                             </div>
                             {isDifferent && (
@@ -706,21 +712,25 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <label className={styles.defaultLabelEdit}>
+                                <div className={styles.defaultLabelEdit}>
                                     Параметр по умолчанию (число):
-                                </label>
+                                </div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
                                     value={item.defaultParameter ?? 0}
-                                    onChange={(e) =>
+                                    onChange={(e) => {
                                         updateConfigField(
                                             sectionIndex,
                                             itemIndex,
                                             'defaultParameter',
                                             Number(e.target.value),
                                         )
-                                    }
+                                    }}
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter') finishSliderCheck()
+                                    }}
                                 />
                             </div>
                         </>
@@ -762,9 +772,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                     {editMode ? (
                         <>
                             <div className={styles.fieldEdit}>
-                                <label className={styles.labelEdit}>
-                                    Имя файла:
-                                </label>
+                                <div className={styles.labelEdit}>Имя файла:</div>
                                 <input
                                     type="text"
                                     className={styles.inputEdit}
@@ -797,9 +805,9 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <label className={styles.defaultLabelEdit}>
+                                <div className={styles.defaultLabelEdit}>
                                     Значение по умолчанию (объект filePath):
-                                </label>
+                                </div>
                                 <input
                                     type="text"
                                     className={styles.inputEdit}
@@ -848,29 +856,10 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             {isSelectorItem(item) && item.type === 'selector' && editMode && (
                 <div className={styles.selectorContainerEdit}>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Выбранное значение:
-                        </label>
-                        <input
-                            type="number"
-                            className={styles.inputEdit}
-                            value={item.selected}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'selected',
-                                    Number(e.target.value),
-                                )
-                            }
-                        />
-                    </div>
-
-                    <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>Опции:</label>
+                        <div className={styles.labelEdit}>Опции:</div>
                         {Object.entries(item.options).map(([key, option]) => (
                             <div key={key} className={styles.optionRowEdit}>
-                                <span>{key}:</span>
+                                <div className={styles.keyEdit}>{key}:</div>
                                 <input
                                     type="text"
                                     className={styles.inputEdit}
@@ -961,9 +950,9 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                     )}
 
                     <div className={styles.defaultParameterContainerEdit}>
-                        <label className={styles.defaultLabelEdit}>
+                        <div className={styles.defaultLabelEdit}>
                             Параметр по умолчанию (число):
-                        </label>
+                        </div>
                         <input
                             type="number"
                             className={styles.inputEdit}

@@ -135,7 +135,8 @@
 }
 
 .addItemDrag {
-    cursor: move;
+    opacity: 0.4;
+    cursor: not-allowed;
     transition: var(--transition);
     color: white;
     display: flex;
