@@ -11,6 +11,7 @@ import {
     MdWarningAmber,
 } from 'react-icons/md'
 import * as cardStyles from './card.module.scss'
+import { useUserProfileModal } from '../../../renderer/context/UserProfileModalContext'
 
 interface ExtensionCardProps {
     theme: AddonInterface
@@ -48,6 +49,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
         }
 
         const missingFields = checkMissingFields(theme)
+        const { openUserProfile } = useUserProfileModal()
 
         const getEncodedPath = (p: string) => encodeURI(p.replace(/\\/g, '/'))
 
@@ -142,7 +144,34 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                             <strong>Тип:</strong> {isTheme ? 'Тема' : 'Скрипт'}
                         </p>
                         <p>
-                            <strong>Автор:</strong> {theme.author}
+                            <strong>Автор:</strong>{' '}
+                            {Array.isArray(theme.author) ? (
+                                theme.author.map(
+                                    (userName: string, index: number) => (
+                                        <span
+                                            key={userName}
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                openUserProfile(userName)
+                                            }}
+                                            style={{ cursor: 'pointer' }}
+                                        >
+                                            {userName}
+                                            {index < theme.author.length - 1 && ', '}
+                                        </span>
+                                    ),
+                                )
+                            ) : (
+                                <span
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        openUserProfile(theme.author as string)
+                                    }}
+                                    style={{ cursor: 'pointer' }}
+                                >
+                                    {theme.author}
+                                </span>
+                            )}
                         </p>
                     </div>
                 )}

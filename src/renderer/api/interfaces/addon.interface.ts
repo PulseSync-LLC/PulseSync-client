@@ -4,7 +4,7 @@ export default interface AddonInterface {
     directoryName: string
     image: string
     banner: string
-    author: string
+    author: string | string[];
     description: string
     version: string
     path: string

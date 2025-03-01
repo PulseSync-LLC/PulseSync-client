@@ -36,6 +36,7 @@ import {
 import * as globalStyles from '../../../../../static/styles/page/index.module.scss'
 import * as localStyles from './extensionview.module.scss'
 import addonInitials from '../../../api/initials/addon.initials'
+import { useUserProfileModal } from '../../../../renderer/context/UserProfileModalContext'
 
 const ExtensionViewPage: React.FC = () => {
     const [activatedTheme, setActivatedTheme] = useState<string>(
@@ -47,6 +48,7 @@ const ExtensionViewPage: React.FC = () => {
     )
 
     const isFirstRender = useRef(true)
+    const { openUserProfile } = useUserProfileModal()
     const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
     const [bannerImage, setBannerImage] = useState(
@@ -895,7 +897,55 @@ const ExtensionViewPage: React.FC = () => {
                                                 >
                                                     {currentAddon.author && (
                                                         <div>
-                                                            {currentAddon.author}
+                                                            {Array.isArray(
+                                                                currentAddon.author,
+                                                            ) ? (
+                                                                currentAddon.author.map(
+                                                                    (
+                                                                        userName: string,
+                                                                        index: number,
+                                                                    ) => (
+                                                                        <span
+                                                                            key={
+                                                                                userName
+                                                                            }
+                                                                            onClick={() =>
+                                                                                openUserProfile(
+                                                                                    userName,
+                                                                                )
+                                                                            }
+                                                                            style={{
+                                                                                cursor: 'pointer',
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                userName
+                                                                            }
+                                                                            {index <
+                                                                                currentAddon
+                                                                                    .author
+                                                                                    .length -
+                                                                                    1 &&
+                                                                                ', '}
+                                                                        </span>
+                                                                    ),
+                                                                )
+                                                            ) : (
+                                                                <span
+                                                                    onClick={() =>
+                                                                        openUserProfile(
+                                                                            currentAddon.author as string,
+                                                                        )
+                                                                    }
+                                                                    style={{
+                                                                        cursor: 'pointer',
+                                                                    }}
+                                                                >
+                                                                    {
+                                                                        currentAddon.author
+                                                                    }
+                                                                </span>
+                                                            )}
                                                         </div>
                                                     )}{' '}
                                                     -{' '}

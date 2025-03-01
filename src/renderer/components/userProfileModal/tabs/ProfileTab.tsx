@@ -63,18 +63,10 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
     }
 
     if (error) {
-        return (
-            <div style={{ textAlign: 'center', padding: 20 }}>
-                Ошибка: {String(error)}
-            </div>
-        )
+        return <div className={styles.loadingContainer}>Ошибка: {String(error)}</div>
     }
     if (!userProfile || !userProfile.id || userProfile.id === '-1') {
-        return (
-            <div style={{ textAlign: 'center', padding: 20 }}>
-                Пользователь не найден
-            </div>
-        )
+        return <div className={styles.loadingContainer}>Пользователь не найден</div>
     }
 
     const handleToggleFollow = async () => {

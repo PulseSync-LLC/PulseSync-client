@@ -167,20 +167,34 @@ export default function ExtensionPage() {
     function filterAndSortAddons(list: AddonInterface[]) {
         return list
             .filter((item) => item.name !== 'Default')
-            .map((item) => ({
-                ...item,
-                matches:
-                    item.name.toLowerCase().includes(searchQuery) ||
-                    item.author.toLowerCase().includes(searchQuery) ||
-                    stringSimilarity.compareTwoStrings(
-                        item.name.toLowerCase(),
-                        searchQuery,
-                    ) > 0.35 ||
-                    stringSimilarity.compareTwoStrings(
-                        item.author.toLowerCase(),
-                        searchQuery,
-                    ) > 0.35,
-            }))
+            .map((item) => {
+                let authorString = ''
+
+                if (typeof item.author === 'string') {
+                    // Если author - строка, используем как есть
+                    authorString = item.author.toLowerCase()
+                } else if (Array.isArray(item.author)) {
+                    // Если author - массив, приводим каждый ID к строке и соединяем
+                    authorString = item.author
+                        .map((id) => String(id).toLowerCase())
+                        .join(', ')
+                }
+
+                return {
+                    ...item,
+                    matches:
+                        item.name.toLowerCase().includes(searchQuery) ||
+                        authorString.includes(searchQuery) ||
+                        stringSimilarity.compareTwoStrings(
+                            item.name.toLowerCase(),
+                            searchQuery,
+                        ) > 0.35 ||
+                        stringSimilarity.compareTwoStrings(
+                            authorString,
+                            searchQuery,
+                        ) > 0.35,
+                }
+            })
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
@@ -209,7 +223,8 @@ export default function ExtensionPage() {
         const isEnabledTheme = isTheme && addon.directoryName === currentTheme
         if (isEnabledTheme) return 0
         const isScript = addon.type === 'script'
-        const isEnabledScript = isScript && enabledScripts.includes(addon.directoryName)
+        const isEnabledScript =
+            isScript && enabledScripts.includes(addon.directoryName)
         if (isEnabledScript) return 1
         return 2
     }
@@ -317,7 +332,11 @@ export default function ExtensionPage() {
                                     />
                                     {mergedAddons.length > 0 &&
                                         mergedAddons.length < maxAddonCount && (
-                                            <div className={extensionStyles.searchLabel}>
+                                            <div
+                                                className={
+                                                    extensionStyles.searchLabel
+                                                }
+                                            >
                                                 Найдено: {mergedAddons.length}
                                             </div>
                                         )}
@@ -494,7 +513,8 @@ export default function ExtensionPage() {
                                         {mergedAddons.map((addon) => {
                                             const checked =
                                                 addon.type === 'theme'
-                                                    ? addon.directoryName === currentTheme
+                                                    ? addon.directoryName ===
+                                                      currentTheme
                                                     : enabledScripts.includes(
                                                           addon.directoryName,
                                                       )
