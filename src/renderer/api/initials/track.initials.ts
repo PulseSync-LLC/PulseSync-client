@@ -2,6 +2,35 @@ import { Track } from '../interfaces/track.interface'
 
 const TrackInitials: Track = {
     sourceType: '',
+    ynisonProgress: 0,
+    currentDevice: {
+        info: {
+            device_id: '',
+            title: '',
+            type: '',
+            app_name: '',
+            app_version: '',
+        },
+        volume: 0,
+        capabilities: {
+            can_be_player: false,
+            can_be_remote_controller: false,
+            volume_granularity: 0,
+        },
+        session: {
+            id: '',
+        },
+        is_offline: false,
+        volume_info: {
+            volume: 0,
+            version: {
+                device_id: '',
+                version: '',
+                timestamp_ms: '',
+            },
+        },
+    },
+    durationMs: 0,
     event: '',
     progress: {
         duration: 0,
@@ -34,7 +63,6 @@ const TrackInitials: Track = {
     availableForOptions: [],
     disclaimers: [],
     storageDir: '',
-    durationMs: 0,
     fileSize: 0,
     r128: {
         i: 0,

@@ -16,6 +16,8 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { downloadTrack } from './handlers/downloadTrack'
+import * as Sentry from "@sentry/electron/main";
+import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron';
 
 const updater = getUpdater()
 let reqModal = 0
@@ -317,10 +319,20 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('authStatus', async (event, data) => {
-        if (data && store.get('discordRpc.status')) {
+        if (data?.status && store.get('discordRpc.status')) {
             await rpc_connect()
         }
-        authorized = data
+        authorized = data.status
+        if(data?.user) {
+            Sentry.setUser({
+                id: data.user.id,
+                username: data.user.username,
+                email: data.user.email,
+            });
+        }
+        else {
+            Sentry.setUser(null);
+        }
     })
 
     ipcMain.on('renderer-log', async (event, data) => {
@@ -472,6 +484,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             )
             return { success: true, name: newName }
         } catch (error) {
+            HandleErrorsElectron.handleError('event-handler', 'create-new-extension', 'try-catch', error);
             logger.main.error('Error creating new extension:', error)
             return { success: false, error: error.message }
         }

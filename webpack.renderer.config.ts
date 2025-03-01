@@ -46,6 +46,30 @@ export const rendererConfig: Configuration = {
         rules,
     },
     plugins,
+    devtool: 'source-map',
+    optimization: {
+        splitChunks: {
+            chunks: 'async',
+            minSize: 10000,
+            minRemainingSize: 0,
+            minChunks: 1,
+            maxAsyncRequests: 30,
+            maxInitialRequests: 30,
+            enforceSizeThreshold: 50000,
+            cacheGroups: {
+                defaultVendors: {
+                    test: /[\\/]node_modules[\\/]/,
+                    priority: -10,
+                    reuseExistingChunk: true,
+                },
+                default: {
+                    minChunks: 2,
+                    priority: -20,
+                    reuseExistingChunk: true,
+                },
+            },
+        },
+    },
     resolve: {
         fallback: {
             crypto: require.resolve('crypto-browserify'),

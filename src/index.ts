@@ -78,13 +78,15 @@ initializeStore().then(() => {
 })
 
 if (!isAppDev) {
-    console.log('Sentry enabled')
+    logger.main.info('Sentry enabled')
     Sentry.init({
-        debug: isAppDev,
-        attachStacktrace: true,
         dsn: config.SENTRY_DSN,
+        debug: isAppDev,
+        release: `pulsesync@${app.getVersion()}`,
+        environment: isAppDev ? "development" : "production",
+        attachStacktrace: true,
         enableRendererProfiling: true,
-        enableTracing: true,
+        attachScreenshot: true,
     })
 }
 
@@ -585,18 +587,6 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
-    }
-})
-app.on('render-process-gone', (event, webContents, detailed) => {
-    const REASON_CRASHED = 'crashed'
-    const REASON_OOM = 'oom'
-    logger.renderer.error('Application crashed', detailed.reason, detailed.exitCode)
-    if ([REASON_CRASHED, REASON_OOM].includes(detailed.reason)) {
-        if (detailed.reason === REASON_CRASHED) {
-            logger.renderer.info('Relaunching')
-            app.relaunch()
-        }
-        app.exit(0)
     }
 })
 

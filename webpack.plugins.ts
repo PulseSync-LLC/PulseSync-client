@@ -1,14 +1,15 @@
 // @ts-ignore
-import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
-import CopyWebpackPlugin from 'copy-webpack-plugin'
-import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
-import { sentryWebpackPlugin } from '@sentry/webpack-plugin'
-import config from './src/config.json'
-import webpack from 'webpack'
-import packageJson from './package.json'
+import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin';
+import CopyWebpackPlugin from 'copy-webpack-plugin';
+import NodePolyfillPlugin from 'node-polyfill-webpack-plugin';
+import { sentryWebpackPlugin } from '@sentry/webpack-plugin';
+import config from './src/config.json';
+import webpack from 'webpack';
+import packageJson from './package.json';
+import path from 'path';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
-const releaseVersion = packageJson.version
+const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin');
+const releaseVersion = packageJson.version;
 
 export const plugins = [
     new ForkTsCheckerWebpackPlugin({
@@ -31,10 +32,21 @@ export const plugins = [
     //     project: 'electron',
     //     authToken: config.SENTRY_KEY,
     //     release: {
-    //         name: releaseVersion,
+    //         name: "pulsesync@" + releaseVersion,
+    //         uploadLegacySourcemaps: {
+    //             paths: [
+    //                 path.resolve(__dirname, '.webpack/main'),
+    //                 path.resolve(__dirname, '.webpack/renderer'),
+    //             ],
+    //             urlPrefix: '~/',
+    //             stripPrefix: [path.resolve(__dirname, '.webpack')],
+    //         },
+    //     },
+    //     sourcemaps: {
+    //         ignore: ['node_modules'],
     //     },
     //     errorHandler: (err) => {
     //         console.warn(err)
     //     },
-    // }),
-]
+    // })
+];

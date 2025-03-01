@@ -171,10 +171,8 @@ export default function ExtensionPage() {
                 let authorString = ''
 
                 if (typeof item.author === 'string') {
-                    // Если author - строка, используем как есть
                     authorString = item.author.toLowerCase()
                 } else if (Array.isArray(item.author)) {
-                    // Если author - массив, приводим каждый ID к строке и соединяем
                     authorString = item.author
                         .map((id) => String(id).toLowerCase())
                         .join(', ')
@@ -198,13 +196,11 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    // Фильтрация по тегам
     function filterAddonsByTags(list: AddonInterface[], tags: Set<string>) {
         if (tags.size === 0) return list
         return list.filter((item) => item.tags?.some((t) => tags.has(t)))
     }
 
-    // Сколько полей отсутствует
     function getMissingCount(addon: AddonInterface): number {
         return checkMissingFields(addon).length
     }

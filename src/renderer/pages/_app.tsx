@@ -160,7 +160,9 @@ function App() {
                             'Отдохни чуток:)',
                             'Превышено количество попыток подключения.',
                         )
-                        window.desktopEvents?.send('authStatus', false)
+                        window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                         setLoading(false)
                         return false
                     }
@@ -186,7 +188,14 @@ function App() {
 
                         await router.navigate('/trackinfo', { replace: true })
 
-                        window.desktopEvents?.send('authStatus', true)
+                        window.desktopEvents?.send('authStatus', {
+                            status: true,
+                            user: {
+                                id: data.getMe.id,
+                                username: data.getMe.username,
+                                email: data.getMe.email,
+                            }
+                        })
                         return true
                     } else {
                         setLoading(false)
@@ -196,7 +205,9 @@ function App() {
                         sendErrorAuthNotify(
                             'Не удалось получить данные пользователя. Пожалуйста, войдите снова.',
                         )
-                        window.desktopEvents?.send('authStatus', false)
+                        window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                         return false
                     }
                 } catch (e: any) {
@@ -211,7 +222,9 @@ function App() {
                                 'Пинг-понг',
                                 'Сервер недоступен. Попробуйте позже.',
                             )
-                            window.desktopEvents?.send('authStatus', false)
+                            window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                             setLoading(false)
                             return false
                         }
@@ -233,7 +246,9 @@ function App() {
                             }
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send('authStatus', false)
+                            window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                             return false
                         } else if (isDeprecated) {
                             sendErrorAuthNotify(
@@ -247,7 +262,9 @@ function App() {
                             }
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send('authStatus', false)
+                            window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                             return false
                         }
                     } else {
@@ -257,13 +274,17 @@ function App() {
                             'Может у тебя нет доступа?',
                             'Неизвестная ошибка авторизации.',
                         )
-                        window.desktopEvents?.send('authStatus', false)
+                        window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                         setLoading(false)
                         return false
                     }
                 }
             } else {
-                window.desktopEvents?.send('authStatus', false)
+                window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                 setLoading(false)
                 return false
             }
@@ -277,7 +298,9 @@ function App() {
                     const token = await getUserToken()
 
                     if (!token) {
-                        window.desktopEvents?.send('authStatus', false)
+                        window.desktopEvents?.send('authStatus', {
+                            status: false,
+                        })
                         setLoading(false)
                         clearInterval(retryInterval)
                         return
