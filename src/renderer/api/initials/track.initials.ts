@@ -1,6 +1,7 @@
 import { Track } from '../interfaces/track.interface'
 
 const TrackInitials: Track = {
+    sourceType: '',
     event: '',
     progress: {
         duration: 0,

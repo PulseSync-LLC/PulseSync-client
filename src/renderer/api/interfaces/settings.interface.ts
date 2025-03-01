@@ -31,6 +31,7 @@ export interface discordRpc {
     state: string
     button: string
     displayPause: boolean
+    showVersionOrDevice: boolean
     enableRpcButtonListen: boolean
     enableGithubButton: boolean
 }

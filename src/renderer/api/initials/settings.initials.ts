@@ -32,6 +32,7 @@ const settingsInitials: SettingsInterface = {
         enableRpcButtonListen: false,
         enableGithubButton: true,
         displayPause: false,
+        showVersionOrDevice: false,
         status: false,
         details: '',
         state: '',
