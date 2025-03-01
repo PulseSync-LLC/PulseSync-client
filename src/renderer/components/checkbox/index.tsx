@@ -38,6 +38,9 @@ const Checkbox: React.FC<Props> = ({
                 case 'displayPause':
                     setIsActive(app.discordRpc.displayPause)
                     break
+                case 'showVersionOrDevice':
+                    setIsActive(app.discordRpc.showVersionOrDevice)
+                    break
             }
         }
     }, [isChecked])
@@ -101,6 +104,21 @@ const Checkbox: React.FC<Props> = ({
                         discordRpc: {
                             ...app.discordRpc,
                             displayPause: event.target.checked,
+                        },
+                    })
+                    break
+                case 'showVersionOrDevice':
+                    window.discordRpc.clearActivity()
+                    window.desktopEvents?.send('GET_TRACK_INFO')
+                    window.electron.store.set(
+                        'discordRpc.showVersionOrDevice',
+                        event.target.checked,
+                    )
+                    setApp({
+                        ...app,
+                        discordRpc: {
+                            ...app.discordRpc,
+                            showVersionOrDevice: event.target.checked,
                         },
                     })
                     break
