@@ -106,7 +106,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             return (
                 <>
                     <MdPersonOutline size={34} />
-                    <span>Профиль {userProfile.username}</span>
+                    <span>Профиль {username}</span>
                 </>
             )
         }
@@ -114,7 +114,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
             return (
                 <>
                     <MdPeopleOutline size={34} />
-                    <span>Друзья {userProfile.username}</span>
+                    <span>Друзья {username}</span>
                 </>
             )
         }
