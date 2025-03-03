@@ -2,9 +2,9 @@ import React, { CSSProperties, useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 import useInView from '../../hooks/useInView'
 import AddonInterface from '../../api/interfaces/addon.interface'
-import { MdCheckCircle, MdColorLens, MdInfo, MdInfoOutline, MdTextSnippet, MdWarningAmber } from 'react-icons/md'
+import { MdCheckCircle, MdColorLens, MdInfo, MdTextSnippet } from 'react-icons/md'
 import * as cardStyles from './card.module.scss'
-import { useUserProfileModal } from '../../../renderer/context/UserProfileModalContext'
+import { useUserProfileModal } from '../../context/UserProfileModalContext'
 
 interface ExtensionCardProps {
     theme: AddonInterface
