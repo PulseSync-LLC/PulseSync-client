@@ -47,14 +47,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         const toastId = toast.custom('info', 'Ожидайте', message)
 
         const handleFailure = (event: any, args: any) => {
-            toast.custom(
-                'error',
-                `Что-то не так`,
-                `Ошибка удаления мода: ${args.error}`,
-                {
-                    id: toastId,
-                },
-            )
+            toast.custom('error', `Что-то не так`, `Ошибка удаления мода: ${args.error}`, {
+                id: toastId,
+            })
         }
 
         const handleSuccess = (event: any, args: any) => {
@@ -94,30 +89,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'autoTray':
                 updatedSettings.autoStartInTray = status
                 window.electron.store.set('settings.autoStartInTray', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'autoStart':
                 updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
                 window.desktopEvents?.send('autoStartApp', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'autoStartMusic':
                 updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'askSavePath':
                 updatedSettings.askSavePath = status
@@ -149,20 +132,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'deletePextAfterImport':
                 updatedSettings.deletePextAfterImport = status
                 window.electron.store.set('settings.deletePextAfterImport', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Включена функция удаления .pext после импорта темы`,
-                )
+                toast.custom('success', `Готово`, `Включена функция удаления .pext после импорта темы`)
                 break
             case 'hardwareAcceleration':
                 updatedSettings.hardwareAcceleration = status
                 window.electron.store.set('settings.hardwareAcceleration', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    'Изменения вступят в силу после перезапуска приложения',
-                )
+                toast.custom('success', `Готово`, 'Изменения вступят в силу после перезапуска приложения')
                 break
             case 'devSocket':
                 updatedSettings.devSocket = status
@@ -175,10 +150,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 break
             case 'showModModalAfterInstall':
                 updatedSettings.showModModalAfterInstall = status
-                window.electron.store.set(
-                    'settings.showModModalAfterInstall',
-                    status,
-                )
+                window.electron.store.set('settings.showModModalAfterInstall', status)
                 toast.custom(
                     'success',
                     `Готово`,
@@ -191,21 +163,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const downloadTrack = (event: any) => {
         if (!features.trackDownload) {
-            toast.custom(
-                'error',
-                'Ой...',
-                'Функция загрузки треков временно отключена',
-            )
+            toast.custom('error', 'Ой...', 'Функция загрузки треков временно отключена')
             return
         }
-        const toastId = toast.custom(
-            'info',
-            'Ожидаю',
-            'Выберите путь',
-            null,
-            null,
-            Infinity,
-        )
+        const toastId = toast.custom('info', 'Ожидаю', 'Выберите путь', null, null, Infinity)
         const cleanListeners = () => {
             window.desktopEvents?.removeAllListeners('download-track-progress')
             window.desktopEvents?.removeAllListeners('download-track-cancelled')
@@ -252,10 +213,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         })
     }
 
-    function createButtonSection(
-        title: string,
-        buttons: SectionItem[],
-    ): SectionConfig {
+    function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
         return { title, buttons }
     }
 
@@ -263,11 +221,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         return { content }
     }
 
-    function createToggleSection(
-        title: string,
-        checked: boolean,
-        onToggle: () => void,
-    ): SectionConfig {
+    function createToggleSection(title: string, checked: boolean, onToggle: () => void): SectionConfig {
         return createContentSection(
             <button
                 className={menuStyles.contextButton}
@@ -289,12 +243,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         )
     }
 
-    function createToggleButton(
-        title: string,
-        checked: boolean,
-        onToggle: () => void,
-        isDev?: boolean,
-    ): SectionItem {
+    function createToggleButton(title: string, checked: boolean, onToggle: () => void, isDev?: boolean): SectionItem {
         if (isDev && !window.electron.isAppDev()) {
             return null
         }
@@ -313,7 +262,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     </div>
                 </>
             ),
-            onClick: (event) => {
+            onClick: event => {
                 onToggle()
             },
         }
@@ -327,63 +276,41 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         ),
         createButtonSection('Мод', [
             {
-                label: app.mod.installed
-                    ? `Apollo v${app.mod.version}`
-                    : 'Не установлен',
+                label: app.mod.installed && app.mod.version ? `Apollo v${app.mod.version}` : 'Не установлен',
                 onClick: () => store.dispatch(openModal()),
-                disabled: !app.mod.installed,
+                disabled: !app.mod.installed || !app.mod.version,
             },
             {
                 label: 'Удалить мод',
                 onClick: deleteMod,
-                disabled: !app.mod.installed,
+                disabled: !app.mod.installed || !app.mod.version,
             },
             {
                 label: 'Проверить обновления мода',
                 onClick: () => window.getModInfo(app),
-                disabled: !app.mod.installed,
+                disabled: !app.mod.installed || !app.mod.version,
             },
             createToggleButton(
                 'Показывать список изменений после установки?',
                 app.settings.showModModalAfterInstall,
-                () =>
-                    toggleSetting(
-                        'showModModalAfterInstall',
-                        !app.settings.showModModalAfterInstall,
-                    ),
+                () => toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
         ]),
         createButtonSection('Настройки приложения', [
             createToggleButton('Автотрей', app.settings.autoStartInTray, () =>
                 toggleSetting('autoTray', !app.settings.autoStartInTray),
             ),
-            createToggleButton(
-                'Автозапуск приложения',
-                app.settings.autoStartApp,
-                () => toggleSetting('autoStart', !app.settings.autoStartApp),
+            createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () =>
+                toggleSetting('autoStart', !app.settings.autoStartApp),
             ),
-            createToggleButton(
-                'Скрыть окно при нажатии на «X»',
-                app.settings.closeAppInTray,
-                () => toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
+            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
+                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
-            createToggleButton(
-                'Аппаратное ускорение',
-                app.settings.hardwareAcceleration,
-                () =>
-                    toggleSetting(
-                        'hardwareAcceleration',
-                        !app.settings.hardwareAcceleration,
-                    ),
+            createToggleButton('Аппаратное ускорение', app.settings.hardwareAcceleration, () =>
+                toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
-            createToggleButton(
-                'Удалять .pext после импорта темы?',
-                app.settings.deletePextAfterImport,
-                () =>
-                    toggleSetting(
-                        'deletePextAfterImport',
-                        !app.settings.deletePextAfterImport,
-                    ),
+            createToggleButton('Удалять .pext после импорта темы?', app.settings.deletePextAfterImport, () =>
+                toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
             ),
         ]),
         createButtonSection('Музыка', [
@@ -392,15 +319,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: downloadTrack,
                 disabled: !currentTrack.url || !currentTrack.downloadInfo?.quality,
             },
-            createToggleButton(
-                'Спрашивать куда сохранять трек?',
-                app.settings.askSavePath,
-                () => toggleSetting('askSavePath', !app.settings.askSavePath),
+            createToggleButton('Спрашивать куда сохранять трек?', app.settings.askSavePath, () =>
+                toggleSetting('askSavePath', !app.settings.askSavePath),
             ),
-            createToggleButton(
-                'Сохранять в формате mp3?',
-                app.settings.saveAsMp3,
-                () => toggleSetting('saveAsMp3', !app.settings.saveAsMp3),
+            createToggleButton('Сохранять в формате mp3?', app.settings.saveAsMp3, () =>
+                toggleSetting('saveAsMp3', !app.settings.saveAsMp3),
             ),
             {
                 label: 'Директория со скаченной музыкой',
@@ -452,12 +375,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                                 <div className={menuStyles.showButtons}>
                                     {section.buttons
                                         ?.filter(Boolean)
-                                        .filter(
-                                            (button) =>
-                                                !button.isDev ||
-                                                (button.isDev &&
-                                                    window.electron.isAppDev()),
-                                        )
+                                        .filter(button => !button.isDev || (button.isDev && window.electron.isAppDev()))
                                         .map((button, i) => (
                                             <button
                                                 key={i}

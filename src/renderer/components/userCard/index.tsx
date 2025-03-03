@@ -13,10 +13,7 @@ interface UserCardProps {
     onClick: (username: string) => void
 }
 
-const useIntersectionObserver = (
-    ref: React.RefObject<HTMLElement>,
-    options?: IntersectionObserverInit,
-) => {
+const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: IntersectionObserverInit) => {
     const [isIntersecting, setIsIntersecting] = useState(false)
 
     useEffect(() => {
@@ -57,9 +54,7 @@ const getMediaUrl = ({
         if (type === 'avatar') {
             return hovered ? `${baseUrl}.gif` : `${baseUrl}_preview.webp`
         } else {
-            const bannerImage = hovered
-                ? `${baseUrl}.gif`
-                : `${baseUrl}_preview.webp`
+            const bannerImage = hovered ? `${baseUrl}.gif` : `${baseUrl}_preview.webp`
             return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${bannerImage}) no-repeat center center`
         }
     }
@@ -86,10 +81,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
     const [statusUser, setStatusUser] = useState(getStatus(user))
     const [isStatusVisible, setIsStatusVisible] = useState(true)
 
-    const sortedBadges = useMemo(
-        () => user.badges.slice().sort((a, b) => b.level - a.level),
-        [user.badges],
-    )
+    const sortedBadges = useMemo(() => user.badges.slice().sort((a, b) => b.level - a.level), [user.badges])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
@@ -129,9 +121,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                     const currentStatus = getStatus(user, false)
                     const fullStatus = getStatus(user, true)
 
-                    setStatusUser((prevStatus) =>
-                        prevStatus === 'Слушает' ? fullStatus : 'Слушает',
-                    )
+                    setStatusUser(prevStatus => (prevStatus === 'Слушает' ? fullStatus : 'Слушает'))
 
                     setIsStatusVisible(true)
                 }, 500)
@@ -196,42 +186,27 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                             className={styles.userAvatar}
                             src={avatarUrl}
                             alt={user.username}
-                            onError={(e) => {
-                                ;(e.currentTarget as HTMLImageElement).src =
-                                    './static/assets/images/undef.png'
+                            onError={e => {
+                                ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
                             }}
                         />
                         <div className={styles.userStatus}>
                             <div className={styles.userInfo}>
-                                <div className={styles.userNickname}>
-                                    {user.nickname}
-                                </div>
-                                <div className={styles.userUsername}>
-                                    @{user.username}
-                                </div>
+                                <div className={styles.userNickname}>{user.nickname}</div>
+                                <div className={styles.userUsername}>@{user.username}</div>
                             </div>
                             <div className={styles.userBadges}>
-                                <TooltipButton
-                                    tooltipText={`Уровень ${user.levelInfo.currentLevel}`}
-                                    side="bottom"
-                                >
-                                    <LevelBadge
-                                        level={user.levelInfo.currentLevel}
-                                    />
+                                <TooltipButton tooltipText={`Уровень ${user.levelInfo.currentLevel}`} side="bottom">
+                                    <LevelBadge level={user.levelInfo.currentLevel} />
                                 </TooltipButton>
-                                {sortedBadges.map((_badge) => (
+                                {sortedBadges.map(_badge => (
                                     <TooltipButton
                                         key={`${_badge.type}-${_badge.level}`}
                                         tooltipText={_badge.name}
                                         side="bottom"
                                     >
-                                        <div
-                                            className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}
-                                        >
-                                            <img
-                                                src={`static/assets/badges/${_badge.type}.svg`}
-                                                alt={_badge.name}
-                                            />
+                                        <div className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}>
+                                            <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.name} />
                                         </div>
                                     </TooltipButton>
                                 ))}
@@ -239,11 +214,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                         </div>
                     </div>
 
-                    <TooltipButton
-                        className={styles.cardDetail}
-                        tooltipText="Скоро"
-                        side="left"
-                    >
+                    <TooltipButton className={styles.cardDetail} tooltipText="Скоро" side="left">
                         <Button disabled className={styles.cardDetailButton}>
                             <MdPersonAddAlt1 size={20} />
                         </Button>
@@ -253,11 +224,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                     </TooltipButton>
                 </div>
                 <div className={styles.userStatusInfo}>
-                    <div
-                        className={`${styles.statusText} ${
-                            isStatusVisible ? styles.fadeIn : styles.fadeOut
-                        }`}
-                    >
+                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>
                         {statusUser}
                     </div>
                 </div>

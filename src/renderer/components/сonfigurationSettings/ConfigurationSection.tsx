@@ -18,12 +18,7 @@ interface ConfigurationSectionProps {
     section: Section
     sectionIndex: number
     editMode: boolean
-    updateConfigField: (
-        sectionIndex: number,
-        itemIndex: number | null,
-        key: string,
-        value: any,
-    ) => void
+    updateConfigField: (sectionIndex: number, itemIndex: number | null, key: string, value: any) => void
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
@@ -32,11 +27,7 @@ interface ConfigurationSectionProps {
         newValue: string,
     ) => void
     resetConfigField: (sectionIndex: number, itemIndex: number) => void
-    resetButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => void
+    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     addItem: (sectionIndex: number, itemType: string) => void
     removeItem: (sectionIndex: number, itemIndex: number) => void
     removeSection: (sectionIndex: number) => void
@@ -59,29 +50,13 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
             {editMode ? (
                 <div className={styles.sectionHeaderEdit}>
                     <div className={styles.sectionFieldEdit}>
-                        <label className={styles.sectionLabelEdit}>
-                            Название секции:
-                        </label>
+                        <label className={styles.sectionLabelEdit}>Название секции:</label>
                         <input
                             type="text"
                             className={styles.sectionInputEdit}
                             value={section.title}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    null,
-                                    'title',
-                                    e.target.value,
-                                )
-                            }
-                            onBlur={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    null,
-                                    'title',
-                                    e.target.value,
-                                )
-                            }
+                            onChange={e => updateConfigField(sectionIndex, null, 'title', e.target.value)}
+                            onBlur={e => updateConfigField(sectionIndex, null, 'title', e.target.value)}
                             placeholder="Название секции"
                         />
                     </div>

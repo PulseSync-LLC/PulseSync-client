@@ -10,124 +10,89 @@ import logger from '../logger'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
 import * as Sentry from '@sentry/electron/main'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
-const savePath = path.join(
-    process.env.LOCALAPPDATA || '',
-    'Programs',
-    'YandexMusic',
-    'resources',
-    'app.asar',
-)
+const savePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources', 'app.asar')
 
-const backupPath = path.join(
-    process.env.LOCALAPPDATA || '',
-    'Programs',
-    'YandexMusic',
-    'resources',
-    'app.backup.asar',
-)
+const backupPath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources', 'app.backup.asar')
 export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on(
-        'update-app-asar',
-        async (event, { version, link, checksum, force }) => {
-            try {
-                const isRunning = await isYandexMusicRunning()
-                if (isRunning) {
-                    mainWindow.webContents.send('update-message', {
-                        message: 'Закрытие Яндекс Музыки...',
-                    })
-                    await closeYandexMusic()
-                }
+    ipcMain.on('update-app-asar', async (event, { version, link, checksum, force, spoof }) => {
+        try {
+            const isRunning = await isYandexMusicRunning()
+            if (isRunning) {
+                mainWindow.webContents.send('update-message', {
+                    message: 'Закрытие Яндекс Музыки...',
+                })
+                await closeYandexMusic()
+            }
 
-                yandexMusicVersion = await getYandexMusicVersion()
-                modVersion = version
-                logger.main.info(
-                    `Current Yandex Music version: ${yandexMusicVersion}`,
-                )
-                if (!force) {
-                    try {
-                        const compatibilityResult = await checkModCompatibility(
-                            version,
-                            yandexMusicVersion,
-                        )
+            yandexMusicVersion = await getYandexMusicVersion()
+            modVersion = version
+            logger.main.info(`Current Yandex Music version: ${yandexMusicVersion}`)
 
-                        if (!compatibilityResult.success) {
-                            const failureType =
-                                compatibilityResult.code ===
-                                'YANDEX_VERSION_OUTDATED'
-                                    ? 'version_outdated'
-                                    : compatibilityResult.code ===
-                                        'YANDEX_VERSION_TOO_NEW'
-                                      ? 'version_too_new'
-                                      : 'unknown'
+            if (!force && !spoof) {
+                try {
+                    const compatibilityResult = await checkModCompatibility(version, yandexMusicVersion)
 
-                            mainWindow.webContents.send('download-failure', {
-                                success: false,
-                                error:
-                                    compatibilityResult.message ||
-                                    'Этот мод не совместим с текущей версией Яндекс Музыки.',
-                                type: failureType,
-                                url: compatibilityResult.url,
-                                requiredVersion: compatibilityResult.requiredVersion,
-                                recommendedVersion:
-                                    compatibilityResult.recommendedVersion,
-                            })
-                            return
-                        }
-                    } catch (error) {
+                    if (!compatibilityResult.success) {
+                        const failureType =
+                            compatibilityResult.code === 'YANDEX_VERSION_OUTDATED'
+                                ? 'version_outdated'
+                                : compatibilityResult.code === 'YANDEX_VERSION_TOO_NEW'
+                                  ? 'version_too_new'
+                                  : 'unknown'
+
                         mainWindow.webContents.send('download-failure', {
                             success: false,
-                            error: `Ошибка при проверке совместимости мода: ${error.message}`,
+                            error:
+                                compatibilityResult.message || 'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                            type: failureType,
+                            url: compatibilityResult.url,
+                            requiredVersion: compatibilityResult.requiredVersion,
+                            recommendedVersion: compatibilityResult.recommendedVersion,
                         })
                         return
                     }
+                } catch (error) {
+                    mainWindow.webContents.send('download-failure', {
+                        success: false,
+                        error: `Ошибка при проверке совместимости мода: ${error.message}`,
+                    })
+                    return
                 }
-
-                if (!fs.existsSync(backupPath)) {
-                    if (fs.existsSync(savePath)) {
-                        fs.copyFileSync(savePath, backupPath)
-                        logger.main.info(
-                            'Original app.asar saved as app.backup.asar',
-                        )
-                    } else {
-                        throw new Error(
-                            'Файл app.asar не найден для создания резервной копии',
-                        )
-                    }
-                } else {
-                    logger.main.info('Backup app.backup.asar already exists')
-                }
-
-                const tempFilePath = path.join(
-                    app.getPath('temp'),
-                    'app.asar.download',
-                )
-
-                await downloadAndUpdateFile(
-                    link,
-                    tempFilePath,
-                    savePath,
-                    event,
-                    checksum,
-                )
-            } catch (error: any) {
-                logger.main.error('Unexpected error:', error)
-                Sentry.captureException(error)
-                if (mainWindow) {
-                    mainWindow.setProgressBar(-1)
-                }
-
-                mainWindow.webContents.send('download-failure', {
-                    success: false,
-                    error: error.message,
-                })
             }
-        },
-    )
 
-    ipcMain.on('remove-mod', async (event) => {
+            if (!fs.existsSync(backupPath)) {
+                if (fs.existsSync(savePath)) {
+                    fs.copyFileSync(savePath, backupPath)
+                    logger.main.info('Original app.asar saved as app.backup.asar')
+                } else {
+                    throw new Error('Файл app.asar не найден для создания резервной копии')
+                }
+            } else {
+                logger.main.info('Backup app.backup.asar already exists')
+            }
+
+            const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
+
+            await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
+        } catch (error: any) {
+            logger.main.error('Unexpected error:', error)
+            HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
+            if (mainWindow) {
+                mainWindow.setProgressBar(-1)
+            }
+
+            mainWindow.webContents.send('download-failure', {
+                success: false,
+                error: error.message,
+            })
+        }
+    })
+
+    ipcMain.on('remove-mod', async event => {
         try {
             const removeMod = () => {
                 if (fs.existsSync(backupPath)) {
@@ -158,7 +123,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
         } catch (error) {
             logger.main.error('Error removing mod:', error)
-            Sentry.captureException(error)
+            HandleErrorsElectron.handleError('modManager', 'remove-mod', 'remove-mod', error)
             mainWindow.webContents.send('remove-mod-failure', {
                 success: false,
                 error: error.message,
@@ -168,11 +133,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 }
 
 const getYandexMusicVersion = async (): Promise<string> => {
-    const configFilePath = path.join(
-        process.env.APPDATA || '',
-        'YandexMusic',
-        'config.json',
-    )
+    const configFilePath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
 
     try {
         if (fs.existsSync(configFilePath)) {
@@ -187,9 +148,7 @@ const getYandexMusicVersion = async (): Promise<string> => {
             throw new Error('config.json not found')
         }
     } catch (error) {
-        throw new Error(
-            `Failed to get Yandex Music version from config.json: ${error.message}`,
-        )
+        throw new Error(`Failed to get Yandex Music version from config.json: ${error.message}`)
     }
 }
 
@@ -205,15 +164,12 @@ const checkModCompatibility = async (
     recommendedVersion?: string
 }> => {
     try {
-        const response = await axios.get(
-            `${config.SERVER_URL}/api/v1/mod/v2/check`,
-            {
-                params: {
-                    yandexVersion: yandexMusicVersion,
-                    modVersion: modVersion,
-                },
+        const response = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
+            params: {
+                yandexVersion: yandexMusicVersion,
+                modVersion: modVersion,
             },
-        )
+        })
         const data = response.data
 
         if (data.error) {
@@ -255,9 +211,7 @@ const downloadAndUpdateFile = async (
             const currentChecksum = hashSum.digest('hex')
 
             if (currentChecksum === checksum) {
-                logger.main.info(
-                    'app.asar file already matches the required checksum. Installation complete.',
-                )
+                logger.main.info('app.asar file already matches the required checksum. Installation complete.')
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
@@ -316,7 +270,7 @@ const downloadAndUpdateFile = async (
 
                 store.delete('mod')
             }
-            Sentry.captureException(err)
+            HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
             mainWindow.webContents.send('download-failure', {
                 success: false,
@@ -363,7 +317,7 @@ const downloadAndUpdateFile = async (
             } catch (e) {
                 fs.unlink(tempFilePath, () => {})
                 logger.main.error('Error writing file:', e)
-                Sentry.captureException(e)
+                HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
                 if (mainWindow) {
                     mainWindow.setProgressBar(-1)
                 }
@@ -377,7 +331,7 @@ const downloadAndUpdateFile = async (
         writer.on('error', (err: Error) => {
             fs.unlink(tempFilePath, () => {})
             logger.main.error('Error writing file:', err)
-            Sentry.captureException(err)
+            HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
             if (mainWindow) {
                 mainWindow.setProgressBar(-1)
             }
@@ -389,7 +343,7 @@ const downloadAndUpdateFile = async (
     } catch (err) {
         fs.unlink(tempFilePath, () => {})
         logger.main.error('Error downloading file:', err)
-        Sentry.captureException(err)
+        HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
         if (mainWindow) {
             mainWindow.setProgressBar(-1)
         }

@@ -79,46 +79,25 @@ function Dev() {
             <div className={`${globalStyles.page} ${styles.devPage}`}>
                 <h1 className={styles.header}>Тестирование Уведомлений</h1>
                 <div className={styles.buttonContainer}>
-                    <button
-                        className={`${styles.button} ${styles.success}`}
-                        onClick={handleSuccess}
-                    >
+                    <button className={`${styles.button} ${styles.success}`} onClick={handleSuccess}>
                         Показать "Успех"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.error}`}
-                        onClick={handleError}
-                    >
+                    <button className={`${styles.button} ${styles.error}`} onClick={handleError}>
                         Показать "Ошибка"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.warning}`}
-                        onClick={handleWarning}
-                    >
+                    <button className={`${styles.button} ${styles.warning}`} onClick={handleWarning}>
                         Показать "Предупреждение"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.info}`}
-                        onClick={handleInfo}
-                    >
+                    <button className={`${styles.button} ${styles.info}`} onClick={handleInfo}>
                         Показать "Информация"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.export}`}
-                        onClick={handleExport}
-                    >
+                    <button className={`${styles.button} ${styles.export}`} onClick={handleExport}>
                         Показать "Экспорт"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.import}`}
-                        onClick={handleImport}
-                    >
+                    <button className={`${styles.button} ${styles.import}`} onClick={handleImport}>
                         Показать "Импорт"
                     </button>
-                    <button
-                        className={`${styles.button} ${styles.loading}`}
-                        onClick={handleDownload}
-                    >
+                    <button className={`${styles.button} ${styles.loading}`} onClick={handleDownload}>
                         Начать загрузку
                     </button>
                 </div>

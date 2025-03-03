@@ -1,7 +1,7 @@
 import logger from '../logger'
 import * as Sentry from '@sentry/electron/main'
-import { app } from 'electron';
-import { HandleErrorsElectron } from './handleErrorsElectron';
+import { app } from 'electron'
+import { HandleErrorsElectron } from './handleErrorsElectron'
 
 const firstLine = (message: string | Error) => {
     if (typeof message === 'string') {
@@ -22,12 +22,12 @@ export const handleUncaughtException = () => {
     const globalErrorLogger = logger.crash
     process.on('uncaughtException', (error: Error) => {
         globalErrorLogger.error(toPlainError(error))
-        HandleErrorsElectron.handleError("error_handler", "uncaught_exception", "uncaught_exception", error)
+        HandleErrorsElectron.handleError('error_handler', 'uncaught_exception', 'uncaught_exception', error)
     })
     app.on('render-process-gone', (event, webContents, detailed) => {
         const REASON_CRASHED = 'crashed'
         const REASON_OOM = 'oom'
-        HandleErrorsElectron.handleError("error_handler", "render_process_gone", "render_process_gone", detailed)
+        HandleErrorsElectron.handleError('error_handler', 'render_process_gone', 'render_process_gone', detailed)
         if ([REASON_CRASHED, REASON_OOM].includes(detailed.reason)) {
             if (detailed.reason === REASON_CRASHED) {
                 logger.renderer.info('Relaunching')

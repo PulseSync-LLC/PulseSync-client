@@ -23,9 +23,7 @@ export const getStatusColor = (user: UserInterface, dark?: boolean): string => {
 export const getStatus = (user: UserInterface, full?: boolean): string => {
     if (user.currentTrack && user.currentTrack.status === 'playing') {
         if (full) {
-            const artists = user.currentTrack.artists
-                ?.map((artist) => artist.name)
-                .join(', ')
+            const artists = user.currentTrack.artists?.map(artist => artist.name).join(', ')
             return `${user.currentTrack.title} — ${artists}`
         }
         return 'Слушает'
@@ -39,10 +37,7 @@ export const getStatus = (user: UserInterface, full?: boolean): string => {
     return 'Не в сети'
 }
 
-export const getDynamicStatus = (
-    user: UserInterface,
-    callback: (status: string) => void,
-): (() => void) => {
+export const getDynamicStatus = (user: UserInterface, callback: (status: string) => void): (() => void) => {
     let timeoutId: NodeJS.Timeout | null = null
 
     const updateStatus = () => {

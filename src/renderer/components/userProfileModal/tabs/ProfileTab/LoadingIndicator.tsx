@@ -1,5 +1,5 @@
-import React from 'react';
-import * as styles from '../../userProfileModal.module.scss';
+import React from 'react'
+import * as styles from '../../userProfileModal.module.scss'
 
 const LoadingIndicator: React.FC = () => (
     <div className={styles.loadingContainer}>
@@ -10,6 +10,6 @@ const LoadingIndicator: React.FC = () => (
         </div>
         <div>Загрузка...</div>
     </div>
-);
+)
 
-export default LoadingIndicator;
+export default LoadingIndicator

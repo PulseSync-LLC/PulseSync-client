@@ -35,11 +35,7 @@ function createTray() {
         new MenuItem({
             label: 'Директория аддонов',
             click: async () => {
-                const themesFolderPath = path.join(
-                    app.getPath('appData'),
-                    'PulseSync',
-                    'themes',
-                )
+                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
                 await shell.openPath(themesFolderPath)
             },
         }),
@@ -77,7 +73,7 @@ function createTray() {
     )
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
-    tray.on('click', (event) => {
+    tray.on('click', event => {
         mainWindow.show()
     })
 }

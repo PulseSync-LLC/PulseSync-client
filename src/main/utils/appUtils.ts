@@ -16,10 +16,10 @@ async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
         const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
         const { stdout } = await execAsync(command, { encoding: 'utf8' })
 
-        const processes = stdout.split('\n').filter((line) => line.trim() !== '')
+        const processes = stdout.split('\n').filter(line => line.trim() !== '')
         const yandexProcesses: ProcessInfo[] = []
 
-        processes.forEach((line) => {
+        processes.forEach(line => {
             const parts = line.split('","')
             if (parts.length > 1) {
                 const pidStr = parts[1].replace(/"/g, '').trim()
@@ -52,9 +52,7 @@ export async function closeYandexMusic(): Promise<void> {
     for (const proc of yandexProcesses) {
         try {
             process.kill(proc.pid)
-            console.info(
-                `Yandex Music process with PID ${proc.pid} has been terminated.`,
-            )
+            console.info(`Yandex Music process with PID ${proc.pid} has been terminated.`)
         } catch (error) {
             console.error(`Error terminating process ${proc.pid}:`, error)
         }
@@ -63,19 +61,9 @@ export async function closeYandexMusic(): Promise<void> {
 
 export async function getPathToYandexMusic() {
     if (isMac()) {
-        return path.join(
-            '/Applications',
-            'Yandex Music.app',
-            'Contents',
-            'Resources',
-        )
+        return path.join('/Applications', 'Yandex Music.app', 'Contents', 'Resources')
     } else {
-        return path.join(
-            process.env.LOCALAPPDATA || '',
-            'Programs',
-            'YandexMusic',
-            'resources',
-        )
+        return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
     }
 }
 

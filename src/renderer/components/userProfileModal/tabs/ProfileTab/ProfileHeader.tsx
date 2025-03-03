@@ -1,22 +1,18 @@
-import React from 'react';
-import TooltipButton from '../../../tooltip_button';
-import LevelBadge from '../../../LevelBadge';
-import * as styles from '../../userProfileModal.module.scss';
-import config from '../../../../api/config';
+import React from 'react'
+import TooltipButton from '../../../tooltip_button'
+import LevelBadge from '../../../LevelBadge'
+import * as styles from '../../userProfileModal.module.scss'
+import config from '../../../../api/config'
 
 interface ProfileHeaderProps {
-    userProfile: any;
-    user: any;
-    children?: React.ReactNode;
+    userProfile: any
+    user: any
+    children?: React.ReactNode
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({
-    userProfile,
-    user,
-    children,
-}) => {
-    const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`;
-    const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`;
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
+    const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`
+    const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`
 
     return (
         <div
@@ -31,9 +27,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     className={styles.avatarWrapper}
                     src={avatarUrl}
                     alt="Avatar"
-                    onError={(e) => {
-                        (e.currentTarget as HTMLImageElement).src =
-                            './static/assets/images/undef.png';
+                    onError={e => {
+                        ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
                     }}
                     width="84"
                     height="84"
@@ -41,20 +36,15 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                 <div className={styles.userInfo}>
                     <div className={styles.dateCreate}>
                         <div className={styles.dateCreate}>
-                            {new Date(userProfile.createdAt) <=
-                            new Date(2025, 0, 17) ? (
+                            {new Date(userProfile.createdAt) <= new Date(2025, 0, 17) ? (
                                 <TooltipButton
                                     styleComponent={{
                                         padding: 0,
                                         background: 'transparent',
                                     }}
                                     tooltipText={
-                                        <div
-                                            className={styles.dateCreateTooltip}
-                                        >
-                                            {new Date(
-                                                userProfile.createdAt
-                                            ).toLocaleString('ru-RU', {
+                                        <div className={styles.dateCreateTooltip}>
+                                            {new Date(userProfile.createdAt).toLocaleString('ru-RU', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -75,12 +65,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                         background: 'transparent',
                                     }}
                                     tooltipText={
-                                        <div
-                                            className={styles.dateCreateTooltip}
-                                        >
-                                            {new Date(
-                                                userProfile.createdAt
-                                            ).toLocaleString('ru-RU', {
+                                        <div className={styles.dateCreateTooltip}>
+                                            {new Date(userProfile.createdAt).toLocaleString('ru-RU', {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -93,9 +79,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                     side="top"
                                 >
                                     Дата регистрации:{' '}
-                                    {new Date(
-                                        userProfile.createdAt
-                                    ).toLocaleDateString('ru-RU', {
+                                    {new Date(userProfile.createdAt).toLocaleDateString('ru-RU', {
                                         month: 'long',
                                         year: 'numeric',
                                     })}
@@ -106,13 +90,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                     <div className={styles.userName}>
                         {userProfile.nickname || 'Без никнейма'}
                         <div className={styles.userBadges}>
-                            <TooltipButton
-                                tooltipText={`Уровень ${userProfile.levelInfo.currentLevel}`}
-                                side="top"
-                            >
-                                <LevelBadge
-                                    level={userProfile.levelInfo.currentLevel}
-                                />
+                            <TooltipButton tooltipText={`Уровень ${userProfile.levelInfo.currentLevel}`} side="top">
+                                <LevelBadge level={userProfile.levelInfo.currentLevel} />
                             </TooltipButton>
                             {Array.isArray(userProfile.badges) &&
                                 userProfile.badges
@@ -124,22 +103,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({
                                             className={styles.badge}
                                             key={badge.uuid}
                                         >
-                                            <img
-                                                src={`static/assets/badges/${badge.type}.svg`}
-                                                alt={badge.type}
-                                            />
+                                            <img src={`static/assets/badges/${badge.type}.svg`} alt={badge.type} />
                                         </TooltipButton>
                                     ))}
                         </div>
                     </div>
-                    <div className={styles.userUsername}>
-                        @{userProfile.username}
-                    </div>
+                    <div className={styles.userUsername}>@{userProfile.username}</div>
                 </div>
             </div>
             <div className={styles.userButtons}>{children}</div>
         </div>
-    );
-};
+    )
+}
 
-export default ProfileHeader;
+export default ProfileHeader

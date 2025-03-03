@@ -48,12 +48,7 @@ const GET_USER_PROFILE_QUERY = gql`
             isFriend
             isFollowing
         }
-        getAchievements(
-            page: $page
-            pageSize: $pageSize
-            search: $search
-            sortOptions: $sortOptions
-        ) {
+        getAchievements(page: $page, pageSize: $pageSize, search: $search, sortOptions: $sortOptions) {
             achievements {
                 id
                 title

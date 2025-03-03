@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, MutableRefObject } from 'react'
 
-const useInView = (
-    options?: IntersectionObserverInit,
-): [MutableRefObject<HTMLDivElement | null>, boolean] => {
+const useInView = (options?: IntersectionObserverInit): [MutableRefObject<HTMLDivElement | null>, boolean] => {
     const [isIntersecting, setIsIntersecting] = useState(false)
     const ref = useRef<HTMLDivElement | null>(null)
 

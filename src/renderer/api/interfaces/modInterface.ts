@@ -7,4 +7,5 @@ export interface ModInterface {
     showModal: string
     createdAt: string
     changelog: string
+    spoof: boolean
 }

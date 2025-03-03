@@ -33,8 +33,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo } =
-        useContext(userContext)
+    const { app, setApp, updateAvailable, setUpdate, modInfo } = useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [loadingModInfo, setLoadingModInfo] = useState(true)
@@ -91,10 +90,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (downloadToastIdRef.current) {
                 toast.custom(
                     'success',
-                    data.message ||
-                        (app.mod.installed
-                            ? 'Обновление прошло успешно!'
-                            : 'Установка прошла успешно!'),
+                    data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'),
                     `Готово`,
                     {
                         id: downloadToastIdRef.current,
@@ -104,10 +100,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             } else {
                 toast.custom(
                     'success',
-                    data.message ||
-                        (app.mod.installed
-                            ? 'Обновление прошло успешно!'
-                            : 'Установка прошла успешно!'),
+                    data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'),
                     `Готово`,
                 )
             }
@@ -141,11 +134,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     'error',
                     'Произошла ошибка',
                     `${
-                        [
-                            'version_too_new',
-                            'version_outdated',
-                            'checksum_mismatch',
-                        ].includes(error.type)
+                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
                             ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
                             : app.mod.installed
                               ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
@@ -161,11 +150,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     'error',
                     'Произошла ошибка',
                     `${
-                        [
-                            'version_too_new',
-                            'version_outdated',
-                            'checksum_mismatch',
-                        ].includes(error.type)
+                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
                             ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
                             : app.mod.installed
                               ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
@@ -208,10 +193,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         if (isListenersAttached) return
         ;(window as any).__musicEventListeners = true
 
-        const onProgressUpdate = (
-            event: any,
-            { progress }: { progress: number },
-        ) => {
+        const onProgressUpdate = (event: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
                 toast.custom(
                     'loading',
@@ -234,33 +216,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onUpdateFailure = (event: any, error: any) => {
             if (toastReference.current) {
-                toast.custom(
-                    'error',
-                    `Ошибка: ${error.error}`,
-                    'Не удалось выполнить обновление',
-                    { id: toastReference.current },
-                )
+                toast.custom('error', `Ошибка: ${error.error}`, 'Не удалось выполнить обновление', {
+                    id: toastReference.current,
+                })
                 toastReference.current = null
             } else {
-                toast.custom(
-                    'error',
-                    `Ошибка: ${error.error}`,
-                    'Не удалось выполнить обновление',
-                )
+                toast.custom('error', `Ошибка: ${error.error}`, 'Не удалось выполнить обновление')
             }
             setIsMusicUpdating(false)
         }
 
         const onExecutionComplete = (event: any, data: any) => {
             if (toastReference.current) {
-                toast.custom(
-                    'success',
-                    'Успешно!',
-                    'Обновление Я.Музыки прошло успешно.',
-                    {
-                        id: toastReference.current,
-                    },
-                )
+                toast.custom('success', 'Успешно!', 'Обновление Я.Музыки прошло успешно.', {
+                    id: toastReference.current,
+                })
                 toastReference.current = null
                 setModUpdateState({
                     isVersionOutdated: false,
@@ -272,17 +242,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         window.desktopEvents?.on('update-music-progress', onProgressUpdate)
         window.desktopEvents?.on('update-music-failure', onUpdateFailure)
-        window.desktopEvents?.on(
-            'update-music-execution-success',
-            onExecutionComplete,
-        )
+        window.desktopEvents?.on('update-music-execution-success', onExecutionComplete)
 
         return () => {
             window.desktopEvents?.removeAllListeners('update-music-progress')
             window.desktopEvents?.removeAllListeners('update-music-failure')
-            window.desktopEvents?.removeAllListeners(
-                'update-music-execution-success',
-            )
+            window.desktopEvents?.removeAllListeners('update-music-execution-success')
             ;(window as any).__musicEventListeners = false
         }
     }, [])
@@ -302,30 +267,24 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
 
         if (modInfo.length === 0) {
-            toast.custom(
-                'error',
-                `Нет доступных обновлений для установки.`,
-                'Ошибка загрузки обновления',
-            )
+            toast.custom('error', `Нет доступных обновлений для установки.`, 'Ошибка загрузки обновления')
             return
         }
 
         setIsUpdating(true)
 
-        const id = toast.custom(
-            'loading',
-            'Начало загрузки обновления...',
-            'Ожидайте...',
-        )
+        const id = toast.custom('loading', 'Начало загрузки обновления...', 'Ожидайте...')
 
         downloadToastIdRef.current = id
 
-        const { modVersion, downloadUrl, checksum } = modInfo[0]
+        const { modVersion, downloadUrl, checksum, spoof } = modInfo[0]
+
         window.desktopEvents?.send('update-app-asar', {
             version: modVersion,
             link: downloadUrl,
             checksum,
             force: force || false,
+            spoof: spoof || false,
         })
     }
 
@@ -370,10 +329,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/trackinfo" text="Track Info">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse
-                                to="/extensionbeta"
-                                text="Extension Beta"
-                            >
+                            <NavButtonPulse to="/extensionbeta" text="Extension Beta">
                                 <MdExtension size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
@@ -391,16 +347,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 </NavButtonPulse>
                             )}
                             {updateAvailable && (
-                                <TooltipButton
-                                    tooltipText="Install Update"
-                                    as={'div'}
-                                >
+                                <TooltipButton tooltipText="Install Update" as={'div'}>
                                     <button
                                         onClick={() => {
                                             setUpdate(false)
-                                            window.desktopEvents?.send(
-                                                'update-install',
-                                            )
+                                            window.desktopEvents?.send('update-install')
                                         }}
                                         className={pageStyles.update_download}
                                     >
@@ -410,100 +361,63 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-                    {modInfo.length > 0 &&
-                        (!app.mod.installed ||
-                            app.mod.version < modInfo[0]?.modVersion) && (
-                            <div className={pageStyles.alert_patch}>
-                                <div className={pageStyles.patch_container}>
-                                    <div className={pageStyles.patch_detail}>
-                                        <div className={pageStyles.alert_info}>
-                                            <div
-                                                className={
-                                                    pageStyles.alert_version_update
-                                                }
-                                            >
-                                                <div
-                                                    className={
-                                                        pageStyles.version_old
-                                                    }
-                                                >
-                                                    {app.mod.version &&
-                                                    app.mod.installed
-                                                        ? app.mod.version
-                                                        : 'Не установлен'}
-                                                </div>
-                                                <MdKeyboardArrowRight size={14} />
-                                                <div
-                                                    className={
-                                                        pageStyles.version_new
-                                                    }
-                                                >
-                                                    {modInfo[0]?.modVersion}
-                                                </div>
+                    {modInfo.length > 0 && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) && (
+                        <div className={pageStyles.alert_patch}>
+                            <div className={pageStyles.patch_container}>
+                                <div className={pageStyles.patch_detail}>
+                                    <div className={pageStyles.alert_info}>
+                                        <div className={pageStyles.alert_version_update}>
+                                            <div className={pageStyles.version_old}>
+                                                {app.mod.version && app.mod.installed
+                                                    ? app.mod.version
+                                                    : 'Не установлен'}
                                             </div>
-                                            <div className={pageStyles.alert_title}>
-                                                {app.mod.installed
-                                                    ? 'Обновление мода'
-                                                    : 'Установка мода'}
-                                            </div>
-                                            <div className={pageStyles.alert_warn}>
-                                                Убедитесь, что Яндекс Музыка закрыта!
-                                            </div>
+                                            <MdKeyboardArrowRight size={14} />
+                                            <div className={pageStyles.version_new}>{modInfo[0]?.modVersion}</div>
                                         </div>
-                                        <div className={pageStyles.button_container}>
-                                            <button
-                                                className={pageStyles.patch_button}
-                                                onClick={() => startUpdate()}
-                                            >
-                                                <MdUpdate size={20} />
-                                                {app.mod.installed
-                                                    ? 'Обновить'
-                                                    : 'Установить'}
-                                            </button>
-                                            {isForceInstallEnabled &&
-                                                !modUpdateState.isVersionOutdated && (
-                                                    <button
-                                                        className={
-                                                            pageStyles.patch_button
-                                                        }
-                                                        onClick={() =>
-                                                            startUpdate(true)
-                                                        }
-                                                    >
-                                                        <MdOutlineWarningAmber
-                                                            size={20}
-                                                        />
-                                                        {app.mod.installed
-                                                            ? 'Все равно обновить'
-                                                            : 'Все равно установить'}
-                                                    </button>
-                                                )}
-
-                                            {modUpdateState.isVersionOutdated && (
-                                                <button
-                                                    className={
-                                                        pageStyles.patch_button
-                                                    }
-                                                    onClick={() =>
-                                                        updateYandexMusic()
-                                                    }
-                                                >
-                                                    <MdOutlineInstallDesktop
-                                                        size={20}
-                                                    />
-                                                    Обновить Яндекс.Музыку
-                                                </button>
-                                            )}
+                                        <div className={pageStyles.alert_title}>
+                                            {app.mod.installed && app.mod.version
+                                                ? 'Обновление мода'
+                                                : 'Установка мода'}
+                                        </div>
+                                        <div className={pageStyles.alert_warn}>
+                                            Убедитесь, что Яндекс Музыка закрыта!
                                         </div>
                                     </div>
-                                    <img
-                                        className={pageStyles.alert_patch_image}
-                                        src="static/assets/images/imageAlertPatch.png"
-                                        alt="Patch Update"
-                                    />
+                                    <div className={pageStyles.button_container}>
+                                        <button className={pageStyles.patch_button} onClick={() => startUpdate()}>
+                                            <MdUpdate size={20} />
+                                            {app.mod.installed && app.mod.version ? 'Обновить' : 'Установить'}
+                                        </button>
+                                        {isForceInstallEnabled && !modUpdateState.isVersionOutdated && (
+                                            <button
+                                                className={pageStyles.patch_button}
+                                                onClick={() => startUpdate(true)}
+                                            >
+                                                <MdOutlineWarningAmber size={20} />
+                                                {app.mod.installed ? 'Все равно обновить' : 'Все равно установить'}
+                                            </button>
+                                        )}
+
+                                        {modUpdateState.isVersionOutdated && (
+                                            <button
+                                                className={pageStyles.patch_button}
+                                                onClick={() => updateYandexMusic()}
+                                            >
+                                                <MdOutlineInstallDesktop size={20} />
+                                                Обновить Яндекс.Музыку
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                                <img
+                                    className={pageStyles.alert_patch_image}
+                                    src="static/assets/images/imageAlertPatch.png"
+                                    alt="Patch Update"
+                                />
                             </div>
-                        )}
+                        </div>
+                    )}
                     {children}
                 </div>
             </div>

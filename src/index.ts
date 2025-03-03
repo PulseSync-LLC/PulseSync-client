@@ -1,14 +1,4 @@
-import {
-    app,
-    BrowserWindow,
-    dialog,
-    ipcMain,
-    Notification,
-    powerMonitor,
-    protocol,
-    session,
-    shell,
-} from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification, powerMonitor, protocol, session, shell } from 'electron'
 import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
@@ -19,10 +9,7 @@ import createTray from './main/modules/tray'
 import corsAnywhereServer from 'cors-anywhere'
 import getPort from 'get-port'
 import config from './config.json'
-import {
-    handleDeeplink,
-    handleDeeplinkOnApplicationStartup,
-} from './main/modules/handlers/handleDeepLink'
+import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
@@ -35,6 +22,7 @@ import { handleMod } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
 import { promisify } from 'util'
+import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -83,7 +71,7 @@ if (!isAppDev) {
         dsn: config.SENTRY_DSN,
         debug: isAppDev,
         release: `pulsesync@${app.getVersion()}`,
-        environment: isAppDev ? "development" : "production",
+        environment: isAppDev ? 'development' : 'production',
         attachStacktrace: true,
         enableRendererProfiling: true,
         attachScreenshot: true,
@@ -93,7 +81,7 @@ if (!isAppDev) {
 function checkCLIArguments() {
     const args = process.argv.slice(1)
     if (args.length > 0 && !isAppDev) {
-        if (args.some((arg) => arg.startsWith('pulsesync://'))) {
+        if (args.some(arg => arg.startsWith('pulsesync://'))) {
             return
         }
         if (args.includes('--updated')) {
@@ -151,7 +139,7 @@ const createWindow = (): void => {
             enableBlinkFeatures: hardwareAcceleration ? 'WebGL2' : '',
         },
     })
-    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch((e) => {
+    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(e => {
         console.error(e)
     })
     mainWindow.once('ready-to-show', () => {
@@ -168,7 +156,7 @@ const createWindow = (): void => {
             event.preventDefault()
         }
     })
-    mainWindow.webContents.setWindowOpenHandler((electronData) => {
+    mainWindow.webContents.setWindowOpenHandler(electronData => {
         shell.openExternal(electronData.url)
         return { action: 'deny' }
     })
@@ -265,6 +253,7 @@ protocol.registerSchemesAsPrivileged([
 ])
 
 app.on('ready', async () => {
+    HandleErrorsElectron.processStoredCrashes()
     await corsAnywhere()
     checkCLIArguments()
     createWindow() // Все что связано с mainWindow должно устанавливаться после этого метода
@@ -288,11 +277,7 @@ function createDefaultAddonIfNotExists(themesFolderPath: string) {
             const cssPath = path.join(defaultAddonPath, defaultAddon.css)
             const scriptPath = path.join(defaultAddonPath, defaultAddon.script)
 
-            fs.writeFileSync(
-                metadataPath,
-                JSON.stringify(defaultAddon, null, 2),
-                'utf-8',
-            )
+            fs.writeFileSync(metadataPath, JSON.stringify(defaultAddon, null, 2), 'utf-8')
             fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
             fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
@@ -316,18 +301,13 @@ async function loadAddons(): Promise<Addon[]> {
 
             if (fs.existsSync(metadataFilePath)) {
                 try {
-                    const data = await fs.promises.readFile(
-                        metadataFilePath,
-                        'utf-8',
-                    )
+                    const data = await fs.promises.readFile(metadataFilePath, 'utf-8')
                     const stats = await fs.promises.stat(metadataFilePath)
                     const folderSize = await getFolderSize(themeFolderPath)
                     const modificationDate = new Date(stats.mtime)
                     const now = new Date()
 
-                    const diffTime = Math.abs(
-                        now.getTime() - modificationDate.getTime(),
-                    )
+                    const diffTime = Math.abs(now.getTime() - modificationDate.getTime())
                     let diffString
 
                     const diffSeconds = Math.floor(diffTime / 1000)
@@ -354,16 +334,9 @@ async function loadAddons(): Promise<Addon[]> {
                         )
                         metadata.version = '1.0.0'
                         await fs.promises
-                            .writeFile(
-                                metadataFilePath,
-                                JSON.stringify(metadata, null, 4),
-                                'utf-8',
-                            )
-                            .catch((err) => {
-                                logger.main.error(
-                                    `Addons: error writing metadata.json in theme ${folder}:`,
-                                    err,
-                                )
+                            .writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8')
+                            .catch(err => {
+                                logger.main.error(`Addons: error writing metadata.json in theme ${folder}:`, err)
                             })
                     } else {
                         metadata.version = versionMatch[0]
@@ -374,15 +347,10 @@ async function loadAddons(): Promise<Addon[]> {
                     metadata.directoryName = folder
                     availableAddons.push(metadata)
                 } catch (err) {
-                    logger.main.error(
-                        `Addons: error reading or parsing metadata.json in theme ${folder}:`,
-                        err,
-                    )
+                    logger.main.error(`Addons: error reading or parsing metadata.json in theme ${folder}:`, err)
                 }
             } else {
-                logger.main.error(
-                    `Addons: metadata.json not found in theme ${folder}`,
-                )
+                logger.main.error(`Addons: metadata.json not found in theme ${folder}`)
             }
         }
 
@@ -431,8 +399,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
 
         case 'write-file':
             try {
-                const content =
-                    typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
                 fs.writeFileSync(filePath, content, 'utf8')
                 logger.main.log('Файл успешно записан:', filePath)
                 return { success: true }
@@ -514,26 +481,26 @@ export async function prestartCheck() {
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
-    const readdir = promisify(fs.readdir);
-    const rename = promisify(fs.rename);
+    const readdir = promisify(fs.readdir)
+    const rename = promisify(fs.rename)
 
     await (async () => {
-        const pulseSyncPath = path.join(app.getPath('appData'), 'PulseSync');
-        const themesFolderPath = path.join(pulseSyncPath, 'themes');
-        const addonsFolderPath = path.join(pulseSyncPath, 'addons');
+        const pulseSyncPath = path.join(app.getPath('appData'), 'PulseSync')
+        const themesFolderPath = path.join(pulseSyncPath, 'themes')
+        const addonsFolderPath = path.join(pulseSyncPath, 'addons')
 
         try {
-            const files = await readdir(themesFolderPath);
+            const files = await readdir(themesFolderPath)
             if (files.length) {
-                await rename(themesFolderPath, addonsFolderPath);
-                logger.main.info('Папка themes переименована в addons.');
+                await rename(themesFolderPath, addonsFolderPath)
+                logger.main.info('Папка themes переименована в addons.')
             }
         } catch (err) {
             if (err.code !== 'ENOENT') {
-                logger.main.error('Ошибка при переименовании папки themes:', err);
+                logger.main.error('Ошибка при переименовании папки themes:', err)
             }
         }
-    })();
+    })()
     const asarCopy = path.join(musicPath, 'app.backup.asar')
 
     if (!store.has('discordRpc.enableGithubButton')) {
@@ -545,10 +512,7 @@ export async function prestartCheck() {
     if (!store.has('settings.closeAppInTray')) {
         store.set('settings.closeAppInTray', true)
     }
-    if (
-        (store.has('mod.installed') && store.get('mod.installed')) ||
-        store.get('mod.version')
-    ) {
+    if ((store.has('mod.installed') && store.get('mod.installed')) || store.get('mod.version')) {
         if (!fs.existsSync(asarCopy)) {
             store.set('mod.installed', false)
             store.delete('mod.version')
@@ -564,15 +528,15 @@ export async function prestartCheck() {
         ignored: (path, stats) => stats?.isFile() && !path.endsWith('.css'),
     })
     watcher
-        .on('add', (path) => {
+        .on('add', path => {
             logger.main.info(`File ${path} has been added`)
             sendAddon(false)
         })
-        .on('change', (path) => {
+        .on('change', path => {
             logger.main.info(`File ${path} has been changed`)
             sendAddon(false)
         })
-        .on('unlink', (path) => {
+        .on('unlink', path => {
             logger.main.info(`File ${path} has been removed`)
             sendAddon(false)
         })
@@ -590,7 +554,7 @@ app.on('activate', () => {
     }
 })
 
-eventEmitter.on('DATA_UPDATED', (newData) => {
+eventEmitter.on('DATA_UPDATED', newData => {
     if (mainWindow && mainWindow.webContents) {
         mainWindow.webContents.send('trackinfo', newData)
     }

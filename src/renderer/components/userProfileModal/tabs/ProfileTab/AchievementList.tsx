@@ -1,13 +1,13 @@
-import React from 'react';
-import AchievementItem from './AchievementItem';
-import * as styles from '../../userProfileModal.module.scss';
+import React from 'react'
+import AchievementItem from './AchievementItem'
+import * as styles from '../../userProfileModal.module.scss'
 
 interface AchievementListProps {
-    achievements: any[];
-    userAchievements: any[];
-    toggleExpand: (id: number) => void;
-    expandedIndexes: number[];
-    canViewDetails: boolean;
+    achievements: any[]
+    userAchievements: any[]
+    toggleExpand: (id: number) => void
+    expandedIndexes: number[]
+    canViewDetails: boolean
 }
 
 const AchievementList: React.FC<AchievementListProps> = ({
@@ -18,11 +18,9 @@ const AchievementList: React.FC<AchievementListProps> = ({
     canViewDetails,
 }) => (
     <div className={styles.achievementsList}>
-        {achievements.map((ach) => {
-            const userAch = userAchievements?.find(
-                (ua: any) => ua.achievement.id === ach.id
-            );
-            const expanded = expandedIndexes.includes(ach.id);
+        {achievements.map(ach => {
+            const userAch = userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
+            const expanded = expandedIndexes.includes(ach.id)
             return (
                 <AchievementItem
                     key={ach.id}
@@ -32,9 +30,9 @@ const AchievementList: React.FC<AchievementListProps> = ({
                     toggleExpand={canViewDetails ? toggleExpand : undefined}
                     canViewDetails={canViewDetails}
                 />
-            );
+            )
         })}
     </div>
-);
+)
 
-export default AchievementList;
+export default AchievementList

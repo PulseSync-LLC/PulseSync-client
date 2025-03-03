@@ -1,10 +1,7 @@
 import { Track } from 'yandex-music-client'
 
 export const getTrackLabel = (track: Track) => {
-    return truncate(
-        `${track.title} – ${track.artists.map((a) => a.name).join(', ')}`,
-        45,
-    )
+    return truncate(`${track.title} – ${track.artists.map(a => a.name).join(', ')}`, 45)
 }
 
 export const truncate = (str: string, n: number) => {
@@ -44,21 +41,9 @@ export function numberToUint8Counter(num: number) {
  * @param {ArrayBuffer} params.data - Зашифрованные данные.
  * @returns {Promise<ArrayBuffer>} - Промис, который при разрешении возвращает расшифрованные данные.
  */
-export async function decryptData({
-    key,
-    data: data,
-}: {
-    key: string
-    data: ArrayBuffer
-}): Promise<ArrayBuffer> {
+export async function decryptData({ key, data: data }: { key: string; data: ArrayBuffer }): Promise<ArrayBuffer> {
     const keyBytes = hexStringToUint8Array(key)
-    const cryptoKey = await crypto.subtle.importKey(
-        'raw',
-        keyBytes,
-        { name: 'AES-CTR' },
-        false,
-        ['encrypt', 'decrypt'],
-    )
+    const cryptoKey = await crypto.subtle.importKey('raw', keyBytes, { name: 'AES-CTR' }, false, ['encrypt', 'decrypt'])
 
     let counter = new Uint8Array(16)
 

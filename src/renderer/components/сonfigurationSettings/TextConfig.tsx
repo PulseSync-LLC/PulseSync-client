@@ -16,11 +16,7 @@ interface ButtonConfigProps {
         key: keyof ButtonAction,
         newValue: string,
     ) => void
-    resetButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => void
+    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     handleRemoveButton: (buttonIndex: number) => void
 }
 
@@ -58,71 +54,45 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                             type="text"
                             className={styles.inputEdit}
                             value={localId}
-                            onChange={(e) => setLocalId(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'id',
-                                    e.target.value,
-                                )
-                            }
+                            onChange={e => setLocalId(e.target.value)}
+                            onBlur={e => updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'id', e.target.value)}
                             placeholder="Укажите ID"
                         />
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Название текста (строка):
-                        </label>
+                        <label className={styles.labelEdit}>Название текста (строка):</label>
                         <input
                             type="text"
                             className={styles.inputEdit}
                             value={localName}
-                            onChange={(e) => setLocalName(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'name',
-                                    e.target.value,
-                                )
+                            onChange={e => setLocalName(e.target.value)}
+                            onBlur={e =>
+                                updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'name', e.target.value)
                             }
                             placeholder="Название текста"
                         />
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Текст текста (строка):
-                        </label>
+                        <label className={styles.labelEdit}>Текст текста (строка):</label>
                         <input
                             type="text"
                             className={styles.inputEdit}
                             value={localText}
-                            onChange={(e) => setLocalText(e.target.value)}
-                            onBlur={(e) =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'text',
-                                    e.target.value,
-                                )
+                            onChange={e => setLocalText(e.target.value)}
+                            onBlur={e =>
+                                updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)
                             }
                             placeholder="Текст"
                         />
                     </div>
                     <div className={styles.fieldEdit}>
-                        <label className={styles.labelEdit}>
-                            Дефолтное значение (строка):
-                        </label>
+                        <label className={styles.labelEdit}>Дефолтное значение (строка):</label>
                         <input
                             type="text"
                             className={styles.inputEdit}
                             value={localDefault}
-                            onChange={(e) => setLocalDefault(e.target.value)}
-                            onBlur={(e) =>
+                            onChange={e => setLocalDefault(e.target.value)}
+                            onBlur={e =>
                                 updateButtonConfig(
                                     sectionIndex,
                                     itemIndex,
@@ -137,13 +107,7 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                     {isDifferent && (
                         <button
                             className={styles.resetButtonEdit}
-                            onClick={() =>
-                                resetButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                )
-                            }
+                            onClick={() => resetButtonConfig(sectionIndex, itemIndex, buttonIndex)}
                             title="Сбросить значение"
                         >
                             <MdRestore />
@@ -164,27 +128,13 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                         type="text"
                         className={styles.buttonTextInput}
                         value={button.text}
-                        onChange={(e) =>
-                            updateButtonConfig(
-                                sectionIndex,
-                                itemIndex,
-                                buttonIndex,
-                                'text',
-                                e.target.value,
-                            )
-                        }
+                        onChange={e => updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)}
                         title={`Изменить текст ${button.name}`}
                     />
                     {isDifferent && (
                         <button
                             className={styles.resetButton}
-                            onClick={() =>
-                                resetButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                )
-                            }
+                            onClick={() => resetButtonConfig(sectionIndex, itemIndex, buttonIndex)}
                             title="Сбросить значение"
                         >
                             <MdRestore scale={28} />

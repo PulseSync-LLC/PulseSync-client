@@ -33,7 +33,7 @@ class Updater {
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.disableWebInstaller = true
-        autoUpdater.on('error', (error) => {
+        autoUpdater.on('error', error => {
             logger.updater.error('Updater error', error)
         })
 
@@ -54,10 +54,7 @@ class Updater {
             }
 
             if (this.commonConfig && this.commonConfig.DEPRECATED_VERSIONS) {
-                const isDeprecatedVersion = semver.satisfies(
-                    app.getVersion(),
-                    this.commonConfig.DEPRECATED_VERSIONS,
-                )
+                const isDeprecatedVersion = semver.satisfies(app.getVersion(), this.commonConfig.DEPRECATED_VERSIONS)
                 if (isDeprecatedVersion) {
                     logger.updater.log(
                         'This version is deprecated',
@@ -70,9 +67,7 @@ class Updater {
             }
 
             this.latestAvailableVersion = updateInfo.version
-            this.onUpdateListeners.forEach((listener) =>
-                listener(updateInfo.version),
-            )
+            this.onUpdateListeners.forEach(listener => listener(updateInfo.version))
         })
     }
 
@@ -91,9 +86,7 @@ class Updater {
                         this.commonConfig = {}
                     }
                     this.commonConfig[key] = updateInfo.commonConfig[key]
-                    logger.updater.info(
-                        `Updated commonConfig: ${key} = ${updateInfo.commonConfig[key]}`,
-                    )
+                    logger.updater.info(`Updated commonConfig: ${key} = ${updateInfo.commonConfig[key]}`)
                 }
             }
         }
@@ -105,16 +98,11 @@ class Updater {
             return
         }
 
-        logger.updater.info(
-            'New version available',
-            app.getVersion(),
-            '->',
-            updateInfo.version,
-        )
+        logger.updater.info('New version available', app.getVersion(), '->', updateInfo.version)
         this.updateStatus = UpdateStatus.DOWNLOADING
 
         downloadPromise
-            .then((downloadResult) => {
+            .then(downloadResult => {
                 if (downloadResult) {
                     this.updateStatus = UpdateStatus.DOWNLOADED
                     logger.updater.info(`Download result: ${downloadResult}`)
@@ -126,7 +114,7 @@ class Updater {
                     })
                 }
             })
-            .catch((error) => {
+            .catch(error => {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
                 mainWindow.setProgressBar(-1)
@@ -138,10 +126,7 @@ class Updater {
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
             if (this.updateStatus === UpdateStatus.DOWNLOADED) {
-                mainWindow.webContents.send(
-                    'update-available',
-                    this.latestAvailableVersion,
-                )
+                mainWindow.webContents.send('update-available', this.latestAvailableVersion)
                 mainWindow.flashFrame(true)
             }
             return this.updateStatus
@@ -158,17 +143,10 @@ class Updater {
             }
             this.updateApplier(updateResult)
         } catch (error) {
-            if (
-                error.code === 'ENOENT' &&
-                error.path &&
-                error.path.endsWith('app-update.yml')
-            ) {
+            if (error.code === 'ENOENT' && error.path && error.path.endsWith('app-update.yml')) {
                 if (!isAppDev) {
                     logger.updater.error(`File app-update.yml not found.`, error)
-                    dialog.showErrorBox(
-                        'Ошибка',
-                        'Файлы приложения повреждены. Переустановите приложение.',
-                    )
+                    dialog.showErrorBox('Ошибка', 'Файлы приложения повреждены. Переустановите приложение.')
                     app.quit()
                 }
             } else {

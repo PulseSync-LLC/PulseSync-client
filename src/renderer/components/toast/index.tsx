@@ -30,9 +30,7 @@ function createToast(
     value?: number,
     duration: number = 5000,
 ) {
-    const isPersistent = ['loading', 'export', 'import', 'download'].includes(
-        customType,
-    )
+    const isPersistent = ['loading', 'export', 'import', 'download'].includes(customType)
 
     const toastId = toast.custom(
         (t: Toast) => (
@@ -113,11 +111,7 @@ const ToastComponent = ({
             }
         >
             <div className={styles.iconContainer}>
-                {isPersistent ? (
-                    <ProgressCircle value={value} customType={customType} />
-                ) : (
-                    getIcon(customType)
-                )}
+                {isPersistent ? <ProgressCircle value={value} customType={customType} /> : getIcon(customType)}
             </div>
             <div className={styles.textContainer}>
                 <div className={styles.title}>{customTitle || 'Без заголовка'}</div>
@@ -134,13 +128,7 @@ const ToastComponent = ({
     )
 }
 
-const ProgressCircle = ({
-    value,
-    customType,
-}: {
-    value?: number
-    customType?: string
-}) => (
+const ProgressCircle = ({ value, customType }: { value?: number; customType?: string }) => (
     <div className={styles.progressCircle}>
         <svg viewBox="0 0 36 36" className={styles.circularProgress}>
             <path

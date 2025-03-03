@@ -1,60 +1,44 @@
-import React from 'react';
-import {
-    MdCheckCircle,
-    MdHistoryEdu,
-    MdKeyboardArrowDown,
-    MdStar,
-} from 'react-icons/md';
-import TooltipButton from '../../../tooltip_button';
-import * as achv from '../../achievements.module.scss';
+import React from 'react'
+import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
+import TooltipButton from '../../../tooltip_button'
+import * as achv from '../../achievements.module.scss'
 
 interface AchievementItemProps {
-    ach: any;
-    userAch: any;
-    expanded: boolean;
-    toggleExpand?: (id: number) => void;
-    canViewDetails: boolean;
+    ach: any
+    userAch: any
+    expanded: boolean
+    toggleExpand?: (id: number) => void
+    canViewDetails: boolean
 }
 
-const AchievementItem: React.FC<AchievementItemProps> = ({
-    ach,
-    userAch,
-    expanded,
-    toggleExpand,
-    canViewDetails,
-}) => {
-    const statusLower = userAch?.status?.toLowerCase() || 'not_started';
-    const progressCurrent = userAch?.progressCurrent ?? 0;
-    const progressTotal = userAch?.progressTotal ?? ach.progressTotal ?? 0;
-    const isCompleted = statusLower === 'completed';
-    const isInProgress = statusLower === 'in_progress';
+const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expanded, toggleExpand, canViewDetails }) => {
+    const statusLower = userAch?.status?.toLowerCase() || 'not_started'
+    const progressCurrent = userAch?.progressCurrent ?? 0
+    const progressTotal = userAch?.progressTotal ?? ach.progressTotal ?? 0
+    const isCompleted = statusLower === 'completed'
+    const isInProgress = statusLower === 'in_progress'
 
-    type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME';
+    type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
     const difficultyMap: Record<Difficulty, string> = {
         EASY: 'Легко',
         NORMAL: 'Нормально',
         HARD: 'Сложно',
         EXTREME: 'Экстремально',
-    };
+    }
     const difficultyColors: Record<Difficulty, string> = {
         EASY: '#92FFB2',
         NORMAL: '#E9CA75',
         HARD: '#FF9292',
         EXTREME: '#BA82FF',
-    };
+    }
 
-    const diffKey =
-        ((ach.difficulty as string).toUpperCase() as Difficulty) || 'EASY';
-    const difficultyLabel = difficultyMap[diffKey] ?? 'Неизвестно';
-    const difficultyColor = difficultyColors[diffKey] || '#000';
+    const diffKey = ((ach.difficulty as string).toUpperCase() as Difficulty) || 'EASY'
+    const difficultyLabel = difficultyMap[diffKey] ?? 'Неизвестно'
+    const difficultyColor = difficultyColors[diffKey] || '#000'
 
-    const itemClassNames = [
-        achv.achievementCard,
-        isCompleted && achv.completed,
-        isInProgress && achv.inProgress,
-    ]
+    const itemClassNames = [achv.achievementCard, isCompleted && achv.completed, isInProgress && achv.inProgress]
         .filter(Boolean)
-        .join(' ');
+        .join(' ')
 
     return (
         <div key={ach.id} className={itemClassNames}>
@@ -69,9 +53,8 @@ const AchievementItem: React.FC<AchievementItemProps> = ({
                         <img
                             className={achv.image}
                             src={ach.imageUrl || 'static/assets/images/O^O.png'}
-                            onError={(e) => {
-                                (e.currentTarget as HTMLImageElement).src =
-                                    'static/assets/images/O^O.png';
+                            onError={e => {
+                                ;(e.currentTarget as HTMLImageElement).src = 'static/assets/images/O^O.png'
                             }}
                             alt={ach.title}
                         />
@@ -81,9 +64,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({
                     {isCompleted && (
                         <div className={achv.achievementCompletedAt}>
                             {userAch?.completedAt
-                                ? new Date(
-                                      Number(userAch.completedAt)
-                                  ).toLocaleString('ru-RU', {
+                                ? new Date(Number(userAch.completedAt)).toLocaleString('ru-RU', {
                                       year: 'numeric',
                                       month: 'long',
                                       day: 'numeric',
@@ -96,9 +77,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({
                     )}
                     <div className={achv.achievementTitle}>{ach.title}</div>
                     <div className={achv.contentWrapper}>
-                        <div className={achv.achievementDescription}>
-                            {ach.description}
-                        </div>
+                        <div className={achv.achievementDescription}>{ach.description}</div>
                     </div>
                 </div>
                 <div className={achv.buttonsItem}>
@@ -112,21 +91,11 @@ const AchievementItem: React.FC<AchievementItemProps> = ({
                             <MdHistoryEdu size={24} />
                         </TooltipButton>
                     )}
-                    {(isInProgress || isCompleted) &&
-                        canViewDetails &&
-                        toggleExpand && (
-                            <button
-                                className={achv.expandButton}
-                                onClick={() => toggleExpand(ach.id)}
-                            >
-                                <MdKeyboardArrowDown
-                                    size={24}
-                                    className={
-                                        expanded ? achv.rotatedArrow : ''
-                                    }
-                                />
-                            </button>
-                        )}
+                    {(isInProgress || isCompleted) && canViewDetails && toggleExpand && (
+                        <button className={achv.expandButton} onClick={() => toggleExpand(ach.id)}>
+                            <MdKeyboardArrowDown size={24} className={expanded ? achv.rotatedArrow : ''} />
+                        </button>
+                    )}
                 </div>
             </div>
             {expanded &&
@@ -147,25 +116,19 @@ const AchievementItem: React.FC<AchievementItemProps> = ({
                 )}
             <div className={achv.achievementFooter}>
                 {!isCompleted && (
-                    <div
-                        className={achv.goal}
-                        style={{ color: difficultyColor }}
-                    >
+                    <div className={achv.goal} style={{ color: difficultyColor }}>
                         Прогресс: {progressCurrent} / {progressTotal}
                     </div>
                 )}
                 <div className={achv.points} style={{ color: difficultyColor }}>
                     <MdStar /> {ach.points} очков
                 </div>
-                <div
-                    className={achv.difficulty}
-                    style={{ color: difficultyColor }}
-                >
+                <div className={achv.difficulty} style={{ color: difficultyColor }}>
                     {difficultyLabel}
                 </div>
             </div>
         </div>
-    );
-};
+    )
+}
 
-export default AchievementItem;
+export default AchievementItem

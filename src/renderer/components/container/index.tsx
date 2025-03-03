@@ -12,25 +12,14 @@ interface p {
     children?: any
 }
 
-const Container: React.FC<p> = ({
-    titleName,
-    description,
-    className,
-    imageName,
-    children,
-    buttonName,
-    onClick,
-}) => {
+const Container: React.FC<p> = ({ titleName, description, className, imageName, children, buttonName, onClick }) => {
     return (
         <>
             <div className={`${styles.container} ${className ? className : ''}`}>
                 <div className={styles.mainContainer}>
                     <div className={styles.left}>
                         <div className={styles.imageContainer}>
-                            <img
-                                src={`static/assets/container_icons/${imageName}.svg`}
-                                alt={imageName}
-                            />
+                            <img src={`static/assets/container_icons/${imageName}.svg`} alt={imageName} />
                         </div>
                         <div className={styles.detailPage}>
                             <div className={styles.title}>{titleName}</div>

@@ -16,10 +16,7 @@ export const checkIsDeeplink = (value: string): boolean => {
     return deeplinkRegexp.test(value)
 }
 
-export const navigateToDeeplink = (
-    window: BrowserWindow,
-    url: string | null,
-): void => {
+export const navigateToDeeplink = (window: BrowserWindow, url: string | null): void => {
     if (!url) {
         return
     }
@@ -38,7 +35,7 @@ export const navigateToDeeplink = (
             const token = decodeURIComponent(reg[1])
             const id = decodeURIComponent(reg[2])
             fetch(`${config.SERVER_URL}/api/v1/user/${id}/access`)
-                .then(async (res) => {
+                .then(async res => {
                     const j = await res.json()
                     if (j.ok) {
                         if (!j.access) {

@@ -48,8 +48,7 @@ contextBridge.exposeInMainWorld('electron', {
     pathAppOpen: () => ipcRenderer.send('pathAppOpen'),
     pathStyleOpen: () => ipcRenderer.send('pathStyleOpen'),
     checkSelectedStyle: () => ipcRenderer.send('checkSelectedStyle'),
-    selectStyle: (name: any, author: any) =>
-        ipcRenderer.send('selectStyle', name, author),
+    selectStyle: (name: any, author: any) => ipcRenderer.send('selectStyle', name, author),
     getAddonsList: () => ipcRenderer.send('getAddonsList'),
     checkFileExists: () => ipcRenderer.send('checkFileExists'),
     getVersion: () => ipcRenderer.send('getVersion'),
@@ -70,22 +69,13 @@ contextBridge.exposeInMainWorld('desktopEvents', {
     send(name: any, ...args: any[]) {
         ipcRenderer.send(name, ...args)
     },
-    on(
-        name: string,
-        listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
-    ) {
+    on(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
         ipcRenderer.on(name, listener)
     },
-    once(
-        name: string,
-        listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
-    ) {
+    once(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
         ipcRenderer.once(name, listener)
     },
-    removeListener(
-        name: string,
-        listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
-    ) {
+    removeListener(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
         ipcRenderer.removeListener(name, listener)
     },
     removeAllListeners: (channel: string) => {

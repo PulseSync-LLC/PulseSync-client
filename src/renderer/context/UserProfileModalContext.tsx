@@ -30,15 +30,9 @@ export const UserProfileModalProvider: React.FC<{
     }
 
     return (
-        <UserProfileModalContext.Provider
-            value={{ openUserProfile, closeUserProfile }}
-        >
+        <UserProfileModalContext.Provider value={{ openUserProfile, closeUserProfile }}>
             {children}
-            <UserProfileModal
-                isOpen={isModalOpen}
-                onClose={closeUserProfile}
-                username={selectedUser || ''}
-            />
+            <UserProfileModal isOpen={isModalOpen} onClose={closeUserProfile} username={selectedUser || ''} />
         </UserProfileModalContext.Provider>
     )
 }

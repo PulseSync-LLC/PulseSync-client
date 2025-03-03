@@ -1,11 +1,4 @@
-import React, {
-    CSSProperties,
-    useContext,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react'
+import React, { CSSProperties, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import Minus from './../../../../static/assets/icons/minus.svg'
 import Minimize from './../../../../static/assets/icons/minimize.svg'
@@ -73,9 +66,7 @@ const OldHeader: React.FC<p> = () => {
 
     const fixedAddon = { charCount: inputStyle.charCount }
 
-    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>(
-        'null',
-    )
+    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
     //
     // const renderPlayerStatus = () => {
     //     const statusText = playStatus === 'playing'
@@ -223,19 +214,11 @@ const OldHeader: React.FC<p> = () => {
         function handleClickOutside(event: MouseEvent) {
             const target = event.target as Node
 
-            if (
-                isMenuOpen &&
-                containerRef.current &&
-                !containerRef.current.contains(target)
-            ) {
+            if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
                 setIsMenuOpen(false)
             }
 
-            if (
-                isUserCardOpen &&
-                userCardRef.current &&
-                !userCardRef.current.contains(target)
-            ) {
+            if (isUserCardOpen && userCardRef.current && !userCardRef.current.contains(target)) {
                 setIsUserCardOpen(false)
             }
         }
@@ -277,7 +260,7 @@ const OldHeader: React.FC<p> = () => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke('needModalUpdate').then((value) => {
+            window.desktopEvents?.invoke('needModalUpdate').then(value => {
                 if (value) {
                     openUpdateModal()
                 }
@@ -340,14 +323,10 @@ const OldHeader: React.FC<p> = () => {
             headers: {
                 authorization: `Bearer ${getUserToken()}`,
             },
-        }).then(async (r) => {
+        }).then(async r => {
             const res = await r.json()
             if (res.ok) {
-                toast.custom(
-                    'success',
-                    `До встречи ${user.nickname}`,
-                    'Успешный выход',
-                )
+                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
                 await client.resetStore()
@@ -401,23 +380,17 @@ const OldHeader: React.FC<p> = () => {
         formData.append('file', file)
 
         try {
-            const response = await axios.post(
-                `${config.SERVER_URL}/cdn/avatar/upload`,
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
-                    },
-                    onUploadProgress: (progressEvent) => {
-                        const { loaded, total } = progressEvent
-                        const percentCompleted = Math.floor(
-                            (loaded * 100) / (total || 1),
-                        )
-                        setAvatarProgress(percentCompleted)
-                    },
+            const response = await axios.post(`${config.SERVER_URL}/cdn/avatar/upload`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
                 },
-            )
+                onUploadProgress: progressEvent => {
+                    const { loaded, total } = progressEvent
+                    const percentCompleted = Math.floor((loaded * 100) / (total || 1))
+                    setAvatarProgress(percentCompleted)
+                },
+            })
 
             const data = response.data
 
@@ -431,27 +404,15 @@ const OldHeader: React.FC<p> = () => {
                 toast.custom('success', 'Готово', 'Аватар успешно загружен!')
             } else {
                 setAvatarProgress(-1)
-                toast.custom(
-                    'error',
-                    'Ой...',
-                    'Неизвестная ошибка при загрузке аватара',
-                )
+                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
                 toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom(
-                    'error',
-                    'Доступ запрещён',
-                    'Загрузка аватара запрещена',
-                )
+                toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
             } else {
-                toast.custom(
-                    'error',
-                    'Ой...',
-                    'Ошибка при загрузке аватара, попробуй ещё раз',
-                )
+                toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
                 Sentry.captureException(error)
             }
             setAvatarProgress(-1)
@@ -465,23 +426,17 @@ const OldHeader: React.FC<p> = () => {
         formData.append('file', file)
 
         try {
-            const response = await axios.post(
-                `${config.SERVER_URL}/cdn/banner/upload`,
-                formData,
-                {
-                    headers: {
-                        'Content-Type': 'multipart/form-data',
-                        Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
-                    },
-                    onUploadProgress: (progressEvent) => {
-                        const { loaded, total } = progressEvent
-                        const percentCompleted = Math.floor(
-                            (loaded * 100) / (total || 1),
-                        )
-                        setBannerProgress(percentCompleted)
-                    },
+            const response = await axios.post(`${config.SERVER_URL}/cdn/banner/upload`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                    Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
                 },
-            )
+                onUploadProgress: progressEvent => {
+                    const { loaded, total } = progressEvent
+                    const percentCompleted = Math.floor((loaded * 100) / (total || 1))
+                    setBannerProgress(percentCompleted)
+                },
+            })
 
             const data = response.data
 
@@ -495,27 +450,15 @@ const OldHeader: React.FC<p> = () => {
                 toast.custom('success', 'Готово', 'Баннер успешно загружен!')
             } else {
                 setBannerProgress(-1)
-                toast.custom(
-                    'error',
-                    'Ой...',
-                    'Неизвестная ошибка при загрузке баннера',
-                )
+                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке баннера')
             }
         } catch (error) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
                 toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom(
-                    'error',
-                    'Доступ запрещён',
-                    'Загрузка баннера запрещена',
-                )
+                toast.custom('error', 'Доступ запрещён', 'Загрузка баннера запрещена')
             } else {
-                toast.custom(
-                    'error',
-                    'Ой...',
-                    'Ошибка при загрузке баннера, попробуй ещё раз',
-                )
+                toast.custom('error', 'Ой...', 'Ошибка при загрузке баннера, попробуй ещё раз')
                 Sentry.captureException(error)
             }
             setBannerProgress(-1)
@@ -523,7 +466,7 @@ const OldHeader: React.FC<p> = () => {
         }
     }
     useEffect(() => {
-        if (!app.mod.installed) return
+        if (!app.mod.installed || !app.mod.version) return
 
         const fetchModData = async () => {
             try {
@@ -545,15 +488,11 @@ const OldHeader: React.FC<p> = () => {
 
     return (
         <>
-            <Modal
-                title="Последние обновления"
-                isOpen={modal}
-                reqClose={closeUpdateModal}
-            >
+            <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
                     {memoizedAppInfo
-                        .filter((info) => info.version <= app.info.version)
-                        .map((info) => (
+                        .filter(info => info.version <= app.info.version)
+                        .map(info => (
                             <div key={info.id}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
@@ -570,18 +509,14 @@ const OldHeader: React.FC<p> = () => {
                         ))}
                 </div>
             </Modal>
-            <Modal
-                title="Последние обновления мода"
-                isOpen={isModModalOpen}
-                reqClose={closeModModal}
-            >
+            <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
                     {loading && <p>Loading...</p>}
                     {error && <p>Error: {error}</p>}
                     {!loading &&
                         !error &&
                         modChangesInfo.length > 0 &&
-                        modChangesInfo.map((info) => (
+                        modChangesInfo.map(info => (
                             <div key={info.id}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
@@ -592,11 +527,7 @@ const OldHeader: React.FC<p> = () => {
                                     remarkPlugins={[remarkGfm, remarkBreaks]}
                                     components={{
                                         a: ({ href, children }) => (
-                                            <a
-                                                href={href}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
+                                            <a href={href} target="_blank" rel="noopener noreferrer">
                                                 {children}
                                             </a>
                                         ),
@@ -609,31 +540,17 @@ const OldHeader: React.FC<p> = () => {
                                 <hr />
                             </div>
                         ))}
-                    {!loading && !error && modChangesInfo.length === 0 && (
-                        <p>Список изменений не найден.</p>
-                    )}
+                    {!loading && !error && modChangesInfo.length === 0 && <p>Список изменений не найден.</p>}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button
-                                className={styles.logoplace}
-                                onClick={toggleMenu}
-                                disabled={user.id === '-1'}
-                            >
-                                <img
-                                    className={styles.logoapp}
-                                    src="static/assets/logo/logoapp.svg"
-                                    alt=""
-                                />
+                            <button className={styles.logoplace} onClick={toggleMenu} disabled={user.id === '-1'}>
+                                <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
                                 <span>PulseSync</span>
-                                <div
-                                    className={
-                                        isMenuOpen ? styles.true : styles.false
-                                    }
-                                >
+                                <div className={isMenuOpen ? styles.true : styles.false}>
                                     {user.id != '-1' && <ArrowDown />}
                                 </div>
                             </button>
@@ -641,16 +558,11 @@ const OldHeader: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
-                        {isDevmark && (
-                            <div className={styles.dev}>DEVELOPMENT BUILD</div>
-                        )}
+                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD</div>}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
-                                    <div
-                                        className={styles.user_container}
-                                        onClick={toggleUserContainer}
-                                    >
+                                    <div className={styles.user_container} onClick={toggleUserContainer}>
                                         <input
                                             ref={avatarInputRef}
                                             type={'file'}
@@ -670,10 +582,8 @@ const OldHeader: React.FC<p> = () => {
                                                 className={styles.avatar}
                                                 src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                 alt=""
-                                                onError={(e) => {
-                                                    ;(
-                                                        e.currentTarget as HTMLImageElement
-                                                    ).src =
+                                                onError={e => {
+                                                    ;(e.currentTarget as HTMLImageElement).src =
                                                         './static/assets/images/undef.png'
                                                 }}
                                             />
@@ -682,9 +592,7 @@ const OldHeader: React.FC<p> = () => {
                                             </div>
                                         </div>
                                         <div className={styles.user_info}>
-                                            <div className={styles.username}>
-                                                {user.username}
-                                            </div>
+                                            <div className={styles.username}>{user.username}</div>
                                             {/*<div className={styles.status_text}>*/}
                                             {/*    {renderPlayerStatus()}*/}
                                             {/*</div>*/}
@@ -721,17 +629,12 @@ const OldHeader: React.FC<p> = () => {
                                                     }}
                                                 >
                                                     <motion.div
-                                                        className={
-                                                            styles.banner_overlay
-                                                        }
+                                                        className={styles.banner_overlay}
                                                         initial={{
                                                             width: '0%',
                                                         }}
                                                         animate={{
-                                                            width:
-                                                                bannerProgress !== -1
-                                                                    ? `${bannerProgress}%`
-                                                                    : '0%',
+                                                            width: bannerProgress !== -1 ? `${bannerProgress}%` : '0%',
                                                         }}
                                                         transition={{
                                                             duration: 0.3,
@@ -739,9 +642,7 @@ const OldHeader: React.FC<p> = () => {
                                                         }}
                                                     >
                                                         <div
-                                                            className={
-                                                                styles.banner_loader
-                                                            }
+                                                            className={styles.banner_loader}
                                                             style={
                                                                 {
                                                                     '--progress': `${bannerProgress}%`,
@@ -750,47 +651,24 @@ const OldHeader: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div
-                                                        className={
-                                                            styles.hoverUpload
-                                                        }
-                                                        onClick={() =>
-                                                            bannerInputRef.current!.showPicker()
-                                                        }
+                                                        className={styles.hoverUpload}
+                                                        onClick={() => bannerInputRef.current!.showPicker()}
                                                     >
                                                         Загрузить баннер
                                                     </div>
-                                                    <div
-                                                        className={
-                                                            styles.badges_container
-                                                        }
-                                                    >
+                                                    <div className={styles.badges_container}>
                                                         {user.badges.length > 0 &&
                                                             user.badges
-                                                                .sort(
-                                                                    (a, b) =>
-                                                                        b.level -
-                                                                        a.level,
-                                                                )
-                                                                .map((_badge) => (
+                                                                .sort((a, b) => b.level - a.level)
+                                                                .map(_badge => (
                                                                     <TooltipButton
-                                                                        tooltipText={
-                                                                            _badge.name
-                                                                        }
+                                                                        tooltipText={_badge.name}
                                                                         side="bottom"
                                                                     >
-                                                                        <div
-                                                                            className={
-                                                                                styles.badge
-                                                                            }
-                                                                            key={
-                                                                                _badge.type
-                                                                            }
-                                                                        >
+                                                                        <div className={styles.badge} key={_badge.type}>
                                                                             <img
                                                                                 src={`static/assets/badges/${_badge.type}.svg`}
-                                                                                alt={
-                                                                                    _badge.type
-                                                                                }
+                                                                                alt={_badge.type}
                                                                             />
                                                                         </div>
                                                                     </TooltipButton>
@@ -815,10 +693,7 @@ const OldHeader: React.FC<p> = () => {
                                                             ease: 'linear',
                                                         }}
                                                         animate={{
-                                                            opacity:
-                                                                avatarProgress !== -1
-                                                                    ? `${avatarProgress}`
-                                                                    : '0',
+                                                            opacity: avatarProgress !== -1 ? `${avatarProgress}` : '0',
                                                         }}
                                                     >
                                                         <div
@@ -831,45 +706,25 @@ const OldHeader: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div
-                                                        className={
-                                                            styles.hoverUpload
-                                                        }
-                                                        onClick={() =>
-                                                            avatarInputRef.current!.showPicker()
-                                                        }
+                                                        className={styles.hoverUpload}
+                                                        onClick={() => avatarInputRef.current!.showPicker()}
                                                     >
                                                         Загрузить аватар
                                                     </div>
                                                     <div className={styles.status}>
-                                                        <div
-                                                            className={styles.dot}
-                                                        ></div>
+                                                        <div className={styles.dot}></div>
                                                     </div>
                                                 </div>
                                                 <div className={styles.user_details}>
-                                                    <div
-                                                        className={styles.user_info}
-                                                    >
+                                                    <div className={styles.user_info}>
                                                         <div
-                                                            onClick={() =>
-                                                                openUserProfile(
-                                                                    user.username,
-                                                                )
-                                                            }
+                                                            onClick={() => openUserProfile(user.username)}
                                                             key={user.username}
-                                                            className={
-                                                                styles.username
-                                                            }
+                                                            className={styles.username}
                                                         >
                                                             {user.nickname}
                                                         </div>
-                                                        <div
-                                                            className={
-                                                                styles.usertag
-                                                            }
-                                                        >
-                                                            @{user.username}
-                                                        </div>
+                                                        <div className={styles.usertag}>@{user.username}</div>
                                                         {/*<div className={styles.status_text}>*/}
                                                         {/*    {renderPlayerStatus()}*/}
                                                         {/*    {playStatus === 'playing' && (*/}
@@ -882,36 +737,21 @@ const OldHeader: React.FC<p> = () => {
                                                     </div>
                                                 </div>
                                             </div>
-                                            <div
-                                                className={styles.user_menu_buttons}
-                                            >
+                                            <div className={styles.user_menu_buttons}>
                                                 <button
-                                                    onClick={() =>
-                                                        openUserProfile(
-                                                            user.username,
-                                                        )
-                                                    }
+                                                    onClick={() => openUserProfile(user.username)}
                                                     key={user.id}
                                                     className={styles.menu_button}
                                                 >
                                                     Мой профиль
                                                 </button>
-                                                <button
-                                                    className={styles.menu_button}
-                                                    disabled
-                                                >
+                                                <button className={styles.menu_button} disabled>
                                                     Друзья
                                                 </button>
-                                                <button
-                                                    className={styles.menu_button}
-                                                    disabled
-                                                >
+                                                <button className={styles.menu_button} disabled>
                                                     Настройки
                                                 </button>
-                                                <button
-                                                    className={styles.menu_button}
-                                                    onClick={logout}
-                                                >
+                                                <button className={styles.menu_button} onClick={logout}>
                                                     Выйти
                                                 </button>
                                             </div>
@@ -938,11 +778,7 @@ const OldHeader: React.FC<p> = () => {
                             <button
                                 id="close"
                                 className={styles.button_title}
-                                onClick={() =>
-                                    window.electron.window.close(
-                                        app.settings.closeAppInTray,
-                                    )
-                                }
+                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
                             >
                                 <Close color="#E4E5EA" />
                             </button>

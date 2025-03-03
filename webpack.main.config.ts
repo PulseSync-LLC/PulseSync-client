@@ -9,13 +9,13 @@ export const mainConfig: Configuration = {
     target: 'electron-main',
     output: {
         path: path.resolve(__dirname, '.webpack', 'main'),
-        filename: (pathData) => {
+        filename: pathData => {
             if (pathData.chunk.name === 'main') {
-                return 'index.js';
+                return 'index.js'
             }
-            return '[name].js';
+            return '[name].js'
         },
-        chunkFilename: '[id].js'
+        chunkFilename: '[id].js',
     },
     module: {
         rules,
@@ -29,17 +29,7 @@ export const mainConfig: Configuration = {
         alias: {
             '@': path.resolve(__dirname, 'static'),
         },
-        extensions: [
-            '.js',
-            '.ts',
-            '.jsx',
-            '.tsx',
-            '.css',
-            '.scss',
-            '.json',
-            '.md',
-            '.svg',
-        ],
+        extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.scss', '.json', '.md', '.svg'],
     },
     externals: {
         electron: 'electron',

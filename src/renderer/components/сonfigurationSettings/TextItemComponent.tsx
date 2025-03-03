@@ -16,17 +16,8 @@ interface TextItemComponentProps {
         key: keyof ButtonAction,
         newValue: string,
     ) => void
-    resetButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => void
-    updateConfigField: (
-        sectionIndex: number,
-        itemIndex: number,
-        key: string,
-        value: any,
-    ) => void
+    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
+    updateConfigField: (sectionIndex: number, itemIndex: number, key: string, value: any) => void
     handleRemoveButton: (buttonIndex: number) => void
 }
 
@@ -67,11 +58,7 @@ const TextItemComponent: React.FC<TextItemComponentProps> = ({
                 />
             ))}
             {editMode && (
-                <button
-                    className={styles.addButton}
-                    onClick={handleAddButton}
-                    title="Добавить текст"
-                >
+                <button className={styles.addButton} onClick={handleAddButton} title="Добавить текст">
                     <MdAdd /> Добавить текст
                 </button>
             )}

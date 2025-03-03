@@ -36,18 +36,10 @@ class ErrorBoundary extends React.Component<
         navigator.clipboard
             .writeText(text)
             .then(() => {
-                toast.custom(
-                    'success',
-                    'Успешно!',
-                    'Содержание ошибки скопировано в буфер обмена',
-                )
+                toast.custom('success', 'Успешно!', 'Содержание ошибки скопировано в буфер обмена')
             })
-            .catch((err) => {
-                toast.custom(
-                    'error',
-                    'Ой...',
-                    'Произошла ошибка при попытке записи в буфер обмена',
-                )
+            .catch(err => {
+                toast.custom('error', 'Ой...', 'Произошла ошибка при попытке записи в буфер обмена')
                 console.error('Failed to copy stack trace: ', err)
             })
     }
@@ -58,14 +50,7 @@ class ErrorBoundary extends React.Component<
                 <div className={styles.errorBoundary}>
                     <h1>Так, погоди-ка... Что-то здесь не так...</h1>
                     <p>{this.state.error?.message || 'An unknown error occurred'}</p>
-                    <pre
-                        onClick={() =>
-                            this.copyToClipboard(
-                                this.state.error?.stack ||
-                                    'No stack trace available',
-                            )
-                        }
-                    >
+                    <pre onClick={() => this.copyToClipboard(this.state.error?.stack || 'No stack trace available')}>
                         {this.state.error?.stack || 'No stack trace available'}
                     </pre>
                 </div>

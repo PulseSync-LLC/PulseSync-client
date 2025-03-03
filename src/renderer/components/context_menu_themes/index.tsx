@@ -19,13 +19,7 @@ interface ContextMenuProps {
     setIsFadingOut: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({
-    items,
-    position,
-    onClose,
-    isFadingOut,
-    setIsFadingOut,
-}) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isFadingOut, setIsFadingOut }) => {
     const menuRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {
@@ -48,7 +42,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             style={{ top: position.y, left: position.x }}
         >
             {items
-                .filter((item) => item.show)
+                .filter(item => item.show)
                 .map((item, index) => (
                     <TooltipButton
                         tooltipText={item.label}

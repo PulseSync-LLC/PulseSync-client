@@ -1,13 +1,7 @@
 // ConfigurationItem.tsx
 
 import React, { useEffect, useRef, useState } from 'react'
-import {
-    MdDelete,
-    MdDragIndicator,
-    MdFolder,
-    MdHelp,
-    MdRestore,
-} from 'react-icons/md'
+import { MdDelete, MdDragIndicator, MdFolder, MdHelp, MdRestore } from 'react-icons/md'
 import * as styles from './ConfigurationItem.module.scss'
 import { ButtonAction, Item, TextItem, isTextItem } from './types'
 import TextItemComponent from './TextItemComponent'
@@ -36,12 +30,7 @@ interface ConfigurationItemProps {
     itemIndex: number
     item: Item
     editMode: boolean
-    updateConfigField: (
-        sectionIndex: number,
-        itemIndex: number,
-        key: string,
-        value: any,
-    ) => void
+    updateConfigField: (sectionIndex: number, itemIndex: number, key: string, value: any) => void
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
@@ -50,11 +39,7 @@ interface ConfigurationItemProps {
         newValue: string,
     ) => void
     resetConfigField: (sectionIndex: number, itemIndex: number) => void
-    resetButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => void
+    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     removeItem: (sectionIndex: number, itemIndex: number) => void
 }
 
@@ -92,7 +77,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             isDifferent =
                 JSON.stringify(item.buttons) !==
                 JSON.stringify(
-                    (item as TextItem).buttons.map((btn) => ({
+                    (item as TextItem).buttons.map(btn => ({
                         ...btn,
                         defaultParameter: btn.defaultParameter || '',
                     })),
@@ -108,8 +93,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             break
         case 'selector': {
             const selectorItem = item as SelectorItem
-            isDifferent =
-                selectorItem.selected !== (selectorItem.defaultParameter ?? '')
+            isDifferent = selectorItem.selected !== (selectorItem.defaultParameter ?? '')
             break
         }
         default:
@@ -117,13 +101,9 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
     }
 
     const [sliderEditMode, setSliderEditMode] = useState(false)
-    const [sliderValue, setSliderValue] = useState(
-        item.type === 'slider' ? (item as SliderItem).value : 0,
-    )
+    const [sliderValue, setSliderValue] = useState(item.type === 'slider' ? (item as SliderItem).value : 0)
     const [colorEditMode, setColorEditMode] = useState(false)
-    const [colorValue, setColorValue] = useState(
-        item.type === 'color' ? (item as ColorItem).input : '#FFFFFF',
-    )
+    const [colorValue, setColorValue] = useState(item.type === 'color' ? (item as ColorItem).input : '#FFFFFF')
 
     useEffect(() => {
         if (item.type === 'slider') {
@@ -145,12 +125,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             if (correctedDefault > sliderItem.max) correctedDefault = sliderItem.max
 
             if (correctedDefault !== sliderItem.defaultParameter) {
-                updateConfigField(
-                    sectionIndex,
-                    itemIndex,
-                    'defaultParameter',
-                    correctedDefault,
-                )
+                updateConfigField(sectionIndex, itemIndex, 'defaultParameter', correctedDefault)
             }
 
             let correctedValue = sliderItem.value
@@ -183,8 +158,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
         }
         if (item.type === 'file') {
             ;(async () => {
-                const filePath =
-                    await window.desktopEvents?.invoke('dialog:openFile')
+                const filePath = await window.desktopEvents?.invoke('dialog:openFile')
                 if (filePath) {
                     updateConfigField(sectionIndex, itemIndex, 'filePath', filePath)
                 }
@@ -206,28 +180,20 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
 
     const handleRemoveButton = (buttonIndex: number) => {
         if (!isTextItem(item)) return
-        const updatedButtons = item.buttons.filter(
-            (_, index) => index !== buttonIndex,
-        )
+        const updatedButtons = item.buttons.filter((_, index) => index !== buttonIndex)
         updateConfigField(sectionIndex, itemIndex, 'buttons', updatedButtons)
     }
 
     return (
         <div
-            className={
-                editMode
-                    ? styles.itemEdit
-                    : `${styles.item} ${styles['item-' + item.type]}`
-            }
+            className={editMode ? styles.itemEdit : `${styles.item} ${styles['item-' + item.type]}`}
             onClick={handleContainerClick}
             onDoubleClick={handleContainerDoubleClick}
         >
             {editMode ? (
                 <>
                     <div className={styles.itemHeaderEdit}>
-                        <span className={styles.itemTypeInfoEdit}>
-                            Тип: {item.type}
-                        </span>
+                        <span className={styles.itemTypeInfoEdit}>Тип: {item.type}</span>
                         <div className={styles.addItemContainerEdit}>
                             <button
                                 className={styles.removeItemButtonEdit}
@@ -249,22 +215,8 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             ref={inputRef}
                             className={styles.inputEdit}
                             value={item.id}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'id',
-                                    e.target.value,
-                                )
-                            }
-                            onBlur={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'id',
-                                    e.target.value,
-                                )
-                            }
+                            onChange={e => updateConfigField(sectionIndex, itemIndex, 'id', e.target.value)}
+                            onBlur={e => updateConfigField(sectionIndex, itemIndex, 'id', e.target.value)}
                             placeholder="Уникальный идентификатор"
                         />
                     </div>
@@ -274,22 +226,8 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             type="text"
                             className={styles.inputEdit}
                             value={item.name}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'name',
-                                    e.target.value,
-                                )
-                            }
-                            onBlur={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'name',
-                                    e.target.value,
-                                )
-                            }
+                            onChange={e => updateConfigField(sectionIndex, itemIndex, 'name', e.target.value)}
+                            onBlur={e => updateConfigField(sectionIndex, itemIndex, 'name', e.target.value)}
                             placeholder="Название элемента"
                         />
                     </div>
@@ -299,22 +237,8 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             type="text"
                             className={styles.inputEdit}
                             value={item.description}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'description',
-                                    e.target.value,
-                                )
-                            }
-                            onBlur={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'description',
-                                    e.target.value,
-                                )
-                            }
+                            onChange={e => updateConfigField(sectionIndex, itemIndex, 'description', e.target.value)}
+                            onBlur={e => updateConfigField(sectionIndex, itemIndex, 'description', e.target.value)}
                             placeholder="Описание элемента"
                         />
                     </div>
@@ -327,11 +251,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             <TooltipButton
                                 className={styles.tip}
                                 side="right"
-                                tooltipText={
-                                    <div className={styles.itemName}>
-                                        {item.description}
-                                    </div>
-                                }
+                                tooltipText={<div className={styles.itemName}>{item.description}</div>}
                             >
                                 <MdHelp size={14} color="white" />
                             </TooltipButton>
@@ -339,11 +259,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                     </div>
                     {/* ---- BUTTON ---- */}
                     {item.type === 'button' && (
-                        <div
-                            className={`${styles.itemValue} ${
-                                item.bool ? styles.btEn : styles.btDieb
-                            }`}
-                        >
+                        <div className={`${styles.itemValue} ${item.bool ? styles.btEn : styles.btDieb}`}>
                             {item.bool ? 'Включено' : 'Выключено'}
                         </div>
                     )}
@@ -355,19 +271,15 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     className={styles.changeInput}
                                     type="number"
                                     value={sliderValue}
-                                    onChange={(e) =>
-                                        setSliderValue(Number(e.target.value))
-                                    }
+                                    onChange={e => setSliderValue(Number(e.target.value))}
                                     onBlur={finishSliderEdit}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                         if (e.key === 'Enter') finishSliderEdit()
                                     }}
                                     autoFocus
                                 />
                             ) : (
-                                <span onDoubleClick={() => setSliderEditMode(true)}>
-                                    {item.value}
-                                </span>
+                                <span onDoubleClick={() => setSliderEditMode(true)}>{item.value}</span>
                             )}
                         </div>
                     )}
@@ -380,11 +292,9 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                         className={styles.changeInput}
                                         type="text"
                                         value={colorValue}
-                                        onChange={(e) =>
-                                            setColorValue(e.target.value)
-                                        }
+                                        onChange={e => setColorValue(e.target.value)}
                                         onBlur={finishColorEdit}
-                                        onKeyDown={(e) => {
+                                        onKeyDown={e => {
                                             if (e.key === 'Enter') finishColorEdit()
                                         }}
                                         autoFocus
@@ -393,26 +303,20 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                         className={styles.changeColorPrewiev}
                                         type="color"
                                         value={colorValue}
-                                        onChange={(e) =>
-                                            setColorValue(e.target.value)
-                                        }
+                                        onChange={e => setColorValue(e.target.value)}
                                         onBlur={finishColorEdit}
-                                        onKeyDown={(e) => {
+                                        onKeyDown={e => {
                                             if (e.key === 'Enter') finishColorEdit()
                                         }}
                                     />
                                 </>
                             ) : (
-                                <span onDoubleClick={() => setColorEditMode(true)}>
-                                    {item.input}
-                                </span>
+                                <span onDoubleClick={() => setColorEditMode(true)}>{item.input}</span>
                             )}
                         </div>
                     )}
                     {/* ---- FILE ---- */}
-                    {item.type === 'file' && (
-                        <div className={styles.itemValue}>Путь: {item.filePath}</div>
-                    )}
+                    {item.type === 'file' && <div className={styles.itemValue}>Путь: {item.filePath}</div>}
                     {/* ---- TEXT ---- */}
                     {isTextItem(item) && (
                         <div className={styles.itemText}>
@@ -437,26 +341,16 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     options={item.options}
                                     value={item.selected}
                                     onChange={(newValue: number) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'selected',
-                                            newValue,
-                                        )
+                                        updateConfigField(sectionIndex, itemIndex, 'selected', newValue)
                                     }
                                 />
                             </div>
                             {isDifferent && (
                                 <button
                                     className={styles.resetButton}
-                                    onClick={(e) => {
+                                    onClick={e => {
                                         e.stopPropagation()
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'selected',
-                                            item.defaultParameter,
-                                        )
+                                        updateConfigField(sectionIndex, itemIndex, 'selected', item.defaultParameter)
                                     }}
                                     title="Сбросить значение"
                                 >
@@ -473,12 +367,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 <div
                     className={styles.buttonContainer}
                     onClick={() =>
-                        updateConfigField(
-                            sectionIndex,
-                            itemIndex,
-                            'defaultParameter',
-                            !item.defaultParameter,
-                        )
+                        updateConfigField(sectionIndex, itemIndex, 'defaultParameter', !item.defaultParameter)
                     }
                 >
                     {editMode ? (
@@ -486,28 +375,20 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить значение"
                                 >
                                     <MdRestore />
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <div className={styles.defaultLabelEdit}>
-                                    Параметр по умолчанию (bool):
-                                </div>
+                                <div className={styles.defaultLabelEdit}>Параметр по умолчанию (bool):</div>
                                 <div
                                     className={`${styles.itemValue} ${
-                                        item.defaultParameter
-                                            ? styles.btEn
-                                            : styles.btDieb
+                                        item.defaultParameter ? styles.btEn : styles.btDieb
                                     }`}
                                 >
-                                    {item.defaultParameter
-                                        ? 'Включено'
-                                        : 'Выключено'}
+                                    {item.defaultParameter ? 'Включено' : 'Выключено'}
                                 </div>
                             </div>
                         </>
@@ -516,9 +397,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {isDifferent && (
                                 <button
                                     className={styles.resetButton}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить значение"
                                 >
                                     <MdRestore />
@@ -537,18 +416,14 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить значение"
                                 >
                                     <MdRestore />
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <div className={styles.defaultLabelEdit}>
-                                    Параметр по умолчанию (цвет):
-                                </div>
+                                <div className={styles.defaultLabelEdit}>Параметр по умолчанию (цвет):</div>
                                 <div
                                     style={{
                                         display: 'flex',
@@ -560,7 +435,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                         type="color"
                                         className={styles.colorInputEdit}
                                         value={item.defaultParameter}
-                                        onChange={(e) =>
+                                        onChange={e =>
                                             updateConfigField(
                                                 sectionIndex,
                                                 itemIndex,
@@ -568,7 +443,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                                 e.target.value,
                                             )
                                         }
-                                        onBlur={(e) =>
+                                        onBlur={e =>
                                             updateConfigField(
                                                 sectionIndex,
                                                 itemIndex,
@@ -582,7 +457,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                         type="text"
                                         className={styles.inputEdit}
                                         value={item.defaultParameter}
-                                        onChange={(e) =>
+                                        onChange={e =>
                                             updateConfigField(
                                                 sectionIndex,
                                                 itemIndex,
@@ -590,7 +465,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                                 e.target.value,
                                             )
                                         }
-                                        onBlur={(e) =>
+                                        onBlur={e =>
                                             updateConfigField(
                                                 sectionIndex,
                                                 itemIndex,
@@ -609,22 +484,13 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 type="color"
                                 className={styles.colorInput}
                                 value={item.input}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'input',
-                                        e.target.value,
-                                    )
-                                }
+                                onChange={e => updateConfigField(sectionIndex, itemIndex, 'input', e.target.value)}
                                 title="Выбрать цвет"
                             />
                             {isDifferent && (
                                 <button
                                     className={styles.resetButton}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить значение"
                                 >
                                     <MdRestore />
@@ -646,16 +512,11 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="number"
                                     className={styles.inputEdit}
                                     value={item.min}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'min',
-                                            Number(e.target.value),
-                                        )
+                                    onChange={e =>
+                                        updateConfigField(sectionIndex, itemIndex, 'min', Number(e.target.value))
                                     }
                                     onBlur={finishSliderCheck}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                         if (e.key === 'Enter') finishSliderCheck()
                                     }}
                                 />
@@ -666,16 +527,11 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="number"
                                     className={styles.inputEdit}
                                     value={item.max}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'max',
-                                            Number(e.target.value),
-                                        )
+                                    onChange={e =>
+                                        updateConfigField(sectionIndex, itemIndex, 'max', Number(e.target.value))
                                     }
                                     onBlur={finishSliderCheck}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                         if (e.key === 'Enter') finishSliderCheck()
                                     }}
                                 />
@@ -686,16 +542,11 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="number"
                                     className={styles.inputEdit}
                                     value={item.step}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'step',
-                                            Number(e.target.value),
-                                        )
+                                    onChange={e =>
+                                        updateConfigField(sectionIndex, itemIndex, 'step', Number(e.target.value))
                                     }
                                     onBlur={finishSliderCheck}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                         if (e.key === 'Enter') finishSliderCheck()
                                     }}
                                 />
@@ -703,23 +554,19 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить значение"
                                 >
                                     <MdRestore />
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <div className={styles.defaultLabelEdit}>
-                                    Параметр по умолчанию (число):
-                                </div>
+                                <div className={styles.defaultLabelEdit}>Параметр по умолчанию (число):</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
                                     value={item.defaultParameter ?? 0}
-                                    onChange={(e) => {
+                                    onChange={e => {
                                         updateConfigField(
                                             sectionIndex,
                                             itemIndex,
@@ -728,7 +575,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                         )
                                     }}
                                     onBlur={finishSliderCheck}
-                                    onKeyDown={(e) => {
+                                    onKeyDown={e => {
                                         if (e.key === 'Enter') finishSliderCheck()
                                     }}
                                 />
@@ -741,21 +588,14 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 max={item.max}
                                 step={item.step}
                                 value={item.value}
-                                onChange={(e) =>
-                                    updateConfigField(
-                                        sectionIndex,
-                                        itemIndex,
-                                        'value',
-                                        Number(e.target.value),
-                                    )
+                                onChange={e =>
+                                    updateConfigField(sectionIndex, itemIndex, 'value', Number(e.target.value))
                                 }
                             />
                             {isDifferent && (
                                 <button
                                     className={styles.resetButton}
-                                    onClick={() =>
-                                        resetConfigField(sectionIndex, itemIndex)
-                                    }
+                                    onClick={() => resetConfigField(sectionIndex, itemIndex)}
                                     title="Сбросить"
                                 >
                                     <MdRestore />
@@ -777,20 +617,15 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="text"
                                     className={styles.inputEdit}
                                     value={item.filePath || ''}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'fileName',
-                                            e.target.value,
-                                        )
+                                    onChange={e =>
+                                        updateConfigField(sectionIndex, itemIndex, 'fileName', e.target.value)
                                     }
                                 />
                             </div>
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
-                                    onClick={(e) => {
+                                    onClick={e => {
                                         e.stopPropagation()
                                         updateConfigField(
                                             sectionIndex,
@@ -805,24 +640,17 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                 </button>
                             )}
                             <div className={styles.defaultParameterContainerEdit}>
-                                <div className={styles.defaultLabelEdit}>
-                                    Значение по умолчанию (объект filePath):
-                                </div>
+                                <div className={styles.defaultLabelEdit}>Значение по умолчанию (объект filePath):</div>
                                 <input
                                     type="text"
                                     className={styles.inputEdit}
                                     placeholder="Путь по умолчанию"
                                     value={item.defaultParameter?.filePath ?? ''}
-                                    onChange={(e) =>
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'defaultParameter',
-                                            {
-                                                ...(item.defaultParameter || {}),
-                                                filePath: e.target.value,
-                                            },
-                                        )
+                                    onChange={e =>
+                                        updateConfigField(sectionIndex, itemIndex, 'defaultParameter', {
+                                            ...(item.defaultParameter || {}),
+                                            filePath: e.target.value,
+                                        })
                                     }
                                 />
                             </div>
@@ -833,7 +661,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                             {isDifferent && (
                                 <button
                                     className={styles.resetButton}
-                                    onClick={(e) => {
+                                    onClick={e => {
                                         e.stopPropagation()
                                         updateConfigField(
                                             sectionIndex,
@@ -864,18 +692,13 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="text"
                                     className={styles.inputEdit}
                                     value={option.event}
-                                    onChange={(e) => {
+                                    onChange={e => {
                                         const newOptions = { ...item.options }
                                         newOptions[key] = {
                                             ...option,
                                             event: e.target.value,
                                         }
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'options',
-                                            newOptions,
-                                        )
+                                        updateConfigField(sectionIndex, itemIndex, 'options', newOptions)
                                     }}
                                     placeholder="event"
                                 />
@@ -883,18 +706,13 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     type="text"
                                     className={styles.inputEdit}
                                     value={option.name}
-                                    onChange={(e) => {
+                                    onChange={e => {
                                         const newOptions = { ...item.options }
                                         newOptions[key] = {
                                             ...option,
                                             name: e.target.value,
                                         }
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'options',
-                                            newOptions,
-                                        )
+                                        updateConfigField(sectionIndex, itemIndex, 'options', newOptions)
                                     }}
                                     placeholder="name"
                                 />
@@ -903,12 +721,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     onClick={() => {
                                         const newOptions = { ...item.options }
                                         delete newOptions[key]
-                                        updateConfigField(
-                                            sectionIndex,
-                                            itemIndex,
-                                            'options',
-                                            newOptions,
-                                        )
+                                        updateConfigField(sectionIndex, itemIndex, 'options', newOptions)
                                     }}
                                     title="Удалить опцию"
                                 >
@@ -928,12 +741,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     name: `Option ${newKey}`,
                                 },
                             }
-                            updateConfigField(
-                                sectionIndex,
-                                itemIndex,
-                                'options',
-                                newOptions,
-                            )
+                            updateConfigField(sectionIndex, itemIndex, 'options', newOptions)
                         }}
                     >
                         Добавить опцию
@@ -950,20 +758,13 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                     )}
 
                     <div className={styles.defaultParameterContainerEdit}>
-                        <div className={styles.defaultLabelEdit}>
-                            Параметр по умолчанию (число):
-                        </div>
+                        <div className={styles.defaultLabelEdit}>Параметр по умолчанию (число):</div>
                         <input
                             type="number"
                             className={styles.inputEdit}
                             value={item.defaultParameter ?? ''}
-                            onChange={(e) =>
-                                updateConfigField(
-                                    sectionIndex,
-                                    itemIndex,
-                                    'defaultParameter',
-                                    Number(e.target.value),
-                                )
+                            onChange={e =>
+                                updateConfigField(sectionIndex, itemIndex, 'defaultParameter', Number(e.target.value))
                             }
                         />
                     </div>

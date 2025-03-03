@@ -24,12 +24,7 @@ const Button: React.FC<ButtonProps> = ({
     }
 
     return (
-        <button
-            style={style}
-            className={`${className ? className : styles.button}`}
-            onClick={handleClick}
-            {...rest}
-        >
+        <button style={style} className={`${className ? className : styles.button}`} onClick={handleClick} {...rest}>
             {children}
         </button>
     )

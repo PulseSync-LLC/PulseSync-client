@@ -10,33 +10,31 @@ import path from 'path'
 import fs from 'fs'
 import * as Sentry from '@sentry/electron/main'
 import { store } from './storage'
+import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 export const isFirstInstance = app.requestSingleInstanceLock()
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance')
     if (isFirstInstance) {
         const [window] = BrowserWindow.getAllWindows()
-        app.on(
-            'second-instance',
-            async (event: Electron.Event, commandLine: string[]) => {
-                if (window) {
-                    if (window.isMinimized()) {
-                        window.restore()
-                        logger.main.info('Restore window')
-                    }
-                    const lastCommandLineArg = commandLine.pop()
-                    if (lastCommandLineArg) {
-                        if (checkIsDeeplink(lastCommandLineArg)) {
-                            navigateToDeeplink(window, lastCommandLineArg)
-                        } else if (lastCommandLineArg.endsWith('.pext')) {
-                            await handlePextFile(lastCommandLineArg)
-                        }
-                    }
-                    toggleWindowVisibility(window, true)
-                    logger.main.info('Show window')
+        app.on('second-instance', async (event: Electron.Event, commandLine: string[]) => {
+            if (window) {
+                if (window.isMinimized()) {
+                    window.restore()
+                    logger.main.info('Restore window')
                 }
-            },
-        )
+                const lastCommandLineArg = commandLine.pop()
+                if (lastCommandLineArg) {
+                    if (checkIsDeeplink(lastCommandLineArg)) {
+                        navigateToDeeplink(window, lastCommandLineArg)
+                    } else if (lastCommandLineArg.endsWith('.pext')) {
+                        await handlePextFile(lastCommandLineArg)
+                    }
+                }
+                toggleWindowVisibility(window, true)
+                logger.main.info('Show window')
+            }
+        })
         await prestartCheck()
         handleUncaughtException()
     } else {
@@ -80,10 +78,10 @@ async function handlePextFile(filePath: string) {
 
     logger.main.info(`Extension exported successfully to ${outputDir}`)
     if (store.get('settings.deletePextAfterImport')) {
-        fs.rm(filePath, (err) => {
+        fs.rm(filePath, err => {
             if (err) {
                 logger.main.error('Error in handlePextFile: ' + err.message)
-                Sentry.captureException(err)
+                HandleErrorsElectron.handleError('singleInstance', 'handlePextFile', 'handlePextFile', err)
             }
         })
     }

@@ -75,13 +75,7 @@ export interface SelectorItem extends ItemBase {
 }
 
 // ------------ Union всех Item ------------
-export type Item =
-    | ButtonItem
-    | ColorItem
-    | TextItem
-    | SliderItem
-    | FileItem
-    | SelectorItem
+export type Item = ButtonItem | ColorItem | TextItem | SliderItem | FileItem | SelectorItem
 
 // ------------ Помощники для определения типа ------------
 export function isTextItem(item: Item): item is TextItem {

@@ -77,10 +77,7 @@ export default function AuthPage() {
         }
 
         const handleKeyDown = (event: KeyboardEvent) => {
-            if (
-                (event.ctrlKey && event.code === 'KeyR') ||
-                event.key.toLowerCase() === 'f5'
-            ) {
+            if ((event.ctrlKey && event.code === 'KeyR') || event.key.toLowerCase() === 'f5') {
                 event.preventDefault()
             }
         }
@@ -110,12 +107,7 @@ export default function AuthPage() {
                     src="./static/assets/images/ThorusKnot.png"
                     alt="Thorus Knot"
                 />
-                <img
-                    ref={img3Ref}
-                    className={pageStyles.img3}
-                    src="./static/assets/images/Pyramid.png"
-                    alt="Pyramid"
-                />
+                <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/Pyramid.png" alt="Pyramid" />
                 <img
                     ref={img4Ref}
                     className={pageStyles.img4}
@@ -130,27 +122,18 @@ export default function AuthPage() {
                     </div>
                     {isDeprecated ? (
                         <>
-                            <button
-                                className={pageStyles.discordAuth}
-                                onClick={checkUpdate}
-                            >
+                            <button className={pageStyles.discordAuth} onClick={checkUpdate}>
                                 Проверить обновления
                             </button>
-                            <span className={pageStyles.terms}>
-                                Приложение устарело и требует обновления 😡😡😡
-                            </span>
+                            <span className={pageStyles.terms}>Приложение устарело и требует обновления 😡😡😡</span>
                         </>
                     ) : (
                         <>
-                            <button
-                                className={pageStyles.discordAuth}
-                                onClick={startAuthProcess}
-                            >
+                            <button className={pageStyles.discordAuth} onClick={startAuthProcess}>
                                 Авторизация через Discord
                             </button>
                             <span className={pageStyles.terms}>
-                                Нажимая на “Авторизация через Discord”, вы
-                                соглашаетесь с <br />
+                                Нажимая на “Авторизация через Discord”, вы соглашаетесь с <br />
                                 <a
                                     onClick={async () => {
                                         await readAndSendFile()

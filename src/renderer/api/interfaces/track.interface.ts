@@ -19,30 +19,30 @@ export interface Progress {
 }
 interface CurrentDevice {
     info: {
-        device_id: string;
-        title: string;
-        type: string;
-        app_name: string;
-        app_version: string;
-    };
-    volume: number;
+        device_id: string
+        title: string
+        type: string
+        app_name: string
+        app_version: string
+    }
+    volume: number
     capabilities: {
-        can_be_player: boolean;
-        can_be_remote_controller: boolean;
-        volume_granularity: number;
-    };
+        can_be_player: boolean
+        can_be_remote_controller: boolean
+        volume_granularity: number
+    }
     session: {
-        id: string;
-    };
-    is_offline: boolean;
+        id: string
+    }
+    is_offline: boolean
     volume_info: {
-        volume: number;
+        volume: number
         version: {
-            device_id: string;
-            version: string;
-            timestamp_ms: string;
-        };
-    };
+            device_id: string
+            version: string
+            timestamp_ms: string
+        }
+    }
 }
 export interface Track {
     currentDevice: CurrentDevice

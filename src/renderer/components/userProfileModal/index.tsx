@@ -21,11 +21,7 @@ interface UserProfileModalProps {
     username: string
 }
 
-const UserProfileModal: React.FC<UserProfileModalProps> = ({
-    isOpen,
-    onClose,
-    username,
-}) => {
+const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, username }) => {
     const [userProfile, setUserProfile] = useState<ExtendedUser>(userInitials)
     const [loading, setLoading] = useState<boolean>(false)
     const [error, setError] = useState<any>(null)
@@ -33,9 +29,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
     const [shouldRender, setShouldRender] = useState(isOpen)
     const [animationClass, setAnimationClass] = useState(styles.closed)
 
-    const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>(
-        'profile',
-    )
+    const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
     useEffect(() => {
         if (isOpen) {
@@ -76,18 +70,17 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
                 },
                 fetchPolicy: 'no-cache',
             })
-            .then((res) => {
+            .then(res => {
                 if (!res.data.findUserByName) {
                     setError('Пользователь не найден')
                 } else {
                     setUserProfile({
                         ...res.data.findUserByName,
-                        allAchievements:
-                            res.data.getAchievements?.achievements || [],
+                        allAchievements: res.data.getAchievements?.achievements || [],
                     })
                 }
             })
-            .catch((err) => setError(err))
+            .catch(err => setError(err))
             .finally(() => {
                 setTimeout(() => {
                     setLoading(false)
@@ -131,10 +124,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
     return (
         <div className={`${styles.overlay} ${animationClass}`} onClick={onClose}>
-            <div
-                className={`${styles.modalContainer} ${animationClass}`}
-                onClick={(e) => e.stopPropagation()}
-            >
+            <div className={`${styles.modalContainer} ${animationClass}`} onClick={e => e.stopPropagation()}>
                 <div className={styles.currentTabLabel}>{renderTabTitle()}</div>
 
                 {/* <div className={styles.tabsHeader}>
@@ -160,28 +150,15 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({
 
                 <div className={styles.modalContent}>
                     {activeTab === 'profile' && (
-                        <ProfileTab
-                            userProfile={userProfile}
-                            loading={loading}
-                            error={error}
-                            username={username}
-                        />
+                        <ProfileTab userProfile={userProfile} loading={loading} error={error} username={username} />
                     )}
 
                     {activeTab === 'friends' && (
-                        <FriendsTab
-                            userProfile={userProfile}
-                            loading={loading}
-                            error={error}
-                        />
+                        <FriendsTab userProfile={userProfile} loading={loading} error={error} />
                     )}
 
                     {activeTab === 'settings' && (
-                        <SettingsTab
-                            userProfile={userProfile}
-                            loading={loading}
-                            error={error}
-                        />
+                        <SettingsTab userProfile={userProfile} loading={loading} error={error} />
                     )}
                 </div>
             </div>

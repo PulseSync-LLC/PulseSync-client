@@ -47,7 +47,7 @@ function handleRpcError(e: Error): string {
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
-        client.user?.setActivity(activity).catch((e) => {
+        client.user?.setActivity(activity).catch(e => {
             const msg = handleRpcError(e)
             logger.debug.error(e.message, msg)
             mainWindow.webContents.send('rpc-log', {
@@ -74,7 +74,7 @@ function updateAppId(newAppId: string) {
         .then(() => {
             rpc_connect()
         })
-        .catch((e) => {
+        .catch(e => {
             const msg = handleRpcError(e)
             logger.discordRpc.error(e.message, msg)
         })
@@ -86,11 +86,9 @@ ipcMain.on('discordrpc-clearstate', () => {
 
 async function rpc_connect() {
     if (client) {
-        client.destroy().catch((e) => {
+        client.destroy().catch(e => {
             const msg = handleRpcError(e)
-            logger.discordRpc.error(
-                'Ошибка уничтожения клиента перед созданием нового: ' + msg,
-            )
+            logger.discordRpc.error('Ошибка уничтожения клиента перед созданием нового: ' + msg)
             mainWindow.webContents.send('rpc-log', {
                 message: 'Ошибка удаления активности',
                 type: 'error',
@@ -107,7 +105,7 @@ async function rpc_connect() {
         transport: { type: 'ipc' },
     })
 
-    client.login().catch((e) => {
+    client.login().catch(e => {
         const msg = handleRpcError(e)
         logger.debug.error(e.message, msg)
         mainWindow.webContents.send('rpc-log', {
@@ -135,7 +133,7 @@ async function rpc_connect() {
         })
     })
 
-    client.on('error', (e) => {
+    client.on('error', e => {
         rpcConnected = false
         const msg = handleRpcError(e)
         logger.discordRpc.error('discordRpc state: error - ' + msg)
@@ -164,7 +162,7 @@ export const setRpcStatus = (status: boolean) => {
         rpc_connect()
     } else {
         client.removeAllListeners()
-        client.destroy().catch((e) => {
+        client.destroy().catch(e => {
             const msg = handleRpcError(e)
             mainWindow.webContents.send('rpc-log', {
                 message: msg || 'Ошибка обновления клиента',

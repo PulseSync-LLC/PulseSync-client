@@ -28,9 +28,7 @@ export const createContextMenuActions = (
     currentAddon: AddonInterface,
 ): MenuItem[] => [
     {
-        label: checkedState
-            ? `Выключить ${currentAddon.name}`
-            : `Включить ${currentAddon.name}`,
+        label: checkedState ? `Выключить ${currentAddon.name}` : `Включить ${currentAddon.name}`,
         onClick: () => {
             if (handleToggleCheck) {
                 handleToggleCheck(currentAddon.name, !checkedState)
@@ -57,12 +55,12 @@ export const createContextMenuActions = (
                     path: currentAddon.path,
                     name: currentAddon.name,
                 })
-                .then((result) => {
+                .then(result => {
                     if (result) {
                         toast.custom('success', `Готово`, 'Успешный экспорт')
                     }
                 })
-                .catch((error) => {
+                .catch(error => {
                     console.error(error)
                 })
         },
@@ -96,15 +94,10 @@ export const createContextMenuActions = (
                     .invoke('deleteAddonDirectory', themeDirPath)
                     .then(() => {
                         window.refreshAddons()
-                        console.log(
-                            `Тема "${currentAddon.name}" и связанные файлы удалены.`,
-                        )
+                        console.log(`Тема "${currentAddon.name}" и связанные файлы удалены.`)
                     })
-                    .catch((error) => {
-                        console.error(
-                            `Ошибка при удалении темы "${currentAddon.name}":`,
-                            error,
-                        )
+                    .catch(error => {
+                        console.error(`Ошибка при удалении темы "${currentAddon.name}":`, error)
                     })
             }
         },

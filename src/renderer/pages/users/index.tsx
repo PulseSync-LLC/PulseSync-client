@@ -76,36 +76,24 @@ export default function UsersPage() {
                     variables: { perPage, page, sorting, search },
                     fetchPolicy: 'no-cache',
                 })
-                .then((result) => {
+                .then(result => {
                     if (result.data) {
                         const data = result.data.getUsersWithPagination
                         let filteredUsers = data.users.filter(
-                            (user: UserInterface) =>
-                                user.lastOnline && Number(user.lastOnline) > 0,
+                            (user: UserInterface) => user.lastOnline && Number(user.lastOnline) > 0,
                         )
 
                         if (sorting[0].id === 'lastOnline') {
                             const sortDirection = sorting[0].desc ? 'desc' : 'asc'
 
-                            const onlineUsers = filteredUsers.filter(
-                                (user: UserInterface) => user.status === 'online',
-                            )
-                            const offlineUsers = filteredUsers.filter(
-                                (user: UserInterface) => user.status !== 'online',
-                            )
+                            const onlineUsers = filteredUsers.filter((user: UserInterface) => user.status === 'online')
+                            const offlineUsers = filteredUsers.filter((user: UserInterface) => user.status !== 'online')
 
-                            const sortFunction = (
-                                a: UserInterface,
-                                b: UserInterface,
-                            ) => {
+                            const sortFunction = (a: UserInterface, b: UserInterface) => {
                                 if (sortDirection === 'desc') {
-                                    return (
-                                        Number(b.lastOnline) - Number(a.lastOnline)
-                                    )
+                                    return Number(b.lastOnline) - Number(a.lastOnline)
                                 } else {
-                                    return (
-                                        Number(a.lastOnline) - Number(b.lastOnline)
-                                    )
+                                    return Number(a.lastOnline) - Number(b.lastOnline)
                                 }
                             }
 
@@ -125,13 +113,9 @@ export default function UsersPage() {
                     }
                     setLoading(false)
                 })
-                .catch((e) => {
+                .catch(e => {
                     console.error(e)
-                    toast.custom(
-                        'error',
-                        'Ошибка',
-                        'Произошла ошибка при получении пользователей!',
-                    )
+                    toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
                     setLoading(false)
                 })
         }, 300),
@@ -150,7 +134,7 @@ export default function UsersPage() {
 
     const handleSort = (field: string) => {
         setPage(1)
-        setSorting((prevSorting) => {
+        setSorting(prevSorting => {
             if (prevSorting.length > 0 && prevSorting[0].id === field) {
                 return [{ id: field, desc: !prevSorting[0].desc }]
             } else {
@@ -168,8 +152,7 @@ export default function UsersPage() {
         )
     }
 
-    const isFieldSorted = (field: string) =>
-        sorting.length > 0 && sorting[0].id === field
+    const isFieldSorted = (field: string) => sorting.length > 0 && sorting[0].id === field
 
     const renderPagination = () => {
         const pages = []
@@ -205,27 +188,17 @@ export default function UsersPage() {
                 </Button>
                 {startPage > 1 && (
                     <>
-                        <Button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(1)}
-                        >
+                        <Button className={styles.paginationButton} onClick={() => handlePageChange(1)}>
                             1
                         </Button>
-                        {startPage > 2 && (
-                            <span className={styles.ellipsis}>...</span>
-                        )}
+                        {startPage > 2 && <span className={styles.ellipsis}>...</span>}
                     </>
                 )}
                 {pages}
                 {endPage < maxPages && (
                     <>
-                        {endPage < maxPages - 1 && (
-                            <span className={styles.ellipsis}>...</span>
-                        )}
-                        <Button
-                            className={styles.paginationButton}
-                            onClick={() => handlePageChange(maxPages)}
-                        >
+                        {endPage < maxPages - 1 && <span className={styles.ellipsis}>...</span>}
+                        <Button className={styles.paginationButton} onClick={() => handlePageChange(maxPages)}>
                             {maxPages}
                         </Button>
                     </>
@@ -242,7 +215,7 @@ export default function UsersPage() {
     }
 
     useEffect(() => {
-        const usersWithBanner = users.filter((user) => user.bannerHash)
+        const usersWithBanner = users.filter(user => user.bannerHash)
         const checkBannerAvailability = (userList: UserInterface[], index = 0) => {
             if (index >= userList.length) {
                 setBackgroundStyle(defaultBackground)
@@ -288,15 +261,10 @@ export default function UsersPage() {
                 <div className={globalStyles.container}>
                     <div className={globalStyles.main_container}>
                         <div className={globalStyles.container0x0}>
-                            <div
-                                style={backgroundStyle}
-                                className={styles.previewImage}
-                            ></div>
+                            <div style={backgroundStyle} className={styles.previewImage}></div>
                             <div className={styles.searchContainer}>
                                 <div className={styles.BoxContainer}>
-                                    <div className={styles.titlePage}>
-                                        Пользователи
-                                    </div>
+                                    <div className={styles.titlePage}>Пользователи</div>
                                     <div className={styles.searchBoxContainer}>
                                         <SearchImg />
                                         <input
@@ -304,7 +272,7 @@ export default function UsersPage() {
                                             type="text"
                                             placeholder="Поиск..."
                                             value={search}
-                                            onChange={(e) => {
+                                            onChange={e => {
                                                 setSearch(e.target.value)
                                                 setPage(1)
                                             }}
@@ -312,30 +280,25 @@ export default function UsersPage() {
                                     </div>
                                 </div>
                             </div>
-                            <div
-                                className={`${styles.userNav} ${isSticky ? styles.sticky : ''}`}
-                            >
+                            <div className={`${styles.userNav} ${isSticky ? styles.sticky : ''}`}>
                                 <div className={styles.userNavContainer}>
                                     <Button
                                         className={`${styles.userNavButton} ${isFieldSorted('lastOnline') ? styles.activeSort : ''}`}
                                         onClick={() => handleSort('lastOnline')}
                                     >
-                                        <MdAccessTime /> Последняя активность{' '}
-                                        {getSortIcon('lastOnline')}
+                                        <MdAccessTime /> Последняя активность {getSortIcon('lastOnline')}
                                     </Button>
                                     <Button
                                         className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
                                         onClick={() => handleSort('createdAt')}
                                     >
-                                        <MdHourglassEmpty /> Дата регистрации{' '}
-                                        {getSortIcon('createdAt')}
+                                        <MdHourglassEmpty /> Дата регистрации {getSortIcon('createdAt')}
                                     </Button>
                                     <Button
                                         className={`${styles.userNavButton} ${isFieldSorted('username') ? styles.activeSort : ''}`}
                                         onClick={() => handleSort('username')}
                                     >
-                                        <MdAllOut /> Имя пользователя{' '}
-                                        {getSortIcon('username')}
+                                        <MdAllOut /> Имя пользователя {getSortIcon('username')}
                                     </Button>
                                 </div>
                                 {users.length > 0 && renderPagination()}
@@ -372,17 +335,11 @@ export default function UsersPage() {
                                         {users.length > 0 ? (
                                             <div className={styles.userGrid}>
                                                 {users.map((user: UserInterface) => (
-                                                    <UserCard
-                                                        key={user.id}
-                                                        user={user}
-                                                        onClick={openUserProfile}
-                                                    />
+                                                    <UserCard key={user.id} user={user} onClick={openUserProfile} />
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className={styles.noResults}>
-                                                Нет результатов
-                                            </div>
+                                            <div className={styles.noResults}>Нет результатов</div>
                                         )}
                                     </div>
                                 )}

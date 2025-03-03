@@ -24,7 +24,7 @@ const startWebSocketServer = () => {
     if (!isFirstInstance) return
 
     if (ws) {
-        ws.clients.forEach((client) => client.close())
+        ws.clients.forEach(client => client.close())
         ws.close()
         logger.http.log('Existing WebSocket server closed.')
     }
@@ -42,7 +42,7 @@ const startWebSocketServer = () => {
 const stopWebSocketServer = () => {
     try {
         if (ws) {
-            ws.clients.forEach((client) => client.close())
+            ws.clients.forEach(client => client.close())
             ws.close()
             logger.http.log('WebSocket server stopped.')
             ws = null
@@ -63,13 +63,11 @@ const initializeServer = () => {
     server = http.createServer()
     ws = new WebSocketServer({ server })
 
-    ws.on('connection', (socket) => {
+    ws.on('connection', socket => {
         if (!authorized) return socket.close()
         logger.http.log('New client connected')
 
-        socket.send(
-            JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }),
-        )
+        socket.send(JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }))
         sendAddon(true, true)
         socket.send(
             JSON.stringify({
@@ -110,7 +108,7 @@ const initializeServer = () => {
         })
     })
 
-    ws.on('error', (error) => {
+    ws.on('error', error => {
         if (error.message.includes('unexpected response')) {
             logger.http.error('Unexpected WebSocket server response:', error)
         }
@@ -157,10 +155,7 @@ const initializeServer = () => {
         if (error.code === 'EADDRINUSE') {
             logger.http.error(`Port ${config.PORT} is already in use.`)
             if (attempt > 5) {
-                dialog.showErrorBox(
-                    'Ошибка',
-                    `Не удалось запустить вебсокет сервер. Порт ${config.PORT} занят.`,
-                )
+                dialog.showErrorBox('Ошибка', `Не удалось запустить вебсокет сервер. Порт ${config.PORT} занят.`)
                 return app.quit()
             }
             attempt++
@@ -168,9 +163,7 @@ const initializeServer = () => {
                 server.close()
                 server.listen(config.PORT, () => {
                     attempt = 0
-                    logger.http.log(
-                        `WebSocket server restarted on port ${config.PORT}`,
-                    )
+                    logger.http.log(`WebSocket server restarted on port ${config.PORT}`)
                 })
             }, 1000)
         } else {
@@ -191,19 +184,14 @@ ipcMain.on('WEBSOCKET_STOP', async (event, _) => {
 })
 
 ipcMain.on('WEBSOCKET_RESTART', async (event, _) => {
-    logger.http.log(
-        'Received WEBSOCKET_RESTART event. Restarting WebSocket server...',
-    )
+    logger.http.log('Received WEBSOCKET_RESTART event. Restarting WebSocket server...')
     stopWebSocketServer()
     setTimeout(() => {
         startWebSocketServer()
     }, 1500)
 })
 
-const handleGetHandleRequest = (
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-) => {
+const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const urlObj = parse(req.url!, true)
         const name = urlObj.query.name as string
@@ -212,18 +200,10 @@ const handleGetHandleRequest = (
             res.end(JSON.stringify({ error: 'Handle events data not found' }))
             return
         }
-        const handleEventsPath = path.join(
-            app.getPath('appData'),
-            'PulseSync',
-            'addons',
-            name,
-            'handleEvents.json',
-        )
+        const handleEventsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons', name, 'handleEvents.json')
 
         if (fs.existsSync(handleEventsPath)) {
-            const handleEventsData = JSON.parse(
-                fs.readFileSync(handleEventsPath, 'utf8'),
-            )
+            const handleEventsData = JSON.parse(fs.readFileSync(handleEventsPath, 'utf8'))
 
             res.writeHead(200, { 'Content-Type': 'application/json' })
             res.end(JSON.stringify({ ok: true, data: handleEventsData }))
@@ -238,10 +218,7 @@ const handleGetHandleRequest = (
     }
 }
 
-const handleGetAssetsRequest = (
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-) => {
+const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
         const themePath = path.join(themesPath, selectedAddon)
@@ -270,10 +247,7 @@ const handleGetAssetsRequest = (
     }
 }
 
-const handleGetAssetFileRequest = (
-    req: http.IncomingMessage,
-    res: http.ServerResponse,
-) => {
+const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
         const themePath = path.join(themesPath, selectedAddon)
@@ -311,7 +285,7 @@ const getFilesInDirectory = (dirPath: string): { [key: string]: string } => {
     let results: { [key: string]: string } = {}
     const list = fs.readdirSync(dirPath)
 
-    list.forEach((file) => {
+    list.forEach(file => {
         const filePath = path.join(dirPath, file)
         const stat = fs.statSync(filePath)
 
@@ -326,10 +300,7 @@ const getFilesInDirectory = (dirPath: string): { [key: string]: string } => {
     return results
 }
 
-const getFilePathInAssets = (
-    filename: string,
-    assetsPath: string,
-): string | null => {
+const getFilePathInAssets = (filename: string, assetsPath: string): string | null => {
     const filePath = findFileInDirectory(filename, assetsPath)
     logger.http.log('File Path:', filePath)
     return filePath
@@ -392,14 +363,10 @@ export const setAddon = (theme: string) => {
         css: cssContent || '{}',
         script: jsContent || '',
     }
-    if (
-        (!metadata.type ||
-            (metadata.type !== 'theme' && metadata.type !== 'script')) &&
-        metadata.name !== 'Default'
-    ) {
+    if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
         return
     }
-    const waitForSocket = new Promise<void>((resolve) => {
+    const waitForSocket = new Promise<void>(resolve => {
         const interval = setInterval(() => {
             if (ws && ws.clients && ws.clients.size > 0) {
                 clearInterval(interval)
@@ -409,7 +376,7 @@ export const setAddon = (theme: string) => {
     })
 
     waitForSocket.then(() => {
-        ws.clients.forEach((x) =>
+        ws.clients.forEach(x =>
             x.send(
                 JSON.stringify({
                     ok: true,
@@ -423,10 +390,7 @@ export const setAddon = (theme: string) => {
 
 export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-    const themePath = path.join(
-        themesPath,
-        themeDef ? 'Default' : store.get('addons.theme') || 'Default',
-    )
+    const themePath = path.join(themesPath, themeDef ? 'Default' : store.get('addons.theme') || 'Default')
     const metadataPath = path.join(themePath, 'metadata.json')
 
     if (!fs.existsSync(metadataPath)) {
@@ -453,16 +417,12 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
         css: cssContent || '{}',
         script: jsContent || '',
     }
-    if (
-        (!metadata.type ||
-            (metadata.type !== 'theme' && metadata.type !== 'script')) &&
-        !themeDef
-    ) {
+    if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && !themeDef) {
         return
     }
     if (!ws) return
     if (!withJs) {
-        ws.clients.forEach((x) =>
+        ws.clients.forEach(x =>
             x.send(
                 JSON.stringify({
                     ok: true,
@@ -472,7 +432,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
             ),
         )
     } else {
-        ws.clients.forEach((x) =>
+        ws.clients.forEach(x =>
             x.send(
                 JSON.stringify({
                     ok: true,
@@ -487,7 +447,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
 ipcMain.on('GET_TRACK_INFO', async (event, _) => {
     logger.http.log('Returning current track data')
     if (!ws) return
-    ws.clients.forEach((x) =>
+    ws.clients.forEach(x =>
         x.send(
             JSON.stringify({
                 ok: true,
@@ -506,39 +466,29 @@ const sendExtensions = async () => {
     const addonsFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     const addonsRead = fs.readdirSync(addonsFolderPath)
 
-    const filteredAddons = addonsRead.filter((addon) => scripts.includes(addon))
+    const filteredAddons = addonsRead.filter(addon => scripts.includes(addon))
 
     const extensionsData = await Promise.all(
-        filteredAddons.map(async (addon) => {
+        filteredAddons.map(async addon => {
             const addonPath = path.join(addonsFolderPath, addon)
             const metadataPath = path.join(addonPath, 'metadata.json')
 
             if (fs.existsSync(metadataPath)) {
                 try {
-                    const metadata = JSON.parse(
-                        fs.readFileSync(metadataPath, 'utf-8'),
-                    )
+                    const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
 
                     if (
-                        (!metadata.type ||
-                            (metadata.type !== 'theme' &&
-                                metadata.type !== 'script')) &&
+                        (!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) &&
                         addon !== 'Default'
                     ) {
                         return null
                     }
 
                     const cssContent = metadata.css
-                        ? fs.readFileSync(
-                              path.join(addonPath, metadata.css),
-                              'utf-8',
-                          )
+                        ? fs.readFileSync(path.join(addonPath, metadata.css), 'utf-8')
                         : null
                     const scriptContent = metadata.script
-                        ? fs.readFileSync(
-                              path.join(addonPath, metadata.script),
-                              'utf-8',
-                          )
+                        ? fs.readFileSync(path.join(addonPath, metadata.script), 'utf-8')
                         : null
 
                     return {
@@ -547,9 +497,7 @@ const sendExtensions = async () => {
                         script: scriptContent,
                     }
                 } catch (err) {
-                    logger.http.log(
-                        `Error reading metadata.json for ${addon}: ${err.message}`,
-                    )
+                    logger.http.log(`Error reading metadata.json for ${addon}: ${err.message}`)
                     return null
                 }
             }
@@ -557,9 +505,9 @@ const sendExtensions = async () => {
         }),
     )
 
-    const validExtensions = extensionsData.filter((item) => item !== null)
+    const validExtensions = extensionsData.filter(item => item !== null)
 
-    ws.clients.forEach((x) =>
+    ws.clients.forEach(x =>
         x.send(
             JSON.stringify({
                 ok: true,

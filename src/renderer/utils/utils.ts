@@ -53,13 +53,7 @@ export const timeAgo = (timestamp: number) => {
     const months = Math.floor(days / 30)
     const years = Math.floor(days / 365)
 
-    const pluralize = (
-        number: number,
-        singular: string,
-        few: string,
-        many: string,
-        singularAccusative?: string,
-    ) => {
+    const pluralize = (number: number, singular: string, few: string, many: string, singularAccusative?: string) => {
         const mod10 = number % 10
         const mod100 = number % 100
 
@@ -73,9 +67,7 @@ export const timeAgo = (timestamp: number) => {
     }
 
     if (seconds < 60) {
-        return (
-            pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
-        )
+        return pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
     } else if (minutes < 60) {
         return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад'
     } else if (hours < 24) {

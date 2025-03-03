@@ -8,11 +8,7 @@ interface SettingsTabProps {
     error: any
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({
-    userProfile,
-    loading,
-    error,
-}) => {
+const SettingsTab: React.FC<SettingsTabProps> = ({ userProfile, loading, error }) => {
     if (loading) {
         return (
             <div className={styles.loadingContainer}>

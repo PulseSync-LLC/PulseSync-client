@@ -33,11 +33,7 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 import Preloader from '../components/preloader'
 import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
-import {
-    checkInternetAccess,
-    compareVersions,
-    notifyUserRetries,
-} from '../utils/utils'
+import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
 import AddonInterface from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
@@ -155,11 +151,7 @@ function App() {
                         retryCount--
                         return false
                     } else {
-                        toast.custom(
-                            'error',
-                            'Отдохни чуток:)',
-                            'Превышено количество попыток подключения.',
-                        )
+                        toast.custom('error', 'Отдохни чуток:)', 'Превышено количество попыток подключения.')
                         window.desktopEvents?.send('authStatus', {
                             status: false,
                         })
@@ -194,7 +186,7 @@ function App() {
                                 id: data.getMe.id,
                                 username: data.getMe.username,
                                 email: data.getMe.email,
-                            }
+                            },
                         })
                         return true
                     } else {
@@ -202,9 +194,7 @@ function App() {
                         window.electron.store.delete('tokens.token')
                         await router.navigate('/', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify(
-                            'Не удалось получить данные пользователя. Пожалуйста, войдите снова.',
-                        )
+                        sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
                         window.desktopEvents?.send('authStatus', {
                             status: false,
                         })
@@ -217,38 +207,28 @@ function App() {
                             retryCount--
                             return false
                         } else {
-                            toast.custom(
-                                'error',
-                                'Пинг-понг',
-                                'Сервер недоступен. Попробуйте позже.',
-                            )
+                            toast.custom('error', 'Пинг-понг', 'Сервер недоступен. Попробуйте позже.')
                             window.desktopEvents?.send('authStatus', {
-                            status: false,
-                        })
+                                status: false,
+                            })
                             setLoading(false)
                             return false
                         }
                     } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
                         const isDeprecated = e.graphQLErrors.some(
-                            (error: any) =>
-                                error.extensions?.originalError?.error ===
-                                'DEPRECATED_VERSION',
+                            (error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION',
                         )
-                        const isForbidden = e.graphQLErrors.some(
-                            (error: any) => error.extensions?.code === 'FORBIDDEN',
-                        )
+                        const isForbidden = e.graphQLErrors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
-                            sendErrorAuthNotify(
-                                'Ваша сессия истекла. Пожалуйста, войдите снова.',
-                            )
+                            sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
                             }
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send('authStatus', {
-                            status: false,
-                        })
+                                status: false,
+                            })
                             return false
                         } else if (isDeprecated) {
                             sendErrorAuthNotify(
@@ -263,17 +243,13 @@ function App() {
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send('authStatus', {
-                            status: false,
-                        })
+                                status: false,
+                            })
                             return false
                         }
                     } else {
                         Sentry.captureException(e)
-                        toast.custom(
-                            'error',
-                            'Может у тебя нет доступа?',
-                            'Неизвестная ошибка авторизации.',
-                        )
+                        toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
                         window.desktopEvents?.send('authStatus', {
                             status: false,
                         })
@@ -283,8 +259,8 @@ function App() {
                 }
             } else {
                 window.desktopEvents?.send('authStatus', {
-                            status: false,
-                        })
+                    status: false,
+                })
                 setLoading(false)
                 return false
             }
@@ -362,13 +338,13 @@ function App() {
         setSocketConnected(false)
     })
 
-    socket.on('connect_error', (err) => {
+    socket.on('connect_error', err => {
         console.log('Socket connect error: ' + err)
         setSocketError(1)
         setSocket(null)
         setSocketConnected(false)
     })
-    socket.on('logout', async (err) => {
+    socket.on('logout', async err => {
         await client.resetStore()
         setUser(userInitials)
         setSocketError(1)
@@ -376,7 +352,7 @@ function App() {
         setSocketConnected(false)
         await router.navigate('/', { replace: true })
     })
-    socket.on('feature_toggles', (data) => {
+    socket.on('feature_toggles', data => {
         setFeatures(data)
     })
     socket.on('deprecated_version', () => {
@@ -409,12 +385,7 @@ function App() {
             if (data && data.getMod) {
                 const info = (data.getMod as ModInterface[])
                     .filter(
-                        (info) =>
-                            !currentApp.mod.version ||
-                            compareVersions(
-                                info.modVersion,
-                                currentApp.mod.version,
-                            ) > 0,
+                        info => !currentApp.mod.version || compareVersions(info.modVersion, currentApp.mod.version) > 0,
                     )
                     .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
 
@@ -422,6 +393,7 @@ function App() {
                     setMod(info)
                     if (
                         currentApp.mod.installed &&
+                        currentApp.mod.version &&
                         currentApp.mod.version < info[0].modVersion
                     ) {
                         window.desktopEvents?.send('show-notification', {
@@ -451,9 +423,7 @@ function App() {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
                     const data = await res.json()
                     if (data.ok && Array.isArray(data.appInfo)) {
-                        const sortedAppInfos = data.appInfo.sort(
-                            (a: any, b: any) => b.id - a.id,
-                        )
+                        const sortedAppInfos = data.appInfo.sort((a: any, b: any) => b.id - a.id)
                         setAppInfo(sortedAppInfos)
                     } else {
                         console.error('Invalid response format:', data)
@@ -467,10 +437,7 @@ function App() {
 
             const intervalId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            if (
-                !user.badges.some((badge) => badge.type === 'supporter') &&
-                !app.discordRpc.enableGithubButton
-            ) {
+            if (!user.badges.some(badge => badge.type === 'supporter') && !app.discordRpc.enableGithubButton) {
                 setApp({
                     ...app,
                     discordRpc: {
@@ -481,11 +448,9 @@ function App() {
                 window.electron.store.set('discordRpc.enableGithubButton', true)
             }
             window.desktopEvents?.send('WEBSOCKET_START')
-            window.desktopEvents
-                .invoke('getAddons')
-                .then((fetchedAddons: AddonInterface[]) => {
-                    setAddons(fetchedAddons)
-                })
+            window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
+                setAddons(fetchedAddons)
+            })
 
             return () => {
                 clearInterval(intervalId)
@@ -495,17 +460,8 @@ function App() {
         }
     }, [user.id])
 
-    const invokeFileEvent = async (
-        eventType: string,
-        filePath: string,
-        data?: any,
-    ) => {
-        return await window.desktopEvents?.invoke(
-            'file-event',
-            eventType,
-            filePath,
-            data,
-        )
+    const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
+        return await window.desktopEvents?.invoke('file-event', eventType, filePath, data)
     }
 
     useEffect(() => {
@@ -513,10 +469,17 @@ function App() {
             window.desktopEvents
                 ?.invoke('getAddons')
                 .then((fetchedAddons: AddonInterface[]) => {
-                    const foundAddon = fetchedAddons.find((t) => t.name === data)
+                    const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
-                        if(!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                            toast.custom('error', 'Ошибка.', 'У аддона отсутвует поле type или оно некорректно', null, null, 15000)
+                        if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
+                            toast.custom(
+                                'error',
+                                'Ошибка.',
+                                'У аддона отсутвует поле type или оно некорректно',
+                                null,
+                                null,
+                                15000,
+                            )
                             return
                         }
                         setAddons(fetchedAddons)
@@ -524,22 +487,16 @@ function App() {
                         setNavigateState(foundAddon)
                     }
                 })
-                .catch((error) => console.error('Error getting themes:', error))
+                .catch(error => console.error('Error getting themes:', error))
         }
         window.desktopEvents?.on('open-theme', handleOpenAddon)
 
-        window.desktopEvents?.on('check-file-exists', (filePath) =>
-            invokeFileEvent('check-file-exists', filePath),
-        )
-        window.desktopEvents?.on('read-file', (filePath) =>
-            invokeFileEvent('read-file', filePath),
-        )
+        window.desktopEvents?.on('check-file-exists', filePath => invokeFileEvent('check-file-exists', filePath))
+        window.desktopEvents?.on('read-file', filePath => invokeFileEvent('read-file', filePath))
         window.desktopEvents?.on('create-config-file', (filePath, defaultContent) =>
             invokeFileEvent('create-config-file', filePath, defaultContent),
         )
-        window.desktopEvents?.on('write-file', (filePath, data) =>
-            invokeFileEvent('write-file', filePath, data),
-        )
+        window.desktopEvents?.on('write-file', (filePath, data) => invokeFileEvent('write-file', filePath, data))
 
         return () => {
             window.desktopEvents?.removeAllListeners('create-config-file')
@@ -559,7 +516,7 @@ function App() {
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             window.desktopEvents?.on('discordRpcState', (event, data) => {
-                setApp((prevSettings) => ({
+                setApp(prevSettings => ({
                     ...prevSettings,
                     discordRpc: {
                         ...prevSettings.discordRpc,
@@ -582,16 +539,12 @@ function App() {
                         toast.custom('info', 'Информация.', 'RPC: ' + data.message)
                         break
                     case 'warn':
-                        toast.custom(
-                            'warning',
-                            'Предупреждение.',
-                            'RPC: ' + data.message,
-                        )
+                        toast.custom('warning', 'Предупреждение.', 'RPC: ' + data.message)
                         break
                 }
             })
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
-                setApp((prevSettings) => ({
+                setApp(prevSettings => ({
                     ...prevSettings,
                     info: {
                         ...prevSettings.info,
@@ -601,11 +554,7 @@ function App() {
             })
             window.desktopEvents?.on('check-update', (event, data) => {
                 if (!toastReference.current) {
-                    toastReference.current = toast.custom(
-                        'loading',
-                        'Проверка обновлений',
-                        'Ожидайте...',
-                    )
+                    toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
 
                 if (data.updateAvailable) {
@@ -615,9 +564,7 @@ function App() {
                             'Загрузка.',
                             <>
                                 <span>Загрузка обновления</span>
-                                <b style={{ marginLeft: '.5em' }}>
-                                    {Math.floor(value)}%
-                                </b>
+                                <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
                             </>,
                             { id: toastReference.current },
                             value,
@@ -625,12 +572,7 @@ function App() {
                     }
 
                     const onDownloadFailed = () => {
-                        toast.custom(
-                            'error',
-                            'Ошибка.',
-                            'Ошибка загрузки обновления',
-                            { id: toastReference.current },
-                        )
+                        toast.custom('error', 'Ошибка.', 'Ошибка загрузки обновления', { id: toastReference.current })
                         toastReference.current = null
                     }
 
@@ -642,18 +584,9 @@ function App() {
                         setUpdate(true)
                     }
 
-                    window.desktopEvents?.on(
-                        'download-update-progress',
-                        onDownloadProgress,
-                    )
-                    window.desktopEvents?.on(
-                        'download-update-failed',
-                        onDownloadFailed,
-                    )
-                    window.desktopEvents?.on(
-                        'download-update-finished',
-                        onDownloadFinished,
-                    )
+                    window.desktopEvents?.on('download-update-progress', onDownloadProgress)
+                    window.desktopEvents?.on('download-update-failed', onDownloadFailed)
+                    window.desktopEvents?.on('download-update-finished', onDownloadFinished)
                 } else {
                     toast.custom('info', 'О как...', 'Обновление не найдено', {
                         id: toastReference.current,
@@ -682,12 +615,10 @@ function App() {
             await authorize()
         }
         ;(window as any).refreshAddons = async (args: any) => {
-            window.desktopEvents
-                .invoke('getAddons')
-                .then((fetchedAddons: AddonInterface[]) => {
-                    setAddons(fetchedAddons)
-                    router.navigate('/extensionbeta', { replace: true })
-                })
+            window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
+                setAddons(fetchedAddons)
+                router.navigate('/extensionbeta', { replace: true })
+            })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
             await fetchModInfo(currentApp)
@@ -754,7 +685,7 @@ const Player: React.FC<any> = ({ children }) => {
                         }
 
                         const timecodes = data.timecodes ?? [0, 0]
-                        setTrack((prevTrack) => ({
+                        setTrack(prevTrack => ({
                             ...prevTrack,
                             downloadInfo: data.downloadInfo || null,
                             currentDevice: data.currentDevice || null,
@@ -849,39 +780,36 @@ const Player: React.FC<any> = ({ children }) => {
     }
 
     const getTrackStartTime = (track: Track): number => {
-        return track.timestamps && track.timestamps.length > 0
-            ? track.timestamps[0]
-            : 0
+        return track.timestamps && track.timestamps.length > 0 ? track.timestamps[0] : 0
     }
 
     const getTrackEndTime = (track: Track): number => {
-        return track.timestamps && track.timestamps.length > 0
-            ? track.timestamps[1]
-            : 0
+        return track.timestamps && track.timestamps.length > 0 ? track.timestamps[1] : 0
     }
 
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
-            if (
-                (track.title === "" || (track.status === "paused" && !app.discordRpc.displayPause))
-            ) {
+            if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
                 window.discordRpc.clearActivity()
                 return
             }
-            if (track.sourceType === "ynison") {
-                const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`;
-                const deepShareTrackUrl = `yandexmusic://${shareTrackPath}`;
-                let startTimestamp = Math.round(Date.now() - track.ynisonProgress * 1000);
-                let endTimestamp = startTimestamp + track.durationMs;
+            if (track.sourceType === 'ynison') {
+                const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
+                const deepShareTrackUrl = `yandexmusic://${shareTrackPath}`
+                let startTimestamp = Math.round(Date.now() - track.ynisonProgress * 1000)
+                let endTimestamp = startTimestamp + track.durationMs
 
                 const activity: any = {
                     type: 2,
                     details: track.title,
                     largeImageKey: `https://${track.coverUri.replace('%%', '1000x1000')}`,
-                    smallImageKey: 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png?size=256',
-                    smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : " on " + (track.currentDevice?.info?.type ?? "DESKTOP"),
-                    buttons: []
-                };
+                    smallImageKey:
+                        'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png?size=256',
+                    smallImageText: app.discordRpc.showVersionOrDevice
+                        ? app.info.version
+                        : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP'),
+                    buttons: [],
+                }
                 if (track.status === 'paused' && app.discordRpc.displayPause) {
                     activity.smallImageText = 'Paused'
                     activity.smallImageKey =
@@ -896,25 +824,22 @@ const Player: React.FC<any> = ({ children }) => {
 
                 if (app.discordRpc.enableRpcButtonListen) {
                     activity.buttons.push({
-                        label: app.discordRpc.button
-                            ? truncateLabel(app.discordRpc.button)
-                            : '✌️ Open in Yandex Music',
-                        url: deepShareTrackUrl
-                    });
+                        label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
+                        url: deepShareTrackUrl,
+                    })
                 }
                 if (app.discordRpc.enableGithubButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
-                        url: 'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev'
-                    });
+                        url: 'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev',
+                    })
                 }
                 if (activity.buttons.length === 0) {
-                    delete activity.buttons;
+                    delete activity.buttons
                 }
-                window.discordRpc.setActivity(activity);
-                return;
-            }
-            else {
+                window.discordRpc.setActivity(activity)
+                return
+            } else {
                 if (
                     track.title === '' ||
                     (track.status === 'paused' && !app.discordRpc.displayPause) ||
@@ -925,25 +850,21 @@ const Player: React.FC<any> = ({ children }) => {
                 } else {
                     const trackStartTime = getTrackStartTime(track)
                     const trackEndTime = getTrackEndTime(track)
-                    const artistName = track.artists.map((x) => x.name).join(', ')
+                    const artistName = track.artists.map(x => x.name).join(', ')
 
                     const startTimestamp =
-                        Math.floor(Date.now() / 1000) * 1000 -
-                        Math.floor(Number(trackStartTime)) * 1000
-                    const endTimestamp =
-                        startTimestamp + Math.floor(Number(trackEndTime)) * 1000
+                        Math.floor(Date.now() / 1000) * 1000 - Math.floor(Number(trackStartTime)) * 1000
+                    const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000
 
                     const activity: any = {
                         type: 2,
                         largeImageKey: getCoverImage(track),
                         smallImageKey:
                             'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png',
-                        smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : " on DESKTOP",
+                        smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : ' on DESKTOP',
                         details:
                             app.discordRpc.details.length > 0
-                                ? fixStrings(
-                                    replaceParams(app.discordRpc.details, track),
-                                )
+                                ? fixStrings(replaceParams(app.discordRpc.details, track))
                                 : fixStrings(track.title || 'Unknown Track'),
                         state:
                             app.discordRpc.state.length > 0
@@ -983,9 +904,7 @@ const Player: React.FC<any> = ({ children }) => {
                         app.discordRpc.enableRpcButtonListen
                     ) {
                         activity.buttons.push({
-                            label: app.discordRpc.button
-                                ? truncateLabel(app.discordRpc.button)
-                                : '✌️ Open music file',
+                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open music file',
                             url: track.url,
                         })
                     }
@@ -1001,15 +920,9 @@ const Player: React.FC<any> = ({ children }) => {
                         delete activity.buttons
                     }
 
-                    if (
-                        (!track.artists || track.artists.length === 0) &&
-                        track.trackSource !== 'UGC'
-                    ) {
-                        setTrack((prevTrack) => {
-                            if (
-                                prevTrack.title &&
-                                prevTrack.title.endsWith(' - Нейромузыка')
-                            ) {
+                    if ((!track.artists || track.artists.length === 0) && track.trackSource !== 'UGC') {
+                        setTrack(prevTrack => {
+                            if (prevTrack.title && prevTrack.title.endsWith(' - Нейромузыка')) {
                                 return prevTrack
                             }
                             return {

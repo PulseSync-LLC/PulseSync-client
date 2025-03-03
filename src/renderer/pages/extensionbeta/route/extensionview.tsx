@@ -39,21 +39,15 @@ import addonInitials from '../../../api/initials/addon.initials'
 import { useUserProfileModal } from '../../../../renderer/context/UserProfileModalContext'
 
 const ExtensionViewPage: React.FC = () => {
-    const [activatedTheme, setActivatedTheme] = useState<string>(
-        window.electron.store.get('addons.theme') || 'Default',
-    )
+    const [activatedTheme, setActivatedTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
 
-    const [enabledScripts, setEnabledScripts] = useState<string[]>(
-        window.electron.store.get('addons.scripts') || [],
-    )
+    const [enabledScripts, setEnabledScripts] = useState<string[]>(window.electron.store.get('addons.scripts') || [])
 
     const isFirstRender = useRef(true)
     const { openUserProfile } = useUserProfileModal()
     const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
-    const [bannerImage, setBannerImage] = useState(
-        'static/assets/images/no_themeBackground.png',
-    )
+    const [bannerImage, setBannerImage] = useState('static/assets/images/no_themeBackground.png')
 
     const [themeActive, setThemeActive] = useState(activatedTheme !== 'Default')
     const [bannerExpanded, setBannerExpanded] = useState(false)
@@ -93,10 +87,7 @@ const ExtensionViewPage: React.FC = () => {
 
     useEffect(() => {
         const clickOutsideHandler = (event: MouseEvent) => {
-            if (
-                menuElementRef.current &&
-                !menuElementRef.current.contains(event.target as Node)
-            ) {
+            if (menuElementRef.current && !menuElementRef.current.contains(event.target as Node)) {
                 setContextMenuVisible(false)
             }
         }
@@ -112,8 +103,7 @@ const ExtensionViewPage: React.FC = () => {
 
     useEffect(() => {
         if (currentAddon) {
-            const expandedStates =
-                window.electron.store.get('addons.themeIsExpanded') || {}
+            const expandedStates = window.electron.store.get('addons.themeIsExpanded') || {}
             if (!expandedStates.hasOwnProperty(currentAddon.name)) {
                 expandedStates[currentAddon.name] = false
                 window.electron.store.set('addons.themeIsExpanded', expandedStates)
@@ -128,8 +118,7 @@ const ExtensionViewPage: React.FC = () => {
         const newState = !bannerExpanded
         setBannerExpanded(newState)
         if (currentAddon) {
-            const expandedStates =
-                window.electron.store.get('addons.themeIsExpanded') || {}
+            const expandedStates = window.electron.store.get('addons.themeIsExpanded') || {}
             expandedStates[currentAddon.name] = newState
             window.electron.store.set('addons.themeIsExpanded', expandedStates)
         }
@@ -141,11 +130,8 @@ const ExtensionViewPage: React.FC = () => {
         const step = bannerExpanded ? -1 : 1
 
         const animateBannerHeight = () => {
-            setBannerHeight((prev) => {
-                if (
-                    (step < 0 && prev <= targetHeight) ||
-                    (step > 0 && prev >= targetHeight)
-                ) {
+            setBannerHeight(prev => {
+                if ((step < 0 && prev <= targetHeight) || (step > 0 && prev >= targetHeight)) {
                     if (interval) clearInterval(interval)
                     return targetHeight
                 }
@@ -179,15 +165,11 @@ const ExtensionViewPage: React.FC = () => {
                 setThemeActive(true)
             }
         } else {
-            const isScriptEnabled = enabledScripts.includes(
-                currentAddon.directoryName,
-            )
+            const isScriptEnabled = enabledScripts.includes(currentAddon.directoryName)
             if (isScriptEnabled) {
-                setEnabledScripts((prev) =>
-                    prev.filter((item) => item !== currentAddon.directoryName),
-                )
+                setEnabledScripts(prev => prev.filter(item => item !== currentAddon.directoryName))
             } else {
-                setEnabledScripts((prev) => [...prev, currentAddon.directoryName])
+                setEnabledScripts(prev => [...prev, currentAddon.directoryName])
             }
         }
     }
@@ -195,13 +177,9 @@ const ExtensionViewPage: React.FC = () => {
     const getToggleButtonText = () => {
         if (!currentAddon) return ''
         if (currentAddon.type === 'theme') {
-            return activatedTheme === currentAddon.directoryName
-                ? 'Выключить'
-                : 'Включить'
+            return activatedTheme === currentAddon.directoryName ? 'Выключить' : 'Включить'
         } else {
-            return enabledScripts.includes(currentAddon.directoryName)
-                ? 'Выключить'
-                : 'Включить'
+            return enabledScripts.includes(currentAddon.directoryName) ? 'Выключить' : 'Включить'
         }
     }
 
@@ -221,11 +199,9 @@ const ExtensionViewPage: React.FC = () => {
     }
     useEffect(() => {
         if (currentAddon?.path && currentAddon.banner) {
-            const bannerPath = getEncodedPath(
-                `${currentAddon.path}/${currentAddon.banner}`,
-            )
+            const bannerPath = getEncodedPath(`${currentAddon.path}/${currentAddon.banner}`)
             fetch(bannerPath)
-                .then((res) => {
+                .then(res => {
                     if (res.ok) {
                         setBannerImage(bannerPath)
                     } else {
@@ -242,8 +218,8 @@ const ExtensionViewPage: React.FC = () => {
         if (currentAddon) {
             const readmePath = `${currentAddon.path}/README.md`
             fetch(readmePath)
-                .then((response) => response.text())
-                .then((data) => {
+                .then(response => response.text())
+                .then(data => {
                     setMarkdownData(data)
                 })
                 .catch(() => {
@@ -256,28 +232,17 @@ const ExtensionViewPage: React.FC = () => {
         const checkConfigFile = async () => {
             if (currentAddon) {
                 const configPath = path.join(currentAddon.path, 'handleEvents.json')
-                const exists = await window.desktopEvents?.invoke(
-                    'file-event',
-                    'check-file-exists',
-                    configPath,
-                )
+                const exists = await window.desktopEvents?.invoke('file-event', 'check-file-exists', configPath)
                 setConfigFileExists(exists)
 
                 if (exists) {
-                    const configContent = await window.desktopEvents?.invoke(
-                        'file-event',
-                        'read-file',
-                        configPath,
-                    )
+                    const configContent = await window.desktopEvents?.invoke('file-event', 'read-file', configPath)
                     try {
                         const parsedConfig: AddonConfig = JSON.parse(configContent)
                         const upgradedConfig = upgradeConfig(parsedConfig)
                         setConfigData(upgradedConfig)
                     } catch (error) {
-                        console.error(
-                            'Ошибка при парсинге handleEvents.json:',
-                            error,
-                        )
+                        console.error('Ошибка при парсинге handleEvents.json:', error)
                         setConfigData(null)
                     }
                 }
@@ -290,8 +255,8 @@ const ExtensionViewPage: React.FC = () => {
 
     const upgradeConfig = (config: AddonConfig): AddonConfig => {
         const upgradedConfig = structuredClone(config)
-        upgradedConfig.sections.forEach((section) => {
-            section.items.forEach((item) => {
+        upgradedConfig.sections.forEach(section => {
+            section.items.forEach(item => {
                 switch (item.type) {
                     case 'button':
                         const buttonItem = item as ButtonItem
@@ -307,7 +272,7 @@ const ExtensionViewPage: React.FC = () => {
                         break
                     case 'text':
                         const textItem = item as TextItem
-                        textItem.buttons.forEach((button) => {
+                        textItem.buttons.forEach(button => {
                             if (button.defaultParameter === undefined) {
                                 button.defaultParameter = button.text
                             }
@@ -332,8 +297,7 @@ const ExtensionViewPage: React.FC = () => {
                             {
                                 id: 'showHints',
                                 name: 'Показать подсказки',
-                                description:
-                                    'Включает отображение подсказок при наведении курсора',
+                                description: 'Включает отображение подсказок при наведении курсора',
                                 type: 'button',
                                 bool: false,
                                 defaultParameter: false,
@@ -341,8 +305,7 @@ const ExtensionViewPage: React.FC = () => {
                             {
                                 id: 'darkMode',
                                 name: 'Режим темной темы',
-                                description:
-                                    'Активирует тёмный режим для комфортной работы при слабом освещении',
+                                description: 'Активирует тёмный режим для комфортной работы при слабом освещении',
                                 type: 'button',
                                 bool: false,
                                 defaultParameter: false,
@@ -350,8 +313,7 @@ const ExtensionViewPage: React.FC = () => {
                             {
                                 id: 'enableNotifications',
                                 name: 'Уведомления',
-                                description:
-                                    'Включает показ всплывающих уведомлений о новых событиях',
+                                description: 'Включает показ всплывающих уведомлений о новых событиях',
                                 type: 'button',
                                 bool: false,
                                 defaultParameter: false,
@@ -377,8 +339,7 @@ const ExtensionViewPage: React.FC = () => {
                             {
                                 id: 'greetingMessage',
                                 name: 'Приветственное сообщение',
-                                description:
-                                    'Текст, отображаемый при запуске приложения',
+                                description: 'Текст, отображаемый при запуске приложения',
                                 type: 'text',
                                 buttons: [
                                     {
@@ -417,10 +378,7 @@ const ExtensionViewPage: React.FC = () => {
                 setConfigData(defaultContent)
                 setConfigFileExists(true)
             } else {
-                console.error(
-                    'Ошибка при создании файла конфигурации:',
-                    result.error,
-                )
+                console.error('Ошибка при создании файла конфигурации:', result.error)
             }
         }
     }
@@ -476,12 +434,7 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    const updateConfigField = (
-        sectionIndex: number,
-        itemIndex: number | null,
-        key: string,
-        value: any,
-    ) => {
+    const updateConfigField = (sectionIndex: number, itemIndex: number | null, key: string, value: any) => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
         if (itemIndex !== null) {
@@ -528,7 +481,7 @@ const ExtensionViewPage: React.FC = () => {
 
             case 'text': {
                 const textItem = item as TextItem
-                textItem.buttons = textItem.buttons.map((btn) => ({
+                textItem.buttons = textItem.buttons.map(btn => ({
                     ...btn,
                     text: btn.defaultParameter ?? btn.text,
                 }))
@@ -548,11 +501,7 @@ const ExtensionViewPage: React.FC = () => {
         writeConfigFile(updatedConfig)
     }
 
-    const resetButtonConfig = (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => {
+    const resetButtonConfig = (sectionIndex: number, itemIndex: number, buttonIndex: number) => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
         const item = updatedConfig.sections[sectionIndex].items[itemIndex]
@@ -764,11 +713,7 @@ const ExtensionViewPage: React.FC = () => {
                     />
                 ) : null
             case 'Metadata':
-                return (
-                    <div className={localStyles.alertContent}>
-                        Страница "метаданные темы" в разработке
-                    </div>
-                )
+                return <div className={localStyles.alertContent}>Страница "метаданные темы" в разработке</div>
             default:
                 return null
         }
@@ -782,28 +727,20 @@ const ExtensionViewPage: React.FC = () => {
                 <div className={globalStyles.container}>
                     <div className={globalStyles.main_container}>
                         <div className={globalStyles.container0x0}>
-                            {activeTab === 'Settings' &&
-                                configFileExists === true && (
-                                    <button
-                                        className={`${localStyles.edit} ${
-                                            editMode ? localStyles.activeEdit : ''
-                                        }`}
-                                        onClick={() => setEditMode((prev) => !prev)}
-                                        title={
-                                            editMode
-                                                ? 'Выйти из режима редактирования'
-                                                : 'Войти в режим редактирования'
-                                        }
-                                    >
-                                        <MdEdit />
-                                    </button>
-                                )}
+                            {activeTab === 'Settings' && configFileExists === true && (
+                                <button
+                                    className={`${localStyles.edit} ${editMode ? localStyles.activeEdit : ''}`}
+                                    onClick={() => setEditMode(prev => !prev)}
+                                    title={editMode ? 'Выйти из режима редактирования' : 'Войти в режим редактирования'}
+                                >
+                                    <MdEdit />
+                                </button>
+                            )}
                             <div className={localStyles.containerFix}>
                                 <div
                                     className={localStyles.bannerBackground}
                                     style={{
-                                        transition:
-                                            'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
+                                        transition: 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
                                         opacity: '1',
                                         backgroundImage: `url(${bannerImage})`,
                                         backgroundSize: 'cover',
@@ -813,28 +750,21 @@ const ExtensionViewPage: React.FC = () => {
                                     <Button
                                         className={localStyles.hideButton}
                                         onClick={() => {
-                                            setBannerExpanded((prev) => !prev)
+                                            setBannerExpanded(prev => !prev)
                                             toggleBanner()
                                         }}
-                                        title={
-                                            bannerExpanded
-                                                ? 'Свернуть баннер'
-                                                : 'Развернуть баннер'
-                                        }
+                                        title={bannerExpanded ? 'Свернуть баннер' : 'Развернуть баннер'}
                                     >
                                         <MdKeyboardArrowDown
                                             size={20}
                                             style={
                                                 bannerExpanded
                                                     ? {
-                                                          transition:
-                                                              'transform 0.3s ease',
-                                                          transform:
-                                                              'rotate(180deg)',
+                                                          transition: 'transform 0.3s ease',
+                                                          transform: 'rotate(180deg)',
                                                       }
                                                     : {
-                                                          transition:
-                                                              'transform 0.3s ease',
+                                                          transition: 'transform 0.3s ease',
                                                           transform: 'rotate(0deg)',
                                                       }
                                             }
@@ -851,19 +781,13 @@ const ExtensionViewPage: React.FC = () => {
                                                 alt={`${currentAddon.name} image`}
                                                 width="100"
                                                 height="100"
-                                                onError={(e) => {
-                                                    ;(
-                                                        e.target as HTMLImageElement
-                                                    ).src =
+                                                onError={e => {
+                                                    ;(e.target as HTMLImageElement).src =
                                                         'static/assets/images/no_themeImage.png'
                                                 }}
                                             />
                                             <div className={localStyles.themeTitle}>
-                                                <div
-                                                    className={
-                                                        localStyles.titleContainer
-                                                    }
-                                                >
+                                                <div className={localStyles.titleContainer}>
                                                     <NavLink
                                                         className={localStyles.path}
                                                         to="/extensionbeta"
@@ -872,60 +796,32 @@ const ExtensionViewPage: React.FC = () => {
                                                         Extension
                                                     </NavLink>
                                                     /
-                                                    <div
-                                                        className={localStyles.title}
-                                                    >
-                                                        {currentAddon.name ||
-                                                            'Название недоступно'}
+                                                    <div className={localStyles.title}>
+                                                        {currentAddon.name || 'Название недоступно'}
                                                     </div>
                                                     <Button
-                                                        className={
-                                                            localStyles.addFavorite
-                                                        }
+                                                        className={localStyles.addFavorite}
                                                         disabled
                                                         title="Добавить в избранное (недоступно)"
                                                     >
-                                                        <MdBookmarkBorder
-                                                            size={20}
-                                                        />
+                                                        <MdBookmarkBorder size={20} />
                                                     </Button>
                                                 </div>
-                                                <div
-                                                    className={
-                                                        localStyles.authorInfo
-                                                    }
-                                                >
+                                                <div className={localStyles.authorInfo}>
                                                     {currentAddon.author && (
                                                         <div>
-                                                            {Array.isArray(
-                                                                currentAddon.author,
-                                                            ) ? (
+                                                            {Array.isArray(currentAddon.author) ? (
                                                                 currentAddon.author.map(
-                                                                    (
-                                                                        userName: string,
-                                                                        index: number,
-                                                                    ) => (
+                                                                    (userName: string, index: number) => (
                                                                         <span
-                                                                            key={
-                                                                                userName
-                                                                            }
-                                                                            onClick={() =>
-                                                                                openUserProfile(
-                                                                                    userName,
-                                                                                )
-                                                                            }
+                                                                            key={userName}
+                                                                            onClick={() => openUserProfile(userName)}
                                                                             style={{
                                                                                 cursor: 'pointer',
                                                                             }}
                                                                         >
-                                                                            {
-                                                                                userName
-                                                                            }
-                                                                            {index <
-                                                                                currentAddon
-                                                                                    .author
-                                                                                    .length -
-                                                                                    1 &&
+                                                                            {userName}
+                                                                            {index < currentAddon.author.length - 1 &&
                                                                                 ', '}
                                                                         </span>
                                                                     ),
@@ -933,29 +829,20 @@ const ExtensionViewPage: React.FC = () => {
                                                             ) : (
                                                                 <span
                                                                     onClick={() =>
-                                                                        openUserProfile(
-                                                                            currentAddon.author as string,
-                                                                        )
+                                                                        openUserProfile(currentAddon.author as string)
                                                                     }
                                                                     style={{
                                                                         cursor: 'pointer',
                                                                     }}
                                                                 >
-                                                                    {
-                                                                        currentAddon.author
-                                                                    }
+                                                                    {currentAddon.author}
                                                                 </span>
                                                             )}
                                                         </div>
                                                     )}{' '}
                                                     -{' '}
                                                     {currentAddon.lastModified && (
-                                                        <div>
-                                                            Last update:{' '}
-                                                            {
-                                                                currentAddon.lastModified
-                                                            }
-                                                        </div>
+                                                        <div>Last update: {currentAddon.lastModified}</div>
                                                     )}
                                                 </div>
                                             </div>
@@ -963,35 +850,27 @@ const ExtensionViewPage: React.FC = () => {
                                     </div>
 
                                     <div className={localStyles.rightContainer}>
-                                        <div
-                                            className={localStyles.detailsContainer}
-                                        >
+                                        <div className={localStyles.detailsContainer}>
                                             <div className={localStyles.detailInfo}>
                                                 {currentAddon.version && (
                                                     <div className={localStyles.box}>
-                                                        <MdDesignServices />{' '}
-                                                        {currentAddon.version}
+                                                        <MdDesignServices /> {currentAddon.version}
                                                     </div>
                                                 )}
                                                 {currentAddon.size !== undefined && (
                                                     <div className={localStyles.box}>
-                                                        <MdFolder />{' '}
-                                                        {currentAddon.size}
+                                                        <MdFolder /> {currentAddon.size}
                                                     </div>
                                                 )}
                                             </div>
                                             <div className={localStyles.detailInfo}>
                                                 {Array.isArray(currentAddon.tags) &&
                                                     currentAddon.tags.length > 0 &&
-                                                    currentAddon.tags.map((tag) => (
+                                                    currentAddon.tags.map(tag => (
                                                         <Button
                                                             key={tag}
-                                                            className={
-                                                                localStyles.tag
-                                                            }
-                                                            onClick={() =>
-                                                                changeTag(tag)
-                                                            }
+                                                            className={localStyles.tag}
+                                                            onClick={() => changeTag(tag)}
                                                             title={`Фильтровать по тегу ${tag}`}
                                                         >
                                                             {tag}
@@ -1001,31 +880,20 @@ const ExtensionViewPage: React.FC = () => {
                                         </div>
 
                                         <div ref={menuElementRef}>
-                                            <div
-                                                className={
-                                                    localStyles.miniButtonsContainer
-                                                }
-                                            >
+                                            <div className={localStyles.miniButtonsContainer}>
                                                 <Button
                                                     className={`${localStyles.defaultButton} ${
-                                                        (currentAddon.type ===
-                                                            'theme' &&
-                                                            activatedTheme ===
-                                                                currentAddon.directoryName) ||
-                                                        (currentAddon.type ===
-                                                            'script' &&
-                                                            enabledScripts.includes(
-                                                                currentAddon.directoryName,
-                                                            ))
+                                                        (currentAddon.type === 'theme' &&
+                                                            activatedTheme === currentAddon.directoryName) ||
+                                                        (currentAddon.type === 'script' &&
+                                                            enabledScripts.includes(currentAddon.directoryName))
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
                                                     disabled={
                                                         !currentAddon.type ||
-                                                        (currentAddon.type !==
-                                                            'theme' &&
-                                                            currentAddon.type !==
-                                                                'script')
+                                                        (currentAddon.type !== 'theme' &&
+                                                            currentAddon.type !== 'script')
                                                     }
                                                     onClick={handleToggleAddon}
                                                     title={getToggleTitle()}
@@ -1033,14 +901,8 @@ const ExtensionViewPage: React.FC = () => {
                                                     {getToggleButtonText()}
                                                 </Button>
                                                 <Button
-                                                    className={
-                                                        localStyles.miniButton
-                                                    }
-                                                    onClick={() =>
-                                                        setContextMenuVisible(
-                                                            (prev) => !prev,
-                                                        )
-                                                    }
+                                                    className={localStyles.miniButton}
+                                                    onClick={() => setContextMenuVisible(prev => !prev)}
                                                     title="Дополнительные настройки"
                                                 >
                                                     <MdMoreHoriz size={20} />
@@ -1066,14 +928,10 @@ const ExtensionViewPage: React.FC = () => {
                                 </div>
 
                                 <div className={localStyles.extensionNav}>
-                                    <div
-                                        className={localStyles.extensionNavContainer}
-                                    >
+                                    <div className={localStyles.extensionNavContainer}>
                                         <button
                                             className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Overview'
-                                                    ? localStyles.activeTabButton
-                                                    : ''
+                                                activeTab === 'Overview' ? localStyles.activeTabButton : ''
                                             }`}
                                             onClick={() => setActiveTab('Overview')}
                                             title="Обзор"
@@ -1082,9 +940,7 @@ const ExtensionViewPage: React.FC = () => {
                                         </button>
                                         <button
                                             className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Settings'
-                                                    ? localStyles.activeTabButton
-                                                    : ''
+                                                activeTab === 'Settings' ? localStyles.activeTabButton : ''
                                             }`}
                                             onClick={() => setActiveTab('Settings')}
                                             title="Настройки"
@@ -1093,9 +949,7 @@ const ExtensionViewPage: React.FC = () => {
                                         </button>
                                         <button
                                             className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Metadata'
-                                                    ? localStyles.activeTabButton
-                                                    : ''
+                                                activeTab === 'Metadata' ? localStyles.activeTabButton : ''
                                             }`}
                                             onClick={() => setActiveTab('Metadata')}
                                             title="Метаданные"
@@ -1115,8 +969,7 @@ const ExtensionViewPage: React.FC = () => {
                                 <div className={localStyles.extensionContent}>
                                     {editMode && activeTab === 'Settings' && (
                                         <div className={localStyles.howAlert}>
-                                            Подробную информацию о том, как с этим
-                                            работать, можно найти в&nbsp;
+                                            Подробную информацию о том, как с этим работать, можно найти в&nbsp;
                                             <a
                                                 href="https://discord.gg/qy42uGTzRy"
                                                 target="_blank"

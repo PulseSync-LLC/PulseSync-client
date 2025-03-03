@@ -23,10 +23,7 @@ const LevelProgress: React.FC<LevelProgressProps> = ({
                 <span>Всего очков за все уровни: {totalPoints}</span>
             </div>
             <div className={style.progress_bar}>
-                <div
-                    className={style.progress_fill}
-                    style={{ width: `${progressPercentage}%` }}
-                ></div>
+                <div className={style.progress_fill} style={{ width: `${progressPercentage}%` }}></div>
                 <div className={style.progress_content}>
                     <div className={style.level_box}>{currentLevel}</div>
                     <div className={style.points}>

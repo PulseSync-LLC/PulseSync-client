@@ -6,3 +6,9 @@ tsconfig.json
 README.md
 yarn.lock
 ReactDevTools
+*.svg
+*.md
+.prettierignore
+forge.config.ts
+*.json
+*.yml

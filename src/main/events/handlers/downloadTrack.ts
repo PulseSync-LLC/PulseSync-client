@@ -31,16 +31,11 @@ export async function downloadTrack(
 
     const fileExtension = val.saveAsMp3
         ? 'mp3'
-        : val.track.downloadInfo.codec
-              .replaceAll(/(he-)?aac/g, 'm4a')
-              .replace(/(.*)-mp4/, '$1')
+        : val.track.downloadInfo.codec.replaceAll(/(he-)?aac/g, 'm4a').replace(/(.*)-mp4/, '$1')
 
     const defaultFilepath = path.join(
         downloadDir,
-        `${artists2string(val.track?.artists)} — ${val.track?.title}.`.replace(
-            /[/\\?%*:|"<>]/g,
-            '_',
-        ) + fileExtension,
+        `${artists2string(val.track?.artists)} — ${val.track?.title}.`.replace(/[/\\?%*:|"<>]/g, '_') + fileExtension,
     )
 
     let filePath: string | undefined
@@ -66,14 +61,11 @@ export async function downloadTrack(
     const tempTrackPath = path.join(tempDir, `track.${fileExtension}`)
 
     https
-        .get(val.url, (response) => {
+        .get(val.url, response => {
             const chunks: Buffer[] = []
             let downloadedBytes = 0
-            const totalFileSize = parseInt(
-                response.headers['content-length'] as string,
-                10,
-            )
-            response.on('data', (chunk) => {
+            const totalFileSize = parseInt(response.headers['content-length'] as string, 10)
+            response.on('data', chunk => {
                 chunks.push(chunk)
                 downloadedBytes += chunk.length
                 const percent = getPercent(downloadedBytes, totalFileSize)
@@ -104,13 +96,9 @@ export async function downloadTrack(
                     let coverPath = ''
                     if (val.track.coverUri) {
                         coverPath = path.join(tempDir, 'cover.jpg')
-                        const coverUrl =
-                            'https://' +
-                            val.track.coverUri.replace('%%', '1000x1000')
+                        const coverUrl = 'https://' + val.track.coverUri.replace('%%', '1000x1000')
                         const coverResponse = await fetch(coverUrl)
-                        const coverBuffer = Buffer.from(
-                            await coverResponse.arrayBuffer(),
-                        )
+                        const coverBuffer = Buffer.from(await coverResponse.arrayBuffer())
                         fs.writeFileSync(coverPath, coverBuffer)
                         withCover = true
                     }
@@ -171,7 +159,7 @@ export async function downloadTrack(
                 }
             })
         })
-        .on('error', (err) => {
+        .on('error', err => {
             logger.main.error('Error while downloading track:', err)
             event.sender.send('download-track-failed')
         })
@@ -181,7 +169,7 @@ function artists2string(artists: Track['artists']) {
     if (!artists) return
     if (artists.length <= 1) return artists[0].name
     let string = artists.shift()?.name
-    artists.forEach((a) => {
+    artists.forEach(a => {
         string += ' & ' + a.name
     })
     return string

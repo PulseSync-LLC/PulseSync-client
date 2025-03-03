@@ -179,8 +179,7 @@ form {
 .discordAuth_svg__svg-elem-2 {
     animation:
         animate-svg-stroke-2 1s cubic-bezier(0.39, 0.575, 0.565, 1) 1.12s both,
-        animate-svg-fill-2 0.7s cubic-bezier(0.39, 0.575, 0.565, 1)
-            0.8500000000000001s both;
+        animate-svg-fill-2 0.7s cubic-bezier(0.39, 0.575, 0.565, 1) 0.8500000000000001s both;
 }
 
 @keyframes animate-svg-stroke-3 {

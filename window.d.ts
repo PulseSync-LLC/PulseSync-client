@@ -30,14 +30,8 @@ declare global {
             authorize: () => string
             version: () => string
             downloadTrack: (data: any) => void
-            receive: (
-                channel: string,
-                func: (event: any, ...arg: any[]) => void,
-            ) => void
-            receiveOnce: (
-                channel: string,
-                func: (event: any, ...arg: any[]) => void,
-            ) => void
+            receive: (channel: string, func: (event: any, ...arg: any[]) => void) => void
+            receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
             getVersion: (version: string) => string
             isAppDev: () => boolean
@@ -51,18 +45,9 @@ declare global {
         }
         desktopEvents: {
             send: (name: any, ...args: any[]) => void
-            on: (
-                name: string,
-                listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
-            ) => void
-            once: (
-                channel: string,
-                func: (event: any, ...arg: any[]) => void,
-            ) => void
-            removeListener: (
-                name: string,
-                listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void,
-            ) => void
+            on: (name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => void
+            once: (channel: string, func: (event: any, ...arg: any[]) => void) => void
+            removeListener: (name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => void
             removeAllListeners: (channel: string) => void
             invoke: (name: string, ...args: any[]) => Promise<any>
         }

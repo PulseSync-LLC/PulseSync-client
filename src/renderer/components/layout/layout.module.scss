@@ -101,11 +101,7 @@
                 width: 100%;
                 height: fit-content;
 
-                background: linear-gradient(
-                    270deg,
-                    rgba(41, 44, 54, 0) 0%,
-                    #262832 100%
-                );
+                background: linear-gradient(270deg, rgba(41, 44, 54, 0) 0%, #262832 100%);
 
                 & > .alert_info {
                     display: flex;

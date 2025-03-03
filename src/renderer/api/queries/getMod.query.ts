@@ -10,6 +10,7 @@ export default gql`
             createdAt
             showModal
             checksum
+            spoof
         }
     }
 `

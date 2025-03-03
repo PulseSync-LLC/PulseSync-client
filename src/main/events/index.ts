@@ -16,8 +16,8 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { downloadTrack } from './handlers/downloadTrack'
-import * as Sentry from "@sentry/electron/main";
-import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron';
+import * as Sentry from '@sentry/electron/main'
+import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -54,15 +54,15 @@ const registerWindowEvents = (window: BrowserWindow): void => {
 }
 
 const registerSystemEvents = (window: BrowserWindow): void => {
-    ipcMain.on('electron-corsanywhereport', (event) => {
+    ipcMain.on('electron-corsanywhereport', event => {
         event.returnValue = corsAnywherePort
     })
 
-    ipcMain.on('electron-isdev', (event) => {
+    ipcMain.on('electron-isdev', event => {
         event.returnValue = isAppDev
     })
 
-    ipcMain.handle('getVersion', async (event) => {
+    ipcMain.handle('getVersion', async event => {
         const version = app.getVersion()
         if (version) return version
     })
@@ -87,7 +87,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
 
     ipcMain.on('open-file', (event, markdownContent) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        fs.writeFile(tempFilePath, markdownContent, (err) => {
+        fs.writeFile(tempFilePath, markdownContent, err => {
             if (err) {
                 logger.main.error('Error writing to file:', err)
                 return
@@ -100,12 +100,12 @@ const registerFileOperations = (window: BrowserWindow): void => {
             } else {
                 command = `xdg-open "${tempFilePath}"`
             }
-            exec(command, (error) => {
+            exec(command, error => {
                 if (error) {
                     logger.main.error('Error opening the file:', error)
                     return
                 }
-                fs.unlink(tempFilePath, (unlinkErr) => {
+                fs.unlink(tempFilePath, unlinkErr => {
                     if (unlinkErr) {
                         logger.main.error('Error deleting the file:', unlinkErr)
                     } else {
@@ -131,28 +131,19 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 break
             }
             case 'themePath': {
-                const themesFolderPath = path.join(
-                    app.getPath('appData'),
-                    'PulseSync',
-                    'addons',
-                )
+                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
                 await shell.openPath(themesFolderPath)
                 break
             }
             case 'theme': {
-                const themeFolder = path.join(
-                    app.getPath('appData'),
-                    'PulseSync',
-                    'addons',
-                    data.themeName,
-                )
+                const themeFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons', data.themeName)
                 await shell.openPath(themeFolder)
                 break
             }
         }
     })
 
-    ipcMain.handle('dialog:openFile', async (event) => {
+    ipcMain.handle('dialog:openFile', async event => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
         })
@@ -204,12 +195,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
         try {
             const url = data
             const fileName = path.basename(url)
-            const downloadPath = path.join(
-                app.getPath('appData'),
-                'PulseSync',
-                'downloads',
-                fileName,
-            )
+            const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
             fs.mkdirSync(path.dirname(downloadPath), { recursive: true })
             const response = await axios({
                 url,
@@ -233,7 +219,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                 mainWindow.setProgressBar(-1)
                 fs.chmodSync(downloadPath, 0o755)
                 setTimeout(() => {
-                    execFile(downloadPath, (error) => {
+                    execFile(downloadPath, error => {
                         if (error) {
                             event.reply('update-music-failure', {
                                 success: false,
@@ -249,7 +235,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                     })
                 }, 100)
             })
-            writer.on('error', (error) => {
+            writer.on('error', error => {
                 fs.unlinkSync(downloadPath)
                 mainWindow.setProgressBar(-1)
                 event.reply('update-music-failure', {
@@ -268,8 +254,8 @@ const registerMediaEvents = (window: BrowserWindow): void => {
 }
 
 const registerDeviceEvents = (window: BrowserWindow): void => {
-    ipcMain.on('get-music-device', (event) => {
-        si.system().then((data) => {
+    ipcMain.on('get-music-device', event => {
+        si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4({ random: Buffer.from(data.uuid) })}`
         })
     })
@@ -292,7 +278,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on('updater-start', async (event, data) => {
         await checkOrFindUpdate()
         updater.start()
-        updater.onUpdate((version) => {
+        updater.onUpdate(version => {
             mainWindow.webContents.send('update-available', version)
             mainWindow.flashFrame(true)
             updateAvailable = true
@@ -323,15 +309,14 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             await rpc_connect()
         }
         authorized = data.status
-        if(data?.user) {
+        if (data?.user) {
             Sentry.setUser({
                 id: data.user.id,
                 username: data.user.username,
                 email: data.user.email,
-            });
-        }
-        else {
-            Sentry.setUser(null);
+            })
+        } else {
+            Sentry.setUser(null)
         }
     })
 
@@ -360,7 +345,7 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
         return new Notification({ title: data.title, body: data.body }).show()
     })
 
-    ipcMain.handle('needModalUpdate', async (event) => {
+    ipcMain.handle('needModalUpdate', async event => {
         if (reqModal <= 0) {
             reqModal++
             return updated
@@ -369,7 +354,7 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
 }
 
 const registerLogArchiveEvent = (window: BrowserWindow): void => {
-    ipcMain.on('getLogArchive', async (event) => {
+    ipcMain.on('getLogArchive', async event => {
         const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
         const now = new Date()
         const year = now.getFullYear()
@@ -399,25 +384,15 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
 
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
         try {
-            fs.writeFileSync(
-                systemInfoPath,
-                JSON.stringify(systemInfo, null, 2),
-                'utf-8',
-            )
+            fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 2), 'utf-8')
         } catch (error) {
-            logger.main.error(
-                `Error while creating system-info.json: ${error.message}`,
-            )
+            logger.main.error(`Error while creating system-info.json: ${error.message}`)
         }
 
         try {
             const zip = new AdmZip()
 
-            zip.addLocalFolder(
-                logDirPath,
-                '',
-                (filePath) => !filePath.endsWith('.zip') && filePath !== archiveName,
-            )
+            zip.addLocalFolder(logDirPath, '', filePath => !filePath.endsWith('.zip') && filePath !== archiveName)
 
             zip.writeZip(archivePath)
 
@@ -451,11 +426,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
             const defaultCssContent = `{}`
             const defaultScriptContent = ``
-            const extensionsPath = path.join(
-                app.getPath('appData'),
-                'PulseSync',
-                'themes',
-            )
+            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
             if (!fs.existsSync(extensionsPath)) {
                 fs.mkdirSync(extensionsPath)
             }
@@ -470,21 +441,12 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
             const extensionPath = path.join(extensionsPath, newName)
             fs.mkdirSync(extensionPath)
-            fs.writeFileSync(
-                path.join(extensionPath, 'metadata.json'),
-                JSON.stringify(defaultAddon, null, 2),
-            )
-            fs.writeFileSync(
-                path.join(extensionPath, 'style.css'),
-                defaultCssContent,
-            )
-            fs.writeFileSync(
-                path.join(extensionPath, 'script.js'),
-                defaultScriptContent,
-            )
+            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAddon, null, 2))
+            fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent)
+            fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent)
             return { success: true, name: newName }
         } catch (error) {
-            HandleErrorsElectron.handleError('event-handler', 'create-new-extension', 'try-catch', error);
+            HandleErrorsElectron.handleError('event-handler', 'create-new-extension', 'try-catch', error)
             logger.main.error('Error creating new extension:', error)
             return { success: false, error: error.message }
         }
@@ -497,11 +459,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
             const zip = new AdmZip()
             zip.addLocalFolder(data.path)
-            const outputFilePath = path.join(
-                app.getPath('userData'),
-                'exports',
-                data.name,
-            )
+            const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
             const outputPath = path.format({
                 dir: path.dirname(outputFilePath),
                 name: path.basename(outputFilePath, '.pext'),

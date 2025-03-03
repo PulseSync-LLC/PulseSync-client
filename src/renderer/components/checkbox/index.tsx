@@ -11,14 +11,7 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
     onChange?: (event: any) => void
 }
 
-const Checkbox: React.FC<Props> = ({
-    children,
-    disabled,
-    description,
-    checkType,
-    isChecked,
-    onChange,
-}) => {
+const Checkbox: React.FC<Props> = ({ children, disabled, description, checkType, isChecked, onChange }) => {
     const [isActive, setIsActive] = useState(false)
     const { app, setApp } = useContext(userContext)
     useEffect(() => {
@@ -65,10 +58,7 @@ const Checkbox: React.FC<Props> = ({
                 case 'enableRpcButtonListen':
                     window.discordRpc.clearActivity()
                     window.desktopEvents?.send('GET_TRACK_INFO')
-                    window.electron.store.set(
-                        'discordRpc.enableRpcButtonListen',
-                        event.target.checked,
-                    )
+                    window.electron.store.set('discordRpc.enableRpcButtonListen', event.target.checked)
                     setApp({
                         ...app,
                         discordRpc: {
@@ -80,10 +70,7 @@ const Checkbox: React.FC<Props> = ({
                 case 'enableGithubButton':
                     window.discordRpc.clearActivity()
                     window.desktopEvents?.send('GET_TRACK_INFO')
-                    window.electron.store.set(
-                        'discordRpc.enableGithubButton',
-                        event.target.checked,
-                    )
+                    window.electron.store.set('discordRpc.enableGithubButton', event.target.checked)
                     setApp({
                         ...app,
                         discordRpc: {
@@ -95,10 +82,7 @@ const Checkbox: React.FC<Props> = ({
                 case 'displayPause':
                     window.discordRpc.clearActivity()
                     window.desktopEvents?.send('GET_TRACK_INFO')
-                    window.electron.store.set(
-                        'discordRpc.displayPause',
-                        event.target.checked,
-                    )
+                    window.electron.store.set('discordRpc.displayPause', event.target.checked)
                     setApp({
                         ...app,
                         discordRpc: {
@@ -110,10 +94,7 @@ const Checkbox: React.FC<Props> = ({
                 case 'showVersionOrDevice':
                     window.discordRpc.clearActivity()
                     window.desktopEvents?.send('GET_TRACK_INFO')
-                    window.electron.store.set(
-                        'discordRpc.showVersionOrDevice',
-                        event.target.checked,
-                    )
+                    window.electron.store.set('discordRpc.showVersionOrDevice', event.target.checked)
                     setApp({
                         ...app,
                         discordRpc: {
@@ -127,11 +108,7 @@ const Checkbox: React.FC<Props> = ({
     }
 
     return (
-        <label
-            className={`${styles.checkbox} ${isActive ? styles.active : ''} ${
-                disabled ? styles.disabled : ''
-            }`}
-        >
+        <label className={`${styles.checkbox} ${isActive ? styles.active : ''} ${disabled ? styles.disabled : ''}`}>
             <div className={styles.checkboxInner}>
                 <div className={styles.children_content}>{children}</div>
                 <input

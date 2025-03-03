@@ -7,12 +7,7 @@ import { AddonConfig, ButtonAction } from './types'
 interface ConfigurationSettingsProps {
     configData: AddonConfig
     editMode: boolean
-    updateConfigField: (
-        sectionIndex: number,
-        itemIndex: number | null,
-        key: string,
-        value: any,
-    ) => void
+    updateConfigField: (sectionIndex: number, itemIndex: number | null, key: string, value: any) => void
     updateButtonConfig: (
         sectionIndex: number,
         itemIndex: number,
@@ -21,11 +16,7 @@ interface ConfigurationSettingsProps {
         newValue: string,
     ) => void
     resetConfigField: (sectionIndex: number, itemIndex: number) => void
-    resetButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-    ) => void
+    resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     addSection: () => void
     removeSection: (sectionIndex: number) => void
     addItem: (sectionIndex: number, itemType: string) => void
@@ -56,7 +47,7 @@ const ConfigurationSettings: React.FC<ConfigurationSettingsProps> = ({
                         type="text"
                         className={styles.addSectionInput}
                         value={newSectionTitle}
-                        onChange={(e) => setNewSectionTitle(e.target.value)}
+                        onChange={e => setNewSectionTitle(e.target.value)}
                         placeholder="Название секции"
                     />
                     <button
