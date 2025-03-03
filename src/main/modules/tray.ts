@@ -35,7 +35,7 @@ function createTray() {
         new MenuItem({
             label: 'Директория аддонов',
             click: async () => {
-                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
                 await shell.openPath(themesFolderPath)
             },
         }),

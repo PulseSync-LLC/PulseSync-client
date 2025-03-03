@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/electron/main'
 import logger from '../logger'
 import { app } from 'electron'
 
-const CRASH_FILE = path.join(app.getPath('appData'), 'PulseSync', 'logs', 'crash.log')
+const CRASH_FILE = path.join(app.getPath('appData'), 'PulseSync', 'logs', 'crash_app.log')
 
 export class HandleErrorsElectron {
     public static handleError(className: string, method: string, block: string, error: unknown): void {
