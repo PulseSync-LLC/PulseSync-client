@@ -56,7 +56,7 @@ function App() {
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [addons, setAddons] = useState<AddonInterface[]>(AddonInitials)
-    const [features, setFeatures] = useState({})
+    const [features, setFeatures] = useState<any>({})
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<AddonInterface | null>(null)
     const [loading, setLoading] = useState(true)
@@ -373,6 +373,7 @@ function App() {
             toast.custom('success', 'На связи', 'Соединение восстановлено')
         }
     }, [socketError])
+
     const fetchModInfo = async (currentApp: SettingsInterface) => {
         try {
             const res = await apolloClient.query({
@@ -411,6 +412,7 @@ function App() {
             console.error('Failed to fetch mod info:', e)
         }
     }
+
     useEffect(() => {
         if (user.id !== '-1') {
             if (!socket.connected) {
@@ -434,26 +436,15 @@ function App() {
             }
             fetchAppInfo()
             fetchModInfo(app)
+            const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            const intervalId = setInterval(fetchModInfo, 10 * 60 * 1000)
-
-            if (!user.badges.some(badge => badge.type === 'supporter') && !app.discordRpc.enableGithubButton) {
-                setApp({
-                    ...app,
-                    discordRpc: {
-                        ...app.discordRpc,
-                        enableGithubButton: true,
-                    },
-                })
-                window.electron.store.set('discordRpc.enableGithubButton', true)
-            }
             window.desktopEvents?.send('WEBSOCKET_START')
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
                 setAddons(fetchedAddons)
             })
 
             return () => {
-                clearInterval(intervalId)
+                clearInterval(modCheckId)
             }
         } else {
             router.navigate('/', { replace: true })
@@ -949,23 +940,45 @@ const Player: React.FC<any> = ({ children }) => {
         }
     }, [app.settings, user, track, app.discordRpc])
     useEffect(() => {
-        if (socket && features.sendTrack && track.title !== '' && track.sourceType !== 'ynison') {
-            const { title, status, progress } = track
-            if (
-                title !== lastSentTrack.current.title ||
-                status !== lastSentTrack.current.status ||
-                progress.position !== lastSentTrack.current.progressPlayed
-            ) {
-                socket.emit('send_track', track)
+        if (socket) {
+            if (features.sendTrack && track.title !== '' && track.sourceType !== 'ynison') {
+                const { title, status, progress } = track
+                if (
+                    title !== lastSentTrack.current.title ||
+                    status !== lastSentTrack.current.status ||
+                    progress.position !== lastSentTrack.current.progressPlayed
+                ) {
+                    socket.emit('send_track', track)
 
-                lastSentTrack.current = {
-                    title,
-                    status,
-                    progressPlayed: progress.position,
+                    lastSentTrack.current = {
+                        title,
+                        status,
+                        progressPlayed: progress.position,
+                    }
                 }
             }
         }
     }, [socket, track, features.sendTrack])
+    useEffect(() => {
+        if (socket) {
+            const parseExtensions = () => {
+                if (features.sendMetrics) {
+                    const enabledTheme = window.electron.store.get('addons.theme')
+                    const enabledScripts = window.electron.store.get('addons.scripts')
+                    socket.emit('send_metrics', {
+                        theme: enabledTheme || 'Default',
+                        scripts: enabledScripts || [],
+                    })
+                }
+            }
+            parseExtensions()
+            const metricCheckId = setInterval(parseExtensions, 15 * 60 * 1000)
+
+            return () => {
+                clearInterval(metricCheckId)
+            }
+        }
+    }, [socket, features.sendMetrics])
     return (
         <PlayerContext.Provider
             value={{

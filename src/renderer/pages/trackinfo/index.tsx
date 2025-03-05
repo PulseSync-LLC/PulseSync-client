@@ -226,12 +226,12 @@ export default function TrackInfoPage() {
                                                 ) : null}
                                             </div>
                                             <CheckboxNav
-                                                disabled={!user.badges.some(badge => badge.type === 'supporter')}
                                                 checkType="enableGithubButton"
-                                                description="Активируйте этот параметр, чтобы показать что вы любите разработчиков."
+                                                description="Если включить, то в активности появится кнопка, ведущая на гитхаб-репозиторий проекта."
                                             >
                                                 Включить кнопку (PulseSync Project)
                                             </CheckboxNav>
+                                            <div className={theme.line}></div>
                                             <CheckboxNav
                                                 checkType="showVersionOrDevice"
                                                 description="Если включить, то в активности при наведении на иконку будет показываться версия приложения, а не устройство, где играет трек."

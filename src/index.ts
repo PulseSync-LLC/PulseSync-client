@@ -481,26 +481,7 @@ export async function prestartCheck() {
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
-    const readdir = promisify(fs.readdir)
-    const rename = promisify(fs.rename)
 
-    await (async () => {
-        const pulseSyncPath = path.join(app.getPath('appData'), 'PulseSync')
-        const themesFolderPath = path.join(pulseSyncPath, 'themes')
-        const addonsFolderPath = path.join(pulseSyncPath, 'addons')
-
-        try {
-            const files = await readdir(themesFolderPath)
-            if (files.length) {
-                await rename(themesFolderPath, addonsFolderPath)
-                logger.main.info('Папка themes переименована в addons.')
-            }
-        } catch (err) {
-            if (err.code !== 'ENOENT') {
-                logger.main.error('Ошибка при переименовании папки themes:', err)
-            }
-        }
-    })()
     const asarCopy = path.join(musicPath, 'app.backup.asar')
 
     if (!store.has('discordRpc.enableGithubButton')) {

@@ -48,10 +48,6 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
-        crashLog: {
-            type: 'file',
-            filename: path.join(LOG_PATH, 'crash.log'),
-        },
         debugLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'debug.log'),
@@ -87,10 +83,6 @@ log4js.configure({
             appenders: ['out', 'updaterLog'],
             level: 'debug',
         },
-        crash: {
-            appenders: ['out', 'crashLog'],
-            level: 'debug',
-        },
         debug: {
             appenders: ['out', 'debugLog'],
             level: 'debug',
@@ -111,7 +103,6 @@ export default {
     main: log4js.getLogger('main'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
-    crash: log4js.getLogger('crash'),
     debug: log4js.getLogger('debug'),
     discordRpc: log4js.getLogger('discordRpc'),
 }

@@ -335,8 +335,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('log-error', (event, errorInfo) => {
-        const logMessage = `[${errorInfo.type}] ${errorInfo.message}\n${errorInfo.stack || ''}\n\n`
-        logger.crash.error(logMessage)
+        HandleErrorsElectron.handleError('renderer-error', errorInfo.type, errorInfo.message, errorInfo.componentStack)
     })
 }
 
@@ -426,7 +425,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
             const defaultCssContent = `{}`
             const defaultScriptContent = ``
-            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'themes')
+            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
             if (!fs.existsSync(extensionsPath)) {
                 fs.mkdirSync(extensionsPath)
             }

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useContext, useEffect, useRef, useState, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -33,7 +33,6 @@ export default function ExtensionPage() {
 
     const [currentTheme, setCurrentTheme] = useState(window.electron.store.get('addons.theme') || 'Default')
     const [enabledScripts, setEnabledScripts] = useState<string[]>(window.electron.store.get('addons.scripts') || [])
-
     const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
     const [hideEnabled, setHideEnabled] = useState(window.electron.store.get('addons.hideEnabled') || false)
@@ -132,25 +131,30 @@ export default function ExtensionPage() {
         setSelectedTags(updated)
     }
 
-    function filterAndSortAddons(list: AddonInterface[]) {
+    function filterAndSortAddons(list: AddonInterface[], query: string) {
         return list
             .filter(item => item.name !== 'Default')
             .map(item => {
                 let authorString = ''
-
                 if (typeof item.author === 'string') {
                     authorString = item.author.toLowerCase()
                 } else if (Array.isArray(item.author)) {
                     authorString = item.author.map(id => String(id).toLowerCase()).join(', ')
                 }
-
+                let matches
+                if (!query) {
+                    matches = true
+                } else {
+                    matches = item.name.toLowerCase().includes(query) || authorString.includes(query)
+                    if (!matches && query.length > 2) {
+                        matches =
+                            stringSimilarity.compareTwoStrings(item.name.toLowerCase(), query) > 0.35 ||
+                            stringSimilarity.compareTwoStrings(authorString, query) > 0.35
+                    }
+                }
                 return {
                     ...item,
-                    matches:
-                        item.name.toLowerCase().includes(searchQuery) ||
-                        authorString.includes(searchQuery) ||
-                        stringSimilarity.compareTwoStrings(item.name.toLowerCase(), searchQuery) > 0.35 ||
-                        stringSimilarity.compareTwoStrings(authorString, searchQuery) > 0.35,
+                    matches,
                 }
             })
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
@@ -165,7 +169,7 @@ export default function ExtensionPage() {
         return checkMissingFields(addon).length
     }
 
-    // Приоритет
+    // Приоритет:
     // 0 = включённая тема
     // 1 = включённый скрипт
     // 2 = остальное
@@ -184,9 +188,9 @@ export default function ExtensionPage() {
         return 2
     }
 
-    function getMergedSortedAddons(): AddonInterface[] {
+    const mergedAddons = useMemo(() => {
         let filtered = filterAddonsByTags(addons, selectedTags)
-        filtered = filterAndSortAddons(filtered)
+        filtered = filterAndSortAddons(filtered, searchQuery)
 
         if (hideEnabled) {
             filtered = filtered.filter(item => {
@@ -209,9 +213,7 @@ export default function ExtensionPage() {
         })
 
         return filtered
-    }
-
-    const mergedAddons = getMergedSortedAddons()
+    }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts])
 
     useEffect(() => {
         setMaxAddonCount(prev => Math.max(prev, mergedAddons.length))
