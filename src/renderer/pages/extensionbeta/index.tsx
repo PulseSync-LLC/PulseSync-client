@@ -215,6 +215,10 @@ export default function ExtensionPage() {
         return filtered
     }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts])
 
+    const availableThemes = useMemo(() => {
+        return addons.filter(addon => addon.type === 'theme' && addon.name !== 'Default')
+    }, [addons])
+
     useEffect(() => {
         setMaxAddonCount(prev => Math.max(prev, mergedAddons.length))
     }, [mergedAddons])
@@ -396,36 +400,53 @@ export default function ExtensionPage() {
                                 </div>
                             )}
                         </div>
-
-                        {/* Сетка с аддонами */}
                         <div className={globalStyles.container30x15}>
                             <div className={extensionStyles.preview}>
                                 <div className={extensionStyles.previewSelection}>
-                                    <div
-                                        className={extensionStyles.grid}
-                                        style={{
-                                            gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
-                                        }}
-                                    >
-                                        {mergedAddons.map(addon => {
-                                            const checked =
-                                                addon.type === 'theme'
-                                                    ? addon.directoryName === currentTheme
-                                                    : enabledScripts.includes(addon.directoryName)
+                                    {availableThemes.length === 0 ? (
+                                        <div className={extensionStyles.noThemes}>
+                                            <div className={extensionStyles.noThemesText}>
+                                                У вас нет установленных тем.
+                                            </div>
+                                            <div className={extensionStyles.noThemesText}>
+                                                Зайдите в наш Discord, чтобы скачать темы:&nbsp;
+                                                <a
+                                                    className={extensionStyles.noThemesLink}
+                                                    href="https://discord.gg/qy42uGTzRy"
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    https://discord.gg/qy42uGTzRy
+                                                </a>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div
+                                            className={extensionStyles.grid}
+                                            style={{
+                                                gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
+                                            }}
+                                        >
+                                            {mergedAddons.map(addon => {
+                                                const checked =
+                                                    addon.type === 'theme'
+                                                        ? addon.directoryName === currentTheme
+                                                        : enabledScripts.includes(addon.directoryName)
 
-                                            return (
-                                                <ExtensionCard
-                                                    key={addon.name}
-                                                    theme={addon}
-                                                    isChecked={checked}
-                                                    onCheckboxChange={(_unused, newIsChecked) =>
-                                                        handleCheckboxChange(addon, newIsChecked)
-                                                    }
-                                                    className={addon.matches ? 'highlight' : 'dimmed'}
-                                                />
-                                            )
-                                        })}
-                                    </div>
+                                                return (
+                                                    <ExtensionCard
+                                                        key={addon.name}
+                                                        theme={addon}
+                                                        isChecked={checked}
+                                                        onCheckboxChange={(_unused, newIsChecked) =>
+                                                            handleCheckboxChange(addon, newIsChecked)
+                                                        }
+                                                        className={addon.matches ? 'highlight' : 'dimmed'}
+                                                    />
+                                                )
+                                            })}
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>

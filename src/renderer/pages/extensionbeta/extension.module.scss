@@ -337,3 +337,29 @@ label {
         color: white !important;
     }
 }
+
+.noThemes {
+    width: -webkit-fill-available;
+    height: 80vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    & > .noThemesText {
+        font-weight: 700;
+        font-size: 24px;
+        line-height: 140%;
+        text-align: center;
+
+        color: #ffffff;
+
+        & > .noThemesLink {
+            color: #3468f2;
+
+            &:hover {
+                text-decoration: underline;
+            }
+        }
+    }
+}
