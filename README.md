@@ -1,6 +1,7 @@
 # PulseSync
-
-![image](https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/e05402ff-d1b4-451b-9a1e-704be7a5baac)
+<a href="https://discord.gg/qy42uGTzRy">
+     <img alt="pulsesync" src="https://github.com/user-attachments/assets/4fa03fe1-c4ed-49f5-806b-2a182153b75c">
+</a>
 
 ## О проекте
 
@@ -8,23 +9,20 @@
 
 ## Установка
 
-Скачайте установщик с [официального сайта](#) или со страницы [релизов](#) на GitHub.
+Скачать старую версию можно со страницы [релизов](https://github.com/PulseSync-LLC/YMusic-DRPC/releases) на GitHub. Новая версия будет доступна чуть позже
 
 ## Скриншоты
 
 <p align="center">
-     <img alt="" src="https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/9305e6f8-3bc8-424b-b9e4-43304a7a7a8f">
-     <img alt="" src="https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/01a65f73-7835-4541-aa69-260dd08ad8e8">
-     <img alt="" src="https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/fdf8b9d4-6dcb-4776-978d-701533bfd5de">
+     <img alt="main page with rpc" src="https://github.com/user-attachments/assets/51da4c75-8573-486c-8a6a-6dd815b1e622">
+     <img alt="extension page" src="https://github.com/user-attachments/assets/c707af55-84bc-48aa-bd03-40848d964848">
 </p>
 
 
 ## В разработке
-- Темы для Яндекс музыки
 - **Совместное прослушивание в виде комнат
-- **Профили пользователей
 
-**В планах если у приложения будет актив, подробней в дизайне [Figma Design](https://www.figma.com/design/81dDkj0Wik1noNiBrZrbh1/pulsesync.dev?node-id=0%3A5&t=La6PjOZTNtmM1eNP-1)
+**В планах если у приложения будет актив, подробней в дизайне [Figma Design](https://www.figma.com/design/jjfbkZ7VmUoAOhYecPJpLQ/pulsesync?t=Ul32BGAz6Dg3eNKt-0)
 
 ## Ошибки и прочие проблемы
 
@@ -45,7 +43,7 @@
 
 ## Лицензия
 
-Проект распространяется под [простой (неисключительной) лицензией](https://github.com/PulseSync-LLC/YMusic-DRPC/blob/patcher-ts/LICENSE).
+Проект распространяется под [простой (неисключительной) лицензией](https://github.com/PulseSync-LLC/YMusic-DRPC/blob/dev/LICENSE).
 
 ---
 
