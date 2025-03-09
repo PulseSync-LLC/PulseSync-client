@@ -9,7 +9,7 @@
 
 ## Установка
 
-Скачайте установщик старой версии со страницы [релизов](https://github.com/PulseSync-LLC/YMusic-DRPC/releases) на GitHub. Новая версия будет доступна чуть позже
+Скачать старую версию можно со страницы [релизов](https://github.com/PulseSync-LLC/YMusic-DRPC/releases) на GitHub. Новая версия будет доступна чуть позже
 
 ## Скриншоты
 
