@@ -25,7 +25,14 @@ export const plugins = [
         Buffer: ['buffer', 'Buffer'],
         process: 'process/browser',
     }),
-
+    new webpack.SourceMapDevToolPlugin({
+        filename: '[file].map',
+        moduleFilenameTemplate: (info: { absoluteResourcePath: any }) =>
+            'webpack:///' + path.relative(__dirname, info.absoluteResourcePath).replace(/\\/g, '/'),
+        fallbackModuleFilenameTemplate: 'webpack:///[resource-path]?[hash]',
+        publicPath: '~/',
+        append: '\n//# sourceMappingURL=[url]',
+    }),
     new NodePolyfillPlugin(),
     // sentryWebpackPlugin({
     //     org: 'pulsesync',

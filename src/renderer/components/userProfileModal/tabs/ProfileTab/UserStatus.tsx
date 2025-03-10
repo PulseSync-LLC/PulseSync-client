@@ -13,7 +13,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
     const statusUser = getStatus(userProfile, true)
 
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
-        if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing') {
+        if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && userProfile.currentTrack.trackSource !== 'UGC') {
             e.stopPropagation()
             const albumId = userProfile.currentTrack.albums[0].id
             window.desktopEvents?.send(
@@ -31,7 +31,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
                     '--statusColorProfile': statusColor,
                     '--statusColorDark': statusColorDark,
                     cursor:
-                        userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
+                        userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && userProfile.currentTrack.trackSource !== 'UGC'
                             ? 'pointer'
                             : 'default',
                 } as React.CSSProperties

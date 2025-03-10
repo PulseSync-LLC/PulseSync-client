@@ -24,7 +24,6 @@ export const mainConfig: Configuration = {
         type: 'filesystem',
         allowCollectingMemory: true,
     },
-    devtool: 'source-map',
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'static'),
