@@ -5,7 +5,7 @@ import { store } from '../storage'
 import { mainWindow } from '../../../index'
 import axios from 'axios'
 import crypto from 'crypto'
-import closeYandexMusic, { isYandexMusicRunning } from '../../utils/appUtils'
+import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic } from '../../utils/appUtils'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
@@ -14,9 +14,10 @@ import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
-const savePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources', 'app.asar')
+const musicPath = getPathToYandexMusic()
+const savePath = path.join(musicPath, 'app.asar')
 
-const backupPath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources', 'app.backup.asar')
+const backupPath = path.join(musicPath, 'app.backup.asar')
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-app-asar', async (event, { version, link, checksum, force, spoof }) => {
         try {

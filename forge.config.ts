@@ -33,6 +33,18 @@ const forge_config: ForgeConfig = {
                 macUpdateManifestBaseUrl: `${config.UPDATE_URL}/beta/darwin/${arch}`,
             }),
         },
+        {
+            "name": "@electron-forge/maker-deb",
+            "config": {
+                "desktopTemplate": "pulsesync.desktop"
+            }
+        },
+        {
+            "name": "@electron-forge/maker-rpm",
+            "config": {
+                "desktopTemplate": "pulsesync.desktop"
+            }
+        },
         new MakerDMG({
             name: 'PulseSync',
             background: './static/assets/images/no_banner.png',
@@ -85,8 +97,7 @@ const forge_config: ForgeConfig = {
             console.log(
                 `build app ${platform}-${arch} with electron ${electronVersion}`,
             )
-            const isMac = () => os.platform() === 'darwin'
-            if (!isMac()) {
+            if (os.platform() !== 'darwin') {
                 const outDir = path.join(buildPath, '..', '..', 'modules')
                 const sourceDir = path.join(__dirname, 'modules')
                 await fs.ensureDir(outDir)

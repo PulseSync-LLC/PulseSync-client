@@ -81,7 +81,7 @@ if (!isAppDev) {
 function checkCLIArguments() {
     const args = process.argv.slice(1)
     if (args.length > 0 && !isAppDev) {
-        if (args.some(arg => arg.startsWith('pulsesync://'))) {
+        if (args.some(arg => arg.startsWith('pulsesync://') || arg.endsWith('.pext'))) {
             return
         }
         if (args.includes('--updated')) {
@@ -461,8 +461,7 @@ app.whenReady().then(async () => {
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
-    const musicPath = await getPathToYandexMusic()
-
+    const musicPath = getPathToYandexMusic()
     if (!fs.existsSync(musicPath)) {
         new Notification({
             title: 'Яндекс Музыка не найдена 😡',

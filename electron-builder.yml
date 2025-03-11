@@ -30,7 +30,16 @@ win:
 mac:
     category: public.app-category.developer-tools
     icon: ./icons/win/icon.icns
-
+    protocols:
+        - name: "PulseSync Deep Link"
+          schemes: [ "pulsesync" ]
+linux:
+  category: DeveloperTools
+  target:
+    - AppImage
+    - deb
+  mimeTypes:
+    - x-scheme-handler/pulsesync;
 nsis:
     oneClick: false
     createDesktopShortcut: true

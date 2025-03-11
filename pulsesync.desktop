@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=PulseSync
+Exec=/usr/bin/pulsesync %U
+Type=Application
+Terminal=false
+MimeType=x-scheme-handler/pulsesync;

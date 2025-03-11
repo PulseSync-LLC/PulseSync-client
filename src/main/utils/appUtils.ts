@@ -12,28 +12,40 @@ interface ProcessInfo {
 }
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
-    try {
-        const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
-        const { stdout } = await execAsync(command, { encoding: 'utf8' })
-
-        const processes = stdout.split('\n').filter(line => line.trim() !== '')
-        const yandexProcesses: ProcessInfo[] = []
-
-        processes.forEach(line => {
-            const parts = line.split('","')
-            if (parts.length > 1) {
-                const pidStr = parts[1].replace(/"/g, '').trim()
-                const pid = parseInt(pidStr, 10)
-                if (!isNaN(pid)) {
-                    yandexProcesses.push({ pid })
+    if (isMac()) {
+        try {
+            const command = `pgrep -f "Яндекс Музыка"`
+            const { stdout } = await execAsync(command, { encoding: 'utf8' })
+            const processes = stdout.split('\n').filter(line => line.trim() !== '')
+            const yandexProcesses: ProcessInfo[] = processes
+                .map(pid => ({ pid: parseInt(pid, 10) }))
+                .filter(proc => !isNaN(proc.pid))
+            return yandexProcesses
+        } catch (error) {
+            console.error('Error retrieving Yandex Music processes on Mac:', error)
+            return []
+        }
+    } else {
+        try {
+            const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
+            const { stdout } = await execAsync(command, { encoding: 'utf8' })
+            const processes = stdout.split('\n').filter(line => line.trim() !== '')
+            const yandexProcesses: ProcessInfo[] = []
+            processes.forEach(line => {
+                const parts = line.split('","')
+                if (parts.length > 1) {
+                    const pidStr = parts[1].replace(/"/g, '').trim()
+                    const pid = parseInt(pidStr, 10)
+                    if (!isNaN(pid)) {
+                        yandexProcesses.push({ pid })
+                    }
                 }
-            }
-        })
-
-        return yandexProcesses
-    } catch (error) {
-        console.error('Error retrieving Yandex Music processes:', error)
-        return []
+            })
+            return yandexProcesses
+        } catch (error) {
+            console.error('Error retrieving Yandex Music processes:', error)
+            return []
+        }
     }
 }
 
@@ -59,9 +71,9 @@ export async function closeYandexMusic(): Promise<void> {
     }
 }
 
-export async function getPathToYandexMusic() {
+export function getPathToYandexMusic() {
     if (isMac()) {
-        return path.join('/Applications', 'Yandex Music.app', 'Contents', 'Resources')
+        return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
     } else {
         return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
     }
@@ -109,5 +121,3 @@ export const getFolderSize = async (folderPath: any) => {
     return totalSize
 }
 export const formatJson = (data: any) => JSON.stringify(data, null, 4)
-
-export default closeYandexMusic
