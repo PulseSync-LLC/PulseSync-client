@@ -1,4 +1,4 @@
-import React, { CSSProperties, useState, useEffect, useRef } from 'react'
+import React, { CSSProperties, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import useInView from '../../hooks/useInView'
 import AddonInterface from '../../api/interfaces/addon.interface'
@@ -7,7 +7,7 @@ import * as cardStyles from './card.module.scss'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
 
 interface ExtensionCardProps {
-    theme: AddonInterface
+    addon: AddonInterface
     isChecked: boolean
     onCheckboxChange: (themeName: string, isChecked: boolean) => void
     className?: string
@@ -15,15 +15,17 @@ interface ExtensionCardProps {
 }
 
 const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
-    ({ theme, isChecked, onCheckboxChange, className, style }) => {
+    ({ addon, isChecked, onCheckboxChange, className, style }) => {
         const navigate = useNavigate()
+        const { openUserProfile } = useUserProfileModal()
+
         const [imageSrc, setImageSrc] = useState('static/assets/images/no_themeImage.png')
         const [bannerSrc, setBannerSrc] = useState('static/assets/images/no_themeBackground.png')
         const [showUserInfo, setShowUserInfo] = useState(false)
         const cardRef = useRef<HTMLDivElement | null>(null)
         const [bannerRef, isBannerInView] = useInView({ threshold: 0.1 })
 
-        function checkMissingFields(addon: AddonInterface): string[] {
+        const missingFields = useMemo(() => {
             const missing: string[] = []
             if (!addon.name) missing.push('Отсутствует name')
             if (!addon.author) missing.push('Отсутствует author')
@@ -32,35 +34,30 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
             if (!addon.banner) missing.push('Отсутствует banner')
             if (!addon.type) missing.push('Неопределенный type! type должен быть либо theme либо script')
             return missing
-        }
+        }, [addon])
 
-        const missingFields = checkMissingFields(theme)
-        const { openUserProfile } = useUserProfileModal()
-
-        const getEncodedPath = (p: string) => encodeURI(p.replace(/\\/g, '/'))
+        const getEncodedPath = useCallback((p: string) => encodeURI(p.replace(/\\/g, '/')), [])
 
         useEffect(() => {
             let mounted = true
-            if (theme.path && theme.image) {
-                const src = getEncodedPath(`${theme.path}/${theme.image}`)
+            if (addon.path && addon.image) {
+                const src = getEncodedPath(`${addon.path}/${addon.image}`)
                 fetch(src)
                     .then(r => {
                         if (r.ok && mounted) setImageSrc(src)
                     })
                     .catch(() => {
-                        if (mounted) {
-                            setImageSrc('static/assets/images/no_themeImage.png')
-                        }
+                        if (mounted) setImageSrc('static/assets/images/no_themeImage.png')
                     })
             }
             return () => {
                 mounted = false
             }
-        }, [theme])
+        }, [addon.path, addon.image, getEncodedPath])
 
         useEffect(() => {
-            if (isBannerInView && theme.path && theme.banner) {
-                const src = getEncodedPath(`${theme.path}/${theme.banner}`)
+            if (isBannerInView && addon.path && addon.banner) {
+                const src = getEncodedPath(`${addon.path}/${addon.banner}`)
                 fetch(src)
                     .then(r => {
                         if (r.ok) setBannerSrc(src)
@@ -69,19 +66,34 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         setBannerSrc('static/assets/images/no_themeBackground.png')
                     })
             }
-        }, [isBannerInView, theme])
+        }, [isBannerInView, addon.path, addon.banner, getEncodedPath])
 
-        const handleClick = () => {
-            navigate(`/extensionbeta/${theme.name}`, { state: { theme } })
-        }
+        const handleCardClick = useCallback(() => {
+            navigate(`/extensionbeta/${addon.name}`, { state: { addon } })
+        }, [navigate, addon])
 
-        const isTheme = theme.type === 'theme' || !theme.type
+        const handleMouseEnter = useCallback(() => setShowUserInfo(true), [])
+        const handleMouseLeave = useCallback(() => setShowUserInfo(false), [])
+
+        const isTheme = addon.type === 'theme' || !addon.type
         const checkMarkColorClass = isTheme ? cardStyles.card__checkMarkTheme : cardStyles.card__checkMarkScript
-
         const typeBadgeClass = isTheme ? cardStyles.card__typeBadgeTheme : cardStyles.card__typeBadgeScript
 
+        const bannerStyle = useMemo(
+            () => ({
+                backgroundImage: `url(${bannerSrc})`,
+                backgroundSize: 'cover',
+            }),
+            [bannerSrc],
+        )
+
         return (
-            <div ref={cardRef} className={`${className || ''} ${cardStyles.card}`} onClick={handleClick} style={style}>
+            <div
+                ref={cardRef}
+                className={`${className || ''} ${cardStyles.card}`}
+                onClick={handleCardClick}
+                style={style}
+            >
                 {isChecked && (
                     <div className={`${cardStyles.card__checkMark} ${checkMarkColorClass}`}>
                         <MdCheckCircle size={18} />
@@ -89,22 +101,20 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                 )}
 
                 {missingFields.length > 0 && (
-                    <>
-                        <div className={cardStyles.card__warnTooltip}>
-                            <strong>Исправьте ошибки в metadata.json</strong>
-                            <ul>
-                                {missingFields.map(field => (
-                                    <li key={field}>{field}</li>
-                                ))}
-                            </ul>
-                        </div>
-                    </>
+                    <div className={cardStyles.card__warnTooltip}>
+                        <strong>Исправьте ошибки в metadata.json</strong>
+                        <ul>
+                            {missingFields.map(field => (
+                                <li key={field}>{field}</li>
+                            ))}
+                        </ul>
+                    </div>
                 )}
 
                 <div
                     className={cardStyles.card__infoIcon}
-                    onMouseEnter={() => setShowUserInfo(true)}
-                    onMouseLeave={() => setShowUserInfo(false)}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
                 >
                     <MdInfo size={20} />
                 </div>
@@ -112,16 +122,16 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                 {showUserInfo && (
                     <div
                         className={cardStyles.card__infoTooltip}
-                        onMouseEnter={() => setShowUserInfo(true)}
-                        onMouseLeave={() => setShowUserInfo(false)}
+                        onMouseEnter={handleMouseEnter}
+                        onMouseLeave={handleMouseLeave}
                     >
                         <p>
                             <strong>Тип:</strong> {isTheme ? 'Тема' : 'Скрипт'}
                         </p>
                         <p>
                             <strong>Автор:</strong>{' '}
-                            {Array.isArray(theme.author) ? (
-                                theme.author.map((userName: string, index: number) => (
+                            {Array.isArray(addon.author) ? (
+                                addon.author.map((userName: string, index: number) => (
                                     <span
                                         key={userName}
                                         onClick={e => {
@@ -131,18 +141,18 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                                         style={{ cursor: 'pointer' }}
                                     >
                                         {userName}
-                                        {index < theme.author.length - 1 && ', '}
+                                        {index < addon.author.length - 1 && ', '}
                                     </span>
                                 ))
                             ) : (
                                 <span
                                     onClick={e => {
                                         e.stopPropagation()
-                                        openUserProfile(theme.author as string)
+                                        openUserProfile(addon.author as string)
                                     }}
                                     style={{ cursor: 'pointer' }}
                                 >
-                                    {theme.author}
+                                    {addon.author}
                                 </span>
                             )}
                         </p>
@@ -152,10 +162,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                 <div
                     ref={bannerRef}
                     className={`${cardStyles.card__banner} ${cardStyles.card__ratio169}`}
-                    style={{
-                        backgroundImage: `url(${bannerSrc})`,
-                        backgroundSize: 'cover',
-                    }}
+                    style={bannerStyle}
                 />
 
                 <div className={cardStyles.card__bottom}>
@@ -163,7 +170,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                         <img className={cardStyles.card__themeImage} src={imageSrc} alt="Addon" loading="lazy" />
                         <div className={cardStyles.card__boxTitle}>
                             <span className={cardStyles.card__addonTitle}>
-                                {theme.name} v{theme.version}
+                                {addon.name} v{addon.version}
                             </span>
                         </div>
                     </div>
@@ -180,7 +187,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
                                 </>
                             )}
                         </span>
-                        <span className={cardStyles.card__location}>{`local • ${theme.lastModified}`}</span>
+                        <span className={cardStyles.card__location}>{`local • ${addon.lastModified}`}</span>
                     </div>
                 </div>
             </div>

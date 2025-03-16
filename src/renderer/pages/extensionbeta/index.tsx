@@ -16,6 +16,7 @@ import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import addonInitials from '../../api/initials/addon.initials'
+import Skeleton from 'react-loading-skeleton'
 
 function checkMissingFields(addon: AddonInterface): string[] {
     const missing: string[] = []
@@ -53,6 +54,8 @@ export default function ExtensionPage() {
     const selectedTagFromURL = searchParams.get('selectedTag')
 
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
+
+    const [displayedCount, setDisplayedCount] = useState(0)
 
     const loadAddons = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
@@ -169,11 +172,6 @@ export default function ExtensionPage() {
         return checkMissingFields(addon).length
     }
 
-    // Приоритет:
-    // 0 = включённая тема
-    // 1 = включённый скрипт
-    // 2 = остальное
-    // 999 = есть ошибки (не все поля заполнены)
     function getPriority(addon: AddonInterface): number {
         const missingCount = getMissingCount(addon)
         if (missingCount > 0) {
@@ -220,8 +218,25 @@ export default function ExtensionPage() {
     }, [addons])
 
     useEffect(() => {
-        setMaxAddonCount(prev => Math.max(prev, mergedAddons.length))
-    }, [mergedAddons])
+        if (searchQuery.trim() !== '') {
+            setDisplayedCount(mergedAddons.length)
+        } else {
+            setDisplayedCount(0)
+            if (mergedAddons.length > 0) {
+                const interval = setInterval(() => {
+                    setDisplayedCount(prev => {
+                        if (prev < mergedAddons.length) {
+                            return prev + 1
+                        } else {
+                            clearInterval(interval)
+                            return prev
+                        }
+                    })
+                }, 50)
+                return () => clearInterval(interval)
+            }
+        }
+    }, [mergedAddons, searchQuery])
 
     useEffect(() => {
         window.electron.store.set('addons.selectedTags', Array.from(selectedTags))
@@ -273,7 +288,6 @@ export default function ExtensionPage() {
             <div className={globalStyles.page}>
                 <div className={globalStyles.container}>
                     <div className={globalStyles.main_container}>
-                        {/* Тулбар с поиском, кнопками */}
                         <div className={extensionStyles.toolbar}>
                             <div className={extensionStyles.containerToolbar}>
                                 <div className={extensionStyles.searchContainer}>
@@ -427,24 +441,38 @@ export default function ExtensionPage() {
                                                 gridTemplateColumns: `repeat(${columnsCount}, 1fr)`,
                                             }}
                                         >
-                                            {mergedAddons.map(addon => {
-                                                const checked =
-                                                    addon.type === 'theme'
-                                                        ? addon.directoryName === currentTheme
-                                                        : enabledScripts.includes(addon.directoryName)
-
-                                                return (
+                                            {mergedAddons.map((addon, index) =>
+                                                index < displayedCount ? (
                                                     <ExtensionCard
                                                         key={addon.name}
-                                                        theme={addon}
-                                                        isChecked={checked}
+                                                        addon={addon}
+                                                        isChecked={
+                                                            addon.type === 'theme'
+                                                                ? addon.directoryName === currentTheme
+                                                                : enabledScripts.includes(addon.directoryName)
+                                                        }
                                                         onCheckboxChange={(_unused, newIsChecked) =>
                                                             handleCheckboxChange(addon, newIsChecked)
                                                         }
                                                         className={addon.matches ? 'highlight' : 'dimmed'}
                                                     />
-                                                )
-                                            })}
+                                                ) : (
+                                                    <div
+                                                        key={`skeleton-${addon.name}`}
+                                                        className={extensionStyles.skeletonWrapper}
+                                                    >
+                                                        <Skeleton
+                                                            style={
+                                                                columnsCount === 2
+                                                                    ? { height: '336px' }
+                                                                    : columnsCount === 3
+                                                                    ? { height: '240px' }
+                                                                    : { height: '192px' }
+                                                            }
+                                                        />
+                                                    </div>
+                                                ),
+                                            )}
                                         </div>
                                     )}
                                 </div>
