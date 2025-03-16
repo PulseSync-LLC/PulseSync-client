@@ -69,8 +69,8 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(
         }, [isBannerInView, addon.path, addon.banner, getEncodedPath])
 
         const handleCardClick = useCallback(() => {
-            navigate(`/extensionbeta/${addon.name}`, { state: { addon } })
-        }, [navigate, addon])
+            navigate(`/extensionbeta/${addon.name}`, { state: { theme: addon } })
+        }, [navigate, addon])        
 
         const handleMouseEnter = useCallback(() => setShowUserInfo(true), [])
         const handleMouseLeave = useCallback(() => setShowUserInfo(false), [])
