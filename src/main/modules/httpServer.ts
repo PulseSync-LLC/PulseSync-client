@@ -17,7 +17,7 @@ import { parse } from 'url'
 const eventEmitter = new EventEmitter()
 let data: any = {}
 let server: http.Server | null = null
-let ws: WebSocketServer | null = null
+export let ws: WebSocketServer | null = null
 let attempt = 0
 
 const startWebSocketServer = () => {

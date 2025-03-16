@@ -4,6 +4,7 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import fs from 'original-fs'
+import { store } from '../modules/storage';
 
 const execAsync = promisify(exec)
 
@@ -72,16 +73,25 @@ export async function closeYandexMusic(): Promise<void> {
 }
 
 export function getPathToYandexMusic() {
-    if (isMac()) {
-        return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
-    } else {
-        return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
+    const platform = os.platform();
+    switch (platform) {
+        case 'darwin':
+            return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources');
+        case 'win32':
+            return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources');
+        case 'linux':
+            return store.get('settings.yandexMusicPath', '');
+        default:
+            return '';
     }
 }
 
-export const isMac = () => {
-    return os.platform() === 'darwin'
-}
+
+const platform = os.platform();
+
+export const isMac = () => platform === 'darwin';
+export const isWindows = () => platform === 'win32';
+export const isLinux = () => platform === 'linux';
 
 export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
     return crypto.createHash('sha256').update(asarPath).digest('hex')

@@ -1,11 +1,11 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron';
 import * as path from 'path'
 import * as https from 'https'
 import { store } from '../storage'
 import { mainWindow } from '../../../index'
 import axios from 'axios'
 import crypto from 'crypto'
-import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic } from '../../utils/appUtils'
+import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux } from '../../utils/appUtils';
 import logger from '../logger'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
@@ -15,12 +15,47 @@ import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 let yandexMusicVersion: string = null
 let modVersion: string = null
 const musicPath = getPathToYandexMusic()
-const savePath = path.join(musicPath, 'app.asar')
+let asarFilename = 'app.backup.asar';
+let modFilename = 'app.asar';
 
-const backupPath = path.join(musicPath, 'app.backup.asar')
+if (isLinux() && store.has('settings.modFilename')) {
+    modFilename = store.get('settings.modFilename');
+    asarFilename = `${modFilename}.backup.asar`;
+}
+const savePath = path.join(musicPath, `${modFilename}.asar`)
+
+const backupPath = path.join(musicPath, asarFilename)
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-app-asar', async (event, { version, link, checksum, force, spoof }) => {
         try {
+            if(!store.has('settings.modFilename') && isLinux()) {
+                dialog.showMessageBox({
+                    type: 'info',
+                    title: 'Укажите имя модификации.',
+                    message: 'Пожалуйста, укажите имя файла модификации asar в зависимости от клиента Яндекс Музыки.',
+                    buttons: ['Указать имя', 'Отменить']
+                }).then(result => {
+                    if (result.response === 0) {
+                        dialog.showOpenDialog({
+                            properties: ['openDirectory']
+                        }).then(folderResult => {
+                            if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
+                                store.set('settings.modFilename', folderResult.filePaths[0])
+                            } else {
+                                app.quit();
+                            }
+                        });
+                    } else {
+                        app.quit();
+                    }
+                });
+            } else {
+                mainWindow.webContents.send('download-failure', {
+                    success: false,
+                    error: 'Не указано имя файла модификации asar. Попробуйте снова.'
+                })
+                return
+            }
             const isRunning = await isYandexMusicRunning()
             if (isRunning) {
                 mainWindow.webContents.send('update-message', {
@@ -70,7 +105,11 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     fs.copyFileSync(savePath, backupPath)
                     logger.main.info('Original app.asar saved as app.backup.asar')
                 } else {
-                    throw new Error('Файл app.asar не найден для создания резервной копии')
+                    mainWindow.webContents.send('download-failure', {
+                        success: false,
+                        error: `Файл app.asar не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                    })
+                    return
                 }
             } else {
                 logger.main.info('Backup app.backup.asar already exists')
@@ -134,7 +173,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 }
 
 const getYandexMusicVersion = async (): Promise<string> => {
-    const configFilePath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
+    const configFilePath = path.join(musicPath, 'config.json')
 
     try {
         if (fs.existsSync(configFilePath)) {

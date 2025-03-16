@@ -1,6 +1,10 @@
 [Desktop Entry]
 Name=PulseSync
-Exec=/usr/bin/pulsesync %U
+Comment=PulseSync App for Yandex Music Mod
+GenericName=pulsesync
+Icon=pulsesync
 Type=Application
-Terminal=false
-MimeType=x-scheme-handler/pulsesync;
+StartupNotify=true
+StartupWMClass=pulsesync
+MimeType=x-scheme-handler/pulsesync
+Categories=Audio;Music;Player;AudioVideo;Development

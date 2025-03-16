@@ -1,5 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import { Helmet, HelmetProvider } from 'react-helmet-async'
+import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import {
     MdDownload,
     MdExtension,

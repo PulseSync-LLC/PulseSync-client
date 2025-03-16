@@ -14,7 +14,7 @@ import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
-import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic } from './main/utils/appUtils'
+import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils';
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
@@ -463,25 +463,56 @@ export async function prestartCheck() {
     const musicDir = app.getPath('music')
     const musicPath = getPathToYandexMusic()
     if (!fs.existsSync(musicPath)) {
-        new Notification({
-            title: 'Яндекс Музыка не найдена 😡',
-            body: 'Пожалуйста, откройте приложение после установки музыки',
-        }).show()
-        dialog.showMessageBox({
-            type: 'info',
-            title: 'Яндекс Музыка не найдена 😡',
-            message: 'Пожалуйста, откройте приложение после установки музыки',
-            buttons: ['OK'],
-        })
-        setTimeout(async () => {
-            app.quit()
-        }, 2500)
+        if (isLinux()) {
+            dialog.showMessageBox({
+                type: 'info',
+                title: 'Укажите путь к Яндекс Музыке',
+                message: 'Путь к Яндекс Музыке не найден. Пожалуйста, выберите директорию, где установлена Яндекс Музыка.',
+                buttons: ['Выбрать путь', 'Закрыть приложение']
+            }).then(result => {
+                if (result.response === 0) {
+                    dialog.showOpenDialog({
+                        properties: ['openDirectory']
+                    }).then(folderResult => {
+                        if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
+                            store.set('settings.yandexMusicPath', folderResult.filePaths[0])
+                        } else {
+                            app.quit();
+                        }
+                    });
+                } else {
+                    app.quit();
+                }
+            });
+        } else {
+            new Notification({
+                title: 'Яндекс Музыка не найдена 😡',
+                body: 'Пожалуйста, откройте приложение после установки музыки',
+            }).show();
+            dialog.showMessageBox({
+                type: 'info',
+                title: 'Яндекс Музыка не найдена 😡',
+                message: 'Пожалуйста, откройте приложение после установки музыки',
+                buttons: ['OK'],
+            });
+            setTimeout(() => {
+                app.quit();
+            }, 2500);
+        }
     }
+
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    const asarCopy = path.join(musicPath, 'app.backup.asar')
+    let asarFilename = 'app.backup.asar';
+
+    if (isLinux() && store.has('settings.modFilename')) {
+        const modFilename = store.get('settings.modFilename');
+        asarFilename = `${modFilename}.backup.asar`;
+    }
+
+    const asarCopy = path.join(musicPath, asarFilename);
 
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)

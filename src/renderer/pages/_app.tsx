@@ -521,7 +521,7 @@ function App() {
             window.desktopEvents?.on('rpc-log', (event, data) => {
                 switch (data.type) {
                     case 'error':
-                        toast.custom('error', 'Ошибка.', 'RPC: ' + data.message)
+                        toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
                         break
                     case 'success':
                         toast.custom('success', 'Успешно.', 'RPC: ' + data.message)

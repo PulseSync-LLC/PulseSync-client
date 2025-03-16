@@ -1,60 +1,182 @@
 import { ipcMain } from 'electron'
-import { Client, CUSTOM_RPC_ERROR_CODE } from '@xhayper/discord-rpc'
+import { Client } from '@xhayper/discord-rpc'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { store } from './storage'
 import logger from './logger'
 import config from '../../config.json'
 import { mainWindow } from '../../index'
 import { updateTray } from './tray'
-import { RPCError } from '@xhayper/discord-rpc/dist/utils/RPCError'
+import * as fs from 'node:fs'
+import * as net from 'net'
+import { exec } from 'child_process'
 
-let clientId
+enum DiscordState {
+    BROWSER = 'Похоже, Discord запущен в браузере. Подключение невозможно.',
+    CLOSED = 'Не удалось обнаружить запущенный Discord!',
+    RUNNING_WITHOUT_RICH_PRESENCE_ENABLED = 'Discord запущен, но Rich Presence не включён или у вас стоит плагин блокирующий его работу.',
+    ADMINISTRATOR = 'Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.',
+    SUCCESS = '',
+}
+const SET_ACTIVITY_TIMEOUT_MS = 1500
+let sendActivityTimeoutId: NodeJS.Timeout = undefined
+let previousActivity: SetActivity = undefined
+
+function removeTimestampsFromActivity(activity: any) {
+    let copyActivity = JSON.parse(JSON.stringify(activity))
+    copyActivity = copyActivity.startTimestamp ? (copyActivity.startTimestamp = 0) : copyActivity
+    copyActivity = copyActivity.endTimestamp ? (copyActivity.endTimestamp = 0) : copyActivity
+    return copyActivity
+}
+
+function serializeActivity(activity: any) {
+    return JSON.stringify(activity)
+}
+
+function isTimestampsDifferent(activityA: any, activityB: any) {
+    const diff =
+        Math.abs((activityA.startTimestamp ?? 0) - (activityB.startTimestamp ?? 0)) +
+        Math.abs((activityA.endTimestamp ?? 0) - (activityB.endTimestamp ?? 0))
+    return diff > 2000
+}
+
+function compareActivities(newActivity: any) {
+    if (!previousActivity) return false
+    return (
+        serializeActivity(removeTimestampsFromActivity(newActivity)) ===
+            serializeActivity(removeTimestampsFromActivity(previousActivity)) &&
+        !isTimestampsDifferent(newActivity, previousActivity)
+    )
+}
+
+/**
+ * Функция проверяет состояние клиента Discord (на Windows) путём:
+ * 1. Поиска IPC-каналов.
+ * 2. Попытки подключения и проверки прав доступа.
+ * 3. Если IPC не найден – проверки списка процессов.
+ */
+async function checkDiscordState(): Promise<string> {
+    const browsers = [
+        'chrome.exe',
+        'firefox.exe',
+        'applicationframehost.exe',
+        'opera.exe',
+        'iexplore.exe',
+        'brave.exe',
+        'vivaldi.exe',
+    ]
+
+    const discordProcesses = [
+        'discord.exe',
+        'discordptb.exe',
+        'discordcanary.exe',
+        'discorddevelopment.exe',
+        'vesktop.exe',
+    ]
+
+    const ipcPaths = Array.from({ length: 10 }, (_, i) => `\\\\.\\pipe\\discord-ipc-${i}`)
+    let ipcPathFound: string | null = null
+
+    for (const ipcPath of ipcPaths) {
+        try {
+            await fs.promises.access(ipcPath, fs.constants.F_OK)
+            ipcPathFound = ipcPath
+            break
+        } catch {
+        }
+    }
+
+    if (ipcPathFound) {
+        try {
+            await new Promise<void>((resolve, reject) => {
+                const client = net.connect(ipcPathFound!, () => {
+                    client.end()
+                    resolve()
+                })
+                client.on('error', reject)
+            })
+        } catch {
+            return DiscordState.ADMINISTRATOR
+        }
+
+        try {
+            await fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
+        } catch {
+            return DiscordState.ADMINISTRATOR
+        }
+        return DiscordState.SUCCESS
+    }
+
+    let output: string
+    try {
+        output = await new Promise<string>((resolve, reject) => {
+            exec(`tasklist /V /fi "SESSIONNAME eq Console"`, { encoding: 'utf8' }, (err, stdout) => {
+                if (err) {
+                    reject(err)
+                } else {
+                    resolve(stdout)
+                }
+            })
+        })
+    } catch {
+        return DiscordState.CLOSED
+    }
+
+    const lines = output.split('\n').map(line => line.trim().toLowerCase())
+
+    const discordClientRunning = lines.some(line => discordProcesses.some(exe => line.startsWith(exe)))
+
+    if (discordClientRunning) {
+        return DiscordState.RUNNING_WITHOUT_RICH_PRESENCE_ENABLED
+    } else {
+        const discordBrowser = lines.some(line =>
+            browsers.some(browser => line.startsWith(browser) && line.includes('discord')),
+        )
+        if (discordBrowser) {
+            return DiscordState.BROWSER
+        }
+    }
+    return DiscordState.CLOSED
+}
+
+/**
+ * Асинхронная функция обработки ошибок RPC.
+ * Если ошибка не покрыта стандартными проверками, дополнительно вызывается checkDiscordState()
+ * для получения более точного описания проблемы.
+ */
+async function handleRpcError(e: Error): Promise<string> {
+    const state = await checkDiscordState()
+    if (state !== DiscordState.SUCCESS) {
+        return state
+    }
+    return e.message.includes('Connection timed out')
+        ? 'Тайм-аут подключения. Возможны рейт-лимиты от Discord. Попробуйте снова через 10-15 минут': e.message
+}
+
+let clientId: string
 let client: Client
 
 let changeId = false
 let rpcConnected = false
 
-function handleRpcError(e: Error): string {
-    if (e instanceof RPCError) {
-        switch (e.code) {
-            case CUSTOM_RPC_ERROR_CODE.COULD_NOT_CONNECT:
-                return 'Ошибка IPC. Проверьте, что Discord запущен.'
-            case CUSTOM_RPC_ERROR_CODE.CONNECTION_ENDED:
-                return 'Соединение с IPC потеряно. Возможно, Discord закрыт.'
-            case CUSTOM_RPC_ERROR_CODE.CONNECTION_TIMEOUT:
-                return 'Тайм-аут подключения. Перезапустите приложение и Discord с одинаковыми правами.'
-            default:
-                return 'Неизвестная ошибка RPC.'
-        }
-    }
-    const sysCode = (e as any).code as string | undefined
-    if (sysCode) {
-        switch (sysCode) {
-            case 'ENOENT':
-                return 'IPC не найден. Запустите Discord.'
-            case 'ECONNREFUSED':
-                return 'Подключение отклонено. Возможно, что-то блокирует соединение.'
-            case 'EACCES':
-                return 'Недостаточно прав. Запустите с одинаковыми правами.'
-            default:
-                return `Ошибка: ${sysCode}. ${e.message}`
-        }
-    }
-    return e.message.includes('Could not connect')
-        ? 'Не удалось подключиться к IPC. Запустите Discord.'
-        : `RPC ошибка: ${e.message}`
-}
-
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client.isConnected) {
-        client.user?.setActivity(activity).catch(e => {
-            const msg = handleRpcError(e)
-            logger.debug.error(e.message, msg)
-            mainWindow.webContents.send('rpc-log', {
-                message: msg || 'Ошибка установки активности',
-                type: 'error',
+        if (compareActivities(activity)) return true
+
+        previousActivity = activity
+        if (sendActivityTimeoutId) {
+            clearTimeout(sendActivityTimeoutId)
+            sendActivityTimeoutId = undefined
+        }
+        sendActivityTimeoutId = setTimeout(() => {
+            client.user?.setActivity(activity).catch(async e => {
+                const msg = await handleRpcError(e)
+
+                mainWindow.webContents.send('rpc-log', {
+                    message: msg || 'Ошибка установки активности',
+                    type: 'error',
+                })
             })
-        })
+        }, SET_ACTIVITY_TIMEOUT_MS)
     } else if (!changeId) {
         rpc_connect()
     }
@@ -74,27 +196,43 @@ function updateAppId(newAppId: string) {
         .then(() => {
             rpc_connect()
         })
-        .catch(e => {
-            const msg = handleRpcError(e)
+        .catch(async e => {
+            const msg = await handleRpcError(e)
             logger.discordRpc.error(e.message, msg)
         })
 }
 
 ipcMain.on('discordrpc-clearstate', () => {
-    if (rpcConnected) client.user?.clearActivity()
+    if (rpcConnected) client.user?.clearActivity().catch(async e => {
+        const msg = await handleRpcError(e)
+        mainWindow.webContents.send('rpc-log', {
+            message: msg || 'Ошибка очистки активности',
+            type: 'error',
+        })
+
+    })
 })
 
 async function rpc_connect() {
     if (client) {
-        client.destroy().catch(e => {
-            const msg = handleRpcError(e)
-            logger.discordRpc.error('Ошибка уничтожения клиента перед созданием нового: ' + msg)
+        client.user?.clearActivity().then(() => {
+            client.destroy().catch(async e => {
+                const msg = await handleRpcError(e)
+                logger.discordRpc.error('Ошибка уничтожения клиента перед созданием нового: ' + msg)
+                mainWindow.webContents.send('rpc-log', {
+                    message: 'Ошибка удаления активности',
+                    type: 'error',
+                })
+            })
+            client.removeAllListeners()
+        }).catch(async e => {
+            const msg = await handleRpcError(e)
+            logger.discordRpc.error('Ошибка очистки активности перед созданием нового: ' + msg)
             mainWindow.webContents.send('rpc-log', {
                 message: 'Ошибка удаления активности',
                 type: 'error',
             })
         })
-        client.removeAllListeners()
     }
 
     const customId = store.get('discordRpc.appId')
@@ -105,8 +243,18 @@ async function rpc_connect() {
         transport: { type: 'ipc' },
     })
 
-    client.login().catch(e => {
-        const msg = handleRpcError(e)
+    const discordState = await checkDiscordState()
+    if (discordState !== DiscordState.SUCCESS) {
+        logger.discordRpc.error('Discord state error: ' + discordState)
+        mainWindow.webContents.send('rpc-log', {
+            message: discordState || 'Ошибка подключения к Discord RPC',
+            type: 'error',
+        })
+        return
+    }
+
+    client.login().catch(async e => {
+        const msg = await handleRpcError(e)
         logger.debug.error(e.message, msg)
         mainWindow.webContents.send('rpc-log', {
             message: msg || 'Ошибка подключения к Discord RPC',
@@ -128,14 +276,16 @@ async function rpc_connect() {
         rpcConnected = false
         logger.discordRpc.info('discordRpc state: disconnected')
         mainWindow.webContents.send('rpc-log', {
-            message: 'Отключение',
+            message: 'Отключение RPC',
             type: 'info',
         })
     })
 
-    client.on('error', e => {
-        rpcConnected = false
-        const msg = handleRpcError(e)
+    client.on('error', async e => {
+        if (e.name === "Could not connect") {
+            rpcConnected = false;
+        }
+        const msg = await handleRpcError(e)
         logger.discordRpc.error('discordRpc state: error - ' + msg)
         mainWindow.webContents.send('rpc-log', {
             message: msg || 'Ошибка подключения',
@@ -158,19 +308,32 @@ export const setRpcStatus = (status: boolean) => {
     store.set('discordRpc.status', status)
     mainWindow.webContents.send('discordRpcState', status)
     updateTray()
+
     if (status && !rpcConnected) {
-        rpc_connect()
+        previousActivity = undefined
+        return rpc_connect()
     } else {
-        client.removeAllListeners()
-        client.destroy().catch(e => {
-            const msg = handleRpcError(e)
+        client.user?.clearActivity().then(() => {
+            client.removeAllListeners()
+            client.destroy().catch(async e => {
+                const msg = await handleRpcError(e)
+                mainWindow.webContents.send('rpc-log', {
+                    message: msg || 'Ошибка отключения клиента',
+                    type: 'error',
+                })
+                logger.discordRpc.error(e.message, msg)
+            })
+            previousActivity = undefined
+            rpcConnected = false
+            client = null
+            return
+        }).catch(async e => {
+            const msg = await handleRpcError(e)
             mainWindow.webContents.send('rpc-log', {
-                message: msg || 'Ошибка обновления клиента',
+                message: msg || 'Ошибка очистки активности',
                 type: 'error',
             })
-            logger.discordRpc.error(e.message, msg)
         })
-        rpcConnected = false
     }
 }
 export { rpc_connect, updateAppId }

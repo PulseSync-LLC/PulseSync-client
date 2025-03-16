@@ -52,5 +52,5 @@ nsis:
     packElevateHelper: true
     license: ./license_ru.txt
     allowToChangeInstallationDirectory: true
-    include: build/installer.nsh
+    include: scripts/installer.nsh
     useZip: false
