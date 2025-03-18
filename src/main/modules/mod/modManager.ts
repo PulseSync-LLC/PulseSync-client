@@ -42,19 +42,21 @@ export const handleModEvents = (window: BrowserWindow): void => {
                             if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
                                 store.set('settings.modFilename', folderResult.filePaths[0])
                             } else {
-                                app.quit();
+                                mainWindow.webContents.send('download-failure', {
+                                    success: false,
+                                    error: 'Не указано имя файла модификации asar. Попробуйте снова.'
+                                })
+                                return
                             }
                         });
                     } else {
-                        app.quit();
+                        mainWindow.webContents.send('download-failure', {
+                            success: false,
+                            error: 'Не указано имя файла модификации asar.'
+                        })
+                        return
                     }
                 });
-            } else {
-                mainWindow.webContents.send('download-failure', {
-                    success: false,
-                    error: 'Не указано имя файла модификации asar. Попробуйте снова.'
-                })
-                return
             }
             const isRunning = await isYandexMusicRunning()
             if (isRunning) {
@@ -173,7 +175,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 }
 
 const getYandexMusicVersion = async (): Promise<string> => {
-    const configFilePath = path.join(musicPath, 'config.json')
+    const configFilePath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
 
     try {
         if (fs.existsSync(configFilePath)) {
