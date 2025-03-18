@@ -27,7 +27,9 @@ export default function AuthPage() {
         navigate('/auth/callback', { replace: true })
     }
     const checkUpdate = () => {
-        window.desktopEvents?.send('checkUpdate')
+        window.desktopEvents?.send('checkUpdate', {
+            hard: true
+        })
     }
 
     useEffect(() => {
