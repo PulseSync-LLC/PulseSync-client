@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
-import OldHeader from '../../components/layout/old_header'
+import Header from '../../components/layout/header'
 
 import userContext from '../../api/context/user.context'
 import config from '../../api/config'
@@ -93,7 +93,7 @@ export default function AuthPage() {
 
     return (
         <>
-            <OldHeader />
+            <Header />
             <div className={pageStyles.main_window}>
                 <img
                     ref={img1Ref}

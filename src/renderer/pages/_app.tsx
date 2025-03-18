@@ -781,8 +781,10 @@ const Player: React.FC<any> = ({ children }) => {
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                window.discordRpc.clearActivity()
-                return
+                if(track.event !== 'trackChange') {
+                    window.discordRpc.clearActivity();
+                }
+                return;
             }
             if (track.sourceType === 'ynison') {
                 const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
@@ -836,8 +838,10 @@ const Player: React.FC<any> = ({ children }) => {
                     (track.status === 'paused' && !app.discordRpc.displayPause) ||
                     (track.timestamps[0] === 0 && track.timestamps[1] === 0)
                 ) {
-                    window.discordRpc.clearActivity()
-                    return
+                    if(track.event !== 'trackChange') {
+                        window.discordRpc.clearActivity();
+                    }
+                    return;
                 } else {
                     const trackStartTime = getTrackStartTime(track)
                     const trackEndTime = getTrackEndTime(track)

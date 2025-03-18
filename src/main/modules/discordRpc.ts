@@ -144,6 +144,7 @@ async function checkDiscordState(): Promise<string> {
  * для получения более точного описания проблемы.
  */
 async function handleRpcError(e: Error): Promise<string> {
+    console.log(e)
     const state = await checkDiscordState()
     if (state !== DiscordState.SUCCESS) {
         return state
@@ -203,6 +204,7 @@ function updateAppId(newAppId: string) {
 }
 
 ipcMain.on('discordrpc-clearstate', () => {
+    console.log("clearstate")
     if (rpcConnected) client.user?.clearActivity().catch(async e => {
         const msg = await handleRpcError(e)
         mainWindow.webContents.send('rpc-log', {
@@ -225,10 +227,12 @@ async function rpc_connect() {
                 })
             })
             client.removeAllListeners()
+            client = null
         }).catch(async e => {
             const msg = await handleRpcError(e)
             logger.discordRpc.error('Ошибка очистки активности перед созданием нового: ' + msg)
-            mainWindow.webContents.send('rpc-log', {
+            client = null
+            return mainWindow.webContents.send('rpc-log', {
                 message: 'Ошибка удаления активности',
                 type: 'error',
             })
@@ -246,11 +250,10 @@ async function rpc_connect() {
     const discordState = await checkDiscordState()
     if (discordState !== DiscordState.SUCCESS) {
         logger.discordRpc.error('Discord state error: ' + discordState)
-        mainWindow.webContents.send('rpc-log', {
+        return mainWindow.webContents.send('rpc-log', {
             message: discordState || 'Ошибка подключения к Discord RPC',
             type: 'error',
         })
-        return
     }
 
     client.login().catch(async e => {

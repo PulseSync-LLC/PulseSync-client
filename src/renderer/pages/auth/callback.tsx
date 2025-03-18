@@ -8,7 +8,7 @@ import HandBlockIcon from './../../../../static/assets/icons/handBlock.svg'
 import UserBlockIcon from './../../../../static/assets/icons/userBlock.svg'
 
 import userContext from '../../api/context/user.context'
-import OldHeader from '../../components/layout/old_header'
+import Header from '../../components/layout/header'
 
 export default function CallbackPage() {
     const navigate = useNavigate()
@@ -35,7 +35,7 @@ export default function CallbackPage() {
 
     return (
         <>
-            <OldHeader />
+            <Header />
             <div className={pageStyles.main_window}>
                 <div>
                     <div className={pageStyles.container}>

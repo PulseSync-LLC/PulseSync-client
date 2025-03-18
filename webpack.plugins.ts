@@ -30,7 +30,7 @@ export const plugins = [
         moduleFilenameTemplate: (info: { absoluteResourcePath: any }) =>
             'webpack:///' + path.relative(__dirname, info.absoluteResourcePath).replace(/\\/g, '/'),
         fallbackModuleFilenameTemplate: 'webpack:///[resource-path]?[hash]',
-        publicPath: '~/',
+        publicPath: '/',
         append: '\n//# sourceMappingURL=[url]',
     }),
     new NodePolyfillPlugin(),

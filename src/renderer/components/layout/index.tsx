@@ -12,7 +12,7 @@ import {
     MdUpdate,
 } from 'react-icons/md'
 
-import OldHeader from './old_header'
+import Header from './header'
 import NavButtonPulse from '../nav_button_pulse'
 import DiscordIcon from './../../../../static/assets/icons/discord.svg'
 import Preloader from '../preloader'
@@ -313,7 +313,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <title>{title + ' - PulseSync'}</title>
             </Helmet>
             <div className={pageStyles.children}>
-                <OldHeader goBack={goBack} />
+                <Header goBack={goBack} />
                 <div
                     className={pageStyles.main_window}
                     style={
