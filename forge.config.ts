@@ -87,6 +87,35 @@ const forge_config: ForgeConfig = {
         }),
     ],
     hooks: {
+        packageAfterPrune: async (forgeConfig, buildPath) => {
+            const packageDotJsonPath = path.resolve(buildPath, 'package.json');
+            const packageDotJson = fs.readFileSync(packageDotJsonPath);
+            const json = JSON.parse(packageDotJson.toString());
+            Object.keys(json).forEach((key) => {
+                switch(key){
+                    case 'name': {
+                        break;
+                    }
+                    case 'version': {
+                        break;
+                    }
+                    case 'main': {
+                        break;
+                    }
+                    case 'author': {
+                        break;
+                    }
+                    case 'homepage': {
+                        break;
+                    }
+                    default: {
+                        delete json[key];
+                        break;
+                    }
+                }
+            });
+            fs.writeFileSync(packageDotJsonPath, JSON.stringify(json, null, '\t'));
+        },
         packageAfterCopy: async (
             forgeConfig,
             buildPath,

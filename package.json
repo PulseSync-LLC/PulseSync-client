@@ -2,8 +2,9 @@
     "name": "PulseSync",
     "productName": "PulseSync",
     "author": "PulseSync <contact@pulsesync.dev>",
-    "version": "2.6.2",
     "description": "PulseSync app for desktops",
+    "homepage": "https://pulsesync.dev",
+    "version": "2.6.2",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
