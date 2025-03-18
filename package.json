@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.6.2",
+    "version": "2.6.3",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",

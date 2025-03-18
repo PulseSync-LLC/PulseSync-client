@@ -81,8 +81,7 @@ async function checkDiscordState(): Promise<string> {
             await fs.promises.access(ipcPath, fs.constants.F_OK)
             ipcPathFound = ipcPath
             break
-        } catch {
-        }
+        } catch {}
     }
 
     if (ipcPathFound) {
@@ -144,13 +143,13 @@ async function checkDiscordState(): Promise<string> {
  * для получения более точного описания проблемы.
  */
 async function handleRpcError(e: Error): Promise<string> {
-    console.log(e)
     const state = await checkDiscordState()
     if (state !== DiscordState.SUCCESS) {
         return state
     }
     return e.message.includes('Connection timed out')
-        ? 'Тайм-аут подключения. Возможны рейт-лимиты от Discord. Попробуйте снова через 10-15 минут': e.message
+        ? 'Тайм-аут подключения. Возможны рейт-лимиты от Discord. Если не показывается активность, то попробуйте снова через 10–15 минут.'
+        : e.message
 }
 
 let clientId: string
@@ -160,7 +159,7 @@ let changeId = false
 let rpcConnected = false
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
-    if (rpcConnected && client.isConnected) {
+    if (rpcConnected && client) {
         if (compareActivities(activity)) return true
 
         previousActivity = activity
@@ -169,14 +168,18 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
             sendActivityTimeoutId = undefined
         }
         sendActivityTimeoutId = setTimeout(() => {
-            client.user?.setActivity(activity).catch(async e => {
-                const msg = await handleRpcError(e)
+            try {
+                client.user?.setActivity(activity).catch(async e => {
+                    const msg = await handleRpcError(e)
 
-                mainWindow.webContents.send('rpc-log', {
-                    message: msg || 'Ошибка установки активности',
-                    type: 'error',
+                    mainWindow.webContents.send('rpc-log', {
+                        message: msg || 'Ошибка установки активности',
+                        type: 'error',
+                    })
                 })
-            })
+            } catch (e) {
+                logger.discordRpc.error(e.message)
+            }
         }, SET_ACTIVITY_TIMEOUT_MS)
     } else if (!changeId) {
         rpc_connect()
@@ -187,56 +190,34 @@ ipcMain.on('discordrpc-discordRpc', (event, val) => {
     setRpcStatus(val)
 })
 
-function updateAppId(newAppId: string) {
-    if (newAppId === config.CLIENT_ID) return
-    changeId = true
-    store.set('discordRpc.appId', newAppId)
-    client.removeAllListeners()
-    client
-        .destroy()
-        .then(() => {
-            rpc_connect()
-        })
-        .catch(async e => {
-            const msg = await handleRpcError(e)
-            logger.discordRpc.error(e.message, msg)
-        })
-}
-
 ipcMain.on('discordrpc-clearstate', () => {
-    console.log("clearstate")
-    if (rpcConnected) client.user?.clearActivity().catch(async e => {
-        const msg = await handleRpcError(e)
-        mainWindow.webContents.send('rpc-log', {
-            message: msg || 'Ошибка очистки активности',
-            type: 'error',
-        })
-
-    })
-})
-
-async function rpc_connect() {
-    if (client) {
-        client.user?.clearActivity().then(() => {
-            client.destroy().catch(async e => {
-                const msg = await handleRpcError(e)
-                logger.discordRpc.error('Ошибка уничтожения клиента перед созданием нового: ' + msg)
-                mainWindow.webContents.send('rpc-log', {
-                    message: 'Ошибка удаления активности',
-                    type: 'error',
-                })
-            })
-            client.removeAllListeners()
-            client = null
-        }).catch(async e => {
+    if (rpcConnected && client) {
+        client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e)
-            logger.discordRpc.error('Ошибка очистки активности перед созданием нового: ' + msg)
-            client = null
-            return mainWindow.webContents.send('rpc-log', {
-                message: 'Ошибка удаления активности',
+            mainWindow.webContents.send('rpc-log', {
+                message: msg || 'Ошибка очистки активности',
                 type: 'error',
             })
         })
+    }
+})
+
+async function rpc_connect() {
+    if (rpcConnected && client) {
+        logger.discordRpc.info('Уже подключено к Discord RPC, повторное подключение не требуется')
+        return
+    }
+
+    if (client) {
+        try {
+            await client.user?.clearActivity()
+            await client.destroy()
+            client.removeAllListeners()
+        } catch (e) {
+            const msg = await handleRpcError(e)
+            logger.discordRpc.error('Ошибка очистки активности перед созданием нового: ' + msg)
+            mainWindow.webContents.send('rpc-log', { message: 'Ошибка удаления активности', type: 'error' })
+        }
     }
 
     const customId = store.get('discordRpc.appId')
@@ -250,15 +231,16 @@ async function rpc_connect() {
     const discordState = await checkDiscordState()
     if (discordState !== DiscordState.SUCCESS) {
         logger.discordRpc.error('Discord state error: ' + discordState)
-        return mainWindow.webContents.send('rpc-log', {
+        mainWindow.webContents.send('rpc-log', {
             message: discordState || 'Ошибка подключения к Discord RPC',
             type: 'error',
         })
+        return
     }
 
     client.login().catch(async e => {
         const msg = await handleRpcError(e)
-        logger.debug.error(e.message, msg)
+        logger.discordRpc.error("login error: " + msg)
         mainWindow.webContents.send('rpc-log', {
             message: msg || 'Ошибка подключения к Discord RPC',
             type: 'error',
@@ -285,8 +267,8 @@ async function rpc_connect() {
     })
 
     client.on('error', async e => {
-        if (e.name === "Could not connect") {
-            rpcConnected = false;
+        if (e.name === 'Could not connect') {
+            rpcConnected = false
         }
         const msg = await handleRpcError(e)
         logger.discordRpc.error('discordRpc state: error - ' + msg)
@@ -306,6 +288,27 @@ async function rpc_connect() {
     })
 }
 
+function updateAppId(newAppId: string) {
+    if (newAppId === config.CLIENT_ID) return
+    changeId = true
+    store.set('discordRpc.appId', newAppId)
+    client.removeAllListeners()
+
+    client.user
+        ?.clearActivity()
+        .then(() => {
+            return client.destroy()
+        })
+        .then(() => {
+            client = null
+            rpc_connect()
+        })
+        .catch(async e => {
+            const msg = await handleRpcError(e)
+            logger.discordRpc.error(e.message, msg)
+        })
+}
+
 export const setRpcStatus = (status: boolean) => {
     logger.discordRpc.info('discordRpc state: ' + status)
     store.set('discordRpc.status', status)
@@ -315,28 +318,31 @@ export const setRpcStatus = (status: boolean) => {
     if (status && !rpcConnected) {
         previousActivity = undefined
         return rpc_connect()
-    } else {
-        client.user?.clearActivity().then(() => {
-            client.removeAllListeners()
-            client.destroy().catch(async e => {
+    } else if (!status && rpcConnected && client) {
+        client.user
+            ?.clearActivity()
+            .then(() => {
+                client.removeAllListeners()
+                client.destroy().catch(async e => {
+                    const msg = await handleRpcError(e)
+                    mainWindow.webContents.send('rpc-log', {
+                        message: msg || 'Ошибка отключения клиента',
+                        type: 'error',
+                    })
+                    logger.discordRpc.error(e.message, msg)
+                })
+                previousActivity = undefined
+                rpcConnected = false
+                client = null
+                return
+            })
+            .catch(async e => {
                 const msg = await handleRpcError(e)
                 mainWindow.webContents.send('rpc-log', {
-                    message: msg || 'Ошибка отключения клиента',
+                    message: msg || 'Ошибка очистки активности',
                     type: 'error',
                 })
-                logger.discordRpc.error(e.message, msg)
             })
-            previousActivity = undefined
-            rpcConnected = false
-            client = null
-            return
-        }).catch(async e => {
-            const msg = await handleRpcError(e)
-            mainWindow.webContents.send('rpc-log', {
-                message: msg || 'Ошибка очистки активности',
-                type: 'error',
-            })
-        })
     }
 }
 export { rpc_connect, updateAppId }

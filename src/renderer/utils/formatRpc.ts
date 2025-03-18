@@ -1,6 +1,6 @@
 import { Track } from '../api/interfaces/track.interface'
 
-export function truncateLabel(label: string, maxLength = 32) {
+export function truncateLabel(label: string, maxLength = 30) {
     return label.length > maxLength ? label.slice(0, maxLength) : label
 }
 export const replaceParams = (str: any, track: Track) => {
