@@ -16,10 +16,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
         if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && userProfile.currentTrack.trackSource !== 'UGC') {
             e.stopPropagation()
             const albumId = userProfile.currentTrack.albums[0].id
-            window.desktopEvents?.send(
-                'open-external',
-                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
-            )
+            window.desktopEvents?.send('open-external', `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`)
         }
     }
 
@@ -40,9 +37,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
                 userProfile.currentTrack && userProfile.currentTrack.status === 'playing' ? styles.hoverEffect : ''
             }`}
         >
-            {userProfile.currentTrack && userProfile.currentTrack.status === 'playing'
-                ? `Слушает: ${statusUser}`
-                : statusUser}
+            {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' ? `Слушает: ${statusUser}` : statusUser}
             {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && <MdOpenInNew size={20} />}
         </div>
     )

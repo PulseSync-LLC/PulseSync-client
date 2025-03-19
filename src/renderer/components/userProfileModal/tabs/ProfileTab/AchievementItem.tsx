@@ -36,9 +36,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
     const difficultyLabel = difficultyMap[diffKey] ?? 'Неизвестно'
     const difficultyColor = difficultyColors[diffKey] || '#000'
 
-    const itemClassNames = [achv.achievementCard, isCompleted && achv.completed, isInProgress && achv.inProgress]
-        .filter(Boolean)
-        .join(' ')
+    const itemClassNames = [achv.achievementCard, isCompleted && achv.completed, isInProgress && achv.inProgress].filter(Boolean).join(' ')
 
     return (
         <div key={ach.id} className={itemClassNames}>
@@ -82,12 +80,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                 </div>
                 <div className={achv.buttonsItem}>
                     {ach.hint && (
-                        <TooltipButton
-                            styleComponent={{ maxWidth: 300 }}
-                            className={achv.expandButton}
-                            tooltipText={ach.hint}
-                            side="left"
-                        >
+                        <TooltipButton styleComponent={{ maxWidth: 300 }} className={achv.expandButton} tooltipText={ach.hint} side="left">
                             <MdHistoryEdu size={24} />
                         </TooltipButton>
                     )}
@@ -105,10 +98,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                 userAch.criteriaProgress.length > 0 && (
                     <div className={achv.trackList}>
                         {userAch.criteriaProgress.map((crit: any) => (
-                            <div
-                                key={crit.id}
-                                className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}
-                            >
+                            <div key={crit.id} className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}>
                                 {crit.isCompleted ? crit.name : 'Неизвестно'}
                             </div>
                         ))}

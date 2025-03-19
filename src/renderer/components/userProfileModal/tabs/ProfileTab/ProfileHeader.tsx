@@ -97,12 +97,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                 userProfile.badges
                                     .sort((a: any, b: any) => b.level - a.level)
                                     .map((badge: any) => (
-                                        <TooltipButton
-                                            tooltipText={badge.name}
-                                            side="top"
-                                            className={styles.badge}
-                                            key={badge.uuid}
-                                        >
+                                        <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid}>
                                             <img src={`static/assets/badges/${badge.type}.svg`} alt={badge.type} />
                                         </TooltipButton>
                                     ))}

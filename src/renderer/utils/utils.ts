@@ -16,15 +16,10 @@ export const checkInternetAccess = async (): Promise<boolean> => {
 
 export const notifyUserRetries = (retriesLeft: number) => {
     const retryIntervalInSeconds = Number(config.RETRY_INTERVAL_MS) / 1000
-    toast.custom(
-        'success',
-        'Попытка подключения.',
-        `Осталось попыток: ${retriesLeft}. Следующая через ${retryIntervalInSeconds} сек.`,
-        {
-            icon: '🔄',
-            duration: 10000,
-        },
-    )
+    toast.custom('success', 'Попытка подключения.', `Осталось попыток: ${retriesLeft}. Следующая через ${retryIntervalInSeconds} сек.`, {
+        icon: '🔄',
+        duration: 10000,
+    })
 }
 export const compareVersions = (v1: string, v2: string) => {
     const v1parts = v1.split('.').map(Number)

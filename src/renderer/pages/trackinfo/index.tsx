@@ -264,15 +264,12 @@ export default function TrackInfoPage() {
                                             <div className={theme.status}>Слушает</div>
                                             <div className={theme.statusRPC}>
                                                 <div>
-                                                    {app.discordRpc.status &&
-                                                    currentTrack.status !== trackInitials.status ? (
+                                                    {app.discordRpc.status && currentTrack.status !== trackInitials.status ? (
                                                         <div className={theme.flex_container}>
                                                             <img
                                                                 className={theme.img}
                                                                 src={
-                                                                    currentTrack.albumArt
-                                                                        ? currentTrack.albumArt
-                                                                        : './static/assets/logo/logoapp.png'
+                                                                    currentTrack.albumArt ? currentTrack.albumArt : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""
                                                             />
@@ -280,23 +277,14 @@ export default function TrackInfoPage() {
                                                                 <div className={theme.appName}>PulseSync</div>
                                                                 <div className={theme.name}>
                                                                     {app.discordRpc.details.length > 0
-                                                                        ? replaceParams(
-                                                                              app.discordRpc.details,
-                                                                              currentTrack,
-                                                                          )
+                                                                        ? replaceParams(app.discordRpc.details, currentTrack)
                                                                         : currentTrack.title}
                                                                 </div>
                                                                 <div className={theme.name}>
                                                                     {app.discordRpc.state.length > 0
-                                                                        ? replaceParams(
-                                                                              app.discordRpc.state,
-                                                                              currentTrack,
-                                                                          )
-                                                                        : currentTrack.artists &&
-                                                                            currentTrack.artists.length > 0
-                                                                          ? currentTrack.artists
-                                                                                .map(x => x.name)
-                                                                                .join(', ')
+                                                                        ? replaceParams(app.discordRpc.state, currentTrack)
+                                                                        : currentTrack.artists && currentTrack.artists.length > 0
+                                                                          ? currentTrack.artists.map(x => x.name).join(', ')
                                                                           : null}
                                                                 </div>
                                                                 {/*{currentTrack*/}
@@ -348,18 +336,13 @@ export default function TrackInfoPage() {
                                                     </div>
                                                     {rickRollClick && (
                                                         <video width="600" autoPlay loop>
-                                                            <source
-                                                                src="https://s3.pulsesync.dev/files/heheheha.mp4"
-                                                                type="video/mp4"
-                                                            />
+                                                            <source src="https://s3.pulsesync.dev/files/heheheha.mp4" type="video/mp4" />
                                                         </video>
                                                     )}
                                                     <div
                                                         className={theme.button}
                                                         onClick={() => {
-                                                            window.open(
-                                                                'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev',
-                                                            )
+                                                            window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev')
                                                         }}
                                                     >
                                                         ♡ PulseSync Project
@@ -394,35 +377,21 @@ export default function TrackInfoPage() {
                                             <div className={theme.modalContainer}>
                                                 <button className={theme.modalContextButton}>
                                                     <div className={theme.contextInfo}>
-                                                        <div className={theme.contextPreview}>track</div>- название
-                                                        трека
+                                                        <div className={theme.contextPreview}>track</div>- название трека
                                                     </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() => copyValues('{track}')}
-                                                    />
+                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{track}')} />
                                                 </button>
                                                 <button className={theme.modalContextButton}>
                                                     <div className={theme.contextInfo}>
                                                         <div className={theme.contextPreview}>artist</div>- имя артиста
                                                     </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() => copyValues('{artist}')}
-                                                    />
+                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{artist}')} />
                                                 </button>
                                                 <button className={theme.modalContextButton}>
                                                     <div className={theme.contextInfo}>
-                                                        <div className={theme.contextPreview}>album</div>- название
-                                                        альбома
+                                                        <div className={theme.contextPreview}>album</div>- название альбома
                                                     </div>
-                                                    <MdContentCopy
-                                                        cursor={'pointer'}
-                                                        size={18}
-                                                        onClick={() => copyValues('{album}')}
-                                                    />
+                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{album}')} />
                                                 </button>
                                             </div>
                                         </div>

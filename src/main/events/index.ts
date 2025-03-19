@@ -273,7 +273,9 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
         updater.install()
     })
 
-    ipcMain.on('checkUpdate', async (event, args) => await checkOrFindUpdate(args.hard))
+    ipcMain.on('checkUpdate', async (event, args) => {
+        await checkOrFindUpdate(args?.hard)
+    })
 
     ipcMain.on('updater-start', async (event, data) => {
         await checkOrFindUpdate()
@@ -501,7 +503,7 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
         })
         updateAvailable = true
     } else if (checkUpdate === UpdateStatus.DOWNLOADED) {
-        if(hard) {
+        if (hard) {
             updater.install()
         }
         mainWindow.webContents.send('check-update', {

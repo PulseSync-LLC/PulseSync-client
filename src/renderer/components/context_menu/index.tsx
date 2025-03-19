@@ -105,29 +105,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'askSavePath':
                 updatedSettings.askSavePath = status
                 window.electron.store.set('settings.askSavePath', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Спрашивать куда сохранять трек?" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Спрашивать куда сохранять трек?" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'saveAsMp3':
                 updatedSettings.saveAsMp3 = status
                 window.electron.store.set('settings.saveAsMp3', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Сохранять в формате mp3?" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Сохранять в формате mp3?" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'deletePextAfterImport':
                 updatedSettings.deletePextAfterImport = status
@@ -143,19 +131,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
                 console.log(updatedSettings.devSocket)
-                updatedSettings.devSocket
-                    ? window.desktopEvents?.send('WEBSOCKET_START')
-                    : window.desktopEvents?.send('WEBSOCKET_STOP')
+                updatedSettings.devSocket ? window.desktopEvents?.send('WEBSOCKET_START') : window.desktopEvents?.send('WEBSOCKET_STOP')
                 toast.custom('success', `Готово`, 'Статус вебсокета изменен')
                 break
             case 'showModModalAfterInstall':
                 updatedSettings.showModModalAfterInstall = status
                 window.electron.store.set('settings.showModModalAfterInstall', status)
-                toast.custom(
-                    'success',
-                    `Готово`,
-                    `Опция "Показывать список изменений после установки" ${status ? 'включена' : 'выключена'}`,
-                )
+                toast.custom('success', `Готово`, `Опция "Показывать список изменений после установки" ${status ? 'включена' : 'выключена'}`)
                 break
         }
         setApp({ ...app, settings: updatedSettings })
@@ -232,11 +214,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 <span>{title}</span>
                 <div className={menuStyles.custom_checkbox_menu}>
                     <div
-                        className={
-                            checked
-                                ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}`
-                                : menuStyles.custom_checkbox_menu_dot
-                        }
+                        className={checked ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}` : menuStyles.custom_checkbox_menu_dot}
                     ></div>
                 </div>
             </button>,
@@ -253,11 +231,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     <span>{title}</span>
                     <div className={menuStyles.custom_checkbox_menu}>
                         <div
-                            className={
-                                checked
-                                    ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}`
-                                    : menuStyles.custom_checkbox_menu_dot
-                            }
+                            className={checked ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}` : menuStyles.custom_checkbox_menu_dot}
                         ></div>
                     </div>
                 </>
@@ -290,26 +264,20 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: () => window.getModInfo(app),
                 disabled: !app.mod.installed || !app.mod.version,
             },
-            createToggleButton(
-                'Показывать список изменений после установки?',
-                app.settings.showModModalAfterInstall,
-                () => toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
+            createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
+                toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
         ]),
         createButtonSection('Настройки приложения', [
-            createToggleButton('Автотрей', app.settings.autoStartInTray, () =>
-                toggleSetting('autoTray', !app.settings.autoStartInTray),
-            ),
-            createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () =>
-                toggleSetting('autoStart', !app.settings.autoStartApp),
-            ),
+            createToggleButton('Автотрей', app.settings.autoStartInTray, () => toggleSetting('autoTray', !app.settings.autoStartInTray)),
+            createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () => toggleSetting('autoStart', !app.settings.autoStartApp)),
             createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
                 toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
             createToggleButton('Аппаратное ускорение', app.settings.hardwareAcceleration, () =>
                 toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
-            createToggleButton('Удалять .pext после импорта темы?', app.settings.deletePextAfterImport, () =>
+            createToggleButton('Удалять .pext после импорта темы', app.settings.deletePextAfterImport, () =>
                 toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
             ),
         ]),
@@ -319,12 +287,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: downloadTrack,
                 disabled: !currentTrack.url || !currentTrack.downloadInfo?.quality,
             },
-            createToggleButton('Спрашивать куда сохранять трек?', app.settings.askSavePath, () =>
+            createToggleButton('Спрашивать куда сохранять трек', app.settings.askSavePath, () =>
                 toggleSetting('askSavePath', !app.settings.askSavePath),
             ),
-            createToggleButton('Сохранять в формате mp3?', app.settings.saveAsMp3, () =>
-                toggleSetting('saveAsMp3', !app.settings.saveAsMp3),
-            ),
+            createToggleButton('Сохранять в формате mp3', app.settings.saveAsMp3, () => toggleSetting('saveAsMp3', !app.settings.saveAsMp3)),
             {
                 label: 'Директория со скаченной музыкой',
                 onClick: () =>
@@ -377,12 +343,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                                         ?.filter(Boolean)
                                         .filter(button => !button.isDev || (button.isDev && window.electron.isAppDev()))
                                         .map((button, i) => (
-                                            <button
-                                                key={i}
-                                                className={menuStyles.contextButton}
-                                                onClick={button.onClick}
-                                                disabled={button.disabled}
-                                            >
+                                            <button key={i} className={menuStyles.contextButton} onClick={button.onClick} disabled={button.disabled}>
                                                 {button.label}
                                             </button>
                                         ))}

@@ -11,11 +11,7 @@ export class HandleErrorsElectron {
         try {
             const errorObj = error instanceof Error ? error : new Error(String(error))
             const sentryContext = `${className}/${method}/${block}:${errorObj.message}`
-            const errorMessage = HandleErrorsElectron.formatLogMessage(
-                'ERROR',
-                sentryContext,
-                errorObj.stack || errorObj.message,
-            )
+            const errorMessage = HandleErrorsElectron.formatLogMessage('ERROR', sentryContext, errorObj.stack || errorObj.message)
 
             HandleErrorsElectron.storeCrash(errorMessage)
 

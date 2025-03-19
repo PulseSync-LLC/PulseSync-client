@@ -24,14 +24,7 @@ import ViewModal from '../../../components/context_menu_themes/viewModal'
 import AddonInterface from '../../../api/interfaces/addon.interface'
 import { createContextMenuActions } from '../../../components/context_menu_themes/sectionConfig'
 import ConfigurationSettings from '../../../components/сonfigurationSettings/ConfigurationSettings'
-import {
-    AddonConfig,
-    Item,
-    TextItem,
-    ButtonAction,
-    ButtonItem,
-    ColorItem,
-} from '../../../components/сonfigurationSettings/types'
+import { AddonConfig, Item, TextItem, ButtonAction, ButtonItem, ColorItem } from '../../../components/сonfigurationSettings/types'
 
 import * as globalStyles from '../../../../../static/styles/page/index.module.scss'
 import * as localStyles from './extensionview.module.scss'
@@ -367,12 +360,7 @@ const ExtensionViewPage: React.FC = () => {
                 ],
             }
 
-            const result = await window.desktopEvents?.invoke(
-                'file-event',
-                'create-config-file',
-                configPath,
-                defaultContent,
-            )
+            const result = await window.desktopEvents?.invoke('file-event', 'create-config-file', configPath, defaultContent)
 
             if (result.success) {
                 setConfigData(defaultContent)
@@ -387,12 +375,7 @@ const ExtensionViewPage: React.FC = () => {
         if (currentAddon) {
             const configPath = path.join(currentAddon.path, 'handleEvents.json')
             try {
-                await window.desktopEvents?.invoke(
-                    'file-event',
-                    'write-file',
-                    configPath,
-                    JSON.stringify(updatedConfig, null, 2),
-                )
+                await window.desktopEvents?.invoke('file-event', 'write-file', configPath, JSON.stringify(updatedConfig, null, 2))
             } catch (error) {
                 console.error('Ошибка при сохранении конфигурации:', error)
                 alert('Произошла ошибка при сохранении конфигурации.')
@@ -447,13 +430,7 @@ const ExtensionViewPage: React.FC = () => {
         writeConfigFile(updatedConfig)
     }
 
-    const updateButtonConfig = (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-        key: keyof ButtonAction,
-        newValue: string,
-    ) => {
+    const updateButtonConfig = (sectionIndex: number, itemIndex: number, buttonIndex: number, key: keyof ButtonAction, newValue: string) => {
         if (!configData) return
         const updatedConfig = structuredClone(configData)
         const item = updatedConfig.sections[sectionIndex].items[itemIndex]
@@ -670,11 +647,7 @@ const ExtensionViewPage: React.FC = () => {
                     <div className={localStyles.galleryContainer}>
                         <div className={localStyles.markdownContent}>
                             <div className={localStyles.markdownText}>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                                    rehypePlugins={[rehypeRaw]}
-                                    components={{ a: MarkdownLink }}
-                                >
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]} components={{ a: MarkdownLink }}>
                                     {markdownData || currentAddon.description}
                                 </ReactMarkdown>
                             </div>
@@ -686,11 +659,7 @@ const ExtensionViewPage: React.FC = () => {
                     return (
                         <div className={localStyles.alertContent}>
                             <div>Создать базовый handleEvents.json</div>
-                            <button
-                                className={localStyles.settingsAlertButton}
-                                onClick={createDefaultConfig}
-                                title="Создать файл конфигурации"
-                            >
+                            <button className={localStyles.settingsAlertButton} onClick={createDefaultConfig} title="Создать файл конфигурации">
                                 Создать файл
                             </button>
                         </div>
@@ -782,28 +751,16 @@ const ExtensionViewPage: React.FC = () => {
                                                 width="100"
                                                 height="100"
                                                 onError={e => {
-                                                    ;(e.target as HTMLImageElement).src =
-                                                        'static/assets/images/no_themeImage.png'
+                                                    ;(e.target as HTMLImageElement).src = 'static/assets/images/no_themeImage.png'
                                                 }}
                                             />
                                             <div className={localStyles.themeTitle}>
                                                 <div className={localStyles.titleContainer}>
-                                                    <NavLink
-                                                        className={localStyles.path}
-                                                        to="/extensionbeta"
-                                                        title="Перейти в Extension"
-                                                    >
+                                                    <NavLink className={localStyles.path} to="/extensionbeta" title="Перейти в Extension">
                                                         Extension
                                                     </NavLink>
-                                                    /
-                                                    <div className={localStyles.title}>
-                                                        {currentAddon.name || 'Название недоступно'}
-                                                    </div>
-                                                    <Button
-                                                        className={localStyles.addFavorite}
-                                                        disabled
-                                                        title="Добавить в избранное (недоступно)"
-                                                    >
+                                                    /<div className={localStyles.title}>{currentAddon.name || 'Название недоступно'}</div>
+                                                    <Button className={localStyles.addFavorite} disabled title="Добавить в избранное (недоступно)">
                                                         <MdBookmarkBorder size={20} />
                                                     </Button>
                                                 </div>
@@ -811,26 +768,21 @@ const ExtensionViewPage: React.FC = () => {
                                                     {currentAddon.author && (
                                                         <div>
                                                             {Array.isArray(currentAddon.author) ? (
-                                                                currentAddon.author.map(
-                                                                    (userName: string, index: number) => (
-                                                                        <span
-                                                                            key={userName}
-                                                                            onClick={() => openUserProfile(userName)}
-                                                                            style={{
-                                                                                cursor: 'pointer',
-                                                                            }}
-                                                                        >
-                                                                            {userName}
-                                                                            {index < currentAddon.author.length - 1 &&
-                                                                                ', '}
-                                                                        </span>
-                                                                    ),
-                                                                )
+                                                                currentAddon.author.map((userName: string, index: number) => (
+                                                                    <span
+                                                                        key={userName}
+                                                                        onClick={() => openUserProfile(userName)}
+                                                                        style={{
+                                                                            cursor: 'pointer',
+                                                                        }}
+                                                                    >
+                                                                        {userName}
+                                                                        {index < currentAddon.author.length - 1 && ', '}
+                                                                    </span>
+                                                                ))
                                                             ) : (
                                                                 <span
-                                                                    onClick={() =>
-                                                                        openUserProfile(currentAddon.author as string)
-                                                                    }
+                                                                    onClick={() => openUserProfile(currentAddon.author as string)}
                                                                     style={{
                                                                         cursor: 'pointer',
                                                                     }}
@@ -840,10 +792,7 @@ const ExtensionViewPage: React.FC = () => {
                                                             )}
                                                         </div>
                                                     )}{' '}
-                                                    -{' '}
-                                                    {currentAddon.lastModified && (
-                                                        <div>Last update: {currentAddon.lastModified}</div>
-                                                    )}
+                                                    - {currentAddon.lastModified && <div>Last update: {currentAddon.lastModified}</div>}
                                                 </div>
                                             </div>
                                         </div>
@@ -883,18 +832,12 @@ const ExtensionViewPage: React.FC = () => {
                                             <div className={localStyles.miniButtonsContainer}>
                                                 <Button
                                                     className={`${localStyles.defaultButton} ${
-                                                        (currentAddon.type === 'theme' &&
-                                                            activatedTheme === currentAddon.directoryName) ||
-                                                        (currentAddon.type === 'script' &&
-                                                            enabledScripts.includes(currentAddon.directoryName))
+                                                        (currentAddon.type === 'theme' && activatedTheme === currentAddon.directoryName) ||
+                                                        (currentAddon.type === 'script' && enabledScripts.includes(currentAddon.directoryName))
                                                             ? localStyles.defaultButtonActive
                                                             : ''
                                                     }`}
-                                                    disabled={
-                                                        !currentAddon.type ||
-                                                        (currentAddon.type !== 'theme' &&
-                                                            currentAddon.type !== 'script')
-                                                    }
+                                                    disabled={!currentAddon.type || (currentAddon.type !== 'theme' && currentAddon.type !== 'script')}
                                                     onClick={handleToggleAddon}
                                                     title={getToggleTitle()}
                                                 >
@@ -957,11 +900,7 @@ const ExtensionViewPage: React.FC = () => {
                                             <MdStickyNote2 /> Metadata
                                         </button>
                                     </div>
-                                    <button
-                                        className={localStyles.extensionNavButton}
-                                        disabled
-                                        title="Store (недоступно)"
-                                    >
+                                    <button className={localStyles.extensionNavButton} disabled title="Store (недоступно)">
                                         <MdStoreMallDirectory /> Store
                                     </button>
                                 </div>
@@ -970,11 +909,7 @@ const ExtensionViewPage: React.FC = () => {
                                     {editMode && activeTab === 'Settings' && (
                                         <div className={localStyles.howAlert}>
                                             Подробную информацию о том, как с этим работать, можно найти в&nbsp;
-                                            <a
-                                                href="https://discord.gg/qy42uGTzRy"
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                            >
+                                            <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
                                                 нашем Discord
                                             </a>
                                             !

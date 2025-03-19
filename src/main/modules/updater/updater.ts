@@ -56,11 +56,7 @@ class Updater {
             if (this.commonConfig && this.commonConfig.DEPRECATED_VERSIONS) {
                 const isDeprecatedVersion = semver.satisfies(app.getVersion(), this.commonConfig.DEPRECATED_VERSIONS)
                 if (isDeprecatedVersion) {
-                    logger.updater.log(
-                        'This version is deprecated',
-                        app.getVersion(),
-                        this.commonConfig.DEPRECATED_VERSIONS,
-                    )
+                    logger.updater.log('This version is deprecated', app.getVersion(), this.commonConfig.DEPRECATED_VERSIONS)
                     this.install()
                     return
                 }

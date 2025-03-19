@@ -25,11 +25,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 
     const notReceivedAchievements = userProfile.allAchievements.filter((ach: any) => {
         const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
-        return (
-            !userAch ||
-            userAch?.status?.toLowerCase() === 'not_started' ||
-            userAch?.status?.toLowerCase() === 'in_progress'
-        )
+        return !userAch || userAch?.status?.toLowerCase() === 'not_started' || userAch?.status?.toLowerCase() === 'in_progress'
     })
 
     type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
@@ -76,24 +72,14 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                             <div className={styles.achievementsListTitle}>Неполученные достижения</div>
                             <AchievementList
                                 achievements={notReceivedAchievements.sort((a: any, b: any) => {
-                                    const userAchA = userProfile.userAchievements?.find(
-                                        (ua: any) => ua.achievement.id === a.id,
-                                    )
-                                    const userAchB = userProfile.userAchievements?.find(
-                                        (ua: any) => ua.achievement.id === b.id,
-                                    )
+                                    const userAchA = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === a.id)
+                                    const userAchB = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === b.id)
                                     const keyA = (a.difficulty as string).toUpperCase() as Difficulty
                                     const keyB = (b.difficulty as string).toUpperCase() as Difficulty
-                                    if (
-                                        userAchA?.status?.toLowerCase() === 'in_progress' &&
-                                        userAchB?.status?.toLowerCase() !== 'in_progress'
-                                    ) {
+                                    if (userAchA?.status?.toLowerCase() === 'in_progress' && userAchB?.status?.toLowerCase() !== 'in_progress') {
                                         return -1
                                     }
-                                    if (
-                                        userAchB?.status?.toLowerCase() === 'in_progress' &&
-                                        userAchA?.status?.toLowerCase() !== 'in_progress'
-                                    ) {
+                                    if (userAchB?.status?.toLowerCase() === 'in_progress' && userAchA?.status?.toLowerCase() !== 'in_progress') {
                                         return 1
                                     }
                                     return difficultyPriority[keyA] - difficultyPriority[keyB]

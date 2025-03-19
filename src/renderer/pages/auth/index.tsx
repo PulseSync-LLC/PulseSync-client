@@ -28,7 +28,7 @@ export default function AuthPage() {
     }
     const checkUpdate = () => {
         window.desktopEvents?.send('checkUpdate', {
-            hard: true
+            hard: true,
         })
     }
 
@@ -97,25 +97,10 @@ export default function AuthPage() {
         <>
             <Header />
             <div className={pageStyles.main_window}>
-                <img
-                    ref={img1Ref}
-                    className={pageStyles.img1}
-                    src="./static/assets/images/FlatCylinder.png"
-                    alt="Flat Cylinder"
-                />
-                <img
-                    ref={img2Ref}
-                    className={pageStyles.img2}
-                    src="./static/assets/images/ThorusKnot.png"
-                    alt="Thorus Knot"
-                />
+                <img ref={img1Ref} className={pageStyles.img1} src="./static/assets/images/FlatCylinder.png" alt="Flat Cylinder" />
+                <img ref={img2Ref} className={pageStyles.img2} src="./static/assets/images/ThorusKnot.png" alt="Thorus Knot" />
                 <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/Pyramid.png" alt="Pyramid" />
-                <img
-                    ref={img4Ref}
-                    className={pageStyles.img4}
-                    src="./static/assets/images/Icosahedron.png"
-                    alt="Icosahedron"
-                />
+                <img ref={img4Ref} className={pageStyles.img4} src="./static/assets/images/Icosahedron.png" alt="Icosahedron" />
                 <div className={pageStyles.filter}></div>
                 <div className={pageStyles.background}></div>
                 <div className={pageStyles.container} ref={imgLogo}>

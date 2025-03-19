@@ -9,13 +9,7 @@ interface ButtonConfigProps {
     buttonIndex: number
     button: ButtonAction
     editMode: boolean
-    updateButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-        key: keyof ButtonAction,
-        newValue: string,
-    ) => void
+    updateButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number, key: keyof ButtonAction, newValue: string) => void
     resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     handleRemoveButton: (buttonIndex: number) => void
 }
@@ -66,9 +60,7 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                             className={styles.inputEdit}
                             value={localName}
                             onChange={e => setLocalName(e.target.value)}
-                            onBlur={e =>
-                                updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'name', e.target.value)
-                            }
+                            onBlur={e => updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'name', e.target.value)}
                             placeholder="Название текста"
                         />
                     </div>
@@ -79,9 +71,7 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                             className={styles.inputEdit}
                             value={localText}
                             onChange={e => setLocalText(e.target.value)}
-                            onBlur={e =>
-                                updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)
-                            }
+                            onBlur={e => updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'text', e.target.value)}
                             placeholder="Текст"
                         />
                     </div>
@@ -92,15 +82,7 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                             className={styles.inputEdit}
                             value={localDefault}
                             onChange={e => setLocalDefault(e.target.value)}
-                            onBlur={e =>
-                                updateButtonConfig(
-                                    sectionIndex,
-                                    itemIndex,
-                                    buttonIndex,
-                                    'defaultParameter',
-                                    e.target.value,
-                                )
-                            }
+                            onBlur={e => updateButtonConfig(sectionIndex, itemIndex, buttonIndex, 'defaultParameter', e.target.value)}
                             placeholder="Текст по умолчанию"
                         />
                     </div>
@@ -113,11 +95,7 @@ const TextConfig: React.FC<ButtonConfigProps> = ({
                             <MdRestore />
                         </button>
                     )}
-                    <button
-                        className={styles.removeItemButtonEdit}
-                        onClick={() => handleRemoveButton(buttonIndex)}
-                        title="Удалить текст"
-                    >
+                    <button className={styles.removeItemButtonEdit} onClick={() => handleRemoveButton(buttonIndex)} title="Удалить текст">
                         <MdDelete />
                     </button>
                 </>

@@ -111,7 +111,6 @@ const Header: React.FC<p> = () => {
         }
     }, [isMenuOpen, isUserCardOpen])
 
-
     const statusColors = {
         playing: '#62FF79',
         pause: '#60C2FF',
@@ -377,10 +376,7 @@ const Header: React.FC<p> = () => {
                                     <h3>{info.version}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                                    components={{ a: LinkRenderer }}
-                                >
+                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
                                     {info.changelog}
                                 </ReactMarkdown>
                                 <hr />
@@ -412,9 +408,7 @@ const Header: React.FC<p> = () => {
                                         ),
                                     }}
                                 >
-                                    {Array.isArray(info.description)
-                                        ? info.description.join('\n')
-                                        : info.description || ''}
+                                    {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
                                 </ReactMarkdown>
                                 <hr />
                             </div>
@@ -429,9 +423,7 @@ const Header: React.FC<p> = () => {
                             <button className={styles.logoplace} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
                                 <span>PulseSync</span>
-                                <div className={isMenuOpen ? styles.true : styles.false}>
-                                    {user.id != '-1' && <ArrowDown />}
-                                </div>
+                                <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
                             </button>
                             {isMenuOpen && <ContextMenu modalRef={updateModalRef} />}
                         </div>
@@ -462,8 +454,7 @@ const Header: React.FC<p> = () => {
                                                 src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                 alt=""
                                                 onError={e => {
-                                                    ;(e.currentTarget as HTMLImageElement).src =
-                                                        './static/assets/images/undef.png'
+                                                    ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
                                                 }}
                                             />
                                             <div className={styles.status}>
@@ -501,10 +492,9 @@ const Header: React.FC<p> = () => {
                                                 <div
                                                     className={styles.user_banner}
                                                     style={{
-                                                        backgroundImage:
-                                                            `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-                                                                ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType})`
-                                                                : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage: `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType})`
+                                                            : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
                                                     }}
                                                 >
                                                     <motion.div
@@ -529,10 +519,7 @@ const Header: React.FC<p> = () => {
                                                             }
                                                         />
                                                     </motion.div>
-                                                    <div
-                                                        className={styles.hoverUpload}
-                                                        onClick={() => bannerInputRef.current!.showPicker()}
-                                                    >
+                                                    <div className={styles.hoverUpload} onClick={() => bannerInputRef.current!.showPicker()}>
                                                         Загрузить баннер
                                                     </div>
                                                     <div className={styles.badges_container}>
@@ -540,15 +527,9 @@ const Header: React.FC<p> = () => {
                                                             user.badges
                                                                 .sort((a, b) => b.level - a.level)
                                                                 .map(_badge => (
-                                                                    <TooltipButton
-                                                                        tooltipText={_badge.name}
-                                                                        side="bottom"
-                                                                    >
+                                                                    <TooltipButton tooltipText={_badge.name} side="bottom">
                                                                         <div className={styles.badge} key={_badge.type}>
-                                                                            <img
-                                                                                src={`static/assets/badges/${_badge.type}.svg`}
-                                                                                alt={_badge.type}
-                                                                            />
+                                                                            <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.type} />
                                                                         </div>
                                                                     </TooltipButton>
                                                                 ))}
@@ -584,10 +565,7 @@ const Header: React.FC<p> = () => {
                                                             }
                                                         />
                                                     </motion.div>
-                                                    <div
-                                                        className={styles.hoverUpload}
-                                                        onClick={() => avatarInputRef.current!.showPicker()}
-                                                    >
+                                                    <div className={styles.hoverUpload} onClick={() => avatarInputRef.current!.showPicker()}>
                                                         Загрузить аватар
                                                     </div>
                                                     <div className={styles.status}>
@@ -617,11 +595,7 @@ const Header: React.FC<p> = () => {
                                                 </div>
                                             </div>
                                             <div className={styles.user_menu_buttons}>
-                                                <button
-                                                    onClick={() => openUserProfile(user.username)}
-                                                    key={user.id}
-                                                    className={styles.menu_button}
-                                                >
+                                                <button onClick={() => openUserProfile(user.username)} key={user.id} className={styles.menu_button}>
                                                     Мой профиль
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
@@ -640,18 +614,10 @@ const Header: React.FC<p> = () => {
                             )}
                         </div>
                         <div className={styles.button_container}>
-                            <button
-                                id="hide"
-                                className={styles.button_title}
-                                onClick={() => window.electron.window.minimize()}
-                            >
+                            <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
                                 <Minus color="#E4E5EA" />
                             </button>
-                            <button
-                                id="minimize"
-                                className={styles.button_title}
-                                onClick={() => window.electron.window.maximize()}
-                            >
+                            <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
                                 <Minimize color="#E4E5EA" />
                             </button>
                             <button

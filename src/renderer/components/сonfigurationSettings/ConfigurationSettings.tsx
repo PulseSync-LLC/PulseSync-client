@@ -8,13 +8,7 @@ interface ConfigurationSettingsProps {
     configData: AddonConfig
     editMode: boolean
     updateConfigField: (sectionIndex: number, itemIndex: number | null, key: string, value: any) => void
-    updateButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-        key: keyof ButtonAction,
-        newValue: string,
-    ) => void
+    updateButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number, key: keyof ButtonAction, newValue: string) => void
     resetConfigField: (sectionIndex: number, itemIndex: number) => void
     resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     addSection: () => void
@@ -50,12 +44,7 @@ const ConfigurationSettings: React.FC<ConfigurationSettingsProps> = ({
                         onChange={e => setNewSectionTitle(e.target.value)}
                         placeholder="Название секции"
                     />
-                    <button
-                        className={styles.addSectionButton}
-                        onClick={addSection}
-                        disabled={!newSectionTitle.trim()}
-                        title="Добавить секцию"
-                    >
+                    <button className={styles.addSectionButton} onClick={addSection} disabled={!newSectionTitle.trim()} title="Добавить секцию">
                         <MdAdd /> Добавить секцию
                     </button>
                 </div>

@@ -9,14 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     className?: string
 }
 
-const Button: React.FC<ButtonProps> = ({
-    onClick,
-    style,
-    children,
-    disableOnClickSound = true,
-    className,
-    ...rest
-}) => {
+const Button: React.FC<ButtonProps> = ({ onClick, style, children, disableOnClickSound = true, className, ...rest }) => {
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         if (onClick) {
             onClick(event)

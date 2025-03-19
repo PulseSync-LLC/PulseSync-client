@@ -1,13 +1,7 @@
 import { gql } from '@apollo/client'
 
 const GET_USER_PROFILE_QUERY = gql`
-    query GetUserProfile(
-        $name: String!
-        $page: Int!
-        $pageSize: Int!
-        $search: String
-        $sortOptions: [SortOptionInput!]
-    ) {
+    query GetUserProfile($name: String!, $page: Int!, $pageSize: Int!, $search: String, $sortOptions: [SortOptionInput!]) {
         findUserByName(name: $name) {
             id
             username

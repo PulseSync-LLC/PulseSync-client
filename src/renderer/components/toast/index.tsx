@@ -12,24 +12,11 @@ import Loading from './../../../../static/assets/toast/loading.svg'
 import Hide from './../../../../static/assets/toast/hide.svg'
 
 const iToast = {
-    custom: (
-        customType: string,
-        customTitle: string,
-        message: Renderable,
-        options?: ToastOptions,
-        value?: number,
-        duration: number = 5000,
-    ) => createToast(customType, customTitle, message, options, value, duration),
+    custom: (customType: string, customTitle: string, message: Renderable, options?: ToastOptions, value?: number, duration: number = 5000) =>
+        createToast(customType, customTitle, message, options, value, duration),
 }
 
-function createToast(
-    customType: string,
-    customTitle: string,
-    message: Renderable,
-    options?: ToastOptions,
-    value?: number,
-    duration: number = 5000,
-) {
+function createToast(customType: string, customTitle: string, message: Renderable, options?: ToastOptions, value?: number, duration: number = 5000) {
     const isPersistent = ['loading', 'export', 'import', 'download'].includes(customType)
 
     const toastId = toast.custom(
@@ -101,9 +88,7 @@ const ToastComponent = ({
 
     return (
         <div
-            className={`${styles.toast} ${isVisible ? styles.toastVisible : styles.toastHidden} ${
-                styles[customType || 'default']
-            }`}
+            className={`${styles.toast} ${isVisible ? styles.toastVisible : styles.toastHidden} ${styles[customType || 'default']}`}
             style={
                 {
                     '--colorToast': getColor(customType),

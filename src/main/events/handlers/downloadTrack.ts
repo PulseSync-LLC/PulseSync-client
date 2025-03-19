@@ -29,9 +29,7 @@ export async function downloadTrack(
     const musicDir = app.getPath('music')
     const downloadDir = path.join(musicDir, 'PulseSyncMusic')
 
-    const fileExtension = val.saveAsMp3
-        ? 'mp3'
-        : val.track.downloadInfo.codec.replaceAll(/(he-)?aac/g, 'm4a').replace(/(.*)-mp4/, '$1')
+    const fileExtension = val.saveAsMp3 ? 'mp3' : val.track.downloadInfo.codec.replaceAll(/(he-)?aac/g, 'm4a').replace(/(.*)-mp4/, '$1')
 
     const defaultFilepath = path.join(
         downloadDir,
@@ -78,10 +76,7 @@ export async function downloadTrack(
                 try {
                     let buffer = Buffer.concat(chunks)
                     if (val.track.downloadInfo?.transport === 'encraw') {
-                        const arrayBuffer = buffer.buffer.slice(
-                            buffer.byteOffset,
-                            buffer.byteOffset + buffer.byteLength,
-                        )
+                        const arrayBuffer = buffer.buffer.slice(buffer.byteOffset, buffer.byteOffset + buffer.byteLength)
                         const decryptedArrayBuffer = await decryptData({
                             key: val.track.downloadInfo.key,
                             data: arrayBuffer,

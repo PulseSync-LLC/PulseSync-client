@@ -9,13 +9,7 @@ interface TextItemComponentProps {
     itemIndex: number
     item: TextItem
     editMode: boolean
-    updateButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-        key: keyof ButtonAction,
-        newValue: string,
-    ) => void
+    updateButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number, key: keyof ButtonAction, newValue: string) => void
     resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     updateConfigField: (sectionIndex: number, itemIndex: number, key: string, value: any) => void
     handleRemoveButton: (buttonIndex: number) => void

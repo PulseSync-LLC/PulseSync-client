@@ -36,14 +36,13 @@ function isTimestampsDifferent(activityA: any, activityB: any) {
     const diff =
         Math.abs((activityA.startTimestamp ?? 0) - (activityB.startTimestamp ?? 0)) +
         Math.abs((activityA.endTimestamp ?? 0) - (activityB.endTimestamp ?? 0))
-    return diff > 2000
+    return diff >= 2000
 }
 
 function compareActivities(newActivity: any) {
     if (!previousActivity) return false
     return (
-        serializeActivity(removeTimestampsFromActivity(newActivity)) ===
-            serializeActivity(removeTimestampsFromActivity(previousActivity)) &&
+        serializeActivity(removeTimestampsFromActivity(newActivity)) === serializeActivity(removeTimestampsFromActivity(previousActivity)) &&
         !isTimestampsDifferent(newActivity, previousActivity)
     )
 }
@@ -55,23 +54,9 @@ function compareActivities(newActivity: any) {
  * 3. Если IPC не найден – проверки списка процессов.
  */
 async function checkDiscordState(): Promise<string> {
-    const browsers = [
-        'chrome.exe',
-        'firefox.exe',
-        'applicationframehost.exe',
-        'opera.exe',
-        'iexplore.exe',
-        'brave.exe',
-        'vivaldi.exe',
-    ]
+    const browsers = ['chrome.exe', 'firefox.exe', 'applicationframehost.exe', 'opera.exe', 'iexplore.exe', 'brave.exe', 'vivaldi.exe']
 
-    const discordProcesses = [
-        'discord.exe',
-        'discordptb.exe',
-        'discordcanary.exe',
-        'discorddevelopment.exe',
-        'vesktop.exe',
-    ]
+    const discordProcesses = ['discord.exe', 'discordptb.exe', 'discordcanary.exe', 'discorddevelopment.exe', 'vesktop.exe']
 
     const ipcPaths = Array.from({ length: 10 }, (_, i) => `\\\\.\\pipe\\discord-ipc-${i}`)
     let ipcPathFound: string | null = null
@@ -127,9 +112,7 @@ async function checkDiscordState(): Promise<string> {
     if (discordClientRunning) {
         return DiscordState.RUNNING_WITHOUT_RICH_PRESENCE_ENABLED
     } else {
-        const discordBrowser = lines.some(line =>
-            browsers.some(browser => line.startsWith(browser) && line.includes('discord')),
-        )
+        const discordBrowser = lines.some(line => browsers.some(browser => line.startsWith(browser) && line.includes('discord')))
         if (discordBrowser) {
             return DiscordState.BROWSER
         }
@@ -240,7 +223,7 @@ async function rpc_connect() {
 
     client.login().catch(async e => {
         const msg = await handleRpcError(e)
-        logger.discordRpc.error("login error: " + msg)
+        logger.discordRpc.error('login error: ' + msg)
         mainWindow.webContents.send('rpc-log', {
             message: msg || 'Ошибка подключения к Discord RPC',
             type: 'error',

@@ -1,16 +1,6 @@
 import React, { useState } from 'react'
 import ConfigurationItem from './ConfigurationItem'
-import {
-    MdAdd,
-    MdCrop169,
-    MdDelete,
-    MdDragIndicator,
-    MdFolderOpen,
-    MdInvertColors,
-    MdLinearScale,
-    MdTextFields,
-    MdTune,
-} from 'react-icons/md'
+import { MdAdd, MdCrop169, MdDelete, MdDragIndicator, MdFolderOpen, MdInvertColors, MdLinearScale, MdTextFields, MdTune } from 'react-icons/md'
 import * as styles from './ConfigurationSection.module.scss'
 import { Section, Item, ButtonAction } from './types'
 
@@ -19,13 +9,7 @@ interface ConfigurationSectionProps {
     sectionIndex: number
     editMode: boolean
     updateConfigField: (sectionIndex: number, itemIndex: number | null, key: string, value: any) => void
-    updateButtonConfig: (
-        sectionIndex: number,
-        itemIndex: number,
-        buttonIndex: number,
-        key: keyof ButtonAction,
-        newValue: string,
-    ) => void
+    updateButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number, key: keyof ButtonAction, newValue: string) => void
     resetConfigField: (sectionIndex: number, itemIndex: number) => void
     resetButtonConfig: (sectionIndex: number, itemIndex: number, buttonIndex: number) => void
     addItem: (sectionIndex: number, itemType: string) => void
@@ -61,53 +45,25 @@ const ConfigurationSection: React.FC<ConfigurationSectionProps> = ({
                         />
                     </div>
                     <div className={styles.addItemContainer}>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'button')}
-                            title="Добавить кнопку"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'button')} title="Добавить кнопку">
                             <MdCrop169 size={24} />
                         </button>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'color')}
-                            title="Добавить цвет"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'color')} title="Добавить цвет">
                             <MdInvertColors size={24} />
                         </button>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'text')}
-                            title="Добавить текст"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'text')} title="Добавить текст">
                             <MdTextFields size={24} />
                         </button>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'slider')}
-                            title="Добавить слайдер"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'slider')} title="Добавить слайдер">
                             <MdLinearScale size={24} />
                         </button>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'file')}
-                            title="Добавить файл"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'file')} title="Добавить файл">
                             <MdFolderOpen size={24} />
                         </button>
-                        <button
-                            className={styles.addItemButton}
-                            onClick={() => addItem(sectionIndex, 'selector')}
-                            title="Добавить селектор"
-                        >
+                        <button className={styles.addItemButton} onClick={() => addItem(sectionIndex, 'selector')} title="Добавить селектор">
                             <MdTune size={24} />
                         </button>
-                        <button
-                            className={styles.sectionRemoveItemButtonEdit}
-                            onClick={() => removeSection(sectionIndex)}
-                            title="Удалить секцию"
-                        >
+                        <button className={styles.sectionRemoveItemButtonEdit} onClick={() => removeSection(sectionIndex)} title="Удалить секцию">
                             <MdDelete size={24} />
                         </button>
                         <div className={styles.sectionLine}></div>

@@ -36,21 +36,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isF
     }, [onClose])
 
     return (
-        <div
-            ref={menuRef}
-            className={`${cm.contextMenu} ${isFadingOut ? cm.contextMenuOut : ''}`}
-            style={{ top: position.y, left: position.x }}
-        >
+        <div ref={menuRef} className={`${cm.contextMenu} ${isFadingOut ? cm.contextMenuOut : ''}`} style={{ top: position.y, left: position.x }}>
             {items
                 .filter(item => item.show)
                 .map((item, index) => (
-                    <TooltipButton
-                        tooltipText={item.label}
-                        side="top"
-                        key={index}
-                        className={cm.contextMenuItem}
-                        onClick={item.onClick}
-                    >
+                    <TooltipButton tooltipText={item.label} side="top" key={index} className={cm.contextMenuItem} onClick={item.onClick}>
                         {item.icon && <span className={cm.icon}>{item.icon}</span>}
                     </TooltipButton>
                 ))}

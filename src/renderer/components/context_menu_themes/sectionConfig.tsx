@@ -85,9 +85,7 @@ export const createContextMenuActions = (
     {
         label: `Удалить ${currentAddon.name}`,
         onClick: () => {
-            const confirmation = window.confirm(
-                `Вы уверены, что хотите удалить тему "${currentAddon.name}"? Это действие нельзя будет отменить.`,
-            )
+            const confirmation = window.confirm(`Вы уверены, что хотите удалить тему "${currentAddon.name}"? Это действие нельзя будет отменить.`)
             if (confirmation) {
                 const themeDirPath = currentAddon.path
                 window.desktopEvents

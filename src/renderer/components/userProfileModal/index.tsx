@@ -149,17 +149,11 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
                 </div> */}
 
                 <div className={styles.modalContent}>
-                    {activeTab === 'profile' && (
-                        <ProfileTab userProfile={userProfile} loading={loading} error={error} username={username} />
-                    )}
+                    {activeTab === 'profile' && <ProfileTab userProfile={userProfile} loading={loading} error={error} username={username} />}
 
-                    {activeTab === 'friends' && (
-                        <FriendsTab userProfile={userProfile} loading={loading} error={error} />
-                    )}
+                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={error} />}
 
-                    {activeTab === 'settings' && (
-                        <SettingsTab userProfile={userProfile} loading={loading} error={error} />
-                    )}
+                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={error} />}
                 </div>
             </div>
         </div>

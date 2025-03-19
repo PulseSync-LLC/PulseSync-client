@@ -8,12 +8,7 @@ interface LevelProgressProps {
     currentLevelThreshold: number
 }
 
-const LevelProgress: React.FC<LevelProgressProps> = ({
-    totalPoints,
-    currentLevel,
-    progressInCurrentLevel,
-    currentLevelThreshold,
-}) => {
+const LevelProgress: React.FC<LevelProgressProps> = ({ totalPoints, currentLevel, progressInCurrentLevel, currentLevelThreshold }) => {
     const progressPercentage = (progressInCurrentLevel / currentLevelThreshold) * 100
 
     return (

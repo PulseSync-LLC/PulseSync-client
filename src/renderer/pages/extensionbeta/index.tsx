@@ -44,9 +44,7 @@ export default function ExtensionPage() {
     const optionButtonRef = useRef<HTMLButtonElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
 
-    const [selectedTags, setSelectedTags] = useState<Set<string>>(
-        new Set(window.electron.store.get('addons.selectedTags') || []),
-    )
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(window.electron.store.get('addons.selectedTags') || []))
 
     const [columnsCount, setColumnsCount] = useState(window.electron.store.get('addons.columnsCount') || 3)
 
@@ -300,20 +298,14 @@ export default function ExtensionPage() {
                                         placeholder="Введите название расширения"
                                     />
                                     {mergedAddons.length > 0 && mergedAddons.length < maxAddonCount && (
-                                        <div className={extensionStyles.searchLabel}>
-                                            Найдено: {mergedAddons.length}
-                                        </div>
+                                        <div className={extensionStyles.searchLabel}>Найдено: {mergedAddons.length}</div>
                                     )}
-                                    {mergedAddons.length === 0 && (
-                                        <div className={extensionStyles.searchLabel}>Ничего не найдено</div>
-                                    )}
+                                    {mergedAddons.length === 0 && <div className={extensionStyles.searchLabel}>Ничего не найдено</div>}
                                 </div>
 
                                 <button
                                     ref={optionButtonRef}
-                                    className={`${extensionStyles.toolbarButton} ${
-                                        optionMenu ? extensionStyles.toolbarButtonActive : ''
-                                    }`}
+                                    className={`${extensionStyles.toolbarButton} ${optionMenu ? extensionStyles.toolbarButtonActive : ''}`}
                                     onClick={() => toggleMenu('option')}
                                 >
                                     <MoreImg />
@@ -329,9 +321,7 @@ export default function ExtensionPage() {
                                         </button>
                                         <button
                                             className={extensionStyles.toolbarButton}
-                                            onClick={() =>
-                                                window.desktopEvents?.send('openPath', { action: 'themePath' })
-                                            }
+                                            onClick={() => window.desktopEvents?.send('openPath', { action: 'themePath' })}
                                         >
                                             <FileImg /> Директория аддонов
                                         </button>
@@ -340,11 +330,7 @@ export default function ExtensionPage() {
                                             onClick={() =>
                                                 window.desktopEvents.invoke('create-new-extension').then(res => {
                                                     if (res.success) {
-                                                        toast.custom(
-                                                            'success',
-                                                            'Вжух!',
-                                                            'Новое расширение создано: ' + res.name,
-                                                        )
+                                                        toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
                                                         setAddons([])
                                                         loadAddons()
                                                     }
@@ -358,17 +344,11 @@ export default function ExtensionPage() {
 
                                 <button
                                     ref={filterButtonRef}
-                                    className={`${extensionStyles.toolbarButton} ${
-                                        filterVisible ? extensionStyles.toolbarButtonActive : ''
-                                    }`}
+                                    className={`${extensionStyles.toolbarButton} ${filterVisible ? extensionStyles.toolbarButtonActive : ''}`}
                                     onClick={() => toggleMenu('filter')}
                                 >
                                     <FilterImg />
-                                    {activeTagCount > 0 && (
-                                        <div className={extensionStyles.count}>
-                                            {activeTagCount > 9 ? '9+' : activeTagCount}
-                                        </div>
-                                    )}
+                                    {activeTagCount > 0 && <div className={extensionStyles.count}>{activeTagCount > 9 ? '9+' : activeTagCount}</div>}
                                 </button>
                             </div>
 
@@ -383,9 +363,7 @@ export default function ExtensionPage() {
                                                     checked={columnsCount === count}
                                                     onChange={() => handleColumnsChange(count)}
                                                     label={`${count} колонок`}
-                                                    className={
-                                                        columnsCount === count ? extensionStyles.selectedTag : ''
-                                                    }
+                                                    className={columnsCount === count ? extensionStyles.selectedTag : ''}
                                                 />
                                             ))}
                                         </div>
@@ -419,9 +397,7 @@ export default function ExtensionPage() {
                                 <div className={extensionStyles.previewSelection}>
                                     {availableThemes.length === 0 ? (
                                         <div className={extensionStyles.noThemes}>
-                                            <div className={extensionStyles.noThemesText}>
-                                                У вас нет установленных тем.
-                                            </div>
+                                            <div className={extensionStyles.noThemesText}>У вас нет установленных тем.</div>
                                             <div className={extensionStyles.noThemesText}>
                                                 Зайдите в наш Discord, чтобы скачать темы:&nbsp;
                                                 <a
@@ -451,23 +427,18 @@ export default function ExtensionPage() {
                                                                 ? addon.directoryName === currentTheme
                                                                 : enabledScripts.includes(addon.directoryName)
                                                         }
-                                                        onCheckboxChange={(_unused, newIsChecked) =>
-                                                            handleCheckboxChange(addon, newIsChecked)
-                                                        }
+                                                        onCheckboxChange={(_unused, newIsChecked) => handleCheckboxChange(addon, newIsChecked)}
                                                         className={addon.matches ? 'highlight' : 'dimmed'}
                                                     />
                                                 ) : (
-                                                    <div
-                                                        key={`skeleton-${addon.name}`}
-                                                        className={extensionStyles.skeletonWrapper}
-                                                    >
+                                                    <div key={`skeleton-${addon.name}`} className={extensionStyles.skeletonWrapper}>
                                                         <Skeleton
                                                             style={
                                                                 columnsCount === 2
                                                                     ? { height: '336px' }
                                                                     : columnsCount === 3
-                                                                    ? { height: '240px' }
-                                                                    : { height: '192px' }
+                                                                      ? { height: '240px' }
+                                                                      : { height: '192px' }
                                                             }
                                                         />
                                                     </div>

@@ -88,21 +88,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleSuccess = (event: any, data: any) => {
             if (downloadToastIdRef.current) {
-                toast.custom(
-                    'success',
-                    data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'),
-                    `Готово`,
-                    {
-                        id: downloadToastIdRef.current,
-                    },
-                )
+                toast.custom('success', data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'), `Готово`, {
+                    id: downloadToastIdRef.current,
+                })
                 downloadToastIdRef.current = null
             } else {
-                toast.custom(
-                    'success',
-                    data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'),
-                    `Готово`,
-                )
+                toast.custom('success', data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'), `Готово`)
             }
             if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
@@ -195,21 +186,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onProgressUpdate = (event: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
-                toast.custom(
-                    'loading',
-                    `Загрузка: ${progress}%`,
-                    'Процесс обновления',
-                    { id: toastReference.current, duration: Infinity },
-                    progress,
-                )
+                toast.custom('loading', `Загрузка: ${progress}%`, 'Процесс обновления', { id: toastReference.current, duration: Infinity }, progress)
             } else {
-                const toastId = toast.custom(
-                    'loading',
-                    `Загрузка: ${progress}%`,
-                    'Процесс обновления',
-                    { duration: Infinity },
-                    progress,
-                )
+                const toastId = toast.custom('loading', `Загрузка: ${progress}%`, 'Процесс обновления', { duration: Infinity }, progress)
                 toastReference.current = toastId
             }
         }
@@ -368,21 +347,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                     <div className={pageStyles.alert_info}>
                                         <div className={pageStyles.alert_version_update}>
                                             <div className={pageStyles.version_old}>
-                                                {app.mod.version && app.mod.installed
-                                                    ? app.mod.version
-                                                    : 'Не установлен'}
+                                                {app.mod.version && app.mod.installed ? app.mod.version : 'Не установлен'}
                                             </div>
                                             <MdKeyboardArrowRight size={14} />
                                             <div className={pageStyles.version_new}>{modInfo[0]?.modVersion}</div>
                                         </div>
                                         <div className={pageStyles.alert_title}>
-                                            {app.mod.installed && app.mod.version
-                                                ? 'Обновление мода'
-                                                : 'Установка мода'}
+                                            {app.mod.installed && app.mod.version ? 'Обновление мода' : 'Установка мода'}
                                         </div>
-                                        <div className={pageStyles.alert_warn}>
-                                            Убедитесь, что Яндекс Музыка закрыта!
-                                        </div>
+                                        <div className={pageStyles.alert_warn}>Убедитесь, что Яндекс Музыка закрыта!</div>
                                     </div>
                                     <div className={pageStyles.button_container}>
                                         <button className={pageStyles.patch_button} onClick={() => startUpdate()}>
@@ -390,31 +363,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                             {app.mod.installed && app.mod.version ? 'Обновить' : 'Установить'}
                                         </button>
                                         {isForceInstallEnabled && !modUpdateState.isVersionOutdated && (
-                                            <button
-                                                className={pageStyles.patch_button}
-                                                onClick={() => startUpdate(true)}
-                                            >
+                                            <button className={pageStyles.patch_button} onClick={() => startUpdate(true)}>
                                                 <MdOutlineWarningAmber size={20} />
                                                 {app.mod.installed ? 'Все равно обновить' : 'Все равно установить'}
                                             </button>
                                         )}
 
                                         {modUpdateState.isVersionOutdated && (
-                                            <button
-                                                className={pageStyles.patch_button}
-                                                onClick={() => updateYandexMusic()}
-                                            >
+                                            <button className={pageStyles.patch_button} onClick={() => updateYandexMusic()}>
                                                 <MdOutlineInstallDesktop size={20} />
                                                 Обновить Яндекс.Музыку
                                             </button>
                                         )}
                                     </div>
                                 </div>
-                                <img
-                                    className={pageStyles.alert_patch_image}
-                                    src="static/assets/images/imageAlertPatch.png"
-                                    alt="Patch Update"
-                                />
+                                <img className={pageStyles.alert_patch_image} src="static/assets/images/imageAlertPatch.png" alt="Patch Update" />
                             </div>
                         </div>
                     )}

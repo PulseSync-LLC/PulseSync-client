@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import fs from 'original-fs'
-import { store } from '../modules/storage';
+import { store } from '../modules/storage'
 
 const execAsync = promisify(exec)
 
@@ -18,9 +18,7 @@ async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
             const command = `pgrep -f "Яндекс Музыка"`
             const { stdout } = await execAsync(command, { encoding: 'utf8' })
             const processes = stdout.split('\n').filter(line => line.trim() !== '')
-            const yandexProcesses: ProcessInfo[] = processes
-                .map(pid => ({ pid: parseInt(pid, 10) }))
-                .filter(proc => !isNaN(proc.pid))
+            const yandexProcesses: ProcessInfo[] = processes.map(pid => ({ pid: parseInt(pid, 10) })).filter(proc => !isNaN(proc.pid))
             return yandexProcesses
         } catch (error) {
             console.error('Error retrieving Yandex Music processes on Mac:', error)
@@ -73,25 +71,24 @@ export async function closeYandexMusic(): Promise<void> {
 }
 
 export function getPathToYandexMusic() {
-    const platform = os.platform();
+    const platform = os.platform()
     switch (platform) {
         case 'darwin':
-            return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources');
+            return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
         case 'win32':
-            return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources');
+            return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
         case 'linux':
-            return store.get('settings.yandexMusicPath', '');
+            return store.get('settings.yandexMusicPath', '')
         default:
-            return '';
+            return ''
     }
 }
 
+const platform = os.platform()
 
-const platform = os.platform();
-
-export const isMac = () => platform === 'darwin';
-export const isWindows = () => platform === 'win32';
-export const isLinux = () => platform === 'linux';
+export const isMac = () => platform === 'darwin'
+export const isWindows = () => platform === 'win32'
+export const isLinux = () => platform === 'linux'
 
 export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
     return crypto.createHash('sha256').update(asarPath).digest('hex')

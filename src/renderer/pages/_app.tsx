@@ -215,9 +215,7 @@ function App() {
                             return false
                         }
                     } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
-                        const isDeprecated = e.graphQLErrors.some(
-                            (error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION',
-                        )
+                        const isDeprecated = e.graphQLErrors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
                         const isForbidden = e.graphQLErrors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
                             sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
@@ -356,11 +354,7 @@ function App() {
         setFeatures(data)
     })
     socket.on('deprecated_version', () => {
-        toast.custom(
-            'error',
-            'Внимание!',
-            'Ваша версия приложения устарела 😡 и скоро пректит работу. Пожалуйста, обновите приложение.',
-        )
+        toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 😡 и скоро пректит работу. Пожалуйста, обновите приложение.')
         window.desktopEvents?.send('show-notification', {
             title: 'Внимание!',
             body: 'Ваша версия приложения устарела 😡 и скоро прекратит работу. Пожалуйста, обновите приложение.',
@@ -385,18 +379,12 @@ function App() {
 
             if (data && data.getMod) {
                 const info = (data.getMod as ModInterface[])
-                    .filter(
-                        info => !currentApp.mod.version || compareVersions(info.modVersion, currentApp.mod.version) > 0,
-                    )
+                    .filter(info => !currentApp.mod.version || compareVersions(info.modVersion, currentApp.mod.version) > 0)
                     .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
 
                 if (info.length > 0) {
                     setMod(info)
-                    if (
-                        currentApp.mod.installed &&
-                        currentApp.mod.version &&
-                        currentApp.mod.version < info[0].modVersion
-                    ) {
+                    if (currentApp.mod.installed && currentApp.mod.version && currentApp.mod.version < info[0].modVersion) {
                         window.desktopEvents?.send('show-notification', {
                             title: 'Доступно обновление мода',
                             body: `Версия ${info[0].modVersion} доступна для установки.`,
@@ -463,14 +451,7 @@ function App() {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                            toast.custom(
-                                'error',
-                                'Ошибка.',
-                                'У аддона отсутвует поле type или оно некорректно',
-                                null,
-                                null,
-                                15000,
-                            )
+                            toast.custom('error', 'Ошибка.', 'У аддона отсутвует поле type или оно некорректно', null, null, 15000)
                             return
                         }
                         setAddons(fetchedAddons)
@@ -484,9 +465,7 @@ function App() {
 
         window.desktopEvents?.on('check-file-exists', filePath => invokeFileEvent('check-file-exists', filePath))
         window.desktopEvents?.on('read-file', filePath => invokeFileEvent('read-file', filePath))
-        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) =>
-            invokeFileEvent('create-config-file', filePath, defaultContent),
-        )
+        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) => invokeFileEvent('create-config-file', filePath, defaultContent))
         window.desktopEvents?.on('write-file', (filePath, data) => invokeFileEvent('write-file', filePath, data))
 
         return () => {
@@ -762,12 +741,7 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id])
 
     const getCoverImage = (track: Track): string => {
-        return (
-            track.albumArt ||
-            track.coverUri ||
-            track.ogImage ||
-            'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
-        )
+        return track.albumArt || track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
     const getTrackStartTime = (track: Track): number => {
@@ -781,10 +755,10 @@ const Player: React.FC<any> = ({ children }) => {
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                if(track.event !== 'trackChange') {
-                    window.discordRpc.clearActivity();
+                if (track.event !== 'trackChange') {
+                    window.discordRpc.clearActivity()
                 }
-                return;
+                return
             }
             if (track.sourceType === 'ynison') {
                 const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
@@ -796,17 +770,13 @@ const Player: React.FC<any> = ({ children }) => {
                     type: 2,
                     details: track.title,
                     largeImageKey: `https://${track.coverUri.replace('%%', '1000x1000')}`,
-                    smallImageKey:
-                        'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png?size=256',
-                    smallImageText: app.discordRpc.showVersionOrDevice
-                        ? app.info.version
-                        : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP'),
+                    smallImageKey: 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png?size=256',
+                    smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP'),
                     buttons: [],
                 }
                 if (track.status === 'paused' && app.discordRpc.displayPause) {
                     activity.smallImageText = 'Paused'
-                    activity.smallImageKey =
-                        'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
                     activity.details = fixStrings(track.title)
                     delete activity.startTimestamp
                     delete activity.endTimestamp
@@ -838,24 +808,22 @@ const Player: React.FC<any> = ({ children }) => {
                     (track.status === 'paused' && !app.discordRpc.displayPause) ||
                     (track.timestamps[0] === 0 && track.timestamps[1] === 0)
                 ) {
-                    if(track.event !== 'trackChange') {
-                        window.discordRpc.clearActivity();
+                    if (track.event !== 'trackChange') {
+                        window.discordRpc.clearActivity()
                     }
-                    return;
+                    return
                 } else {
                     const trackStartTime = getTrackStartTime(track)
                     const trackEndTime = getTrackEndTime(track)
                     const artistName = track.artists.map(x => x.name).join(', ')
 
-                    const startTimestamp =
-                        Math.floor(Date.now() / 1000) * 1000 - Math.floor(Number(trackStartTime)) * 1000
+                    const startTimestamp = Math.floor(Date.now() / 1000) * 1000 - Math.floor(Number(trackStartTime)) * 1000
                     const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000
 
                     const activity: any = {
                         type: 2,
                         largeImageKey: getCoverImage(track),
-                        smallImageKey:
-                            'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png',
+                        smallImageKey: 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png',
                         smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : ' on DESKTOP',
                         details:
                             app.discordRpc.details.length > 0
@@ -869,8 +837,7 @@ const Player: React.FC<any> = ({ children }) => {
 
                     if (track.status === 'paused' && app.discordRpc.displayPause) {
                         activity.smallImageText = 'Paused'
-                        activity.smallImageKey =
-                            'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
+                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
                         activity.details = fixStrings(track.title)
                         delete activity.startTimestamp
                         delete activity.endTimestamp
@@ -881,23 +848,13 @@ const Player: React.FC<any> = ({ children }) => {
 
                     activity.buttons = []
 
-                    if (
-                        track.trackSource !== 'UGC' &&
-                        !track.id.includes('generative') &&
-                        app.discordRpc.enableRpcButtonListen
-                    ) {
+                    if (track.trackSource !== 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen) {
                         const linkTitle = track.albums[0].id
                         activity.buttons.push({
-                            label: app.discordRpc.button
-                                ? truncateLabel(app.discordRpc.button)
-                                : '✌️ Open in Yandex Music',
+                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
                             url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
                         })
-                    } else if (
-                        track.trackSource === 'UGC' &&
-                        !track.id.includes('generative') &&
-                        app.discordRpc.enableRpcButtonListen
-                    ) {
+                    } else if (track.trackSource === 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen) {
                         activity.buttons.push({
                             label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open music file',
                             url: track.url,

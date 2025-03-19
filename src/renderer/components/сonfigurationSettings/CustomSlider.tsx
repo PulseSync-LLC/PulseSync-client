@@ -21,15 +21,7 @@ const CustomSlider: React.FC<CustomSliderProps> = ({ min, max, step, value, onCh
                     <div className={styles.emptyTrack} style={{ width: `${100 - percentage}%` }}></div>
                     <div className={styles.customThumb} style={{ left: `${adjustedPercentage}%` }}></div>
                 </div>
-                <input
-                    type="range"
-                    min={min}
-                    max={max}
-                    step={step}
-                    value={value}
-                    onChange={onChange}
-                    className={styles.rangeInput}
-                />
+                <input type="range" min={min} max={max} step={step} value={value} onChange={onChange} className={styles.rangeInput} />
             </div>
         </div>
     )

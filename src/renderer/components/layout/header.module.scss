@@ -462,10 +462,7 @@
                                     width: 100%;
                                     height: 100%;
                                     border-radius: 18px;
-                                    background: conic-gradient(
-                                        #4c79ff96 0% var(--progress),
-                                        transparent var(--progress) 100%
-                                    );
+                                    background: conic-gradient(#4c79ff96 0% var(--progress), transparent var(--progress) 100%);
 
                                     z-index: 3;
                                 }

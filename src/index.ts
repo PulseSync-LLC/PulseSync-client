@@ -14,7 +14,7 @@ import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
-import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils';
+import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
@@ -329,15 +329,11 @@ async function loadAddons(): Promise<Addon[]> {
                     const metadata = JSON.parse(data) as Addon
                     const versionMatch = metadata.version.match(versionRegex)
                     if (!versionMatch) {
-                        logger.main.log(
-                            `Addons: No valid version found in theme ${metadataFilePath}. Setting version to 1.0.0`,
-                        )
+                        logger.main.log(`Addons: No valid version found in theme ${metadataFilePath}. Setting version to 1.0.0`)
                         metadata.version = '1.0.0'
-                        await fs.promises
-                            .writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8')
-                            .catch(err => {
-                                logger.main.error(`Addons: error writing metadata.json in theme ${folder}:`, err)
-                            })
+                        await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8').catch(err => {
+                            logger.main.error(`Addons: error writing metadata.json in theme ${folder}:`, err)
+                        })
                     } else {
                         metadata.version = versionMatch[0]
                     }
@@ -448,11 +444,9 @@ app.whenReady().then(async () => {
     if (isAppDev) {
         try {
             if ((session.defaultSession as any).loadExtension) {
-                return (session.defaultSession as any)
-                    .loadExtension(getPath('fmkadmapgofadopljbjfkapdkoienihi'))
-                    .then((ext: { name: string }) => {
-                        return Promise.resolve(ext.name)
-                    })
+                return (session.defaultSession as any).loadExtension(getPath('fmkadmapgofadopljbjfkapdkoienihi')).then((ext: { name: string }) => {
+                    return Promise.resolve(ext.name)
+                })
             }
         } catch (e) {
             logger.main.error(e)
@@ -464,40 +458,44 @@ export async function prestartCheck() {
     const musicPath = getPathToYandexMusic()
     if (!fs.existsSync(musicPath)) {
         if (isLinux()) {
-            dialog.showMessageBox({
-                type: 'info',
-                title: 'Укажите путь к Яндекс Музыке',
-                message: 'Путь к Яндекс Музыке не найден. Пожалуйста, выберите директорию, где установлена Яндекс Музыка.',
-                buttons: ['Выбрать путь', 'Закрыть приложение']
-            }).then(result => {
-                if (result.response === 0) {
-                    dialog.showOpenDialog({
-                        properties: ['openDirectory']
-                    }).then(folderResult => {
-                        if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
-                            store.set('settings.yandexMusicPath', folderResult.filePaths[0])
-                        } else {
-                            app.quit();
-                        }
-                    });
-                } else {
-                    app.quit();
-                }
-            });
+            dialog
+                .showMessageBox({
+                    type: 'info',
+                    title: 'Укажите путь к Яндекс Музыке',
+                    message: 'Путь к Яндекс Музыке не найден. Пожалуйста, выберите директорию, где установлена Яндекс Музыка.',
+                    buttons: ['Выбрать путь', 'Закрыть приложение'],
+                })
+                .then(result => {
+                    if (result.response === 0) {
+                        dialog
+                            .showOpenDialog({
+                                properties: ['openDirectory'],
+                            })
+                            .then(folderResult => {
+                                if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
+                                    store.set('settings.yandexMusicPath', folderResult.filePaths[0])
+                                } else {
+                                    app.quit()
+                                }
+                            })
+                    } else {
+                        app.quit()
+                    }
+                })
         } else {
             new Notification({
                 title: 'Яндекс Музыка не найдена 😡',
                 body: 'Пожалуйста, откройте приложение после установки музыки',
-            }).show();
+            }).show()
             dialog.showMessageBox({
                 type: 'info',
                 title: 'Яндекс Музыка не найдена 😡',
                 message: 'Пожалуйста, откройте приложение после установки музыки',
                 buttons: ['OK'],
-            });
+            })
             setTimeout(() => {
-                app.quit();
-            }, 2500);
+                app.quit()
+            }, 2500)
         }
     }
 
@@ -505,14 +503,14 @@ export async function prestartCheck() {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    let asarFilename = 'app.backup.asar';
+    let asarFilename = 'app.backup.asar'
 
     if (isLinux() && store.has('settings.modFilename')) {
-        const modFilename = store.get('settings.modFilename');
-        asarFilename = `${modFilename}.backup.asar`;
+        const modFilename = store.get('settings.modFilename')
+        asarFilename = `${modFilename}.backup.asar`
     }
 
-    const asarCopy = path.join(musicPath, asarFilename);
+    const asarCopy = path.join(musicPath, asarFilename)
 
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)

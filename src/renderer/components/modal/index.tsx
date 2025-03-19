@@ -14,13 +14,7 @@ interface p {
 
 const Modal: React.FC<p> = ({ title, isOpen, reqClose, children }) => {
     return (
-        <RModal
-            isOpen={isOpen}
-            onRequestClose={reqClose}
-            className="modal-content"
-            overlayClassName="modal-overlay"
-            closeTimeoutMS={500}
-        >
+        <RModal isOpen={isOpen} onRequestClose={reqClose} className="modal-content" overlayClassName="modal-overlay" closeTimeoutMS={500}>
             <div className="modal-header">
                 <h2>{title}</h2>
                 <Button className="close-button" onClick={reqClose}>

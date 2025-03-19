@@ -32,21 +32,9 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
     return isIntersecting
 }
 
-const getMediaUrl = ({
-    type,
-    hash,
-    ext,
-    hovered,
-}: {
-    type: 'avatar' | 'banner'
-    hash?: string
-    ext?: string
-    hovered: boolean
-}) => {
+const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; hash?: string; ext?: string; hovered: boolean }) => {
     if (!hash) {
-        return type === 'avatar'
-            ? './static/assets/images/undef.png'
-            : 'linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%)'
+        return type === 'avatar' ? './static/assets/images/undef.png' : 'linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%)'
     }
 
     if (ext === 'gif') {
@@ -200,11 +188,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                                     <LevelBadge level={user.levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(_badge => (
-                                    <TooltipButton
-                                        key={`${_badge.type}-${_badge.level}`}
-                                        tooltipText={_badge.name}
-                                        side="bottom"
-                                    >
+                                    <TooltipButton key={`${_badge.type}-${_badge.level}`} tooltipText={_badge.name} side="bottom">
                                         <div className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}>
                                             <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.name} />
                                         </div>
@@ -224,9 +208,7 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                     </TooltipButton>
                 </div>
                 <div className={styles.userStatusInfo}>
-                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>
-                        {statusUser}
-                    </div>
+                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>{statusUser}</div>
                 </div>
             </button>
         </div>

@@ -37,13 +37,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                     </Component>
                 </Tooltip.Trigger>
                 <Tooltip.Portal>
-                    <Tooltip.Content
-                        className={styles.TooltipContent}
-                        data-side={dataSide}
-                        side={side}
-                        sideOffset={5}
-                        style={styleComponent}
-                    >
+                    <Tooltip.Content className={styles.TooltipContent} data-side={dataSide} side={side} sideOffset={5} style={styleComponent}>
                         {tooltipText}
                         <Tooltip.Arrow className={styles.TooltipArrow} />
                     </Tooltip.Content>

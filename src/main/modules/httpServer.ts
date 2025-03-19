@@ -477,19 +477,12 @@ const sendExtensions = async () => {
                 try {
                     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
 
-                    if (
-                        (!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) &&
-                        addon !== 'Default'
-                    ) {
+                    if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && addon !== 'Default') {
                         return null
                     }
 
-                    const cssContent = metadata.css
-                        ? fs.readFileSync(path.join(addonPath, metadata.css), 'utf-8')
-                        : null
-                    const scriptContent = metadata.script
-                        ? fs.readFileSync(path.join(addonPath, metadata.script), 'utf-8')
-                        : null
+                    const cssContent = metadata.css ? fs.readFileSync(path.join(addonPath, metadata.css), 'utf-8') : null
+                    const scriptContent = metadata.script ? fs.readFileSync(path.join(addonPath, metadata.script), 'utf-8') : null
 
                     return {
                         addon,

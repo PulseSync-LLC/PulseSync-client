@@ -10,13 +10,7 @@ interface AchievementListProps {
     canViewDetails: boolean
 }
 
-const AchievementList: React.FC<AchievementListProps> = ({
-    achievements,
-    userAchievements,
-    toggleExpand,
-    expandedIndexes,
-    canViewDetails,
-}) => (
+const AchievementList: React.FC<AchievementListProps> = ({ achievements, userAchievements, toggleExpand, expandedIndexes, canViewDetails }) => (
     <div className={styles.achievementsList}>
         {achievements.map(ach => {
             const userAch = userAchievements?.find((ua: any) => ua.achievement.id === ach.id)

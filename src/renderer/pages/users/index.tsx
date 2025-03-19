@@ -6,14 +6,7 @@ import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
 import debounce from 'lodash.debounce'
-import {
-    MdAllOut,
-    MdHourglassEmpty,
-    MdAccessTime,
-    MdKeyboardArrowDown,
-    MdKeyboardArrowUp,
-    MdLeaderboard,
-} from 'react-icons/md'
+import { MdAllOut, MdHourglassEmpty, MdAccessTime, MdKeyboardArrowDown, MdKeyboardArrowUp, MdLeaderboard } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
@@ -79,9 +72,7 @@ export default function UsersPage() {
                 .then(result => {
                     if (result.data) {
                         const data = result.data.getUsersWithPagination
-                        let filteredUsers = data.users.filter(
-                            (user: UserInterface) => user.lastOnline && Number(user.lastOnline) > 0,
-                        )
+                        let filteredUsers = data.users.filter((user: UserInterface) => user.lastOnline && Number(user.lastOnline) > 0)
 
                         if (sorting[0].id === 'lastOnline') {
                             const sortDirection = sorting[0].desc ? 'desc' : 'asc'
@@ -145,11 +136,7 @@ export default function UsersPage() {
 
     const getSortIcon = (field: string) => {
         if (sorting.length === 0 || sorting[0].id !== field) return null
-        return sorting[0].desc ? (
-            <MdKeyboardArrowDown className={styles.sortIcon} />
-        ) : (
-            <MdKeyboardArrowUp className={styles.sortIcon} />
-        )
+        return sorting[0].desc ? <MdKeyboardArrowDown className={styles.sortIcon} /> : <MdKeyboardArrowUp className={styles.sortIcon} />
     }
 
     const isFieldSorted = (field: string) => sorting.length > 0 && sorting[0].id === field
@@ -167,11 +154,7 @@ export default function UsersPage() {
 
         for (let i = startPage; i <= endPage; i++) {
             pages.push(
-                <Button
-                    key={i}
-                    className={`${styles.paginationButton} ${i === page ? styles.active : ''}`}
-                    onClick={() => handlePageChange(i)}
-                >
+                <Button key={i} className={`${styles.paginationButton} ${i === page ? styles.active : ''}`} onClick={() => handlePageChange(i)}>
                     {i}
                 </Button>,
             )
@@ -179,11 +162,7 @@ export default function UsersPage() {
 
         return (
             <div className={styles.pagination}>
-                <Button
-                    className={styles.paginationButtonLR}
-                    onClick={() => handlePageChange(page - 1)}
-                    disabled={page === 1}
-                >
+                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
                     Назад
                 </Button>
                 {startPage > 1 && (
@@ -203,11 +182,7 @@ export default function UsersPage() {
                         </Button>
                     </>
                 )}
-                <Button
-                    className={styles.paginationButtonLR}
-                    onClick={() => handlePageChange(page + 1)}
-                    disabled={page === maxPages}
-                >
+                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page + 1)} disabled={page === maxPages}>
                     Вперед
                 </Button>
             </div>
