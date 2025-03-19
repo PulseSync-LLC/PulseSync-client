@@ -33,7 +33,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo } = useContext(userContext)
+    const { app, setApp, updateAvailable, setUpdate, modInfo, features } = useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [loadingModInfo, setLoadingModInfo] = useState(true)
@@ -312,10 +312,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <MdExtension size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text="Users">
+                            <NavButtonPulse to="/users" text="Users" disabled={!features.usersPage}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text="Store" disabled>
+                            <NavButtonPulse to="/store" text="Store" disabled={!features.storePage}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
