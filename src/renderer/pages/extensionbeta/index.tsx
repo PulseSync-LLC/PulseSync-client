@@ -211,8 +211,8 @@ export default function ExtensionPage() {
         return filtered
     }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts])
 
-    const availableThemes = useMemo(() => {
-        return addons.filter(addon => addon.type === 'theme' && addon.name !== 'Default')
+    const availableAddons = useMemo(() => {
+        return addons.filter(addon => addon.name !== 'Default')
     }, [addons])
 
     useEffect(() => {
@@ -395,11 +395,11 @@ export default function ExtensionPage() {
                         <div className={globalStyles.container30x15}>
                             <div className={extensionStyles.preview}>
                                 <div className={extensionStyles.previewSelection}>
-                                    {availableThemes.length === 0 ? (
+                                    {availableAddons.length === 0 ? (
                                         <div className={extensionStyles.noThemes}>
-                                            <div className={extensionStyles.noThemesText}>У вас нет установленных тем.</div>
+                                            <div className={extensionStyles.noThemesText}>У вас нет установленных аддонов.</div>
                                             <div className={extensionStyles.noThemesText}>
-                                                Зайдите в наш Discord, чтобы скачать темы:&nbsp;
+                                                Зайдите в наш Discord, чтобы скачать аддоны:&nbsp;
                                                 <a
                                                     className={extensionStyles.noThemesLink}
                                                     href="https://discord.gg/qy42uGTzRy"
