@@ -5,7 +5,7 @@ import fs from 'fs'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, inSleepMode, mainWindow, updated } from '../../index'
+import { corsAnywherePort, inSleepMode, mainWindow, musicPath, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
@@ -18,6 +18,7 @@ import { Track } from '../../renderer/api/interfaces/track.interface'
 import { downloadTrack } from './handlers/downloadTrack'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
+import { checkMusic } from '../utils/appUtils'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -184,68 +185,77 @@ const registerMediaEvents = (window: BrowserWindow): void => {
         },
     )
 
-    ipcMain.on('update-yandex-music', async (event, data) => {
-        if (!data) {
-            event.reply('update-music-failure', {
-                success: false,
-                error: 'No download URL provided.',
-            })
-            return
+    ipcMain.on('download-yandex-music', async (event, downloadUrl) => {
+        let exeUrl
+        if (!downloadUrl) {
+            const latestYmlResponse = await axios.get('https://music-desktop-application.s3.yandex.net/stable/latest.yml')
+            const data = latestYmlResponse.data
+            const versionMatch = data.match(/version:\s*([\d.]+)/)
+            if (!versionMatch) {
+                throw new Error('Версия не найдена в latest.yml')
+            }
+            const version = versionMatch[1]
+
+            exeUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_x64_${version}.exe`
         }
+
+        const fileName = path.basename(downloadUrl || exeUrl)
+        const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
+
         try {
-            const url = data
-            const fileName = path.basename(url)
-            const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
-            fs.mkdirSync(path.dirname(downloadPath), { recursive: true })
+            await fs.promises.mkdir(path.dirname(downloadPath), { recursive: true })
+
             const response = await axios({
-                url,
+                url: downloadUrl || exeUrl,
                 method: 'GET',
                 responseType: 'stream',
             })
-            const totalLength = response.headers['content-length']
+
+            const totalLength = parseInt(response.headers['content-length'], 10)
             let downloadedLength = 0
             const writer = fs.createWriteStream(downloadPath)
+
             response.data.on('data', (chunk: string | any[]) => {
                 downloadedLength += chunk.length
                 const progress = downloadedLength / totalLength
-                event.reply('update-music-progress', {
+                event.reply('download-music-progress', {
                     progress: Math.round(progress * 100),
                 })
                 mainWindow.setProgressBar(progress)
             })
-            response.data.pipe(writer)
-            writer.on('finish', () => {
-                writer.close()
-                mainWindow.setProgressBar(-1)
-                fs.chmodSync(downloadPath, 0o755)
-                setTimeout(() => {
-                    execFile(downloadPath, error => {
-                        if (error) {
-                            event.reply('update-music-failure', {
-                                success: false,
-                                error: `Failed to execute the file: ${error.message}`,
-                            })
-                            return
-                        }
-                        event.reply('update-music-execution-success', {
-                            success: true,
-                            message: 'File executed successfully.',
+
+            await new Promise<void>((resolve, reject) => {
+                writer.on('finish', () => resolve())
+                writer.on('error', error => reject(error))
+                response.data.pipe(writer)
+            })
+
+            writer.close()
+            mainWindow.setProgressBar(-1)
+            fs.chmodSync(downloadPath, 0o755)
+
+            setTimeout(() => {
+                execFile(downloadPath, error => {
+                    if (error) {
+                        event.reply('download-music-failure', {
+                            success: false,
+                            error: `Failed to execute the file: ${error.message}`,
                         })
-                        fs.unlinkSync(downloadPath)
+                        return
+                    }
+                    event.reply('download-music-execution-success', {
+                        success: true,
+                        message: 'File executed successfully.',
                     })
-                }, 100)
-            })
-            writer.on('error', error => {
-                fs.unlinkSync(downloadPath)
-                mainWindow.setProgressBar(-1)
-                event.reply('update-music-failure', {
-                    success: false,
-                    error: `Error saving file: ${error.message}`,
+                    fs.unlinkSync(downloadPath)
                 })
-            })
+            }, 100)
         } catch (error) {
             mainWindow.setProgressBar(-1)
-            event.reply('update-music-failure', {
+            if (fs.existsSync(downloadPath)) {
+                fs.unlinkSync(downloadPath)
+            }
+            event.reply('download-music-failure', {
                 success: false,
                 error: `Error downloading file: ${error.message}`,
             })
@@ -265,6 +275,12 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
             openAtLogin: data,
             path: app.getPath('exe'),
         })
+    })
+    ipcMain.handle('getMusicStatus', async event => {
+        return fs.existsSync(musicPath)
+    })
+    ipcMain.on('checkMusicInstall', async event => {
+        checkMusic()
     })
 }
 
@@ -385,7 +401,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
 
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
         try {
-            fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 2), 'utf-8')
+            fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')
         } catch (error) {
             logger.main.error(`Error while creating system-info.json: ${error.message}`)
         }
@@ -442,7 +458,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
             const extensionPath = path.join(extensionsPath, newName)
             fs.mkdirSync(extensionPath)
-            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAddon, null, 2))
+            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAddon, null, 4))
             fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent)
             fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent)
             return { success: true, name: newName }

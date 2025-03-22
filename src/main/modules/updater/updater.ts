@@ -32,6 +32,7 @@ class Updater {
         this.commonConfig = this.commonConfig || {}
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
+        autoUpdater.autoDownload = true
         autoUpdater.disableWebInstaller = true
         autoUpdater.on('error', error => {
             logger.updater.error('Updater error', error)

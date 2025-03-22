@@ -25,6 +25,7 @@ import { isDev, isDevmark } from '../../api/config'
 import TooltipButton from '../tooltip_button'
 import store from '../../api/store/store'
 import { openModal } from '../../api/store/modalSlice'
+import { errorTypesToShow } from '../../utils/utils'
 
 interface LayoutProps {
     title: string
@@ -33,7 +34,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo, features } = useContext(userContext)
+    const { app, setApp, updateAvailable, setUpdate, modInfo, features, musicInstalled, setMusicInstalled } = useContext(userContext)
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [loadingModInfo, setLoadingModInfo] = useState(true)
@@ -112,6 +113,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     store.dispatch(openModal())
                 }
                 setForceInstallEnabled(false)
+                window.desktopEvents?.invoke('getMusicStatus').then((status: any) => {
+                    setMusicInstalled(status)
+                })
             } else {
                 toast.custom('error', 'Что-то не так', 'Ошибка обновления')
             }
@@ -120,35 +124,22 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
 
         const handleFailure = (event: any, error: any) => {
+            const getErrorMessage = () => {
+                if (errorTypesToShow.has(error.type)) {
+                    return `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
+                }
+                return app.mod.installed
+                    ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
+                    : `Установка мода не удалась. Попробуйте ещё раз.`
+            }
+
             if (downloadToastIdRef.current) {
-                toast.custom(
-                    'error',
-                    'Произошла ошибка',
-                    `${
-                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
-                            ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
-                            : app.mod.installed
-                              ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
-                              : `Установка мода не удалась. Попробуйте ещё раз.`
-                    }`,
-                    {
-                        id: downloadToastIdRef.current,
-                    },
-                )
+                toast.custom('error', 'Произошла ошибка', getErrorMessage(), { id: downloadToastIdRef.current })
                 downloadToastIdRef.current = null
             } else {
-                toast.custom(
-                    'error',
-                    'Произошла ошибка',
-                    `${
-                        ['version_too_new', 'version_outdated', 'checksum_mismatch'].includes(error.type)
-                            ? `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
-                            : app.mod.installed
-                              ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
-                              : `Установка мода не удалась. Попробуйте ещё раз.`
-                    }`,
-                )
+                toast.custom('error', 'Произошла ошибка', getErrorMessage())
             }
+
             if (error.type === 'version_too_new') {
                 setForceInstallEnabled(true)
             }
@@ -160,7 +151,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
             setIsUpdating(false)
         }
-
         const handleUpdateAvailable = (event: any, data: any) => {
             setUpdate(true)
         }
@@ -216,32 +206,33 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: '',
                 })
                 setIsMusicUpdating(false)
+                window.location.reload()
             }
         }
 
-        window.desktopEvents?.on('update-music-progress', onProgressUpdate)
-        window.desktopEvents?.on('update-music-failure', onUpdateFailure)
-        window.desktopEvents?.on('update-music-execution-success', onExecutionComplete)
+        window.desktopEvents?.on('download-music-progress', onProgressUpdate)
+        window.desktopEvents?.on('download-music-failure', onUpdateFailure)
+        window.desktopEvents?.on('download-music-execution-success', onExecutionComplete)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('update-music-progress')
-            window.desktopEvents?.removeAllListeners('update-music-failure')
-            window.desktopEvents?.removeAllListeners('update-music-execution-success')
+            window.desktopEvents?.removeAllListeners('download-music-progress')
+            window.desktopEvents?.removeAllListeners('download-music-failure')
+            window.desktopEvents?.removeAllListeners('download-music-execution-success')
             ;(window as any).__musicEventListeners = false
         }
     }, [])
 
     const updateYandexMusic = () => {
         if (isMusicUpdating) {
-            toast.custom('info', `Обновление уже запущено.`, 'Информация')
+            toast.custom('info', `Информация.`, 'Обновление уже запущено')
             return
         }
-        window.desktopEvents?.send('update-yandex-music', modUpdateState.updateUrl)
+        window.desktopEvents?.send('download-yandex-music', modUpdateState.updateUrl)
         setIsMusicUpdating(true)
     }
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
-            toast.custom('info', `Обновление уже запущено.`, 'Информация')
+            toast.custom('info', `Информация.`, 'Обновление уже запущено')
             return
         }
 
@@ -308,14 +299,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/trackinfo" text="Track Info">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensionbeta" text="Extension Beta">
+                            <NavButtonPulse to="/extensionbeta" text="Extension Beta" disabled={!musicInstalled}>
                                 <MdExtension size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text="Users" disabled={!features.usersPage}>
+                            <NavButtonPulse to="/users" text="Users" disabled={!features.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text="Store" disabled={!features.storePage}>
+                            <NavButtonPulse to="/store" text="Store" disabled={!features.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
@@ -340,7 +331,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-                    {modInfo.length > 0 && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) && (
+                    {modInfo.length > 0 && musicInstalled && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) && (
                         <div className={pageStyles.alert_patch}>
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>

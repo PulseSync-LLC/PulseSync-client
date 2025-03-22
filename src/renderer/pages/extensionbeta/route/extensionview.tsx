@@ -375,7 +375,7 @@ const ExtensionViewPage: React.FC = () => {
         if (currentAddon) {
             const configPath = path.join(currentAddon.path, 'handleEvents.json')
             try {
-                await window.desktopEvents?.invoke('file-event', 'write-file', configPath, JSON.stringify(updatedConfig, null, 2))
+                await window.desktopEvents?.invoke('file-event', 'write-file', configPath, JSON.stringify(updatedConfig, null, 4))
             } catch (error) {
                 console.error('Ошибка при сохранении конфигурации:', error)
                 alert('Произошла ошибка при сохранении конфигурации.')

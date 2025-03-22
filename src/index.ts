@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, powerMonitor, protocol, session, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session, shell, session as electronSession } from 'electron'
 import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
@@ -14,7 +14,7 @@ import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
-import { formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
+import { checkAsar, checkMusic, formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
@@ -23,6 +23,9 @@ import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
 import { promisify } from 'util'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
+import axios from 'axios'
+import { execFile } from 'child_process'
+import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -34,7 +37,10 @@ export let corsAnywherePort: string | number
 export let mainWindow: BrowserWindow
 export let updated = false
 export let inSleepMode = false
-let hardwareAcceleration = false
+export let hardwareAcceleration = false
+export let musicPath = getPathToYandexMusic()
+export let asarFilename = 'app.backup.asar'
+export let asarCopy = path.join(musicPath, asarFilename)
 
 let preloaderWindow: BrowserWindow
 let availableAddons: Addon[] = []
@@ -277,7 +283,7 @@ function createDefaultAddonIfNotExists(themesFolderPath: string) {
             const cssPath = path.join(defaultAddonPath, defaultAddon.css)
             const scriptPath = path.join(defaultAddonPath, defaultAddon.script)
 
-            fs.writeFileSync(metadataPath, JSON.stringify(defaultAddon, null, 2), 'utf-8')
+            fs.writeFileSync(metadataPath, JSON.stringify(defaultAddon, null, 4), 'utf-8')
             fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
             fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
@@ -395,7 +401,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
 
         case 'write-file':
             try {
-                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 2)
+                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 4)
                 fs.writeFileSync(filePath, content, 'utf8')
                 logger.main.log('Файл успешно записан:', filePath)
                 return { success: true }
@@ -440,14 +446,23 @@ export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
     return path.resolve(`${savePath}/extensions/${args}`)
 }
+function launchExtensionBackgroundWorkers(session = electronSession.defaultSession) {
+    return Promise.all(
+        session.getAllExtensions().map(async extension => {
+            const manifest = extension.manifest
+            if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
+                await session.serviceWorkers.startWorkerForScope(extension.url)
+            }
+        }),
+    )
+}
+
 app.whenReady().then(async () => {
     if (isAppDev) {
         try {
-            if ((session.defaultSession as any).loadExtension) {
-                return (session.defaultSession as any).loadExtension(getPath('fmkadmapgofadopljbjfkapdkoienihi')).then((ext: { name: string }) => {
-                    return Promise.resolve(ext.name)
-                })
-            }
+            await installExtension('fmkadmapgofadopljbjfkapdkoienihi')
+            await updateExtensions()
+            await launchExtensionBackgroundWorkers()
         } catch (e) {
             logger.main.error(e)
         }
@@ -455,62 +470,15 @@ app.whenReady().then(async () => {
 })
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
-    const musicPath = getPathToYandexMusic()
-    if (!fs.existsSync(musicPath)) {
-        if (isLinux()) {
-            dialog
-                .showMessageBox({
-                    type: 'info',
-                    title: 'Укажите путь к Яндекс Музыке',
-                    message: 'Путь к Яндекс Музыке не найден. Пожалуйста, выберите директорию, где установлена Яндекс Музыка.',
-                    buttons: ['Выбрать путь', 'Закрыть приложение'],
-                })
-                .then(result => {
-                    if (result.response === 0) {
-                        dialog
-                            .showOpenDialog({
-                                properties: ['openDirectory'],
-                            })
-                            .then(folderResult => {
-                                if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
-                                    store.set('settings.yandexMusicPath', folderResult.filePaths[0])
-                                } else {
-                                    app.quit()
-                                }
-                            })
-                    } else {
-                        app.quit()
-                    }
-                })
-        } else {
-            new Notification({
-                title: 'Яндекс Музыка не найдена 😡',
-                body: 'Пожалуйста, откройте приложение после установки музыки',
-            }).show()
-            dialog.showMessageBox({
-                type: 'info',
-                title: 'Яндекс Музыка не найдена 😡',
-                message: 'Пожалуйста, откройте приложение после установки музыки',
-                buttons: ['OK'],
-            })
-            setTimeout(() => {
-                app.quit()
-            }, 2500)
-        }
-    }
 
     if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    let asarFilename = 'app.backup.asar'
-
     if (isLinux() && store.has('settings.modFilename')) {
         const modFilename = store.get('settings.modFilename')
         asarFilename = `${modFilename}.backup.asar`
     }
-
-    const asarCopy = path.join(musicPath, asarFilename)
 
     if (!store.has('discordRpc.enableGithubButton')) {
         store.set('discordRpc.enableGithubButton', true)
@@ -521,14 +489,8 @@ export async function prestartCheck() {
     if (!store.has('settings.closeAppInTray')) {
         store.set('settings.closeAppInTray', true)
     }
-    if ((store.has('mod.installed') && store.get('mod.installed')) || store.get('mod.version')) {
-        if (!fs.existsSync(asarCopy)) {
-            store.set('mod.installed', false)
-            store.delete('mod.version')
-        }
-    } else if (fs.existsSync(asarCopy)) {
-        store.set('mod.installed', true)
-    }
+
+    checkAsar()
     initializeAddon()
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     logger.main.info(app.getPath('appData'))

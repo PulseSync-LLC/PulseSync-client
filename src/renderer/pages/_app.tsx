@@ -60,6 +60,7 @@ function App() {
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<AddonInterface | null>(null)
     const [loading, setLoading] = useState(true)
+    const [musicInstalled, setMusicInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
     const socket = io(config.SOCKET_URL, {
         path: '/ws',
@@ -407,7 +408,10 @@ function App() {
                 socket.connect()
             }
             window.desktopEvents?.send('updater-start')
-
+            window.desktopEvents?.send('checkMusicInstall')
+            window.desktopEvents?.invoke('getMusicStatus').then((status: any) => {
+                setMusicInstalled(status)
+            })
             const fetchAppInfo = async () => {
                 try {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
@@ -603,6 +607,8 @@ function App() {
                     setUser,
                     authorize,
                     loading,
+                    musicInstalled,
+                    setMusicInstalled,
                     socket: socketIo,
                     socketConnected,
                     app,

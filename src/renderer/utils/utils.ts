@@ -77,3 +77,18 @@ export const timeAgo = (timestamp: number) => {
         return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад'
     }
 }
+export const errorTypesToShow = new Set([
+    'version_too_new',
+    'version_outdated',
+    'checksum_mismatch',
+    'mod_filename_missing',
+    'compatibility_check_error',
+    'file_not_found',
+    'unexpected_error',
+    'download_error',
+    'writer_error',
+    'finish_error',
+    'download_outer_error',
+    'backup_not_found',
+    'remove_mod_error',
+])

@@ -16,6 +16,8 @@ interface p {
     setUser: (userData: any) => void
     authorize?: () => void
     loading: boolean
+    musicInstalled: boolean
+    setMusicInstalled: (value: boolean) => void
     socket: Socket | null
     socketConnected: boolean
     app: SettingsInterface
@@ -36,6 +38,8 @@ const UserContext = createContext<p>({
     setUser: () => void 0,
     authorize: () => void 0,
     loading: true,
+    musicInstalled: false,
+    setMusicInstalled: () => void 0,
     socket: null,
     socketConnected: false,
     app: settingsInitials,

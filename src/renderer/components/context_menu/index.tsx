@@ -105,12 +105,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'askSavePath':
                 updatedSettings.askSavePath = status
                 window.electron.store.set('settings.askSavePath', status)
-                toast.custom('success', `Готово`, `Опция "Спрашивать куда сохранять трек?" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', `Готово`, `Опция "Спрашивать куда сохранять трек" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'saveAsMp3':
                 updatedSettings.saveAsMp3 = status
                 window.electron.store.set('settings.saveAsMp3', status)
-                toast.custom('success', `Готово`, `Опция "Сохранять в формате mp3?" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', `Готово`, `Опция "Сохранять в формате mp3" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'closeAppInTray':
                 updatedSettings.closeAppInTray = status
@@ -250,7 +250,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         ),
         createButtonSection('Мод', [
             {
-                label: app.mod.installed && app.mod.version ? `Apollo v${app.mod.version}` : 'Не установлен',
+                label: app.mod.installed && app.mod.version ? `Eclipse v${app.mod.version}` : 'Не установлен',
                 onClick: () => store.dispatch(openModal()),
                 disabled: !app.mod.installed || !app.mod.version,
             },
