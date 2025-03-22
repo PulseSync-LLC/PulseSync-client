@@ -174,7 +174,7 @@ export const checkMusic = () => {
                     type: 'info',
                     title: 'Яндекс Музыка не установлена',
                     message: 'Приложение Яндекс Музыка не найдено. Начать установку?',
-                    buttons: ['Скачать', 'Отменить'],
+                    buttons: ['Начать', 'Отменить'],
                     cancelId: 1,
                 })
                 .then(async result => {

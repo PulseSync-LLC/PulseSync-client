@@ -128,6 +128,10 @@ export async function downloadTrack(
                     if (val.track?.albums?.[0]?.title) {
                         ffmpegCommand += `-metadata album="${val.track.albums[0].title}" `
                     }
+                    if (val.track?.albums?.[0]?.year && val.track?.albums?.[0]?.releaseDate) {
+                        const releaseDate = new Date(val.track.albums[0].releaseDate).toISOString().split('T')[0]
+                        ffmpegCommand += `-metadata date="${releaseDate}" -metadata year="${val.track.albums[0].year}" `
+                    }
                     ffmpegCommand += `"${filePath}"`
 
                     try {

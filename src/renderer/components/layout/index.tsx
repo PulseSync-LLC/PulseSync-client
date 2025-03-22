@@ -176,28 +176,28 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onProgressUpdate = (event: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
-                toast.custom('loading', `Загрузка: ${progress}%`, 'Процесс обновления', { id: toastReference.current, duration: Infinity }, progress)
+                toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { id: toastReference.current, duration: Infinity }, progress)
             } else {
-                const toastId = toast.custom('loading', `Загрузка: ${progress}%`, 'Процесс обновления', { duration: Infinity }, progress)
+                const toastId = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
                 toastReference.current = toastId
             }
         }
 
         const onUpdateFailure = (event: any, error: any) => {
             if (toastReference.current) {
-                toast.custom('error', `Ошибка: ${error.error}`, 'Не удалось выполнить обновление', {
+                toast.custom('error', `Ошибка: ${error.error}`, !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки', {
                     id: toastReference.current,
                 })
                 toastReference.current = null
             } else {
-                toast.custom('error', `Ошибка: ${error.error}`, 'Не удалось выполнить обновление')
+                toast.custom('error', `Ошибка: ${error.error}`, !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки')
             }
             setIsMusicUpdating(false)
         }
 
         const onExecutionComplete = (event: any, data: any) => {
             if (toastReference.current) {
-                toast.custom('success', 'Успешно!', 'Обновление Я.Музыки прошло успешно.', {
+                toast.custom('success', 'Успешно!', !musicInstalled ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.', {
                     id: toastReference.current,
                 })
                 toastReference.current = null
@@ -206,7 +206,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: '',
                 })
                 setIsMusicUpdating(false)
-                window.location.reload()
+                if(!musicInstalled) {
+                    setMusicInstalled(true)
+                    window.location.reload()
+                }
             }
         }
 
