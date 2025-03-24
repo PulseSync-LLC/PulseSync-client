@@ -360,7 +360,8 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                     }
                 }
 
-                fs.renameSync(tempFilePath, savePath)
+                fs.copyFileSync(tempFilePath, savePath)
+                fs.unlinkSync(tempFilePath)
                 store.set('mod.version', modVersion)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)

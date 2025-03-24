@@ -139,7 +139,7 @@ const Header: React.FC<p> = () => {
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke('needModalUpdate').then(value => {
-                if (value) {
+                if (value && user.id !== '-1') {
                     openUpdateModal()
                 }
             })
