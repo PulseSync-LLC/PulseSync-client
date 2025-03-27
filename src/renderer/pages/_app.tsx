@@ -776,9 +776,13 @@ const Player: React.FC<any> = ({ children }) => {
                     type: 2,
                     details: track.title,
                     largeImageKey: `https://${track.coverUri.replace('%%', '1000x1000')}`,
-                    smallImageKey: 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png?size=256',
-                    smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP'),
                     buttons: [],
+                }
+                if (app.discordRpc.showSmallIcon) {
+                    activity.smallImageText = app.discordRpc.showVersionOrDevice
+                        ? app.info.version
+                        : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
                 }
                 if (track.status === 'paused' && app.discordRpc.displayPause) {
                     activity.smallImageText = 'Paused'
@@ -829,8 +833,6 @@ const Player: React.FC<any> = ({ children }) => {
                     const activity: any = {
                         type: 2,
                         largeImageKey: getCoverImage(track),
-                        smallImageKey: 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png',
-                        smallImageText: app.discordRpc.showVersionOrDevice ? app.info.version : ' on DESKTOP',
                         details:
                             app.discordRpc.details.length > 0
                                 ? fixStrings(replaceParams(app.discordRpc.details, track))
@@ -839,6 +841,12 @@ const Player: React.FC<any> = ({ children }) => {
                             app.discordRpc.state.length > 0
                                 ? fixStrings(replaceParams(app.discordRpc.state, track))
                                 : fixStrings(artistName || 'Unknown Artist'),
+                    }
+                    if (app.discordRpc.showSmallIcon) {
+                        activity.smallImageText = app.discordRpc.showVersionOrDevice
+                            ? app.info.version
+                            : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
+                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
                     }
 
                     if (track.status === 'paused' && app.discordRpc.displayPause) {

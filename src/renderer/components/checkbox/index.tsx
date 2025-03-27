@@ -34,6 +34,9 @@ const Checkbox: React.FC<Props> = ({ children, disabled, description, checkType,
                 case 'showVersionOrDevice':
                     setIsActive(app.discordRpc.showVersionOrDevice)
                     break
+                case 'showSmallIcon':
+                    setIsActive(app.discordRpc.showSmallIcon)
+                    break
             }
         }
     }, [isChecked])
@@ -100,6 +103,18 @@ const Checkbox: React.FC<Props> = ({ children, disabled, description, checkType,
                         discordRpc: {
                             ...app.discordRpc,
                             showVersionOrDevice: event.target.checked,
+                        },
+                    })
+                    break
+                case 'showSmallIcon':
+                    window.discordRpc.clearActivity()
+                    window.desktopEvents?.send('GET_TRACK_INFO')
+                    window.electron.store.set('discordRpc.showSmallIcon', event.target.checked)
+                    setApp({
+                        ...app,
+                        discordRpc: {
+                            ...app.discordRpc,
+                            showSmallIcon: event.target.checked,
                         },
                     })
                     break

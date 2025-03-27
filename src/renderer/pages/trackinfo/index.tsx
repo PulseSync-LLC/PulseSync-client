@@ -233,7 +233,14 @@ export default function TrackInfoPage() {
                                             </CheckboxNav>
                                             <div className={theme.line}></div>
                                             <CheckboxNav
+                                                checkType="showSmallIcon"
+                                                description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
+                                            >
+                                                Включить иконоку статуса прослушивания
+                                            </CheckboxNav>
+                                            <CheckboxNav
                                                 checkType="showVersionOrDevice"
+                                                disabled={!app.discordRpc.showSmallIcon}
                                                 description="Если включить, то в активности при наведении на иконку будет показываться версия приложения, а не устройство, где играет трек."
                                             >
                                                 Показывать версию приложения вместо устройства, где играет трек.
