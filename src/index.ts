@@ -40,7 +40,7 @@ export let inSleepMode = false
 export let hardwareAcceleration = false
 export let musicPath = getPathToYandexMusic()
 export let asarFilename = 'app.backup.asar'
-export let asarCopy = path.join(musicPath, asarFilename)
+export let asarBackup = path.join(musicPath, asarFilename)
 
 let preloaderWindow: BrowserWindow
 let availableAddons: Addon[] = []

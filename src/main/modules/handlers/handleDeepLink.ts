@@ -3,7 +3,7 @@ import { state } from '../state'
 import { store } from '../storage'
 import config from '../../../renderer/api/config'
 import isAppDev from 'electron-is-dev'
-import path from 'path'
+import logger from '../logger'
 
 let deeplinkUrl: string | null = null
 
@@ -12,7 +12,7 @@ const transformUrlToInternal = (url: string): string => {
 }
 
 export const checkIsDeeplink = (value: string): boolean => {
-    const deeplinkRegexp = /pulsesync:\/\/.*/
+    const deeplinkRegexp = /^pulsesync:\/\/.*/
     return deeplinkRegexp.test(value)
 }
 
@@ -20,14 +20,13 @@ export const navigateToDeeplink = (window: BrowserWindow, url: string | null): v
     if (!url) {
         return
     }
-
-    const regex = /^pulsesync:\/\/([^\/]+)\/?(.*)$/
+    const regex = /^pulsesync:\/\/([^\/\?]+)(\?.*)?$/
     const match = url.match(regex)
     if (!match) return
     const mainPath = match[1]
-
+    logger.main.info(`Навигация по диплинку: ${url}`)
     switch (mainPath) {
-        case 'callback':
+        case 'callback': {
             const reg = url.match(/\?token=([^&]+)&id=([^&]+)/)
             if (!reg || reg.length < 3) {
                 return
@@ -51,16 +50,19 @@ export const navigateToDeeplink = (window: BrowserWindow, url: string | null): v
             store.set('tokens.token', token)
             window.webContents.send('authSuccess')
             break
-        case 'ban':
+        }
+        case 'ban': {
             const regexBan = url.match(/\?reason=([^&]+)/)
             if (!regexBan || regexBan.length < 2) {
                 return
             }
             const reason = decodeURIComponent(regexBan[1])
-            window.webContents.send('authBanned', { reason: reason })
+            window.webContents.send('authBanned', { reason })
             break
-        case 'joinRoom':
+        }
+        case 'joinRoom': {
             break
+        }
         default:
             break
     }
@@ -69,9 +71,11 @@ export const navigateToDeeplink = (window: BrowserWindow, url: string | null): v
 }
 
 export const handleDeeplinkOnApplicationStartup = (): void => {
-    const lastArgFromProcessArgs = process.argv.pop()
-    if (lastArgFromProcessArgs && checkIsDeeplink(lastArgFromProcessArgs)) {
-        state.deeplink = lastArgFromProcessArgs
+    if (process.platform !== 'darwin') {
+        const lastArgFromProcessArgs = process.argv.pop()
+        if (lastArgFromProcessArgs && checkIsDeeplink(lastArgFromProcessArgs)) {
+            state.deeplink = lastArgFromProcessArgs
+        }
     }
     if (isAppDev) {
         app.setAsDefaultProtocolClient('pulsesync', process.execPath)
@@ -81,7 +85,7 @@ export const handleDeeplinkOnApplicationStartup = (): void => {
     app.on('open-url', (event, url) => {
         event.preventDefault()
         state.deeplink = url
-        console.info('Open on startup', url)
+        logger.main.info(`Открыт диплинк: ${url}`)
     })
 }
 
@@ -90,5 +94,7 @@ export const handleDeeplink = (window: BrowserWindow): void => {
         event.preventDefault()
         navigateToDeeplink(window, url)
     })
-    navigateToDeeplink(window, deeplinkUrl)
+    if (state.deeplink) {
+        navigateToDeeplink(window, state.deeplink)
+    }
 }

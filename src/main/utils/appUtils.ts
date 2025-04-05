@@ -5,7 +5,7 @@ import path from 'path'
 import crypto from 'crypto'
 import fs from 'original-fs'
 import { store } from '../modules/storage'
-import { asarCopy, mainWindow, musicPath } from '../../index'
+import { asarBackup, mainWindow, musicPath } from '../../index'
 import { app, dialog } from 'electron'
 import axios from 'axios'
 
@@ -134,10 +134,10 @@ export const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 export const checkAsar = () => {
     if ((store.has('mod.installed') && store.get('mod.installed')) || store.get('mod.version')) {
-        if (!fs.existsSync(asarCopy)) {
+        if (!fs.existsSync(asarBackup)) {
             store.delete('mod')
         }
-    } else if (fs.existsSync(asarCopy)) {
+    } else if (fs.existsSync(asarBackup)) {
         store.set('mod.installed', true)
     }
 }
