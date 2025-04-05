@@ -3,6 +3,7 @@ import { state } from '../state'
 import { store } from '../storage'
 import config from '../../../renderer/api/config'
 import isAppDev from 'electron-is-dev'
+import logger from '../logger'
 
 let deeplinkUrl: string | null = null
 
@@ -23,7 +24,7 @@ export const navigateToDeeplink = (window: BrowserWindow, url: string | null): v
     const match = url.match(regex)
     if (!match) return
     const mainPath = match[1]
-
+    logger.main.info(`Open deeplink: ${url}`)
     switch (mainPath) {
         case 'callback': {
             const reg = url.match(/\?token=([^&]+)&id=([^&]+)/)
@@ -84,6 +85,7 @@ export const handleDeeplinkOnApplicationStartup = (): void => {
     app.on('open-url', (event, url) => {
         event.preventDefault()
         state.deeplink = url
+        logger.main.info('Open on startup', url)
     })
 }
 

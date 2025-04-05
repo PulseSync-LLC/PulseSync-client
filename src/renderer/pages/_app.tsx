@@ -465,7 +465,7 @@ function App() {
                 })
                 .catch(error => console.error('Error getting themes:', error))
         }
-        window.desktopEvents?.on('open-theme', handleOpenAddon)
+        window.desktopEvents?.on('open-addon', handleOpenAddon)
 
         window.desktopEvents?.on('check-file-exists', filePath => invokeFileEvent('check-file-exists', filePath))
         window.desktopEvents?.on('read-file', filePath => invokeFileEvent('read-file', filePath))
@@ -474,7 +474,7 @@ function App() {
 
         return () => {
             window.desktopEvents?.removeAllListeners('create-config-file')
-            window.desktopEvents?.removeAllListeners('open-theme')
+            window.desktopEvents?.removeAllListeners('open-addon')
             window.desktopEvents?.removeAllListeners('check-file-exists')
             window.desktopEvents?.removeAllListeners('read-file')
             window.desktopEvents?.removeAllListeners('write-file')
