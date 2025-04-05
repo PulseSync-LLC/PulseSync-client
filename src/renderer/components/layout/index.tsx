@@ -185,12 +185,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onUpdateFailure = (event: any, error: any) => {
             if (toastReference.current) {
-                toast.custom('error', `Ошибка: ${error.error}`, !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки', {
-                    id: toastReference.current,
-                })
+                toast.custom(
+                    'error',
+                    `Ошибка: ${error.error}`,
+                    !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                    {
+                        id: toastReference.current,
+                    },
+                )
                 toastReference.current = null
             } else {
-                toast.custom('error', `Ошибка: ${error.error}`, !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки')
+                toast.custom(
+                    'error',
+                    `Ошибка: ${error.error}`,
+                    !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                )
             }
             setIsMusicUpdating(false)
         }
@@ -206,7 +215,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: '',
                 })
                 setIsMusicUpdating(false)
-                if(!musicInstalled) {
+                if (!musicInstalled) {
                     setMusicInstalled(true)
                     window.location.reload()
                 }
