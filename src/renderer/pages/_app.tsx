@@ -312,11 +312,15 @@ function App() {
                     event.preventDefault()
                 }
             }
-
+            const handleBeforeunload = (event: BeforeUnloadEvent) => {
+                window.desktopEvents?.send('discordrpc-reset-activity')
+            }
             window.addEventListener('mouseup', handleMouseButton)
+            window.addEventListener('beforeunload', handleBeforeunload)
             return () => {
                 clearInterval(intervalId)
                 window.removeEventListener('mouseup', handleMouseButton)
+                window.removeEventListener('beforeunload', handleBeforeunload)
             }
         }
     }, [])
@@ -507,7 +511,7 @@ function App() {
                         toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
                         break
                     case 'success':
-                        toast.custom('success', 'Успешно.', 'RPC: ' + data.message)
+                        toast.custom('success', 'Успешно.', 'RPC: ' + data.message, null, null, 15000)
                         break
                     case 'info':
                         toast.custom('info', 'Информация.', 'RPC: ' + data.message)

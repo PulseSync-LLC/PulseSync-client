@@ -633,7 +633,7 @@ const ExtensionViewPage: React.FC = () => {
 
     function MarkdownLink(props: any) {
         return (
-            <a href={props.href} target="_blank" rel="noreferrer">
+            <a href={`${currentAddon.directoryName}/${props.href}`} target="_blank" rel="noreferrer">
                 {props.children}
             </a>
         )

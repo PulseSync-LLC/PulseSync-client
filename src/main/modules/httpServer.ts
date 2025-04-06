@@ -13,6 +13,7 @@ import { isFirstInstance } from './singleInstance'
 import config from '../../config.json'
 import { store } from './storage'
 import { parse } from 'url'
+import { Track } from '../../renderer/api/interfaces/track.interface'
 
 const eventEmitter = new EventEmitter()
 let data: any = {}
@@ -326,7 +327,7 @@ export const getTrackInfo = () => {
     return data
 }
 
-export const updateData = (newData: any) => {
+export const updateData = (newData: Track) => {
     data = newData
     eventEmitter.emit('DATA_UPDATED', newData)
 }
