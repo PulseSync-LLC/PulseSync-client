@@ -349,7 +349,7 @@ export default function TrackInfoPage() {
                                                     <div
                                                         className={theme.button}
                                                         onClick={() => {
-                                                            window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev')
+                                                            window.open('https://github.com/PulseSync-LLC/PulseSync-client/tree/dev')
                                                         }}
                                                     >
                                                         ♡ PulseSync Project

@@ -1,6 +1,6 @@
-[![GitHub release](https://img.shields.io/github/release/pulsesync-llc/ymusic-drpc.svg)](https://github.com/pulsesync-llc/ymusic-drpc/releases/latest)
-[![Release - Downloads](https://img.shields.io/github/downloads/pulsesync-llc/ymusic-drpc/total?label=Downloads)](https://github.com/pulsesync-llc/ymusic-drpc/releases)
-[![CodeFactor](https://www.codefactor.io/repository/github/pulsesync-llc/ymusic-drpc/badge/dev)](https://www.codefactor.io/repository/github/pulsesync-llc/ymusic-drpc/overview/dev)
+[![GitHub release](https://img.shields.io/github/release/pulsesync-llc/pulsesync-client.svg)](https://github.com/pulsesync-llc/pulsesync-client/releases/latest)
+[![Release - Downloads](https://img.shields.io/github/downloads/pulsesync-llc/pulsesync-client/total?label=Downloads)](https://github.com/pulsesync-llc/pulsesync-client/releases)
+[![CodeFactor](https://www.codefactor.io/repository/github/pulsesync-llc/pulsesync-client/badge/dev)](https://www.codefactor.io/repository/github/pulsesync-llc/pulsesync-client/overview/dev)
 [![Discord](https://img.shields.io/discord/1227552882744754267.svg?label=&logo=discord&logoColor=ffffff&color=6082FD&labelColor=6082FD)](https://discord.gg/qy42uGTzRy)
 # PulseSync
 <a href="https://discord.gg/qy42uGTzRy">

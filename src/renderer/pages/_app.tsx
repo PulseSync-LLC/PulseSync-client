@@ -808,7 +808,7 @@ const Player: React.FC<any> = ({ children }) => {
                 if (app.discordRpc.enableGithubButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
-                        url: 'https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev',
+                        url: 'https://github.com/PulseSync-LLC/PulseSync-client/tree/dev',
                     })
                 }
                 if (activity.buttons.length === 0) {
@@ -882,7 +882,7 @@ const Player: React.FC<any> = ({ children }) => {
                     if (app.discordRpc.enableGithubButton) {
                         activity.buttons.push({
                             label: '♡ PulseSync Project',
-                            url: `https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev`,
+                            url: `https://github.com/PulseSync-LLC/PulseSync-client/tree/dev`,
                         })
                     }
 

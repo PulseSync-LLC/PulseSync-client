@@ -78,7 +78,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const openGitHub = () => {
-        window.open('https://github.com/PulseSync-LLC/YMusic-DRPC/tree/dev')
+        window.open('https://github.com/PulseSync-LLC/PulseSync-client/tree/dev')
     }
 
     const toggleSetting = (type: string, status: boolean) => {
