@@ -440,6 +440,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
                 script: 'script.js',
                 type: 'theme',
                 tags: ['PulseSync'],
+                dependencies: [],
             }
             const defaultCssContent = `{}`
             const defaultScriptContent = ``
