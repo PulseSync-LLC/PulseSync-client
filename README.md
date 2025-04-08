@@ -13,7 +13,7 @@
 
 ## Установка
 
-Скачать старую версию можно со страницы [релизов](https://github.com/PulseSync-LLC/YMusic-DRPC/releases) на GitHub. Новая версия будет доступна чуть позже
+Скачать старую версию можно со страницы [релизов](https://github.com/PulseSync-LLC/PulseSync-client/releases) на GitHub. Новая версия будет доступна чуть позже
 
 ## Скриншоты
 
@@ -34,24 +34,24 @@
 
 ## Внесение своего вклада в приложение
 
-Мы всегда рады помощи со стороны сообщества! Если вы хотите принять участие в разработке, прочитайте наш [гайд для контрибьюторов](https://github.com/PulseSync-LLC/YMusic-DRPC/blob/patcher/CONTRIBUTING.md). В нем вы найдете всю необходимую информацию о том, как вы можете внести свой вклад в проект.
+Мы всегда рады помощи со стороны сообщества! Если вы хотите принять участие в разработке, прочитайте наш [гайд для контрибьюторов](https://github.com/PulseSync-LLC/PulseSync-client/blob/dev/CONTRIBUTING.md). В нем вы найдете всю необходимую информацию о том, как вы можете внести свой вклад в проект.
 
 <p align="center">
    <a href="https://boosty.to/evt">
-      <img height="45" alt="YMusic-DRPC приглашение" src="https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/b3732e94-cd11-4a11-bce3-3cf0d2c479af">
+      <img height="45" alt="Поддержать на Boosty" src="https://github.com/PulseSync-LLC/PulseSync-client/assets/44835662/b3732e94-cd11-4a11-bce3-3cf0d2c479af">
    </a>
    <a href="https://discord.gg/qy42uGTzRy">
-      <img height="45" alt="Поддержать на Boosty" src="https://github.com/PulseSync-LLC/YMusic-DRPC/assets/44835662/2675c886-c609-47d0-804d-1f8504b8ba9c">
+      <img height="45" alt="PulseSync приглашение" src="https://github.com/PulseSync-LLC/PulseSync-client/assets/44835662/2675c886-c609-47d0-804d-1f8504b8ba9c">
    </a>
 </p>
 
 ## Лицензия
 
-Проект распространяется под [простой (неисключительной) лицензией](https://github.com/PulseSync-LLC/YMusic-DRPC/blob/dev/LICENSE).
+Проект распространяется под [простой (неисключительной) лицензией](https://github.com/PulseSync-LLC/PulseSync-client/blob/dev/LICENSE).
 
 ---
 
 Спасибо, что используете PulseSync.
 
 ## Stargazers over time
-[![Stargazers over time](https://starchart.cc/PulseSync-LLC/YMusic-DRPC.svg?variant=adaptive)](https://starchart.cc/PulseSync-LLC/YMusic-DRPC)
+[![Stargazers over time](https://starchart.cc/PulseSync-LLC/PulseSync-client.svg?variant=adaptive)](https://starchart.cc/PulseSync-LLC/PulseSync-client)
