@@ -513,7 +513,7 @@ const sendExtensions = async () => {
 }
 
 ipcMain.on('REFRESH_EXTENSIONS', async (event, _) => {
-    sendExtensions()
+    await sendExtensions()
 })
 
 export default server

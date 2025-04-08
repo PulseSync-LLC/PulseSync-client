@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
 import * as cm from './viewModal.module.scss'
 import { MenuItem } from './sectionConfig'
+import React from 'react'
 
 interface ContextMenuProps {
     items: MenuItem[]

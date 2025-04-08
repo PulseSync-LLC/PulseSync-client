@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session, shell, session as electronSession } from 'electron'
+import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session as electronSession, shell } from 'electron'
 import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
@@ -14,17 +14,14 @@ import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { eventEmitter, sendAddon, setAddon } from './main/modules/httpServer'
 import { handleAppEvents, updateAvailable } from './main/events'
-import { checkAsar, checkMusic, formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
+import { checkAsar, formatJson, formatSizeUnits, getFolderSize, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { handleMod } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
-import { promisify } from 'util'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
-import axios from 'axios'
-import { execFile } from 'child_process'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
@@ -43,9 +40,8 @@ export let asarFilename = 'app.backup.asar'
 export let asarBackup = path.join(musicPath, asarFilename)
 
 let preloaderWindow: BrowserWindow
-let availableAddons: Addon[] = []
 export let selectedAddon: string
-const defaultAddon = {
+const defaultAddon: Partial<Addon> = {
     name: 'Default',
     image: 'url',
     author: 'Your Name',
@@ -54,6 +50,7 @@ const defaultAddon = {
     type: 'theme',
     css: 'style.css',
     script: 'script.js',
+    dependencies: [],
 }
 
 const defaultCssContent = `{}`
@@ -383,10 +380,9 @@ async function loadAddons(): Promise<Addon[]> {
             store.set('addons.theme', selectedTheme)
         }
 
-        const validScripts = availableAddons
+        selectedScripts = availableAddons
             .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName))
             .map(addon => addon.directoryName)
-        selectedScripts = validScripts
         store.set('addons.scripts', selectedScripts)
 
         availableAddons.forEach(addon => {
@@ -424,8 +420,7 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
 
         case 'read-file':
             try {
-                const fileData = await fs.promises.readFile(filePath, 'utf8')
-                return fileData
+                return await fs.promises.readFile(filePath, 'utf8')
             } catch (error) {
                 console.error('Ошибка при чтении файла:', error)
                 return null

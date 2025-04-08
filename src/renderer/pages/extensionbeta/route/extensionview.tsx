@@ -29,7 +29,7 @@ import { AddonConfig, Item, TextItem, ButtonAction, ButtonItem, ColorItem } from
 import * as globalStyles from '../../../../../static/styles/page/index.module.scss'
 import * as localStyles from './extensionview.module.scss'
 import addonInitials from '../../../api/initials/addon.initials'
-import { useUserProfileModal } from '../../../../renderer/context/UserProfileModalContext'
+import { useUserProfileModal } from '../../../context/UserProfileModalContext'
 
 const ExtensionViewPage: React.FC = () => {
     const [activatedTheme, setActivatedTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
@@ -633,7 +633,7 @@ const ExtensionViewPage: React.FC = () => {
 
     function MarkdownLink(props: any) {
         return (
-            <a href={`${currentAddon.directoryName}/${props.href}`} target="_blank" rel="noreferrer">
+            <a href={props.href} target="_blank" rel="noreferrer">
                 {props.children}
             </a>
         )

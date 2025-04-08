@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import * as cm from './contextMenu.module.scss'
 import { MenuItem } from './sectionConfig'
 import TooltipButton from '../tooltip_button'

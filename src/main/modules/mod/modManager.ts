@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import * as path from 'path'
 import * as https from 'https'
 import { store } from '../storage'
@@ -9,7 +9,6 @@ import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux }
 import logger from '../logger'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
-import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 let yandexMusicVersion: string = null

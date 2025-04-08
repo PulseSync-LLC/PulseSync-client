@@ -1,16 +1,24 @@
 export default interface AddonInterface {
-    matches?: boolean
     name: string
     directoryName: string
-    image: string
-    banner: string
-    author: string | string[]
     description: string
     version: string
+    author: string | string[]
+
+    image: string
+    banner: string
+
     path: string
     lastModified: string
     size: string
-    tags: string[]
+
     type: 'theme' | 'script'
+    tags: string[]
+
     enabled: boolean
+    css?: string
+    script?: string
+
+    matches?: boolean
+    dependencies?: string[]
 }

@@ -93,7 +93,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 logger.main.error('Error writing to file:', err)
                 return
             }
-            let command = ''
+            let command
             if (process.platform === 'win32') {
                 command = `"${tempFilePath}"`
             } else if (process.platform === 'darwin') {

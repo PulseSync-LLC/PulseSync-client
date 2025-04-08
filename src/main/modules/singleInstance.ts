@@ -8,6 +8,7 @@ import path from 'path'
 import fs from 'fs'
 import { store } from './storage'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
+import { authorized } from '../events'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
 
@@ -112,5 +113,7 @@ async function handlePextFile(filePath: string) {
             })
         }
     }
-    mainWindow.webContents.send('open-addon', addonName)
+    if(authorized) {
+        mainWindow.webContents.send('open-addon', addonName)
+    }
 }

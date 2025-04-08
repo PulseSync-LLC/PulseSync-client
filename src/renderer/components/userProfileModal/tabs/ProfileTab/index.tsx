@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useContext } from 'react'
 import LoadingIndicator from './LoadingIndicator'
 import ErrorMessage from './ErrorMessage'
 import UserStatus from './UserStatus'

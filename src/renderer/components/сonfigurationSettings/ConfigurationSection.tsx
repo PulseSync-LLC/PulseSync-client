@@ -1,8 +1,8 @@
-import React, { useState } from 'react'
+import React from 'react'
 import ConfigurationItem from './ConfigurationItem'
-import { MdAdd, MdCrop169, MdDelete, MdDragIndicator, MdFolderOpen, MdInvertColors, MdLinearScale, MdTextFields, MdTune } from 'react-icons/md'
+import { MdCrop169, MdDelete, MdDragIndicator, MdFolderOpen, MdInvertColors, MdLinearScale, MdTextFields, MdTune } from 'react-icons/md'
 import * as styles from './ConfigurationSection.module.scss'
-import { Section, Item, ButtonAction } from './types'
+import { Section, ButtonAction } from './types'
 
 interface ConfigurationSectionProps {
     section: Section

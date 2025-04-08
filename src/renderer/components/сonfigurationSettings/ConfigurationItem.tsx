@@ -57,7 +57,7 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
         }
     }, [item.id])
 
-    let isDifferent = false
+    let isDifferent
     switch (item.type) {
         case 'button':
             isDifferent = item.bool !== item.defaultParameter

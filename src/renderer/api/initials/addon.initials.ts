@@ -15,6 +15,7 @@ const AddonInitials: AddonInterface[] = [
         size: '0',
         tags: [],
         type: 'theme',
+        dependencies: [],
     },
 ]
 export default AddonInitials

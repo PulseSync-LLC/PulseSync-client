@@ -123,7 +123,7 @@ async function checkDiscordStateWin(): Promise<DiscordState> {
 
     for (const ipcPath of ipcPaths) {
         try {
-            await fs.promises.access(ipcPath, fs.constants.F_OK)
+            fs.promises.access(ipcPath, fs.constants.F_OK)
             ipcPathFound = ipcPath
             break
         } catch {}
@@ -143,7 +143,7 @@ async function checkDiscordStateWin(): Promise<DiscordState> {
         }
 
         try {
-            await fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
+            fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
         } catch {
             return DiscordState.ADMINISTRATOR
         }

@@ -1,5 +1,4 @@
 import logger from '../logger'
-import * as Sentry from '@sentry/electron/main'
 import { app } from 'electron'
 import { HandleErrorsElectron } from './handleErrorsElectron'
 
