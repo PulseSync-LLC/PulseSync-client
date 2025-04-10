@@ -315,10 +315,15 @@ function App() {
             const handleBeforeunload = (event: BeforeUnloadEvent) => {
                 window.desktopEvents?.send('discordrpc-reset-activity')
             }
+            const handleAuthStatus = async (event: any) => {
+                await authorize()
+            }
+            window.desktopEvents?.on('authSuccess', handleAuthStatus)
             window.addEventListener('mouseup', handleMouseButton)
             window.addEventListener('beforeunload', handleBeforeunload)
             return () => {
                 clearInterval(intervalId)
+                window.desktopEvents?.removeAllListeners('authSuccess')
                 window.removeEventListener('mouseup', handleMouseButton)
                 window.removeEventListener('beforeunload', handleBeforeunload)
             }

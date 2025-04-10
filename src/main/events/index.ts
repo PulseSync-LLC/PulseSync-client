@@ -19,6 +19,7 @@ import { downloadTrack } from './handlers/downloadTrack'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { checkMusic } from '../utils/appUtils'
+import AddonInterface from '../../renderer/api/interfaces/addon.interface'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -429,7 +430,7 @@ const registerSleepModeEvent = (window: BrowserWindow): void => {
 const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle('create-new-extension', async (event, args) => {
         try {
-            const defaultAddon = {
+            const defaultAddon: Partial<AddonInterface> = {
                 name: 'New Extension',
                 image: 'test.png',
                 banner: 'test.png',
