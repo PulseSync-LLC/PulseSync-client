@@ -36,6 +36,10 @@ interface p {
 }
 
 const Header: React.FC<p> = () => {
+    const openSettings = () => {
+        window.desktopEvents.send('open-settings-window')
+    }
+
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -420,6 +424,7 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
+                            <button onClick={openSettings}>Open Settings</button>
                             <button className={styles.logoplace} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
                                 <span>PulseSync</span>

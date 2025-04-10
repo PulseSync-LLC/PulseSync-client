@@ -33,6 +33,23 @@ contextBridge.exposeInMainWorld('electron', {
             return ipcRenderer.sendSync('electron-mac')
         },
     },
+    settings: {
+        minimize() {
+            ipcRenderer.send('electron-settings-minimize')
+        },
+        maximize() {
+            ipcRenderer.send('electron-settings-maximize')
+        },
+        close(val: boolean) {
+            ipcRenderer.send('electron-settings-close', val)
+        },
+        exit() {
+            ipcRenderer.send('electron-settings-exit')
+        },
+        isMac() {
+            return ipcRenderer.sendSync('electron-mac')
+        },
+    },
     musicDevice() {
         return ipcRenderer.sendSync('get-music-device')
     },

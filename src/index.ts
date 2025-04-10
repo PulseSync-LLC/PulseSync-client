@@ -27,11 +27,15 @@ import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 
+declare const SETTINGS_WINDOW_WEBPACK_ENTRY: string
+declare const SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY: string
+
 declare const PRELOADER_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_WEBPACK_ENTRY: string
 
 export let corsAnywherePort: string | number
 export let mainWindow: BrowserWindow
+export let settingsWindow: BrowserWindow
 export let updated = false
 export let inSleepMode = false
 export let hardwareAcceleration = false
@@ -181,6 +185,35 @@ const createWindow = (): void => {
         inSleepMode = false
     })
 }
+
+function createSettingsWindow() {
+    if (settingsWindow) {
+        settingsWindow.focus()
+        return
+    }
+
+    settingsWindow = new BrowserWindow({
+        width: 1157,
+        height: 750,
+        minWidth: 1157,
+        minHeight: 750,
+        resizable: true,
+        fullscreenable: false,
+        frame: false,
+        backgroundColor: '#16181E',
+        webPreferences: {
+            preload: SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY, // Use the preload entry for settings
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    })
+
+    settingsWindow.loadURL(SETTINGS_WINDOW_WEBPACK_ENTRY) // Use the settings entry point
+    settingsWindow.on('closed', () => {
+        settingsWindow = null
+    })
+}
+
 const corsAnywhere = async () => {
     corsAnywherePort = await getPort()
 
@@ -466,6 +499,10 @@ ipcMain.handle('deleteAddonDirectory', async (event, themeDirectoryPath) => {
     } catch (error) {
         logger.main.error('Ошибка при удалении директории темы:', error)
     }
+})
+
+ipcMain.on('open-settings-window', () => {
+    createSettingsWindow()
 })
 
 ipcMain.on('themeChanged', async (event, addon: Addon) => {

@@ -5,7 +5,7 @@ import fs from 'fs'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, inSleepMode, mainWindow, musicPath, updated } from '../../index'
+import { corsAnywherePort, inSleepMode, mainWindow, musicPath, settingsWindow, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
@@ -25,7 +25,8 @@ let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
 
-const registerWindowEvents = (window: BrowserWindow): void => {
+// Для обычного окна
+const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
     })
@@ -36,23 +37,48 @@ const registerWindowEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('electron-window-maximize', () => {
-        if (mainWindow.isMaximized()) mainWindow.unmaximize()
-        else mainWindow.maximize()
-    })
-
-    ipcMain.on('before-quit', async () => {
-        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        if (fs.existsSync(tempFilePath)) {
-            fs.rmSync(tempFilePath)
-        }
-        mainWindow.close()
+        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
 
     ipcMain.on('electron-window-close', (event, val) => {
-        if (!val) app.quit()
-        mainWindow.hide()
+        if (!val) {
+            app.quit()
+        } else {
+            mainWindow.hide()
+        }
     })
 }
+
+const registerSettingsEvents = (): void => {
+    ipcMain.on('electron-settings-minimize', () => {
+        settingsWindow.minimize()
+    })
+
+    ipcMain.on('electron-settings-exit', () => {
+        logger.main.info('Exit app')
+        app.quit()
+    })
+
+    ipcMain.on('electron-settings-maximize', () => {
+        settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
+    })
+
+    ipcMain.on('electron-settings-close', (event, val) => {
+        if (!val) {
+            settingsWindow.close()
+        } else {
+            settingsWindow.hide()
+        }
+    })
+}
+
+ipcMain.on('before-quit', async () => {
+    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+    if (fs.existsSync(tempFilePath)) {
+        fs.rmSync(tempFilePath)
+    }
+    if (mainWindow) mainWindow.close()
+})
 
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', event => {
@@ -493,8 +519,11 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     })
 }
 
+// app
+
 export const handleEvents = (window: BrowserWindow): void => {
-    registerWindowEvents(window)
+    registerWindowEvents()
+    registerSettingsEvents()
     registerSystemEvents(window)
     registerFileOperations(window)
     registerMediaEvents(window)
@@ -506,7 +535,6 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
 }
-
 export const handleAppEvents = (window: BrowserWindow): void => {
     handleEvents(window)
 }

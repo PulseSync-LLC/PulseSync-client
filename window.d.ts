@@ -20,6 +20,13 @@ declare global {
                 exit: () => void
                 isMac: () => boolean
             }
+            settings: {
+                maximize: () => void
+                minimize: () => void
+                close: (val: boolean) => void
+                exit: () => void
+                isMac: () => boolean
+            }
             player: {
                 setTrack: (track: Track, currentPercent: number) => void
                 setPlaying: (value: boolean) => void
