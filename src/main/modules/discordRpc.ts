@@ -14,11 +14,11 @@ import { exec } from 'child_process'
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',
     ADMINISTRATOR = 'Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.',
-    SNAP = "Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC",
-    FLATPAK = "Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC",
+    SNAP = 'Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC',
+    FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
     SUCCESS = '',
 }
-const execAsync = promisify(exec);
+const execAsync = promisify(exec)
 const SET_ACTIVITY_TIMEOUT_MS = 1500
 let sendActivityTimeoutId: NodeJS.Timeout = undefined
 let previousActivity: SetActivity = undefined
@@ -26,16 +26,16 @@ let previousActivity: SetActivity = undefined
 let reconnectTimeout: NodeJS.Timeout = undefined
 
 export async function readDiscord(): Promise<DiscordState> {
-    const platform = process.platform;
+    const platform = process.platform
 
     if (platform === 'win32') {
-        return await checkDiscordStateWin();
+        return await checkDiscordStateWin()
     } else if (platform === 'linux') {
-        return await checkDiscordStateLinux();
+        return await checkDiscordStateLinux()
     } else if (platform === 'darwin') {
-        return await checkDiscordStateMac();
+        return await checkDiscordStateMac()
     } else {
-        return DiscordState.CLOSED;
+        return DiscordState.CLOSED
     }
 }
 function removeTimestampsFromActivity(activity: any) {
@@ -70,50 +70,43 @@ function compareActivities(newActivity: any) {
 
 export async function checkDiscordStateLinux(): Promise<DiscordState> {
     try {
-        const { stdout } = await execAsync('ps xo user:30,command');
+        const { stdout } = await execAsync('ps xo user:30,command')
         const lines = stdout
             .split('\n')
             .filter(line => line.toLowerCase().includes('/discord'))
-            .join('\n');
+            .join('\n')
 
         if (!lines.trim()) {
-            return DiscordState.CLOSED;
+            return DiscordState.CLOSED
         } else if (lines.toLowerCase().includes('/snap/discord')) {
-            return DiscordState.SNAP;
+            return DiscordState.SNAP
         } else if (lines.toLowerCase().includes('/app/com.discordapp.discord')) {
-            return DiscordState.FLATPAK;
+            return DiscordState.FLATPAK
         } else {
-            return DiscordState.SUCCESS;
+            return DiscordState.SUCCESS
         }
     } catch (error) {
-        logger.discordRpc.error('Error executing process command:', error);
-        return DiscordState.CLOSED;
+        logger.discordRpc.error('Error executing process command:', error)
+        return DiscordState.CLOSED
     }
 }
 
 export async function checkDiscordStateMac(): Promise<DiscordState> {
-    const clients = [
-        "Discord.app",
-        "Discord PTB.app",
-        "Discord Canary.app",
-        "Discord Development.app"
-    ];
+    const clients = ['Discord.app', 'Discord PTB.app', 'Discord Canary.app', 'Discord Development.app']
 
     try {
-        const { stdout } = await execAsync("ps -A");
-        const lines = stdout.split('\n');
+        const { stdout } = await execAsync('ps -A')
+        const lines = stdout.split('\n')
 
-        const clientNotRunning = lines.every(line =>
-            !clients.some(client => line.includes(client))
-        );
+        const clientNotRunning = lines.every(line => !clients.some(client => line.includes(client)))
 
         if (clientNotRunning) {
-            return DiscordState.CLOSED;
+            return DiscordState.CLOSED
         }
 
-        return DiscordState.SUCCESS;
+        return DiscordState.SUCCESS
     } catch (error) {
-        return DiscordState.CLOSED;
+        return DiscordState.CLOSED
     }
 }
 
@@ -171,8 +164,8 @@ let clientId: string
 let client: Client
 
 let changeId = false
-let rpcConnected = false
-let isConnecting = false
+export let rpcConnected = false
+export let isConnecting = false
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client) {

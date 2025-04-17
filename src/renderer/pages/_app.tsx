@@ -318,6 +318,7 @@ function App() {
             const handleAuthStatus = async (event: any) => {
                 await authorize()
             }
+            window.desktopEvents?.send('WEBSOCKET_START')
             window.desktopEvents?.on('authSuccess', handleAuthStatus)
             window.addEventListener('mouseup', handleMouseButton)
             window.addEventListener('beforeunload', handleBeforeunload)
@@ -439,7 +440,7 @@ function App() {
             fetchModInfo(app)
             const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            window.desktopEvents?.send('WEBSOCKET_START')
+            window.desktopEvents?.send('REFRESH_MOD_INFO')
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
                 setAddons(fetchedAddons)
             })

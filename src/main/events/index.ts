@@ -9,7 +9,7 @@ import { corsAnywherePort, inSleepMode, mainWindow, musicPath, updated } from '.
 import { getUpdater } from '../modules/updater/updater'
 import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
-import { rpc_connect, updateAppId } from '../modules/discordRpc'
+import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
 import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
@@ -324,7 +324,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('authStatus', async (event, data) => {
-        if (data?.status && store.get('discordRpc.status')) {
+        if (data?.status && store.get('discordRpc.status') && rpcConnected) {
             await rpc_connect()
         }
         authorized = data.status

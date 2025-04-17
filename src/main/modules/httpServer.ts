@@ -6,7 +6,7 @@ import { mainWindow, selectedAddon } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
-import { WebSocketServer } from 'ws'
+import { WebSocketServer, WebSocket } from 'ws'
 import { EventEmitter } from 'events'
 import trackInitials from '../../renderer/api/initials/track.initials'
 import { isFirstInstance } from './singleInstance'
@@ -26,8 +26,10 @@ const startWebSocketServer = () => {
 
     if (ws) {
         ws.clients.forEach(client => client.close())
-        ws.close()
-        logger.http.log('Existing WebSocket server closed.')
+        ws.close(() => {
+            ws = null
+            logger.http.log('Existing WebSocket server closed.')
+        })
     }
 
     if (server) {
@@ -64,31 +66,17 @@ const initializeServer = () => {
     server = http.createServer()
     ws = new WebSocketServer({ server })
 
-    ws.on('connection', (socket, request) => {
+    ws.on('connection', (socket: WebSocket, request) => {
         const parsedUrl = parse(request.url || '', true)
-        const version = parsedUrl.query.v
+        const version = parsedUrl.query.v || store.get('mod.version')
         const clientType = parsedUrl.query.type || 'yaMusic'
         logger.http.log(`New client connected with version: ${version} and type: ${clientType}`)
         ;(socket as any).clientType = clientType
 
-        if (!authorized) return socket.close()
-        logger.http.log('New client connected')
-
         socket.send(JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }))
 
-        if (clientType !== 'web') {
-            sendAddon(true, true)
-            socket.send(
-                JSON.stringify({
-                    ok: true,
-                    type: 'REFRESH_EXTENSIONS',
-                    addons: [],
-                }),
-            )
-            setTimeout(async () => {
-                sendAddon(true)
-                await sendExtensions()
-            }, 1000)
+        if (clientType !== 'yaMusic' && authorized) {
+            sendDataToMusic()
         }
 
         socket.on('message', (message: any) => {
@@ -98,14 +86,14 @@ const initializeServer = () => {
                     switch (dataReceived.cmd) {
                         case 'BROWSER_AUTH':
                             logger.http.log('Received BROWSER_AUTH event:', dataReceived)
-                            const userId = dataReceived.args.id
+                            const userId = dataReceived.args.userId
                             fetch(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
                                 .then(async res => {
                                     const j = await res.json()
                                     if (j.ok) {
                                         if (!j.access) {
                                             logger.deeplinkManager.error(`Access denied for user with id: ${userId}. Quitting app.`)
-                                            return app.quit()
+                                            //return app.quit()
                                         } else {
                                             logger.deeplinkManager.info(`Access granted for user with id: ${userId}.`)
                                         }
@@ -113,12 +101,12 @@ const initializeServer = () => {
                                         logger.deeplinkManager.error(
                                             `Server returned an unsuccessful response for user with id: ${userId}. Quitting app.`,
                                         )
-                                        return app.quit()
+                                        //return app.quit()
                                     }
                                 })
                                 .catch(error => {
                                     logger.deeplinkManager.error(`Error during request for user with id: ${userId}: ${error}`)
-                                    return app.quit()
+                                    //return app.quit()
                                 })
 
                             store.set('tokens.token', dataReceived.args.token)
@@ -133,7 +121,7 @@ const initializeServer = () => {
                     }
                     return
                 }
-                if (dataReceived.type === 'UPDATE_DATA') {
+                if (dataReceived.type === 'UPDATE_DATA' && authorized) {
                     updateData(dataReceived.data)
                 } else {
                     logger.http.log('Received unknown message type:', dataReceived)
@@ -145,6 +133,7 @@ const initializeServer = () => {
 
         socket.on('close', () => {
             logger.http.log('Client disconnected')
+
             data.status = 'null'
             mainWindow.webContents.send('trackinfo', {
                 data: {
@@ -271,14 +260,15 @@ export const setAddon = (theme: string) => {
 
     waitForSocket.then(() => {
         ws.clients.forEach(x => {
-            if ((x as any).clientType === 'web') return
-            x.send(
-                JSON.stringify({
-                    ok: true,
-                    theme: themeData,
-                    type: 'THEME',
-                }),
-            )
+            if ((x as any).clientType === 'yaMusic' && authorized) {
+                x.send(
+                    JSON.stringify({
+                        ok: true,
+                        theme: themeData,
+                        type: 'THEME',
+                    }),
+                )
+            }
         })
     })
 }
@@ -318,25 +308,27 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     if (!ws) return
     if (!withJs) {
         ws.clients.forEach(x => {
-            if ((x as any).clientType === 'web') return
-            x.send(
-                JSON.stringify({
-                    ok: true,
-                    theme: themeData,
-                    type: 'UPDATE_CSS',
-                }),
-            )
+            if ((x as any).clientType === 'yaMusic' && authorized) {
+                x.send(
+                    JSON.stringify({
+                        ok: true,
+                        theme: themeData,
+                        type: 'UPDATE_CSS',
+                    }),
+                )
+            }
         })
     } else {
         ws.clients.forEach(x => {
-            if ((x as any).clientType === 'web') return
-            x.send(
-                JSON.stringify({
-                    ok: true,
-                    theme: themeData,
-                    type: 'THEME',
-                }),
-            )
+            if ((x as any).clientType === 'yaMusic' && authorized) {
+                x.send(
+                    JSON.stringify({
+                        ok: true,
+                        theme: themeData,
+                        type: 'THEME',
+                    }),
+                )
+            }
         })
     }
 }
@@ -415,6 +407,27 @@ ipcMain.on('WEBSOCKET_RESTART', async (event, _) => {
     }, 1500)
 })
 
+ipcMain.on('REFRESH_MOD_INFO', async (event, _) => {
+    logger.http.log('Received REFRESH_MOD_INFO event. Send info to Yandex Music...')
+    sendDataToMusic()
+})
+
+const sendDataToMusic = () => {
+    sendAddon(true, true)
+    ws.clients.forEach(x => {
+        x.send(
+            JSON.stringify({
+                ok: true,
+                type: 'REFRESH_EXTENSIONS',
+                addons: [],
+            }),
+        )
+    })
+    setTimeout(async () => {
+        sendAddon(true)
+        await sendExtensions()
+    }, 1000)
+}
 const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const urlObj = parse(req.url!, true)

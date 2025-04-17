@@ -113,7 +113,7 @@ async function handlePextFile(filePath: string) {
             })
         }
     }
-    if(authorized) {
+    if (authorized) {
         mainWindow.webContents.send('open-addon', addonName)
     }
 }

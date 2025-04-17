@@ -23,6 +23,7 @@ import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
+import * as dns from 'node:dns'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -60,7 +61,16 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
     width: 40,
     height: 40,
 })
+
+dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
+
+app.commandLine.appendSwitch(
+    'dns-server',
+    '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1'
+);
+
 app.setAppUserModelId('pulsesync.app')
+
 initializeStore().then(() => {
     logger.main.info('Store initialized')
     hardwareAcceleration = store.get('settings.hardwareAcceleration', true)
