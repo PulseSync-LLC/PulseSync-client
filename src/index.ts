@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session as electronSession, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session as electronSession, shell, session } from 'electron'
 import process from 'process'
 import { getNativeImg } from './main/utils'
 import './main/modules/index'
@@ -536,6 +536,17 @@ function launchExtensionBackgroundWorkers(session = electronSession.defaultSessi
 }
 
 app.whenReady().then(async () => {
+    const filter = {
+        urls: [
+            '*://pulsesync.dev/*',
+            '*://*.pulsesync.dev/*'
+        ]
+    }
+    session.defaultSession.webRequest.onErrorOccurred(filter, details => {
+        logger.http.error(
+            `HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`
+        )
+    })
     if (isAppDev) {
         try {
             await installExtension('fmkadmapgofadopljbjfkapdkoienihi')
