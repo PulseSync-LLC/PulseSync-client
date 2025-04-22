@@ -82,6 +82,7 @@ async function handlePextFile(filePath: string) {
     }
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
+    metadata.fromPext = true
     const addonName = metadata.name
     if (!addonName) {
         logger.main.error('Theme name missing in metadata.json')
@@ -93,7 +94,8 @@ async function handlePextFile(filePath: string) {
         fs.mkdirSync(outputDir, { recursive: true })
     }
     zip.extractAllTo(outputDir, true)
-
+    const metadataFilePath = path.join(outputDir, 'metadata.json')
+    fs.writeFileSync(metadataFilePath, JSON.stringify(metadata, null, 4))
     logger.main.info(`Extension exported successfully to ${outputDir}`)
 
     if (store.get('settings.deletePextAfterImport')) {
