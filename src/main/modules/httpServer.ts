@@ -75,7 +75,7 @@ const initializeServer = () => {
 
         socket.send(JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }))
 
-        if (clientType !== 'yaMusic' && authorized) {
+        if (clientType !== 'web' && authorized) {
             sendDataToMusic()
         }
 
@@ -408,20 +408,35 @@ ipcMain.on('WEBSOCKET_RESTART', async (event, _) => {
 })
 
 ipcMain.on('REFRESH_MOD_INFO', async (event, _) => {
-    logger.http.log('Received REFRESH_MOD_INFO event. Send info to Yandex Music...')
     sendDataToMusic()
+    logger.http.log('Received REFRESH_MOD_INFO event. Send info to Yandex Music...')
 })
 
 const sendDataToMusic = () => {
+    if(!ws.clients) return
     sendAddon(true, true)
-    ws.clients.forEach(x => {
-        x.send(
-            JSON.stringify({
-                ok: true,
-                type: 'REFRESH_EXTENSIONS',
-                addons: [],
-            }),
-        )
+    const waitSockets = new Promise<void>(resolve => {
+        const interval = setInterval(() => {
+            if (ws && ws.clients && ws.clients.size > 0) {
+                clearInterval(interval)
+                resolve()
+            }
+        }, 100)
+    })
+
+    waitSockets.then(() => {
+        ws.clients.forEach(x => {
+            if ((x as any).clientType === 'yaMusic' && authorized) {
+                x.send(
+                    JSON.stringify({
+                        ok: true,
+                        type: 'REFRESH_EXTENSIONS',
+                        addons: [],
+                    }),
+                )
+                logger.http.log('Data sent to Yandex Music')
+            }
+        })
     })
     setTimeout(async () => {
         sendAddon(true)
