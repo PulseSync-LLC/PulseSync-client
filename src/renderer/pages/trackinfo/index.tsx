@@ -23,6 +23,7 @@ import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/playerTimeline'
+import TextInput from '../../components/PSUI/TextInput'
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
@@ -138,62 +139,51 @@ export default function TrackInfoPage() {
                             buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
                         ></ContainerV2>
                         <div className={themeV2.container}>
-                            {/* <form>
+                            <form className={themeV2.form}>
                                 <div className={theme.discordRpcSettings}>
                                     <div className={theme.optionalContainer}>
-                                        <div className={theme.optionalTitle}>Настроить статус</div>
-                                        <div className={inputStyle.textInputContainer}>
-                                            <div>App ID</div>
-                                            <input
-                                                type="text"
-                                                name="appId"
-                                                aria-errormessage={(formik.errors as any)['appId']}
-                                                placeholder="1270726237605855395"
-                                                className={inputStyle.styledInput}
-                                                value={formik.values.appId}
-                                                onChange={formik.handleChange}
-                                                onBlur={e => {
-                                                    handleBlur(e)
-                                                }}
-                                            />
-                                            {formik.touched.appId && formik.errors.appId ? (
-                                                <div className={inputStyle.error}>{formik.errors.appId}</div>
-                                            ) : null}
-                                        </div>
-                                        <div className={inputStyle.textInputContainer}>
-                                            <div>Details</div>
-                                            <input
-                                                type="text"
-                                                name="details"
-                                                placeholder="enter text"
-                                                className={inputStyle.styledInput}
-                                                value={formik.values.details}
-                                                onChange={formik.handleChange}
-                                                onBlur={e => {
-                                                    handleBlur(e)
-                                                }}
-                                            />
-                                            {formik.touched.details && formik.errors.details ? (
-                                                <div className={inputStyle.error}>{formik.errors.details}</div>
-                                            ) : null}
-                                        </div>
-                                        <div className={inputStyle.textInputContainer}>
-                                            <div>State</div>
-                                            <input
-                                                type="text"
-                                                name="state"
-                                                placeholder="enter text"
-                                                className={inputStyle.styledInput}
-                                                value={formik.values.state}
-                                                onChange={formik.handleChange}
-                                                onBlur={e => {
-                                                    handleBlur(e)
-                                                }}
-                                            />
-                                            {formik.touched.state && formik.errors.state ? (
-                                                <div className={inputStyle.error}>{formik.errors.state}</div>
-                                            ) : null}
-                                        </div>
+                                        <div className={theme.optionalTitle}>Статус</div>
+                                        <TextInput
+                                            name="appId"
+                                            label="App ID"
+                                            placeholder="1270726237605855395"
+                                            ariaLabel="App ID"
+                                            value={formik.values.appId}
+                                            onChange={val => formik.setFieldValue('appId', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.appId}
+                                            touched={formik.touched.appId}
+                                            description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
+                                        />
+                                        
+                                        <TextInput
+                                            name="details"
+                                            label="Details"
+                                            placeholder="enter text"
+                                            ariaLabel="Details"
+                                            value={formik.values.details}
+                                            onChange={val => formik.setFieldValue('details', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.details}
+                                            touched={formik.touched.details}
+                                            description="Описание Details"
+                                            showCommandsButton={true}
+                                        />
+
+                                        <TextInput
+                                            name="state"
+                                            label="State"
+                                            placeholder="enter text"
+                                            ariaLabel="State"
+                                            value={formik.values.state}
+                                            onChange={val => formik.setFieldValue('state', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.state}
+                                            touched={formik.touched.state}
+                                            description="Описание State"
+                                            showCommandsButton={true}
+                                        />
+
                                         <div
                                             className={theme.openModalButton}
                                             onClick={() => {
@@ -203,43 +193,45 @@ export default function TrackInfoPage() {
                                         >
                                             Посмотреть все параметры полей.
                                         </div>
+
                                         <div className={theme.line}></div>
+
                                         <CheckboxNav
                                             checkType="enableRpcButtonListen"
                                             description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам 15+-, по английским 30+-"
                                         >
                                             Включить кнопку (Слушать)
                                         </CheckboxNav>
-                                        <div className={inputStyle.textInputContainer}>
-                                            <div>Button</div>
-                                            <input
-                                                type="text"
-                                                name="button"
-                                                placeholder="enter text"
-                                                className={inputStyle.styledInput}
-                                                value={formik.values.button}
-                                                onChange={formik.handleChange}
-                                                onBlur={e => {
-                                                    handleBlur(e)
-                                                }}
-                                            />
-                                            {formik.touched.button && formik.errors.button ? (
-                                                <div className={inputStyle.error}>{formik.errors.button}</div>
-                                            ) : null}
-                                        </div>
+
+                                        <TextInput
+                                            name="button"
+                                            label="Слушать трек на Яндекс Музыке"
+                                            placeholder="enter text"
+                                            ariaLabel="Button"
+                                            value={formik.values.button}
+                                            onChange={val => formik.setFieldValue('button', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.button}
+                                            touched={formik.touched.button}
+                                            description="Текст отображаемой кнопки"
+                                        />
+
                                         <CheckboxNav
                                             checkType="enableGithubButton"
                                             description="Если включить, то в активности появится кнопка, ведущая на гитхаб-репозиторий проекта."
                                         >
                                             Включить кнопку (PulseSync Project)
                                         </CheckboxNav>
+
                                         <div className={theme.line}></div>
+
                                         <CheckboxNav
                                             checkType="showSmallIcon"
                                             description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
                                         >
                                             Включить иконоку статуса прослушивания
                                         </CheckboxNav>
+
                                         <CheckboxNav
                                             checkType="showVersionOrDevice"
                                             disabled={!app.discordRpc.showSmallIcon}
@@ -247,6 +239,7 @@ export default function TrackInfoPage() {
                                         >
                                             Показывать версию приложения вместо устройства, где играет трек.
                                         </CheckboxNav>
+
                                         <CheckboxNav
                                             checkType="displayPause"
                                             description="Активируйте этот параметр, чтобы показывать трек на паузе."
@@ -255,7 +248,8 @@ export default function TrackInfoPage() {
                                         </CheckboxNav>
                                     </div>
                                 </div>
-                            </form> */}
+                            </form>
+
                             <div className={themeV2.discordRpc}>
                                 <img
                                     className={themeV2.userBanner}

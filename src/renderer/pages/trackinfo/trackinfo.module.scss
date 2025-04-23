@@ -1,11 +1,13 @@
 .container {
     display: grid;
+    grid-template-columns: 1fr auto;
     align-items: flex-start;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
     overflow: scroll;
-    background: #1a1c24;
+    background: #2c303f;
     position: relative;
+    grid-auto-flow: column;
 }
 
 .discordRpc {
@@ -13,7 +15,7 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    margin: 0px 0px 0px 40px;
+    margin: 0px 40px 0px 0px;
     width: 420px;
     height: -webkit-fill-available;
     background: #3b4052;
@@ -250,4 +252,16 @@
     background-color: #707ca1;
     border-radius: 4px;
     overflow: hidden;
+}
+
+.form {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px 40px;
+    gap: 15px;
+
+    height: -webkit-fill-available;
+
+    background: #2c303f;
 }
