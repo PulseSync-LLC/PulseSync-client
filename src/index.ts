@@ -134,8 +134,8 @@ const createWindow = (): void => {
         backgroundColor: '#16181E',
         width: 1157,
         height: 750,
-        minWidth: 1157,
-        minHeight: 750,
+        minWidth: 1170,
+        minHeight: 500,
         transparent: false,
         icon,
         webPreferences: {

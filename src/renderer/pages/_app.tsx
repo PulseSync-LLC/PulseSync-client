@@ -46,6 +46,7 @@ import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
 import { setDeprecatedStatus } from '../api/store/appSlice'
+import TrackInfoPageOld from './trackinfoOld'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -101,6 +102,14 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <TrackInfoPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/trackinfoOld',
+            element: (
+                <ErrorBoundary>
+                    <TrackInfoPageOld />
                 </ErrorBoundary>
             ),
         },

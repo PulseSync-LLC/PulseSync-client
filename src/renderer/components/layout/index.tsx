@@ -308,6 +308,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 >
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
+                            <NavButtonPulse to="/trackinfoOld" text="Track Info">
+                                <DiscordIcon height={24} width={24} />
+                                <div className={pageStyles.betatest}>old</div>
+                            </NavButtonPulse>
                             <NavButtonPulse to="/trackinfo" text="Track Info">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>

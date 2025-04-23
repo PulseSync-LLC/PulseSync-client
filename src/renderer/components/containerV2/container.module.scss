@@ -1,0 +1,27 @@
+.mainContainer {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 40px;
+
+    width: -webkit-fill-available;
+
+    background: #232631;
+    border-bottom: 1px solid #3d445b;
+
+    .left {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: -webkit-fill-available;
+        gap: 15px;
+
+        .title {
+            font-weight: 900;
+            font-size: 20px;
+
+            color: #EEF1FF;
+        }
+    }
+}
