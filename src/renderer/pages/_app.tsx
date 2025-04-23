@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
@@ -324,10 +324,16 @@ function App() {
             const handleBeforeunload = (event: BeforeUnloadEvent) => {
                 window.desktopEvents?.send('discordrpc-reset-activity')
             }
+            const handleAuthStatus = async (event: any) => {
+                await authorize()
+            }
+            window.desktopEvents?.send('WEBSOCKET_START')
+            window.desktopEvents?.on('authSuccess', handleAuthStatus)
             window.addEventListener('mouseup', handleMouseButton)
             window.addEventListener('beforeunload', handleBeforeunload)
             return () => {
                 clearInterval(intervalId)
+                window.desktopEvents?.removeAllListeners('authSuccess')
                 window.removeEventListener('mouseup', handleMouseButton)
                 window.removeEventListener('beforeunload', handleBeforeunload)
             }
@@ -443,7 +449,7 @@ function App() {
             fetchModInfo(app)
             const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            window.desktopEvents?.send('WEBSOCKET_START')
+            window.desktopEvents?.send('REFRESH_MOD_INFO')
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
                 setAddons(fetchedAddons)
             })
@@ -500,8 +506,26 @@ function App() {
         }
     }, [navigateTo, navigateState])
 
+    const onRpcLog = useCallback((_: any, data: any) => {
+        switch (data.type) {
+            case 'error':
+                toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
+                break
+            case 'success':
+                toast.custom('success', 'Успешно.', 'RPC: ' + data.message, null, null, 15000)
+                break
+            case 'info':
+                toast.custom('info', 'Информация.', 'RPC: ' + data.message)
+                break
+            case 'warn':
+                toast.custom('warning', 'Предупреждение.', 'RPC: ' + data.message)
+                break
+        }
+    }, [])
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+            if (!window.desktopEvents) return;
+            window.desktopEvents.removeAllListeners('rpc-log');
             window.desktopEvents?.on('discordRpcState', (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -514,22 +538,7 @@ function App() {
             window.desktopEvents?.on('check-mod-update', async (event, data) => {
                 await fetchModInfo(app)
             })
-            window.desktopEvents?.on('rpc-log', (event, data) => {
-                switch (data.type) {
-                    case 'error':
-                        toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
-                        break
-                    case 'success':
-                        toast.custom('success', 'Успешно.', 'RPC: ' + data.message, null, null, 15000)
-                        break
-                    case 'info':
-                        toast.custom('info', 'Информация.', 'RPC: ' + data.message)
-                        break
-                    case 'warn':
-                        toast.custom('warning', 'Предупреждение.', 'RPC: ' + data.message)
-                        break
-                }
-            })
+            window.desktopEvents?.on('rpc-log', onRpcLog)
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -587,12 +596,12 @@ function App() {
             loadSettings()
         }
         return () => {
+            window.desktopEvents?.removeListener('rpc-log', onRpcLog)
             window.desktopEvents?.removeAllListeners('download-update-progress')
             window.desktopEvents?.removeAllListeners('download-update-failed')
             window.desktopEvents?.removeAllListeners('download-update-finished')
             window.desktopEvents?.removeAllListeners('check-update')
             window.desktopEvents?.removeAllListeners('discordRpcState')
-            window.desktopEvents?.removeAllListeners('rpc-log')
         }
     }, [])
 

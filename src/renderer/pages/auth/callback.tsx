@@ -23,15 +23,12 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            window.desktopEvents?.on('authSuccess', () => {
-                authorize()
-            })
             window.desktopEvents?.on('authBanned', (event, data) => {
                 setBanReason(data.reason)
                 setTimeout(() => window.electron.window.exit(), 10000)
             })
         }
-    }, [authorize])
+    }, [])
 
     return (
         <>

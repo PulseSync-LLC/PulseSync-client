@@ -39,6 +39,13 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
+        deeplinkManagerLog: {
+            type: 'file',
+            filename: path.join(LOG_PATH, 'deeplinkManager.log'),
+            keepFileExt: true,
+            MaxLogsize: 1024 * 1024 * 100,
+            backups: 3,
+        },
         updaterLog: {
             type: 'dateFile',
             filename: path.join(LOG_PATH, 'updater'),
@@ -75,6 +82,10 @@ log4js.configure({
             appenders: ['out', 'mainProcessLog'],
             level: 'debug',
         },
+        deeplinkManager: {
+            appenders: ['out', 'deeplinkManagerLog'],
+            level: 'debug',
+        },
         renderer: {
             appenders: ['out', 'renderProcessLog'],
             level: 'debug',
@@ -101,6 +112,7 @@ export default {
     default: log4js.getLogger('date'),
     http: log4js.getLogger('http'),
     main: log4js.getLogger('main'),
+    deeplinkManager: log4js.getLogger('deeplinkManager'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
     debug: log4js.getLogger('debug'),

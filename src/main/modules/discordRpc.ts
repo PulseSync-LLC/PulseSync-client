@@ -14,30 +14,31 @@ import { exec } from 'child_process'
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',
     ADMINISTRATOR = 'Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.',
-    SNAP = "Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC",
-    FLATPAK = "Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC",
+    SNAP = 'Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC',
+    FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
     SUCCESS = '',
 }
-const execAsync = promisify(exec);
+
+const execAsync = promisify(exec)
 const SET_ACTIVITY_TIMEOUT_MS = 1500
 let sendActivityTimeoutId: NodeJS.Timeout = undefined
 let previousActivity: SetActivity = undefined
-
 let reconnectTimeout: NodeJS.Timeout = undefined
+let closedRetryCount = 0
 
 export async function readDiscord(): Promise<DiscordState> {
-    const platform = process.platform;
-
+    const platform = process.platform
     if (platform === 'win32') {
-        return await checkDiscordStateWin();
+        return await checkDiscordStateWin()
     } else if (platform === 'linux') {
-        return await checkDiscordStateLinux();
+        return await checkDiscordStateLinux()
     } else if (platform === 'darwin') {
-        return await checkDiscordStateMac();
+        return await checkDiscordStateMac()
     } else {
-        return DiscordState.CLOSED;
+        return DiscordState.CLOSED
     }
 }
+
 function removeTimestampsFromActivity(activity: any) {
     let copyActivity = JSON.parse(JSON.stringify(activity))
     if (copyActivity.startTimestamp) {
@@ -70,93 +71,84 @@ function compareActivities(newActivity: any) {
 
 export async function checkDiscordStateLinux(): Promise<DiscordState> {
     try {
-        const { stdout } = await execAsync('ps xo user:30,command');
+        const { stdout } = await execAsync('ps xo user:30,command')
         const lines = stdout
             .split('\n')
             .filter(line => line.toLowerCase().includes('/discord'))
-            .join('\n');
-
+            .join('\n')
         if (!lines.trim()) {
-            return DiscordState.CLOSED;
+            return DiscordState.CLOSED
         } else if (lines.toLowerCase().includes('/snap/discord')) {
-            return DiscordState.SNAP;
+            return DiscordState.SNAP
         } else if (lines.toLowerCase().includes('/app/com.discordapp.discord')) {
-            return DiscordState.FLATPAK;
+            return DiscordState.FLATPAK
         } else {
-            return DiscordState.SUCCESS;
+            return DiscordState.SUCCESS
         }
     } catch (error) {
-        logger.discordRpc.error('Error executing process command:', error);
-        return DiscordState.CLOSED;
+        logger.discordRpc.error('Error executing process command:', error)
+        return DiscordState.CLOSED
     }
 }
 
 export async function checkDiscordStateMac(): Promise<DiscordState> {
-    const clients = [
-        "Discord.app",
-        "Discord PTB.app",
-        "Discord Canary.app",
-        "Discord Development.app"
-    ];
-
+    const clients = ['Discord.app', 'Discord PTB.app', 'Discord Canary.app', 'Discord Development.app']
     try {
-        const { stdout } = await execAsync("ps -A");
-        const lines = stdout.split('\n');
-
-        const clientNotRunning = lines.every(line =>
-            !clients.some(client => line.includes(client))
-        );
-
+        const { stdout } = await execAsync('ps -A')
+        const lines = stdout.split('\n')
+        const clientNotRunning = lines.every(line => !clients.some(client => line.includes(client)))
         if (clientNotRunning) {
-            return DiscordState.CLOSED;
+            return DiscordState.CLOSED
         }
-
-        return DiscordState.SUCCESS;
-    } catch (error) {
-        return DiscordState.CLOSED;
+        return DiscordState.SUCCESS
+    } catch {
+        return DiscordState.CLOSED
     }
 }
 
 async function checkDiscordStateWin(): Promise<DiscordState> {
+    const clients = ['Discord.exe', 'DiscordPTB.exe', 'DiscordCanary.exe', 'DiscordDevelopment.exe']
     const ipcPaths = Array.from({ length: 10 }, (_, i) => `\\\\.\\pipe\\discord-ipc-${i}`)
     let ipcPathFound: string | null = null
-
     for (const ipcPath of ipcPaths) {
         try {
-            fs.promises.access(ipcPath, fs.constants.F_OK)
+            await fs.promises.access(ipcPath, fs.constants.F_OK)
             ipcPathFound = ipcPath
             break
         } catch {}
     }
-
-    if (ipcPathFound) {
-        try {
-            await new Promise<void>((resolve, reject) => {
-                const client = net.connect(ipcPathFound!, () => {
-                    client.end()
-                    resolve()
-                })
-                client.on('error', reject)
-            })
-        } catch {
-            return DiscordState.ADMINISTRATOR
-        }
-
-        try {
-            fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
-        } catch {
-            return DiscordState.ADMINISTRATOR
-        }
-        return DiscordState.SUCCESS
+    if (!ipcPathFound) {
+        return DiscordState.CLOSED
     }
-    return DiscordState.CLOSED
+    try {
+        await new Promise<void>((resolve, reject) => {
+            const client = net.connect(ipcPathFound!, () => {
+                client.end()
+                resolve()
+            })
+            client.on('error', reject)
+        })
+    } catch {
+        return DiscordState.ADMINISTRATOR
+    }
+    try {
+        await fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
+    } catch {
+        return DiscordState.ADMINISTRATOR
+    }
+    try {
+        const { stdout } = await execAsync('tasklist /NH /FO CSV')
+        const isRunning = clients.some(name => stdout.includes(`"${name}"`))
+        if (!isRunning) {
+            return DiscordState.CLOSED
+        }
+    } catch (err) {
+        logger.discordRpc.error('Error checking Discord process list:', err)
+        return DiscordState.CLOSED
+    }
+    return DiscordState.SUCCESS
 }
 
-/**
- * Асинхронная функция обработки ошибок RPC.
- * Если ошибка не покрыта стандартными проверками, дополнительно вызывается checkDiscordState()
- * для получения более точного описания проблемы.
- */
 async function handleRpcError(e: Error): Promise<string> {
     const state = await readDiscord()
     if (state !== DiscordState.SUCCESS) {
@@ -169,15 +161,13 @@ async function handleRpcError(e: Error): Promise<string> {
 
 let clientId: string
 let client: Client
-
 let changeId = false
-let rpcConnected = false
-let isConnecting = false
+export let rpcConnected = false
+export let isConnecting = false
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client) {
         if (compareActivities(activity)) return true
-
         previousActivity = activity
         if (sendActivityTimeoutId) {
             clearTimeout(sendActivityTimeoutId)
@@ -187,7 +177,6 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
             try {
                 client.user?.setActivity(activity).catch(async e => {
                     const msg = await handleRpcError(e)
-
                     mainWindow.webContents.send('rpc-log', {
                         message: msg || 'Ошибка установки активности',
                         type: 'error',
@@ -207,7 +196,6 @@ ipcMain.on('discordrpc-discordRpc', (event, val) => {
 })
 
 ipcMain.on('discordrpc-reset-activity', () => {
-    logger.discordRpc.debug('Resetting previous activity due to page reload')
     previousActivity = undefined
 })
 
@@ -223,12 +211,12 @@ ipcMain.on('discordrpc-clearstate', () => {
     }
 })
 
-function scheduleReconnect() {
+function scheduleReconnect(delayMs: number = 3000) {
     if (store.get('discordRpc.status') && !reconnectTimeout) {
         reconnectTimeout = setTimeout(() => {
             reconnectTimeout = undefined
             rpc_connect()
-        }, 3000)
+        }, delayMs)
     }
 }
 
@@ -277,9 +265,18 @@ async function rpc_connect() {
     })
     const discordState = await readDiscord()
     if (discordState !== DiscordState.SUCCESS) {
-        logger.discordRpc.error('Discord state error: ' + discordState)
-        mainWindow.webContents.send('rpc-log', { message: discordState || 'Ошибка подключения к Discord RPC', type: 'error' })
-        scheduleReconnect()
+        if (discordState === DiscordState.CLOSED) {
+            closedRetryCount++
+        } else {
+            closedRetryCount = 0
+        }
+        const delay = closedRetryCount >= 5 ? 10000 : 3000
+        logger.discordRpc.info(`Discord state ${discordState}. Closed count=${closedRetryCount}. Next retry in ${delay / 1000}s`)
+        mainWindow.webContents.send('rpc-log', {
+            message: `Discord не найден. Следующая попытка через ${delay / 1000} секунд.`,
+            type: 'info',
+        })
+        scheduleReconnect(delay)
         isConnecting = false
         return
     }
@@ -290,6 +287,7 @@ async function rpc_connect() {
         scheduleReconnect()
     })
     client.on('ready', () => {
+        closedRetryCount = 0
         rpcConnected = true
         previousActivity = undefined
         if (changeId) changeId = false
@@ -328,7 +326,6 @@ function updateAppId(newAppId: string) {
     changeId = true
     store.set('discordRpc.appId', newAppId)
     client.removeAllListeners()
-
     client.user
         ?.clearActivity()
         .then(() => {
@@ -349,7 +346,6 @@ export const setRpcStatus = (status: boolean) => {
     store.set('discordRpc.status', status)
     mainWindow.webContents.send('discordRpcState', status)
     updateTray()
-
     if (status && !rpcConnected) {
         previousActivity = undefined
         return rpc_connect()

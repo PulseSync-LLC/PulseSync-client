@@ -18,54 +18,31 @@ export const checkIsDeeplink = (value: string): boolean => {
 
 export const navigateToDeeplink = (window: BrowserWindow, url: string | null): void => {
     if (!url) {
+        logger.deeplinkManager.error('Received an empty or null URL for deeplink.')
         return
     }
-    const regex = /^pulsesync:\/\/([^\/\?]+)(\?.*)?$/
+    logger.deeplinkManager.info(`Received deeplink: ${url}`)
+
+    const regex = /^pulsesync:\/\/([^\/\?]+)\/?(\?.*)?$/
     const match = url.match(regex)
-    if (!match) return
+
+    if (!match) {
+        logger.deeplinkManager.error(`URL does not match the expected format: ${url}`)
+        return
+    }
+
     const mainPath = match[1]
-    logger.main.info(`Open deeplink: ${url}`)
+    logger.deeplinkManager.info(`Extracted main path: ${mainPath}`)
+
     switch (mainPath) {
-        case 'callback': {
-            const reg = url.match(/\?token=([^&]+)&id=([^&]+)/)
-            if (!reg || reg.length < 3) {
-                return
-            }
-            const token = decodeURIComponent(reg[1])
-            const id = decodeURIComponent(reg[2])
-            fetch(`${config.SERVER_URL}/api/v1/user/${id}/access`)
-                .then(async res => {
-                    const j = await res.json()
-                    if (j.ok) {
-                        if (!j.access) {
-                            return app.quit()
-                        }
-                    } else {
-                        return app.quit()
-                    }
-                })
-                .catch(() => {
-                    return app.quit()
-                })
-            store.set('tokens.token', token)
-            window.webContents.send('authSuccess')
-            break
-        }
-        case 'ban': {
-            const regexBan = url.match(/\?reason=([^&]+)/)
-            if (!regexBan || regexBan.length < 2) {
-                return
-            }
-            const reason = decodeURIComponent(regexBan[1])
-            window.webContents.send('authBanned', { reason })
-            break
-        }
         case 'joinRoom': {
             break
         }
         default:
+            logger.deeplinkManager.warn(`Unhandled deeplink type: ${mainPath}`)
             break
     }
+
     window.focus()
     state.deeplink = null
 }
@@ -85,7 +62,7 @@ export const handleDeeplinkOnApplicationStartup = (): void => {
     app.on('open-url', (event, url) => {
         event.preventDefault()
         state.deeplink = url
-        logger.main.info('Open on startup', url)
+        logger.deeplinkManager.info('Open on startup', url)
     })
 }
 
