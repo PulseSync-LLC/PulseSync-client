@@ -265,3 +265,29 @@
 
     background: #2c303f;
 }
+
+.discordRpcSettings {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 15px;
+    width: -webkit-fill-available;
+}
+
+.optionalContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 10px;
+    width: -webkit-fill-available;
+}
+
+.optionalTitle {
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 19px;
+
+    color: #b3c5ff;
+}

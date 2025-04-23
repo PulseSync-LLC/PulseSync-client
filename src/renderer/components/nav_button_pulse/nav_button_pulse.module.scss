@@ -11,11 +11,11 @@
 
     & > svg {
         transition: var(--transition);
-        fill: var(--NavigationIconDefaultSvgColor);
+        fill: #EEF1FF;
     }
 
     &:hover {
-        background: #292c36;
+        background: #3456C8;
         & > svg {
             fill: white;
         }

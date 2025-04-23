@@ -8,6 +8,20 @@
     width: -webkit-fill-available;
     background: #3b4052;
     border-radius: 8px;
+    gap: 2px;
+    outline: transparent solid 2px;
+
+    transition: var(--transition);
+
+    &:hover {
+        outline: #8d9dd6 solid 2px;
+
+        .commandWrapper {
+            border-left: #8d9dd6 solid 2px;
+            border-right: #8d9dd6 solid 2px;
+            border-bottom: #8d9dd6 solid 2px;
+        }
+    }
 }
 
 .label {
@@ -88,17 +102,20 @@
 
 .commandWrapper {
     position: absolute;
-    right: 0;
-    left: 0;
+    right: 20px;
+    left: 20px;
     width: -webkit-fill-available;
     top: 100%;
-    transform: translateY(-5px);
+    transform: translateY(2px);
     z-index: 20;
     background: #3b4052;
-    border-top: 5px solid #545b75;
+    border-left: #3b4052 solid 2px;
+    border-right: #3b4052 solid 2px;
+    border-bottom: #3b4052 solid 2px;
     border-radius: 0 0 8px 8px;
     overflow: hidden;
     animation: fadeInUp 0.2s ease-in-out;
+    transition: var(--transition);
 }
 
 .commandList {
@@ -110,7 +127,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #3b4052;
+    background: #2f3241;
     padding: 10px 16px;
     cursor: pointer;
     color: #c7cfee;
@@ -172,7 +189,6 @@
 
     svg {
         transition: var(--transition);
-        color: #7D849D;
+        color: #7d849d;
     }
 }
-

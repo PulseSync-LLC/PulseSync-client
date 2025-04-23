@@ -73,7 +73,7 @@ a.disabled {
 }
 
 a.active > button {
-    background: var(--panelsColor);
+    background: #3E6AFF;
     border: none;
 
     & > svg {

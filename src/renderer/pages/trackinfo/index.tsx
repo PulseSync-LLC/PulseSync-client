@@ -24,13 +24,12 @@ import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/playerTimeline'
 import TextInput from '../../components/PSUI/TextInput'
+import ButtonInput from '../../components/PSUI/ButtonInput'
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
-    const [modal, setModal] = useState(false)
-    const [modalAnim, setModalAnim] = useState(false)
     const [previousValues, setPreviousValues] = useState({
         appId: '',
         details: '',
@@ -51,12 +50,6 @@ export default function TrackInfoPage() {
             .test('len', 'Максимальная длина 128 символов', val => !val || val.length <= 128),
         button: string().test('len', 'Максимальная длина 30 символов', val => !val || val.length <= 30),
     })
-    const copyValues = async (value: string) => {
-        setModalAnim(false)
-        setTimeout(() => setModal(false), 200)
-        await navigator.clipboard.writeText(value)
-        toast.custom('success', 'Крутяк', 'Скопировано в буфер обмена')
-    }
     const getChangedValues = (initialValues: any, currentValues: any) => {
         const changedValues: any = {}
         for (const key in initialValues) {
@@ -139,10 +132,10 @@ export default function TrackInfoPage() {
                             buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
                         ></ContainerV2>
                         <div className={themeV2.container}>
-                            <form className={themeV2.form}>
-                                <div className={theme.discordRpcSettings}>
-                                    <div className={theme.optionalContainer}>
-                                        <div className={theme.optionalTitle}>Статус</div>
+                            <div className={themeV2.form}>
+                                <div className={themeV2.discordRpcSettings}>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Статус</div>
                                         <TextInput
                                             name="appId"
                                             label="App ID"
@@ -155,7 +148,7 @@ export default function TrackInfoPage() {
                                             touched={formik.touched.appId}
                                             description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
                                         />
-                                        
+
                                         <TextInput
                                             name="details"
                                             label="Details"
@@ -183,26 +176,14 @@ export default function TrackInfoPage() {
                                             description="Описание State"
                                             showCommandsButton={true}
                                         />
-
-                                        <div
-                                            className={theme.openModalButton}
-                                            onClick={() => {
-                                                setModalAnim(true)
-                                                setModal(true)
-                                            }}
-                                        >
-                                            Посмотреть все параметры полей.
-                                        </div>
-
-                                        <div className={theme.line}></div>
-
-                                        <CheckboxNav
+                                    </div>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Кнопки</div>
+                                        <ButtonInput
+                                            label="Включить кнопку (Слушать)"
                                             checkType="enableRpcButtonListen"
                                             description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам 15+-, по английским 30+-"
-                                        >
-                                            Включить кнопку (Слушать)
-                                        </CheckboxNav>
-
+                                        />
                                         <TextInput
                                             name="button"
                                             label="Слушать трек на Яндекс Музыке"
@@ -215,40 +196,33 @@ export default function TrackInfoPage() {
                                             touched={formik.touched.button}
                                             description="Текст отображаемой кнопки"
                                         />
-
-                                        <CheckboxNav
+                                        <ButtonInput
+                                            label="Включить кнопку (PulseSync Project)"
                                             checkType="enableGithubButton"
                                             description="Если включить, то в активности появится кнопка, ведущая на гитхаб-репозиторий проекта."
-                                        >
-                                            Включить кнопку (PulseSync Project)
-                                        </CheckboxNav>
-
-                                        <div className={theme.line}></div>
-
-                                        <CheckboxNav
+                                        />
+                                    </div>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Особое</div>
+                                        <ButtonInput
+                                            label="Включить иконоку статуса прослушивания"
                                             checkType="showSmallIcon"
                                             description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
-                                        >
-                                            Включить иконоку статуса прослушивания
-                                        </CheckboxNav>
-
-                                        <CheckboxNav
-                                            checkType="showVersionOrDevice"
+                                        />
+                                        <ButtonInput
+                                            label="Показывать версию приложения вместо устройства, где играет трек."
                                             disabled={!app.discordRpc.showSmallIcon}
+                                            checkType="showVersionOrDevice"
                                             description="Если включить, то в активности при наведении на иконку будет показываться версия приложения, а не устройство, где играет трек."
-                                        >
-                                            Показывать версию приложения вместо устройства, где играет трек.
-                                        </CheckboxNav>
-
-                                        <CheckboxNav
+                                        />
+                                        <ButtonInput
+                                            label="Показывать трек на паузе"
                                             checkType="displayPause"
                                             description="Активируйте этот параметр, чтобы показывать трек на паузе."
-                                        >
-                                            Показывать трек на паузе
-                                        </CheckboxNav>
+                                        />
                                     </div>
                                 </div>
-                            </form>
+                            </div>
 
                             <div className={themeV2.discordRpc}>
                                 <img
@@ -369,51 +343,6 @@ export default function TrackInfoPage() {
                                     </div>
                                 </div>
                             </div>
-                            {modal && (
-                                <div className={modalAnim ? theme.modalBlur : theme.modalBlurOff}>
-                                    <div
-                                        className={theme.modalCloseZone}
-                                        onClick={() => {
-                                            setModalAnim(false)
-                                            setTimeout(() => setModal(false), 200)
-                                        }}
-                                    ></div>
-                                    <div className={theme.modal}>
-                                        <div className={theme.modalTitle}>
-                                            <div>Параметры полей</div>
-                                            <button
-                                                className={theme.closeModal}
-                                                onClick={() => {
-                                                    setModalAnim(false)
-                                                    setTimeout(() => setModal(false), 200)
-                                                }}
-                                            >
-                                                <MdClose size={20} />
-                                            </button>
-                                        </div>
-                                        <div className={theme.modalContainer}>
-                                            <button className={theme.modalContextButton}>
-                                                <div className={theme.contextInfo}>
-                                                    <div className={theme.contextPreview}>track</div>- название трека
-                                                </div>
-                                                <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{track}')} />
-                                            </button>
-                                            <button className={theme.modalContextButton}>
-                                                <div className={theme.contextInfo}>
-                                                    <div className={theme.contextPreview}>artist</div>- имя артиста
-                                                </div>
-                                                <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{artist}')} />
-                                            </button>
-                                            <button className={theme.modalContextButton}>
-                                                <div className={theme.contextInfo}>
-                                                    <div className={theme.contextPreview}>album</div>- название альбома
-                                                </div>
-                                                <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{album}')} />
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>
