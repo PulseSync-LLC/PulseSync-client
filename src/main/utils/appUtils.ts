@@ -9,6 +9,10 @@ import { asarBackup, mainWindow, musicPath } from '../../index'
 import { app, dialog } from 'electron'
 import axios from 'axios'
 
+import { execSync } from 'child_process';
+import { extractAll, createPackage } from '@electron/asar';
+import * as plist from 'plist';
+
 const execAsync = promisify(exec)
 
 interface ProcessInfo {
@@ -256,4 +260,107 @@ export const checkMusic = () => {
                 })
         }
     }
+}
+
+export class AsarCalculator {
+  constructor(private filePath: string) {}
+
+  private getHeaderSize(): number {
+    const fd = fs.openSync(this.filePath, 'r');
+    try {
+      const headerBuf = Buffer.alloc(16);
+      fs.readSync(fd, headerBuf, 0, 16, 0);
+      return headerBuf.readUInt32LE(12);
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+
+  private readHeader(): Buffer {
+    const size = this.getHeaderSize();
+    const fd = fs.openSync(this.filePath, 'r');
+    try {
+      const buf = Buffer.alloc(size);
+      fs.readSync(fd, buf, 0, size, 16);
+      return buf;
+    } finally {
+      fs.closeSync(fd);
+    }
+  }
+
+  public calcHash(): string {
+    const header = this.readHeader();
+    return crypto.createHash('sha256').update(header).digest('hex');
+  }
+}
+
+export class AsarPatcher {
+  public extractAsar(inputAsar: string, outDir: string): void {
+    try {
+      extractAll(inputAsar, outDir);
+      console.log(`✔ Extracted ${inputAsar} → ${outDir}`);
+    } catch (err: any) {
+      throw new Error(`Failed to extract ${inputAsar}: ${err.message}`);
+    }
+  }
+
+  public packAsar(input: string, appBundlePath: string): void {
+    const outAsar = path.join(appBundlePath, 'Contents', 'Resources', 'app.asar');
+    const plistPath = path.join(appBundlePath, 'Contents', 'Info.plist');
+
+    if (fs.existsSync(input) && fs.statSync(input).isDirectory()) {
+      try {
+        createPackage(input, outAsar);
+        console.log(`✔ Packed directory ${input} → ${outAsar}`);
+      } catch (err: any) {
+        throw new Error(`Failed to pack directory ${input}: ${err.message}`);
+      }
+    } else if (path.extname(input).toLowerCase() === '.asar') {
+      try {
+        fs.copyFileSync(input, outAsar);
+        console.log(`✔ Copied ASAR ${input} → ${outAsar}`);
+      } catch (err: any) {
+        throw new Error(`Failed to copy ASAR ${input}: ${err.message}`);
+      }
+    } else {
+      throw new Error('Input must be a directory or an .asar file');
+    }
+
+    if (this.usesIntegrity(plistPath)) {
+      console.log('ℹ ElectronAsarIntegrity detected — recalculating hash…');
+      const newHash = new AsarCalculator(outAsar).calcHash();
+      this.patchPlistHash(plistPath, newHash);
+      console.log(`✔ Updated Info.plist hash to ${newHash}`);
+    }
+
+    const entFile = this.dumpEntitlements(appBundlePath);
+    try {
+      execSync(
+        `codesign --force --entitlements "${entFile}" --sign - "${appBundlePath}"`,
+        { stdio: 'inherit' }
+      );
+      console.log(`✔ Re-signed ${appBundlePath}`);
+    } finally {
+      if (fs.existsSync(entFile)) fs.unlinkSync(entFile);
+    }
+  }
+
+  private usesIntegrity(plistPath: string): boolean {
+    const xml = fs.readFileSync(plistPath, 'utf8');
+    const data = plist.parse(xml) as any;
+    return Boolean(data.ElectronAsarIntegrity?.Resources?.['app.asar']);
+  }
+
+  private patchPlistHash(plistPath: string, hash: string): void {
+    const xml = fs.readFileSync(plistPath, 'utf8');
+    const data = plist.parse(xml) as any;
+    data.ElectronAsarIntegrity.Resources['app.asar'].hash = hash;
+    fs.writeFileSync(plistPath, plist.build(data), 'utf8');
+  }
+
+  private dumpEntitlements(appPath: string): string {
+    const out = path.join(os.tmpdir(), 'extracted_entitlements.plist');
+    execSync(`codesign -d --entitlements :- "${appPath}" > "${out}"`);
+    return out;
+  }
 }
