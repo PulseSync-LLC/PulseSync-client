@@ -18,7 +18,6 @@ import {
     MdStoreMallDirectory,
 } from 'react-icons/md'
 
-import Layout from '../../../components/layout'
 import Button from '../../../components/button'
 import ViewModal from '../../../components/context_menu_themes/viewModal'
 import AddonInterface from '../../../api/interfaces/addon.interface'
@@ -30,19 +29,24 @@ import * as globalStyles from '../../../../../static/styles/page/index.module.sc
 import * as localStyles from './extensionview.module.scss'
 import addonInitials from '../../../api/initials/addon.initials'
 import { useUserProfileModal } from '../../../context/UserProfileModalContext'
+import toast from '../../../components/toast'
 
-const ExtensionViewPage: React.FC = () => {
+interface ExtensionViewProps {
+    addon: AddonInterface
+    isEnabled: boolean
+    onToggleEnabled: (enabled: boolean) => void
+}
+
+export const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, onToggleEnabled }) => {
     const [activatedTheme, setActivatedTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
-
     const [enabledScripts, setEnabledScripts] = useState<string[]>(window.electron.store.get('addons.scripts') || [])
-
-    const isFirstRender = useRef(true)
-    const { openUserProfile } = useUserProfileModal()
-    const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
+    const [currentAddon, setCurrentAddon] = useState<AddonInterface>(addon)
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
-    const [bannerImage, setBannerImage] = useState('static/assets/images/no_themeBackground.png')
-
-    const [themeActive, setThemeActive] = useState(activatedTheme !== 'Default')
+    const { openUserProfile } = useUserProfileModal()
+    const [bannerImage, setBannerImage] = useState(
+        addon.banner ? encodeURI(`${addon.path}/${addon.banner}`.replace(/\\/g, '/')) : 'static/assets/images/no_themeBackground.png',
+    )
+    const [themeActive, setThemeActive] = useState(isEnabled && addon.type === 'theme')
     const [bannerExpanded, setBannerExpanded] = useState(false)
     const [bannerHeight, setBannerHeight] = useState(84)
     const [activeTab, setActiveTab] = useState('Overview')
@@ -52,60 +56,33 @@ const ExtensionViewPage: React.FC = () => {
     const [configFileExists, setConfigFileExists] = useState<boolean | null>(null)
     const [newSectionTitle, setNewSectionTitle] = useState('')
     const menuElementRef = useRef<HTMLDivElement>(null)
-    const location = useLocation()
     const navigate = useNavigate()
 
     useEffect(() => {
-        if (isFirstRender.current) {
-            isFirstRender.current = false
-            return
-        }
-        window.electron.store.set('addons.scripts', enabledScripts)
-        window.desktopEvents?.send('REFRESH_EXTENSIONS')
-    }, [enabledScripts])
+        if (addon) {
+            setCurrentAddon(addon)
+            setBannerImage(
+                addon.banner ? encodeURI(`${addon.path}/${addon.banner}`.replace(/\\/g, '/')) : 'static/assets/images/no_themeBackground.png',
+            )
+            setThemeActive(isEnabled && addon.type === 'theme')
 
-    useEffect(() => {
-        window.electron.store.set('addons.theme', activatedTheme)
-    }, [activatedTheme])
-
-    useEffect(() => {
-        const receivedAddon = location.state?.theme as AddonInterface
-
-        if (receivedAddon) {
-            setCurrentAddon(receivedAddon)
-        } else {
-            navigate('/extensionbeta', { replace: false })
-        }
-    }, [location.state, navigate])
-
-    useEffect(() => {
-        const clickOutsideHandler = (event: MouseEvent) => {
-            if (menuElementRef.current && !menuElementRef.current.contains(event.target as Node)) {
-                setContextMenuVisible(false)
-            }
-        }
-        if (contextMenuVisible) {
-            document.addEventListener('mousedown', clickOutsideHandler)
-        } else {
-            document.removeEventListener('mousedown', clickOutsideHandler)
-        }
-        return () => {
-            document.removeEventListener('mousedown', clickOutsideHandler)
-        }
-    }, [contextMenuVisible])
-
-    useEffect(() => {
-        if (currentAddon) {
+            // Load expanded state from store
             const expandedStates = window.electron.store.get('addons.themeIsExpanded') || {}
-            if (!expandedStates.hasOwnProperty(currentAddon.name)) {
-                expandedStates[currentAddon.name] = false
+            if (!expandedStates.hasOwnProperty(addon.name)) {
+                expandedStates[addon.name] = false
                 window.electron.store.set('addons.themeIsExpanded', expandedStates)
             }
-            const initialExpanded = expandedStates[currentAddon.name]
+            const initialExpanded = expandedStates[addon.name]
             setBannerExpanded(initialExpanded)
             setBannerHeight(initialExpanded ? 277 : 84)
         }
-    }, [currentAddon])
+    }, [addon, isEnabled])
+
+    useEffect(() => {
+        if (currentAddon?.type === 'theme' && isEnabled) {
+            setActivatedTheme(currentAddon.directoryName)
+        }
+    }, [currentAddon, isEnabled])
 
     const toggleBanner = () => {
         const newState = !bannerExpanded
@@ -114,6 +91,28 @@ const ExtensionViewPage: React.FC = () => {
             const expandedStates = window.electron.store.get('addons.themeIsExpanded') || {}
             expandedStates[currentAddon.name] = newState
             window.electron.store.set('addons.themeIsExpanded', expandedStates)
+        }
+    }
+
+    // В ExtensionView
+    const handleToggleEnabled = () => {
+        const newEnabledState = !isEnabled
+        onToggleEnabled(newEnabledState)
+
+        // Локальное обновление UI
+        if (currentAddon.type === 'theme') {
+            setThemeActive(newEnabledState)
+        }
+
+        // Показываем уведомление
+        if (newEnabledState) {
+            toast.custom('success', currentAddon.type === 'theme' ? 'Тема активирована' : 'Скрипт включен', `${currentAddon.name} теперь активен`)
+        } else {
+            toast.custom(
+                'info',
+                currentAddon.type === 'theme' ? 'Тема деактивирована' : 'Скрипт выключен',
+                currentAddon.type === 'theme' ? 'Установлена тема по умолчанию' : `${currentAddon.name} деактивирован`,
+            )
         }
     }
 
@@ -138,7 +137,7 @@ const ExtensionViewPage: React.FC = () => {
     }, [bannerExpanded])
 
     const changeTag = (tag: string) => {
-        navigate(`/extensionbeta?selectedTag=${encodeURIComponent(tag)}`, {
+        navigate(`/extension?selectedTag=${encodeURIComponent(tag)}`, {
             replace: false,
         })
     }
@@ -691,239 +690,219 @@ const ExtensionViewPage: React.FC = () => {
     if (!currentAddon) return null
 
     return (
-        <Layout title="Стилизация">
-            <div className={globalStyles.page}>
-                <div className={globalStyles.container}>
-                    <div className={globalStyles.main_container}>
-                        <div className={globalStyles.container0x0}>
-                            {activeTab === 'Settings' && configFileExists === true && (
-                                <button
-                                    className={`${localStyles.edit} ${editMode ? localStyles.activeEdit : ''}`}
-                                    onClick={() => setEditMode(prev => !prev)}
-                                    title={editMode ? 'Выйти из режима редактирования' : 'Войти в режим редактирования'}
-                                >
-                                    <MdEdit />
-                                </button>
-                            )}
-                            <div className={localStyles.containerFix}>
-                                <div
-                                    className={localStyles.bannerBackground}
-                                    style={{
-                                        transition: 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
-                                        opacity: '1',
-                                        backgroundImage: `url(${bannerImage})`,
-                                        backgroundSize: 'cover',
-                                        height: `${bannerHeight}px`,
+            <div className={localStyles.container}>
+                {activeTab === 'Settings' && configFileExists === true && (
+                    <button
+                        className={`${localStyles.edit} ${editMode ? localStyles.activeEdit : ''}`}
+                        onClick={() => setEditMode(prev => !prev)}
+                        title={editMode ? 'Выйти из режима редактирования' : 'Войти в режим редактирования'}
+                    >
+                        <MdEdit />
+                    </button>
+                )}
+                <div className={localStyles.containerFix}>
+                    <div
+                        className={localStyles.bannerBackground}
+                        style={{
+                            transition: 'opacity 0.5s ease, height 0.5s ease, gap 0.5s ease',
+                            opacity: '1',
+                            backgroundImage: `url(${bannerImage})`,
+                            backgroundSize: 'cover',
+                            height: `${bannerHeight}px`,
+                        }}
+                    >
+                        <Button
+                            className={localStyles.hideButton}
+                            onClick={() => {
+                                setBannerExpanded(prev => !prev)
+                                toggleBanner()
+                            }}
+                            title={bannerExpanded ? 'Свернуть баннер' : 'Развернуть баннер'}
+                        >
+                            <MdKeyboardArrowDown
+                                size={20}
+                                style={
+                                    bannerExpanded
+                                        ? {
+                                              transition: 'transform 0.3s ease',
+                                              transform: 'rotate(180deg)',
+                                          }
+                                        : {
+                                              transition: 'transform 0.3s ease',
+                                              transform: 'rotate(0deg)',
+                                          }
+                                }
+                            />
+                        </Button>
+                    </div>
+
+                    <div className={localStyles.themeInfo}>
+                        <div className={localStyles.themeHeader}>
+                            <div className={localStyles.containerLeft}>
+                                <img
+                                    className={localStyles.themeImage}
+                                    src={`${currentAddon.path}/${currentAddon.image}`}
+                                    alt={`${currentAddon.name} image`}
+                                    width="100"
+                                    height="100"
+                                    onError={e => {
+                                        ;(e.target as HTMLImageElement).src = 'static/assets/images/no_themeImage.png'
                                     }}
-                                >
-                                    <Button
-                                        className={localStyles.hideButton}
-                                        onClick={() => {
-                                            setBannerExpanded(prev => !prev)
-                                            toggleBanner()
-                                        }}
-                                        title={bannerExpanded ? 'Свернуть баннер' : 'Развернуть баннер'}
-                                    >
-                                        <MdKeyboardArrowDown
-                                            size={20}
-                                            style={
-                                                bannerExpanded
-                                                    ? {
-                                                          transition: 'transform 0.3s ease',
-                                                          transform: 'rotate(180deg)',
-                                                      }
-                                                    : {
-                                                          transition: 'transform 0.3s ease',
-                                                          transform: 'rotate(0deg)',
-                                                      }
-                                            }
-                                        />
-                                    </Button>
-                                </div>
-
-                                <div className={localStyles.themeInfo}>
-                                    <div className={localStyles.themeHeader}>
-                                        <div className={localStyles.containerLeft}>
-                                            <img
-                                                className={localStyles.themeImage}
-                                                src={`${currentAddon.path}/${currentAddon.image}`}
-                                                alt={`${currentAddon.name} image`}
-                                                width="100"
-                                                height="100"
-                                                onError={e => {
-                                                    ;(e.target as HTMLImageElement).src = 'static/assets/images/no_themeImage.png'
-                                                }}
-                                            />
-                                            <div className={localStyles.themeTitle}>
-                                                <div className={localStyles.titleContainer}>
-                                                    <NavLink className={localStyles.path} to="/extensionbeta" title="Перейти в Extension">
-                                                        Extension
-                                                    </NavLink>
-                                                    /<div className={localStyles.title}>{currentAddon.name || 'Название недоступно'}</div>
-                                                    <Button className={localStyles.addFavorite} disabled title="Добавить в избранное (недоступно)">
-                                                        <MdBookmarkBorder size={20} />
-                                                    </Button>
-                                                </div>
-                                                <div className={localStyles.authorInfo}>
-                                                    {currentAddon.author && (
-                                                        <div>
-                                                            {Array.isArray(currentAddon.author) ? (
-                                                                currentAddon.author.map((userName: string, index: number) => (
-                                                                    <span
-                                                                        key={userName}
-                                                                        onClick={() => openUserProfile(userName)}
-                                                                        style={{
-                                                                            cursor: 'pointer',
-                                                                        }}
-                                                                    >
-                                                                        {userName}
-                                                                        {index < currentAddon.author.length - 1 && ', '}
-                                                                    </span>
-                                                                ))
-                                                            ) : (
-                                                                <span
-                                                                    onClick={() => openUserProfile(currentAddon.author as string)}
-                                                                    style={{
-                                                                        cursor: 'pointer',
-                                                                    }}
-                                                                >
-                                                                    {currentAddon.author}
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    )}{' '}
-                                                    - {currentAddon.lastModified && <div>Last update: {currentAddon.lastModified}</div>}
-                                                </div>
-                                            </div>
-                                        </div>
+                                />
+                                <div className={localStyles.themeTitle}>
+                                    <div className={localStyles.titleContainer}>
+                                        <NavLink className={localStyles.path} to="/extension" title="Перейти в Extension">
+                                            Extension
+                                        </NavLink>
+                                        /<div className={localStyles.title}>{currentAddon.name || 'Название недоступно'}</div>
+                                        <Button className={localStyles.addFavorite} disabled title="Добавить в избранное (недоступно)">
+                                            <MdBookmarkBorder size={20} />
+                                        </Button>
                                     </div>
-
-                                    <div className={localStyles.rightContainer}>
-                                        <div className={localStyles.detailsContainer}>
-                                            <div className={localStyles.detailInfo}>
-                                                {currentAddon.version && (
-                                                    <div className={localStyles.box}>
-                                                        <MdDesignServices /> {currentAddon.version}
-                                                    </div>
-                                                )}
-                                                {currentAddon.size !== undefined && (
-                                                    <div className={localStyles.box}>
-                                                        <MdFolder /> {currentAddon.size}
-                                                    </div>
-                                                )}
-                                            </div>
-                                            <div className={localStyles.detailInfo}>
-                                                {Array.isArray(currentAddon.tags) &&
-                                                    currentAddon.tags.length > 0 &&
-                                                    currentAddon.tags.map(tag => (
-                                                        <Button
-                                                            key={tag}
-                                                            className={localStyles.tag}
-                                                            onClick={() => changeTag(tag)}
-                                                            title={`Фильтровать по тегу ${tag}`}
+                                    <div className={localStyles.authorInfo}>
+                                        {currentAddon.author && (
+                                            <div>
+                                                {Array.isArray(currentAddon.author) ? (
+                                                    currentAddon.author.map((userName: string, index: number) => (
+                                                        <span
+                                                            key={userName}
+                                                            onClick={() => openUserProfile(userName)}
+                                                            style={{
+                                                                cursor: 'pointer',
+                                                            }}
                                                         >
-                                                            {tag}
-                                                        </Button>
-                                                    ))}
+                                                            {userName}
+                                                            {index < currentAddon.author.length - 1 && ', '}
+                                                        </span>
+                                                    ))
+                                                ) : (
+                                                    <span
+                                                        onClick={() => openUserProfile(currentAddon.author as string)}
+                                                        style={{
+                                                            cursor: 'pointer',
+                                                        }}
+                                                    >
+                                                        {currentAddon.author}
+                                                    </span>
+                                                )}
                                             </div>
-                                        </div>
-
-                                        <div ref={menuElementRef}>
-                                            <div className={localStyles.miniButtonsContainer}>
-                                                <Button
-                                                    className={`${localStyles.defaultButton} ${
-                                                        (currentAddon.type === 'theme' && activatedTheme === currentAddon.directoryName) ||
-                                                        (currentAddon.type === 'script' && enabledScripts.includes(currentAddon.directoryName))
-                                                            ? localStyles.defaultButtonActive
-                                                            : ''
-                                                    }`}
-                                                    disabled={!currentAddon.type || (currentAddon.type !== 'theme' && currentAddon.type !== 'script')}
-                                                    onClick={handleToggleAddon}
-                                                    title={getToggleTitle()}
-                                                >
-                                                    {getToggleButtonText()}
-                                                </Button>
-                                                <Button
-                                                    className={localStyles.miniButton}
-                                                    onClick={() => setContextMenuVisible(prev => !prev)}
-                                                    title="Дополнительные настройки"
-                                                >
-                                                    <MdMoreHoriz size={20} />
-                                                </Button>
-                                            </div>
-                                            {contextMenuVisible && currentAddon && (
-                                                <ViewModal
-                                                    items={createContextMenuActions(
-                                                        undefined,
-                                                        themeActive,
-                                                        {
-                                                            showCheck: false,
-                                                            showDirectory: true,
-                                                            showExport: true,
-                                                            showDelete: true,
-                                                        },
-                                                        currentAddon,
-                                                    )}
-                                                />
-                                            )}
-                                        </div>
+                                        )}{' '}
+                                        - {currentAddon.lastModified && <div>Last update: {currentAddon.lastModified}</div>}
                                     </div>
-                                </div>
-
-                                <div className={localStyles.extensionNav}>
-                                    <div className={localStyles.extensionNavContainer}>
-                                        <button
-                                            className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Overview' ? localStyles.activeTabButton : ''
-                                            }`}
-                                            onClick={() => setActiveTab('Overview')}
-                                            title="Обзор"
-                                        >
-                                            <MdExplore /> Overview
-                                        </button>
-                                        <button
-                                            className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Settings' ? localStyles.activeTabButton : ''
-                                            }`}
-                                            onClick={() => setActiveTab('Settings')}
-                                            title="Настройки"
-                                        >
-                                            <MdSettings /> Settings
-                                        </button>
-                                        <button
-                                            className={`${localStyles.extensionNavButton} ${
-                                                activeTab === 'Metadata' ? localStyles.activeTabButton : ''
-                                            }`}
-                                            onClick={() => setActiveTab('Metadata')}
-                                            title="Метаданные"
-                                        >
-                                            <MdStickyNote2 /> Metadata
-                                        </button>
-                                    </div>
-                                    <button className={localStyles.extensionNavButton} disabled title="Store (недоступно)">
-                                        <MdStoreMallDirectory /> Store
-                                    </button>
-                                </div>
-
-                                <div className={localStyles.extensionContent}>
-                                    {editMode && activeTab === 'Settings' && (
-                                        <div className={localStyles.howAlert}>
-                                            Подробную информацию о том, как с этим работать, можно найти в&nbsp;
-                                            <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
-                                                нашем Discord
-                                            </a>
-                                            !
-                                        </div>
-                                    )}
-                                    {renderActiveTabContent()}
                                 </div>
                             </div>
                         </div>
+
+                        <div className={localStyles.rightContainer}>
+                            <div className={localStyles.detailsContainer}>
+                                <div className={localStyles.detailInfo}>
+                                    {currentAddon.version && (
+                                        <div className={localStyles.box}>
+                                            <MdDesignServices /> {currentAddon.version}
+                                        </div>
+                                    )}
+                                    {currentAddon.size !== undefined && (
+                                        <div className={localStyles.box}>
+                                            <MdFolder /> {currentAddon.size}
+                                        </div>
+                                    )}
+                                </div>
+                                <div className={localStyles.detailInfo}>
+                                    {Array.isArray(currentAddon.tags) &&
+                                        currentAddon.tags.length > 0 &&
+                                        currentAddon.tags.map(tag => (
+                                            <Button
+                                                key={tag}
+                                                className={localStyles.tag}
+                                                onClick={() => changeTag(tag)}
+                                                title={`Фильтровать по тегу ${tag}`}
+                                            >
+                                                {tag}
+                                            </Button>
+                                        ))}
+                                </div>
+                            </div>
+
+                            <div ref={menuElementRef}>
+                                <div className={localStyles.miniButtonsContainer}>
+                                    <Button
+                                        className={`${localStyles.defaultButton} ${
+                                            isEnabled ? `${localStyles.defaultButtonActive} ${localStyles.enabledState}` : localStyles.disabledState
+                                        }`}
+                                        onClick={handleToggleEnabled}
+                                        disabled={!currentAddon?.type || !['theme', 'script'].includes(currentAddon.type)}
+                                    >
+                                        {isEnabled ? 'Выключить' : 'Включить'}
+                                    </Button>
+                                    <Button
+                                        className={localStyles.miniButton}
+                                        onClick={() => setContextMenuVisible(prev => !prev)}
+                                        title="Дополнительные настройки"
+                                    >
+                                        <MdMoreHoriz size={20} />
+                                    </Button>
+                                </div>
+                                {contextMenuVisible && currentAddon && (
+                                    <ViewModal
+                                        items={createContextMenuActions(
+                                            undefined,
+                                            themeActive,
+                                            {
+                                                showCheck: false,
+                                                showDirectory: true,
+                                                showExport: true,
+                                                showDelete: true,
+                                            },
+                                            currentAddon,
+                                        )}
+                                    />
+                                )}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className={localStyles.extensionNav}>
+                        <div className={localStyles.extensionNavContainer}>
+                            <button
+                                className={`${localStyles.extensionNavButton} ${activeTab === 'Overview' ? localStyles.activeTabButton : ''}`}
+                                onClick={() => setActiveTab('Overview')}
+                                title="Обзор"
+                            >
+                                <MdExplore /> Overview
+                            </button>
+                            <button
+                                className={`${localStyles.extensionNavButton} ${activeTab === 'Settings' ? localStyles.activeTabButton : ''}`}
+                                onClick={() => setActiveTab('Settings')}
+                                title="Настройки"
+                            >
+                                <MdSettings /> Settings
+                            </button>
+                            <button
+                                className={`${localStyles.extensionNavButton} ${activeTab === 'Metadata' ? localStyles.activeTabButton : ''}`}
+                                onClick={() => setActiveTab('Metadata')}
+                                title="Метаданные"
+                            >
+                                <MdStickyNote2 /> Metadata
+                            </button>
+                        </div>
+                        <button className={localStyles.extensionNavButton} disabled title="Store (недоступно)">
+                            <MdStoreMallDirectory /> Store
+                        </button>
+                    </div>
+
+                    <div className={localStyles.extensionContent}>
+                        {editMode && activeTab === 'Settings' && (
+                            <div className={localStyles.howAlert}>
+                                Подробную информацию о том, как с этим работать, можно найти в&nbsp;
+                                <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
+                                    нашем Discord
+                                </a>
+                                !
+                            </div>
+                        )}
+                        {renderActiveTabContent()}
                     </div>
                 </div>
             </div>
-        </Layout>
     )
 }
-
-export default ExtensionViewPage

@@ -5,7 +5,6 @@ import CheckboxNav from '../../components/checkbox'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
-import * as theme from './oldtrackinfo.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
 import React, { useContext, useEffect, useRef, useState } from 'react'

@@ -9,10 +9,12 @@ import stringSimilarity from 'string-similarity'
 import CustomCheckbox from '../../components/checkbox_props'
 import toast from '../../components/toast'
 import userContext from '../../api/context/user.context'
+
 import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
 import FileAddImg from './../../../../static/assets/stratis-icons/file-add.svg'
-import MoreImg from './../../../../static/assets/stratis-icons/more.svg'
 import FileImg from './../../../../static/assets/stratis-icons/file.svg'
+
+import MoreImg from './../../../../static/assets/stratis-icons/more.svg'
 import FilterImg from './../../../../static/assets/stratis-icons/filter.svg'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import addonInitials from '../../api/initials/addon.initials'

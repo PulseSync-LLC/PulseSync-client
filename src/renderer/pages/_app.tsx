@@ -7,8 +7,9 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import ExtensionBetaPage from './extensionbeta'
-import ExtensionViewPage from './extensionbeta/route/extensionview'
+import ExtensionPage from './extension'
+import ExtensionBetaPageOld from './extensionbetaOld'
+import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -122,18 +123,26 @@ function App() {
             ),
         },
         {
-            path: '/extensionbeta',
+            path: '/extension',
             element: (
                 <ErrorBoundary>
-                    <ExtensionBetaPage />
+                    <ExtensionPage />
                 </ErrorBoundary>
             ),
         },
         {
-            path: '/extensionbeta/:contactId',
+            path: '/extensionbetaOld',
             element: (
                 <ErrorBoundary>
-                    <ExtensionViewPage />
+                    <ExtensionBetaPageOld />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/extensionbetaOld/:contactId',
+            element: (
+                <ErrorBoundary>
+                    <ExtensionViewPageOld />
                 </ErrorBoundary>
             ),
         },
@@ -478,7 +487,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${foundAddon.name}`)
                         setNavigateState(foundAddon)
                     }
                 })
@@ -613,7 +622,7 @@ function App() {
         ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extensionbeta', { replace: true })
+                router.navigate('/extension', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {

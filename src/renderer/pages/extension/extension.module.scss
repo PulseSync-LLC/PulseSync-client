@@ -1,0 +1,271 @@
+/* Global container */
+.container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0px;
+
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    overflow-y: scroll;
+
+    background: #1a1c24;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    padding: 10px 15px;
+    background: #232631;
+    border-bottom: 1px solid #3d445b;
+}
+
+.checkSelect {
+    transition: var(--transition);
+    opacity: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+    position: absolute;
+    width: 34px;
+    left: -34px;
+    top: 0px;
+    bottom: 0px;
+}
+
+.leftSide {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 15px 15px 15px 40px;
+    gap: 5px;
+
+    width: 350px;
+    height: -webkit-fill-available;
+    overflow: auto;
+
+    background: #232631;
+    border-right: 1px solid #3d445b;
+}
+
+.rightSide {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    isolation: isolate;
+
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+
+    background: #252835;
+}
+
+.skeletonWrapper {
+    padding: 15px;
+}
+
+.addonCard {
+    transition: var(--transition);
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 13px;
+    gap: 10px;
+    isolation: isolate;
+    background: transparent;
+    width: -webkit-fill-available;
+    border-radius: 8px;
+    justify-content: space-between;
+
+    &:hover {
+        background: #464d62;
+
+        & > .checkSelect {
+            opacity: 1;
+
+            &:hover {
+                color: #b9c5e6 !important;
+            }
+        }
+
+        & > .addonType {
+            color: #b9c5e6;
+        }
+    }
+}
+
+.addonList {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    width: -webkit-fill-available;
+}
+
+.addonCardSelected {
+    background: #464d62;
+
+    & > .addonType {
+        color: #b9c5e6;
+    }
+}
+
+.addonImage {
+    width: 21px;
+    height: 21px;
+    border-radius: 4px;
+}
+
+.addonName {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 19px;
+    width: -webkit-fill-available;
+    color: #f3f3f3;
+    text-overflow: ellipsis;
+    max-width: 500px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.addonType {
+    transition: var(--transition);
+    display: flex;
+    color: #67728f;
+
+    width: 21px;
+    height: 21px;
+}
+
+.checkMarkTheme {
+    color: #92ff99;
+}
+
+.checkMarkScript {
+    color: #ffe292;
+}
+
+//
+
+.searchContainer {
+    display: flex;
+    align-items: center;
+    width: -webkit-fill-available;
+    border: none;
+}
+
+.searchInput {
+    width: 100%;
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #f3f3f3;
+    background: #464d62;
+    border: none;
+    border-radius: 8px;
+    transition: var(--transition);
+
+    &:focus {
+        outline: none;
+        border-color: #464d62;
+    }
+
+    &::placeholder {
+        color: #7b86a3;
+    }
+}
+
+.tagSelectorContainer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: -webkit-fill-available;
+}
+
+.selectedTag {
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    background: #464d62;
+    border-radius: 8px;
+    font-size: 12px;
+    color: #f3f3f3;
+}
+
+.removeTagButton {
+    margin-left: 6px;
+    background: none;
+    border: none;
+    color: #f3f3f3;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.tagDropdown {
+    padding: 6px 12px;
+    font-size: 14px;
+    color: #f3f3f3;
+    background: #464d62;
+    border: none;
+    width: -webkit-fill-available;
+    border-radius: 8px;
+    transition: var(--transition);
+    cursor: pointer;
+
+    &:focus {
+        outline: none;
+        border-color: #464d62;
+    }
+}
+
+.enabledAddons,
+.disabledAddons {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+}
+
+.line {
+    background: #3d445b;
+    width: -webkit-fill-available;
+    height: 1px;
+}
+
+.actionButtons {
+    display: flex;
+    gap: 5px;
+    background: #232631;
+    flex-direction: row;
+    width: -webkit-fill-available;
+    justify-content: center;
+}
+
+.actionButton {
+    padding: 8px 12px;
+    font-size: 14px;
+    color: #f3f3f3;
+    background: #464d62;
+    border: none;
+    width: -webkit-fill-available;
+    border-radius: 8px;
+    cursor: pointer;
+    display: flex;
+    transition: var(--transition);
+    justify-content: center;
+
+    &:hover {
+        background: #5a6178;
+    }
+
+    &:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #67728f;
+    }
+}
