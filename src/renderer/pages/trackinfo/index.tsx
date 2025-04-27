@@ -271,12 +271,12 @@ export default function TrackInfoPage() {
                                             <div className={theme.status}>Слушает</div>
                                             <div className={theme.statusRPC}>
                                                 <div>
-                                                    {app.discordRpc.status && currentTrack.status !== trackInitials.status ? (
+                                                    {app.discordRpc.status && currentTrack !== trackInitials ? (
                                                         <div className={theme.flex_container}>
                                                             <img
                                                                 className={theme.img}
                                                                 src={
-                                                                    currentTrack.albumArt ? currentTrack.albumArt : './static/assets/logo/logoapp.png'
+                                                                    currentTrack.coverUri ? currentTrack.coverUri : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""
                                                             />

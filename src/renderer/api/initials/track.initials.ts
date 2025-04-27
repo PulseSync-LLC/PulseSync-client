@@ -2,7 +2,6 @@ import { Track } from '../interfaces/track.interface'
 
 const TrackInitials: Track = {
     sourceType: '',
-    ynisonProgress: 0,
     currentDevice: {
         info: {
             device_id: '',
@@ -17,9 +16,7 @@ const TrackInitials: Track = {
             can_be_remote_controller: false,
             volume_granularity: 0,
         },
-        session: {
-            id: '',
-        },
+        session: { id: '' },
         is_offline: false,
         volume_info: {
             volume: 0,
@@ -30,44 +27,28 @@ const TrackInitials: Track = {
             },
         },
     },
-    durationMs: 0,
-    event: '',
     progress: {
         duration: 0,
         loaded: 0,
         position: 0,
         played: 0,
     },
-    queue: [],
-    repeat: 'none',
-    shuffle: false,
-    speed: 1,
-    currentMs: 0,
+    ynisonProgress: 0,
     status: '',
-    volume: 100,
-    linkTitle: '',
-    albumArt: '',
-    timestamps: [0, 0],
     url: '',
     realId: '',
-    imageUrl: '',
     id: '',
     title: '',
-    major: {
-        id: 0,
-        name: '',
-    },
+    major: { id: 0, name: '' },
     available: false,
     availableForPremiumUsers: false,
     availableFullWithoutPermission: false,
     availableForOptions: [],
     disclaimers: [],
     storageDir: '',
+    durationMs: 0,
     fileSize: 0,
-    r128: {
-        i: 0,
-        tp: 0,
-    },
+    r128: { i: 0, tp: 0 },
     artists: [
         {
             id: 0,
@@ -75,20 +56,16 @@ const TrackInitials: Track = {
             various: false,
             composer: false,
             available: false,
-            cover: {
-                type: '',
-                uri: '',
-                prefix: '',
-            },
+            cover: { type: '', uri: '', prefix: '' },
             genres: [],
             disclaimers: [],
         },
     ],
     albums: [
         {
+            version: '',
             id: 0,
             title: '',
-            type: '',
             metaType: '',
             year: 0,
             releaseDate: '',
@@ -106,21 +83,12 @@ const TrackInitials: Track = {
                     various: false,
                     composer: false,
                     available: false,
-                    cover: {
-                        type: '',
-                        uri: '',
-                        prefix: '',
-                    },
+                    cover: { type: '', uri: '', prefix: '' },
                     genres: [],
                     disclaimers: [],
                 },
             ],
-            labels: [
-                {
-                    id: 0,
-                    name: '',
-                },
-            ],
+            labels: [{ id: 0, name: '' }],
             available: false,
             availableForPremiumUsers: false,
             availableForOptions: [],
@@ -129,10 +97,7 @@ const TrackInitials: Track = {
             bests: [],
             disclaimers: [],
             listeningFinished: false,
-            trackPosition: {
-                volume: 0,
-                index: 0,
-            },
+            trackPosition: { volume: 0, index: 0 },
         },
     ],
     coverUri: '',
@@ -147,7 +112,6 @@ const TrackInitials: Track = {
     },
     trackSource: '',
     specialAudioResources: [],
-    liked: false,
     downloadInfo: {
         trackId: '',
         quality: '',
@@ -161,6 +125,15 @@ const TrackInitials: Track = {
         url: '',
         realId: '',
     },
+    isPlaying: false,
+    canMoveBackward: false,
+    canMoveForward: false,
+    availableActions: undefined,
+    actionsStore: undefined,
+    timecodes: [],
+    fade: undefined,
+    previewDurationMs: 0,
+    derivedColors: undefined,
 }
 
 export default TrackInitials

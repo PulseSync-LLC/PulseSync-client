@@ -122,6 +122,7 @@ const initializeServer = () => {
                     return
                 }
                 if (dataReceived.type === 'UPDATE_DATA' && authorized) {
+                    logger.http.log('Received UPDATE_DATA event:', dataReceived.data)
                     updateData(dataReceived.data)
                 } else {
                     logger.http.log('Received unknown message type:', dataReceived)
@@ -134,11 +135,9 @@ const initializeServer = () => {
         socket.on('close', () => {
             logger.http.log('Client disconnected')
 
-            data.status = 'null'
             mainWindow.webContents.send('trackinfo', {
                 data: {
-                    status: 'pause',
-                    track: trackInitials,
+                    trackInitials,
                 },
             })
         })
@@ -413,7 +412,7 @@ ipcMain.on('REFRESH_MOD_INFO', async (event, _) => {
 })
 
 const sendDataToMusic = () => {
-    if(!ws.clients) return
+    if(!ws?.clients) return
     sendAddon(true, true)
     const waitSockets = new Promise<void>(resolve => {
         const interval = setInterval(() => {
@@ -573,6 +572,18 @@ const findFileInDirectory = (filename: string, dirPath: string): string | null =
     }
     return null
 }
+ipcMain.on('GET_TRACK_INFO', async (event, _) => {
+    logger.http.log('Returning current track data')
+    if (!ws) return
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                type: 'GET_TRACK_INFO',
+            }),
+        ),
+    )
+})
 
 export const getTrackInfo = () => {
     return data
