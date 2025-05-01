@@ -526,7 +526,7 @@ export const getPath = (args: string) => {
 }
 function launchExtensionBackgroundWorkers(session = electronSession.defaultSession) {
     return Promise.all(
-        session.getAllExtensions().map(async extension => {
+        session.extensions.getAllExtensions().map(async extension => {
             const manifest = extension.manifest
             if (manifest.manifest_version === 3 && manifest?.background?.service_worker) {
                 await session.serviceWorkers.startWorkerForScope(extension.url)

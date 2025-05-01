@@ -5,7 +5,13 @@ import { store } from '../storage'
 import { mainWindow } from '../../../index'
 import axios from 'axios'
 import crypto from 'crypto'
-import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux } from '../../utils/appUtils'
+import {
+    getPathToYandexMusic,
+    isYandexMusicRunning,
+    closeYandexMusic,
+    isLinux,
+    downloadYandexMusic,
+} from '../../utils/appUtils'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
 import * as fs from 'original-fs'
@@ -156,7 +162,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('remove-mod', async event => {
         try {
-            const removeMod = () => {
+            const removeMod = async () => {
                 if (fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, savePath)
                     logger.main.info('Backup app.asar restored.')
@@ -170,9 +176,10 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     })
                 } else {
                     sendRemoveModFailure({
-                        error: 'Резервная копия не найдена. Переустановите Яндекс Музыку',
+                        error: 'Резервная копия не найдена. Приложение переустановит Яндекс Музыку.',
                         type: 'backup_not_found',
                     })
+                    await downloadYandexMusic('reinstall')
                 }
             }
             const isRunning = await isYandexMusicRunning()

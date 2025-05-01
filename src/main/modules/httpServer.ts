@@ -122,7 +122,7 @@ const initializeServer = () => {
                     return
                 }
                 if (dataReceived.type === 'UPDATE_DATA' && authorized) {
-                    logger.http.log('Received UPDATE_DATA event:', dataReceived.data)
+                    logger.http.log('Received UPDATE_DATA event')
                     updateData(dataReceived.data)
                 } else {
                     logger.http.log('Received unknown message type:', dataReceived)

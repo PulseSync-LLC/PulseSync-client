@@ -206,7 +206,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onExecutionComplete = (event: any, data: any) => {
             if (toastReference.current) {
-                toast.custom('success', 'Успешно!', !musicInstalled ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.', {
+                toast.custom('success', 'Успешно!', !musicInstalled || !data?.installed ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.', {
                     id: toastReference.current,
                 })
                 toastReference.current = null
@@ -217,6 +217,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 setIsMusicUpdating(false)
                 if (!musicInstalled) {
                     setMusicInstalled(true)
+                    window.location.reload()
+                }
+                else if (data?.type === 'reinstall') {
+                    setApp((prevApp: SettingsInterface) => {
+                        const updatedApp = {
+                            ...prevApp,
+                            mod: {
+                                installed: false,
+                                version: '',
+                            },
+                        }
+                        window.getModInfo(updatedApp)
+                        window.electron.store.delete('mod')
+                        return updatedApp
+                    })
                     window.location.reload()
                 }
             }
