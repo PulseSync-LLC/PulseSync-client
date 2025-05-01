@@ -680,7 +680,7 @@ const Player: React.FC<any> = ({ children }) => {
                             canMoveBackward: data.canMoveBackward ?? prev.canMoveBackward,
                             canMoveForward: data.canMoveForward ?? prev.canMoveForward,
                             status: data.status ?? prev.status,
-                            sourceType: data.sourceType ?? prev.sourceType,
+                            sourceType: data.track?.sourceType ?? prev.sourceType,
                             ynisonProgress: data.ynisonProgress ?? prev.ynisonProgress,
                             progress: {
                                 duration: data.progress?.duration ?? prev.progress.duration,
@@ -701,7 +701,6 @@ const Player: React.FC<any> = ({ children }) => {
                                 isLiked: data.actionsStore?.isLiked ?? prev.actionsStore.isLiked,
                                 isDisliked: data.actionsStore?.isDisliked ?? prev.actionsStore.isDisliked,
                             },
-                            timecodes: data.timecodes ?? prev.timecodes,
                             currentDevice: data.currentDevice ?? prev.currentDevice,
                             downloadInfo: data.downloadInfo ?? prev.downloadInfo,
                             id: data.track?.id ?? prev.id,
@@ -866,20 +865,10 @@ const Player: React.FC<any> = ({ children }) => {
         return track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
-    const getTrackStartTime = (track: Track): number => {
-        return track.timecodes && track.timecodes.length > 0 ? track.timecodes[0] : 0
-    }
-
-    const getTrackEndTime = (track: Track): number => {
-        return track.timecodes && track.timecodes.length > 0 ? track.timecodes[1] : 0
-    }
-
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                if (track.status !== 'loadingMediaSource' && track.status !== 'loadingMediaData') {
-                    window.discordRpc.clearActivity()
-                }
+                window.discordRpc.clearActivity()
                 return
             }
             if (track.sourceType === 'ynison') {
@@ -932,19 +921,15 @@ const Player: React.FC<any> = ({ children }) => {
                 if (
                     track.title === '' ||
                     (track.status === 'paused' && !app.discordRpc.displayPause) ||
-                    (track.timecodes[0] === 0 && track.timecodes[1] === 0)
+                    (track.progress.duration = 0)
                 ) {
-                    if (track.status !== 'loadingMediaSource' && track.status !== 'loadingMediaData') {
-                        window.discordRpc.clearActivity()
-                    }
+                    window.discordRpc.clearActivity()
                     return
                 } else {
-                    const trackStartTime = getTrackStartTime(track)
-                    const trackEndTime = getTrackEndTime(track)
+                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000);
+                    let endTimestamp = startTimestamp + track.durationMs;
                     const artistName = track.artists.map(x => x.name).join(', ')
 
-                    const startTimestamp = Math.floor(Date.now() / 1000) * 1000 - Math.floor(Number(trackStartTime)) * 1000
-                    const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000
 
                     const activity: any = {
                         type: 2,

@@ -10,7 +10,6 @@ export interface Track {
     progress: Progress
     availableActions: AvailableActions
     actionsStore: ActionsStore
-    timecodes: number[]
     id: string
     realId: string
     title: string
