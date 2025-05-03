@@ -68,6 +68,9 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
         const thumb = thumbRef.current!
         const track = trackRef.current!
 
+        updateThumbSize()
+        updateThumbPosition()
+
         const onScroll = () => updateThumbPosition()
         const onMouseDown = (e: MouseEvent) => {
             e.preventDefault()
@@ -122,32 +125,30 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
 
         container.addEventListener('scroll', onScroll)
         thumb.addEventListener('mousedown', onMouseDown)
-        container.addEventListener('mousemove', onMouseMove)
-        container.addEventListener('mouseup', onMouseUp)
-        container.addEventListener('click', onClickAnchor)
+        document.addEventListener('mousemove', onMouseMove)
+        document.addEventListener('mouseup', onMouseUp)
+        document.addEventListener('click', onClickAnchor)
 
         container.addEventListener('mouseenter', onMouseEnter)
         container.addEventListener('mouseleave', onMouseLeave)
         track.addEventListener('mouseenter', onMouseEnter)
         track.addEventListener('mouseleave', onMouseLeave)
 
-        window.addEventListener('resize', onResize)
-
         return () => {
             observer.disconnect()
 
+            window.removeEventListener('resize', onResize)
+
             container.removeEventListener('scroll', onScroll)
             thumb.removeEventListener('mousedown', onMouseDown)
-            container.removeEventListener('mousemove', onMouseMove)
-            container.removeEventListener('mouseup', onMouseUp)
-            container.removeEventListener('click', onClickAnchor)
+            document.removeEventListener('mousemove', onMouseMove)
+            document.removeEventListener('mouseup', onMouseUp)
+            document.removeEventListener('click', onClickAnchor)
 
             container.removeEventListener('mouseenter', onMouseEnter)
             container.removeEventListener('mouseleave', onMouseLeave)
             track.removeEventListener('mouseenter', onMouseEnter)
             track.removeEventListener('mouseleave', onMouseLeave)
-
-            window.removeEventListener('resize', onResize)
         }
     }, [duration])
 
