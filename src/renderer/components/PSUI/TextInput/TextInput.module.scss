@@ -36,6 +36,7 @@
 
 .textInput {
     position: relative;
+    cursor: auto;
     font-weight: 500;
     font-size: 18px;
     line-height: 140%;
@@ -105,6 +106,7 @@
     right: 20px;
     left: 20px;
     width: -webkit-fill-available;
+    max-height: fit-content;
     top: 100%;
     transform: translateY(2px);
     z-index: 20;
@@ -158,11 +160,11 @@
 @keyframes fadeInUp {
     from {
         opacity: 0;
-        transform: translateY(-10px);
+        height: calc(0% * 2);
     }
     to {
         opacity: 1;
-        transform: translateY(-5px);
+        height: calc(100% * 2);
     }
 }
 

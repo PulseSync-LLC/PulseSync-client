@@ -24,6 +24,7 @@ import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/playerTimeline'
 import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
+import Scrollbar from '../../components/PSUI/Scrollbar'
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
@@ -130,7 +131,7 @@ export default function TrackInfoPage() {
                             }}
                             buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
                         ></ContainerV2>
-                        <div className={themeV2.container}>
+                        <Scrollbar className={themeV2.container} classNameInner={themeV2.containerInner}>
                             <div className={themeV2.form}>
                                 <div className={themeV2.discordRpcSettings}>
                                     <div className={themeV2.optionalContainer}>
@@ -342,7 +343,7 @@ export default function TrackInfoPage() {
                                     </div>
                                 </div>
                             </div>
-                        </div>
+                        </Scrollbar>
                     </div>
                 </div>
             </div>

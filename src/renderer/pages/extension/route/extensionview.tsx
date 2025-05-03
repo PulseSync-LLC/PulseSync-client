@@ -30,6 +30,7 @@ import * as localStyles from './extensionview.module.scss'
 import addonInitials from '../../../api/initials/addon.initials'
 import { useUserProfileModal } from '../../../context/UserProfileModalContext'
 import toast from '../../../components/toast'
+import Scrollbar from '../../../components/PSUI/Scrollbar'
 
 interface ExtensionViewProps {
     addon: AddonInterface
@@ -700,7 +701,7 @@ export const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, 
                         <MdEdit />
                     </button>
                 )}
-                <div className={localStyles.containerFix}>
+                <Scrollbar className={localStyles.containerFix} classNameInner={localStyles.containerFixInner}>
                     <div
                         className={localStyles.bannerBackground}
                         style={{
@@ -902,7 +903,7 @@ export const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, 
                         )}
                         {renderActiveTabContent()}
                     </div>
-                </div>
+                </Scrollbar>
             </div>
     )
 }

@@ -1,9 +1,19 @@
+:root {
+    --scrollWTrackInfo: 100%;
+    --scrollHTrackInfo: 100%;
+}
+
 .container {
+    width: var(--scrollWTrackInfo);
+    height: var(--scrollHTrackInfo);
+}
+
+.containerInner {
     display: grid;
     grid-template-columns: 1fr auto;
     align-items: flex-start;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
+    width: var(--scrollWTrackInfo);
+    height: var(--scrollHTrackInfo);
     overflow: scroll;
     background: #2c303f;
     position: relative;
