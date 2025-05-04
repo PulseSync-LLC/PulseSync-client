@@ -68,16 +68,26 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
         const thumb = thumbRef.current!
         const track = trackRef.current!
 
+        const hovered = { current: false }
+
+        const updateTrackOpacity = () => {
+            track.style.opacity = hovered.current || isDragging.current ? '1' : '0'
+        }
+
         updateThumbSize()
         updateThumbPosition()
 
         const onScroll = () => updateThumbPosition()
-        const onMouseDown = (e: MouseEvent) => {
-            e.preventDefault()
+
+        const onThumbMouseDown = (e: MouseEvent) => {
             isDragging.current = true
             dragStartY.current = e.clientY
             scrollStartTop.current = container.scrollTop
+            document.body.style.userSelect = 'none'
+            track.className = `${styles.scrollbarTrack} ${styles.scrollbarTrackHover}`
+            updateTrackOpacity()
         }
+
         const onMouseMove = (e: MouseEvent) => {
             if (!isDragging.current) return
             const deltaY = e.clientY - dragStartY.current
@@ -87,9 +97,16 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
                 Math.min(scrollStartTop.current + (deltaY / container.clientHeight) * container.scrollHeight, maxScroll),
             )
         }
+
         const onMouseUp = () => {
-            isDragging.current = false
+            if (isDragging.current) {
+                isDragging.current = false
+                document.body.style.userSelect = ''
+                track.className = `${styles.scrollbarTrack}`
+                updateTrackOpacity()
+            }
         }
+
         const onClickAnchor = (e: MouseEvent) => {
             const target = e.target as HTMLElement
             if (target.tagName === 'A' && target.getAttribute('href')?.startsWith('#')) {
@@ -99,11 +116,14 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
                 if (el) smoothScrollTo(el.offsetTop)
             }
         }
+
         const onMouseEnter = () => {
-            track.style.opacity = '1'
+            hovered.current = true
+            updateTrackOpacity()
         }
         const onMouseLeave = () => {
-            track.style.opacity = '0'
+            hovered.current = false
+            updateTrackOpacity()
         }
 
         const onResize = () => {
@@ -124,31 +144,33 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
         })
 
         container.addEventListener('scroll', onScroll)
-        thumb.addEventListener('mousedown', onMouseDown)
-        document.addEventListener('mousemove', onMouseMove)
-        document.addEventListener('mouseup', onMouseUp)
-        document.addEventListener('click', onClickAnchor)
+        thumb.addEventListener('mousedown', onThumbMouseDown)
+        window.addEventListener('mousemove', onMouseMove)
+        window.addEventListener('mouseup', onMouseUp)
+        container.addEventListener('click', onClickAnchor)
 
         container.addEventListener('mouseenter', onMouseEnter)
         container.addEventListener('mouseleave', onMouseLeave)
         track.addEventListener('mouseenter', onMouseEnter)
         track.addEventListener('mouseleave', onMouseLeave)
 
+        window.addEventListener('resize', onResize)
+
         return () => {
             observer.disconnect()
 
-            window.removeEventListener('resize', onResize)
-
             container.removeEventListener('scroll', onScroll)
-            thumb.removeEventListener('mousedown', onMouseDown)
-            document.removeEventListener('mousemove', onMouseMove)
-            document.removeEventListener('mouseup', onMouseUp)
-            document.removeEventListener('click', onClickAnchor)
+            thumb.removeEventListener('mousedown', onThumbMouseDown)
+            window.removeEventListener('mousemove', onMouseMove)
+            window.removeEventListener('mouseup', onMouseUp)
+            container.removeEventListener('click', onClickAnchor)
 
             container.removeEventListener('mouseenter', onMouseEnter)
             container.removeEventListener('mouseleave', onMouseLeave)
             track.removeEventListener('mouseenter', onMouseEnter)
             track.removeEventListener('mouseleave', onMouseLeave)
+
+            window.removeEventListener('resize', onResize)
         }
     }, [duration])
 

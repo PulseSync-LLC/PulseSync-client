@@ -26,6 +26,14 @@
     }
 }
 
+.scrollbarTrackHover {
+    width: 5px;
+
+    &>.scrollbarThumb {
+        background-color: #98b1ff96;
+    }
+}
+
 .scrollbarThumb {
     z-index: 9999;
     cursor: pointer;
