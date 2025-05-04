@@ -458,8 +458,8 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         try {
             const defaultAddon: Partial<AddonInterface> = {
                 name: 'New Extension',
-                image: 'test.png',
-                banner: 'test.png',
+                image: '',
+                banner: '',
                 author: 'Your Name',
                 version: '1.0.0',
                 description: 'Default theme.',
