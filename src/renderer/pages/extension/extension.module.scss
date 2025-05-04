@@ -1,5 +1,5 @@
 :root {
-    --scrollWExtension: 350px;
+    --scrollWExtension: 300px;
     --scrollHExtension: 100%;
 }
 
@@ -42,7 +42,7 @@
 }
 
 .leftSide {
-    width: var(--scrollWExtension);
+    min-width: var(--scrollWExtension);
     height: var(--scrollHExtension);
 }
 
@@ -162,11 +162,41 @@
     color: #ffe292;
 }
 
+.topContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 5px;
+
+    width: -webkit-fill-available;
+}
+
+.optionsButton {
+    padding: 7px;
+    background: transparent;
+    border: none;
+    color: #f3f3f3;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    outline: 1px solid #3d445b;
+    transition: var(--transition);
+
+    &:hover {
+        background: #3d445b;
+    }
+}
+
 .searchContainer {
+    position: relative;
     display: flex;
     align-items: center;
     width: -webkit-fill-available;
     border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    outline: 1px solid #3d445b;
 
     .searchInput {
         flex-grow: 1;
@@ -174,13 +204,17 @@
         font-size: 13px;
         color: #f3f3f3;
         width: 100%;
-        background: #464d62;
+        background: transparent;
         border: none;
-        border-radius: 8px 0 0 8px;
         transition: var(--transition);
+
+        &:hover {
+            background: #3d445b;
+        }
 
         &:focus {
             outline: none;
+            background: #3d445b;
             border-color: #464d62;
         }
 
@@ -188,34 +222,22 @@
             color: #7b86a3;
         }
     }
+}
 
-    .filterButton {
-        padding: 7px;
-        background: #464d62;
-        border: none;
-        color: #f3f3f3;
-        cursor: pointer;
-        font-size: 16px;
-        border-radius: 0;
-        position: relative;
+.filterButton {
+    position: absolute;
+    right: 0;
+    padding: 7px;
+    background: transparent;
+    border: none;
+    color: #f3f3f3;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    transition: var(--transition);
 
-        &:hover {
-            background: #5a6178;
-        }
-    }
-
-    .optionsButton {
-        padding: 7px;
-        background: #464d62;
-        border: none;
-        color: #f3f3f3;
-        cursor: pointer;
-        font-size: 16px;
-        border-radius: 0 8px 8px 0;
-
-        &:hover {
-            background: #5a6178;
-        }
+    &:hover {
+        background: #3d445b;
     }
 }
 

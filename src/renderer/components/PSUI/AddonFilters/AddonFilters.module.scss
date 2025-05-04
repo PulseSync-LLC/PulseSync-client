@@ -1,0 +1,204 @@
+:root {
+    --scrollWAddonFilters: 500px;
+    --scrollHAddonFilters: 60%;
+}
+
+.filterWindow {
+    width: var(--scrollWAddonFilters);
+    height: var(--scrollHAddonFilters);
+    position: absolute;
+    top: 80px;
+    left: 312px;
+    z-index: 9;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0px 0px 8px 2px #00000078;
+    background-color: #2e313d;
+}
+
+.filterWindowInner {
+    min-width: -webkit-fill-available;
+    max-height: -webkit-fill-available;
+    height: 100%;
+    overflow: scroll;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: max-content;
+    gap: 5px;
+    padding: 5px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.filterTitle {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    text-transform: uppercase;
+
+    color: #98ffd6;
+}
+
+.textGroup {
+    display: flex;
+    width: -webkit-fill-available;
+    justify-content: space-between;
+}
+
+.text {
+    display: flex;
+}
+
+.radioLabel,
+.checkboxLabel {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+    gap: 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+    text-transform: uppercase;
+
+    color: #b9c5e6;
+
+    width: -webkit-fill-available;
+    transition: var(--transition);
+
+    &:hover {
+        color: #b1e3cf;
+        background: #51616881;
+    }
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+    accent-color: #b9c5e6;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    width: -webkit-fill-available;
+}
+
+.customRadio {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border-radius: 50%;
+    border: 2px solid #B9C5E6;
+    position: relative;
+    background-color: transparent;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
+}
+
+/* Псевдоэлемент для точки в центре радиокнопки */
+.customRadio::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #b1e3cf; /* Цвет точки */
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Центрирование */
+    opacity: 0; /* Скрыто по умолчанию */
+    transition: opacity 0.3s;
+}
+
+.customRadio.selected::before {
+    opacity: 1; /* Показывается точка при выборе */
+}
+
+.selected {
+    color: #b1e3cf;
+    background: #516168;
+}
+
+.radioLabel.selected .customRadio {
+    background-color: #516168;
+    border-color: #b1e3cf;
+}
+
+.radioLabel:hover .customRadio {
+    border-color: #99ccb8;
+}
+
+/* Кастомные чекбоксы */
+.checkboxLabel input[type='checkbox'] {
+    display: none;
+}
+
+.checkboxLabel .customCheckbox {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border: 2px solid #B9C5E6;
+    border-radius: 3px;
+    position: relative;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
+}
+
+/* Псевдоэлемент для галочки в чекбоксе */
+.checkboxLabel .customCheckbox::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    background-color: transparent;
+    border-radius: 2px; /* Можно изменить для изменения формы */
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%); /* Центрирование */
+    border: 5px solid #b1e3cf; /* Пустая рамка для квадратика */
+    opacity: 0; /* Скрыто по умолчанию */
+    transition:
+        opacity 0.3s,
+        transform 0.3s;
+}
+
+/* Показываем квадратик с галочкой, когда чекбокс выбран */
+.checkboxLabel input[type='checkbox']:checked + .customCheckbox::before {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5); /* Уменьшаем галочку */
+    background-color: #b1e3cf; /* Цвет фона квадратика */
+}
+
+.checkboxLabel input[type='checkbox']:checked + .customCheckbox {
+    background-color: #516168;
+    border-color: #b1e3cf;
+}
+
+.checkboxLabel:hover .customCheckbox {
+    border-color: #99ccb8;
+}

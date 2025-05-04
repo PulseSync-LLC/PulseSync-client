@@ -12,8 +12,8 @@ import FileImg from './../../../../static/assets/stratis-icons/file.svg'
 import ContainerV2 from '../../components/containerV2'
 import { ExtensionView } from './route/extensionview'
 import { MdCheckCircle, MdColorLens, MdFilterList, MdMoreHoriz, MdTextSnippet } from 'react-icons/md'
-import TagFilterPanel from '../../components/PSUI/TagFilterPanel'
 import Scrollbar from '../../components/PSUI/Scrollbar'
+import AddonFilters from '../../components/PSUI/AddonFilters'
 
 function checkMissingFields(addon: AddonInterface): string[] {
     const missing: string[] = []
@@ -34,17 +34,19 @@ export default function ExtensionPage() {
     const [hideEnabled, setHideEnabled] = useState(window.electron.store.get('addons.hideEnabled') || false)
     const [selectedAddon, setSelectedAddon] = useState<AddonInterface | null>(null)
     const [isListFullyLoaded, setIsListFullyLoaded] = useState(false)
-
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
-
-    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(window.electron.store.get('addons.selectedTags') || []))
-    const [searchParams] = useSearchParams()
-    const selectedTagFromURL = searchParams.get('selectedTag')
     const [displayedCount, setDisplayedCount] = useState(0)
-    const [showTagFilter, setShowTagFilter] = useState(false)
     const [optionMenu, setOptionMenu] = useState(false)
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
+
+    // Состояния для нового фильтра
+    const [showFilters, setShowFilters] = useState(false)
+    const [sort, setSort] = useState<'alphabet' | 'date' | 'size' | 'author' | 'type'>('type')
+    const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
+    const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
+    const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -57,8 +59,8 @@ export default function ExtensionPage() {
                 optionButtonRef.current &&
                 !optionButtonRef.current.contains(target)
             ) {
+                setShowFilters(false)
                 setOptionMenu(false)
-                setShowTagFilter(false)
             }
         }
         document.addEventListener('mousedown', handleClickOutside)
@@ -78,20 +80,8 @@ export default function ExtensionPage() {
     }
 
     useEffect(() => {
-        if (selectedTagFromURL) {
-            setSelectedTags(prev => new Set(prev).add(selectedTagFromURL))
-        }
-    }, [selectedTagFromURL])
-
-    useEffect(() => {
         loadAddons()
     }, [])
-    useEffect(() => {
-        window.electron.store.set('addons.scripts', enabledScripts)
-    }, [enabledScripts])
-    useEffect(() => {
-        window.electron.store.set('addons.theme', currentTheme)
-    }, [currentTheme])
 
     const handleCheckboxChange = (addon: AddonInterface, newChecked: boolean) => {
         if (addon.type === 'theme') {
@@ -105,13 +95,11 @@ export default function ExtensionPage() {
             }
         } else {
             const updated = newChecked ? [...enabledScripts, addon.directoryName] : enabledScripts.filter(name => name !== addon.directoryName)
-
             toast.custom(
                 newChecked ? 'success' : 'info',
                 newChecked ? 'Скрипт включен' : 'Скрипт выключен',
                 `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
             )
-
             setEnabledScripts(updated)
         }
     }
@@ -120,9 +108,18 @@ export default function ExtensionPage() {
         setSearchQuery(e.target.value.toLowerCase())
     }
 
-    function filterAddonsByTags(list: AddonInterface[], tags: Set<string>) {
-        if (tags.size === 0) return list
-        return list.filter(item => item.tags?.some(t => tags.has(t)))
+    const handleTypeChange = (newType: 'all' | 'theme' | 'script') => {
+        setType(newType)
+    }
+
+    const toggleSet = (set: Set<string>, value: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
+        const newSet = new Set(set)
+        if (newSet.has(value)) {
+            newSet.delete(value)
+        } else {
+            newSet.add(value)
+        }
+        setter(newSet)
     }
 
     function getPriority(addon: AddonInterface) {
@@ -135,34 +132,82 @@ export default function ExtensionPage() {
         return 2
     }
 
+    const handleSortChange = (option: 'alphabet' | 'date' | 'size' | 'author' | 'type') => {
+        if (option === sort) {
+            setSortOrder(prev => (prev === 'asc' ? 'desc' : 'desc'))
+        } else {
+            setSort(option)
+            setSortOrder('desc')
+        }
+    }
+
     const mergedAddons = useMemo(() => {
-        let result = filterAddonsByTags(addons, selectedTags)
+        let result = addons.filter(a => a.name !== 'Default')
 
-        if (searchQuery.trim()) {
-            const q = searchQuery.trim()
-            result = result.filter(item => {
-                const author = typeof item.author === 'string' ? item.author.toLowerCase() : ''
-                return item.name.toLowerCase().includes(q) || author.includes(q)
-            })
+        // Фильтрация по типу
+        if (type !== 'all') {
+            result = result.filter(addon => addon.type === type)
         }
 
-        result = result.filter(a => a.name !== 'Default')
+        // Фильтрация по тегам
+        if (selectedTags.size > 0) {
+            result = result.filter(addon => addon.tags?.some(tag => selectedTags.has(tag)))
+        }
 
+        // Фильтрация по авторам
+        if (selectedCreators.size > 0) {
+            result = result.filter(addon => typeof addon.author === 'string' && selectedCreators.has(addon.author))
+        }
+
+        // Сортировка
+        switch (sort) {
+            case 'type':
+                result.sort((a, b) => {
+                    const typeA = a.type || ''
+                    const typeB = b.type || ''
+                    const comparison = typeA.localeCompare(typeB) // Сравнение типов
+                    return sortOrder === 'asc' ? comparison : -comparison // Если сортировка по убыванию
+                })
+                break
+            case 'alphabet':
+                result.sort((a, b) => {
+                    const comparison = a.name.localeCompare(b.name)
+                    return sortOrder === 'asc' ? comparison : -comparison
+                })
+                break
+            case 'date':
+                result.sort((a, b) => {
+                    const dateA = parseFloat(a.lastModified || '0') || 0
+                    const dateB = parseFloat(b.lastModified || '0') || 0
+                    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
+                })
+                break
+            case 'size':
+                result.sort((a, b) => {
+                    const sizeA = parseFloat(a.size || '0') || 0
+                    const sizeB = parseFloat(b.size || '0') || 0
+                    return sortOrder === 'asc' ? sizeA - sizeB : sizeB - sizeA
+                })
+                break
+            case 'author':
+                result.sort((a, b) => {
+                    const authorA = typeof a.author === 'string' ? a.author : ''
+                    const authorB = typeof b.author === 'string' ? b.author : ''
+                    const comparison = authorA.localeCompare(authorB)
+                    return sortOrder === 'asc' ? comparison : -comparison
+                })
+                break
+        }
+
+        // Удаление включенных аддонов, если `hideEnabled` включен
         if (hideEnabled) {
-            result = result.filter(item => {
-                return item.type === 'theme' ? item.directoryName !== currentTheme : !enabledScripts.includes(item.directoryName)
+            result = result.filter(addon => {
+                return addon.type === 'theme' ? addon.directoryName !== currentTheme : !enabledScripts.includes(addon.directoryName)
             })
         }
 
-        return result.sort((a, b) => {
-            const pA = getPriority(a),
-                pB = getPriority(b)
-            if (pA !== pB) return pA - pB
-            const mA = a.matches ? 1 : 0,
-                mB = b.matches ? 1 : 0
-            return mB - mA
-        })
-    }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts])
+        return result
+    }, [addons, type, selectedTags, selectedCreators, searchQuery, sort, sortOrder, hideEnabled, currentTheme, enabledScripts])
 
     useEffect(() => {
         if (searchQuery.trim()) {
@@ -185,56 +230,21 @@ export default function ExtensionPage() {
     }, [mergedAddons, searchQuery])
 
     useEffect(() => {
-        window.electron.store.set('addons.selectedTags', Array.from(selectedTags))
-        window.electron.store.set('addons.hideEnabled', hideEnabled)
-    }, [selectedTags, hideEnabled])
-
-    useEffect(() => {
         if (!selectedAddon && isListFullyLoaded && mergedAddons.length > 0) {
             setSelectedAddon(mergedAddons[0])
         }
     }, [isListFullyLoaded, mergedAddons, selectedAddon])
 
-    const toggleTag = (tag: string) => {
-        setSelectedTags(prev => {
-            const next = new Set(prev)
-            if (next.has(tag)) next.delete(tag)
-            else next.add(tag)
-            return next
-        })
-    }
-
     const handleAddonClick = (addon: AddonInterface) => setSelectedAddon(addon)
-    const handleCreateTheme = () => {
-        window.desktopEvents.invoke('create-new-extension').then(res => {
-            if (res.success) {
-                toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
-                setAddons([])
-                loadAddons()
-            }
-        })
-    }
-
-    const handleOpenAddonsDirectory = () => {
-        window.desktopEvents?.send('openPath', { action: 'themePath' })
-    }
-
-    const handleReloadAddons = () => {
-        loadAddons()
-        toast.custom('info', 'Информация', 'Аддоны перезагружены')
-    }
-
-    const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
-    const allTags = Array.from(new Set(addons.flatMap(addon => addon.tags || [])))
 
     const toggleFilterPanel = () => {
-        setShowTagFilter(prev => !prev)
+        setShowFilters(prev => !prev)
         setOptionMenu(false)
     }
 
     const toggleOptionMenu = () => {
         setOptionMenu(prev => !prev)
-        setShowTagFilter(false)
+        setShowFilters(false)
     }
 
     return (
@@ -244,20 +254,54 @@ export default function ExtensionPage() {
                     <div className={styles.main_container}>
                         <ContainerV2 titleName="Addons" imageName="extension" />
                         <div ref={containerRef}>
-                            {showTagFilter && <TagFilterPanel allTags={allTags} selectedTags={selectedTags} toggleTag={toggleTag} />}
-
+                            {showFilters && (
+                                <AddonFilters
+                                    tags={Array.from(new Set(addons.flatMap(addon => addon.tags || [])))}
+                                    creators={Array.from(new Set(addons.map(addon => (typeof addon.author === 'string' ? addon.author : ''))))}
+                                    sort={sort}
+                                    sortOrder={sortOrder}
+                                    type={type}
+                                    selectedTags={selectedTags}
+                                    selectedCreators={selectedCreators}
+                                    onSortChange={handleSortChange}
+                                    onTypeChange={handleTypeChange}
+                                    onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
+                                    onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
+                                    setType={setType}
+                                    setSelectedTags={setSelectedTags}
+                                    setSelectedCreators={setSelectedCreators}
+                                    onSortOrderChange={setSortOrder}
+                                />
+                            )}
                             {optionMenu && (
                                 <div className={extensionStylesV2.containerOtional}>
                                     <button
                                         className={`${extensionStylesV2.toolbarButton} ${extensionStylesV2.refreshButton}`}
-                                        onClick={handleReloadAddons}
+                                        onClick={() => {
+                                            loadAddons()
+                                            toast.custom('info', 'Информация', 'Аддоны перезагружены')
+                                        }}
                                     >
                                         <ArrowRefreshImg /> Перезагрузить расширения
                                     </button>
-                                    <button className={extensionStylesV2.toolbarButton} onClick={handleOpenAddonsDirectory}>
+                                    <button
+                                        className={extensionStylesV2.toolbarButton}
+                                        onClick={() => window.desktopEvents?.send('openPath', { action: 'themePath' })}
+                                    >
                                         <FileImg /> Директория аддонов
                                     </button>
-                                    <button className={extensionStylesV2.toolbarButton} onClick={handleCreateTheme}>
+                                    <button
+                                        className={extensionStylesV2.toolbarButton}
+                                        onClick={() => {
+                                            window.desktopEvents.invoke('create-new-extension').then(res => {
+                                                if (res.success) {
+                                                    toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
+                                                    setAddons([])
+                                                    loadAddons()
+                                                }
+                                            })
+                                        }}
+                                    >
                                         <FileAddImg /> Создать новое расширение
                                     </button>
                                 </div>
@@ -265,47 +309,38 @@ export default function ExtensionPage() {
                         </div>
                         <div className={extensionStylesV2.container}>
                             <Scrollbar className={extensionStylesV2.leftSide} classNameInner={extensionStylesV2.leftSideInner}>
-                                <div className={extensionStylesV2.searchContainer}>
-                                    <input
-                                        type="text"
-                                        placeholder="Поиск..."
-                                        value={searchQuery}
-                                        onChange={handleSearchChange}
-                                        className={extensionStylesV2.searchInput}
-                                    />
-                                    <button ref={filterButtonRef} className={extensionStylesV2.filterButton} onClick={toggleFilterPanel}>
-                                        <MdFilterList />
-                                        {activeTagCount > 0 && (
-                                            <div className={extensionStylesV2.count}>{activeTagCount > 9 ? '9+' : activeTagCount}</div>
-                                        )}
-                                    </button>
+                                <div className={extensionStylesV2.topContainer}>
+                                    <div className={extensionStylesV2.searchContainer}>
+                                        <input
+                                            type="text"
+                                            placeholder="Поиск..."
+                                            value={searchQuery}
+                                            onChange={handleSearchChange}
+                                            className={extensionStylesV2.searchInput}
+                                        />
+                                        <button
+                                            ref={filterButtonRef}
+                                            className={`${extensionStylesV2.filterButton}`}
+                                            style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
+                                            onClick={toggleFilterPanel}
+                                        >
+                                            <MdFilterList />
+                                            {selectedTags.size + selectedCreators.size > 0 && (
+                                                <div className={extensionStylesV2.count}>
+                                                    {selectedTags.size + selectedCreators.size > 9 ? '9+' : selectedTags.size + selectedCreators.size}
+                                                </div>
+                                            )}
+                                        </button>
+                                    </div>
                                     <button
                                         ref={optionButtonRef}
                                         className={`${extensionStylesV2.optionsButton} ${optionMenu ? extensionStylesV2.optionsButtonActive : ''}`}
+                                        style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
                                         onClick={toggleOptionMenu}
                                     >
                                         <MdMoreHoriz />
                                     </button>
                                 </div>
-
-                                <div className={extensionStylesV2.tagSelectorContainer}>
-                                    {Array.from(selectedTags).map(tag => (
-                                        <div
-                                            key={tag}
-                                            className={extensionStylesV2.selectedTag}
-                                            onClick={() => {
-                                                setSelectedTags(prev => {
-                                                    const newSet = new Set(prev)
-                                                    newSet.delete(tag)
-                                                    return newSet
-                                                })
-                                            }}
-                                        >
-                                            {tag}
-                                        </div>
-                                    ))}
-                                </div>
-
                                 <div className={extensionStylesV2.addonList}>
                                     <div className={extensionStylesV2.enabledAddons}>
                                         {mergedAddons
@@ -352,9 +387,7 @@ export default function ExtensionPage() {
                                                 </div>
                                             ))}
                                     </div>
-
                                     <div className={extensionStylesV2.line}></div>
-
                                     <div className={extensionStylesV2.disabledAddons}>
                                         {mergedAddons
                                             .filter(
@@ -403,7 +436,6 @@ export default function ExtensionPage() {
                                     </div>
                                 </div>
                             </Scrollbar>
-
                             <div className={extensionStylesV2.rightSide}>
                                 {selectedAddon && (
                                     <ExtensionView
