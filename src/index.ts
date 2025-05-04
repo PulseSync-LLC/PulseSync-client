@@ -145,7 +145,7 @@ const createWindow = (): void => {
         width: 1157,
         height: 750,
         minWidth: 1170,
-        minHeight: 500,
+        minHeight: 640,
         transparent: false,
         icon,
         webPreferences: {

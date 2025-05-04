@@ -14,17 +14,7 @@ import { ExtensionView } from './route/extensionview'
 import { MdCheckCircle, MdColorLens, MdFilterList, MdMoreHoriz, MdTextSnippet } from 'react-icons/md'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
-
-function checkMissingFields(addon: AddonInterface): string[] {
-    const missing: string[] = []
-    if (!addon.name) missing.push('name')
-    if (!addon.author) missing.push('author')
-    if (!addon.version) missing.push('version')
-    if (!addon.image) missing.push('image')
-    if (!addon.banner) missing.push('banner')
-    if (!addon.type) missing.push('type')
-    return missing
-}
+import OptionMenu from '../../components/PSUI/OptionMenu'
 
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
@@ -41,7 +31,6 @@ export default function ExtensionPage() {
     const [optionMenu, setOptionMenu] = useState(false)
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc')
 
-    // Состояния для нового фильтра
     const [showFilters, setShowFilters] = useState(false)
     const [sort, setSort] = useState<'alphabet' | 'date' | 'size' | 'author' | 'type'>('type')
     const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
@@ -122,16 +111,6 @@ export default function ExtensionPage() {
         setter(newSet)
     }
 
-    function getPriority(addon: AddonInterface) {
-        const missing = checkMissingFields(addon).length
-        if (missing > 0) return 999
-        const isTheme = addon.type === 'theme'
-        const isScript = addon.type === 'script'
-        if (isTheme && addon.directoryName === currentTheme) return 0
-        if (isScript && enabledScripts.includes(addon.directoryName)) return 1
-        return 2
-    }
-
     const handleSortChange = (option: 'alphabet' | 'date' | 'size' | 'author' | 'type') => {
         if (option === sort) {
             setSortOrder(prev => (prev === 'asc' ? 'desc' : 'desc'))
@@ -144,29 +123,25 @@ export default function ExtensionPage() {
     const mergedAddons = useMemo(() => {
         let result = addons.filter(a => a.name !== 'Default')
 
-        // Фильтрация по типу
         if (type !== 'all') {
             result = result.filter(addon => addon.type === type)
         }
 
-        // Фильтрация по тегам
         if (selectedTags.size > 0) {
             result = result.filter(addon => addon.tags?.some(tag => selectedTags.has(tag)))
         }
 
-        // Фильтрация по авторам
         if (selectedCreators.size > 0) {
             result = result.filter(addon => typeof addon.author === 'string' && selectedCreators.has(addon.author))
         }
 
-        // Сортировка
         switch (sort) {
             case 'type':
                 result.sort((a, b) => {
                     const typeA = a.type || ''
                     const typeB = b.type || ''
-                    const comparison = typeA.localeCompare(typeB) // Сравнение типов
-                    return sortOrder === 'asc' ? comparison : -comparison // Если сортировка по убыванию
+                    const comparison = typeA.localeCompare(typeB)
+                    return sortOrder === 'asc' ? comparison : -comparison
                 })
                 break
             case 'alphabet':
@@ -199,7 +174,6 @@ export default function ExtensionPage() {
                 break
         }
 
-        // Удаление включенных аддонов, если `hideEnabled` включен
         if (hideEnabled) {
             result = result.filter(addon => {
                 return addon.type === 'theme' ? addon.directoryName !== currentTheme : !enabledScripts.includes(addon.directoryName)
@@ -223,17 +197,20 @@ export default function ExtensionPage() {
                         setIsListFullyLoaded(true)
                         return prev
                     })
-                }, 50)
+                }, 0)
                 return () => clearInterval(interval)
             }
         }
     }, [mergedAddons, searchQuery])
 
     useEffect(() => {
-        if (!selectedAddon && isListFullyLoaded && mergedAddons.length > 0) {
-            setSelectedAddon(mergedAddons[0])
+        if (!selectedAddon && isListFullyLoaded) {
+            const activeAddon = mergedAddons.find(addon =>
+                addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
+            )
+            setSelectedAddon(activeAddon || mergedAddons[0])
         }
-    }, [isListFullyLoaded, mergedAddons, selectedAddon])
+    }, [currentTheme, enabledScripts, mergedAddons, isListFullyLoaded, selectedAddon])
 
     const handleAddonClick = (addon: AddonInterface) => setSelectedAddon(addon)
 
@@ -247,6 +224,41 @@ export default function ExtensionPage() {
         setShowFilters(false)
     }
 
+    const isValidPath = (path: string) => typeof path === 'string' && path.trim() !== ''
+    const isValidImage = (image: string) => typeof image === 'string' && image.trim() !== ''
+
+    const getImagePath = (addon: AddonInterface) => {
+        const { path, image } = addon
+
+        if (typeof image === 'string' && image.trim() !== '' && !image.startsWith('http')) {
+            if (isValidPath(path) && isValidImage(image)) {
+                const fullPath = `${path}/${image}`.replace(/\\/g, '/')
+                return encodeURI(fullPath)
+            }
+        }
+
+        return 'static/assets/images/no_themeImage.png'
+    }
+
+    const handleReloadAddons = () => {
+        loadAddons()
+        toast.custom('info', 'Информация', 'Аддоны перезагружены')
+    }
+
+    const handleOpenAddonsDirectory = () => {
+        window.desktopEvents?.send('openPath', { action: 'themePath' })
+    }
+
+    const handleCreateNewAddon = () => {
+        window.desktopEvents.invoke('create-new-extension').then(res => {
+            if (res.success) {
+                toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
+                setAddons([])
+                loadAddons()
+            }
+        })
+    }
+
     return (
         <Layout title="Аддоны">
             <div className={styles.page}>
@@ -256,8 +268,20 @@ export default function ExtensionPage() {
                         <div ref={containerRef}>
                             {showFilters && (
                                 <AddonFilters
-                                    tags={Array.from(new Set(addons.flatMap(addon => addon.tags || [])))}
-                                    creators={Array.from(new Set(addons.map(addon => (typeof addon.author === 'string' ? addon.author : ''))))}
+                                    tags={Array.from(new Set(addons.filter(addon => addon.name !== 'Default').flatMap(addon => addon.tags || [])))}
+                                    creators={Array.from(
+                                        new Set(
+                                            addons
+                                                .filter(addon => addon.name !== 'Default')
+                                                .map(addon => {
+                                                    if (typeof addon.author === 'string' && addon.author.trim() !== '') {
+                                                        return addon.author
+                                                    }
+                                                    return null
+                                                })
+                                                .filter(author => author !== null),
+                                        ),
+                                    )}
                                     sort={sort}
                                     sortOrder={sortOrder}
                                     type={type}
@@ -274,37 +298,11 @@ export default function ExtensionPage() {
                                 />
                             )}
                             {optionMenu && (
-                                <div className={extensionStylesV2.containerOtional}>
-                                    <button
-                                        className={`${extensionStylesV2.toolbarButton} ${extensionStylesV2.refreshButton}`}
-                                        onClick={() => {
-                                            loadAddons()
-                                            toast.custom('info', 'Информация', 'Аддоны перезагружены')
-                                        }}
-                                    >
-                                        <ArrowRefreshImg /> Перезагрузить расширения
-                                    </button>
-                                    <button
-                                        className={extensionStylesV2.toolbarButton}
-                                        onClick={() => window.desktopEvents?.send('openPath', { action: 'themePath' })}
-                                    >
-                                        <FileImg /> Директория аддонов
-                                    </button>
-                                    <button
-                                        className={extensionStylesV2.toolbarButton}
-                                        onClick={() => {
-                                            window.desktopEvents.invoke('create-new-extension').then(res => {
-                                                if (res.success) {
-                                                    toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
-                                                    setAddons([])
-                                                    loadAddons()
-                                                }
-                                            })
-                                        }}
-                                    >
-                                        <FileAddImg /> Создать новое расширение
-                                    </button>
-                                </div>
+                                <OptionMenu
+                                    onReloadAddons={handleReloadAddons}
+                                    onOpenAddonsDirectory={handleOpenAddonsDirectory}
+                                    onCreateNewAddon={handleCreateNewAddon}
+                                />
                             )}
                         </div>
                         <div className={extensionStylesV2.container}>
@@ -371,12 +369,8 @@ export default function ExtensionPage() {
                                                         <MdCheckCircle size={18} />
                                                     </div>
                                                     <img
-                                                        src={
-                                                            addon.path && addon.image
-                                                                ? encodeURI(`${addon.path}/${addon.image}`.replace(/\\/g, '/'))
-                                                                : 'static/assets/images/no_themeImage.png'
-                                                        }
-                                                        alt="Addon"
+                                                        src={getImagePath(addon)}
+                                                        alt={addon.name}
                                                         className={extensionStylesV2.addonImage}
                                                         loading="lazy"
                                                     />
@@ -418,12 +412,8 @@ export default function ExtensionPage() {
                                                         <MdCheckCircle size={18} />
                                                     </div>
                                                     <img
-                                                        src={
-                                                            addon.path && addon.image
-                                                                ? encodeURI(`${addon.path}/${addon.image}`.replace(/\\/g, '/'))
-                                                                : 'static/assets/images/no_themeImage.png'
-                                                        }
-                                                        alt="Addon"
+                                                        src={getImagePath(addon)}
+                                                        alt={addon.name}
                                                         className={extensionStylesV2.addonImage}
                                                         loading="lazy"
                                                     />
