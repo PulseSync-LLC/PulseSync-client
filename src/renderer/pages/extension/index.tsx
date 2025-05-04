@@ -15,6 +15,7 @@ import { MdCheckCircle, MdColorLens, MdFilterList, MdMoreHoriz, MdTextSnippet } 
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
 import OptionMenu from '../../components/PSUI/OptionMenu'
+import stringSimilarity from 'string-similarity'
 
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
@@ -133,6 +134,27 @@ export default function ExtensionPage() {
 
         if (selectedCreators.size > 0) {
             result = result.filter(addon => typeof addon.author === 'string' && selectedCreators.has(addon.author))
+        }
+
+        if (searchQuery.trim()) {
+            result = result.filter(item => {
+                const authorString =
+                    typeof item.author === 'string'
+                        ? item.author.toLowerCase()
+                        : Array.isArray(item.author)
+                          ? item.author.map(id => String(id).toLowerCase()).join(', ')
+                          : ''
+
+                let matches = item.name.toLowerCase().includes(searchQuery) || authorString.includes(searchQuery)
+
+                if (!matches && searchQuery.length > 2) {
+                    matches =
+                        stringSimilarity.compareTwoStrings(item.name.toLowerCase(), searchQuery) > 0.35 ||
+                        stringSimilarity.compareTwoStrings(authorString, searchQuery) > 0.35
+                }
+
+                return matches
+            })
         }
 
         switch (sort) {
