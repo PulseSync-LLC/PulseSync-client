@@ -862,7 +862,7 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id])
 
     const getCoverImage = (track: Track): string => {
-        return track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
+        return track.coverUri || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
     useEffect(() => {
@@ -880,7 +880,7 @@ const Player: React.FC<any> = ({ children }) => {
                 const activity: any = {
                     type: 2,
                     details: track.title,
-                    largeImageKey: `https://${track.coverUri.replace('%%', '1000x1000')}`,
+                    largeImageKey: track.coverUri,
                     buttons: [],
                 }
                 if (app.discordRpc.showSmallIcon) {
@@ -919,9 +919,7 @@ const Player: React.FC<any> = ({ children }) => {
                 return
             } else {
                 if (
-                    track.title === '' ||
-                    (track.status === 'paused' && !app.discordRpc.displayPause) ||
-                    (track.progress.duration = 0)
+                    track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)
                 ) {
                     window.discordRpc.clearActivity()
                     return

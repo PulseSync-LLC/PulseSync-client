@@ -358,7 +358,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-                    {modInfo.length > 0 && musicInstalled && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) && (
+                    {modInfo.length > 0 && musicInstalled && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) || !isDev && (
                         <div className={pageStyles.alert_patch}>
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>

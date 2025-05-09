@@ -6,7 +6,7 @@ const TrackInitials: Track = {
         info: {
             device_id: '',
             title: '',
-            type: '',
+            type: null,
             app_name: '',
             app_version: '',
         },
