@@ -10,8 +10,9 @@ import { app, dialog } from 'electron'
 import axios from 'axios'
 
 import { execSync } from 'child_process';
-import { extractAll, createPackage } from '@electron/asar';
 import * as plist from 'plist';
+import asar from '@electron/asar';
+import { promises as fsp } from 'original-fs';
 
 const execAsync = promisify(exec)
 
@@ -268,104 +269,132 @@ export const downloadYandexMusic = async (type?: string) => {
 }
 
 export class AsarCalculator {
-  constructor(private filePath: string) {}
+    constructor(private filePath: string) {}
 
-  private getHeaderSize(): number {
-    const fd = fs.openSync(this.filePath, 'r');
-    try {
-      const headerBuf = Buffer.alloc(16);
-      fs.readSync(fd, headerBuf, 0, 16, 0);
-      return headerBuf.readUInt32LE(12);
-    } finally {
-      fs.closeSync(fd);
+    private getHeaderSize(): number {
+        const fd = fs.openSync(this.filePath, 'r')
+        try {
+            const headerBuf = Buffer.alloc(16)
+            fs.readSync(fd, headerBuf, 0, 16, 0)
+            return headerBuf.readUInt32LE(12)
+        } finally {
+            fs.closeSync(fd)
+        }
     }
-  }
 
-  private readHeader(): Buffer {
-    const size = this.getHeaderSize();
-    const fd = fs.openSync(this.filePath, 'r');
-    try {
-      const buf = Buffer.alloc(size);
-      fs.readSync(fd, buf, 0, size, 16);
-      return buf;
-    } finally {
-      fs.closeSync(fd);
+    private readHeader(): Buffer {
+        const size = this.getHeaderSize()
+        const fd = fs.openSync(this.filePath, 'r')
+        try {
+            const buf = Buffer.alloc(size)
+            fs.readSync(fd, buf, 0, size, 16)
+            return buf
+        } finally {
+            fs.closeSync(fd)
+        }
     }
-  }
 
-  public calcHash(): string {
-    const header = this.readHeader();
-    return crypto.createHash('sha256').update(header).digest('hex');
-  }
+    public calcHash(): string {
+        const header = this.readHeader()
+        return crypto.createHash('sha256').update(header).digest('hex')
+    }
 }
 
+export type PatchCallback = (progress: number, message: string) => void;
+
 export class AsarPatcher {
-  public extractAsar(inputAsar: string, outDir: string): void {
-    try {
-      extractAll(inputAsar, outDir);
-      console.log(`✔ Extracted ${inputAsar} → ${outDir}`);
-    } catch (err: any) {
-      throw new Error(`Failed to extract ${inputAsar}: ${err.message}`);
-    }
-  }
+    private readonly appBundlePath: string;
+    private readonly resourcesDir: string;
+    private readonly infoPlistPath: string;
+    private asarRelPath = 'app.asar';
+    private asarPath: string;
+    private readonly tmpEntitlements: string;
 
-  public packAsar(input: string, appBundlePath: string): void {
-    const outAsar = path.join(appBundlePath, 'Contents', 'Resources', 'app.asar');
-    const plistPath = path.join(appBundlePath, 'Contents', 'Info.plist');
-
-    if (fs.existsSync(input) && fs.statSync(input).isDirectory()) {
-      try {
-        createPackage(input, outAsar);
-        console.log(`✔ Packed directory ${input} → ${outAsar}`);
-      } catch (err: any) {
-        throw new Error(`Failed to pack directory ${input}: ${err.message}`);
-      }
-    } else if (path.extname(input).toLowerCase() === '.asar') {
-      try {
-        fs.copyFileSync(input, outAsar);
-        console.log(`✔ Copied ASAR ${input} → ${outAsar}`);
-      } catch (err: any) {
-        throw new Error(`Failed to copy ASAR ${input}: ${err.message}`);
-      }
-    } else {
-      throw new Error('Input must be a directory or an .asar file');
+    constructor(appBundlePath: string) {
+        this.appBundlePath = appBundlePath;
+        this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources');
+        this.infoPlistPath = path.join(appBundlePath, 'Contents', 'Info.plist');
+        this.asarPath = path.join(this.resourcesDir, this.asarRelPath);
+        this.tmpEntitlements = path.join(os.tmpdir(), 'entitlements-extracted.plist');
     }
 
-    if (this.usesIntegrity(plistPath)) {
-      console.log('ℹ ElectronAsarIntegrity detected — recalculating hash…');
-      const newHash = new AsarCalculator(outAsar).calcHash();
-      this.patchPlistHash(plistPath, newHash);
-      console.log(`✔ Updated Info.plist hash to ${newHash}`);
+    private get isMac(): boolean {
+        return os.platform() === 'darwin';
     }
 
-    const entFile = this.dumpEntitlements(appBundlePath);
-    try {
-      execSync(
-        `codesign --force --entitlements "${entFile}" --sign - "${appBundlePath}"`,
-        { stdio: 'inherit' }
-      );
-      console.log(`✔ Re-signed ${appBundlePath}`);
-    } finally {
-      if (fs.existsSync(entFile)) fs.unlinkSync(entFile);
+    private calcAsarHeaderHash(): string {
+        const header = asar.getRawHeader(this.asarPath).headerString;
+        return crypto.createHash('sha256').update(header).digest('hex');
     }
-  }
 
-  private usesIntegrity(plistPath: string): boolean {
-    const xml = fs.readFileSync(plistPath, 'utf8');
-    const data = plist.parse(xml) as any;
-    return Boolean(data.ElectronAsarIntegrity?.Resources?.['app.asar']);
-  }
+    private dumpEntitlements(): void {
+        execSync(
+            `codesign -d --entitlements :- '${this.appBundlePath}' > '${this.tmpEntitlements}'`,
+            { stdio: 'ignore' }
+        );
+    }
 
-  private patchPlistHash(plistPath: string, hash: string): void {
-    const xml = fs.readFileSync(plistPath, 'utf8');
-    const data = plist.parse(xml) as any;
-    data.ElectronAsarIntegrity.Resources['app.asar'].hash = hash;
-    fs.writeFileSync(plistPath, plist.build(data), 'utf8');
-  }
+    private isAsarIntegrityEnabled(): boolean {
+        try {
+            execSync(`plutil -p '${this.infoPlistPath}' | grep -q ElectronAsarIntegrity`);
+            return true;
+        } catch {
+            return false;
+        }
+    }
 
-  private dumpEntitlements(appPath: string): string {
-    const out = path.join(os.tmpdir(), 'extracted_entitlements.plist');
-    execSync(`codesign -d --entitlements :- "${appPath}" > "${out}"`);
-    return out;
-  }
+    private isSystemIntegrityProtectionEnabled(): boolean {
+        try {
+            const status = execSync('csrutil status', { encoding: 'utf8' });
+            return status.includes('enabled');
+        } catch {
+            return true;
+        }
+    }
+
+    public async patch(callback?: PatchCallback): Promise<boolean> {
+        if (!this.isMac) {
+            callback?.(0, 'Патч доступен только на macOS');
+            return false;
+        }
+
+        if (this.isSystemIntegrityProtectionEnabled()) {
+            callback?.(0, 'SIP включён — отключите System Integrity Protection и повторите');
+            return false;
+        }
+
+        try {
+            if (this.isAsarIntegrityEnabled()) {
+                callback?.(0.2, 'Обнаружена проверка целостности ASAR, обновляем хеш...');
+                const newHash = this.calcAsarHeaderHash();
+
+                const raw = await fsp.readFile(this.infoPlistPath, 'utf8');
+                const data = plist.parse(raw) as any;
+                data.ElectronAsarIntegrity = data.ElectronAsarIntegrity || {};
+                data.ElectronAsarIntegrity[this.asarRelPath] = { algorithm: 'SHA256', hash: newHash };
+                await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8');
+
+                callback?.(0.5, `Новый хеш: ${newHash}`);
+            }
+
+            callback?.(0.6, 'Дампим entitlements...');
+            this.dumpEntitlements();
+
+            callback?.(0.7, 'Переподписываем приложение...');
+            execSync(
+                `codesign --force --entitlements '${this.tmpEntitlements}' --sign - '${this.appBundlePath}'`,
+                { stdio: 'ignore' }
+            );
+
+            await fsp.unlink(this.tmpEntitlements);
+
+            callback?.(1, 'Патч завершён успешно');
+            return true;
+
+        } catch (err) {
+            try { await fsp.unlink(this.tmpEntitlements); } catch {}
+            callback?.(0, `Ошибка при патче: ${(err as Error).message}`);
+            return false;
+        }
+    }
 }

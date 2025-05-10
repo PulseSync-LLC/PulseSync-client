@@ -9,6 +9,5 @@ ReactDevTools
 *.svg
 *.md
 .prettierignore
-forge.config.ts
 *.json
 *.yml
