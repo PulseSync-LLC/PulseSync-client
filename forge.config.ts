@@ -43,7 +43,6 @@ const forgeConfig: ForgeConfig = {
         {
             "name": "@electron-forge/maker-dmg",
             "config": {
-                "name": "PulseSync",
                 "background": "./static/assets/images/no_banner.png",
                 "icon": "./icons/mac/icon.icns",
                 "format": "ULFO",
