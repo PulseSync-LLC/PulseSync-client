@@ -103,13 +103,6 @@ const forgeConfig: ForgeConfig = {
         },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
-            if (os.platform() !== 'darwin') {
-                const outDir = path.join(buildPath, '..', '..', 'modules')
-                const sourceDir = path.join(__dirname, 'modules')
-                await fs.ensureDir(outDir)
-                await fs.copy(sourceDir, outDir)
-                console.log(`Copied modules to ${outDir}`)
-            }
         },
     },
 }
