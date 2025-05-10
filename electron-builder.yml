@@ -1,6 +1,6 @@
 appId: pulsesync.app
 productName: PulseSync
-artifactName: pulsesync-app-${version}-setup.${ext}
+artifactName: pulsesync-app-${version}-${arch}.${ext}
 copyright: 'Copyright (C) 2025 PulseSync LLC'
 
 directories:
@@ -28,18 +28,30 @@ win:
     compression: maximum
 
 mac:
+    target:
+        - dmg
     category: public.app-category.developer-tools
     icon: ./icons/win/icon.icns
     protocols:
-        - name: "PulseSync Deep Link"
-          schemes: [ "pulsesync" ]
+        - name: 'PulseSync Deep Link'
+          schemes: ['pulsesync']
+
+dmg:
+    artifactName: pulsesync-app-${version}-${arch}.${ext}
+    volumeName: '${productName}-${version}-${arch}'
+    format: UDZO
+    contents:
+        - { x: 130, y: 220 }
+        - { x: 410, y: 220, type: link, path: /Applications }
+
 linux:
-  category: DeveloperTools
-  target:
-    - AppImage
-    - deb
-  mimeTypes:
-    - x-scheme-handler/pulsesync;
+    category: DeveloperTools
+    target:
+        - AppImage
+        - deb
+    mimeTypes:
+        - x-scheme-handler/pulsesync;
+
 nsis:
     oneClick: false
     createDesktopShortcut: true
