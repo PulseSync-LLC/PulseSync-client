@@ -1,7 +1,6 @@
 import React, { useContext } from 'react'
 import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
-import playerContext from '../../api/context/player.context'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import toast from '../toast'
@@ -30,8 +29,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, features } = useContext(userContext)
-    const { currentTrack } = useContext(playerContext)
+    const { app, setApp } = useContext(userContext)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
@@ -141,58 +139,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         setApp({ ...app, settings: updatedSettings })
     }
 
-    const downloadTrack = (event: any) => {
-        if (!features.trackDownload) {
-            toast.custom('error', 'Ой...', 'Функция загрузки треков временно отключена')
-            return
-        }
-        const toastId = toast.custom('info', 'Ожидаю', 'Выберите путь', null, null, Infinity)
-        const cleanListeners = () => {
-            window.desktopEvents?.removeAllListeners('download-track-progress')
-            window.desktopEvents?.removeAllListeners('download-track-cancelled')
-            window.desktopEvents?.removeAllListeners('download-track-finished')
-        }
-        window.desktopEvents?.on('download-track-progress', (event, value) => {
-            const roundedValue = Math.round(value)
-            toast.custom(
-                'loading',
-                `Загрузка`,
-                <>
-                    <span>Загрузка {roundedValue}%</span>
-                </>,
-                { id: toastId },
-                roundedValue,
-            )
-        })
-
-        window.electron.downloadTrack({
-            track: currentTrack,
-            url: currentTrack.url,
-            askSavePath: app.settings.askSavePath,
-            saveAsMp3: app.settings.saveAsMp3,
-        })
-
-        window.desktopEvents?.once('download-track-cancelled', () => {
-            toast.custom('error', `Походу В С Ё`, 'Скачивание трека отменено', {
-                id: toastId,
-            })
-            cleanListeners()
-        })
-        window.desktopEvents?.once('download-track-failed', () => {
-            toast.custom('error', `Походу В С Ё`, 'Ошибка загрузки трека', {
-                id: toastId,
-            })
-            cleanListeners()
-        })
-        window.desktopEvents?.once('download-track-finished', () => {
-            console.log(toastId)
-            toast.custom('success', `Готово`, 'Загрузка завершена', {
-                id: toastId,
-            })
-            cleanListeners()
-        })
-    }
-
     function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
         return { title, buttons }
     }
@@ -278,24 +224,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton('Удалять .pext после импорта темы', app.settings.deletePextAfterImport, () =>
                 toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
             ),
-        ]),
-        createButtonSection('Музыка', [
-            {
-                label: `Скачать ${currentTrack.title} в папку музыка`,
-                onClick: downloadTrack,
-                disabled: !currentTrack.url || !currentTrack.downloadInfo?.quality,
-            },
-            createToggleButton('Спрашивать куда сохранять трек', app.settings.askSavePath, () =>
-                toggleSetting('askSavePath', !app.settings.askSavePath),
-            ),
-            createToggleButton('Сохранять в формате mp3', app.settings.saveAsMp3, () => toggleSetting('saveAsMp3', !app.settings.saveAsMp3)),
-            {
-                label: 'Директория со скаченной музыкой',
-                onClick: () =>
-                    window.desktopEvents?.send('openPath', {
-                        action: 'musicPath',
-                    }),
-            },
         ]),
         createButtonSection('Особое', [
             { label: `Beta v${app.info.version}`, onClick: openUpdateModal },

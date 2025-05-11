@@ -15,7 +15,6 @@ import isAppDev from 'electron-is-dev'
 import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import { Track } from '../../renderer/api/interfaces/track.interface'
-import { downloadTrack } from './handlers/downloadTrack'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { checkMusic } from '../utils/appUtils'
@@ -197,20 +196,6 @@ const registerFileOperations = (window: BrowserWindow): void => {
 }
 
 const registerMediaEvents = (window: BrowserWindow): void => {
-    ipcMain.on(
-        'download-track',
-        async (
-            event,
-            val: {
-                url: string
-                track: Track
-                askSavePath: boolean
-                saveAsMp3: boolean
-            },
-        ) => {
-            await downloadTrack(event, val)
-        },
-    )
 
     ipcMain.on('download-yandex-music', async (event, downloadUrl) => {
         let exeUrl

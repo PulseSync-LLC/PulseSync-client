@@ -49,9 +49,8 @@
 
 Проект распространяется под [простой (неисключительной) лицензией](https://github.com/PulseSync-LLC/PulseSync-client/blob/dev/LICENSE).
 
----
-
-Спасибо, что используете PulseSync.
+## Отдельная благодарность
+ • [TheKingOfTime](https://github.com/TheKing-OfTime) за создание модификации для Яндекс Музыки
 
 ## Stargazers over time
 [![Stargazers over time](https://starchart.cc/PulseSync-LLC/PulseSync-client.svg?variant=adaptive)](https://starchart.cc/PulseSync-LLC/PulseSync-client)

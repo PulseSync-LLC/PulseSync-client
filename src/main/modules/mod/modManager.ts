@@ -1,25 +1,32 @@
 import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import * as path from 'path'
 import * as https from 'https'
-import { store } from '../storage'
-import { mainWindow } from '../../../index'
 import axios from 'axios'
 import crypto from 'crypto'
-import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux } from '../../utils/appUtils'
+import * as fs from 'original-fs'
+import { promises as fsp } from 'original-fs'
+import { promisify } from 'util'
+import * as zlib from 'zlib'
+
+import { store } from '../storage'
+import { mainWindow } from '../../../index'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
-import * as fs from 'original-fs'
+import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux, downloadYandexMusic, AsarPatcher } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
+
+const gunzipAsync = promisify(zlib.gunzip)
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
+
 const musicPath = getPathToYandexMusic()
-let asarBackupFilename = 'app.backup.asar'
 let modFilename = 'app.asar'
+let asarBackupFilename = 'app.backup.asar'
 let savePath = path.join(musicPath, modFilename)
 
 if (isLinux() && store.has('settings.modFilename')) {
-    modFilename = store.get('settings.modFilename')
+    modFilename = store.get('settings.modFilename') as string
     asarBackupFilename = modFilename
     savePath = path.join(musicPath, modFilename)
 }
@@ -27,62 +34,49 @@ if (isLinux() && store.has('settings.modFilename')) {
 const backupPath = path.join(musicPath, asarBackupFilename)
 
 function sendDownloadFailure(params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string }) {
-    if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('download-failure', {
-            success: false,
-            ...params,
-        })
-    }
+    mainWindow?.webContents.send('download-failure', {
+        success: false,
+        ...params,
+    })
 }
 
 function sendRemoveModFailure(params: { error: string; type?: string }) {
-    if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('remove-mod-failure', {
-            success: false,
-            ...params,
-        })
-    }
+    mainWindow?.webContents.send('remove-mod-failure', {
+        success: false,
+        ...params,
+    })
 }
 
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-app-asar', async (event, { version, link, checksum, force, spoof }) => {
         try {
             if (!store.has('settings.modFilename') && isLinux()) {
-                dialog
-                    .showMessageBox({
-                        type: 'info',
-                        title: 'Укажите имя модификации.',
-                        message: 'Пожалуйста, укажите имя файла модификации asar в зависимости от клиента Яндекс Музыки.',
-                        buttons: ['Указать имя', 'Отменить'],
+                const res = await dialog.showMessageBox({
+                    type: 'info',
+                    title: 'Укажите имя модификации',
+                    message: 'Пожалуйста, укажите имя файла модификации asar в зависимости от клиента Яндекс Музыки.',
+                    buttons: ['Указать имя', 'Отменить'],
+                })
+                if (res.response === 0) {
+                    const folderRes = await dialog.showOpenDialog({
+                        properties: ['openDirectory'],
                     })
-                    .then(result => {
-                        if (result.response === 0) {
-                            dialog
-                                .showOpenDialog({
-                                    properties: ['openDirectory'],
-                                })
-                                .then(folderResult => {
-                                    if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
-                                        store.set('settings.modFilename', folderResult.filePaths[0])
-                                    } else {
-                                        sendDownloadFailure({
-                                            error: 'Не указано имя файла модификации asar. Попробуйте снова.',
-                                            type: 'mod_filename_missing',
-                                        })
-                                        return
-                                    }
-                                })
-                        } else {
-                            sendDownloadFailure({
-                                error: 'Не указано имя файла модификации asar.',
-                                type: 'mod_filename_missing',
-                            })
-                            return
-                        }
+                    if (folderRes.canceled || !folderRes.filePaths || !folderRes.filePaths[0]) {
+                        return sendDownloadFailure({
+                            error: 'Не указано имя файла модификации asar. Попробуйте снова.',
+                            type: 'mod_filename_missing',
+                        })
+                    }
+                    store.set('settings.modFilename', folderRes.filePaths[0])
+                } else {
+                    return sendDownloadFailure({
+                        error: 'Не указано имя файла модификации asar.',
+                        type: 'mod_filename_missing',
                     })
+                }
             }
-            const isRunning = await isYandexMusicRunning()
-            if (isRunning) {
+
+            if (await isYandexMusicRunning()) {
                 mainWindow.webContents.send('update-message', {
                     message: 'Закрытие Яндекс Музыки...',
                 })
@@ -91,62 +85,47 @@ export const handleModEvents = (window: BrowserWindow): void => {
 
             yandexMusicVersion = await getYandexMusicVersion()
             modVersion = version
-            logger.main.info(`Current Yandex Music version: ${yandexMusicVersion}`)
+            logger.modManager.info(`Current Yandex Music version: ${yandexMusicVersion}`)
 
             if (!force && !spoof) {
-                try {
-                    const compatibilityResult = await checkModCompatibility(version, yandexMusicVersion)
-
-                    if (!compatibilityResult.success) {
-                        const failureType =
-                            compatibilityResult.code === 'YANDEX_VERSION_OUTDATED'
-                                ? 'version_outdated'
-                                : compatibilityResult.code === 'YANDEX_VERSION_TOO_NEW'
-                                  ? 'version_too_new'
-                                  : 'unknown'
-
-                        sendDownloadFailure({
-                            error: compatibilityResult.message || 'Этот мод не совместим с текущей версией Яндекс Музыки.',
-                            type: failureType,
-                            url: compatibilityResult.url,
-                            requiredVersion: compatibilityResult.requiredVersion,
-                            recommendedVersion: compatibilityResult.recommendedVersion,
-                        })
-                        return
-                    }
-                } catch (error) {
-                    sendDownloadFailure({
-                        error: `Ошибка при проверке совместимости мода: ${error.message}`,
-                        type: 'compatibility_check_error',
+                const comp = await checkModCompatibility(version, yandexMusicVersion)
+                if (!comp.success) {
+                    const type =
+                        comp.code === 'YANDEX_VERSION_OUTDATED'
+                            ? 'version_outdated'
+                            : comp.code === 'YANDEX_VERSION_TOO_NEW'
+                              ? 'version_too_new'
+                              : 'unknown'
+                    return sendDownloadFailure({
+                        error: comp.message || 'Этот мод не совместим с текущей версией Яндекс Музыки.',
+                        type,
+                        url: comp.url,
+                        requiredVersion: comp.requiredVersion,
+                        recommendedVersion: comp.recommendedVersion,
                     })
-                    return
                 }
             }
 
             if (!fs.existsSync(backupPath)) {
                 if (fs.existsSync(savePath)) {
                     fs.copyFileSync(savePath, backupPath)
-                    logger.main.info('Original app.asar saved as app.backup.asar')
+                    logger.modManager.info('Original app.asar saved as app.backup.asar')
                 } else {
-                    sendDownloadFailure({
-                        error: `Файл app.asar не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                    return sendDownloadFailure({
+                        error: 'Файл app.asar не найден. Пожалуйста, переустановите Яндекс Музыку.',
                         type: 'file_not_found',
                     })
-                    return
                 }
             } else {
-                logger.main.info('Backup app.backup.asar already exists')
+                logger.modManager.info('Backup app.backup.asar already exists')
             }
 
             const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
-
             await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
         } catch (error: any) {
-            logger.main.error('Unexpected error:', error)
+            logger.modManager.error('Unexpected error:', error)
             HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
-            if (mainWindow) {
-                mainWindow.setProgressBar(-1)
-            }
+            mainWindow.setProgressBar(-1)
             sendDownloadFailure({
                 error: error.message,
                 type: 'unexpected_error',
@@ -154,37 +133,38 @@ export const handleModEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on('remove-mod', async event => {
+    ipcMain.on('remove-mod', async () => {
         try {
-            const removeMod = () => {
+            const doRemove = async () => {
                 if (fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, savePath)
-                    logger.main.info('Backup app.asar restored.')
-
+                    logger.modManager.info('Backup app.asar restored.')
                     store.delete('mod.version')
                     store.delete('mod.musicVersion')
                     store.set('mod.installed', false)
-
                     mainWindow.webContents.send('remove-mod-success', {
                         success: true,
                     })
                 } else {
                     sendRemoveModFailure({
-                        error: 'Резервная копия не найдена. Переустановите Яндекс Музыку',
+                        error: 'Резервная копия не найдена.',
                         type: 'backup_not_found',
                     })
+                    await downloadYandexMusic('reinstall')
                 }
             }
-            const isRunning = await isYandexMusicRunning()
-            if (isRunning) {
+
+            if (await isYandexMusicRunning()) {
                 mainWindow.webContents.send('update-message', {
                     message: 'Закрытие Яндекс Музыки...',
                 })
                 await closeYandexMusic()
-                setTimeout(() => removeMod(), 1500)
+                setTimeout(doRemove, 1500)
+            } else {
+                await doRemove()
             }
-        } catch (error) {
-            logger.main.error('Error removing mod:', error)
+        } catch (error: any) {
+            logger.modManager.error('Error removing mod:', error)
             HandleErrorsElectron.handleError('modManager', 'remove-mod', 'remove-mod', error)
             sendRemoveModFailure({
                 error: error.message,
@@ -195,28 +175,16 @@ export const handleModEvents = (window: BrowserWindow): void => {
 }
 
 const getYandexMusicVersion = async (): Promise<string> => {
-    const configFilePath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
-
-    try {
-        if (fs.existsSync(configFilePath)) {
-            const configData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'))
-
-            if (configData && configData.version) {
-                return configData.version
-            } else {
-                throw new Error('Версия не найдена в файле config.json')
-            }
-        } else {
-            throw new Error('Файл config.json не найден')
-        }
-    } catch (error) {
-        throw new Error(`Не удалось получить версию Яндекс Музыки из config.json: ${error.message}`)
-    }
+    const cfgPath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
+    if (!fs.existsSync(cfgPath)) throw new Error('Файл config.json не найден')
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
+    if (!cfg.version) throw new Error('Версия не найдена в config.json')
+    return cfg.version
 }
 
 const checkModCompatibility = async (
-    modVersion: string,
-    yandexMusicVersion: string,
+    modV: string,
+    ymV: string,
 ): Promise<{
     success: boolean
     message?: string
@@ -226,31 +194,19 @@ const checkModCompatibility = async (
     recommendedVersion?: string
 }> => {
     try {
-        const response = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
-            params: {
-                yandexVersion: yandexMusicVersion,
-                modVersion: modVersion,
-            },
-        })
-        const data = response.data
-
-        if (data.error) {
-            return {
-                success: false,
-                message: data.error,
-            }
-        }
+        const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, { params: { yandexVersion: ymV, modVersion: modV } })
+        const d = resp.data
+        if (d.error) return { success: false, message: d.error }
         return {
-            success: data.success || false,
-            message: data.message,
-            code: data.code,
-            url: data.url,
-            requiredVersion: data.requiredVersion,
-            recommendedVersion: data.recommendedVersion || modVersion,
+            success: d.success || false,
+            message: d.message,
+            code: d.code,
+            url: d.url,
+            requiredVersion: d.requiredVersion,
+            recommendedVersion: d.recommendedVersion || modV,
         }
-    } catch (error) {
-        logger.main.error('Ошибка при проверке совместимости мода:', error)
-
+    } catch (err) {
+        logger.modManager.error('Ошибка при проверке совместимости мода:', err)
         return {
             success: false,
             message: 'Произошла ошибка при проверке совместимости мода.',
@@ -259,62 +215,51 @@ const checkModCompatibility = async (
 }
 
 const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePath: string, event: any, checksum?: string) => {
+    let isFinished = false
+    let isError = false
+
     try {
         if (checksum && fs.existsSync(savePath)) {
-            const fileBuffer = fs.readFileSync(savePath)
-            const hashSum = crypto.createHash('sha256')
-            hashSum.update(fileBuffer)
-            const currentChecksum = hashSum.digest('hex')
-
-            if (currentChecksum === checksum) {
-                logger.main.info('app.asar file already matches the required checksum. Installation complete.')
+            const buf = fs.readFileSync(savePath)
+            const current = crypto.createHash('sha256').update(buf).digest('hex')
+            if (current === checksum) {
+                logger.modManager.info('app.asar file already matches the required checksum.')
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
                 })
                 store.set('mod.version', modVersion)
-                store.set('mod.installed', true)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 return
             }
         }
 
-        const httpsAgent = new https.Agent({
-            rejectUnauthorized: false,
-        })
-
-        const writer = fs.createWriteStream(tempFilePath)
-        let isFinished = false
-        let isError = false
-
+        const httpsAgent = new https.Agent({ rejectUnauthorized: false })
         const response = await axios.get(link, {
             httpsAgent,
             responseType: 'stream',
         })
-
-        const totalLength = parseInt(response.headers['content-length'] || '0', 10)
-        let downloadedLength = 0
+        const total = parseInt(response.headers['content-length'] || '0', 10)
+        let downloaded = 0
+        const writer = fs.createWriteStream(tempFilePath)
 
         response.data.on('data', (chunk: Buffer) => {
             if (isFinished) return
-            downloadedLength += chunk.length
-            const progress = downloadedLength / totalLength
-
-            if (mainWindow) {
-                mainWindow.setProgressBar(progress)
-            }
-            if (progress * 100 <= 99) {
-                mainWindow.webContents.send('download-progress', {
-                    progress: Math.round(progress * 100),
-                })
-            }
+            downloaded += chunk.length
+            const pr = downloaded / total
+            mainWindow?.setProgressBar(pr)
+            mainWindow?.webContents.send('download-progress', {
+                progress: Math.round(pr * 100),
+            })
             writer.write(chunk)
         })
+
         response.data.on('end', () => {
             if (isFinished) return
             isFinished = true
             writer.end()
         })
+
         response.data.on('error', (err: Error) => {
             if (isFinished) return
             isFinished = true
@@ -328,7 +273,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
             sendDownloadFailure({
-                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте ваше интернет-соединение.',
+                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет.',
                 type: 'download_error',
             })
             mainWindow.setProgressBar(-1)
@@ -336,46 +281,64 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
 
         writer.on('finish', async () => {
             try {
-                if (!isFinished) return
-                if (isError) return
-                if (mainWindow) {
-                    mainWindow.setProgressBar(-1)
-                }
+                if (!isFinished || isError) return
+                mainWindow.setProgressBar(-1)
 
                 if (checksum) {
-                    const fileBuffer = fs.readFileSync(tempFilePath)
-                    const hashSum = crypto.createHash('sha256')
-                    hashSum.update(fileBuffer)
-                    const hex = hashSum.digest('hex')
-
-                    if (hex !== checksum) {
+                    const comp = fs.readFileSync(tempFilePath)
+                    const h = crypto.createHash('sha256').update(comp).digest('hex')
+                    if (h !== checksum) {
                         fs.unlinkSync(tempFilePath)
-                        logger.main.error('Checksum mismatch')
-                        sendDownloadFailure({
-                            error: 'Ошибка при проверке целостности файла. Попробуйте скачать еще раз.',
+                        return sendDownloadFailure({
+                            error: 'Ошибка при проверке целостности файла.',
                             type: 'checksum_mismatch',
                         })
-                        return
                     }
                 }
 
-                fs.copyFileSync(tempFilePath, savePath)
+                const compressed = fs.readFileSync(tempFilePath)
+                const asarBuf: Buffer = await gunzipAsync(compressed)
+                fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
+
+                const appDir = path.dirname(savePath)
+                const bundleDir = path.resolve(appDir, '..')
+                const patcher = new AsarPatcher(bundleDir)
+
+                const progressCb = (p: number, msg: string) => {
+                    mainWindow?.webContents.send('patch-progress', {
+                        progress: Math.round(p * 100),
+                    })
+                }
+
+                const ok = await patcher.patch(progressCb)
+                if (!ok) {
+                    if (fs.existsSync(backupPath)) {
+                        fs.renameSync(backupPath, savePath)
+                    }
+                    return sendDownloadFailure({
+                        error: 'Не удалось пропатчить ASAR',
+                        type: 'patch_error',
+                    })
+                }
+
                 store.set('mod.version', modVersion)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
+
                 setTimeout(() => {
                     mainWindow.webContents.send('download-success', {
                         success: true,
                     })
                 }, 1500)
-            } catch (e) {
+            } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
-                logger.main.error('Error writing file:', e)
-                HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
-                if (mainWindow) {
-                    mainWindow.setProgressBar(-1)
+                if (fs.existsSync(backupPath)) {
+                    fs.renameSync(backupPath, savePath)
                 }
+                logger.modManager.error('Error processing downloaded file:', e)
+                HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
+                mainWindow.setProgressBar(-1)
                 sendDownloadFailure({
                     error: e.message,
                     type: 'finish_error',
@@ -385,23 +348,19 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
 
         writer.on('error', (err: Error) => {
             fs.unlink(tempFilePath, () => {})
-            logger.main.error('Error writing file:', err)
+            logger.modManager.error('Error writing file:', err)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
-            if (mainWindow) {
-                mainWindow.setProgressBar(-1)
-            }
+            mainWindow.setProgressBar(-1)
             sendDownloadFailure({
                 error: err.message,
                 type: 'writer_error',
             })
         })
-    } catch (err) {
+    } catch (err: any) {
         fs.unlink(tempFilePath, () => {})
-        logger.main.error('Error downloading file:', err)
+        logger.modManager.error('Error downloading file:', err)
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
-        if (mainWindow) {
-            mainWindow.setProgressBar(-1)
-        }
+        mainWindow.setProgressBar(-1)
         sendDownloadFailure({
             error: err.message,
             type: 'download_outer_error',

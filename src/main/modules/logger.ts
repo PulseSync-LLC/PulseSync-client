@@ -39,6 +39,13 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
+        modManagerLog: {
+            type: 'file',
+            filename: path.join(LOG_PATH, 'modManager.log'),
+            keepFileExt: true,
+            MaxLogsize: 1024 * 1024 * 100,
+            backups: 3,
+        },
         deeplinkManagerLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'deeplinkManager.log'),
@@ -54,10 +61,6 @@ log4js.configure({
             keepFileExt: true,
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
-        },
-        debugLog: {
-            type: 'file',
-            filename: path.join(LOG_PATH, 'debug.log'),
         },
         discordRpc: {
             type: 'file',
@@ -82,6 +85,10 @@ log4js.configure({
             appenders: ['out', 'mainProcessLog'],
             level: 'debug',
         },
+        modManager: {
+            appenders: ['out', 'modManagerLog'],
+            level: 'debug',
+        },
         deeplinkManager: {
             appenders: ['out', 'deeplinkManagerLog'],
             level: 'debug',
@@ -92,10 +99,6 @@ log4js.configure({
         },
         updater: {
             appenders: ['out', 'updaterLog'],
-            level: 'debug',
-        },
-        debug: {
-            appenders: ['out', 'debugLog'],
             level: 'debug',
         },
         discordRpc: {
@@ -112,9 +115,9 @@ export default {
     default: log4js.getLogger('date'),
     http: log4js.getLogger('http'),
     main: log4js.getLogger('main'),
+    modManager: log4js.getLogger('modManager'),
     deeplinkManager: log4js.getLogger('deeplinkManager'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
-    debug: log4js.getLogger('debug'),
     discordRpc: log4js.getLogger('discordRpc'),
 }

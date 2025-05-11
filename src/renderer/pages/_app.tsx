@@ -533,8 +533,8 @@ function App() {
     }, [])
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-            if (!window.desktopEvents) return;
-            window.desktopEvents.removeAllListeners('rpc-log');
+            if (!window.desktopEvents) return
+            window.desktopEvents.removeAllListeners('rpc-log')
             window.desktopEvents?.on('discordRpcState', (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -690,80 +690,182 @@ const Player: React.FC<any> = ({ children }) => {
                         if (data.track?.coverUri) {
                             coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
                         }
-
-                        const timecodes = data.timecodes ?? [0, 0]
-                        setTrack(prevTrack => ({
-                            ...prevTrack,
-                            downloadInfo: data.downloadInfo || null,
-                            currentDevice: data.currentDevice || null,
-                            sourceType: data.sourceType || null,
-                            status: data.status ?? '',
-                            ynisonProgress: data.ynisonProgress ?? 0,
-                            event: data.event ?? '',
-                            progress: data.progress ?? 0,
-                            speed: data.speed ?? 1,
-                            volume: data.volume ?? 1,
-                            durationMs: data.track?.durationMs ?? 0,
-                            url: data.url ?? '',
-                            albumArt: coverImg,
-                            trackSource: data.track?.trackSource ?? '',
-                            timestamps: timecodes ?? [0, 0],
-                            realId: data.track?.realId ?? '',
-                            imageUrl: data.track?.imageUrl ?? '',
-                            id: data.track?.id ?? '',
-                            title: data.track?.title ?? '',
+                        console.log(data)
+                        setTrack(prev => ({
+                            ...prev,
+                            coverUri: coverImg,
+                            isPlaying: data.isPlaying ?? prev.isPlaying,
+                            canMoveBackward: data.canMoveBackward ?? prev.canMoveBackward,
+                            canMoveForward: data.canMoveForward ?? prev.canMoveForward,
+                            status: data.status ?? prev.status,
+                            sourceType: data.track?.sourceType ?? prev.sourceType,
+                            ynisonProgress: data.ynisonProgress ?? prev.ynisonProgress,
+                            progress: {
+                                duration: data.progress?.duration ?? prev.progress.duration,
+                                loaded: data.progress?.loaded ?? prev.progress.loaded,
+                                position: data.progress?.position ?? prev.progress.position,
+                                played: data.progress?.played ?? prev.progress.played,
+                            },
+                            availableActions: {
+                                moveBackward: data.availableActions?.moveBackward ?? prev.availableActions.moveBackward,
+                                moveForward: data.availableActions?.moveForward ?? prev.availableActions.moveForward,
+                                repeat: data.availableActions?.repeat ?? prev.availableActions.repeat,
+                                shuffle: data.availableActions?.shuffle ?? prev.availableActions.shuffle,
+                                speed: data.availableActions?.speed ?? prev.availableActions.speed,
+                            },
+                            actionsStore: {
+                                repeat: data.actionsStore?.repeat ?? prev.actionsStore.repeat,
+                                shuffle: data.actionsStore?.shuffle ?? prev.actionsStore.shuffle,
+                                isLiked: data.actionsStore?.isLiked ?? prev.actionsStore.isLiked,
+                                isDisliked: data.actionsStore?.isDisliked ?? prev.actionsStore.isDisliked,
+                            },
+                            currentDevice: data.currentDevice ?? prev.currentDevice,
+                            downloadInfo: data.downloadInfo ?? prev.downloadInfo,
+                            id: data.track?.id ?? prev.id,
+                            realId: data.track?.realId ?? prev.realId,
+                            title: data.track?.title ?? prev.title,
+                            major: {
+                                id: data.track?.major?.id ?? prev.major.id,
+                                name: data.track?.major?.name ?? prev.major.name,
+                            },
+                            available: data.track?.available ?? prev.available,
+                            availableForPremiumUsers: data.track?.availableForPremiumUsers ?? prev.availableForPremiumUsers,
+                            availableFullWithoutPermission: data.track?.availableFullWithoutPermission ?? prev.availableFullWithoutPermission,
+                            availableForOptions: data.track?.availableForOptions ?? prev.availableForOptions,
+                            disclaimers: data.track?.disclaimers ?? prev.disclaimers,
+                            storageDir: data.track?.storageDir ?? prev.storageDir,
+                            durationMs: data.track?.durationMs ?? prev.durationMs,
+                            fileSize: data.track?.fileSize ?? prev.fileSize,
+                            r128: {
+                                i: data.track?.r128?.i ?? prev.r128.i,
+                                tp: data.track?.r128?.tp ?? prev.r128.tp,
+                            },
+                            fade: {
+                                inStart: data.track?.fade?.inStart ?? prev.fade.inStart,
+                                inStop: data.track?.fade?.inStop ?? prev.fade.inStop,
+                                outStart: data.track?.fade?.outStart ?? prev.fade.outStart,
+                                outStop: data.track?.fade?.outStop ?? prev.fade.outStop,
+                            },
+                            previewDurationMs: data.track?.previewDurationMs ?? prev.previewDurationMs,
                             artists:
-                                data.track?.artists?.map((artist: any) => ({
-                                    id: artist.id ?? null,
-                                    name: artist.name ?? 'Unknown Artist',
-                                    various: artist.various ?? false,
-                                    composer: artist.composer ?? false,
-                                    available: artist.available ?? false,
-                                    cover: {
-                                        type: artist.cover?.type ?? null,
-                                        uri: artist.cover?.uri ?? null,
-                                        prefix: artist.cover?.prefix ?? null,
-                                    },
-                                    genres: artist.genres ?? [],
-                                    disclaimers: artist.disclaimers ?? [],
-                                })) ?? [],
+                                data.track?.artists?.map(
+                                    (artist: {
+                                        id: any
+                                        name: any
+                                        various: any
+                                        composer: any
+                                        available: any
+                                        cover: { type: any; uri: any; prefix: any }
+                                        genres: any
+                                        disclaimers: any
+                                    }) => ({
+                                        id: artist.id ?? 0,
+                                        name: artist.name ?? '',
+                                        various: artist.various ?? false,
+                                        composer: artist.composer ?? false,
+                                        available: artist.available ?? false,
+                                        cover: {
+                                            type: artist.cover?.type ?? '',
+                                            uri: artist.cover?.uri ?? '',
+                                            prefix: artist.cover?.prefix ?? '',
+                                        },
+                                        genres: artist.genres ?? [],
+                                        disclaimers: artist.disclaimers ?? [],
+                                    }),
+                                ) ?? prev.artists,
                             albums:
-                                data.track?.albums?.map((album: any) => ({
-                                    id: album.id ?? 0,
-                                    title: album.title ?? '',
-                                    type: album.type ?? '',
-                                    metaType: album.metaType ?? '',
-                                    year: album.year ?? 0,
-                                    releaseDate: album.releaseDate ?? '',
-                                    coverUri: album.coverUri ?? '',
-                                    ogImage: album.ogImage ?? '',
-                                    genre: album.genre ?? '',
-                                    trackCount: album.trackCount ?? 0,
-                                    likesCount: album.likesCount ?? 0,
-                                    recent: album.recent ?? false,
-                                    veryImportant: album.veryImportant ?? false,
-                                    artists:
-                                        data.track?.artists?.map((artist: any) => ({
-                                            id: artist.id ?? null,
-                                            name: artist.name ?? 'Unknown Artist',
-                                            various: artist.various ?? false,
-                                            composer: artist.composer ?? false,
-                                            available: artist.available ?? false,
-                                            cover: {
-                                                type: artist.cover?.type ?? null,
-                                                uri: artist.cover?.uri ?? null,
-                                                prefix: artist.cover?.prefix ?? null,
-                                            },
-                                            genres: artist.genres ?? [],
-                                            disclaimers: artist.disclaimers ?? [],
-                                        })) ?? [],
-                                })) ?? [],
-                            coverUri: data.track?.coverUri ?? '',
-                            ogImage: data.track?.ogImage ?? null,
-                            lyricsAvailable: data.track?.lyricsAvailable ?? null,
-                            type: data.track?.type ?? null,
-                            rememberPosition: data.track?.rememberPosition ?? null,
-                            trackSharingFlag: data.track?.trackSharingFlag ?? null,
+                                data.track?.albums?.map(
+                                    (album: {
+                                        id: any
+                                        title: any
+                                        metaType: any
+                                        version: any
+                                        year: any
+                                        releaseDate: any
+                                        coverUri: any
+                                        ogImage: any
+                                        genre: any
+                                        trackCount: any
+                                        likesCount: any
+                                        recent: any
+                                        veryImportant: any
+                                        artists: any[]
+                                        labels: any[]
+                                        available: any
+                                        availableForPremiumUsers: any
+                                        availableForOptions: any
+                                        availableForMobile: any
+                                        availablePartially: any
+                                        bests: any
+                                        disclaimers: any
+                                        listeningFinished: any
+                                        trackPosition: { volume: any; index: any }
+                                    }) => ({
+                                        id: album.id ?? 0,
+                                        title: album.title ?? '',
+                                        metaType: album.metaType ?? '',
+                                        version: album.version ?? '',
+                                        year: album.year ?? 0,
+                                        releaseDate: album.releaseDate ?? '',
+                                        coverUri: album.coverUri ?? '',
+                                        ogImage: album.ogImage ?? '',
+                                        genre: album.genre ?? '',
+                                        trackCount: album.trackCount ?? 0,
+                                        likesCount: album.likesCount ?? 0,
+                                        recent: album.recent ?? false,
+                                        veryImportant: album.veryImportant ?? false,
+                                        artists:
+                                            album.artists?.map(a => ({
+                                                id: a.id ?? 0,
+                                                name: a.name ?? '',
+                                                various: a.various ?? false,
+                                                composer: a.composer ?? false,
+                                                available: a.available ?? false,
+                                                cover: {
+                                                    type: a.cover?.type ?? '',
+                                                    uri: a.cover?.uri ?? '',
+                                                    prefix: a.cover?.prefix ?? '',
+                                                },
+                                                genres: a.genres ?? [],
+                                                disclaimers: a.disclaimers ?? [],
+                                            })) ?? [],
+                                        labels:
+                                            album.labels?.map(label => ({
+                                                id: label.id ?? 0,
+                                                name: label.name ?? '',
+                                            })) ?? [],
+                                        available: album.available ?? false,
+                                        availableForPremiumUsers: album.availableForPremiumUsers ?? false,
+                                        availableForOptions: album.availableForOptions ?? [],
+                                        availableForMobile: album.availableForMobile ?? false,
+                                        availablePartially: album.availablePartially ?? false,
+                                        bests: album.bests ?? [],
+                                        disclaimers: album.disclaimers ?? [],
+                                        listeningFinished: album.listeningFinished ?? false,
+                                        trackPosition: {
+                                            volume: album.trackPosition?.volume ?? 0,
+                                            index: album.trackPosition?.index ?? 0,
+                                        },
+                                    }),
+                                ) ?? prev.albums,
+                            derivedColors: {
+                                average: data.track?.derivedColors?.average ?? prev.derivedColors.average,
+                                waveText: data.track?.derivedColors?.waveText ?? prev.derivedColors.waveText,
+                                miniPlayer: data.track?.derivedColors?.miniPlayer ?? prev.derivedColors.miniPlayer,
+                                accent: data.track?.derivedColors?.accent ?? prev.derivedColors.accent,
+                            },
+                            ogImage: data.track?.ogImage ?? prev.ogImage,
+                            url: data.url ?? prev.url,
+                            lyricsAvailable: data.track?.lyricsAvailable ?? prev.lyricsAvailable,
+                            type: data.track?.type ?? prev.type,
+                            rememberPosition: data.track?.rememberPosition ?? prev.rememberPosition,
+                            trackSharingFlag: data.track?.trackSharingFlag ?? prev.trackSharingFlag,
+                            lyricsInfo: {
+                                hasAvailableSyncLyrics: data.track?.lyricsInfo?.hasAvailableSyncLyrics ?? prev.lyricsInfo.hasAvailableSyncLyrics,
+                                hasAvailableTextLyrics: data.track?.lyricsInfo?.hasAvailableTextLyrics ?? prev.lyricsInfo.hasAvailableTextLyrics,
+                            },
+                            trackSource: data.track?.trackSource ?? prev.trackSource,
+                            specialAudioResources: data.track?.specialAudioResources ?? prev.specialAudioResources,
                         }))
                     })
                     return () => {
@@ -778,23 +880,13 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id])
 
     const getCoverImage = (track: Track): string => {
-        return track.albumArt || track.coverUri || track.ogImage || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
-    }
-
-    const getTrackStartTime = (track: Track): number => {
-        return track.timestamps && track.timestamps.length > 0 ? track.timestamps[0] : 0
-    }
-
-    const getTrackEndTime = (track: Track): number => {
-        return track.timestamps && track.timestamps.length > 0 ? track.timestamps[1] : 0
+        return track.coverUri || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                if (track.event !== 'trackChange') {
-                    window.discordRpc.clearActivity()
-                }
+                window.discordRpc.clearActivity()
                 return
             }
             if (track.sourceType === 'ynison') {
@@ -806,7 +898,7 @@ const Player: React.FC<any> = ({ children }) => {
                 const activity: any = {
                     type: 2,
                     details: track.title,
-                    largeImageKey: `https://${track.coverUri.replace('%%', '1000x1000')}`,
+                    largeImageKey: track.coverUri,
                     buttons: [],
                 }
                 if (app.discordRpc.showSmallIcon) {
@@ -845,21 +937,15 @@ const Player: React.FC<any> = ({ children }) => {
                 return
             } else {
                 if (
-                    track.title === '' ||
-                    (track.status === 'paused' && !app.discordRpc.displayPause) ||
-                    (track.timestamps[0] === 0 && track.timestamps[1] === 0)
+                    track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)
                 ) {
-                    if (track.event !== 'trackChange') {
-                        window.discordRpc.clearActivity()
-                    }
+                    window.discordRpc.clearActivity()
                     return
                 } else {
-                    const trackStartTime = getTrackStartTime(track)
-                    const trackEndTime = getTrackEndTime(track)
+                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000);
+                    let endTimestamp = startTimestamp + track.durationMs;
                     const artistName = track.artists.map(x => x.name).join(', ')
 
-                    const startTimestamp = Math.floor(Date.now() / 1000) * 1000 - Math.floor(Number(trackStartTime)) * 1000
-                    const endTimestamp = startTimestamp + Math.floor(Number(trackEndTime)) * 1000
 
                     const activity: any = {
                         type: 2,
@@ -934,8 +1020,8 @@ const Player: React.FC<any> = ({ children }) => {
                             activity.details = fixStrings(track.title)
                         }
 
-                        if (track.imageUrl.includes('%%')) {
-                            activity.largeImageKey = `https://${track.imageUrl.replace('%%', '1000x1000')}`
+                        if (track.coverUri.includes('%%')) {
+                            activity.largeImageKey = `https://${track.coverUri.replace('%%', 'orig')}`
                         }
 
                         delete activity.state

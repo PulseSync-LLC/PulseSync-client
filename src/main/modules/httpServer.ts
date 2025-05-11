@@ -70,10 +70,10 @@ const initializeServer = () => {
         const parsedUrl = parse(request.url || '', true)
         const version = parsedUrl.query.v || store.get('mod.version')
         const clientType = parsedUrl.query.type || 'yaMusic'
-        logger.http.log(`New client connected with version: ${version} and type: ${clientType}`)
+        logger.http.log(`New client connected with version: ${version} and cmd: ${clientType}`)
         ;(socket as any).clientType = clientType
 
-        socket.send(JSON.stringify({ type: 'WELCOME', message: 'Connected to server' }))
+        socket.send(JSON.stringify({ cmd: 'WELCOME', message: 'Connected to server' }))
 
         if (clientType !== 'web' && authorized) {
             sendDataToMusic()
@@ -93,7 +93,7 @@ const initializeServer = () => {
                                     if (j.ok) {
                                         if (!j.access) {
                                             logger.deeplinkManager.error(`Access denied for user with id: ${userId}. Quitting app.`)
-                                            //return app.quit()
+                                            return app.quit()
                                         } else {
                                             logger.deeplinkManager.info(`Access granted for user with id: ${userId}.`)
                                         }
@@ -101,12 +101,12 @@ const initializeServer = () => {
                                         logger.deeplinkManager.error(
                                             `Server returned an unsuccessful response for user with id: ${userId}. Quitting app.`,
                                         )
-                                        //return app.quit()
+                                        return app.quit()
                                     }
                                 })
                                 .catch(error => {
                                     logger.deeplinkManager.error(`Error during request for user with id: ${userId}: ${error}`)
-                                    //return app.quit()
+                                    return app.quit()
                                 })
 
                             store.set('tokens.token', dataReceived.args.token)
@@ -116,15 +116,15 @@ const initializeServer = () => {
                             logger.http.log('Received BROWSER_BAN event:', dataReceived)
                             mainWindow.webContents.send('authBanned', { reason: dataReceived.args.reason })
                             break
+                        case 'UPDATE_DATE':
+                            if (!authorized) break
+                            logger.http.log('Received UPDATE_DATA event')
+                            updateData(dataReceived.data)
+                            break
                         default:
                             logger.http.warn('Unknown command received:', dataReceived)
                     }
                     return
-                }
-                if (dataReceived.type === 'UPDATE_DATA' && authorized) {
-                    updateData(dataReceived.data)
-                } else {
-                    logger.http.log('Received unknown message type:', dataReceived)
                 }
             } catch (err) {
                 logger.http.error('Error processing WebSocket message:', err)
@@ -134,11 +134,9 @@ const initializeServer = () => {
         socket.on('close', () => {
             logger.http.log('Client disconnected')
 
-            data.status = 'null'
             mainWindow.webContents.send('trackinfo', {
                 data: {
-                    status: 'pause',
-                    track: trackInitials,
+                    trackInitials,
                 },
             })
         })
@@ -265,7 +263,7 @@ export const setAddon = (theme: string) => {
                     JSON.stringify({
                         ok: true,
                         theme: themeData,
-                        type: 'THEME',
+                        cmd: 'THEME',
                     }),
                 )
             }
@@ -313,7 +311,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
                     JSON.stringify({
                         ok: true,
                         theme: themeData,
-                        type: 'UPDATE_CSS',
+                        cmd: 'UPDATE_CSS',
                     }),
                 )
             }
@@ -325,7 +323,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
                     JSON.stringify({
                         ok: true,
                         theme: themeData,
-                        type: 'THEME',
+                        cmd: 'THEME',
                     }),
                 )
             }
@@ -381,7 +379,7 @@ const sendExtensions = async () => {
         x.send(
             JSON.stringify({
                 ok: true,
-                type: 'REFRESH_EXTENSIONS',
+                cmd: 'REFRESH_EXTENSIONS',
                 addons: validExtensions,
             }),
         )
@@ -411,9 +409,25 @@ ipcMain.on('REFRESH_MOD_INFO', async (event, _) => {
     sendDataToMusic()
     logger.http.log('Received REFRESH_MOD_INFO event. Send info to Yandex Music...')
 })
+ipcMain.on('REFRESH_EXTENSIONS', async (event, _) => {
+    await sendExtensions()
+})
+
+ipcMain.on('GET_TRACK_INFO', async (event, _) => {
+    logger.http.log('Returning current track data')
+    if (!ws) return
+    ws.clients.forEach(x =>
+        x.send(
+            JSON.stringify({
+                ok: true,
+                cmd: 'GET_TRACK_INFO',
+            }),
+        ),
+    )
+})
 
 const sendDataToMusic = () => {
-    if(!ws.clients) return
+    if (!ws?.clients) return
     sendAddon(true, true)
     const waitSockets = new Promise<void>(resolve => {
         const interval = setInterval(() => {
@@ -430,7 +444,7 @@ const sendDataToMusic = () => {
                 x.send(
                     JSON.stringify({
                         ok: true,
-                        type: 'REFRESH_EXTENSIONS',
+                        cmd: 'REFRESH_EXTENSIONS',
                         addons: [],
                     }),
                 )

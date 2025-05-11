@@ -1,3 +1,142 @@
+export interface Track {
+    currentDevice: CurrentDevice
+    downloadInfo: DownloadInfo
+    isPlaying: boolean
+    canMoveBackward: boolean
+    canMoveForward: boolean
+    status: string
+    sourceType: string
+    ynisonProgress: number
+    progress: Progress
+    availableActions: AvailableActions
+    actionsStore: ActionsStore
+    id: string
+    realId: string
+    title: string
+    major: {
+        id: number
+        name: string
+    }
+    available: boolean
+    availableForPremiumUsers: boolean
+    availableFullWithoutPermission: boolean
+    availableForOptions: string[]
+    disclaimers: any[]
+    storageDir: string
+    durationMs: number
+    fileSize: number
+    r128: R128
+    fade: Fade
+    previewDurationMs: number
+    artists: Artist[]
+    albums: Album[]
+    coverUri: string
+    derivedColors: DerivedColors
+    ogImage: string
+    url: string
+    lyricsAvailable: boolean
+    type: string
+    rememberPosition: boolean
+    trackSharingFlag: string
+    lyricsInfo: LyricsInfo
+    trackSource: string
+    specialAudioResources: string[]
+}
+
+export interface R128 {
+    i: number
+    tp: number
+}
+
+export interface Fade {
+    inStart: number
+    inStop: number
+    outStart: number
+    outStop: number
+}
+
+export interface Artist {
+    id: number
+    name: string
+    various: boolean
+    composer: boolean
+    available: boolean
+    cover: {
+        type: string
+        uri: string
+        prefix: string
+    }
+    genres: any[]
+    disclaimers: any[]
+}
+
+export interface Album {
+    id: number
+    title: string
+    metaType: string
+    version: string
+    year: number
+    releaseDate: string
+    coverUri: string
+    ogImage: string
+    genre: string
+    trackCount: number
+    likesCount: number
+    recent: boolean
+    veryImportant: boolean
+    artists: Artist[]
+    labels: Label[]
+    available: boolean
+    availableForPremiumUsers: boolean
+    availableForOptions: string[]
+    availableForMobile: boolean
+    availablePartially: boolean
+    bests: any[]
+    disclaimers: any[]
+    listeningFinished: boolean
+    trackPosition: {
+        volume: number
+        index: number
+    }
+}
+
+export interface Label {
+    id: number
+    name: string
+}
+
+export interface DerivedColors {
+    average: string
+    waveText: string
+    miniPlayer: string
+    accent: string
+}
+
+export interface LyricsInfo {
+    hasAvailableSyncLyrics: boolean
+    hasAvailableTextLyrics: boolean
+}
+
+export interface Progress {
+    duration: number
+    position: number
+    loaded: number
+}
+
+export interface AvailableActions {
+    moveBackward: boolean
+    moveForward: boolean
+    repeat: boolean
+    shuffle: boolean
+    speed: boolean
+}
+
+export interface ActionsStore {
+    repeat: string
+    shuffle: boolean
+    isLiked: boolean
+    isDisliked: boolean
+}
 export interface DownloadInfo {
     trackId: string
     quality: string
@@ -43,108 +182,4 @@ interface CurrentDevice {
             timestamp_ms: string
         }
     }
-}
-export interface Track {
-    currentDevice: CurrentDevice
-    sourceType: string
-    event: string
-    progress: Progress
-    ynisonProgress: number
-    queue: any[]
-    currentMs: number
-    repeat: string
-    shuffle: boolean
-    speed: number
-    volume: number
-    status: string
-    url: string
-    linkTitle: string
-    albumArt: string
-    timestamps: number[]
-    realId: string
-    imageUrl: string
-    id: string
-    title: string
-    major: {
-        id: number
-        name: string
-    }
-    available: boolean
-    availableForPremiumUsers: boolean
-    availableFullWithoutPermission: boolean
-    availableForOptions: string[]
-    disclaimers: any[]
-    storageDir: string
-    durationMs: number
-    fileSize: number
-    r128: {
-        i: number
-        tp: number
-    }
-    artists: Artist[]
-    albums: Album[]
-    coverUri: string
-    ogImage: string
-    lyricsAvailable: boolean
-    type: string
-    rememberPosition: boolean
-    trackSharingFlag: string
-    lyricsInfo: {
-        hasAvailableSyncLyrics: boolean
-        hasAvailableTextLyrics: boolean
-    }
-    trackSource: string
-    specialAudioResources: string[]
-    liked: boolean
-    downloadInfo: DownloadInfo
-}
-
-export interface Artist {
-    id: number
-    name: string
-    various: boolean
-    composer: boolean
-    available: boolean
-    cover: {
-        type: string
-        uri: string
-        prefix: string
-    }
-    genres: any[]
-    disclaimers: any[]
-}
-
-export interface Album {
-    id: number
-    title: string
-    type: string
-    metaType: string
-    year: number
-    releaseDate: string
-    coverUri: string
-    ogImage: string
-    genre: string
-    trackCount: number
-    likesCount: number
-    recent: boolean
-    veryImportant: boolean
-    artists: Artist[]
-    labels: Label[]
-    available: boolean
-    availableForPremiumUsers: boolean
-    availableForOptions: string[]
-    availableForMobile: boolean
-    availablePartially: boolean
-    bests: any[]
-    disclaimers: any[]
-    listeningFinished: boolean
-    trackPosition: {
-        volume: number
-        index: number
-    }
-}
-
-export interface Label {
-    id: number
-    name: string
 }

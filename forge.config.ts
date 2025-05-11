@@ -1,23 +1,18 @@
 import type { ForgeConfig } from '@electron-forge/shared-types'
-import { MakerSquirrel } from '@electron-forge/maker-squirrel'
-import { MakerZIP } from '@electron-forge/maker-zip'
-import { MakerDeb } from '@electron-forge/maker-deb'
-import { MakerRpm } from '@electron-forge/maker-rpm'
 import { WebpackPlugin } from '@electron-forge/plugin-webpack'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import MakerDMG from '@electron-forge/maker-dmg'
-import config from './src/config.json'
 import { mainConfig } from './webpack.main.config'
 import { rendererConfig } from './webpack.renderer.config'
 import path from 'path'
 import fs from 'fs-extra'
 import os from 'os'
 
-const forge_config: ForgeConfig = {
+const forgeConfig: ForgeConfig = {
     packagerConfig: {
         icon: './icons/win/icon.ico',
         name: 'PulseSync',
+        executableName: 'PulseSync',
         appCopyright: 'Copyright (C) 2025 PulseSync LLC',
         asar: true,
         win32metadata: {
@@ -28,10 +23,10 @@ const forge_config: ForgeConfig = {
     rebuildConfig: {},
     makers: [
         {
-            name: '@electron-forge/maker-zip',
-            config: (arch: any) => ({
-                macUpdateManifestBaseUrl: `${config.UPDATE_URL}/beta/darwin/${arch}`,
-            }),
+            "name": "@electron-forge/maker-zip",
+            "config": {
+                "macUpdateManifestBaseUrl": "${config.UPDATE_URL}/beta/darwin/{{arch}}"
+            }
         },
         {
             "name": "@electron-forge/maker-deb",
@@ -45,13 +40,15 @@ const forge_config: ForgeConfig = {
                 "desktopTemplate": "pulsesync.desktop"
             }
         },
-        new MakerDMG({
-            name: 'PulseSync',
-            background: './static/assets/images/no_banner.png',
-            icon: './icons/mac/icon.icns',
-            format: 'ULFO',
-            overwrite: true,
-        }),
+        {
+            "name": "@electron-forge/maker-dmg",
+            "config": {
+                "background": "./static/assets/images/no_banner.png",
+                "icon": "./icons/mac/icon.icns",
+                "format": "ULFO",
+                "overwrite": true
+            }
+        }
     ],
     plugins: [
         new WebpackPlugin({
@@ -96,54 +93,27 @@ const forge_config: ForgeConfig = {
         }),
     ],
     hooks: {
-        packageAfterPrune: async (forgeConfig, buildPath) => {
-            const packageDotJsonPath = path.resolve(buildPath, 'package.json');
-            const packageDotJson = fs.readFileSync(packageDotJsonPath);
-            const json = JSON.parse(packageDotJson.toString());
-            Object.keys(json).forEach((key) => {
-                switch(key){
-                    case 'name': {
-                        break;
-                    }
-                    case 'version': {
-                        break;
-                    }
-                    case 'main': {
-                        break;
-                    }
-                    case 'author': {
-                        break;
-                    }
-                    case 'homepage': {
-                        break;
-                    }
-                    default: {
-                        delete json[key];
-                        break;
-                    }
+        packageAfterPrune: async (_forgeConfig, buildPath) => {
+            const packageJsonPath = path.resolve(buildPath, 'package.json')
+            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+            Object.keys(pkg).forEach(key => {
+                switch (key) {
+                    case 'name':
+                    case 'version':
+                    case 'main':
+                    case 'author':
+                    case 'homepage':
+                        break
+                    default:
+                        delete pkg[key]
                 }
-            });
-            fs.writeFileSync(packageDotJsonPath, JSON.stringify(json, null, '\t'));
+            })
+            fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
-        packageAfterCopy: async (
-            forgeConfig,
-            buildPath,
-            electronVersion,
-            platform,
-            arch,
-        ) => {
-            console.log(
-                `build app ${platform}-${arch} with electron ${electronVersion}`,
-            )
-            if (os.platform() !== 'darwin') {
-                const outDir = path.join(buildPath, '..', '..', 'modules')
-                const sourceDir = path.join(__dirname, 'modules')
-                await fs.ensureDir(outDir)
-                await fs.copy(sourceDir, outDir)
-                console.log(`Copied modules to ${outDir}`)
-            }
+        packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
+            console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },
 }
 
-export default forge_config
+export default forgeConfig
