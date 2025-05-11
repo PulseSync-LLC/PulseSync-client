@@ -24,277 +24,21 @@
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
 
-    & > .bannerBackground {
-        transition: var(--transition);
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        padding: 0px;
-        width: -webkit-fill-available;
-        background-size: 100% !important;
-        background-position: 50% 50% !important;
-        position: relative;
-
-        & > .hideButton {
-            opacity: 0.25;
-            transition: var(--transition);
-            cursor: pointer;
-
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 10px;
-            gap: 10px;
-
-            position: absolute;
-            right: 30px;
-            bottom: 22px;
-            border: none;
-
-            background: #272a33;
-            color: #ffffff;
-            border-radius: 239px;
-
-            &:hover {
-                background: #333742;
-            }
-        }
-
-        &:hover {
-            & > .hideButton {
-                opacity: 1;
-            }
-        }
-
-        &::after {
-            content: '';
-            background: #1e2027;
-            width: -webkit-fill-available;
-            height: 1px;
-            position: absolute;
-            bottom: 0;
-        }
-    }
-
-    & > .themeInfo {
-        position: sticky;
-        z-index: 11;
-        top: 0;
-
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: 15px 30px;
-        width: -webkit-fill-available;
-        justify-content: space-between;
-        background: #292c36;
-
-        & > .themeHeader {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            align-items: flex-start;
-            height: -webkit-fill-available;
-            padding: 0px;
-            gap: 2px;
-
-            & > .containerLeft {
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                padding: 0px;
-                gap: 15px;
-
-                width: -webkit-fill-available;
-
-                & > .themeImage {
-                    width: 55px;
-                    height: 55px;
-
-                    border-radius: 8px;
-                }
-
-                & > .themeTitle {
-                    display: flex;
-                    flex-direction: column;
-                    align-items: flex-start;
-
-                    & > .titleContainer {
-                        display: flex;
-                        flex-direction: row;
-                        align-items: center;
-                        padding: 0px;
-                        gap: 5px;
-
-                        font-weight: 700;
-                        font-size: 16px;
-                        line-height: 140%;
-                        --color: color;
-
-                        color: #8d97b5;
-
-                        & > .path {
-                            transition: var(--transition);
-                            cursor: pointer;
-                            color: var(--color);
-
-                            &:hover {
-                                color: #a2baff;
-                            }
-                        }
-
-                        & > .title {
-                            color: #ffffff;
-                        }
-
-                        & > .addFavorite {
-                            transition: var(--transition);
-                            cursor: pointer;
-                            display: flex;
-                            flex-direction: row;
-                            justify-content: center;
-                            align-items: center;
-                            padding: 5px;
-                            gap: 10px;
-                            border: none;
-                            margin-left: 4px;
-
-                            background: #818db338;
-                            color: white;
-                            border-radius: 4px;
-
-                            &:disabled {
-                                cursor: not-allowed;
-                                opacity: 0.5;
-                                &:hover {
-                                    background: #818db338;
-                                }
-                            }
-
-                            &:hover {
-                                background: #818db370;
-                            }
-                        }
-                    }
-
-                    & > .rating {
-                        font-size: 16px;
-                        line-height: 140%;
-                    }
-
-                    & > .authorInfo {
-                        display: flex;
-                        flex-direction: row;
-                        align-items: center;
-                        padding: 0px;
-                        gap: 4px;
-
-                        font-weight: 400;
-                        font-size: 11px;
-                        line-height: 140%;
-
-                        color: #bbc3de;
-                    }
-                }
-            }
-        }
-
-        & > .rightContainer {
-            justify-content: space-between;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            padding: 0px;
-            gap: 15px;
-            width: fit-content;
-            height: fit-content;
-
-            & > .detailsContainer {
-                display: flex;
-                flex-direction: column;
-                align-items: flex-end;
-                padding: 0px;
-                gap: 4px;
-
-                & > .detailInfo {
-                    display: flex;
-                    flex-direction: row;
-                    align-items: flex-start;
-                    padding: 0px;
-                    gap: 4px;
-
-                    & > .box {
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center;
-                        align-items: center;
-
-                        background: rgba(129, 141, 179, 0.22);
-                        border: none;
-
-                        font-weight: 700;
-                        font-size: 11px;
-                        line-height: 140%;
-
-                        color: #bbc3de;
-                        padding: 2px 8px;
-                        gap: 4px;
-                        border-radius: 26px;
-
-                        & > svg {
-                            width: 15px;
-                            height: 15px;
-                        }
-                    }
-
-                    & > .tag {
-                        cursor: pointer;
-                        transition: var(--transition);
-                        display: flex;
-                        flex-direction: row;
-                        justify-content: center;
-                        align-items: center;
-
-                        background: rgba(52, 104, 242, 0.22);
-                        border: none;
-
-                        font-weight: 700;
-                        font-size: 11px;
-                        line-height: 140%;
-
-                        color: #94b1ff;
-                        padding: 2px 8px;
-                        gap: 4px;
-                        border-radius: 26px;
-
-                        &:hover {
-                            background: rgba(52, 104, 242, 0.44);
-                        }
-                    }
-                }
-            }
-        }
-    }
-
     & > .extensionNav {
         position: sticky;
         z-index: 10;
-        top: 85px;
-
+        top: 66px;
+        justify-content: space-between;
+        gap: 8px;
         box-sizing: border-box;
-
         display: flex;
         flex-direction: row;
-        justify-content: space-between;
-        align-items: flex-start;
-        padding: 0px 30px;
-        gap: 8px;
-
-        width: -webkit-fill-available;
-
-        background: #272a33;
-        border-bottom: 1px solid #363944;
+        align-items: center;
+        padding: 0px 40px;
+        background: #383e52f0;
+        border-bottom: 1px solid #3d445b;
+        backdrop-filter: blur(50px);
+        width: auto;
 
         & > .extensionNavContainer {
             display: flex;
@@ -308,6 +52,8 @@
         align-items: center;
         flex-direction: column;
         background: #303440;
+        z-index: 2;
+        position: relative;
 
         & > .alertContent {
             height: 25vh;

@@ -1,21 +1,23 @@
-import React, { useContext, useEffect, useRef, useState, useMemo } from 'react'
-import { useSearchParams } from 'react-router-dom'
-import Layout from '../../components/layout'
-import * as styles from '../../../../static/styles/page/index.module.scss'
-import * as extensionStylesV2 from './extension.module.scss'
-import AddonInterface from '../../api/interfaces/addon.interface'
-import toast from '../../components/toast'
-import userContext from '../../api/context/user.context'
-import ArrowRefreshImg from './../../../../static/assets/stratis-icons/arrowRefresh.svg'
-import FileAddImg from './../../../../static/assets/stratis-icons/file-add.svg'
-import FileImg from './../../../../static/assets/stratis-icons/file.svg'
-import ContainerV2 from '../../components/containerV2'
-import { ExtensionView } from './route/extensionview'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+
 import { MdCheckCircle, MdColorLens, MdFilterList, MdMoreHoriz, MdTextSnippet } from 'react-icons/md'
+import stringSimilarity from 'string-similarity'
+
+import userContext from '../../api/context/user.context'
+import AddonInterface from '../../api/interfaces/addon.interface'
+
+import toast from '../../components/toast'
+
+import Layout from '../../components/layout'
+import ContainerV2 from '../../components/containerV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
 import OptionMenu from '../../components/PSUI/OptionMenu'
-import stringSimilarity from 'string-similarity'
+
+import ExtensionView from './route/extensionview'
+
+import * as extensionStylesV2 from './extension.module.scss'
+import * as styles from '../../../../static/styles/page/index.module.scss'
 
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
@@ -37,6 +39,16 @@ export default function ExtensionPage() {
     const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
+
+    type SortKey = keyof typeof defaultOrder
+
+    const defaultOrder = {
+        alphabet: 'asc',
+        author: 'asc',
+        date: 'asc',
+        size: 'desc',
+        type: 'asc',
+    } as const
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -77,10 +89,12 @@ export default function ExtensionPage() {
         if (addon.type === 'theme') {
             if (newChecked) {
                 setCurrentTheme(addon.directoryName)
+                window.electron.store.set('addons.theme', addon.directoryName)
                 window.desktopEvents?.send('themeChanged', addon)
                 toast.custom('success', 'Тема активирована', `${addon.name} теперь активна`)
             } else {
                 setCurrentTheme('Default')
+                window.electron.store.set('addons.theme', 'Default')
                 toast.custom('info', 'Тема деактивирована', 'Установлена тема по умолчанию')
             }
         } else {
@@ -112,18 +126,17 @@ export default function ExtensionPage() {
         setter(newSet)
     }
 
-    const handleSortChange = (option: 'alphabet' | 'date' | 'size' | 'author' | 'type') => {
+    const handleSortChange = (option: SortKey) => {
         if (option === sort) {
-            setSortOrder(prev => (prev === 'asc' ? 'desc' : 'desc'))
+            setSortOrder(prev => (prev === 'asc' ? 'desc' : 'asc'))
         } else {
             setSort(option)
-            setSortOrder('desc')
+            setSortOrder(defaultOrder[option])
         }
     }
 
     const mergedAddons = useMemo(() => {
         let result = addons.filter(a => a.name !== 'Default')
-
         if (type !== 'all') {
             result = result.filter(addon => addon.type === type)
         }
@@ -162,14 +175,14 @@ export default function ExtensionPage() {
                 result.sort((a, b) => {
                     const typeA = a.type || ''
                     const typeB = b.type || ''
-                    const comparison = typeA.localeCompare(typeB)
-                    return sortOrder === 'asc' ? comparison : -comparison
+                    const cmp = typeA.localeCompare(typeB)
+                    return sortOrder === 'asc' ? cmp : -cmp
                 })
                 break
             case 'alphabet':
                 result.sort((a, b) => {
-                    const comparison = a.name.localeCompare(b.name)
-                    return sortOrder === 'asc' ? comparison : -comparison
+                    const cmp = a.name.localeCompare(b.name)
+                    return sortOrder === 'asc' ? cmp : -cmp
                 })
                 break
             case 'date':
@@ -190,16 +203,16 @@ export default function ExtensionPage() {
                 result.sort((a, b) => {
                     const authorA = typeof a.author === 'string' ? a.author : ''
                     const authorB = typeof b.author === 'string' ? b.author : ''
-                    const comparison = authorA.localeCompare(authorB)
-                    return sortOrder === 'asc' ? comparison : -comparison
+                    const cmp = authorA.localeCompare(authorB)
+                    return sortOrder === 'asc' ? cmp : -cmp
                 })
                 break
         }
 
         if (hideEnabled) {
-            result = result.filter(addon => {
-                return addon.type === 'theme' ? addon.directoryName !== currentTheme : !enabledScripts.includes(addon.directoryName)
-            })
+            result = result.filter(addon =>
+                addon.type === 'theme' ? addon.directoryName !== currentTheme : !enabledScripts.includes(addon.directoryName),
+            )
         }
 
         return result
@@ -251,14 +264,10 @@ export default function ExtensionPage() {
 
     const getImagePath = (addon: AddonInterface) => {
         const { path, image } = addon
-
-        if (typeof image === 'string' && image.trim() !== '' && !image.startsWith('http')) {
-            if (isValidPath(path) && isValidImage(image)) {
-                const fullPath = `${path}/${image}`.replace(/\\/g, '/')
-                return encodeURI(fullPath)
-            }
+        if (typeof image === 'string' && image.trim() !== '' && !image.startsWith('http') && isValidPath(path) && isValidImage(image)) {
+            const fullPath = `${path}/${image}`.replace(/\\/g, '/')
+            return encodeURI(fullPath)
         }
-
         return 'static/assets/images/no_themeImage.png'
     }
 
@@ -281,6 +290,14 @@ export default function ExtensionPage() {
         })
     }
 
+    const enabled = mergedAddons.filter(addon =>
+        addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
+    )
+
+    const disabled = mergedAddons.filter(
+        addon => !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
+    )
+
     return (
         <Layout title="Аддоны">
             <div className={styles.page}>
@@ -290,18 +307,13 @@ export default function ExtensionPage() {
                         <div ref={containerRef}>
                             {showFilters && (
                                 <AddonFilters
-                                    tags={Array.from(new Set(addons.filter(addon => addon.name !== 'Default').flatMap(addon => addon.tags || [])))}
+                                    tags={Array.from(new Set(addons.filter(ad => ad.name !== 'Default').flatMap(ad => ad.tags || [])))}
                                     creators={Array.from(
                                         new Set(
                                             addons
-                                                .filter(addon => addon.name !== 'Default')
-                                                .map(addon => {
-                                                    if (typeof addon.author === 'string' && addon.author.trim() !== '') {
-                                                        return addon.author
-                                                    }
-                                                    return null
-                                                })
-                                                .filter(author => author !== null),
+                                                .filter(ad => ad.name !== 'Default')
+                                                .map(ad => (typeof ad.author === 'string' && ad.author.trim() !== '' ? ad.author : null))
+                                                .filter((a): a is string => a !== null),
                                         ),
                                     )}
                                     sort={sort}
@@ -340,16 +352,23 @@ export default function ExtensionPage() {
                                         />
                                         <button
                                             ref={filterButtonRef}
-                                            className={`${extensionStylesV2.filterButton}`}
+                                            className={extensionStylesV2.filterButton}
                                             style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
                                             onClick={toggleFilterPanel}
                                         >
                                             <MdFilterList />
-                                            {selectedTags.size + selectedCreators.size > 0 && (
-                                                <div className={extensionStylesV2.count}>
-                                                    {selectedTags.size + selectedCreators.size > 9 ? '9+' : selectedTags.size + selectedCreators.size}
-                                                </div>
-                                            )}
+                                            {(() => {
+                                                const activeFiltersCount =
+                                                    (type !== 'all' ? 1 : 0) + (sort !== 'type' ? 1 : 0) + selectedTags.size + selectedCreators.size
+
+                                                return (
+                                                    activeFiltersCount > 0 && (
+                                                        <div className={extensionStylesV2.count}>
+                                                            {activeFiltersCount > 9 ? '9+' : activeFiltersCount}
+                                                        </div>
+                                                    )
+                                                )
+                                            })()}
                                         </button>
                                     </div>
                                     <button
@@ -372,12 +391,22 @@ export default function ExtensionPage() {
                                             .map(addon => (
                                                 <div
                                                     key={addon.name}
-                                                    className={`${extensionStylesV2.addonCard} ${selectedAddon === addon ? extensionStylesV2.addonCardSelected : ''}`}
+                                                    className={`${extensionStylesV2.addonCard} ${
+                                                        selectedAddon === addon ? extensionStylesV2.addonCardSelected : ''
+                                                    }`}
                                                     onClick={() => handleAddonClick(addon)}
                                                 >
                                                     <div
-                                                        className={`${extensionStylesV2.checkSelect} ${addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript}`}
-                                                        style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
+                                                        className={`${extensionStylesV2.checkSelect} ${
+                                                            addon.type === 'theme'
+                                                                ? extensionStylesV2.checkMarkTheme
+                                                                : extensionStylesV2.checkMarkScript
+                                                        }`}
+                                                        style={{
+                                                            marginRight: '12px',
+                                                            opacity: 1,
+                                                            cursor: 'pointer',
+                                                        }}
                                                         onClick={e => {
                                                             e.stopPropagation()
                                                             handleCheckboxChange(
@@ -403,7 +432,10 @@ export default function ExtensionPage() {
                                                 </div>
                                             ))}
                                     </div>
-                                    <div className={extensionStylesV2.line}></div>
+                                    {enabled.length > 0 && disabled.length > 0 && <div className={extensionStylesV2.line}></div>}
+                                    {enabled.length === 0 && disabled.length === 0 && (
+                                        <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
+                                    )}
                                     <div className={extensionStylesV2.disabledAddons}>
                                         {mergedAddons
                                             .filter(
@@ -415,11 +447,17 @@ export default function ExtensionPage() {
                                             .map(addon => (
                                                 <div
                                                     key={addon.name}
-                                                    className={`${extensionStylesV2.addonCard} ${selectedAddon === addon ? extensionStylesV2.addonCardSelected : ''}`}
+                                                    className={`${extensionStylesV2.addonCard} ${
+                                                        selectedAddon === addon ? extensionStylesV2.addonCardSelected : ''
+                                                    }`}
                                                     onClick={() => handleAddonClick(addon)}
                                                 >
                                                     <div
-                                                        className={`${extensionStylesV2.checkSelect} ${addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript}`}
+                                                        className={`${extensionStylesV2.checkSelect} ${
+                                                            addon.type === 'theme'
+                                                                ? extensionStylesV2.checkMarkTheme
+                                                                : extensionStylesV2.checkMarkScript
+                                                        }`}
                                                         style={{ color: '#565F77' }}
                                                         onClick={e => {
                                                             e.stopPropagation()
@@ -458,6 +496,8 @@ export default function ExtensionPage() {
                                                 : enabledScripts.includes(selectedAddon.directoryName)
                                         }
                                         onToggleEnabled={enabled => handleCheckboxChange(selectedAddon, enabled)}
+                                        setSelectedTags={setSelectedTags}
+                                        setShowFilters={setShowFilters}
                                     />
                                 )}
                             </div>

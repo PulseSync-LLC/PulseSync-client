@@ -117,23 +117,22 @@ input[type='checkbox'] {
         border-color 0.3s;
 }
 
-/* Псевдоэлемент для точки в центре радиокнопки */
 .customRadio::before {
     content: '';
     position: absolute;
     width: 10px;
     height: 10px;
-    background-color: #b1e3cf; /* Цвет точки */
+    background-color: #b1e3cf;
     border-radius: 50%;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Центрирование */
-    opacity: 0; /* Скрыто по умолчанию */
+    transform: translate(-50%, -50%);
+    opacity: 0;
     transition: opacity 0.3s;
 }
 
 .customRadio.selected::before {
-    opacity: 1; /* Показывается точка при выборе */
+    opacity: 1;
 }
 
 .selected {
@@ -150,7 +149,6 @@ input[type='checkbox'] {
     border-color: #99ccb8;
 }
 
-/* Кастомные чекбоксы */
 .checkboxLabel input[type='checkbox'] {
     display: none;
 }
@@ -167,7 +165,6 @@ input[type='checkbox'] {
         border-color 0.3s;
 }
 
-/* Псевдоэлемент для галочки в чекбоксе */
 .checkboxLabel .customCheckbox::before {
     content: '';
     position: absolute;
@@ -175,22 +172,21 @@ input[type='checkbox'] {
     height: 10px;
     min-width: 10px;
     background-color: transparent;
-    border-radius: 2px; /* Можно изменить для изменения формы */
+    border-radius: 2px;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%); /* Центрирование */
-    border: 5px solid #b1e3cf; /* Пустая рамка для квадратика */
-    opacity: 0; /* Скрыто по умолчанию */
+    transform: translate(-50%, -50%);
+    border: 5px solid #b1e3cf;
+    opacity: 0;
     transition:
         opacity 0.3s,
         transform 0.3s;
 }
 
-/* Показываем квадратик с галочкой, когда чекбокс выбран */
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox::before {
     opacity: 1;
-    transform: translate(-50%, -50%) scale(0.5); /* Уменьшаем галочку */
-    background-color: #b1e3cf; /* Цвет фона квадратика */
+    transform: translate(-50%, -50%) scale(0.5);
+    background-color: #b1e3cf;
 }
 
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox {
@@ -200,4 +196,16 @@ input[type='checkbox'] {
 
 .checkboxLabel:hover .customCheckbox {
     border-color: #99ccb8;
+}
+
+.resetIcon {
+    margin-left: 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: var(--transition);
+    vertical-align: middle;
+
+    &:hover {
+        opacity: 1;
+    }
 }

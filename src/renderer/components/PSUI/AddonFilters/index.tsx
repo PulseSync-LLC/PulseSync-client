@@ -1,7 +1,7 @@
-import React, { startTransition } from 'react'
+import React from 'react'
 import * as styles from './AddonFilters.module.scss'
 import Scrollbar from '../../PSUI/Scrollbar'
-import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
+import { MdKeyboardArrowUp, MdRefresh } from 'react-icons/md'
 
 interface AddonFiltersProps {
     tags: string[]
@@ -43,20 +43,41 @@ export default function AddonFilters({
 
     const handleSortClick = (option: 'alphabet' | 'date' | 'size' | 'author' | 'type') => {
         if (sort === option) {
-            // По умолчанию сортировка должна быть по убыванию
             onSortOrderChange(sortOrder === 'asc' ? 'desc' : 'asc')
         } else {
-            // Если сортировка по новому параметру, начинаем с сортировки по убыванию
             onSortChange(option)
-            onSortOrderChange('desc') // Сортировка по убыванию по умолчанию
+            onSortOrderChange(option === 'alphabet' || option === 'author' || option === 'date' ? 'asc' : 'desc')
         }
     }
 
+    const resetSort = () => {
+        onSortChange('type')
+        onSortOrderChange('desc')
+    }
+
+    const resetType = () => {
+        setType('all')
+    }
+
+    const resetTags = () => {
+        setSelectedTags(new Set())
+    }
+
+    const resetCreators = () => {
+        setSelectedCreators(new Set())
+    }
+
+    const renderTitle = (title: string, onReset: () => void, showReset: boolean) => (
+        <div className={styles.filterTitle}>
+            {title}
+            {showReset && <MdRefresh size={16} className={styles.resetIcon} onClick={onReset} />}
+        </div>
+    )
+
     return (
         <Scrollbar className={styles.filterWindow} classNameInner={styles.filterWindowInner}>
-            {/* Сортировка */}
             <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>СОРТИРОВКА</div>
+                {renderTitle('СОРТИРОВКА', resetSort, sort !== 'type' || sortOrder !== 'desc')}
                 {['type', 'alphabet', 'date', 'size', 'author'].map(opt => (
                     <div
                         key={opt}
@@ -66,22 +87,26 @@ export default function AddonFilters({
                         <div className={`${styles.customRadio} ${sort === opt ? styles.selected : ''}`} />
                         <div className={styles.textGroup}>
                             <div className={styles.text}>
-                            {opt === 'type'
-                                ? 'По типу'
-                                : opt === 'alphabet'
-                                  ? 'По алфавиту'
-                                  : opt === 'date'
-                                    ? 'По дате'
-                                    : opt === 'size'
-                                      ? 'По размеру'
-                                      : 'По авторам'}
+                                {opt === 'type'
+                                    ? 'По типу'
+                                    : opt === 'alphabet'
+                                      ? `По алфавиту${sort === 'alphabet' ? (sortOrder === 'asc' ? ' (А-Я)' : ' (Я-А)') : ''}`
+                                      : opt === 'date'
+                                        ? 'По дате'
+                                        : opt === 'size'
+                                          ? 'По размеру'
+                                          : 'По авторам'}
                             </div>
                             {sort === opt && (
                                 <MdKeyboardArrowUp
                                     size={18}
                                     style={{
-                                        transition: "var(--transition)",
-                                        transform: sortOrder === 'asc' ? "rotate(0deg)" : "rotate(180deg)"
+                                        transition: 'var(--transition)',
+                                        transform: (() => {
+                                            const inverted = ['alphabet', 'author', 'date'].includes(opt)
+                                            const shouldRotate = inverted ? sortOrder === 'asc' : sortOrder === 'desc'
+                                            return shouldRotate ? 'rotate(180deg)' : 'rotate(0deg)'
+                                        })(),
                                     }}
                                 />
                             )}
@@ -90,9 +115,8 @@ export default function AddonFilters({
                 ))}
             </div>
 
-            {/* Тип аддонов */}
             <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>ТИП</div>
+                {renderTitle('ТИП', resetType, type !== 'all')}
                 {['all', 'theme', 'script'].map(opt => (
                     <div key={opt} className={`${styles.radioLabel} ${type === opt ? styles.selected : ''}`} onClick={() => setType(opt as any)}>
                         <div className={`${styles.customRadio} ${type === opt ? styles.selected : ''}`} />
@@ -101,9 +125,8 @@ export default function AddonFilters({
                 ))}
             </div>
 
-            {/* Теги */}
             <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>ТЕГИ</div>
+                {renderTitle('ТЕГИ', resetTags, selectedTags.size > 0)}
                 {tags.map(tag => (
                     <label key={tag} className={`${styles.checkboxLabel} ${selectedTags.has(tag) ? styles.selected : ''}`}>
                         <input type="checkbox" checked={selectedTags.has(tag)} onChange={() => toggleSet(selectedTags, tag, setSelectedTags)} />
@@ -113,9 +136,8 @@ export default function AddonFilters({
                 ))}
             </div>
 
-            {/* Авторы */}
             <div className={styles.filterGroup}>
-                <div className={styles.filterTitle}>АВТОРЫ</div>
+                {renderTitle('АВТОРЫ', resetCreators, selectedCreators.size > 0)}
                 {creators.map(creator => (
                     <label key={creator} className={`${styles.checkboxLabel} ${selectedCreators.has(creator) ? styles.selected : ''}`}>
                         <input

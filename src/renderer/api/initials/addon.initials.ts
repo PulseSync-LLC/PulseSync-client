@@ -7,6 +7,7 @@ const AddonInitials: AddonInterface[] = [
         image: 'url',
         author: 'Your Name',
         banner: '',
+        libraryLogo: '',
         directoryName: 'default',
         description: 'Default theme.',
         version: '1.0.0',
