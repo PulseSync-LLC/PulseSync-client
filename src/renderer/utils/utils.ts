@@ -84,6 +84,7 @@ export const errorTypesToShow = new Set([
     'mod_filename_missing',
     'compatibility_check_error',
     'file_not_found',
+    'file_copy_error',
     'unexpected_error',
     'download_error',
     'writer_error',

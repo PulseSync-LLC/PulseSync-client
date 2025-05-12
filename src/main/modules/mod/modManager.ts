@@ -1,10 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import * as path from 'path'
 import * as https from 'https'
 import axios from 'axios'
 import crypto from 'crypto'
-import * as fs from 'original-fs'
-import { promises as fsp } from 'original-fs'
+import * as fs from 'fs'
 import { promisify } from 'util'
 import * as zlib from 'zlib'
 
@@ -12,7 +11,16 @@ import { store } from '../storage'
 import { mainWindow } from '../../../index'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
-import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux, downloadYandexMusic, AsarPatcher } from '../../utils/appUtils'
+import {
+    getPathToYandexMusic,
+    isYandexMusicRunning,
+    closeYandexMusic,
+    isLinux,
+    downloadYandexMusic,
+    AsarPatcher,
+    isMac,
+    copyFile,
+} from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const gunzipAsync = promisify(zlib.gunzip)
@@ -23,12 +31,12 @@ let modVersion: string = null
 const musicPath = getPathToYandexMusic()
 let modFilename = 'app.asar'
 let asarBackupFilename = 'app.backup.asar'
-let savePath = path.join(musicPath, modFilename)
+let asarPath = path.join(musicPath, modFilename)
 
 if (isLinux() && store.has('settings.modFilename')) {
     modFilename = store.get('settings.modFilename') as string
     asarBackupFilename = modFilename
-    savePath = path.join(musicPath, modFilename)
+    asarPath = path.join(musicPath, modFilename)
 }
 
 const backupPath = path.join(musicPath, asarBackupFilename)
@@ -107,21 +115,33 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
 
             if (!fs.existsSync(backupPath)) {
-                if (fs.existsSync(savePath)) {
-                    fs.copyFileSync(savePath, backupPath)
+                if (fs.existsSync(asarPath)) {
+                    fs.copyFileSync(asarPath, backupPath)
                     logger.modManager.info('Original app.asar saved as app.backup.asar')
                 } else {
-                    return sendDownloadFailure({
+                    sendDownloadFailure({
                         error: 'Файл app.asar не найден. Пожалуйста, переустановите Яндекс Музыку.',
                         type: 'file_not_found',
                     })
+                    return await downloadYandexMusic('reinstall')
                 }
             } else {
                 logger.modManager.info('Backup app.backup.asar already exists')
             }
 
             const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
-            await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
+            if (isMac()) {
+                try {
+                    await copyFile(asarPath, asarPath)
+                } catch (e) {
+                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
+                    return sendDownloadFailure({
+                        error: 'Пожалуйста, предоставьте приложению управление приложениями или полный доступ к диску в «Системных настройках» > «Безопасность и конфиденциальность»',
+                        type: 'file_copy_error',
+                    })
+                }
+            }
+            await downloadAndUpdateFile(link, tempFilePath, asarPath, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
             HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
@@ -137,7 +157,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
         try {
             const doRemove = async () => {
                 if (fs.existsSync(backupPath)) {
-                    fs.renameSync(backupPath, savePath)
+                    fs.renameSync(backupPath, asarPath)
                     logger.modManager.info('Backup app.asar restored.')
                     store.delete('mod.version')
                     store.delete('mod.musicVersion')
