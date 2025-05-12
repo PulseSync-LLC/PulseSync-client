@@ -31,7 +31,7 @@ mac:
   target:
     - dmg
   category: public.app-category.developer-tools
-  icon: ./icons/win/icon.icns
+  icon: ./icons/mac/icon.icns
   protocols:
     - name: "PulseSync Deep Link"
       schemes: [ "pulsesync" ]
@@ -45,24 +45,27 @@ dmg:
     - { x: 410, y: 220, type: link, path: /Applications }
 
 linux:
-  category: DeveloperTools
   target:
     - AppImage
     - deb
+  category: Development
+  icon: ./icons/win/icon.png
+  executableName: pulsesync
+  description: PulseSync App with Yandex Music Mod
   mimeTypes:
-    - x-scheme-handler/pulsesync;
-
-nsis:
-  oneClick: false
-  createDesktopShortcut: true
-  createStartMenuShortcut: true
-  perMachine: false
-  allowElevation: false
-  unicode: true
-  language: 1251
-  deleteAppDataOnUninstall: false
-  packElevateHelper: true
-  license: ./license_ru.txt
-  allowToChangeInstallationDirectory: true
-  include: scripts/installer.nsh
-  useZip: false
+    - application/x-pext
+    - x-scheme-handler/pulsesync
+  protocols:
+    - name: "PulseSync Deep Link"
+      schemes:
+        - pulsesync
+  desktop:
+    entry:
+      Name: PulseSync
+      Comment: PulseSync App with Yandex Music Mod
+      Exec: pulsesync %U
+      Icon: pulsesync
+      Terminal: false
+      Type: Application
+      Categories: Utility;AudioVideo;Audio;
+      MimeType: application/x-pext;x-scheme-handler/pulsesync;

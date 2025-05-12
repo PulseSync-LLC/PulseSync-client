@@ -18,6 +18,7 @@ const forgeConfig: ForgeConfig = {
         win32metadata: {
             CompanyName: 'PulseSync LLC',
         },
+        extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
     rebuildConfig: {},
