@@ -56,7 +56,6 @@ const client = new ApolloClient({
     cache: new InMemoryCache({
         resultCaching: true,
     }),
-    ssrMode: true,
 })
 
 export default client

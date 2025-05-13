@@ -18,15 +18,11 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
 
     useEffect(() => {
         if (!ref.current) return
-
         const observer = new IntersectionObserver(([entry]) => {
             setIsIntersecting(entry.isIntersecting)
         }, options)
-
         observer.observe(ref.current)
-        return () => {
-            observer.disconnect()
-        }
+        return () => observer.disconnect()
     }, [ref, options])
 
     return isIntersecting
@@ -37,21 +33,21 @@ const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; 
         return type === 'avatar' ? './static/assets/images/undef.png' : 'linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%)'
     }
 
+    const base = `${config.S3_URL}/${type}s/${hash}`
     if (ext === 'gif') {
-        const baseUrl = `${config.S3_URL}/${type}s/${hash}`
         if (type === 'avatar') {
-            return hovered ? `${baseUrl}.gif` : `${baseUrl}_preview.webp`
+            return hovered ? `${base}.gif` : `${base}_preview.webp`
         } else {
-            const bannerImage = hovered ? `${baseUrl}.gif` : `${baseUrl}_preview.webp`
-            return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${bannerImage}) no-repeat center center`
+            const img = hovered ? `${base}.gif` : `${base}_preview.webp`
+            return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${img})`
         }
     }
 
     if (type === 'avatar') {
         return `${config.S3_URL}/avatars/${hash}.${ext}`
     } else {
-        const bannerImage = `${config.S3_URL}/banners/${hash}.${ext}`
-        return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${bannerImage}) no-repeat center center`
+        const img = `${config.S3_URL}/banners/${hash}.${ext}`
+        return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${img})`
     }
 }
 
@@ -102,28 +98,23 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
         let timeoutId: NodeJS.Timeout | null = null
 
         const updateStatus = () => {
-            if (user.currentTrack && user.currentTrack.status === 'playing') {
+            if (user.status === 'online' && user.currentTrack?.status === 'playing') {
                 setIsStatusVisible(false)
 
                 setTimeout(() => {
-                    const currentStatus = getStatus(user, false)
                     const fullStatus = getStatus(user, true)
-
                     setStatusUser(prevStatus => (prevStatus === 'Слушает' ? fullStatus : 'Слушает'))
-
                     setIsStatusVisible(true)
                 }, 500)
             }
         }
 
-        if (user.currentTrack && user.currentTrack.status === 'playing') {
+        if (user.status === 'online' && user.currentTrack?.status === 'playing') {
             timeoutId = setTimeout(updateStatus, 10000)
         }
 
         return () => {
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-            }
+            if (timeoutId) clearTimeout(timeoutId)
         }
     }, [user, statusUser])
 
@@ -161,7 +152,10 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                         '--statusColorProfile': statusColor,
                         '--statusColorDark': statusColorDark,
                         opacity: isInactive(Number(user.lastOnline)) ? 0.3 : 1,
-                        background: bannerBackground,
+
+                        backgroundImage: bannerBackground,
+                        backgroundRepeat: 'no-repeat',
+                        backgroundPosition: 'center center',
                         backgroundSize: 'cover',
                     } as React.CSSProperties
                 }
