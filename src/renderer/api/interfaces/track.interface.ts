@@ -2,6 +2,7 @@ export interface Track {
     currentDevice: CurrentDevice
     downloadInfo: DownloadInfo
     isPlaying: boolean
+    albumArt: string
     canMoveBackward: boolean
     canMoveForward: boolean
     status: string
@@ -30,7 +31,6 @@ export interface Track {
     previewDurationMs: number
     artists: Artist[]
     albums: Album[]
-    coverUri: string
     derivedColors: DerivedColors
     ogImage: string
     url: string

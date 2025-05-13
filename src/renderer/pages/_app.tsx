@@ -667,15 +667,21 @@ const Player: React.FC<any> = ({ children }) => {
         if (user.id !== '-1') {
             ;(async () => {
                 if (typeof window !== 'undefined') {
+                    window.desktopEvents?.on('SEND_TRACK', async (event, data) => {
+                        socket.send('track_played_enough', {
+                            track: {
+                                id: data.track.realId,
+                            },
+                        })
+                    })
                     window.desktopEvents?.on('trackinfo', (event, data) => {
                         let coverImg: any
                         if (data.track?.coverUri) {
                             coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
                         }
-                        console.log(data)
                         setTrack(prev => ({
                             ...prev,
-                            coverUri: coverImg,
+                            albumArt: coverImg,
                             isPlaying: data.isPlaying ?? prev.isPlaying,
                             canMoveBackward: data.canMoveBackward ?? prev.canMoveBackward,
                             canMoveForward: data.canMoveForward ?? prev.canMoveForward,
@@ -862,7 +868,7 @@ const Player: React.FC<any> = ({ children }) => {
     }, [user.id])
 
     const getCoverImage = (track: Track): string => {
-        return track.coverUri || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
+        return track.albumArt || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
     useEffect(() => {
@@ -880,7 +886,7 @@ const Player: React.FC<any> = ({ children }) => {
                 const activity: any = {
                     type: 2,
                     details: track.title,
-                    largeImageKey: track.coverUri,
+                    largeImageKey: track.albumArt,
                     buttons: [],
                 }
                 if (app.discordRpc.showSmallIcon) {
@@ -1002,8 +1008,8 @@ const Player: React.FC<any> = ({ children }) => {
                             activity.details = fixStrings(track.title)
                         }
 
-                        if (track.coverUri.includes('%%')) {
-                            activity.largeImageKey = `https://${track.coverUri.replace('%%', 'orig')}`
+                        if (track.albumArt.includes('%%')) {
+                            activity.largeImageKey = `https://${track.albumArt.replace('%%', 'orig')}`
                         }
 
                         delete activity.state

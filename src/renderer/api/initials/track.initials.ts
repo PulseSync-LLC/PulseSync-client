@@ -135,7 +135,7 @@ const TrackInitials: Track = {
             trackPosition: { volume: 0, index: 0 },
         },
     ],
-    coverUri: '',
+    albumArt: '',
     derivedColors: {
         average: '',
         waveText: '',

@@ -276,7 +276,7 @@ export default function TrackInfoPage() {
                                                             <img
                                                                 className={theme.img}
                                                                 src={
-                                                                    currentTrack.coverUri ? currentTrack.coverUri : './static/assets/logo/logoapp.png'
+                                                                    currentTrack.albumArt ? currentTrack.albumArt : './static/assets/logo/logoapp.png'
                                                                 }
                                                                 alt=""
                                                             />

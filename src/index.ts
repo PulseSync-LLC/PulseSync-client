@@ -1,6 +1,6 @@
 import { app, BrowserWindow, ipcMain, Notification, powerMonitor, protocol, session as electronSession, shell, session } from 'electron'
 import process from 'process'
-import { getNativeImg } from './main/utils'
+import { getNativeImg } from './main/utils/electronNative'
 import './main/modules/index'
 import path from 'path'
 import * as fs from 'fs'
