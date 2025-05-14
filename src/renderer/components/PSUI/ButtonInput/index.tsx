@@ -1,3 +1,4 @@
+// src/renderer/components/PSUI/ButtonInput/index.tsx
 import React, { useState, useContext, useEffect } from 'react'
 import * as styles from './ButtonInput.module.scss'
 import clsx from 'clsx'
@@ -15,6 +16,7 @@ interface ButtonInputProps {
     touched?: boolean
     error?: string
     onChange?: (value: boolean) => void
+    onClick?: () => void
 }
 
 const ButtonInput: React.FC<ButtonInputProps> = ({
@@ -27,6 +29,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     touched,
     error,
     onChange,
+    onClick,
 }) => {
     const { app, setApp } = useContext(userContext)
     const [isActive, setIsActive] = useState<boolean>(defaultValue ?? false)
@@ -52,9 +55,15 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                 setIsActive(app.discordRpc.showSmallIcon)
                 break
         }
-    }, [checkType])
+    }, [checkType, app.discordRpc])
 
-    const toggleState = () => {
+    const toggleState = (e: React.MouseEvent) => {
+        e.stopPropagation()
+        if (disabled) return
+        if (onClick) {
+            onClick()
+            return
+        }
         const newValue = !isActive
         setIsActive(newValue)
 
@@ -115,14 +124,18 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                         discordRpc: { ...app.discordRpc, showSmallIcon: newValue },
                     })
                     break
+                default:
+                    break
             }
         }
     }
 
     return (
-        <div className={clsx(styles.inputContainer, className)} 
-        style={disabled ? { pointerEvents: 'none', opacity: 0.5 } : {}}
-        onClick={toggleState}>
+        <div
+            className={clsx(styles.inputContainer, className)}
+            style={disabled ? { pointerEvents: 'none', opacity: 0.5 } : { cursor: onClick || checkType ? 'pointer' : 'default' }}
+            onClick={toggleState}
+        >
             <div className={styles.label}>
                 {label}
                 {description && (
@@ -132,29 +145,31 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                 )}
             </div>
 
-            <div className={styles.control}>
-                <div
-                    className={clsx(styles.textInput, {
-                        [styles.activeText]: isActive,
-                        [styles.inactiveText]: !isActive,
-                    })}
-                    aria-invalid={Boolean(touched && error)}
-                    aria-errormessage={touched && error ? `${checkType}-error` : undefined}
-                >
-                    {isActive ? 'Включено' : 'Выключено'}
-                </div>
+            {checkType ? (
+                <div className={styles.control}>
+                    <div
+                        className={clsx(styles.textInput, {
+                            [styles.activeText]: isActive,
+                            [styles.inactiveText]: !isActive,
+                        })}
+                        aria-invalid={Boolean(touched && error)}
+                        aria-errormessage={touched && error ? `${checkType}-error` : undefined}
+                    >
+                        {isActive ? 'Включено' : 'Выключено'}
+                    </div>
 
-                <button
-                    className={clsx(styles.controlButton, styles.toggleButton, {
-                        [styles.active]: isActive,
-                        [styles.error]: touched && error,
-                    })}
-                    onClick={toggleState}
-                    type="button"
-                >
-                    <span className={styles.knob}></span>
-                </button>
-            </div>
+                    <button
+                        className={clsx(styles.controlButton, styles.toggleButton, {
+                            [styles.active]: isActive,
+                            [styles.error]: touched && error,
+                        })}
+                        onClick={toggleState}
+                        type="button"
+                    >
+                        <span className={styles.knob}></span>
+                    </button>
+                </div>
+            ) : null}
 
             {touched && error && (
                 <div id={`${checkType}-error`} className={styles.error}>

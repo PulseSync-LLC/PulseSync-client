@@ -23,6 +23,7 @@
     overflow: overlay;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
+    background: #33394b;
 
     & > .extensionNav {
         position: sticky;
@@ -51,7 +52,7 @@
         display: flex;
         align-items: center;
         flex-direction: column;
-        background: #303440;
+        background: #33394b;
         z-index: 2;
         position: relative;
 
@@ -148,13 +149,8 @@
             }
 
             .markdownText {
-                padding: 1px 19px;
-                color: white;
-                background: #1e2027;
-                border-radius: 8px;
-                height: fit-content;
-                overflow: auto;
-                width: -webkit-fill-available;
+                padding: 0;
+                margin: 0;
                 * {
                     user-select: text !important;
                 }
@@ -411,4 +407,52 @@
     line-height: 15px;
     text-align: center;
     color: #1f222b;
+}
+
+.formContainer {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    padding: 15px 40px;
+    width: -webkit-fill-available;
+}
+
+.buttonGroup {
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+    grid-area: 6 / 1 / 7 / 3;
+}
+
+.saveButton {
+    transition: var(--transition);
+    background: transparent;
+    color: white;
+    padding: 10px 20px;
+    border: 0;
+    outline: 0;
+}
+
+.cancelButton {
+    transition: var(--transition);
+    background: transparent;
+    color: #ffffff;
+    padding: 10px 20px;
+    border: 0;
+    outline: 0;
+}
+
+.saveButton:hover {
+    filter: brightness(0.9);
+    background: #3468f2;
+    outline: 0;
+}
+
+.cancelButton:hover {
+    background: rgba(255, 72, 72, 0.363);
+    outline: 0;
+}
+
+.metaType {
+    background: #414862;
 }

@@ -68,10 +68,7 @@ const icon = getNativeImg('appicon', '.ico', 'icon').resize({
 
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
 
-app.commandLine.appendSwitch(
-    'dns-server',
-    '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1'
-);
+app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
 app.setAppUserModelId('pulsesync.app')
 
@@ -489,6 +486,15 @@ ipcMain.handle('file-event', async (_, eventType, filePath, data) => {
                 return { success: false, error: error.message }
             }
 
+        case 'read-dir':
+            try {
+                const entries = fs.readdirSync(filePath)
+                return { success: true, entries }
+            } catch (err: any) {
+                console.error('Ошибка чтения директории:', err)
+                return { success: false, error: err.message }
+            }
+
         default:
             logger.main.error('Неизвестный тип события:', eventType)
             return { success: false, error: 'Неизвестный тип события' }
@@ -574,15 +580,10 @@ function launchExtensionBackgroundWorkers(session = electronSession.defaultSessi
 
 app.whenReady().then(async () => {
     const filter = {
-        urls: [
-            '*://pulsesync.dev/*',
-            '*://*.pulsesync.dev/*'
-        ]
+        urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'],
     }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
-        logger.http.error(
-            `HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`
-        )
+        logger.http.error(`HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`)
     })
     if (isAppDev) {
         try {

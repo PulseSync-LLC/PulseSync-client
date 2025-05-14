@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { MdEdit } from 'react-icons/md'
 import Scrollbar from '../../../components/PSUI/Scrollbar'
 
@@ -13,12 +13,23 @@ import toast from '../../../components/toast'
 import * as s from './extensionview.module.scss'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
-    const { markdown, config, configExists } = useAddonFiles(addon)
+    const { docs, config, configExists } = useAddonFiles(addon)
     const cfg = useConfig(addon.path, config)
 
-    const [activeTab, setActiveTab] = useState<ActiveTab>('Overview')
-    const [editMode, setEditMode] = useState(false)
+    const [activeTab, setActiveTab] = useState<ActiveTab>('Settings')
+    useEffect(() => {
+        if (docs.length && activeTab === 'Settings') setActiveTab(docs[0].title)
+    }, [docs])
 
+    useEffect(() => {
+        if (docs.length > 0) {
+            setActiveTab(docs[0].title)
+        } else {
+            setActiveTab('Settings')
+        }
+    }, [docs])
+
+    const [editMode, setEditMode] = useState(false)
     const themeActive = useMemo(() => isEnabled && addon.type === 'theme', [isEnabled, addon.type])
 
     const handleToggle = () => {
@@ -52,17 +63,18 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                     setShowFilters={setShowFilters}
                 />
 
-                <TabNavigation active={activeTab} onChange={setActiveTab} />
+                <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
 
                 <div className={s.extensionContent}>
                     <TabContent
                         active={activeTab}
-                        markdown={markdown}
+                        docs={docs}
                         description={addon.description}
                         configExists={configExists}
                         config={cfg.config}
                         configApi={cfg}
                         editMode={editMode}
+                        addonPath={addon.path}
                     />
                 </div>
             </Scrollbar>

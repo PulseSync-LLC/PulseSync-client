@@ -1,6 +1,6 @@
 import React, { useMemo, useRef, useState } from 'react'
-import { NavLink, useNavigate } from 'react-router'
-import { MdBookmarkBorder, MdDesignServices, MdFolder, MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
+import { useNavigate } from 'react-router'
+import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
 import AddonInterface from '../../../../../api/interfaces/addon.interface'
 import Button from '../../../../../components/button'
 import ViewModal from '../../../../../components/context_menu_themes/viewModal'
@@ -100,7 +100,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     <Button className={`${s.toggleButton} ${isEnabled ? s.enabledState : s.disabledState}`} onClick={onToggleEnabled}>
                         {isEnabled ? 'Выключить' : 'Включить'}
                     </Button>
-                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё">
+                    <Button className={s.miniButton} title="Ещё" disabled>
                         <MdStoreMallDirectory size={20} />
                     </Button>
                     <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё">

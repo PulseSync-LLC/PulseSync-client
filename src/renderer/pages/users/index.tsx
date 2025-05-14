@@ -275,6 +275,12 @@ export default function UsersPage() {
                                     >
                                         <MdAllOut /> Имя пользователя {getSortIcon('username')}
                                     </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('level') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('level')}
+                                    >
+                                        <MdAllOut /> level {getSortIcon('level')}
+                                    </Button>
                                 </div>
                                 {users.length > 0 && renderPagination()}
                             </div>

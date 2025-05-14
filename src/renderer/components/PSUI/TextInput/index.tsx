@@ -9,9 +9,9 @@ interface TextInputProps {
     name: string
     label: string
     description?: string
-    placeholder: string
+    placeholder?: string
     className?: string
-    ariaLabel: string
+    ariaLabel?: string
     value: string
     error?: string
     touched?: boolean
@@ -63,10 +63,19 @@ const TextInput: React.FC<TextInputProps> = ({
     useEffect(() => {
         const container = editorRef.current
         if (!container) return
-        if (value) container.textContent = value
-        else container.innerHTML = ''
+        if (value) {
+            container.textContent = value
+        } else {
+            container.innerHTML = ''
+        }
         lastValueRef.current = value
-    }, [])
+        const range = document.createRange()
+        range.selectNodeContents(container)
+        range.collapse(false)
+        const sel = window.getSelection()
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+    }, [value])
 
     const handleInput = () => {
         if (!editorRef.current) return
@@ -130,11 +139,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
     useEffect(() => {
         const handleClickOutside = (e: MouseEvent) => {
-            if (
-                containerRef.current &&
-                !containerRef.current.contains(e.target as Node) &&
-                !editorRef.current?.contains(e.target as Node)
-            ) {
+            if (containerRef.current && !containerRef.current.contains(e.target as Node) && !editorRef.current?.contains(e.target as Node)) {
                 setCommandsVisible(false)
             }
         }
