@@ -235,6 +235,18 @@ const checkModCompatibility = async (
 }
 
 const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePath: string, event: any, checksum?: string) => {
+    const phaseWeight = { download: 0.8, patch: 0.2 }
+    let downloadFrac = 0
+    let patchFrac = 0
+
+    function sendUnifiedProgress() {
+        const overall = downloadFrac * phaseWeight.download + patchFrac * phaseWeight.patch
+        mainWindow?.setProgressBar(overall)
+        mainWindow?.webContents.send('download-progress', {
+            progress: Math.round(overall * 100),
+        })
+    }
+
     let isFinished = false
     let isError = false
 
@@ -243,7 +255,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             const buf = fs.readFileSync(savePath)
             const current = crypto.createHash('sha256').update(buf).digest('hex')
             if (current === checksum) {
-                logger.modManager.info('app.asar file already matches the required checksum.')
+                logger.modManager.info('app.asar matches checksum, skipping download')
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
@@ -266,11 +278,8 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         response.data.on('data', (chunk: Buffer) => {
             if (isFinished) return
             downloaded += chunk.length
-            const pr = downloaded / total
-            mainWindow?.setProgressBar(pr)
-            mainWindow?.webContents.send('download-progress', {
-                progress: Math.round(pr * 100),
-            })
+            downloadFrac = Math.min(downloaded / total, 1)
+            sendUnifiedProgress()
             writer.write(chunk)
         })
 
@@ -293,7 +302,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
             sendDownloadFailure({
-                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет.',
+                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет-соединение.',
                 type: 'download_error',
             })
             mainWindow.setProgressBar(-1)
@@ -321,25 +330,22 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
 
-                const appDir = path.dirname(savePath)
-                const bundleDir = path.resolve(appDir, '..')
-                const patcher = new AsarPatcher(bundleDir)
-
-                const progressCb = (p: number, msg: string) => {
-                    mainWindow?.webContents.send('patch-progress', {
-                        progress: Math.round(p * 100),
-                    })
-                }
-
-                const ok = await patcher.patch(progressCb)
-                if (!ok) {
-                    if (fs.existsSync(backupPath)) {
-                        fs.renameSync(backupPath, savePath)
+                if (isMac()) {
+                    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..'))
+                    const progressCb = (p: number) => {
+                        patchFrac = Math.min(p / 100, 1)
+                        sendUnifiedProgress()
                     }
-                    return sendDownloadFailure({
-                        error: 'Не удалось пропатчить ASAR',
-                        type: 'patch_error',
-                    })
+                    const ok = await patcher.patch(progressCb)
+                    if (!ok) {
+                        if (fs.existsSync(backupPath)) {
+                            fs.renameSync(backupPath, savePath)
+                        }
+                        return sendDownloadFailure({
+                            error: 'Не удалось пропатчить ASAR',
+                            type: 'patch_error',
+                        })
+                    }
                 }
 
                 store.set('mod.version', modVersion)
@@ -347,9 +353,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 store.set('mod.installed', true)
 
                 setTimeout(() => {
-                    mainWindow.webContents.send('download-success', {
-                        success: true,
-                    })
+                    mainWindow.webContents.send('download-success', { success: true })
                 }, 1500)
             } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
@@ -388,6 +392,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
     }
 }
 
-export const handleMod = (window: BrowserWindow): void => {
+export const modManager = (window: BrowserWindow): void => {
     handleModEvents(window)
 }

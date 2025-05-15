@@ -1,8 +1,7 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { Track } from 'yandex-music-client'
-import { Electron, ipcRenderer } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
-
+import { DesktopEvents } from './src/main/mainWindowPreload'
 declare global {
     interface Window {
         __listenersAdded?: boolean
@@ -29,7 +28,6 @@ declare global {
             musicDevice: () => string
             authorize: () => string
             version: () => string
-            downloadTrack: (data: any) => void
             receive: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
@@ -43,15 +41,7 @@ declare global {
             setActivity: (props: SetActivity) => void
             clearActivity: () => void
         }
-        desktopEvents: {
-            send: (name: any, ...args: any[]) => void
-            on: (name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => void
-            once: (channel: string, func: (event: any, ...arg: any[]) => void) => void
-            removeListener: (name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) => void
-            removeAllListeners: (channel: string) => void
-            invoke: (name: string, ...args: any[]) => Promise<any>
-        }
+        desktopEvents: DesktopEvents;
     }
 }
-
 export {}

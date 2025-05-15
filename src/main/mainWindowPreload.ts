@@ -1,5 +1,23 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
+
+export interface DesktopEvents {
+    send(channel: string, ...args: any[]): void;
+    on(
+        channel: string,
+        listener: (event: IpcRendererEvent, ...args: any[]) => void
+    ): () => void;
+    once(
+        channel: string,
+        listener: (event: IpcRendererEvent, ...args: any[]) => void
+    ): void;
+    removeListener(
+        channel: string,
+        listener: (event: IpcRendererEvent, ...args: any[]) => void
+    ): void;
+    removeAllListeners(channel: string): void;
+    invoke(channel: string, ...args: any[]): Promise<any>;
+}
 
 contextBridge.exposeInMainWorld('electron', {
     store: {
@@ -42,9 +60,6 @@ contextBridge.exposeInMainWorld('electron', {
     isAppDev() {
         return ipcRenderer.sendSync('electron-isdev')
     },
-    downloadTrack(url: any) {
-        ipcRenderer.send('download-track', url)
-    },
     pathAppOpen: () => ipcRenderer.send('pathAppOpen'),
     pathStyleOpen: () => ipcRenderer.send('pathStyleOpen'),
     checkSelectedStyle: () => ipcRenderer.send('checkSelectedStyle'),
@@ -65,23 +80,28 @@ contextBridge.exposeInMainWorld('discordRpc', {
         ipcRenderer.send('discordrpc-discordRpc', val)
     },
 })
-contextBridge.exposeInMainWorld('desktopEvents', {
-    send(name: any, ...args: any[]) {
-        ipcRenderer.send(name, ...args)
+const desktopEvents: DesktopEvents = {
+    send: (channel, ...args) => {
+        ipcRenderer.send(channel as string, ...args)
     },
-    on(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
-        ipcRenderer.on(name, listener)
+    on: (channel, listener) => {
+        const wrapped = (event: IpcRendererEvent, ...args: any[]) => listener(event, ...args)
+        ipcRenderer.on(channel as string, wrapped)
+        return () => {
+            ipcRenderer.off(channel as string, wrapped)
+        }
     },
-    once(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
-        ipcRenderer.once(name, listener)
+    once: (channel, listener) => {
+        ipcRenderer.once(channel as string, listener)
     },
-    removeListener(name: string, listener: (event: Electron.IpcRendererEvent, ...args: any[]) => void) {
-        ipcRenderer.removeListener(name, listener)
+    removeListener: (channel, listener) => {
+        ipcRenderer.removeListener(channel as string, listener)
     },
-    removeAllListeners: (channel: string) => {
-        ipcRenderer.removeAllListeners(channel)
+    removeAllListeners: channel => {
+        ipcRenderer.removeAllListeners(channel as string)
     },
-    invoke(name: string, ...args: any[]) {
-        return ipcRenderer.invoke(name, ...args)
+    invoke: (channel, ...args) => {
+        return ipcRenderer.invoke(channel as string, ...args)
     },
-})
+}
+contextBridge.exposeInMainWorld('desktopEvents', desktopEvents);

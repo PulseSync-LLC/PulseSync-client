@@ -458,14 +458,14 @@ function App() {
     }
 
     useEffect(() => {
-        const handleOpenAddon = (event: any, data: string) => {
+        const handleOpenAddon = (_event: any, data: string) => {
             window.desktopEvents
                 ?.invoke('getAddons')
                 .then((fetchedAddons: AddonInterface[]) => {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                            toast.custom('error', 'Ошибка.', 'У аддона отсутвует поле type или оно некорректно', null, null, 15000)
+                            toast.custom('error', 'Ошибка.', 'У аддона отсутствует поле type или оно некорректно', null, null, 15000)
                             return
                         }
                         setAddons(fetchedAddons)
@@ -476,11 +476,12 @@ function App() {
                 .catch(error => console.error('Error getting themes:', error))
         }
         window.desktopEvents?.on('open-addon', handleOpenAddon)
-
-        window.desktopEvents?.on('check-file-exists', filePath => invokeFileEvent('check-file-exists', filePath))
-        window.desktopEvents?.on('read-file', filePath => invokeFileEvent('read-file', filePath))
-        window.desktopEvents?.on('create-config-file', (filePath, defaultContent) => invokeFileEvent('create-config-file', filePath, defaultContent))
-        window.desktopEvents?.on('write-file', (filePath, data) => invokeFileEvent('write-file', filePath, data))
+        window.desktopEvents?.on('check-file-exists', (_event, filePath) => invokeFileEvent('check-file-exists', filePath))
+        window.desktopEvents?.on('read-file', (_event, filePath) => invokeFileEvent('read-file', filePath))
+        window.desktopEvents?.on('create-config-file', (_event, filePath, defaultContent) =>
+            invokeFileEvent('create-config-file', filePath, defaultContent),
+        )
+        window.desktopEvents?.on('write-file', (_event, filePath, data) => invokeFileEvent('write-file', filePath, data))
 
         return () => {
             window.desktopEvents?.removeAllListeners('create-config-file')
@@ -924,16 +925,13 @@ const Player: React.FC<any> = ({ children }) => {
                 window.discordRpc.setActivity(activity)
                 return
             } else {
-                if (
-                    track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)
-                ) {
+                if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
                     window.discordRpc.clearActivity()
                     return
                 } else {
-                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000);
-                    let endTimestamp = startTimestamp + track.durationMs;
+                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000)
+                    let endTimestamp = startTimestamp + track.durationMs
                     const artistName = track.artists.map(x => x.name).join(', ')
-
 
                     const activity: any = {
                         type: 2,

@@ -18,7 +18,7 @@ import { checkAsar, formatJson, formatSizeUnits, getFolderSize, getPathToYandexM
 import Addon from './renderer/api/interfaces/addon.interface'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
-import { handleMod } from './main/modules/mod/modManager'
+import { modManager } from './main/modules/mod/modManager'
 import chokidar from 'chokidar'
 import { getUpdater } from './main/modules/updater/updater'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
@@ -273,7 +273,7 @@ app.on('ready', async () => {
     createWindow() // Все что связано с mainWindow должно устанавливаться после этого метода
     await checkForSingleInstance()
     handleAppEvents(mainWindow)
-    handleMod(mainWindow)
+    modManager(mainWindow)
     handleDeeplinkOnApplicationStartup()
     handleDeeplink(mainWindow)
     createTray()
