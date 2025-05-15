@@ -62,7 +62,7 @@
         "@emotion/styled": "^11.14.0",
         "@mui/joy": "^5.0.0-beta.52",
         "@radix-ui/react-tooltip": "^1.2.6",
-        "@reduxjs/toolkit": "2.8.2",
+        "@reduxjs/toolkit": "2.7.0",
         "@sentry/electron": "^6.6.0",
         "@svgr/webpack": "^8.1.0",
         "@types/adm-zip": "^0.5.7",
