@@ -1,10 +1,9 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
 import * as path from 'path'
 import * as https from 'https'
 import axios from 'axios'
 import crypto from 'crypto'
-import * as fs from 'original-fs'
-import { promises as fsp } from 'original-fs'
+import * as fs from 'fs'
 import { promisify } from 'util'
 import * as zlib from 'zlib'
 
@@ -12,7 +11,16 @@ import { store } from '../storage'
 import { mainWindow } from '../../../index'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
-import { getPathToYandexMusic, isYandexMusicRunning, closeYandexMusic, isLinux, downloadYandexMusic, AsarPatcher } from '../../utils/appUtils'
+import {
+    getPathToYandexMusic,
+    isYandexMusicRunning,
+    closeYandexMusic,
+    isLinux,
+    downloadYandexMusic,
+    AsarPatcher,
+    isMac,
+    copyFile,
+} from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const gunzipAsync = promisify(zlib.gunzip)
@@ -23,12 +31,12 @@ let modVersion: string = null
 const musicPath = getPathToYandexMusic()
 let modFilename = 'app.asar'
 let asarBackupFilename = 'app.backup.asar'
-let savePath = path.join(musicPath, modFilename)
+let asarPath = path.join(musicPath, modFilename)
 
 if (isLinux() && store.has('settings.modFilename')) {
     modFilename = store.get('settings.modFilename') as string
     asarBackupFilename = modFilename
-    savePath = path.join(musicPath, modFilename)
+    asarPath = path.join(musicPath, modFilename)
 }
 
 const backupPath = path.join(musicPath, asarBackupFilename)
@@ -107,21 +115,33 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
 
             if (!fs.existsSync(backupPath)) {
-                if (fs.existsSync(savePath)) {
-                    fs.copyFileSync(savePath, backupPath)
+                if (fs.existsSync(asarPath)) {
+                    fs.copyFileSync(asarPath, backupPath)
                     logger.modManager.info('Original app.asar saved as app.backup.asar')
                 } else {
-                    return sendDownloadFailure({
+                    sendDownloadFailure({
                         error: 'Файл app.asar не найден. Пожалуйста, переустановите Яндекс Музыку.',
                         type: 'file_not_found',
                     })
+                    return await downloadYandexMusic('reinstall')
                 }
             } else {
                 logger.modManager.info('Backup app.backup.asar already exists')
             }
 
             const tempFilePath = path.join(app.getPath('temp'), 'app.asar.download')
-            await downloadAndUpdateFile(link, tempFilePath, savePath, event, checksum)
+            if (isMac()) {
+                try {
+                    await copyFile(asarPath, asarPath)
+                } catch (e) {
+                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
+                    return sendDownloadFailure({
+                        error: 'Пожалуйста, предоставьте приложению управление приложениями или полный доступ к диску в «Системных настройках» > «Безопасность и конфиденциальность»',
+                        type: 'file_copy_error',
+                    })
+                }
+            }
+            await downloadAndUpdateFile(link, tempFilePath, asarPath, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
             HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
@@ -137,7 +157,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
         try {
             const doRemove = async () => {
                 if (fs.existsSync(backupPath)) {
-                    fs.renameSync(backupPath, savePath)
+                    fs.renameSync(backupPath, asarPath)
                     logger.modManager.info('Backup app.asar restored.')
                     store.delete('mod.version')
                     store.delete('mod.musicVersion')
@@ -215,6 +235,18 @@ const checkModCompatibility = async (
 }
 
 const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePath: string, event: any, checksum?: string) => {
+    const phaseWeight = { download: 0.8, patch: 0.2 }
+    let downloadFrac = 0
+    let patchFrac = 0
+
+    function sendUnifiedProgress() {
+        const overall = downloadFrac * phaseWeight.download + patchFrac * phaseWeight.patch
+        mainWindow?.setProgressBar(overall)
+        mainWindow?.webContents.send('download-progress', {
+            progress: Math.round(overall * 100),
+        })
+    }
+
     let isFinished = false
     let isError = false
 
@@ -223,7 +255,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             const buf = fs.readFileSync(savePath)
             const current = crypto.createHash('sha256').update(buf).digest('hex')
             if (current === checksum) {
-                logger.modManager.info('app.asar file already matches the required checksum.')
+                logger.modManager.info('app.asar matches checksum, skipping download')
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
@@ -246,11 +278,8 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         response.data.on('data', (chunk: Buffer) => {
             if (isFinished) return
             downloaded += chunk.length
-            const pr = downloaded / total
-            mainWindow?.setProgressBar(pr)
-            mainWindow?.webContents.send('download-progress', {
-                progress: Math.round(pr * 100),
-            })
+            downloadFrac = Math.min(downloaded / total, 1)
+            sendUnifiedProgress()
             writer.write(chunk)
         })
 
@@ -273,7 +302,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
             sendDownloadFailure({
-                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет.',
+                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет-соединение.',
                 type: 'download_error',
             })
             mainWindow.setProgressBar(-1)
@@ -301,25 +330,22 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
 
-                const appDir = path.dirname(savePath)
-                const bundleDir = path.resolve(appDir, '..')
-                const patcher = new AsarPatcher(bundleDir)
-
-                const progressCb = (p: number, msg: string) => {
-                    mainWindow?.webContents.send('patch-progress', {
-                        progress: Math.round(p * 100),
-                    })
-                }
-
-                const ok = await patcher.patch(progressCb)
-                if (!ok) {
-                    if (fs.existsSync(backupPath)) {
-                        fs.renameSync(backupPath, savePath)
+                if (isMac()) {
+                    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..'))
+                    const progressCb = (p: number) => {
+                        patchFrac = Math.min(p / 100, 1)
+                        sendUnifiedProgress()
                     }
-                    return sendDownloadFailure({
-                        error: 'Не удалось пропатчить ASAR',
-                        type: 'patch_error',
-                    })
+                    const ok = await patcher.patch(progressCb)
+                    if (!ok) {
+                        if (fs.existsSync(backupPath)) {
+                            fs.renameSync(backupPath, savePath)
+                        }
+                        return sendDownloadFailure({
+                            error: 'Не удалось пропатчить ASAR',
+                            type: 'patch_error',
+                        })
+                    }
                 }
 
                 store.set('mod.version', modVersion)
@@ -327,9 +353,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 store.set('mod.installed', true)
 
                 setTimeout(() => {
-                    mainWindow.webContents.send('download-success', {
-                        success: true,
-                    })
+                    mainWindow.webContents.send('download-success', { success: true })
                 }, 1500)
             } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
@@ -368,6 +392,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
     }
 }
 
-export const handleMod = (window: BrowserWindow): void => {
+export const modManager = (window: BrowserWindow): void => {
     handleModEvents(window)
 }

@@ -7,6 +7,7 @@ import { rendererConfig } from './webpack.renderer.config'
 import path from 'path'
 import fs from 'fs-extra'
 import os from 'os'
+import { execSync } from 'child_process'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
@@ -18,6 +19,7 @@ const forgeConfig: ForgeConfig = {
         win32metadata: {
             CompanyName: 'PulseSync LLC',
         },
+        extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
     rebuildConfig: {},
@@ -96,20 +98,38 @@ const forgeConfig: ForgeConfig = {
         packageAfterPrune: async (_forgeConfig, buildPath) => {
             const packageJsonPath = path.resolve(buildPath, 'package.json')
             const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+
             Object.keys(pkg).forEach(key => {
                 switch (key) {
                     case 'name':
                     case 'version':
                     case 'main':
                     case 'author':
+                    case 'devDependencies':
                     case 'homepage':
                         break
                     default:
                         delete pkg[key]
                 }
             })
+
+            let branch = 'unknown'
+            try {
+                branch = execSync('git rev-parse --short HEAD', { cwd: process.cwd() })
+                    .toString()
+                    .trim()
+            } catch (err) {
+                console.warn('Bruh:', err)
+            }
+
+            pkg.buildInfo = {
+                VERSION: pkg.version,
+                BRANCH: branch,
+            }
+
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
+
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },

@@ -1,5 +1,5 @@
 import { app, Menu, MenuItem, shell, Tray } from 'electron'
-import { getNativeImg } from '../utils'
+import { getNativeImg } from '../utils/electronNative'
 import { mainWindow } from '../../index'
 import { checkOrFindUpdate } from '../events'
 import path from 'path'

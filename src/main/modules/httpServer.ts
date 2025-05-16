@@ -121,6 +121,11 @@ const initializeServer = () => {
                             logger.http.log('Received UPDATE_DATA event')
                             updateData(dataReceived.data)
                             break
+                        case 'SEND_TRACK':
+                            if (!authorized) break
+                            logger.http.log('Received SEND_TRACK event:', dataReceived)
+                            mainWindow.webContents.send('SEND_TRACK', { data: dataReceived.data })
+                            break
                         default:
                             logger.http.warn('Unknown command received:', dataReceived)
                     }

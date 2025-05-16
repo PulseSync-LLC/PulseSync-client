@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
-import fs from 'original-fs'
+import fs from 'fs'
 import { store } from '../modules/storage'
 import { asarBackup, mainWindow, musicPath } from '../../index'
 import { app, dialog } from 'electron'
@@ -12,7 +12,7 @@ import axios from 'axios'
 import { execSync } from 'child_process';
 import * as plist from 'plist';
 import asar from '@electron/asar';
-import { promises as fsp } from 'original-fs';
+import { promises as fsp } from 'fs';
 
 const execAsync = promisify(exec)
 
@@ -89,6 +89,16 @@ export function getPathToYandexMusic() {
             return store.get('settings.yandexMusicPath', '')
         default:
             return ''
+    }
+}
+
+export async function copyFile(target: string, dest: string) {
+    await fsp.copyFile(target, dest);
+}
+
+export async function createDirIfNotExist(target: string) {
+    if(!fs.existsSync(target)){
+        await fsp.mkdir(target);
     }
 }
 
