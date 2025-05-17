@@ -1,27 +1,27 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit'
 
 interface AppState {
-    isDeprecated: boolean
-    version: string | null
+    isAppDeprecated: boolean
+    appVersion: string | null
 }
 
 const initialState: AppState = {
-    isDeprecated: false,
-    version: null,
+    isAppDeprecated: false,
+    appVersion: null,
 }
 
 const appSlice = createSlice({
     name: 'app',
     initialState,
     reducers: {
-        setDeprecatedStatus: (state, action: PayloadAction<boolean>) => {
-            state.isDeprecated = action.payload
+        setAppDeprecatedStatus: (state, action: PayloadAction<boolean>) => {
+            state.isAppDeprecated = action.payload
         },
-        setVersion: (state, action: PayloadAction<string>) => {
-            state.version = action.payload
+        setAppVersion: (state, action: PayloadAction<string>) => {
+            state.appVersion = action.payload
         },
     },
 })
 
-export const { setDeprecatedStatus, setVersion } = appSlice.actions
+export const { setAppDeprecatedStatus, setAppVersion } = appSlice.actions
 export default appSlice.reducer

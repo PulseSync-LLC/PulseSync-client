@@ -3,7 +3,7 @@ import process from 'process'
 import { getNativeImg } from './main/utils/electronNative'
 import './main/modules/index'
 import path from 'path'
-import * as fs from 'fs'
+import * as fs from 'original-fs'
 import { initializeStore, store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import corsAnywhereServer from 'cors-anywhere'
@@ -583,22 +583,28 @@ export async function prestartCheck() {
     initializeAddon()
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     logger.main.info(app.getPath('appData'))
-    const watcher = chokidar.watch(themesPath, {
-        persistent: true,
-        ignored: (path, stats) => stats?.isFile() && !path.endsWith('.css'),
-    })
+    const watcher = chokidar.watch(
+        [
+            path.join(themesPath, '**/*.js'),
+            path.join(themesPath, '**/*.css')
+        ],
+        {
+            persistent: true,
+            ignoreInitial: false,
+        }
+    );
     watcher
         .on('add', path => {
             logger.main.info(`File ${path} has been added`)
-            sendAddon(false)
+            sendAddon(true)
         })
         .on('change', path => {
             logger.main.info(`File ${path} has been changed`)
-            sendAddon(false)
+            sendAddon(true)
         })
         .on('unlink', path => {
             logger.main.info(`File ${path} has been removed`)
-            sendAddon(false)
+            sendAddon(true)
         })
 }
 app.on('window-all-closed', () => {
@@ -611,11 +617,5 @@ app.on('window-all-closed', () => {
 app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
         createWindow()
-    }
-})
-
-eventEmitter.on('DATA_UPDATED', newData => {
-    if (mainWindow && mainWindow.webContents) {
-        mainWindow.webContents.send('trackinfo', newData)
     }
 })

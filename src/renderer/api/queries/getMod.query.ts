@@ -11,6 +11,7 @@ export default gql`
             showModal
             checksum
             spoof
+            deprecated
         }
     }
 `
