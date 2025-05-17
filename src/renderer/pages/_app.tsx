@@ -387,7 +387,7 @@ function App() {
             })
 
             const mods = res.data?.getMod
-            if (!mods) {
+            if (!mods || mods.length === 0) {
                 console.error('Invalid response format for getMod:', res.data)
                 return
             }
@@ -395,13 +395,19 @@ function App() {
             setMod(mods)
 
             const latest = mods[0]
-            if (latest && app.mod.installed && app.mod.version && compareVersions(latest.modVersion, app.mod.version) > 0) {
+
+            if (!app.mod.installed || !app.mod.version) {
+                toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
+                return
+            }
+
+            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
                 window.desktopEvents?.send('show-notification', {
                     title: 'Доступно обновление мода',
                     body: `Версия ${latest.modVersion} доступна для установки.`,
                 })
             } else {
-                toast.custom('info', 'Всё ок!', 'Нет доступных обновлений мода')
+                toast.custom('info', 'Всё в порядке', 'У вас установлена последняя версия мода')
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)

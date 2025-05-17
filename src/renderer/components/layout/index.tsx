@@ -49,6 +49,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
+    const ffmpegToastIdRef = useRef<string | null>(null)
 
     useEffect(() => {
         setLoadingModInfo(modInfo.length === 0)
@@ -239,6 +240,36 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             ;(window as any).__musicEventListeners = false
         }
     }, [musicInstalled])
+
+    useEffect(() => {
+        if ((window as any).__ffmpegListenersAdded) return
+        ;(window as any).__ffmpegListenersAdded = true
+
+        const handleFfmpegStatus = (_: any, { message, progress, success }: { message: string; progress: number; success?: boolean }) => {
+            if (ffmpegToastIdRef.current) {
+                if (success) {
+                    toast.custom('success', message, 'Готово', { id: ffmpegToastIdRef.current })
+                    ffmpegToastIdRef.current = null
+                } else {
+                    toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { id: ffmpegToastIdRef.current, duration: Infinity }, progress)
+                }
+            } else {
+                if (success) {
+                    toast.custom('success', message, 'Готово')
+                } else {
+                    const id = toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { duration: Infinity }, progress)
+                    ffmpegToastIdRef.current = id
+                }
+            }
+        }
+
+        window.desktopEvents?.on('ffmpeg-download-status', handleFfmpegStatus)
+
+        return () => {
+            window.desktopEvents?.removeAllListeners('ffmpeg-download-status')
+            ;(window as any).__ffmpegListenersAdded = false
+        }
+    }, [])
 
     const updateYandexMusic = () => {
         if (isMusicUpdating) {

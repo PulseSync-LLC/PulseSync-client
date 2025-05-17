@@ -12,11 +12,6 @@ import { execSync } from 'child_process';
 import * as plist from 'plist';
 import asar from '@electron/asar';
 import { promises as fsp } from 'original-fs';
-import { glob } from 'glob'
-import { pipeline } from 'stream/promises'
-import unzipper from 'unzipper'
-import tar from 'tar'
-import { IOptions } from '@electron/asar/lib/types/glob'
 
 const execAsync = promisify(exec)
 
@@ -379,58 +374,4 @@ export class AsarPatcher {
             return false;
         }
     }
-}
-export const FFMPEG_INSTALL: Record<string, {
-    url: string
-    archiveName: string
-    extractType: 'zip' | 'tar'
-    execRelPath: string
-}> = {
-    darwin: {
-        url: 'https://evermeet.cx/ffmpeg/ffmpeg-7.1.zip',
-        archiveName: 'ffmpeg-macos.zip',
-        extractType: 'zip',
-        execRelPath: 'ffmpeg',
-    },
-    win32: {
-        url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
-        archiveName: 'ffmpeg-win.zip',
-        extractType: 'zip',
-        execRelPath: path.join('ffmpeg-temp', '**', 'bin', 'ffmpeg.exe'),
-    },
-    linux: {
-        url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz',
-        archiveName: 'ffmpeg-linux.tar.xz',
-        extractType: 'tar',
-        execRelPath: path.join('ffmpeg-*-amd64-static', 'ffmpeg'),
-    },
-}
-export const globAsync = promisify(glob) as (pattern: string, options: IOptions) => Promise<string[]>
-
-export async function downloadFile(url: string, dest: string, onProgress: (p: number) => void) {
-    const response = await axios.get(url, { responseType: 'stream' })
-    const total = parseInt(response.headers['content-length'] || '0', 10)
-    let received = 0
-    const writer = fs.createWriteStream(dest)
-
-    response.data.on('data', (chunk: Buffer) => {
-        received += chunk.length
-        onProgress(total ? Math.round((received / total) * 100) : 0)
-    })
-
-    await pipeline(response.data, writer)
-}
-
-export async function extractZip(src: string, dest: string) {
-    await fs.createReadStream(src)
-        .pipe(unzipper.Extract({ path: dest }))
-        .promise()
-}
-
-export async function extractTarXZ(src: string, dest: string) {
-    await tar.x({ file: src, cwd: dest })
-}
-
-export function sendStatus(window: BrowserWindow, message: string, progress: number, success?: boolean) {
-    window.webContents.send('ffmpeg-download-status', { message, progress, success })
 }

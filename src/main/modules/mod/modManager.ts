@@ -20,66 +20,11 @@ import {
     AsarPatcher,
     isMac,
     copyFile,
-    isWindows,
-    FFMPEG_INSTALL,
-    sendStatus,
-    downloadFile,
-    extractZip,
-    extractTarXZ,
-    globAsync,
 } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
-import os from 'os'
+import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 
 const TEMP_DIR = app.getPath('temp')
-const RESOURCES_DIR = getPathToYandexMusic()
-
-export async function downloadAndInstallFFmpeg(window: BrowserWindow) {
-    const cfg = FFMPEG_INSTALL[os.platform()]
-    if (!cfg) {
-        sendStatus(window, 'Платформа не поддерживается для ffmpeg', -1, false)
-        return
-    }
-
-    const archivePath = path.join(TEMP_DIR, cfg.archiveName)
-    const execDest = path.join(RESOURCES_DIR, path.basename(cfg.execRelPath))
-
-    try {
-        sendStatus(window, 'Начинаем скачивание ffmpeg…', 0)
-
-        await downloadFile(cfg.url, archivePath, p => {
-            sendStatus(window, 'Скачивание ffmpeg…', p)
-        })
-
-        sendStatus(window, 'Распаковка архива ffmpeg…', 100)
-
-        if (cfg.extractType === 'zip') {
-            await extractZip(archivePath, RESOURCES_DIR)
-        } else {
-            await extractTarXZ(archivePath, RESOURCES_DIR)
-        }
-        fs.unlinkSync(archivePath)
-
-        const pattern = path.join(RESOURCES_DIR, cfg.execRelPath)
-        const [found] = await globAsync(pattern, { nodir: true })
-        if (!found) {
-            sendStatus(window, 'Не удалось найти ffmpeg после распаковки', -1, false)
-            return
-        }
-        fs.copyFileSync(found, execDest)
-        fs.chmodSync(execDest, 0o755)
-
-        if (cfg.extractType === 'zip' && isWindows()) {
-            const tempDir = path.join(RESOURCES_DIR, 'ffmpeg-temp')
-            if (fs.existsSync(tempDir)) fs.rmSync(tempDir, { recursive: true, force: true })
-        }
-
-        sendStatus(window, 'ffmpeg установлен успешно!', 100, true)
-    } catch (err: any) {
-        console.error('Ошибка установки ffmpeg:', err)
-        sendStatus(window, 'Ошибка при установке ffmpeg: ' + err.message, -1, false)
-    }
-}
 
 const gunzipAsync = promisify(zlib.gunzip)
 
@@ -220,6 +165,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     store.delete('mod.version')
                     store.delete('mod.musicVersion')
                     store.set('mod.installed', false)
+                    await deleteFfmpeg()
                     mainWindow.webContents.send('remove-mod-success', {
                         success: true,
                     })
@@ -407,7 +353,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 store.set('mod.version', modVersion)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
-                await downloadAndInstallFFmpeg(mainWindow)
+                await installFfmpeg(mainWindow)
                 setTimeout(() => {
                     mainWindow.webContents.send('download-success', { success: true })
                 }, 1500)
