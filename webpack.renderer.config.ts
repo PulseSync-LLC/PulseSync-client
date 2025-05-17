@@ -80,6 +80,7 @@ export const rendererConfig: Configuration = {
             http: require.resolve('stream-http'),
             https: require.resolve('https-browserify'),
             url: require.resolve('url'),
+            process: require.resolve('process/browser'),
         },
         extensions: ['.js', '.ts', '.jsx', '.tsx', '.css'],
     },

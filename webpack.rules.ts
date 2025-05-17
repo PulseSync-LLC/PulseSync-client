@@ -35,4 +35,13 @@ export const rules: Required<ModuleOptions>['rules'] = [
             name: '[path][name].[ext]',
         },
     },
+    {
+        test: /\.mjs$/,
+        include: /node_modules/,
+        type: 'javascript/auto',
+    },
+    {
+        test: /\.m?js$/,
+        resolve: { fullySpecified: false }
+    },
 ]
