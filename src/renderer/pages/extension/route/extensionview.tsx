@@ -63,9 +63,8 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                     setShowFilters={setShowFilters}
                 />
 
-                <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
-
                 <div className={s.extensionContent}>
+                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
                     <TabContent
                         active={activeTab}
                         docs={docs}

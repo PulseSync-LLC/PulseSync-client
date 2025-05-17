@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdSettings, MdStickyNote2 } from 'react-icons/md'
+import { MdConstruction, MdSettings, MdStickyNote2 } from 'react-icons/md'
 import { ActiveTab, DocTab } from './types'
 import * as s from '../extensionview.module.scss'
 
@@ -18,15 +18,15 @@ const TabNavigation: React.FC<Props> = ({ active, onChange, docs }) => (
                     className={`${s.extensionNavButton} ${active === d.title ? s.activeTabButton : ''}`}
                     onClick={() => onChange(d.title)}
                 >
-                    <MdStickyNote2 /> {d.title}
+                    <MdStickyNote2 size={22}/> {d.title}
                 </button>
             ))}
 
             <button className={`${s.extensionNavButton} ${active === 'Settings' ? s.activeTabButton : ''}`} onClick={() => onChange('Settings')}>
-                <MdSettings /> Настройки
+                <MdSettings size={22}/> Настройки
             </button>
             <button className={`${s.extensionNavButton} ${active === 'Metadata' ? s.activeTabButton : ''}`} onClick={() => onChange('Metadata')}>
-                <MdStickyNote2 /> Редактирование
+                <MdConstruction size={22}/> Редактирование
             </button>
         </div>
     </div>

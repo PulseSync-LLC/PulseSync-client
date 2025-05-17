@@ -28,14 +28,14 @@
                 gap: 4px;
 
                 &:hover {
-                    background: #20232C;
+                    background: #20232c;
                 }
             }
 
             .line {
                 width: 1px;
                 height: 20px;
-                background: #20232C;
+                background: #20232c;
             }
 
             .logoplace {
@@ -47,7 +47,7 @@
                 transition: var(--transition);
 
                 &:hover {
-                    background: #20232C;
+                    background: #20232c;
                 }
 
                 .false {
@@ -258,7 +258,7 @@
                     gap: 7px;
 
                     color: var(--statusColor);
-                    background: #20232c;
+                    background: #ffffff00;
                     border-radius: 15px 8px 8px 15px;
 
                     &:hover {
@@ -288,59 +288,18 @@
 
                         & > .status {
                             position: absolute;
-                            bottom: -1px;
-                            right: -2px;
-                            outline: solid 3px #20232c;
-                            border-radius: 50%;
+                            top: 0;
+                            bottom: 0px;
+                            height: -webkit-fill-available;
+                            right: -10px;
+                            align-content: center;
 
                             & > .dot {
-                                width: 9px;
-                                height: 9px;
-                                border-radius: 50%;
+                                width: 5px;
+                                height: 26px;
                                 background: var(--statusColor);
+                                border-radius: 39px;
                             }
-                        }
-                    }
-
-                    & > .user_info {
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;
-                        align-items: flex-start;
-                        padding: 0px;
-                        gap: 2px;
-
-                        font-weight: 500;
-                        font-size: 14px;
-                        line-height: 16px;
-
-                        & > .username {
-                            min-width: 59px;
-                            max-width: 85px;
-
-                            font-weight: 900;
-                            font-size: 12px;
-                            line-height: 110%;
-
-                            color: var(--statusColor);
-                            text-overflow: ellipsis;
-                            flex: none;
-                            overflow: hidden;
-                            white-space: nowrap;
-                        }
-                        & > .status_text {
-                            min-width: 59px;
-                            max-width: 85px;
-
-                            font-weight: 500;
-                            font-size: 10px;
-                            line-height: 110%;
-
-                            color: var(--statusColor);
-                            text-overflow: ellipsis;
-                            flex: none;
-                            overflow: hidden;
-                            white-space: nowrap;
                         }
                     }
                 }
@@ -626,7 +585,7 @@
                     -webkit-app-region: no-drag;
 
                     &:hover {
-                        background: #20232C;
+                        background: #20232c;
                     }
                 }
             }

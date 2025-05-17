@@ -25,36 +25,13 @@
     height: var(--scrollHExtensionView);
     background: #33394b;
 
-    & > .extensionNav {
-        position: sticky;
-        z-index: 10;
-        top: 66px;
-        justify-content: space-between;
-        gap: 8px;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: row;
-        align-items: center;
-        padding: 0px 40px;
-        background: #383e52f0;
-        border-bottom: 1px solid #3d445b;
-        backdrop-filter: blur(50px);
-        width: auto;
-
-        & > .extensionNavContainer {
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-        }
-    }
-
     & > .extensionContent {
         display: flex;
-        align-items: center;
         flex-direction: column;
         background: #33394b;
         z-index: 2;
         position: relative;
+        align-items: flex-start;
 
         & > .alertContent {
             height: 25vh;
@@ -256,21 +233,49 @@
     }
 }
 
+.extensionNav {
+    min-width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    box-sizing: border-box;
+    align-items: center;
+    background: rgba(56, 62, 82, 0.9411764706);
+    border-bottom: 1px solid #3d445b;
+    backdrop-filter: blur(50px);
+    left: 0;
+    right: 0;
+    position: sticky;
+    z-index: 10;
+    top: 66px;
+    display: grid;
+
+    & > .extensionNavContainer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: -webkit-fill-available;
+        overflow: scroll;
+        padding: 0px 40px;
+        height: 65px;
+        gap: 25px;
+    }
+}
+
 .extensionNavButton {
     transition: var(--transition);
     box-sizing: border-box;
     position: relative;
-
     display: flex;
     flex-direction: row;
     justify-content: center;
     align-items: center;
-    padding: 10px 15px;
+    padding: 20px 0;
     gap: 10px;
-
     border: none;
     background: transparent;
-    color: #959dba;
+    font-weight: 700;
+    font-size: 16px;
+    color: #858da9;
 
     &::after {
         transition: var(--transition);
@@ -280,16 +285,16 @@
         bottom: 0px;
         width: -webkit-fill-available;
         height: 0px;
-        background: #3468f2;
+        background: #b3c5ff;
     }
 
     &:hover {
         cursor: pointer;
-        color: #ffffff;
+        color: #b3c5ff;
 
         &::after {
             bottom: -1px;
-            height: 2px;
+            height: 4px;
         }
     }
 
@@ -298,7 +303,7 @@
 
         &:hover {
             cursor: not-allowed;
-            color: #959dba;
+            color: #858da9;
 
             &::after {
                 bottom: 0px;
@@ -309,12 +314,12 @@
 }
 
 .activeTabButton {
-    color: #ffffff;
+    color: #b3c5ff;
 
     &::after {
         bottom: -1px;
-        height: 2px;
-        background: #3468f2;
+        height: 4px;
+        background: #b3c5ff;
     }
 }
 

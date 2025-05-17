@@ -471,12 +471,6 @@ const Header: React.FC<p> = () => {
                                                 <div className={styles.dot}></div>
                                             </div>
                                         </div>
-                                        <div className={styles.user_info}>
-                                            <div className={styles.username}>{user.username}</div>
-                                            {/*<div className={styles.status_text}>*/}
-                                            {/*    {renderPlayerStatus()}*/}
-                                            {/*</div>*/}
-                                        </div>
                                     </div>
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
