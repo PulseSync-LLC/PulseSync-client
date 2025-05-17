@@ -15,7 +15,7 @@ import { useSelector } from 'react-redux'
 export default function AuthPage() {
     const navigate = useNavigate()
     const { user, app } = useContext(userContext)
-    const isDeprecated = useSelector((state: RootState) => state.app.isDeprecated)
+    const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)

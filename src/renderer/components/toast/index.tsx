@@ -102,7 +102,7 @@ const ToastComponent = ({
                 <div className={styles.title}>{customTitle || 'Без заголовка'}</div>
                 <div className={styles.message}>{message}</div>
             </div>
-            {(isPersistent || customType === 'error') && (
+            {(isPersistent || customType === 'error' || customType === 'info') && (
                 <div className={styles.buttonContainer}>
                     <button className={styles.dismissButton} onClick={handleDismiss}>
                         <Hide height={24} width={24} />

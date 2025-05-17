@@ -46,8 +46,8 @@ import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
-import { setDeprecatedStatus } from '../api/store/appSlice'
 import TrackInfoPageOld from './trackinfoOld'
+import { setAppDeprecatedStatus } from '../api/store/appSlice'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -253,7 +253,7 @@ function App() {
                                 'Данная версия приложения устарела',
                             )
                             window.desktopEvents?.send('updater-start')
-                            dispatch(setDeprecatedStatus(true))
+                            dispatch(setAppDeprecatedStatus(true))
                             if (window.electron.store.has('tokens.token')) {
                                 window.electron.store.delete('tokens.token')
                             }
@@ -397,33 +397,29 @@ function App() {
         }
     }, [socketError])
 
-    const fetchModInfo = async (currentApp: SettingsInterface) => {
+    const fetchModInfo = async (app: SettingsInterface) => {
         try {
-            const res = await apolloClient.query({
+            const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
                 fetchPolicy: 'no-cache',
             })
 
-            const { data } = res
+            const mods = res.data?.getMod
+            if (!mods) {
+                console.error('Invalid response format for getMod:', res.data)
+                return
+            }
 
-            if (data && data.getMod) {
-                const info = (data.getMod as ModInterface[])
-                    .filter(info => !currentApp.mod.version || compareVersions(info.modVersion, currentApp.mod.version) > 0)
-                    .sort((a, b) => compareVersions(b.modVersion, a.modVersion))
+            setMod(mods)
 
-                if (info.length > 0) {
-                    setMod(info)
-                    if (currentApp.mod.installed && currentApp.mod.version && currentApp.mod.version < info[0].modVersion) {
-                        window.desktopEvents?.send('show-notification', {
-                            title: 'Доступно обновление мода',
-                            body: `Версия ${info[0].modVersion} доступна для установки.`,
-                        })
-                    }
-                } else {
-                    toast.custom('info', 'Всё ок!', 'Нет доступных обновлений мода')
-                }
+            const latest = mods[0]
+            if (latest && app.mod.installed && app.mod.version && compareVersions(latest.modVersion, app.mod.version) > 0) {
+                window.desktopEvents?.send('show-notification', {
+                    title: 'Доступно обновление мода',
+                    body: `Версия ${latest.modVersion} доступна для установки.`,
+                })
             } else {
-                console.error('Invalid response format for getMod:', data)
+                toast.custom('info', 'Всё ок!', 'Нет доступных обновлений мода')
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
@@ -694,6 +690,11 @@ const Player: React.FC<any> = ({ children }) => {
                         })
                     })
                     window.desktopEvents?.on('trackinfo', (event, data) => {
+                        if (!data) return
+
+                        if (data.type === 'refresh') {
+                            return setTrack(trackInitials)
+                        }
                         let coverImg: any
                         if (data.track?.coverUri) {
                             coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`

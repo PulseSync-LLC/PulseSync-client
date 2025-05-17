@@ -1,7 +1,7 @@
 import { app, BrowserWindow, dialog, ipcMain, Notification, shell } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
-import fs from 'fs'
+import fs from 'original-fs'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'

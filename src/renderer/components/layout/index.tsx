@@ -26,6 +26,7 @@ import TooltipButton from '../tooltip_button'
 import store from '../../api/store/store'
 import { openModal } from '../../api/store/modalSlice'
 import { errorTypesToShow } from '../../utils/utils'
+import * as semver from 'semver'
 
 interface LayoutProps {
     title: string
@@ -35,59 +36,50 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { app, setApp, updateAvailable, setUpdate, modInfo, features, musicInstalled, setMusicInstalled } = useContext(userContext)
+
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [loadingModInfo, setLoadingModInfo] = useState(true)
+    const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
     const [modUpdateState, setModUpdateState] = useState({
         isVersionOutdated: false,
         updateUrl: '',
     })
+
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
 
     useEffect(() => {
-        if (modInfo.length > 0) {
-            setLoadingModInfo(false)
-        } else {
-            setLoadingModInfo(false)
-        }
+        setLoadingModInfo(modInfo.length === 0)
     }, [modInfo])
 
     useEffect(() => {
-        const isListenersAdded = (window as any).__listenersAdded
-        if (isListenersAdded) {
-            return
-        }
+        setIsModUpdateAvailable(
+            modInfo.length > 0 && musicInstalled && (!app.mod.installed || semver.gt(modInfo[0].modVersion, app.mod.version || '0.0.0')),
+        )
+    }, [app.mod, modInfo])
+
+    useEffect(() => {
+        if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
-        const handleProgress = (event: any, { progress }: { progress: number }) => {
+        const handleProgress = (_: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
                 toast.custom(
                     'loading',
                     `Прогресс загрузки: ${progress}%`,
                     `Загружаю`,
-                    {
-                        id: downloadToastIdRef.current,
-                        duration: Infinity,
-                    },
+                    { id: downloadToastIdRef.current, duration: Infinity },
                     progress,
                 )
             } else {
-                const id = toast.custom(
-                    'loading',
-                    `Прогресс загрузки: ${progress}%`,
-                    `Загружаю`,
-                    {
-                        duration: Infinity,
-                    },
-                    progress,
-                )
+                const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, { duration: Infinity }, progress)
                 downloadToastIdRef.current = id
             }
         }
 
-        const handleSuccess = (event: any, data: any) => {
+        const handleSuccess = (_: any, data: any) => {
             if (downloadToastIdRef.current) {
                 toast.custom('success', data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'), `Готово`, {
                     id: downloadToastIdRef.current,
@@ -119,11 +111,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             } else {
                 toast.custom('error', 'Что-то не так', 'Ошибка обновления')
             }
-
             setIsUpdating(false)
         }
 
-        const handleFailure = (event: any, error: any) => {
+        const handleFailure = (_: any, error: any) => {
             const getErrorMessage = () => {
                 if (errorTypesToShow.has(error.type)) {
                     return `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
@@ -151,7 +142,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
             setIsUpdating(false)
         }
-        const handleUpdateAvailable = (event: any, data: any) => {
+
+        const handleUpdateAvailable = () => {
             setUpdate(true)
         }
 
@@ -167,31 +159,28 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners('update-available')
             ;(window as any).__listenersAdded = false
         }
-    }, [modInfo])
+    }, [modInfo, app.mod.installed, app.settings.showModModalAfterInstall])
 
     useEffect(() => {
-        const isListenersAttached = (window as any).__musicEventListeners
-        if (isListenersAttached) return
+        if ((window as any).__musicEventListeners) return
         ;(window as any).__musicEventListeners = true
 
-        const onProgressUpdate = (event: any, { progress }: { progress: number }) => {
+        const onProgressUpdate = (_: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
                 toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { id: toastReference.current, duration: Infinity }, progress)
             } else {
-                const toastId = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
-                toastReference.current = toastId
+                const id = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
+                toastReference.current = id
             }
         }
 
-        const onUpdateFailure = (event: any, error: any) => {
+        const onUpdateFailure = (_: any, error: any) => {
             if (toastReference.current) {
                 toast.custom(
                     'error',
                     `Ошибка: ${error.error}`,
                     !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
-                    {
-                        id: toastReference.current,
-                    },
+                    { id: toastReference.current },
                 )
                 toastReference.current = null
             } else {
@@ -204,11 +193,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setIsMusicUpdating(false)
         }
 
-        const onExecutionComplete = (event: any, data: any) => {
+        const onExecutionComplete = (_: any, data: any) => {
             if (toastReference.current) {
-                toast.custom('success', 'Успешно!', !musicInstalled || !data?.installed ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.', {
-                    id: toastReference.current,
-                })
+                toast.custom(
+                    'success',
+                    'Успешно!',
+                    !musicInstalled || !data?.installed ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.',
+                    { id: toastReference.current },
+                )
                 toastReference.current = null
                 setModUpdateState({
                     isVersionOutdated: false,
@@ -218,8 +210,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 if (!musicInstalled) {
                     setMusicInstalled(true)
                     window.location.reload()
-                }
-                else if (data?.type === 'reinstall') {
+                } else if (data?.type === 'reinstall') {
                     setApp((prevApp: SettingsInterface) => {
                         const updatedApp = {
                             ...prevApp,
@@ -247,7 +238,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners('download-music-execution-success')
             ;(window as any).__musicEventListeners = false
         }
-    }, [])
+    }, [musicInstalled])
 
     const updateYandexMusic = () => {
         if (isMusicUpdating) {
@@ -257,25 +248,20 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         window.desktopEvents?.send('download-yandex-music', modUpdateState.updateUrl)
         setIsMusicUpdating(true)
     }
+
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
             toast.custom('info', `Информация.`, 'Обновление уже запущено')
             return
         }
-
         if (modInfo.length === 0) {
             toast.custom('error', `Нет доступных обновлений для установки.`, 'Ошибка загрузки обновления')
             return
         }
-
         setIsUpdating(true)
-
         const id = toast.custom('loading', 'Начало загрузки обновления...', 'Ожидайте...')
-
         downloadToastIdRef.current = id
-
         const { modVersion, downloadUrl, checksum, spoof } = modInfo[0]
-
         window.desktopEvents?.send('update-app-asar', {
             version: modVersion,
             link: downloadUrl,
@@ -286,6 +272,16 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }
 
     useEffect(() => {
+        if (!loadingModInfo && !isUpdating && app.mod.installed && app.mod.version) {
+            const currentEntry = modInfo.find(m => m.modVersion === app.mod.version)
+            if (currentEntry?.deprecated) {
+                toast.custom('info', 'Установленная версия мода устарела', 'Выполняю автообновление...')
+                //startUpdate()
+            }
+        }
+    }, [loadingModInfo, modInfo, app.mod.version, isUpdating])
+
+    useEffect(() => {
         if (isDevmark) {
             document.body.style.border = '3px solid #fff34c'
             document.body.style.borderRadius = '10px'
@@ -293,7 +289,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             document.body.style.border = ''
             document.body.style.borderRadius = ''
         }
-
         return () => {
             document.body.style.border = ''
             document.body.style.borderRadius = ''
@@ -311,16 +306,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             </Helmet>
             <div className={pageStyles.children}>
                 <Header goBack={goBack} />
-                <div
-                    className={pageStyles.main_window}
-                    style={
-                        isDevmark
-                            ? {
-                                  bottom: '20px',
-                              }
-                            : {}
-                    }
-                >
+                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/trackinfoOld" text="Track Info">
@@ -365,7 +351,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-                    {modInfo.length > 0 && musicInstalled && (!app.mod.installed || app.mod.version < modInfo[0]?.modVersion) || !isDev && (
+                    {isModUpdateAvailable && (
                         <div className={pageStyles.alert_patch}>
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>
@@ -393,7 +379,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                                 {app.mod.installed ? 'Все равно обновить' : 'Все равно установить'}
                                             </button>
                                         )}
-
                                         {modUpdateState.isVersionOutdated && (
                                             <button className={pageStyles.patch_button} onClick={() => updateYandexMusic()}>
                                                 <MdOutlineInstallDesktop size={20} />

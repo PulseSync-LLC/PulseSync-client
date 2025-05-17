@@ -8,4 +8,5 @@ export interface ModInterface {
     createdAt: string
     changelog: string
     spoof: boolean
+    deprecated: boolean
 }

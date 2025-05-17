@@ -3,16 +3,20 @@ import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
-import fs from 'fs'
+import fs from 'original-fs'
 import { store } from '../modules/storage'
 import { asarBackup, mainWindow, musicPath } from '../../index'
-import { app, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 import axios from 'axios'
-
 import { execSync } from 'child_process';
 import * as plist from 'plist';
 import asar from '@electron/asar';
-import { promises as fsp } from 'fs';
+import { promises as fsp } from 'original-fs';
+import { glob } from 'glob'
+import { pipeline } from 'stream/promises'
+import unzipper from 'unzipper'
+import tar from 'tar'
+import { IOptions } from '@electron/asar/lib/types/glob'
 
 const execAsync = promisify(exec)
 
@@ -84,7 +88,7 @@ export function getPathToYandexMusic() {
         case 'darwin':
             return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
         case 'win32':
-            return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
+            return path.join(process?.env?.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
         case 'linux':
             return store.get('settings.yandexMusicPath', '')
         default:
@@ -278,38 +282,6 @@ export const downloadYandexMusic = async (type?: string) => {
     }
 }
 
-export class AsarCalculator {
-    constructor(private filePath: string) {}
-
-    private getHeaderSize(): number {
-        const fd = fs.openSync(this.filePath, 'r')
-        try {
-            const headerBuf = Buffer.alloc(16)
-            fs.readSync(fd, headerBuf, 0, 16, 0)
-            return headerBuf.readUInt32LE(12)
-        } finally {
-            fs.closeSync(fd)
-        }
-    }
-
-    private readHeader(): Buffer {
-        const size = this.getHeaderSize()
-        const fd = fs.openSync(this.filePath, 'r')
-        try {
-            const buf = Buffer.alloc(size)
-            fs.readSync(fd, buf, 0, size, 16)
-            return buf
-        } finally {
-            fs.closeSync(fd)
-        }
-    }
-
-    public calcHash(): string {
-        const header = this.readHeader()
-        return crypto.createHash('sha256').update(header).digest('hex')
-    }
-}
-
 export type PatchCallback = (progress: number, message: string) => void;
 
 export class AsarPatcher {
@@ -407,4 +379,58 @@ export class AsarPatcher {
             return false;
         }
     }
+}
+export const FFMPEG_INSTALL: Record<string, {
+    url: string
+    archiveName: string
+    extractType: 'zip' | 'tar'
+    execRelPath: string
+}> = {
+    darwin: {
+        url: 'https://evermeet.cx/ffmpeg/ffmpeg-7.1.zip',
+        archiveName: 'ffmpeg-macos.zip',
+        extractType: 'zip',
+        execRelPath: 'ffmpeg',
+    },
+    win32: {
+        url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
+        archiveName: 'ffmpeg-win.zip',
+        extractType: 'zip',
+        execRelPath: path.join('ffmpeg-temp', '**', 'bin', 'ffmpeg.exe'),
+    },
+    linux: {
+        url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz',
+        archiveName: 'ffmpeg-linux.tar.xz',
+        extractType: 'tar',
+        execRelPath: path.join('ffmpeg-*-amd64-static', 'ffmpeg'),
+    },
+}
+export const globAsync = promisify(glob) as (pattern: string, options: IOptions) => Promise<string[]>
+
+export async function downloadFile(url: string, dest: string, onProgress: (p: number) => void) {
+    const response = await axios.get(url, { responseType: 'stream' })
+    const total = parseInt(response.headers['content-length'] || '0', 10)
+    let received = 0
+    const writer = fs.createWriteStream(dest)
+
+    response.data.on('data', (chunk: Buffer) => {
+        received += chunk.length
+        onProgress(total ? Math.round((received / total) * 100) : 0)
+    })
+
+    await pipeline(response.data, writer)
+}
+
+export async function extractZip(src: string, dest: string) {
+    await fs.createReadStream(src)
+        .pipe(unzipper.Extract({ path: dest }))
+        .promise()
+}
+
+export async function extractTarXZ(src: string, dest: string) {
+    await tar.x({ file: src, cwd: dest })
+}
+
+export function sendStatus(window: BrowserWindow, message: string, progress: number, success?: boolean) {
+    window.webContents.send('ffmpeg-download-status', { message, progress, success })
 }

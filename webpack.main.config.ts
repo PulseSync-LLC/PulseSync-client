@@ -28,7 +28,7 @@ export const mainConfig: Configuration = {
         alias: {
             '@': path.resolve(__dirname, 'static'),
         },
-        extensions: ['.js', '.ts', '.jsx', '.tsx', '.css', '.scss', '.json', '.md', '.svg'],
+        extensions: ['.js', '.mjs', '.ts', '.jsx', '.tsx', '.css', '.scss', '.json', '.md', '.svg'],
     },
     externals: {
         electron: 'electron',
