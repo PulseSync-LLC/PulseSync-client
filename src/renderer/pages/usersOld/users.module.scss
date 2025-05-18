@@ -7,23 +7,6 @@
     background-size: cover !important;
 }
 
-:root {
-    --scrollWExtensionView: 100%;
-    --scrollHExtensionView: 100%;
-}
-
-.containerFix {
-    width: var(--scrollWExtensionView);
-    height: var(--scrollHExtensionView);
-}
-
-.containerFixInner {
-    overflow: overlay;
-    width: var(--scrollWExtensionView);
-    height: var(--scrollHExtensionView);
-    background: #33394b;
-}
-
 .searchContainer {
     width: -webkit-fill-available;
     display: flex;
@@ -215,7 +198,6 @@
     gap: 20px;
     display: flex;
     flex-direction: column;
-    padding: 15px 40px;
 }
 
 .userGrid {

@@ -1,6 +1,6 @@
 import Layout from '../../components/layout'
-import * as styles from './users.module.scss'
-import * as globalStyles from '../../../../static/styles/page/index.module.scss'
+import * as s from './users.module.scss'
+import * as styles from '../../../../static/styles/page/index.module.scss'
 import { useEffect, useState, useCallback } from 'react'
 import { useSubscription } from '@apollo/client'
 import UserInterface from '../../api/interfaces/user.interface'
@@ -16,6 +16,9 @@ import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
 import UserCard from '../../components/userCard'
 import Button from '../../components/button'
+import ContainerV2 from '../../components/containerV2'
+import Tabs, { TabItem } from '../../components/PSUI/Tabs'
+import Scrollbar from '../../components/PSUI/Scrollbar'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -77,13 +80,43 @@ export default function UsersPage() {
         },
     }
 
-    const defaultBackground = {
-        backgroundImage: 'linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)',
+    const tabConfigs: Array<{ title: string; icon: React.ReactNode; field: string }> = [
+        { title: 'Последняя активность', icon: <MdAccessTime />, field: 'lastOnline' },
+        { title: 'Дата регистрации', icon: <MdHourglassEmpty />, field: 'createdAt' },
+        { title: 'Имя пользователя', icon: <MdAllOut />, field: 'username' },
+        { title: 'Уровень', icon: <MdAllOut />, field: 'level' }, // или 'По рейтингу' если нужно
+    ]
+
+    const activeTab = tabConfigs.find(c => sorting[0].id === c.field)?.title ?? tabConfigs[0].title
+
+    const onTabChange = (title: string) => {
+        const cfg = tabConfigs.find(c => c.title === title)
+        if (cfg) handleSort(cfg.field)
+    }
+
+    type BackgroundStyle = {
+        height?: string
+        minHeight?: string
+        alignItems?: string
+        display?: string
+        padding?: string
+        backgroundImage: string
+        backgroundRepeat: string
+        backgroundPosition: string
+        backgroundSize: string
+    }
+
+    const defaultBackground: BackgroundStyle = {
+        minHeight: '75px',
+        alignItems: 'flex-end',
+        display: 'flex',
+        padding: '12px 40px',
+        backgroundImage: 'linear-gradient(180deg, rgba(35, 39, 55, 0.8) 0%, #232737 100%)',
         backgroundRepeat: 'no-repeat',
         backgroundPosition: 'center center',
         backgroundSize: 'cover',
     }
-    const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
+    const [backgroundStyle, setBackgroundStyle] = useState<BackgroundStyle>(defaultBackground)
 
     const debouncedFetchUsers = useCallback(
         debounce((page: number, perPage: number, sorting: any, search: string) => {
@@ -126,7 +159,7 @@ export default function UsersPage() {
 
     const getSortIcon = (field: string) => {
         if (sorting[0].id !== field) return null
-        return sorting[0].desc ? <MdKeyboardArrowDown className={styles.sortIcon} /> : <MdKeyboardArrowUp className={styles.sortIcon} />
+        return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
     }
 
     const isFieldSorted = (field: string) => sorting[0].id === field
@@ -140,35 +173,35 @@ export default function UsersPage() {
 
         for (let i = start; i <= end; i++) {
             pages.push(
-                <Button key={i} className={`${styles.paginationButton} ${i === page ? styles.active : ''}`} onClick={() => handlePageChange(i)}>
+                <Button key={i} className={`${s.paginationButton} ${i === page ? s.active : ''}`} onClick={() => handlePageChange(i)}>
                     {i}
                 </Button>,
             )
         }
 
         return (
-            <div className={styles.pagination}>
-                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+            <div className={s.pagination}>
+                <Button className={s.paginationButtonLR} onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
                     Назад
                 </Button>
                 {start > 1 && (
                     <>
-                        <Button className={styles.paginationButton} onClick={() => handlePageChange(1)}>
+                        <Button className={s.paginationButton} onClick={() => handlePageChange(1)}>
                             1
                         </Button>
-                        {start > 2 && <span className={styles.ellipsis}>...</span>}
+                        {start > 2 && <span className={s.ellipsis}>...</span>}
                     </>
                 )}
                 {pages}
                 {end < maxPages && (
                     <>
-                        {end < maxPages - 1 && <span className={styles.ellipsis}>...</span>}
-                        <Button className={styles.paginationButton} onClick={() => handlePageChange(maxPages)}>
+                        {end < maxPages - 1 && <span className={s.ellipsis}>...</span>}
+                        <Button className={s.paginationButton} onClick={() => handlePageChange(maxPages)}>
                             {maxPages}
                         </Button>
                     </>
                 )}
-                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page + 1)} disabled={page === maxPages}>
+                <Button className={s.paginationButtonLR} onClick={() => handlePageChange(page + 1)} disabled={page === maxPages}>
                     Вперед
                 </Button>
             </div>
@@ -187,7 +220,11 @@ export default function UsersPage() {
             img.src = url
             img.onload = () =>
                 setBackgroundStyle({
-                    backgroundImage: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%), url(${url})`,
+                    minHeight: '75px',
+                    alignItems: 'flex-end',
+                    display: 'flex',
+                    padding: '12px 40px',
+                    backgroundImage: `linear-gradient(180deg, rgba(35, 39, 55, 0.8) 0%, #232737 100%), url(${url})`,
                     backgroundRepeat: 'no-repeat',
                     backgroundPosition: 'center center',
                     backgroundSize: 'cover',
@@ -201,7 +238,7 @@ export default function UsersPage() {
     const [isSticky, setIsSticky] = useState(false)
     useEffect(() => {
         const onScroll = () => {
-            const nav = document.querySelector(`.${styles.userNav}`)
+            const nav = document.querySelector(`.${s.userNav}`)
             if (nav) setIsSticky(nav.getBoundingClientRect().top <= 0)
         }
         window.addEventListener('scroll', onScroll)
@@ -210,96 +247,143 @@ export default function UsersPage() {
 
     return (
         <Layout title="Пользователи">
-            <div className={globalStyles.page}>
-                <div className={globalStyles.container}>
-                    <div className={globalStyles.main_container}>
-                        <div className={globalStyles.container0x0}>
-                            <div style={backgroundStyle} className={styles.previewImage}></div>
-                            <div className={styles.searchContainer}>
-                                <div className={styles.BoxContainer}>
-                                    <div className={styles.titlePage}>Пользователи</div>
-                                    <div className={styles.searchBoxContainer}>
-                                        <SearchImg />
-                                        <input
-                                            className={styles.searchInput}
-                                            type="text"
-                                            placeholder="Поиск..."
-                                            value={search}
-                                            onChange={e => {
-                                                setSearch(e.target.value)
-                                                setPage(1)
-                                            }}
-                                        />
-                                    </div>
+            <div className={styles.page}>
+                <div className={styles.container}>
+                    <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner}>
+                        <div className={styles.main_container}>
+                            <ContainerV2 titleName="Пользователи" imageName="users" style={backgroundStyle} />
+                            <Tabs
+                                active={activeTab}
+                                onChange={onTabChange}
+                                tabs={tabConfigs.map(({ title, icon }) => ({ title, icon }))}
+                                sortDirection={sorting[0].desc ? 'desc' : 'asc'}
+                                stickyPos={{ top: '0px' }}
+                            />
+
+                            {loading ? (
+                                <div className={s.loading}>
+                                    <motion.div
+                                        variants={containerVariants}
+                                        initial="initial"
+                                        animate="animate"
+                                        style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    >
+                                        {loadingText.map((char, i) => (
+                                            <motion.span key={i} variants={letterVariants} style={{ display: 'inline-block', marginRight: '2px' }}>
+                                                {char}
+                                            </motion.span>
+                                        ))}
+                                    </motion.div>
                                 </div>
-                            </div>
-                            <div className={`${styles.userNav} ${isSticky ? styles.sticky : ''}`}>
-                                <div className={styles.userNavContainer}>
-                                    <Button
-                                        className={`${styles.userNavButton} ${isFieldSorted('lastOnline') ? styles.activeSort : ''}`}
-                                        onClick={() => handleSort('lastOnline')}
-                                    >
-                                        <MdAccessTime /> Последняя активность {getSortIcon('lastOnline')}
-                                    </Button>
-                                    <Button
-                                        className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
-                                        onClick={() => handleSort('createdAt')}
-                                    >
-                                        <MdHourglassEmpty /> Дата регистрации {getSortIcon('createdAt')}
-                                    </Button>
-                                    <Button
-                                        className={`${styles.userNavButton} ${isFieldSorted('username') ? styles.activeSort : ''}`}
-                                        onClick={() => handleSort('username')}
-                                    >
-                                        <MdAllOut /> Имя пользователя {getSortIcon('username')}
-                                    </Button>
-                                    <Button
-                                        className={`${styles.userNavButton} ${isFieldSorted('level') ? styles.activeSort : ''}`}
-                                        onClick={() => handleSort('level')}
-                                    >
-                                        <MdAllOut /> level {getSortIcon('level')}
-                                    </Button>
-                                </div>
-                                {users.length > 0 && renderPagination()}
-                            </div>
-                            <div className={globalStyles.containerUsesPage}>
-                                {loading ? (
-                                    <div className={styles.loading}>
-                                        <motion.div
-                                            variants={containerVariants}
-                                            initial="initial"
-                                            animate="animate"
-                                            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                                        >
-                                            {loadingText.map((char, i) => (
-                                                <motion.span
-                                                    key={i}
-                                                    variants={letterVariants}
-                                                    style={{ display: 'inline-block', marginRight: '2px' }}
-                                                >
-                                                    {char}
-                                                </motion.span>
+                            ) : (
+                                <div className={s.userPage}>
+                                    {users.length > 0 ? (
+                                        <div className={s.userGrid}>
+                                            {users.map(user => (
+                                                <UserCard key={user.id} user={user} onClick={openUserProfile} />
                                             ))}
-                                        </motion.div>
-                                    </div>
-                                ) : (
-                                    <div className={styles.userPage}>
-                                        {users.length > 0 ? (
-                                            <div className={styles.userGrid}>
-                                                {users.map(user => (
-                                                    <UserCard key={user.id} user={user} onClick={openUserProfile} />
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <div className={styles.noResults}>Нет результатов</div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className={s.noResults}>Нет результатов</div>
+                                    )}
+                                </div>
+                            )}
                         </div>
-                    </div>
+                    </Scrollbar>
                 </div>
             </div>
         </Layout>
+        // <Layout title="Пользователи">
+        //     <div className={globalS.page}>
+        //         <div className={globalS.container}>
+        //             <div className={globalS.main_container}>
+        //                 <div className={globalS.container0x0}>
+        //                     <div style={backgroundStyle} className={s.previewImage}></div>
+        //                     <div className={s.searchContainer}>
+        //                         <div className={s.BoxContainer}>
+        //                             <div className={s.titlePage}>Пользователи</div>
+        //                             <div className={s.searchBoxContainer}>
+        //                                 <SearchImg />
+        //                                 <input
+        //                                     className={s.searchInput}
+        //                                     type="text"
+        //                                     placeholder="Поиск..."
+        //                                     value={search}
+        //                                     onChange={e => {
+        //                                         setSearch(e.target.value)
+        //                                         setPage(1)
+        //                                     }}
+        //                                 />
+        //                             </div>
+        //                         </div>
+        //                     </div>
+        //                     <div className={`${s.userNav} ${isSticky ? s.sticky : ''}`}>
+        //                         <div className={s.userNavContainer}>
+        //                             <Button
+        //                                 className={`${s.userNavButton} ${isFieldSorted('lastOnline') ? s.activeSort : ''}`}
+        //                                 onClick={() => handleSort('lastOnline')}
+        //                             >
+        //                                 <MdAccessTime /> Последняя активность {getSortIcon('lastOnline')}
+        //                             </Button>
+        //                             <Button
+        //                                 className={`${s.userNavButton} ${isFieldSorted('createdAt') ? s.activeSort : ''}`}
+        //                                 onClick={() => handleSort('createdAt')}
+        //                             >
+        //                                 <MdHourglassEmpty /> Дата регистрации {getSortIcon('createdAt')}
+        //                             </Button>
+        //                             <Button
+        //                                 className={`${s.userNavButton} ${isFieldSorted('username') ? s.activeSort : ''}`}
+        //                                 onClick={() => handleSort('username')}
+        //                             >
+        //                                 <MdAllOut /> Имя пользователя {getSortIcon('username')}
+        //                             </Button>
+        //                             <Button
+        //                                 className={`${s.userNavButton} ${isFieldSorted('level') ? s.activeSort : ''}`}
+        //                                 onClick={() => handleSort('level')}
+        //                             >
+        //                                 <MdAllOut /> level {getSortIcon('level')}
+        //                             </Button>
+        //                         </div>
+        //                         {users.length > 0 && renderPagination()}
+        //                     </div>
+        //                     <div className={globalS.containerUsesPage}>
+        //                         {loading ? (
+        //                             <div className={s.loading}>
+        //                                 <motion.div
+        //                                     variants={containerVariants}
+        //                                     initial="initial"
+        //                                     animate="animate"
+        //                                     style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+        //                                 >
+        //                                     {loadingText.map((char, i) => (
+        //                                         <motion.span
+        //                                             key={i}
+        //                                             variants={letterVariants}
+        //                                             style={{ display: 'inline-block', marginRight: '2px' }}
+        //                                         >
+        //                                             {char}
+        //                                         </motion.span>
+        //                                     ))}
+        //                                 </motion.div>
+        //                             </div>
+        //                         ) : (
+        //                             <div className={s.userPage}>
+        //                                 {users.length > 0 ? (
+        //                                     <div className={s.userGrid}>
+        //                                         {users.map(user => (
+        //                                             <UserCard key={user.id} user={user} onClick={openUserProfile} />
+        //                                         ))}
+        //                                     </div>
+        //                                 ) : (
+        //                                     <div className={s.noResults}>Нет результатов</div>
+        //                                 )}
+        //                             </div>
+        //                         )}
+        //                     </div>
+        //                 </div>
+        //             </div>
+        //         </div>
+        //     </div>
+        // </Layout>
     )
 }

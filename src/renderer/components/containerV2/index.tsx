@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { CSSProperties } from 'react'
 import * as styles from './container.module.scss'
 import ButtonV2 from '../buttonV2'
 
@@ -8,12 +8,13 @@ interface p {
     buttonName?: string
     onClick?: () => void
     children?: any
+    style?: CSSProperties
 }
 
-const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, onClick }) => {
+const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, onClick, style }) => {
     return (
         <>
-            <div className={styles.mainContainer}>
+            <div className={styles.mainContainer} style={style}>
                 <div className={styles.left}>
                     <img src={`static/assets/container_icons/${imageName}.svg`} alt={imageName} />
                     <div className={styles.title}>{titleName}</div>

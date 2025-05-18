@@ -1,0 +1,89 @@
+.extensionNav {
+    min-width: 100%;
+    justify-content: space-between;
+    gap: 8px;
+    box-sizing: border-box;
+    align-items: center;
+    background: rgba(56, 62, 82, 0.9411764706);
+    border-bottom: 1px solid #3d445b;
+    backdrop-filter: blur(50px);
+    left: 0;
+    right: 0;
+    position: sticky;
+    z-index: 10;
+    top: 66px;
+    display: grid;
+
+    & > .extensionNavContainer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        width: -webkit-fill-available;
+        overflow: scroll;
+        padding: 0px 40px;
+        height: 65px;
+        gap: 25px;
+    }
+}
+
+.extensionNavButton {
+    transition: var(--transition);
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    padding: 20px 0;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    font-weight: 700;
+    font-size: 16px;
+    color: #858da9;
+
+    &::after {
+        transition: var(--transition);
+        content: '';
+        position: absolute;
+        display: block;
+        bottom: 0px;
+        width: -webkit-fill-available;
+        height: 0px;
+        background: #B1E3CF;
+    }
+
+    &:hover {
+        cursor: pointer;
+        color: #B1E3CF;
+
+        &::after {
+            bottom: -1px;
+            height: 4px;
+        }
+    }
+
+    &:disabled {
+        opacity: 0.5;
+
+        &:hover {
+            cursor: not-allowed;
+            color: #89b4a3;
+
+            &::after {
+                bottom: 0px;
+                height: 0px;
+            }
+        }
+    }
+}
+
+.activeTabButton {
+    color: #B1E3CF;
+
+    &::after {
+        bottom: -1px;
+        height: 4px;
+        background: #B1E3CF;
+    }
+}
