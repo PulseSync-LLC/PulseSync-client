@@ -1,16 +1,14 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as styles from './userCard.module.scss'
 import config from '../../api/config'
-import Button from '../button'
 import TooltipButton from '../tooltip_button'
 import { getStatusColor, getStatus } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
-import { MdMoreHoriz, MdPersonAddAlt1 } from 'react-icons/md'
-import LevelBadge from '../LevelBadge'
 
 interface UserCardProps {
-    user: UserInterface
+    user: Partial<UserInterface>
     onClick: (username: string) => void
+    placeholder?: boolean
 }
 
 const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: IntersectionObserverInit) => {
@@ -30,25 +28,20 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
 
 const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; hash?: string; ext?: string; hovered: boolean }) => {
     if (!hash) {
-        return type === 'avatar' ? './static/assets/images/undef.png' : 'linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%)'
+        return type === 'avatar'
+            ? './static/assets/images/undef.png'
+            : 'linear-gradient(90deg, rgba(26, 31, 45, 0.67) 0%, rgba(26, 31, 45, 0.56) 100%) 100%), url(./static/assets/images/undef.png)'
     }
 
     const base = `${config.S3_URL}/${type}s/${hash}`
     if (ext === 'gif') {
-        if (type === 'avatar') {
-            return hovered ? `${base}.gif` : `${base}_preview.webp`
-        } else {
-            const img = hovered ? `${base}.gif` : `${base}_preview.webp`
-            return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${img})`
-        }
+        const preview = hovered ? `${base}.gif` : `${base}_preview.webp`
+        return type === 'avatar' ? preview : `linear-gradient(90deg, rgba(26, 31, 45, 0.67) 0%, rgba(26, 31, 45, 0.56) 100%), url(${preview})`
     }
 
-    if (type === 'avatar') {
-        return `${config.S3_URL}/avatars/${hash}.${ext}`
-    } else {
-        const img = `${config.S3_URL}/banners/${hash}.${ext}`
-        return `linear-gradient(90deg, rgba(8, 14, 34, 0.8) 0%, rgba(8, 14, 34, 0.7) 100%), url(${img})`
-    }
+    return type === 'avatar'
+        ? `${config.S3_URL}/avatars/${hash}.${ext}`
+        : `linear-gradient(90deg, rgba(26, 31, 45, 0.67) 0%, rgba(26, 31, 45, 0.56) 100%), url(${config.S3_URL}/banners/${hash}.${ext})`
 }
 
 const isInactive = (lastOnline?: number) => {
@@ -59,150 +52,120 @@ const isInactive = (lastOnline?: number) => {
     return lastOnlineDate < oneWeekAgo
 }
 
-const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
-    const statusColor = getStatusColor(user)
-    const statusColorDark = getStatusColor(user, true)
-    const [statusUser, setStatusUser] = useState(getStatus(user))
-    const [isStatusVisible, setIsStatusVisible] = useState(true)
-
-    const sortedBadges = useMemo(() => user.badges.slice().sort((a, b) => b.level - a.level), [user.badges])
+const UserCard: React.FC<UserCardProps> = ({ user, onClick, placeholder = false }) => {
+    if (placeholder) {
+        return <div className={styles.userCardSkeleton} style={{ height: '100px', width: '100%' }} aria-hidden="true" />
+    }
 
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
 
     const [isHovered, setIsHovered] = useState(false)
+    const [isStatusVisible] = useState(true)
+
+    const statusInfo = getStatus(user as UserInterface)
+    const statusColor = getStatusColor(user as UserInterface)
+    const statusColorDark = getStatusColor(user as UserInterface, true)
+
+    const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user?.badges])
 
     const bannerBackground = useMemo(
         () =>
             getMediaUrl({
                 type: 'banner',
-                hash: user.bannerHash,
-                ext: user.bannerType,
+                hash: (user as UserInterface).bannerHash,
+                ext: (user as UserInterface).bannerType,
                 hovered: isHovered,
             }),
-        [user.bannerHash, user.bannerType, isHovered],
+        [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered],
     )
 
     const avatarUrl = useMemo(
         () =>
             getMediaUrl({
                 type: 'avatar',
-                hash: user.avatarHash,
-                ext: user.avatarType,
+                hash: (user as UserInterface).avatarHash,
+                ext: (user as UserInterface).avatarType,
                 hovered: isHovered,
             }),
-        [user.avatarHash, user.avatarType, isHovered],
+        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered],
     )
 
-    useEffect(() => {
-        let timeoutId: NodeJS.Timeout | null = null
-
-        const updateStatus = () => {
-            if (user.status === 'online' && user.currentTrack?.status === 'playing') {
-                setIsStatusVisible(false)
-
-                setTimeout(() => {
-                    const fullStatus = getStatus(user, true)
-                    setStatusUser(prevStatus => (prevStatus === 'Слушает' ? fullStatus : 'Слушает'))
-                    setIsStatusVisible(true)
-                }, 500)
-            }
-        }
-
-        if (user.status === 'online' && user.currentTrack?.status === 'playing') {
-            timeoutId = setTimeout(updateStatus, 10000)
-        }
-
-        return () => {
-            if (timeoutId) clearTimeout(timeoutId)
-        }
-    }, [user, statusUser])
-
     if (!isVisible) {
-        return (
-            <div
-                ref={containerRef}
-                style={{
-                    height: '126px',
-                    width: '-webkit-fill-available',
-                    position: 'relative',
-                    display: 'grid',
-                }}
-            />
-        )
+        return <div ref={containerRef} style={{ height: '100px', width: '100%' }} />
     }
 
     return (
         <div
             ref={containerRef}
-            style={{
-                height: '126px',
-                width: '-webkit-fill-available',
-                position: 'relative',
-                display: 'grid',
-            }}
+            className={styles.container}
+            style={
+                {
+                    animation: 'fadeIn 0.4s ease forwards',
+                    height: '100px',
+                    width: '100%',
+                    '--statusColorProfile': statusColor,
+                    '--statusColorDark': statusColorDark,
+                    opacity: isInactive(Number((user as UserInterface).lastOnline)) ? 0.5 : 1,
+                    backgroundImage: bannerBackground,
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'center center',
+                    backgroundSize: 'cover',
+                } as React.CSSProperties
+            }
         >
             <button
-                className={styles.userCard}
+                className={`${styles.userCard} ${(user as UserInterface).status === 'offline' ? styles.userCardOffline : ''}`}
                 onMouseEnter={() => setIsHovered(true)}
                 onMouseLeave={() => setIsHovered(false)}
-                onClick={() => onClick(user.username)}
-                style={
-                    {
-                        '--statusColorProfile': statusColor,
-                        '--statusColorDark': statusColorDark,
-                        opacity: isInactive(Number(user.lastOnline)) ? 0.3 : 1,
-
-                        backgroundImage: bannerBackground,
-                        backgroundRepeat: 'no-repeat',
-                        backgroundPosition: 'center center',
-                        backgroundSize: 'cover',
-                    } as React.CSSProperties
-                }
+                onClick={() => onClick((user as UserInterface).username)}
             >
-                <div className={styles.userCardContent}>
-                    <div className={styles.userCardHeader}>
-                        <img
-                            key={avatarUrl}
-                            loading="lazy"
-                            className={styles.userAvatar}
-                            src={avatarUrl}
-                            alt={user.username}
-                            onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
-                            }}
-                        />
-                        <div className={styles.userStatus}>
-                            <div className={styles.userInfo}>
-                                <div className={styles.userNickname}>{user.nickname}</div>
-                                <div className={styles.userUsername}>@{user.username}</div>
-                            </div>
-                            <div className={styles.userBadges}>
-                                <TooltipButton tooltipText={`Уровень ${user.levelInfo.currentLevel}`} side="bottom">
-                                    <LevelBadge level={user.levelInfo.currentLevel} />
+                <img
+                    key={avatarUrl}
+                    loading="lazy"
+                    className={styles.userAvatar}
+                    src={avatarUrl}
+                    alt={(user as UserInterface).username}
+                    onError={e => {
+                        ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                    }}
+                />
+
+                <div className={styles.userInfoCompact}>
+                    <div className={styles.infoTop}>
+                        <div className={styles.nickname}>{(user as UserInterface).nickname}</div>
+                        <div className={styles.badges}>
+                            {sortedBadges.map(_badge => (
+                                <TooltipButton key={`${_badge.type}-${_badge.level}`} tooltipText={_badge.name} side="bottom">
+                                    <div className={styles.badge}>
+                                        <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.name} className={styles.badgeIcon} />
+                                    </div>
                                 </TooltipButton>
-                                {sortedBadges.map(_badge => (
-                                    <TooltipButton key={`${_badge.type}-${_badge.level}`} tooltipText={_badge.name} side="bottom">
-                                        <div className={`${styles.badge} ${styles[`badgeLevel${_badge.level}`]}`}>
-                                            <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.name} />
-                                        </div>
-                                    </TooltipButton>
-                                ))}
-                            </div>
+                            ))}
                         </div>
                     </div>
 
-                    <TooltipButton className={styles.cardDetail} tooltipText="Скоро" side="left">
-                        <Button disabled className={styles.cardDetailButton}>
-                            <MdPersonAddAlt1 size={20} />
-                        </Button>
-                        <Button disabled className={styles.cardDetailButton}>
-                            <MdMoreHoriz size={20} />
-                        </Button>
-                    </TooltipButton>
-                </div>
-                <div className={styles.userStatusInfo}>
-                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>{statusUser}</div>
+                    <div className={styles.infoBottom}>
+                        <TooltipButton tooltipText={statusInfo.detail} tipEnabled={statusInfo.detail !== null} side="bottom">
+                            <div
+                                className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}
+                                style={{
+                                    color: statusColorDark,
+                                }}
+                            >
+                                {statusInfo.text}
+                            </div>
+                        </TooltipButton>
+
+                        <div
+                            className={styles.levelBadge}
+                            style={{
+                                color: (user as UserInterface).status === 'offline' ? statusColorDark : statusColor,
+                            }}
+                        >
+                            {user.levelInfo?.currentLevel || 0} Lv
+                        </div>
+                    </div>
                 </div>
             </button>
         </div>

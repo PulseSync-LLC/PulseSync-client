@@ -1,34 +1,38 @@
 import { timeAgo } from './utils'
 import UserInterface from '../api/interfaces/user.interface'
 
-export const getStatusColor = (user: UserInterface, dark?: boolean): string => {
+export const getStatusColor = (user: UserInterface, dark = false): string => {
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {
-        return dark ? '#1B311E' : '#71DC81'
+        return dark ? '#202F16' : '#A8FF66'
     }
-
     if (user.status === 'online') {
-        return dark ? '#1B2932' : '#56B2EB'
+        return dark ? '#224D57' : '#66E3FF'
     }
-
-    return dark ? '#5d6275' : '#353845'
+    return dark ? '#9DA8CE' : '#434B61'
 }
 
-export const getStatus = (user: UserInterface, full?: boolean): string => {
+export const getStatus = (user: UserInterface): { text: string; detail: string | null } => {
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {
-        if (full) {
-            const artists = user.currentTrack.artists?.map(a => a.name).join(', ')
-            return `${user.currentTrack.title} — ${artists}`
+        const artists = user.currentTrack.artists?.map(a => a.name).join(', ')
+        return {
+            text: 'Слушает',
+            detail: `${user.currentTrack.title} - ${artists}` || null,
         }
-        return 'Слушает'
     }
-
     if (user.status === 'online') {
-        return 'В сети'
+        return {
+            text: 'В сети',
+            detail: null,
+        }
     }
-
     if (user.lastOnline) {
-        return `Был в сети ${timeAgo(Number(user.lastOnline))}`
+        return {
+            text: 'Не в сети',
+            detail: timeAgo(Number(user.lastOnline)),
+        }
     }
-
-    return 'Не в сети'
+    return {
+        text: 'Не в сети',
+        detail: `💤`,
+    }
 }

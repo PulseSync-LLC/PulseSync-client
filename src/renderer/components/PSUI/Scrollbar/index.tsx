@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
 import * as styles from './Scrollbar.module.scss'
 
 interface ScrollbarProps {
@@ -6,9 +6,10 @@ interface ScrollbarProps {
     className?: string
     classNameInner?: string
     duration?: number
+    onScroll?: (e: React.UIEvent<HTMLDivElement>) => void
 }
 
-const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInner, duration = 400 }) => {
+const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, className, classNameInner, duration = 400, onScroll }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const thumbRef = useRef<HTMLDivElement>(null)
     const trackRef = useRef<HTMLDivElement>(null)
@@ -17,6 +18,8 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
     const isDragging = useRef(false)
     const dragStartY = useRef(0)
     const scrollStartTop = useRef(0)
+
+    useImperativeHandle(ref, () => containerRef.current!)
 
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
@@ -34,7 +37,7 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
         const scrollTop = container.scrollTop
         const scrollHeight = container.scrollHeight
         const clientHeight = container.clientHeight
-        const thumbHeight = thumb.offsetHeight
+        const thumbH = thumb.offsetHeight
 
         if (scrollHeight <= clientHeight) {
             thumb.style.display = 'none'
@@ -42,7 +45,7 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
         }
 
         const ratio = scrollTop / (scrollHeight - clientHeight)
-        const maxThumbTop = clientHeight - thumbHeight - 10
+        const maxThumbTop = clientHeight - thumbH - 10
         const top = Math.min(ratio * maxThumbTop, maxThumbTop)
         thumb.style.transform = `translateY(${top}px)`
         thumb.style.display = 'block'
@@ -76,8 +79,6 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
 
         updateThumbSize()
         updateThumbPosition()
-
-        const onScroll = () => updateThumbPosition()
 
         const onThumbMouseDown = (e: MouseEvent) => {
             isDragging.current = true
@@ -143,7 +144,6 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
             characterData: true,
         })
 
-        container.addEventListener('scroll', onScroll)
         thumb.addEventListener('mousedown', onThumbMouseDown)
         window.addEventListener('mousemove', onMouseMove)
         window.addEventListener('mouseup', onMouseUp)
@@ -158,8 +158,6 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
 
         return () => {
             observer.disconnect()
-
-            container.removeEventListener('scroll', onScroll)
             thumb.removeEventListener('mousedown', onThumbMouseDown)
             window.removeEventListener('mousemove', onMouseMove)
             window.removeEventListener('mouseup', onMouseUp)
@@ -180,6 +178,10 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
                 className={`${classNameInner || ''} ${styles.scrollContent}`}
                 style={className ? {} : { height: '100%', width: '100%' }}
                 ref={containerRef}
+                onScroll={e => {
+                    updateThumbPosition()
+                    onScroll && onScroll(e)
+                }}
             >
                 {children}
             </div>
@@ -188,6 +190,6 @@ const Scrollbar: React.FC<ScrollbarProps> = ({ children, className, classNameInn
             </div>
         </div>
     )
-}
+})
 
 export default Scrollbar
