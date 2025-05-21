@@ -1,13 +1,13 @@
 import React, { CSSProperties, useState, useEffect, useRef, useMemo, useCallback } from 'react'
 import { useNavigate } from 'react-router'
 import useInView from '../../hooks/useInView'
-import AddonInterface from '../../api/interfaces/addon.interface'
+import Addon from '../../api/interfaces/addon.interface'
 import { MdCheckCircle, MdColorLens, MdInfo, MdTextSnippet } from 'react-icons/md'
 import * as cardStyles from './card.module.scss'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
 
 interface ExtensionCardProps {
-    addon: AddonInterface
+    addon: Addon
     isChecked: boolean
     onCheckboxChange: (themeName: string, isChecked: boolean) => void
     className?: string

@@ -21,7 +21,7 @@ import {
 import Layout from '../../../components/layout'
 import Button from '../../../components/button'
 import ViewModal from '../../../components/context_menu_themes/viewModal'
-import AddonInterface from '../../../api/interfaces/addon.interface'
+import Addon from '../../../api/interfaces/addon.interface'
 import { createContextMenuActions } from '../../../components/context_menu_themes/sectionConfig'
 import ConfigurationSettings from '../../../components/сonfigurationSettings/ConfigurationSettings'
 import { AddonConfig, Item, TextItem, ButtonAction, ButtonItem, ColorItem } from '../../../components/сonfigurationSettings/types'
@@ -38,7 +38,7 @@ const ExtensionViewPage: React.FC = () => {
 
     const isFirstRender = useRef(true)
     const { openUserProfile } = useUserProfileModal()
-    const [currentAddon, setCurrentAddon] = useState<AddonInterface | null>(null)
+    const [currentAddon, setCurrentAddon] = useState<Addon | null>(null)
     const [contextMenuVisible, setContextMenuVisible] = useState(false)
     const [bannerImage, setBannerImage] = useState('static/assets/images/no_themeBackground.png')
 
@@ -69,7 +69,7 @@ const ExtensionViewPage: React.FC = () => {
     }, [activatedTheme])
 
     useEffect(() => {
-        const receivedAddon = location.state?.theme as AddonInterface
+        const receivedAddon = location.state?.theme as Addon
 
         if (receivedAddon) {
             setCurrentAddon(receivedAddon)

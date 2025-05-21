@@ -135,6 +135,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 window.electron.store.set('settings.showModModalAfterInstall', status)
                 toast.custom('success', `Готово`, `Опция "Показывать список изменений после установки" ${status ? 'включена' : 'выключена'}`)
                 break
+            case 'saveWindowPositionOnRestart':
+                updatedSettings.saveWindowPositionOnRestart = status
+                window.electron.store.set('settings.saveWindowPositionOnRestart', status)
+                toast.custom('success', `Готово`, `Опция "Сохранять положение окна" ${status ? 'включена' : 'выключена'}`)
+                break
+            case 'saveWindowDimensionsOnRestart':
+                updatedSettings.saveWindowDimensionsOnRestart = status
+                window.electron.store.set('settings.saveWindowDimensionsOnRestart', status)
+                toast.custom('success', `Готово`, `Опция "Сохранять размер окна" ${status ? 'включена' : 'выключена'}`)
+                break
         }
         setApp({ ...app, settings: updatedSettings })
     }
@@ -213,16 +223,24 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             ),
         ]),
         createButtonSection('Настройки приложения', [
-            createToggleButton('Автотрей', app.settings.autoStartInTray, () => toggleSetting('autoTray', !app.settings.autoStartInTray)),
             createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () => toggleSetting('autoStart', !app.settings.autoStartApp)),
-            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
-                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
-            ),
             createToggleButton('Аппаратное ускорение', app.settings.hardwareAcceleration, () =>
                 toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
             createToggleButton('Удалять .pext после импорта темы', app.settings.deletePextAfterImport, () =>
                 toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
+            ),
+        ]),
+        createButtonSection('Настройки окна приложения', [
+            createToggleButton('Сохранять размер окна', app.settings.saveWindowDimensionsOnRestart, () =>
+                toggleSetting('saveWindowDimensionsOnRestart', !app.settings.saveWindowDimensionsOnRestart),
+            ),
+            createToggleButton('Сохранять положение окна', app.settings.saveWindowPositionOnRestart, () =>
+                toggleSetting('saveWindowPositionOnRestart', !app.settings.saveWindowPositionOnRestart),
+            ),
+            createToggleButton('Автотрей', app.settings.autoStartInTray, () => toggleSetting('autoTray', !app.settings.autoStartInTray)),
+            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
+                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
         createButtonSection('Особое', [

@@ -2,21 +2,12 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 export interface DesktopEvents {
-    send(channel: string, ...args: any[]): void;
-    on(
-        channel: string,
-        listener: (event: IpcRendererEvent, ...args: any[]) => void
-    ): () => void;
-    once(
-        channel: string,
-        listener: (event: IpcRendererEvent, ...args: any[]) => void
-    ): void;
-    removeListener(
-        channel: string,
-        listener: (event: IpcRendererEvent, ...args: any[]) => void
-    ): void;
-    removeAllListeners(channel: string): void;
-    invoke(channel: string, ...args: any[]): Promise<any>;
+    send(channel: string, ...args: any[]): void
+    on(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): () => void
+    once(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void
+    removeListener(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void
+    removeAllListeners(channel: string): void
+    invoke(channel: string, ...args: any[]): Promise<any>
 }
 
 contextBridge.exposeInMainWorld('electron', {
@@ -104,4 +95,4 @@ const desktopEvents: DesktopEvents = {
         return ipcRenderer.invoke(channel as string, ...args)
     },
 }
-contextBridge.exposeInMainWorld('desktopEvents', desktopEvents);
+contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)

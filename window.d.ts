@@ -41,7 +41,7 @@ declare global {
             setActivity: (props: SetActivity) => void
             clearActivity: () => void
         }
-        desktopEvents: DesktopEvents;
+        desktopEvents: DesktopEvents
     }
 }
 export {}

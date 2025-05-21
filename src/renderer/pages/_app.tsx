@@ -34,7 +34,7 @@ import Preloader from '../components/preloader'
 import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
 import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
-import AddonInterface from '../api/interfaces/addon.interface'
+import Addon from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
@@ -55,10 +55,10 @@ function App() {
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
-    const [addons, setAddons] = useState<AddonInterface[]>(AddonInitials)
+    const [addons, setAddons] = useState<Addon[]>(AddonInitials)
     const [features, setFeatures] = useState<any>({})
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
-    const [navigateState, setNavigateState] = useState<AddonInterface | null>(null)
+    const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
@@ -443,7 +443,7 @@ function App() {
             const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
             window.desktopEvents?.send('REFRESH_MOD_INFO')
-            window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
+            window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
             })
 
@@ -463,7 +463,7 @@ function App() {
         const handleOpenAddon = (_event: any, data: string) => {
             window.desktopEvents
                 ?.invoke('getAddons')
-                .then((fetchedAddons: AddonInterface[]) => {
+                .then((fetchedAddons: Addon[]) => {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
@@ -605,7 +605,7 @@ function App() {
             await authorize()
         }
         ;(window as any).refreshAddons = async (args: any) => {
-            window.desktopEvents.invoke('getAddons').then((fetchedAddons: AddonInterface[]) => {
+            window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
                 router.navigate('/extensionbeta', { replace: true })
             })

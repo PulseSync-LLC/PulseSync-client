@@ -25,32 +25,32 @@ const forgeConfig: ForgeConfig = {
     rebuildConfig: {},
     makers: [
         {
-            "name": "@electron-forge/maker-zip",
-            "config": {
-                "macUpdateManifestBaseUrl": "${config.UPDATE_URL}/beta/darwin/{{arch}}"
-            }
+            name: '@electron-forge/maker-zip',
+            config: {
+                macUpdateManifestBaseUrl: '${config.UPDATE_URL}/beta/darwin/{{arch}}',
+            },
         },
         {
-            "name": "@electron-forge/maker-deb",
-            "config": {
-                "desktopTemplate": "pulsesync.desktop"
-            }
+            name: '@electron-forge/maker-deb',
+            config: {
+                desktopTemplate: 'pulsesync.desktop',
+            },
         },
         {
-            "name": "@electron-forge/maker-rpm",
-            "config": {
-                "desktopTemplate": "pulsesync.desktop"
-            }
+            name: '@electron-forge/maker-rpm',
+            config: {
+                desktopTemplate: 'pulsesync.desktop',
+            },
         },
         {
-            "name": "@electron-forge/maker-dmg",
-            "config": {
-                "background": "./static/assets/images/no_banner.png",
-                "icon": "./icons/mac/icon.icns",
-                "format": "ULFO",
-                "overwrite": true
-            }
-        }
+            name: '@electron-forge/maker-dmg',
+            config: {
+                background: './static/assets/images/no_banner.png',
+                icon: './icons/mac/icon.icns',
+                format: 'ULFO',
+                overwrite: true,
+            },
+        },
     ],
     plugins: [
         new WebpackPlugin({
@@ -106,9 +106,7 @@ const forgeConfig: ForgeConfig = {
 
             let branch = 'unknown'
             try {
-                branch = execSync('git rev-parse --short HEAD', { cwd: process.cwd() })
-                    .toString()
-                    .trim()
+                branch = execSync('git rev-parse --short HEAD', { cwd: process.cwd() }).toString().trim()
             } catch (err) {
                 console.warn('Bruh:', err)
             }
