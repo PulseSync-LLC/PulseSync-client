@@ -11,7 +11,7 @@ import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modul
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
+import { checkAsar, formatJson, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -24,6 +24,7 @@ import { initializeCorsAnywhere, registerSchemes } from './main/utils/serverUtil
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
+import Addon from './renderer/api/interfaces/addon.interface'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -96,6 +97,104 @@ function initializeAddon() {
     logger.main.log('Addons: theme changed to:', selectedAddon)
     setAddon(selectedAddon)
 }
+ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
+    switch (eventType) {
+        case 'check-file-exists':
+            try {
+                await fs.promises.access(filePath)
+                return true
+            } catch {
+                return false
+            }
+
+        case 'read-file':
+            try {
+                return await fs.promises.readFile(filePath, 'utf8')
+            } catch (error) {
+                console.error('Ошибка при чтении файла:', error)
+                return null
+            }
+
+        case 'create-config-file':
+            try {
+                await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
+                return { success: true }
+            } catch (error) {
+                logger.main.error('Ошибка при создании файла конфигурации:', error)
+                return { success: false, error: error.message }
+            }
+
+        case 'write-file':
+            try {
+                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 4)
+                fs.writeFileSync(filePath, content, 'utf8')
+                logger.main.log('Файл успешно записан:', filePath)
+                return { success: true }
+            } catch (error) {
+                logger.main.error('Ошибка при записи файла:', error)
+                return { success: false, error: error.message }
+            }
+
+        default:
+            logger.main.error('Неизвестный тип события:', eventType)
+            return { success: false, error: 'Неизвестный тип события' }
+    }
+})
+
+// IPC: delete addon directory
+ipcMain.handle('deleteAddonDirectory', async (_event, themeDirectoryPath) => {
+    try {
+        if (fs.existsSync(themeDirectoryPath)) {
+            await fs.promises.rm(themeDirectoryPath, {
+                recursive: true,
+                force: true,
+            })
+            return { success: true }
+        } else {
+            logger.main.error('Директория темы не найдена.')
+        }
+    } catch (error) {
+        logger.main.error('Ошибка при удалении директории темы:', error)
+    }
+})
+
+ipcMain.on('themeChanged', async (_event, addon: Addon) => {
+    try {
+        if (!addon) {
+            logger.main.error('Addons: No addon data received')
+            return
+        }
+        const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonFolder = path.join(addonsFolder, addon.directoryName)
+        const metadataPath = path.join(addonFolder, 'metadata.json')
+
+        let validated: Addon
+        if (fs.existsSync(metadataPath)) {
+            const data = await fs.promises.readFile(metadataPath, 'utf-8')
+            validated = JSON.parse(data) as Addon
+            if (!validated.directoryName) {
+                validated.directoryName = addon.directoryName
+            }
+        } else {
+            throw new Error(`Metadata file not found for addon ${addon.directoryName}`)
+        }
+
+        if (validated.type !== 'theme') {
+            logger.main.warn(
+                `Addons: Received theme change for addon ${validated.directoryName} with type '${validated.type}'. Reverting to Default theme.`,
+            )
+            selectedAddon = 'Default'
+        } else {
+            selectedAddon = validated.directoryName
+        }
+        logger.main.info(`Addons: theme changed to: ${selectedAddon}`)
+        setAddon(selectedAddon)
+    } catch (error: any) {
+        logger.main.error(`Addons: Error processing theme change: ${error.message}`)
+        selectedAddon = 'Default'
+        setAddon(selectedAddon)
+    }
+})
 
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
