@@ -19,7 +19,7 @@ import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { checkMusic } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { inSleepMode, mainWindow } from '../modules/createWindow'
+import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 
 const updater = getUpdater()
@@ -441,28 +441,6 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
 const registerSleepModeEvent = (window: BrowserWindow): void => {
     ipcMain.handle('checkSleepMode', async () => inSleepMode)
 }
-const registerSettingsEvents = (): void => {
-        ipcMain.on('electron-settings-minimize', () => {
-            settingsWindow.minimize()
-        })
-
-        ipcMain.on('electron-settings-exit', () => {
-            logger.main.info('Exit app')
-            app.quit()
-        })
-
-        ipcMain.on('electron-settings-maximize', () => {
-            settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
-        })
-
-        ipcMain.on('electron-settings-close', (event, val) => {
-            if (!val) {
-                settingsWindow.close()
-            } else {
-                settingsWindow.hide()
-            }
-        })
-}
 
 const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle('getAddons', async () => {
@@ -544,7 +522,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerSettingsEvents()
     registerAppReadyEvents()
-    registerWindowEvents(window)
+    registerWindowEvents()
     registerSystemEvents(window)
     registerFileOperations(window)
     registerMediaEvents(window)
