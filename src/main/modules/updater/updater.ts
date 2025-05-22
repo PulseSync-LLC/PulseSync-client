@@ -6,6 +6,7 @@ import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
 import isAppDev from 'electron-is-dev'
+import { mainWindow } from '../createWindow'
 
 type UpdateInfo = {
     version: string
