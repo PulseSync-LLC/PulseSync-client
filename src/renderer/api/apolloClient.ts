@@ -1,11 +1,4 @@
-import {
-    ApolloClient,
-    InMemoryCache,
-    ApolloLink,
-    HttpLink,
-    split,
-    concat,
-} from '@apollo/client'
+import { ApolloClient, InMemoryCache, ApolloLink, HttpLink, split, concat } from '@apollo/client'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
@@ -19,12 +12,12 @@ const httpLink = new HttpLink({ uri: httpUrl })
 const wsLink =
     typeof window !== 'undefined'
         ? new GraphQLWsLink(
-            createClient({
-                url: wsUrl,
-                retryAttempts: Infinity,
-                shouldRetry: () => true,
-            })
-        )
+              createClient({
+                  url: wsUrl,
+                  retryAttempts: Infinity,
+                  shouldRetry: () => true,
+              }),
+          )
         : null
 
 const authMiddleware = new ApolloLink((operation, forward) => {
@@ -39,16 +32,13 @@ const authMiddleware = new ApolloLink((operation, forward) => {
 
 const splitLink = wsLink
     ? split(
-        ({ query }) => {
-            const def = getMainDefinition(query)
-            return (
-                def.kind === 'OperationDefinition' &&
-                def.operation === 'subscription'
-            )
-        },
-        wsLink,
-        concat(authMiddleware, httpLink)
-    )
+          ({ query }) => {
+              const def = getMainDefinition(query)
+              return def.kind === 'OperationDefinition' && def.operation === 'subscription'
+          },
+          wsLink,
+          concat(authMiddleware, httpLink),
+      )
     : concat(authMiddleware, httpLink)
 
 const client = new ApolloClient({

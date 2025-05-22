@@ -3,6 +3,8 @@ import SettingsInterface from '../interfaces/settings.interface'
 const settingsInitials: SettingsInterface = {
     settings: {
         autoStartInTray: false,
+        saveWindowPositionOnRestart: false,
+        saveWindowDimensionsOnRestart: false,
         autoStartMusic: false,
         autoStartApp: false,
         hardwareAcceleration: true,

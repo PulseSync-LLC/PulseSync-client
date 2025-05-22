@@ -4,12 +4,12 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { store } from './storage'
 import logger from './logger'
 import config from '../../config.json'
-import { mainWindow } from '../../index'
 import { updateTray } from './tray'
 import * as fs from 'node:fs'
 import * as net from 'net'
 import { promisify } from 'util'
 import { exec } from 'child_process'
+import { mainWindow } from './createWindow'
 
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',

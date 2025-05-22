@@ -1,6 +1,6 @@
-import AddonInterface from '../interfaces/addon.interface'
+import Addon from '../interfaces/addon.interface'
 
-const AddonInitials: AddonInterface[] = [
+const AddonInitials: Addon[] = [
     {
         enabled: false,
         name: 'Default',

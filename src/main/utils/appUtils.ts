@@ -5,13 +5,14 @@ import path from 'path'
 import crypto from 'crypto'
 import fs from 'original-fs'
 import { store } from '../modules/storage'
-import { asarBackup, mainWindow, musicPath } from '../../index'
+import { asarBackup, musicPath } from '../../index'
 import { app, BrowserWindow, dialog } from 'electron'
 import axios from 'axios'
-import { execSync } from 'child_process';
-import * as plist from 'plist';
-import asar from '@electron/asar';
-import { promises as fsp } from 'original-fs';
+import { execSync } from 'child_process'
+import * as plist from 'plist'
+import asar from '@electron/asar'
+import { promises as fsp } from 'original-fs'
+import { mainWindow } from '../modules/createWindow'
 
 const execAsync = promisify(exec)
 
@@ -92,12 +93,12 @@ export function getPathToYandexMusic() {
 }
 
 export async function copyFile(target: string, dest: string) {
-    await fsp.copyFile(target, dest);
+    await fsp.copyFile(target, dest)
 }
 
 export async function createDirIfNotExist(target: string) {
-    if(!fs.existsSync(target)){
-        await fsp.mkdir(target);
+    if (!fs.existsSync(target)) {
+        await fsp.mkdir(target)
     }
 }
 
@@ -277,101 +278,96 @@ export const downloadYandexMusic = async (type?: string) => {
     }
 }
 
-export type PatchCallback = (progress: number, message: string) => void;
+export type PatchCallback = (progress: number, message: string) => void
 
 export class AsarPatcher {
-    private readonly appBundlePath: string;
-    private readonly resourcesDir: string;
-    private readonly infoPlistPath: string;
-    private asarRelPath = 'app.asar';
-    private asarPath: string;
-    private readonly tmpEntitlements: string;
+    private readonly appBundlePath: string
+    private readonly resourcesDir: string
+    private readonly infoPlistPath: string
+    private asarRelPath = 'app.asar'
+    private asarPath: string
+    private readonly tmpEntitlements: string
 
     constructor(appBundlePath: string) {
-        this.appBundlePath = appBundlePath;
-        this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources');
-        this.infoPlistPath = path.join(appBundlePath, 'Contents', 'Info.plist');
-        this.asarPath = path.join(this.resourcesDir, this.asarRelPath);
-        this.tmpEntitlements = path.join(os.tmpdir(), 'entitlements-extracted.plist');
+        this.appBundlePath = appBundlePath
+        this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources')
+        this.infoPlistPath = path.join(appBundlePath, 'Contents', 'Info.plist')
+        this.asarPath = path.join(this.resourcesDir, this.asarRelPath)
+        this.tmpEntitlements = path.join(os.tmpdir(), 'entitlements-extracted.plist')
     }
 
     private get isMac(): boolean {
-        return os.platform() === 'darwin';
+        return os.platform() === 'darwin'
     }
 
     private calcAsarHeaderHash(): string {
-        const header = asar.getRawHeader(this.asarPath).headerString;
-        return crypto.createHash('sha256').update(header).digest('hex');
+        const header = asar.getRawHeader(this.asarPath).headerString
+        return crypto.createHash('sha256').update(header).digest('hex')
     }
 
     private dumpEntitlements(): void {
-        execSync(
-            `codesign -d --entitlements :- '${this.appBundlePath}' > '${this.tmpEntitlements}'`,
-            { stdio: 'ignore' }
-        );
+        execSync(`codesign -d --entitlements :- '${this.appBundlePath}' > '${this.tmpEntitlements}'`, { stdio: 'ignore' })
     }
 
     private isAsarIntegrityEnabled(): boolean {
         try {
-            execSync(`plutil -p '${this.infoPlistPath}' | grep -q ElectronAsarIntegrity`);
-            return true;
+            execSync(`plutil -p '${this.infoPlistPath}' | grep -q ElectronAsarIntegrity`)
+            return true
         } catch {
-            return false;
+            return false
         }
     }
 
     private isSystemIntegrityProtectionEnabled(): boolean {
         try {
-            const status = execSync('csrutil status', { encoding: 'utf8' });
-            return status.includes('enabled');
+            const status = execSync('csrutil status', { encoding: 'utf8' })
+            return status.includes('enabled')
         } catch {
-            return true;
+            return true
         }
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
         if (!this.isMac) {
-            callback?.(0, 'Патч доступен только на macOS');
-            return false;
+            callback?.(0, 'Патч доступен только на macOS')
+            return false
         }
 
         if (this.isSystemIntegrityProtectionEnabled()) {
-            callback?.(0, 'SIP включён — отключите System Integrity Protection и повторите');
-            return false;
+            callback?.(0, 'SIP включён — отключите System Integrity Protection и повторите')
+            return false
         }
 
         try {
             if (this.isAsarIntegrityEnabled()) {
-                callback?.(0.2, 'Обнаружена проверка целостности ASAR, обновляем хеш...');
-                const newHash = this.calcAsarHeaderHash();
+                callback?.(0.2, 'Обнаружена проверка целостности ASAR, обновляем хеш...')
+                const newHash = this.calcAsarHeaderHash()
 
-                const raw = await fsp.readFile(this.infoPlistPath, 'utf8');
-                const data = plist.parse(raw) as any;
-                data.ElectronAsarIntegrity = data.ElectronAsarIntegrity || {};
-                data.ElectronAsarIntegrity[this.asarRelPath] = { algorithm: 'SHA256', hash: newHash };
-                await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8');
+                const raw = await fsp.readFile(this.infoPlistPath, 'utf8')
+                const data = plist.parse(raw) as any
+                data.ElectronAsarIntegrity = data.ElectronAsarIntegrity || {}
+                data.ElectronAsarIntegrity[this.asarRelPath] = { algorithm: 'SHA256', hash: newHash }
+                await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8')
 
-                callback?.(0.5, `Новый хеш: ${newHash}`);
+                callback?.(0.5, `Новый хеш: ${newHash}`)
             }
 
-            callback?.(0.6, 'Дампим entitlements...');
-            this.dumpEntitlements();
+            callback?.(0.6, 'Дампим entitlements...')
+            this.dumpEntitlements()
 
-            callback?.(0.7, 'Переподписываем приложение...');
-            execSync(
-                `codesign --force --entitlements '${this.tmpEntitlements}' --sign - '${this.appBundlePath}'`,
-                { stdio: 'ignore' }
-            );
+            callback?.(0.7, 'Переподписываем приложение...')
+            execSync(`codesign --force --entitlements '${this.tmpEntitlements}' --sign - '${this.appBundlePath}'`, { stdio: 'ignore' })
 
-            await fsp.unlink(this.tmpEntitlements);
+            await fsp.unlink(this.tmpEntitlements)
 
-            callback?.(1, 'Патч завершён успешно');
-            return true;
-
+            callback?.(1, 'Патч завершён успешно')
+            return true
         } catch (err) {
-            try { await fsp.unlink(this.tmpEntitlements); } catch {}
-            callback?.(0, `Ошибка при патче: ${(err as Error).message}`);
-            return false;
+            try {
+                await fsp.unlink(this.tmpEntitlements)
+            } catch {}
+            callback?.(0, `Ошибка при патче: ${(err as Error).message}`)
+            return false
         }
     }
 }

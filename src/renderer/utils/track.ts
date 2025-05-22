@@ -1,4 +1,4 @@
-import { Track } from 'yandex-music-client'
+import { Track } from '../api/interfaces/track.interface'
 
 export const getTrackLabel = (track: Track) => {
     return truncate(`${track.title} – ${track.artists.map(a => a.name).join(', ')}`, 45)

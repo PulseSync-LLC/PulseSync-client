@@ -1,10 +1,10 @@
 import { app, Menu, MenuItem, shell, Tray } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
-import { mainWindow } from '../../index'
 import { checkOrFindUpdate } from '../events'
 import path from 'path'
 import { store } from './storage'
 import { setRpcStatus } from './discordRpc'
+import { mainWindow } from './createWindow'
 
 let tray: Tray
 let menu: Menu

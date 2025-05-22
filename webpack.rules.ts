@@ -42,6 +42,6 @@ export const rules: Required<ModuleOptions>['rules'] = [
     },
     {
         test: /\.m?js$/,
-        resolve: { fullySpecified: false }
+        resolve: { fullySpecified: false },
     },
 ]

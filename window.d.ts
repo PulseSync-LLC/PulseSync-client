@@ -1,7 +1,8 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { Track } from 'yandex-music-client'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { DesktopEvents } from './src/main/mainWindowPreload'
+import { Track } from './src/renderer/api/interfaces/track.interface'
+
 declare global {
     interface Window {
         __listenersAdded?: boolean
@@ -48,7 +49,7 @@ declare global {
             setActivity: (props: SetActivity) => void
             clearActivity: () => void
         }
-        desktopEvents: DesktopEvents;
+        desktopEvents: DesktopEvents
     }
 }
 export {}

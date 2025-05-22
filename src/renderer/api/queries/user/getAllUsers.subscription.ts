@@ -1,18 +1,8 @@
-import { gql } from '@apollo/client';
+import { gql } from '@apollo/client'
 
 export default gql`
-    subscription GetAllUsersSubscription(
-        $page: Int!
-        $perPage: Int!
-        $sorting: [SortOptionInput!]
-        $search: String
-    ) {
-        subscribeUsersWithPagination(
-            page: $page
-            pageSize: $perPage
-            sortOptions: $sorting
-            search: $search
-        ) {
+    subscription GetAllUsersSubscription($page: Int!, $perPage: Int!, $sorting: [SortOptionInput!], $search: String) {
+        subscribeUsersWithPagination(page: $page, pageSize: $perPage, sortOptions: $sorting, search: $search) {
             totalCount
             totalPages
             users {
@@ -47,4 +37,4 @@ export default gql`
             }
         }
     }
-`;
+`

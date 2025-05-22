@@ -6,7 +6,7 @@ import SettingsInterface from '../interfaces/settings.interface'
 import settingsInitials from '../initials/settings.initials'
 import { AppInfoInterface } from '../interfaces/appinfo.interface'
 import AppinfoInitials from '../initials/appinfo.initials'
-import AddonInterface from '../interfaces/addon.interface'
+import Addon from '../interfaces/addon.interface'
 import AddonInitials from '../initials/addon.initials'
 import { ModInterface } from '../interfaces/modInterface'
 import modInitials from '../initials/mod.initials'
@@ -23,7 +23,7 @@ interface p {
     app: SettingsInterface
     setApp: (settingsData: any) => void
     setUpdate: (state: boolean) => void
-    addons: AddonInterface[]
+    addons: Addon[]
     setAddons: (themes: any) => void
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]

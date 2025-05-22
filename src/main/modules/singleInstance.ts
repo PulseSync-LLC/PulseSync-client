@@ -1,7 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import { checkIsDeeplink, navigateToDeeplink } from './handlers/handleDeepLink'
 import logger from './logger'
-import { mainWindow, prestartCheck } from '../../index'
+import { prestartCheck } from '../../index'
 import { handleUncaughtException } from './handlers/handleError'
 import AdmZip from 'adm-zip'
 import path from 'path'
@@ -9,6 +9,7 @@ import fs from 'original-fs'
 import { store } from './storage'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { authorized } from '../events'
+import { mainWindow } from './createWindow'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
 
