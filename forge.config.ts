@@ -103,19 +103,6 @@ const forgeConfig: ForgeConfig = {
                         delete pkg[key]
                 }
             })
-
-            let branch = 'unknown'
-            try {
-                branch = execSync('git rev-parse --short HEAD', { cwd: process.cwd() }).toString().trim()
-            } catch (err) {
-                console.warn('Bruh:', err)
-            }
-
-            pkg.buildInfo = {
-                VERSION: pkg.version,
-                BRANCH: branch,
-            }
-
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
 

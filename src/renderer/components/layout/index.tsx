@@ -306,8 +306,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         if (!loadingModInfo && !isUpdating && app.mod.installed && app.mod.version) {
             const currentEntry = modInfo.find(m => m.modVersion === app.mod.version)
             if (currentEntry?.deprecated) {
-                toast.custom('info', 'Установленная версия мода устарела', 'Выполняю автообновление...')
-                //startUpdate()
+                const availableVersions = modInfo.map(m => m.modVersion).filter(v => semver.valid(v))
+                const latestVersion = availableVersions.sort(semver.rcompare)[0]
+
+                if (semver.gt(latestVersion, app.mod.version)) {
+                    toast.custom(
+                        'info',
+                        `Установленная версия (${app.mod.version}) устарела`,
+                        `Найдена новая версия ${latestVersion}. Выполняю автообновление...`,
+                    )
+                    startUpdate()
+                }
             }
         }
     }, [loadingModInfo, modInfo, app.mod.version, isUpdating])

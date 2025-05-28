@@ -38,22 +38,20 @@ export const plugins = [
     //     org: 'pulsesync',
     //     project: 'electron',
     //     authToken: config.SENTRY_KEY,
+    //     debug: true,
     //     release: {
-    //         name: "pulsesync@" + releaseVersion,
+    //         name: 'pulsesync@' + releaseVersion,
     //         uploadLegacySourcemaps: {
-    //             paths: [
-    //                 path.resolve(__dirname, '.webpack/main'),
-    //                 path.resolve(__dirname, '.webpack/renderer'),
-    //             ],
-    //             urlPrefix: '~/',
+    //             paths: [path.resolve(__dirname, '.webpack/main'), path.resolve(__dirname, '.webpack/renderer')],
+    //             urlPrefix: '/',
     //             stripPrefix: [path.resolve(__dirname, '.webpack')],
     //         },
     //     },
     //     sourcemaps: {
     //         ignore: ['node_modules'],
     //     },
-    //     errorHandler: (err) => {
+    //     errorHandler: err => {
     //         console.warn(err)
     //     },
-    // })
+    // }),
 ]

@@ -429,7 +429,7 @@ const Header: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
-                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD</div>}
+                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD #{window.appInfo.getBranch() ?? 'unknown'}</div>}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>

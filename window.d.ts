@@ -32,7 +32,6 @@ declare global {
             receive: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
-            getVersion: (version: string) => string
             isAppDev: () => boolean
         }
         refreshAddons: () => void
@@ -43,6 +42,10 @@ declare global {
             clearActivity: () => void
         }
         desktopEvents: DesktopEvents
+        appInfo: {
+            getBranch: () => string
+            getVersion: () => string
+        }
     }
 }
 export {}

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
+import packageJson from '../../package.json'
 
 export interface DesktopEvents {
     send(channel: string, ...args: any[]): void
@@ -51,15 +52,11 @@ contextBridge.exposeInMainWorld('electron', {
     isAppDev() {
         return ipcRenderer.sendSync('electron-isdev')
     },
-    pathAppOpen: () => ipcRenderer.send('pathAppOpen'),
-    pathStyleOpen: () => ipcRenderer.send('pathStyleOpen'),
-    checkSelectedStyle: () => ipcRenderer.send('checkSelectedStyle'),
-    selectStyle: (name: any, author: any) => ipcRenderer.send('selectStyle', name, author),
-    getAddonsList: () => ipcRenderer.send('getAddonsList'),
-    checkFileExists: () => ipcRenderer.send('checkFileExists'),
-    getVersion: () => ipcRenderer.send('getVersion'),
 })
-
+contextBridge.exposeInMainWorld('appInfo', {
+    getBranch: () => ipcRenderer.sendSync('getLastBranch'),
+    getVersion: () => packageJson.version,
+})
 contextBridge.exposeInMainWorld('discordRpc', {
     async setActivity(presence: SetActivity) {
         ipcRenderer.send('discordrpc-setstate', presence)

@@ -19,7 +19,7 @@ let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
-
+const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev']
 const closeServer = async (): Promise<void> => {
     const oldServer = server
     const oldIO = io
@@ -57,24 +57,32 @@ const stopSocketServer = async () => {
 
 const initializeServer = () => {
     server = http.createServer((req, res) => {
-        if (req.method === 'OPTIONS') {
-            res.writeHead(200, {
-                'Access-Control-Allow-Origin': 'music-application://desktop',
-                'Access-Control-Allow-Methods': 'POST, GET',
-                'Access-Control-Allow-Headers': 'Content-Type',
-            })
+        const { method, url, headers } = req
+        const { pathname } = parse(url || '', true)
+
+        const origin = headers.origin as string | undefined
+
+        if (origin && allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+        }
+        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
+        res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+
+        if (method === 'OPTIONS') {
+            res.writeHead(204)
             return res.end()
         }
-        const parsedUrl = parse(req.url || '', true)
-        const { pathname } = parsedUrl
+        if (pathname?.startsWith('/socket.io/')) {
+            return
+        }
 
-        if (req.method === 'GET' && pathname === '/get_handle') {
+        if (method === 'GET' && pathname === '/get_handle') {
             return handleGetHandleRequest(req, res)
         }
-        if (req.method === 'GET' && pathname === '/assets') {
+        if (method === 'GET' && pathname === '/assets') {
             return handleGetAssetsRequest(req, res)
         }
-        if (req.method === 'GET' && pathname?.startsWith('/assets/')) {
+        if (method === 'GET' && pathname?.startsWith('/assets/')) {
             return handleGetAssetFileRequest(req, res)
         }
 
@@ -84,7 +92,7 @@ const initializeServer = () => {
 
     io = new IOServer(server, {
         cors: {
-            origin: 'music-application://desktop',
+            origin: ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev'],
             methods: ['GET', 'POST'],
             allowedHeaders: ['Content-Type'],
         },
@@ -129,12 +137,14 @@ const initializeServer = () => {
         socket.on('SEND_TRACK', (payload: any) => {
             if (!authorized) return
             logger.http.log('SEND_TRACK received:', payload)
-            mainWindow.webContents.send('SEND_TRACK', { data: payload.data })
+            mainWindow.webContents.send('SEND_TRACK', payload.data)
         })
 
         socket.on('disconnect', () => {
             logger.http.log('Client disconnected')
-            mainWindow.webContents.send('trackinfo', { data: { trackInitials } })
+            mainWindow.webContents.send('TRACK_INFO', {
+                type: 'refresh',
+            })
         })
 
         socket.on('error', (err: any) => {
@@ -167,6 +177,7 @@ const handleBrowserAuth = (args: any) => {
             }
             logger.deeplinkManager.info(`Access confirmed for user ${userId}.`)
             mainWindow.webContents.send('authSuccess')
+            mainWindow.show()
         })
         .catch(error => {
             logger.deeplinkManager.error(`Error checking access for user ${userId}: ${error}`)
@@ -505,13 +516,13 @@ const sendServerError = (res: http.ServerResponse, msg: string) => {
 
 const updateData = (newData: any) => {
     if (newData.type === 'refresh') {
-        return mainWindow.webContents.send('trackinfo', {
+        return mainWindow.webContents.send('TRACK_INFO', {
             type: 'refresh',
         })
     }
     data = newData
     console.log('Data updated:', data)
-    mainWindow.webContents.send('trackinfo', data)
+    mainWindow.webContents.send('TRACK_INFO', data)
 }
 
 export const getTrackInfo = () => data

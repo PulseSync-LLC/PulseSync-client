@@ -1,6 +1,7 @@
-import type { Configuration } from 'webpack'
+import webpack, { Configuration } from 'webpack'
 import { rules } from './webpack.rules'
 import path from 'path'
+import packageJson from './package.json'
 
 export const mainConfig: Configuration = {
     entry: {
@@ -20,6 +21,12 @@ export const mainConfig: Configuration = {
     module: {
         rules,
     },
+    plugins: [
+        new webpack.DefinePlugin({
+            'process.env.BRANCH':  JSON.stringify(packageJson.buildInfo?.BRANCH),
+            'process.env.VERSION': JSON.stringify(packageJson.version),
+        }),
+    ],
     cache: {
         type: 'filesystem',
         allowCollectingMemory: true,

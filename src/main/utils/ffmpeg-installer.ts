@@ -1,15 +1,14 @@
-import { BrowserWindow, app, ipcMain } from 'electron'
+import { BrowserWindow, app } from 'electron'
 import path from 'path'
-import os from 'os'
 import fs from 'fs'
+import os from 'os'
 import axios from 'axios'
 import { glob } from 'glob'
-import unzipper from 'unzipper'
 import tar from 'tar'
 import { pipeline } from 'stream/promises'
+import AdmZip from 'adm-zip'
 import logger from '../modules/logger'
 import { getPathToYandexMusic } from './appUtils'
-import AdmZip from 'adm-zip'
 
 export const FFMPEG_INSTALL: Record<
     string,
@@ -54,8 +53,8 @@ export async function downloadFile(url: string, dest: string, onProgress: (perce
 }
 
 export async function extractZip(src: string, dest: string): Promise<void> {
-    const zip = new AdmZip(src);
-    zip.extractAllTo(dest, true);
+    const zip = new AdmZip(src)
+    zip.extractAllTo(dest, true)
 }
 
 export async function extractTarXZ(src: string, dest: string) {
@@ -63,30 +62,44 @@ export async function extractTarXZ(src: string, dest: string) {
 }
 
 export function sendStatus(window: BrowserWindow, message: string, progress: number, success?: boolean) {
-    window.webContents.send('ffmpeg-download-status', { message, progress, success })
+    window.webContents.send('ffmpeg-download-status', {
+        message,
+        progress,
+        success,
+    })
 }
 
 export async function installFfmpeg(window: BrowserWindow) {
     const plat = process.platform
     const cfg = FFMPEG_INSTALL[plat]
-    const installDir = getPathToYandexMusic()
-    const execName = plat === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-    const execDestPath = path.join(installDir, execName)
-
-    if (fs.existsSync(execDestPath)) {
-        sendStatus(window, 'FFmpeg уже установлен', 100, true)
+    if (!cfg) {
+        sendStatus(window, 'Платформа не поддерживается', 100, false)
         return
     }
 
-    const tmpDir = path.join(os.tmpdir(), 'ffmpeg-temp')
+    const execName = plat === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
+    const installDir = getPathToYandexMusic()
+    const execDestPath = path.join(installDir, execName)
+
+    const userDataPath = app.getPath('userData')
+    const storageDir = path.join(userDataPath, 'ffmpeg')
+    const storageExecPath = path.join(storageDir, execName)
+
     try {
-        if (!cfg) {
-            sendStatus(window, 'Платформа не поддерживается', 100, false)
+        if (fs.existsSync(storageExecPath)) {
+            sendStatus(window, 'FFmpeg найден в хранилище, устанавливаю...', 10)
+            await fs.promises.mkdir(installDir, { recursive: true })
+            await fs.promises.copyFile(storageExecPath, execDestPath)
+            if (plat !== 'win32') {
+                await fs.promises.chmod(execDestPath, 0o755)
+            }
+            sendStatus(window, 'FFmpeg успешно установлен', 100, true)
             return
         }
-        await fs.promises.mkdir(tmpDir, { recursive: true })
 
-        const archivePath = path.join(tmpDir, cfg.archiveName)
+        await fs.promises.mkdir(storageDir, { recursive: true })
+
+        const archivePath = path.join(storageDir, cfg.archiveName)
         await downloadFile(cfg.url, archivePath, p => {
             const prog = Math.round(p * 0.7)
             sendStatus(window, 'Загрузка FFmpeg...', prog)
@@ -94,49 +107,55 @@ export async function installFfmpeg(window: BrowserWindow) {
 
         sendStatus(window, 'Распаковка архива...', 70)
         if (cfg.extractType === 'zip') {
-            await extractZip(archivePath, tmpDir)
+            await extractZip(archivePath, storageDir)
         } else {
-            await extractTarXZ(archivePath, tmpDir)
+            await extractTarXZ(archivePath, storageDir)
         }
         sendStatus(window, 'Распаковка завершена', 90)
 
-        const tmpPosix = tmpDir.split(path.sep).join('/')
         const relPattern = cfg.execRelPath.replace(/\\/g, '/')
-        const pattern = `${tmpPosix}/${relPattern}`
+        const storagePosix = storageDir.split(path.sep).join('/')
+        const pattern = `${storagePosix}/${relPattern}`
         const matches = await glob(pattern, { nodir: true })
         if (!matches.length) {
             throw new Error('Не найден бинарь FFmpeg в распакованных файлах')
         }
         const execSrc = matches[0]
 
+        await fs.promises.copyFile(execSrc, storageExecPath)
+        if (plat !== 'win32') {
+            await fs.promises.chmod(storageExecPath, 0o755)
+        }
+
+        const items = await fs.promises.readdir(storageDir)
+        for (const name of items) {
+            if (name === execName) continue
+            const p = path.join(storageDir, name)
+            await fs.promises.rm(p, { recursive: true, force: true })
+        }
+
         await fs.promises.mkdir(installDir, { recursive: true })
         sendStatus(window, 'Установка FFmpeg...', 95)
-        await fs.promises.copyFile(execSrc, execDestPath)
+        await fs.promises.copyFile(storageExecPath, execDestPath)
         if (plat !== 'win32') {
             await fs.promises.chmod(execDestPath, 0o755)
         }
-
         sendStatus(window, 'FFmpeg успешно установлен', 100, true)
     } catch (err: any) {
         logger.modManager.error('installFfmpeg error:', err)
         sendStatus(window, `Ошибка установки: ${err.message}`, 100, false)
-    } finally {
-        try {
-            await fs.promises.rm(tmpDir, { recursive: true, force: true })
-        } catch (cleanupErr: any) {
-            logger.modManager.warn('Не удалось удалить временную папку:', cleanupErr)
-        }
     }
 }
+
 export async function deleteFfmpeg() {
     const plat = process.platform
     const execName = plat === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-    const execDestPath = path.join(getPathToYandexMusic(), execName)
+    const installPath = path.join(getPathToYandexMusic(), execName)
 
-    if (fs.existsSync(execDestPath)) {
-        await fs.promises.rm(execDestPath)
-        logger.modManager.info('FFmpeg удален')
+    if (fs.existsSync(installPath)) {
+        await fs.promises.rm(installPath)
+        logger.modManager.info('FFmpeg удалён из Яндекс.Музыки')
     } else {
-        logger.modManager.warn('FFmpeg не найден для удаления')
+        logger.modManager.warn('FFmpeg не найден для удаления в Яндекс.Музыке')
     }
 }

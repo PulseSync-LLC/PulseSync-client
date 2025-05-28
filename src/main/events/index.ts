@@ -21,6 +21,7 @@ import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
+import { isDevmark } from '../../renderer/api/config'
 
 const updater = getUpdater()
 let reqModal = 0
@@ -86,25 +87,25 @@ const registerWindowEvents = (window: BrowserWindow): void => {
         mainWindow.hide()
     })
     mainWindow.on('resized', (): void => {
-        const [widthBefore, heightBefore] = mainWindow.getSize();
-        const newWidth = Math.floor(widthBefore / 2) * 2;
-        const newHeight = Math.floor(heightBefore / 2) * 2;
-        mainWindow.setSize(newWidth, newHeight);
+        const [widthBefore, heightBefore] = mainWindow.getSize()
+        const newWidth = Math.floor(widthBefore / 2) * 2
+        const newHeight = Math.floor(heightBefore / 2) * 2
+        mainWindow.setSize(newWidth, newHeight)
 
-        const [width, height] = mainWindow.getSize();
+        const [width, height] = mainWindow.getSize()
         store.set('windowDimensions', {
             width: width,
             height: height,
-        });
-    });
+        })
+    })
 
     mainWindow.on('moved', (): void => {
-        const [x, y] = mainWindow.getPosition();
+        const [x, y] = mainWindow.getPosition()
         store.set('windowPosition', {
             x: x,
             y: y,
-        });
-    });
+        })
+    })
 }
 
 const registerSystemEvents = (window: BrowserWindow): void => {
@@ -113,12 +114,15 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('electron-isdev', event => {
-        event.returnValue = isAppDev
+        event.returnValue = isAppDev || isDevmark
     })
 
     ipcMain.handle('getVersion', async () => {
         return app.getVersion()
     })
+    ipcMain.on('getLastBranch', (event) => {
+        event.returnValue = process.env.BRANCH;
+    });
 
     ipcMain.handle('getSystemInfo', async () => ({
         appVersion: app.getVersion(),
@@ -471,14 +475,24 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             if (!fs.existsSync(data.path)) {
                 logger.main.error('Folder not found.')
             }
+
             const zip = new AdmZip()
-            zip.addLocalFolder(data.path)
+            zip.addLocalFolder(
+                data.path,
+                '',
+                (relativePath) => {
+                    const parts = relativePath.split(path.sep)
+                    return !parts.includes('.git')
+                }
+            )
+
             const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
             const outputPath = path.format({
                 dir: path.dirname(outputFilePath),
                 name: path.basename(outputFilePath, '.pext'),
                 ext: '.pext',
             })
+
             zip.writeZip(outputPath)
             logger.main.info(`Create theme ${outputPath}`)
             shell.showItemInFolder(outputPath)

@@ -396,12 +396,12 @@ function App() {
 
             const latest = mods[0]
 
-            if (!app.mod.installed || !app.mod.version) {
+            if (!app?.mod?.installed || !app?.mod?.version) {
                 toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
                 return
             }
 
-            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+            if (compareVersions(latest.modVersion, app?.mod?.version) > 0) {
                 window.desktopEvents?.send('show-notification', {
                     title: 'Доступно обновление мода',
                     body: `Версия ${latest.modVersion} доступна для установки.`,
@@ -671,14 +671,19 @@ const Player: React.FC<any> = ({ children }) => {
             ;(async () => {
                 if (typeof window !== 'undefined') {
                     window.desktopEvents?.on('SEND_TRACK', async (event, data) => {
-                        socket.send('track_played_enough', {
-                            track: {
-                                id: data.track.realId,
-                            },
-                        })
+                        if(!data) return
+                       
+                        if(socket && socket.connected) {
+                            socket.emit('track_played_enough', {
+                                track: {
+                                    id: data.realId,
+                                },
+                            })
+                        }
                     })
-                    window.desktopEvents?.on('trackinfo', (event, data) => {
+                    window.desktopEvents?.on('TRACK_INFO', (event, data) => {
                         if (!data) return
+                        console.log(data)
 
                         if (data.type === 'refresh') {
                             return setTrack(trackInitials)
@@ -865,7 +870,8 @@ const Player: React.FC<any> = ({ children }) => {
                         }))
                     })
                     return () => {
-                        window.desktopEvents?.removeAllListeners('trackinfo')
+                        window.desktopEvents?.removeAllListeners('TRACK_INFO')
+                        window.desktopEvents?.removeAllListeners('SEND_TRACK')
                         setTrack(trackInitials)
                     }
                 }
@@ -873,7 +879,7 @@ const Player: React.FC<any> = ({ children }) => {
         } else {
             window.discordRpc.clearActivity()
         }
-    }, [user.id])
+    }, [user.id, socket])
 
     const getCoverImage = (track: Track): string => {
         return track.albumArt || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
