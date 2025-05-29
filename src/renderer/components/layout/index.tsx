@@ -11,12 +11,10 @@ import {
     MdStoreMallDirectory,
     MdUpdate,
 } from 'react-icons/md'
-
 import Header from './header'
 import NavButtonPulse from '../nav_button_pulse'
 import DiscordIcon from './../../../../static/assets/icons/discord.svg'
 import Preloader from '../preloader'
-
 import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'
@@ -110,7 +108,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     setMusicInstalled(status)
                 })
             } else {
-                toast.custom('error', 'Что-то не так', 'Ошибка обновления')
+                toast.custom('error', 'Что-то не так', 'Ошибка установки/обновления')
             }
             setIsUpdating(false)
         }
@@ -282,15 +280,19 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const startUpdate = (force?: boolean) => {
         if (isUpdating) {
-            toast.custom('info', `Информация.`, 'Обновление уже запущено')
+            toast.custom('error', 'Ошибка', app.mod.installed ? 'Обновление уже запущено' : 'Установка уже запущена')
             return
         }
         if (modInfo.length === 0) {
-            toast.custom('error', `Нет доступных обновлений для установки.`, 'Ошибка загрузки обновления')
+            toast.custom(
+                'error',
+                app.mod.installed ? 'Нет доступных обновлений для установки.' : 'Нет доступных модификаций для установки.',
+                app.mod.installed ? 'Ошибка загрузки обновления' : 'Ошибка установки мода',
+            )
             return
         }
         setIsUpdating(true)
-        const id = toast.custom('loading', 'Начало загрузки обновления...', 'Ожидайте...')
+        const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
         downloadToastIdRef.current = id
         const { modVersion, downloadUrl, checksum, spoof } = modInfo[0]
         window.desktopEvents?.send('update-app-asar', {
@@ -373,6 +375,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <TooltipButton tooltipText="Install Update" as={'div'}>
                                     <button
                                         onClick={() => {
+                                            if (window.electron.window.isMac()) {
+                                                toast.custom('error', 'Ошибка', 'Обновление внутри приложения доступно только для Windows и Linux')
+                                                return
+                                            }
                                             setUpdate(false)
                                             window.desktopEvents?.send('update-install')
                                         }}

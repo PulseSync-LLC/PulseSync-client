@@ -8,15 +8,11 @@
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
-        "prepackage": "ts-node gen-build-info.ts",
-        "package": "electron-forge package",
-        "postpackage": "electron-builder --pd ./out/PulseSync-win32-x64",
+        "build:package": "ts-node scripts/build-package.ts --debug",
         "make": "electron-forge make",
         "publish": "electron-forge publish",
         "lint": "eslint --ext .ts,.tsx .",
-        "format": "prettier --write .",
-        "build_prod": "electron-forge package && electron-builder --pd ./out/PulseSync-win32-x64",
-        "postbuild_prod": "ts-node ./uploadToS3.ts"
+        "format": "prettier --write ."
     },
     "type": "commonjs",
     "keywords": [],
@@ -47,7 +43,7 @@
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
-        "electron": "36.3.1",
+        "electron": "36.3.2",
         "electron-builder": "^26.0.12",
         "eslint": "^9.27.0",
         "eslint-plugin-import": "^2.31.0",
@@ -144,6 +140,6 @@
     },
     "buildInfo": {
         "VERSION": "2.8.0",
-        "BRANCH": "f57bd7d"
+        "BRANCH": "b4ef2de"
     }
 }

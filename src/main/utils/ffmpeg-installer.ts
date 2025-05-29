@@ -61,12 +61,19 @@ export async function extractTarXZ(src: string, dest: string) {
     await tar.x({ file: src, cwd: dest })
 }
 
-export function sendStatus(window: BrowserWindow, message: string, progress: number, success?: boolean) {
+export function sendStatus(window: BrowserWindow, message: string, progress: number, success?: boolean): void {
+    const fraction = Math.min(Math.max(progress / 100, 0), 1)
+    window.setProgressBar(fraction)
+
     window.webContents.send('ffmpeg-download-status', {
         message,
         progress,
         success,
     })
+
+    if (success) {
+        window.setProgressBar(-1)
+    }
 }
 
 export async function installFfmpeg(window: BrowserWindow) {

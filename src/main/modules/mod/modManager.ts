@@ -19,6 +19,7 @@ import {
     AsarPatcher,
     isMac,
     copyFile,
+    getYandexMusicAppDataPath,
 } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
@@ -32,6 +33,7 @@ let yandexMusicVersion: string = null
 let modVersion: string = null
 
 const musicPath = getPathToYandexMusic()
+const musicAppDataPath = getYandexMusicAppDataPath()
 let modFilename = 'app.asar'
 let asarBackupFilename = 'app.backup.asar'
 let asarPath = path.join(musicPath, modFilename)
@@ -49,6 +51,7 @@ function sendDownloadFailure(params: { error: string; type?: string; url?: strin
         success: false,
         ...params,
     })
+    mainWindow.setProgressBar(-1)
 }
 
 function sendRemoveModFailure(params: { error: string; type?: string }) {
@@ -148,7 +151,6 @@ export const handleModEvents = (window: BrowserWindow): void => {
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
             HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
-            mainWindow.setProgressBar(-1)
             sendDownloadFailure({
                 error: error.message,
                 type: 'unexpected_error',
@@ -199,7 +201,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 }
 
 const getYandexMusicVersion = async (): Promise<string> => {
-    const cfgPath = path.join(process.env.APPDATA || '', 'YandexMusic', 'config.json')
+    const cfgPath = path.join(musicAppDataPath, 'config.json')
     if (!fs.existsSync(cfgPath)) throw new Error('Файл config.json не найден')
     const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
     if (!cfg.version) throw new Error('Версия не найдена в config.json')
@@ -239,7 +241,7 @@ const checkModCompatibility = async (
 }
 
 const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePath: string, event: any, checksum?: string) => {
-    const phaseWeight = { download: 0.8, patch: 0.2 }
+    const phaseWeight = { download: 0.6, patch: 0.4 }
     let downloadFrac = 0
     let patchFrac = 0
 
@@ -309,7 +311,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет-соединение.',
                 type: 'download_error',
             })
-            mainWindow.setProgressBar(-1)
         })
 
         writer.on('finish', async () => {
@@ -333,8 +334,9 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 fs.unlinkSync(tempFilePath)
 
                 if (isMac()) {
-                    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..'))
-                    const progressCb = (p: number) => {
+                    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
+                    const progressCb = (p: number, status: string) => {
+                        logger.modManager.info('status:', status, 'progress:', p)
                         patchFrac = Math.min(p / 100, 1)
                         sendUnifiedProgress()
                     }
@@ -354,6 +356,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
                 await installFfmpeg(mainWindow)
+                mainWindow.setProgressBar(-1)
                 setTimeout(() => {
                     mainWindow.webContents.send('download-success', { success: true })
                 }, 1500)
@@ -364,7 +367,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 }
                 logger.modManager.error('Error processing downloaded file:', e)
                 HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
-                mainWindow.setProgressBar(-1)
                 sendDownloadFailure({
                     error: e.message,
                     type: 'finish_error',
@@ -376,7 +378,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             fs.unlink(tempFilePath, () => {})
             logger.modManager.error('Error writing file:', err)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
-            mainWindow.setProgressBar(-1)
             sendDownloadFailure({
                 error: err.message,
                 type: 'writer_error',
@@ -386,7 +387,6 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         fs.unlink(tempFilePath, () => {})
         logger.modManager.error('Error downloading file:', err)
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
-        mainWindow.setProgressBar(-1)
         sendDownloadFailure({
             error: err.message,
             type: 'download_outer_error',

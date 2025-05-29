@@ -13,6 +13,7 @@ import * as plist from 'plist'
 import asar from '@electron/asar'
 import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
+import logger from '../modules/logger'
 
 const execAsync = promisify(exec)
 
@@ -29,7 +30,7 @@ async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
             const yandexProcesses: ProcessInfo[] = processes.map(pid => ({ pid: parseInt(pid, 10) })).filter(proc => !isNaN(proc.pid))
             return yandexProcesses
         } catch (error) {
-            console.error('Error retrieving Yandex Music processes on Mac:', error)
+            logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
             return []
         }
     } else {
@@ -50,7 +51,7 @@ async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
             })
             return yandexProcesses
         } catch (error) {
-            console.error('Error retrieving Yandex Music processes:', error)
+            logger.main.error('Error retrieving Yandex Music processes:', error)
             return []
         }
     }
@@ -64,16 +65,16 @@ export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
 export async function closeYandexMusic(): Promise<void> {
     const yandexProcesses = await isYandexMusicRunning()
     if (yandexProcesses.length === 0) {
-        console.info('Yandex Music is not running.')
+        logger.main.info('Yandex Music is not running.')
         return
     }
 
     for (const proc of yandexProcesses) {
         try {
             process.kill(proc.pid)
-            console.info(`Yandex Music process with PID ${proc.pid} has been terminated.`)
+            logger.main.info(`Yandex Music process with PID ${proc.pid} has been terminated.`)
         } catch (error) {
-            console.error(`Error terminating process ${proc.pid}:`, error)
+            logger.main.error(`Error terminating process ${proc.pid}:`, error)
         }
     }
 }
@@ -87,6 +88,21 @@ export function getPathToYandexMusic() {
             return path.join(process?.env?.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
         case 'linux':
             return store.get('settings.yandexMusicPath', '')
+        default:
+            return ''
+    }
+}
+export function getYandexMusicAppDataPath() {
+    const platform = os.platform()
+    const home = os.homedir()
+    switch (platform) {
+        case 'darwin':
+            return path.join(home, 'Library', 'Application Support', 'YandexMusic')
+        case 'win32':
+            return path.join(process.env.APPDATA || '', 'YandexMusic')
+        case 'linux':
+            const xdgConfig = process.env.XDG_CONFIG_HOME || path.join(home, '.config')
+            return path.join(xdgConfig, 'YandexMusic')
         default:
             return ''
     }
@@ -107,10 +123,6 @@ const platform = os.platform()
 export const isMac = () => platform === 'darwin'
 export const isWindows = () => platform === 'win32'
 export const isLinux = () => platform === 'linux'
-
-export async function calculateSHA256FromAsar(asarPath: string): Promise<string> {
-    return crypto.createHash('sha256').update(asarPath).digest('hex')
-}
 
 export const formatSizeUnits = (bytes: any) => {
     if (bytes >= 1073741824) {
@@ -212,15 +224,24 @@ export const downloadYandexMusic = async (type?: string) => {
     }
     const version = versionMatch[1]
 
-    const exeUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_x64_${version}.exe`
-    const fileName = path.basename(exeUrl)
+    let downloadUrl: string
+    let fileName: string
+
+    if (isMac()) {
+        downloadUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_universal_${version}.dmg`
+        fileName = `Yandex_Music_universal_${version}.dmg`
+    } else {
+        downloadUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_x64_${version}.exe`
+        fileName = `Yandex_Music_x64_${version}.exe`
+    }
+
     const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
 
     try {
         await fs.promises.mkdir(path.dirname(downloadPath), { recursive: true })
 
         const response = await axios({
-            url: exeUrl,
+            url: downloadUrl,
             method: 'GET',
             responseType: 'stream',
         })
@@ -229,7 +250,7 @@ export const downloadYandexMusic = async (type?: string) => {
         let downloadedLength = 0
         const writer = fs.createWriteStream(downloadPath)
 
-        response.data.on('data', (chunk: string | any[]) => {
+        response.data.on('data', (chunk: any) => {
             downloadedLength += chunk.length
             const progress = downloadedLength / totalLength
             mainWindow.webContents.send('download-music-progress', {
@@ -285,7 +306,7 @@ export class AsarPatcher {
     private readonly resourcesDir: string
     private readonly infoPlistPath: string
     private asarRelPath = 'app.asar'
-    private asarPath: string
+    private readonly asarPath: string
     private readonly tmpEntitlements: string
 
     constructor(appBundlePath: string) {
@@ -300,9 +321,11 @@ export class AsarPatcher {
         return os.platform() === 'darwin'
     }
 
-    private calcAsarHeaderHash(): string {
-        const header = asar.getRawHeader(this.asarPath).headerString
-        return crypto.createHash('sha256').update(header).digest('hex')
+
+    private calcAsarHeaderHash(archivePath: string) {
+        const headerString = asar.getRawHeader(archivePath).headerString;
+        const hash = crypto.createHash('sha256').update(headerString).digest('hex');
+        return { algorithm: 'SHA256', hash };
     }
 
     private dumpEntitlements(): void {
@@ -321,7 +344,7 @@ export class AsarPatcher {
     private isSystemIntegrityProtectionEnabled(): boolean {
         try {
             const status = execSync('csrutil status', { encoding: 'utf8' })
-            return status.includes('enabled')
+            return status.includes('Filesystem Protections: enabled')
         } catch {
             return true
         }
@@ -333,20 +356,38 @@ export class AsarPatcher {
             return false
         }
 
+        try {
+            await fsp.access(this.asarPath, fs.constants.W_OK)
+        } catch(err) {
+            logger.main.log('Caught access-error, full object dump:', err)
+            logger.main.log('Error code:', err.code)
+            logger.main.log('Error message:', err.message)
+            logger.main.log('Error stack:', err.stack)
+            await dialog.showMessageBox(mainWindow, {
+                type: 'warning',
+                title: 'Требуются права',
+                message: 'Нужны права на запись диска для патча ASAR. Предоставьте доступ и повторите.',
+                buttons: ['Открыть настройки', 'Отмена'],
+                cancelId: 1,
+            })
+            execSync('open "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"')
+            return false
+        }
+
         if (this.isSystemIntegrityProtectionEnabled()) {
-            callback?.(0, 'SIP включён — отключите System Integrity Protection и повторите')
+            callback?.(0, 'SIP (защита файловой системы) включён — отключите эту опцию и повторите')
             return false
         }
 
         try {
             if (this.isAsarIntegrityEnabled()) {
                 callback?.(0.2, 'Обнаружена проверка целостности ASAR, обновляем хеш...')
-                const newHash = this.calcAsarHeaderHash()
+                const newHash = this.calcAsarHeaderHash(this.asarPath).hash
 
                 const raw = await fsp.readFile(this.infoPlistPath, 'utf8')
                 const data = plist.parse(raw) as any
                 data.ElectronAsarIntegrity = data.ElectronAsarIntegrity || {}
-                data.ElectronAsarIntegrity[this.asarRelPath] = { algorithm: 'SHA256', hash: newHash }
+                data.ElectronAsarIntegrity["Resources/app.asar"].hash = newHash;
                 await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8')
 
                 callback?.(0.5, `Новый хеш: ${newHash}`)
@@ -365,7 +406,9 @@ export class AsarPatcher {
         } catch (err) {
             try {
                 await fsp.unlink(this.tmpEntitlements)
-            } catch {}
+            } catch (err) {
+                callback?.(0, `Ошибка при удалении временного файла entitlements: ${(err as Error).message}`)
+            }
             callback?.(0, `Ошибка при патче: ${(err as Error).message}`)
             return false
         }

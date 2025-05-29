@@ -11,7 +11,7 @@ import { execSync } from 'child_process'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
-        icon: './icons/win/icon.ico',
+        icon: './icons/icon',
         name: 'PulseSync',
         executableName: 'PulseSync',
         appCopyright: 'Copyright (C) 2025 PulseSync LLC',
@@ -22,36 +22,6 @@ const forgeConfig: ForgeConfig = {
         extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
-    rebuildConfig: {},
-    makers: [
-        {
-            name: '@electron-forge/maker-zip',
-            config: {
-                macUpdateManifestBaseUrl: '${config.UPDATE_URL}/beta/darwin/{{arch}}',
-            },
-        },
-        {
-            name: '@electron-forge/maker-deb',
-            config: {
-                desktopTemplate: 'pulsesync.desktop',
-            },
-        },
-        {
-            name: '@electron-forge/maker-rpm',
-            config: {
-                desktopTemplate: 'pulsesync.desktop',
-            },
-        },
-        {
-            name: '@electron-forge/maker-dmg',
-            config: {
-                background: './static/assets/images/no_banner.png',
-                icon: './icons/mac/icon.icns',
-                format: 'ULFO',
-                overwrite: true,
-            },
-        },
-    ],
     plugins: [
         new WebpackPlugin({
             mainConfig,

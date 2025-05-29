@@ -672,7 +672,7 @@ const Player: React.FC<any> = ({ children }) => {
                 if (typeof window !== 'undefined') {
                     window.desktopEvents?.on('SEND_TRACK', async (event, data) => {
                         if(!data) return
-                       
+
                         if(socket && socket.connected) {
                             socket.emit('track_played_enough', {
                                 track: {
@@ -894,7 +894,7 @@ const Player: React.FC<any> = ({ children }) => {
             if (track.sourceType === 'ynison') {
                 const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
                 const deepShareTrackUrl = `yandexmusic://${shareTrackPath}`
-                let startTimestamp = Math.round(Date.now() - track.ynisonProgress * 1000)
+                let startTimestamp = Math.round(Date.now() - (track.ynisonProgress / 1000) * 1000)
                 let endTimestamp = startTimestamp + track.durationMs
 
                 const activity: any = {
