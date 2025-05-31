@@ -8,6 +8,7 @@ import { isDevmark } from '../../renderer/api/config'
 import * as electron from 'electron'
 import path from 'path'
 import fs from 'original-fs'
+import logger from './logger'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -126,7 +127,7 @@ export function createWindow(): void {
                 const fileUri = `file://${fullPath}`
                 shell.openExternal(fileUri)
             } else {
-                console.error(`Файл не найден: ${fullPath}`)
+                logger.renderer.error(`Файл не найден: ${fullPath}`)
             }
             return { action: 'deny' }
         }
