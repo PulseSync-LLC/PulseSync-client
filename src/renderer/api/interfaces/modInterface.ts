@@ -2,6 +2,7 @@ export interface ModInterface {
     id: number
     modVersion: string
     musicVersion: string
+    name: string
     checksum: string
     downloadUrl: string
     showModal: string

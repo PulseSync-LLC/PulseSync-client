@@ -1,5 +1,4 @@
-
-import { app, BrowserWindow, ipcMain} from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import process from 'process'
 import './main/modules/index'
 import path from 'path'

@@ -17,6 +17,7 @@ export interface Info {
 }
 export interface Mod {
     musicVersion: string
+    name: string
     version: string
     changelog: string[]
     installed: boolean

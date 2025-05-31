@@ -20,6 +20,7 @@ const settingsInitials: SettingsInterface = {
     },
     mod: {
         version: '',
+        name: '',
         musicVersion: '',
         installed: false,
         showModal: true,

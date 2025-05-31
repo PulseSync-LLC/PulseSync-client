@@ -1,5 +1,5 @@
 import path from 'path'
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState, useCallback } from 'react'
 import { NavLink, useLocation, useNavigate } from 'react-router'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -30,6 +30,9 @@ import * as globalStyles from '../../../../../static/styles/page/index.module.sc
 import * as localStyles from './extensionview.module.scss'
 import addonInitials from '../../../api/initials/addon.initials'
 import { useUserProfileModal } from '../../../context/UserProfileModalContext'
+import config from '../../../api/config'
+
+const assetCache = new Map<string, { banner: string; readme: string }>()
 
 const ExtensionViewPage: React.FC = () => {
     const [activatedTheme, setActivatedTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
@@ -54,6 +57,15 @@ const ExtensionViewPage: React.FC = () => {
     const menuElementRef = useRef<HTMLDivElement>(null)
     const location = useLocation()
     const navigate = useNavigate()
+
+    const getAssetUrl = useCallback(
+        (filename: string) => {
+            return `http://localhost:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(
+                currentAddon?.name || '',
+            )}&file=${encodeURIComponent(filename)}`
+        },
+        [currentAddon],
+    )
 
     useEffect(() => {
         if (isFirstRender.current) {
@@ -187,39 +199,38 @@ const ExtensionViewPage: React.FC = () => {
         }
     }
 
-    const getEncodedPath = (p: string) => {
-        return encodeURI(p.replace(/\\/g, '/'))
-    }
     useEffect(() => {
-        if (currentAddon?.path && currentAddon.banner) {
-            const bannerPath = getEncodedPath(`${currentAddon.path}/${currentAddon.banner}`)
-            fetch(bannerPath)
-                .then(res => {
-                    if (res.ok) {
-                        setBannerImage(bannerPath)
-                    } else {
-                        setBannerImage('static/assets/images/no_themeBackground.png')
-                    }
-                })
-                .catch(() => {
-                    setBannerImage('static/assets/images/no_themeBackground.png')
-                })
-        }
-    }, [currentAddon])
+        if (!currentAddon) return
 
-    useEffect(() => {
-        if (currentAddon) {
-            const readmePath = `${currentAddon.path}/README.md`
-            fetch(readmePath)
-                .then(response => response.text())
-                .then(data => {
-                    setMarkdownData(data)
-                })
-                .catch(() => {
-                    console.error('Ошибка при загрузке README.md:')
-                })
+        const addonName = currentAddon.name
+        const cached = assetCache.get(addonName)
+
+        if (cached) {
+            setBannerImage(cached.banner)
+            setMarkdownData(cached.readme)
+            return
         }
-    }, [currentAddon])
+
+        const desiredBannerUrl = getAssetUrl(currentAddon.banner)
+        const desiredReadmeUrl = getAssetUrl('README.md')
+
+        Promise.all([
+            fetch(desiredBannerUrl)
+                .then(res => (res.ok ? desiredBannerUrl : 'static/assets/images/no_themeBackground.png'))
+                .catch(() => 'static/assets/images/no_themeBackground.png'),
+            fetch(desiredReadmeUrl)
+                .then(res => (res.ok ? res.text() : Promise.resolve('')))
+                .catch(() => ''),
+        ]).then(([bannerResult, readmeResult]) => {
+            setBannerImage(bannerResult)
+            setMarkdownData(readmeResult)
+            assetCache.set(addonName, {
+                banner: bannerResult,
+                readme: readmeResult,
+            })
+            console.log(assetCache)
+        })
+    }, [currentAddon, getAssetUrl])
 
     useEffect(() => {
         const checkConfigFile = async () => {
@@ -632,9 +643,20 @@ const ExtensionViewPage: React.FC = () => {
     }
 
     function MarkdownLink(props: any) {
+        const { href, children } = props
+
+        const isAbsolute = href.startsWith('http://') || href.startsWith('https://')
+
+        let fullHref: string
+        if (isAbsolute) {
+            fullHref = href
+        } else {
+            fullHref = `${encodeURIComponent(currentAddon.directoryName)}/${href}`
+        }
+
         return (
-            <a href={props.href} target="_blank" rel="noreferrer">
-                {props.children}
+            <a href={fullHref} target="_blank" rel="noreferrer">
+                {children}
             </a>
         )
     }
@@ -746,7 +768,7 @@ const ExtensionViewPage: React.FC = () => {
                                         <div className={localStyles.containerLeft}>
                                             <img
                                                 className={localStyles.themeImage}
-                                                src={`${currentAddon.path}/${currentAddon.image}`}
+                                                src={getAssetUrl(currentAddon.image)}
                                                 alt={`${currentAddon.name} image`}
                                                 width="100"
                                                 height="100"

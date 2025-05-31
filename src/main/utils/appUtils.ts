@@ -321,11 +321,10 @@ export class AsarPatcher {
         return os.platform() === 'darwin'
     }
 
-
     private calcAsarHeaderHash(archivePath: string) {
-        const headerString = asar.getRawHeader(archivePath).headerString;
-        const hash = crypto.createHash('sha256').update(headerString).digest('hex');
-        return { algorithm: 'SHA256', hash };
+        const headerString = asar.getRawHeader(archivePath).headerString
+        const hash = crypto.createHash('sha256').update(headerString).digest('hex')
+        return { algorithm: 'SHA256', hash }
     }
 
     private dumpEntitlements(): void {
@@ -358,7 +357,7 @@ export class AsarPatcher {
 
         try {
             await fsp.access(this.asarPath, fs.constants.W_OK)
-        } catch(err) {
+        } catch (err) {
             logger.main.log('Caught access-error, full object dump:', err)
             logger.main.log('Error code:', err.code)
             logger.main.log('Error message:', err.message)
@@ -387,7 +386,7 @@ export class AsarPatcher {
                 const raw = await fsp.readFile(this.infoPlistPath, 'utf8')
                 const data = plist.parse(raw) as any
                 data.ElectronAsarIntegrity = data.ElectronAsarIntegrity || {}
-                data.ElectronAsarIntegrity["Resources/app.asar"].hash = newHash;
+                data.ElectronAsarIntegrity['Resources/app.asar'].hash = newHash
                 await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8')
 
                 callback?.(0.5, `Новый хеш: ${newHash}`)
@@ -411,6 +410,26 @@ export class AsarPatcher {
             }
             callback?.(0, `Ошибка при патче: ${(err as Error).message}`)
             return false
+        }
+    }
+}
+export async function clearDirectory(directoryPath: string): Promise<void> {
+    try {
+        await fsp.access(directoryPath)
+    } catch {
+        return
+    }
+
+    const entries = await fsp.readdir(directoryPath)
+    for (const entry of entries) {
+        const fullPath = path.join(directoryPath, entry)
+        const stat = await fsp.stat(fullPath)
+
+        if (stat.isDirectory()) {
+            await clearDirectory(fullPath)
+            await fsp.rmdir(fullPath)
+        } else {
+            await fsp.unlink(fullPath)
         }
     }
 }

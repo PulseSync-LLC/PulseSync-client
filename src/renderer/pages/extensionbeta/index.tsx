@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState, useMemo } from 'react'
+import React, { useContext, useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -32,11 +32,11 @@ function checkMissingFields(addon: Addon): string[] {
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
 
-    const [currentTheme, setCurrentTheme] = useState(window.electron.store.get('addons.theme') || 'Default')
+    const [currentTheme, setCurrentTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
     const [enabledScripts, setEnabledScripts] = useState<string[]>(window.electron.store.get('addons.scripts') || [])
     const [maxAddonCount, setMaxAddonCount] = useState(0)
     const [searchQuery, setSearchQuery] = useState('')
-    const [hideEnabled, setHideEnabled] = useState(window.electron.store.get('addons.hideEnabled') || false)
+    const [hideEnabled, setHideEnabled] = useState<boolean>(window.electron.store.get('addons.hideEnabled') || false)
     const [filterVisible, setFilterVisible] = useState(false)
     const [optionMenu, setOptionMenu] = useState(false)
 
@@ -45,17 +45,14 @@ export default function ExtensionPage() {
     const containerRef = useRef<HTMLDivElement>(null)
 
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set(window.electron.store.get('addons.selectedTags') || []))
-
-    const [columnsCount, setColumnsCount] = useState(window.electron.store.get('addons.columnsCount') || 3)
-
+    const [columnsCount, setColumnsCount] = useState<number>(window.electron.store.get('addons.columnsCount') || 3)
     const [searchParams] = useSearchParams()
     const selectedTagFromURL = searchParams.get('selectedTag')
 
     const activeTagCount = selectedTags.size + (hideEnabled ? 1 : 0)
-
     const [displayedCount, setDisplayedCount] = useState(0)
 
-    const loadAddons = () => {
+    const loadAddons = useCallback(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
                 .invoke('getAddons')
@@ -64,7 +61,7 @@ export default function ExtensionPage() {
                 })
                 .catch(error => console.error('Ошибка при загрузке аддонов:', error))
         }
-    }
+    }, [setAddons])
 
     useEffect(() => {
         if (selectedTagFromURL) {
@@ -78,7 +75,7 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         loadAddons()
-    }, [])
+    }, [loadAddons])
 
     useEffect(() => {
         window.electron.store.set('addons.scripts', enabledScripts)
@@ -88,11 +85,11 @@ export default function ExtensionPage() {
         window.electron.store.set('addons.theme', currentTheme)
     }, [currentTheme])
 
-    const reloadAddons = () => {
+    const reloadAddons = useCallback(() => {
         setAddons([])
         loadAddons()
         toast.custom('success', 'Сделано', 'Расширения перезагружены')
-    }
+    }, [setAddons, loadAddons])
 
     const handleCheckboxChange = (addon: Addon, newChecked: boolean) => {
         if (addon.type === 'theme') {
@@ -105,16 +102,12 @@ export default function ExtensionPage() {
                 window.desktopEvents?.send('themeChanged', addonInitials[0])
             }
         } else {
-            if (newChecked) {
-                setEnabledScripts(prev => {
-                    if (!prev.includes(addon.directoryName)) {
-                        return [...prev, addon.directoryName]
-                    }
-                    return prev
-                })
-            } else {
-                setEnabledScripts(prev => prev.filter(scriptName => scriptName !== addon.directoryName))
-            }
+            setEnabledScripts(prev => {
+                if (newChecked) {
+                    return prev.includes(addon.directoryName) ? prev : [...prev, addon.directoryName]
+                }
+                return prev.filter(scriptName => scriptName !== addon.directoryName)
+            })
         }
     }
 
@@ -127,12 +120,24 @@ export default function ExtensionPage() {
     }
 
     const handleTagChange = (tag: string) => {
-        const updated = new Set(selectedTags)
-        updated.has(tag) ? updated.delete(tag) : updated.add(tag)
-        setSelectedTags(updated)
+        setSelectedTags(prev => {
+            const updated = new Set(prev)
+            updated.has(tag) ? updated.delete(tag) : updated.add(tag)
+            return updated
+        })
     }
 
-    function filterAndSortAddons(list: Addon[], query: string) {
+    const allTags = useMemo(() => {
+        const tagSet = new Set<string>()
+        for (const item of addons) {
+            if (Array.isArray(item.tags)) {
+                item.tags.forEach(t => tagSet.add(t))
+            }
+        }
+        return Array.from(tagSet)
+    }, [addons])
+
+    const filterAndSortAddons = useCallback((list: Addon[], query: string) => {
         return list
             .filter(item => item.name !== 'Default')
             .map(item => {
@@ -142,7 +147,7 @@ export default function ExtensionPage() {
                 } else if (Array.isArray(item.author)) {
                     authorString = item.author.map(id => String(id).toLowerCase()).join(', ')
                 }
-                let matches
+                let matches = false
                 if (!query) {
                     matches = true
                 } else {
@@ -158,13 +163,18 @@ export default function ExtensionPage() {
                     matches,
                 }
             })
-            .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
-    }
+            .sort((a, b) => {
+                if (a.matches === b.matches) {
+                    return 0
+                }
+                return a.matches ? -1 : 1
+            })
+    }, [])
 
-    function filterAddonsByTags(list: Addon[], tags: Set<string>) {
+    const filterAddonsByTags = useCallback((list: Addon[], tags: Set<string>) => {
         if (tags.size === 0) return list
         return list.filter(item => item.tags?.some(t => tags.has(t)))
-    }
+    }, [])
 
     function getMissingCount(addon: Addon): number {
         return checkMissingFields(addon).length
@@ -172,9 +182,7 @@ export default function ExtensionPage() {
 
     function getPriority(addon: Addon): number {
         const missingCount = getMissingCount(addon)
-        if (missingCount > 0) {
-            return 999
-        }
+        if (missingCount > 0) return 999
         const isTheme = addon.type === 'theme'
         const isEnabledTheme = isTheme && addon.directoryName === currentTheme
         if (isEnabledTheme) return 0
@@ -209,30 +217,28 @@ export default function ExtensionPage() {
         })
 
         return filtered
-    }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts])
+    }, [addons, selectedTags, searchQuery, hideEnabled, currentTheme, enabledScripts, filterAddonsByTags, filterAndSortAddons])
 
-    const availableAddons = useMemo(() => {
-        return addons.filter(addon => addon.name !== 'Default')
-    }, [addons])
+    const availableAddons = useMemo(() => addons.filter(addon => addon.name !== 'Default'), [addons])
 
     useEffect(() => {
         if (searchQuery.trim() !== '') {
             setDisplayedCount(mergedAddons.length)
-        } else {
-            setDisplayedCount(0)
-            if (mergedAddons.length > 0) {
-                const interval = setInterval(() => {
-                    setDisplayedCount(prev => {
-                        if (prev < mergedAddons.length) {
-                            return prev + 1
-                        } else {
-                            clearInterval(interval)
-                            return prev
-                        }
-                    })
-                }, 50)
-                return () => clearInterval(interval)
+            return
+        }
+
+        setDisplayedCount(0)
+        if (mergedAddons.length > 0) {
+            let count = 0
+            const stepTime = 50
+            const step = () => {
+                count += 1
+                setDisplayedCount(count)
+                if (count < mergedAddons.length) {
+                    setTimeout(step, stepTime)
+                }
             }
+            step()
         }
     }, [mergedAddons, searchQuery])
 
@@ -321,7 +327,11 @@ export default function ExtensionPage() {
                                         </button>
                                         <button
                                             className={extensionStyles.toolbarButton}
-                                            onClick={() => window.desktopEvents?.send('openPath', { action: 'themePath' })}
+                                            onClick={() =>
+                                                window.desktopEvents?.send('openPath', {
+                                                    action: 'themePath',
+                                                })
+                                            }
                                         >
                                             <FileImg /> Директория аддонов
                                         </button>
@@ -378,7 +388,7 @@ export default function ExtensionPage() {
                                                 label="Скрыть включённые"
                                                 className={hideEnabled ? extensionStyles.selectedTag : ''}
                                             />
-                                            {Array.from(new Set(addons.flatMap(item => item.tags || []))).map(tag => (
+                                            {allTags.map(tag => (
                                                 <CustomCheckbox
                                                     key={tag}
                                                     checked={selectedTags.has(tag)}

@@ -10,6 +10,7 @@ import { store } from './storage'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { authorized } from '../events'
 import { mainWindow } from './createWindow'
+import { clearDirectory } from '../utils/appUtils'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
 
@@ -93,6 +94,8 @@ async function handlePextFile(filePath: string) {
     const outputDir = path.join(app.getPath('userData'), 'addons', addonName)
     if (!fs.existsSync(outputDir)) {
         fs.mkdirSync(outputDir, { recursive: true })
+    } else {
+        await clearDirectory(outputDir)
     }
     zip.extractAllTo(outputDir, true)
     const metadataFilePath = path.join(outputDir, 'metadata.json')

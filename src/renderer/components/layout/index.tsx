@@ -93,10 +93,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     mod: {
                         ...prevApp.mod,
                         ...(prevApp.mod.installed
-                            ? { updated: true, version: modInfo[0].modVersion }
+                            ? { updated: true, version: modInfo[0].modVersion, name: modInfo[0].name }
                             : {
                                   installed: true,
                                   version: modInfo[0].modVersion,
+                                  name: modInfo[0].name,
                               }),
                     },
                 }))
@@ -294,9 +295,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsUpdating(true)
         const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
         downloadToastIdRef.current = id
-        const { modVersion, downloadUrl, checksum, spoof } = modInfo[0]
-        window.desktopEvents?.send('update-app-asar', {
+        const { modVersion, downloadUrl, checksum, spoof, name } = modInfo[0]
+        window.desktopEvents?.send('update-music-asar', {
             version: modVersion,
+            name: name,
             link: downloadUrl,
             checksum,
             force: force || false,

@@ -5,6 +5,10 @@ import Addon from '../../api/interfaces/addon.interface'
 import { MdCheckCircle, MdColorLens, MdInfo, MdTextSnippet } from 'react-icons/md'
 import * as cardStyles from './card.module.scss'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
+import config from '../../api/config'
+
+const imageCache = new Map<string, string>()
+const bannerCache = new Map<string, string>()
 
 interface ExtensionCardProps {
     addon: Addon
@@ -35,37 +39,61 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(({ addon, isCheck
         return missing
     }, [addon])
 
-    const getEncodedPath = useCallback((p: string) => encodeURI(p.replace(/\\/g, '/')), [])
+    const getAssetUrl = useCallback(
+        (filename: string) => {
+            return `http://localhost:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(filename)}`
+        },
+        [addon.name],
+    )
 
     useEffect(() => {
-        let mounted = true
-        if (addon.path && addon.image) {
-            const src = getEncodedPath(`${addon.path}/${addon.image}`)
-            fetch(src)
-                .then(r => {
-                    if (r.ok && mounted) setImageSrc(src)
-                })
-                .catch(() => {
-                    if (mounted) setImageSrc('static/assets/images/no_themeImage.png')
-                })
+        if (!addon.image) {
+            setImageSrc('static/assets/images/no_themeImage.png')
+            return
         }
-        return () => {
-            mounted = false
+        const key = `${addon.name}|${addon.image}`
+        if (imageCache.has(key)) {
+            setImageSrc(imageCache.get(key)!)
+            return
         }
-    }, [addon.path, addon.image, getEncodedPath])
+        const url = getAssetUrl(addon.image)
+        fetch(url)
+            .then(r => {
+                if (r.ok) {
+                    imageCache.set(key, url)
+                    setImageSrc(url)
+                } else {
+                    setImageSrc('static/assets/images/no_themeImage.png')
+                }
+            })
+            .catch(() => {
+                setImageSrc('static/assets/images/no_themeImage.png')
+            })
+    }, [addon.name, addon.image, getAssetUrl])
 
     useEffect(() => {
-        if (isBannerInView && addon.path && addon.banner) {
-            const src = getEncodedPath(`${addon.path}/${addon.banner}`)
-            fetch(src)
-                .then(r => {
-                    if (r.ok) setBannerSrc(src)
-                })
-                .catch(() => {
+        if (!(isBannerInView && addon.banner)) {
+            return
+        }
+        const key = `${addon.name}|${addon.banner}`
+        if (bannerCache.has(key)) {
+            setBannerSrc(bannerCache.get(key)!)
+            return
+        }
+        const url = getAssetUrl(addon.banner)
+        fetch(url)
+            .then(r => {
+                if (r.ok) {
+                    bannerCache.set(key, url)
+                    setBannerSrc(url)
+                } else {
                     setBannerSrc('static/assets/images/no_themeBackground.png')
-                })
-        }
-    }, [isBannerInView, addon.path, addon.banner, getEncodedPath])
+                }
+            })
+            .catch(() => {
+                setBannerSrc('static/assets/images/no_themeBackground.png')
+            })
+    }, [addon.name, addon.banner, isBannerInView, getAssetUrl])
 
     const handleCardClick = useCallback(() => {
         navigate(`/extensionbeta/${addon.name}`, { state: { theme: addon } })

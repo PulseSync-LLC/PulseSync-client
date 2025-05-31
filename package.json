@@ -19,7 +19,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@babel/core": "^7.27.3",
+        "@babel/core": "^7.27.4",
         "@babel/preset-env": "^7.27.2",
         "@babel/preset-react": "^7.27.1",
         "@babel/preset-typescript": "^7.27.1",
@@ -33,7 +33,7 @@
         "@sentry/webpack-plugin": "^3.5.0",
         "@types/copy-webpack-plugin": "^10.1.3",
         "@types/electron": "^1.6.12",
-        "@types/node": "^22.15.24",
+        "@types/node": "^22.15.29",
         "@types/react": "^19.1.6",
         "@types/react-dom": "^19.1.5",
         "@types/react-modal": "^3.16.3",
@@ -46,7 +46,7 @@
         "copy-webpack-plugin": "^13.0.0",
         "electron": "36.3.2",
         "electron-builder": "^26.0.12",
-        "eslint": "^9.27.0",
+        "eslint": "^9.28.0",
         "eslint-plugin-import": "^2.31.0",
         "fork-ts-checker-webpack-plugin": "^9.1.0",
         "node-loader": "^2.1.0",
@@ -121,7 +121,7 @@
         "rehype-raw": "^7.0.0",
         "remark-breaks": "^4.0.0",
         "remark-gfm": "^4.0.1",
-        "sass": "^1.89.0",
+        "sass": "^1.89.1",
         "sass-loader": "^16.0.5",
         "semver": "^7.7.2",
         "socket.io": "^4.8.1",
@@ -141,6 +141,6 @@
     },
     "buildInfo": {
         "VERSION": "2.8.0-beta",
-        "BRANCH": "faac752"
+        "BRANCH": "1484bab"
     }
 }

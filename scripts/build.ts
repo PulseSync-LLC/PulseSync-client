@@ -88,7 +88,7 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Debug mode: ${debug ? 'ON' : 'OFF'}`)
     log(LogLevel.INFO, `Build Installer: ${buildInstaller ? 'ON' : 'OFF'}`)
     const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
-    if(buildInstaller) {
+    if (buildInstaller) {
         await runCommandStep('Build (electron-builder)', `electron-builder --pd "${outDir}"`)
         log(LogLevel.SUCCESS, 'All steps completed successfully')
         return

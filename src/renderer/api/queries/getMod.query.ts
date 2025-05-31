@@ -5,6 +5,7 @@ export default gql`
         getMod {
             id
             musicVersion
+            name
             modVersion
             downloadUrl
             createdAt

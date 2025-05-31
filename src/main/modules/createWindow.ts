@@ -6,6 +6,8 @@ import { getUpdater } from './updater/updater'
 import { updateAvailable } from '../events'
 import { isDevmark } from '../../renderer/api/config'
 import * as electron from 'electron'
+import path from 'path'
+import fs from 'original-fs'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -109,7 +111,26 @@ export function createWindow(): void {
     })
 
     mainWindow.webContents.setWindowOpenHandler(electronData => {
-        shell.openExternal(electronData.url)
+        const url = electronData.url
+        const marker = '/main_window/'
+        const idx = url.indexOf(marker)
+        if (idx !== -1) {
+            const after = url.slice(idx + marker.length)
+            const parts = after.split('/')
+            const addonName = parts.shift()
+            const relativePath = parts.join(path.sep)
+            const addonsDir = path.join(app.getPath('appData'), 'PulseSync', 'addons', addonName)
+            const fullPath = path.join(addonsDir, relativePath)
+
+            if (fs.existsSync(fullPath)) {
+                const fileUri = `file://${fullPath}`
+                shell.openExternal(fileUri)
+            } else {
+                console.error(`Файл не найден: ${fullPath}`)
+            }
+            return { action: 'deny' }
+        }
+        shell.openExternal(url)
         return { action: 'deny' }
     })
 

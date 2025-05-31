@@ -671,9 +671,9 @@ const Player: React.FC<any> = ({ children }) => {
             ;(async () => {
                 if (typeof window !== 'undefined') {
                     window.desktopEvents?.on('SEND_TRACK', async (event, data) => {
-                        if(!data) return
+                        if (!data) return
 
-                        if(socket && socket.connected) {
+                        if (socket && socket.connected) {
                             socket.emit('track_played_enough', {
                                 track: {
                                     id: data.realId,

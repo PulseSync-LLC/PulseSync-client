@@ -31,6 +31,7 @@ const gunzipAsync = promisify(zlib.gunzip)
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
+let modName: string = null
 
 const musicPath = getPathToYandexMusic()
 const musicAppDataPath = getYandexMusicAppDataPath()
@@ -62,7 +63,7 @@ function sendRemoveModFailure(params: { error: string; type?: string }) {
 }
 
 export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-app-asar', async (event, { version, link, checksum, force, spoof }) => {
+    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, force, spoof }) => {
         try {
             if (!store.has('settings.modFilename') && isLinux()) {
                 const res = await dialog.showMessageBox({
@@ -99,6 +100,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
 
             yandexMusicVersion = await getYandexMusicVersion()
             modVersion = version
+            modName = name
             logger.modManager.info(`Current Yandex Music version: ${yandexMusicVersion}`)
 
             if (!force && !spoof) {
@@ -150,7 +152,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
             await downloadAndUpdateFile(link, tempFilePath, asarPath, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
-            HandleErrorsElectron.handleError('modManager', 'update-app-asar', 'try-catch', error)
+            HandleErrorsElectron.handleError('modManager', 'update-music-asar', 'try-catch', error)
             sendDownloadFailure({
                 error: error.message,
                 type: 'unexpected_error',
@@ -166,6 +168,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     logger.modManager.info('Backup app.asar restored.')
                     store.delete('mod.version')
                     store.delete('mod.musicVersion')
+                    store.delete('mod.name')
                     store.set('mod.installed', false)
                     await deleteFfmpeg()
                     mainWindow.webContents.send('remove-mod-success', {
@@ -173,7 +176,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     })
                 } else {
                     sendRemoveModFailure({
-                        error: 'Резервная копия не найдена.',
+                        error: 'Резервная копия не найдена. Яндекс Музыка будет переустановлена.',
                         type: 'backup_not_found',
                     })
                     await downloadYandexMusic('reinstall')
@@ -262,12 +265,13 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             const current = crypto.createHash('sha256').update(buf).digest('hex')
             if (current === checksum) {
                 logger.modManager.info('app.asar matches checksum, skipping download')
+                store.set('mod.version', modVersion)
+                store.set('mod.musicVersion', yandexMusicVersion)
+                store.set('mod.name', modName)
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
                 })
-                store.set('mod.version', modVersion)
-                store.set('mod.musicVersion', yandexMusicVersion)
                 return
             }
         }
@@ -355,6 +359,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 store.set('mod.version', modVersion)
                 store.set('mod.musicVersion', yandexMusicVersion)
                 store.set('mod.installed', true)
+                store.set('mod.name', modName)
                 await installFfmpeg(mainWindow)
                 mainWindow.setProgressBar(-1)
                 setTimeout(() => {

@@ -120,9 +120,9 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle('getVersion', async () => {
         return app.getVersion()
     })
-    ipcMain.on('getLastBranch', (event) => {
-        event.returnValue = process.env.BRANCH;
-    });
+    ipcMain.on('getLastBranch', event => {
+        event.returnValue = process.env.BRANCH
+    })
 
     ipcMain.handle('getSystemInfo', async () => ({
         appVersion: app.getVersion(),
@@ -477,14 +477,10 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
 
             const zip = new AdmZip()
-            zip.addLocalFolder(
-                data.path,
-                '',
-                (relativePath) => {
-                    const parts = relativePath.split(path.sep)
-                    return !parts.includes('.git')
-                }
-            )
+            zip.addLocalFolder(data.path, '', relativePath => {
+                const parts = relativePath.split(path.sep)
+                return !parts.includes('.git')
+            })
 
             const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
             const outputPath = path.format({

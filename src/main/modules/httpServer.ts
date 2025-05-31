@@ -9,17 +9,17 @@ import logger from './logger'
 import { Server as IOServer, Socket } from 'socket.io'
 import trackInitials from '../../renderer/api/initials/track.initials'
 import { isFirstInstance } from './singleInstance'
-import config from '../../config.json'
 import { store } from './storage'
 import { parse } from 'url'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
+import config from '../../renderer/api/config'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
-const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev']
+const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 const closeServer = async (): Promise<void> => {
     const oldServer = server
     const oldIO = io
@@ -65,8 +65,13 @@ const initializeServer = () => {
         if (origin && allowedOrigins.includes(origin)) {
             res.setHeader('Access-Control-Allow-Origin', origin)
         }
-        res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
+        res.setHeader(
+            'Access-Control-Allow-Headers',
+            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, sentry-trace, baggage',
+        )
 
         if (method === 'OPTIONS') {
             res.writeHead(204)
@@ -85,6 +90,9 @@ const initializeServer = () => {
         if (method === 'GET' && pathname?.startsWith('/assets/')) {
             return handleGetAssetFileRequest(req, res)
         }
+        if (method === 'GET' && pathname === '/addon_file') {
+            return handleGetAddonRootFileRequest(req, res)
+        }
 
         res.writeHead(404, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Not found' }))
@@ -92,9 +100,9 @@ const initializeServer = () => {
 
     io = new IOServer(server, {
         cors: {
-            origin: ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev'],
+            origin: ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000'],
             methods: ['GET', 'POST'],
-            allowedHeaders: ['Content-Type'],
+            allowedHeaders: ['Content-Type', 'sentry-trace'],
         },
     })
 
@@ -152,8 +160,8 @@ const initializeServer = () => {
         })
     })
 
-    server.listen(config.PORT, () => {
-        logger.http.log(`Socket.IO server running on port ${config.PORT}`)
+    server.listen(config.MAIN_PORT, () => {
+        logger.http.log(`Socket.IO server running on port ${config.MAIN_PORT}`)
         attempt = 0
     })
 
@@ -164,6 +172,191 @@ const initializeServer = () => {
             logger.http.error('HTTP server error:', error)
         }
     })
+}
+
+const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    try {
+        const { query } = parse(req.url || '', true)
+        const name = query.name as string
+
+        if (!name) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Missing query parameters: name or type' }))
+        }
+
+        const basePath = path.join(app.getPath('appData'), 'PulseSync', 'addons', name)
+        const handlePath = path.join(basePath, 'handleEvents.json')
+
+        if (fs.existsSync(handlePath)) {
+            const d = JSON.parse(fs.readFileSync(handlePath, 'utf8'))
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ ok: true, data: d }))
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Handle events data not found' }))
+        }
+    } catch (err) {
+        logger.http.error('Error processing get_handle:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Internal server error' }))
+    }
+}
+
+const findAssetsDirectory = (basePath: string): string | null => {
+    const candidates = ['Assets', 'assets']
+    for (const folderName of candidates) {
+        const dirPath = path.join(basePath, folderName)
+        if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+            return dirPath
+        }
+    }
+    return null
+}
+
+const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    try {
+        const { query } = parse(req.url || '', true)
+        const name = query.name as string
+
+        if (!name) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Missing query parameter: name' }))
+        }
+
+        const addonsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonPath = path.join(addonsPath, name)
+        const assetsDir = findAssetsDirectory(addonPath)
+
+        if (assetsDir) {
+            const files = getFilesInDirectory(assetsDir)
+            res.writeHead(200, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ ok: true, addonPath, assetsPath: assetsDir, files }))
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Assets folder not found' }))
+        }
+    } catch (err) {
+        logger.http.error('Error reading assets:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Error reading assets' }))
+    }
+}
+
+const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    try {
+        const { pathname, query } = parse(req.url || '', true)
+        const name = query.name as string
+
+        if (!name) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Missing query parameter: name' }))
+        }
+
+        const addonsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonPath = path.join(addonsPath, name)
+        const assetsDir = findAssetsDirectory(addonPath)
+
+        if (!assetsDir) {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Assets folder not found' }))
+        }
+
+        const fn = pathname!.substring('/assets/'.length)
+        const fp = getFilePathInAssets(fn, assetsDir)
+
+        if (fp) {
+            const ext = path.extname(fp).slice(1)
+            const mimes: Record<string, string> = {
+                jpg: 'image/jpeg',
+                png: 'image/png',
+                gif: 'image/gif',
+                svg: 'image/svg+xml',
+                ico: 'image/x-icon',
+            }
+            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
+            return fs.createReadStream(fp).pipe(res)
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'File not found' }))
+        }
+    } catch (err) {
+        logger.http.error('Error serving asset file:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Error serving asset file' }))
+    }
+}
+
+const getFilesInDirectory = (dir: string): Record<string, string> =>
+    fs.readdirSync(dir).reduce(
+        (acc, f) => {
+            const fp = path.join(dir, f)
+            if (fs.statSync(fp).isDirectory()) Object.assign(acc, getFilesInDirectory(fp))
+            else acc[f] = fp
+            return acc
+        },
+        {} as Record<string, string>,
+    )
+
+const findFileInDirectory = (filename: string, dir: string): string | null => {
+    for (const f of fs.readdirSync(dir)) {
+        const fp = path.join(dir, f)
+        if (fs.statSync(fp).isDirectory()) {
+            const res = findFileInDirectory(filename, fp)
+            if (res) return res
+        } else if (path.basename(fp) === filename) {
+            return fp
+        }
+    }
+    return null
+}
+
+const getFilePathInAssets = (fn: string, assets: string): string | null => {
+    const fp = findFileInDirectory(fn, assets)
+    logger.http.log('File Path:', fp)
+    return fp
+}
+
+const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    try {
+        const { query } = parse(req.url || '', true)
+        const name = query.name as string
+        const fileName = query.file as string
+
+        if (!name || !fileName) {
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Missing query parameters: name or file' }))
+        }
+        if (/^https?:\/\//i.test(fileName)) {
+            logger.http.log(`Skipping remote URL for root file: ${fileName}`)
+            res.writeHead(400, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ ok: false, error: 'Remote URLs are not served by this endpoint.' }))
+        }
+        const addonsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonPath = path.join(addonsPath, name)
+        const targetPath = path.join(addonPath, fileName)
+
+        logger.http.log(`Looking for addon root file: ${targetPath}`)
+
+        if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
+            const ext = path.extname(targetPath).slice(1)
+            const mimes: Record<string, string> = {
+                jpg: 'image/jpeg',
+                png: 'image/png',
+                gif: 'image/gif',
+                svg: 'image/svg+xml',
+                ico: 'image/x-icon',
+            }
+            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
+            return fs.createReadStream(targetPath).pipe(res)
+        } else {
+            res.writeHead(404, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'File not found in addon root' }))
+        }
+    } catch (err) {
+        logger.http.error('Error serving addon root file:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Error serving addon root file' }))
+    }
 }
 
 const handleBrowserAuth = (args: any) => {
@@ -188,16 +381,16 @@ const handleBrowserAuth = (args: any) => {
 }
 
 const handlePortInUse = () => {
-    logger.http.warn(`Port ${config.PORT} is in use.`)
+    logger.http.warn(`Port ${config.MAIN_PORT} is in use.`)
     if (attempt > 5) {
-        dialog.showErrorBox('Error', `Failed to start server. Port ${config.PORT} is in use.`)
+        dialog.showErrorBox('Error', `Failed to start server. Port ${config.MAIN_PORT} is in use.`)
         return app.quit()
     }
     attempt++
     setTimeout(() => {
         server?.close()
-        server?.listen(config.PORT, () => {
-            logger.http.log(`Server restarted on port ${config.PORT}`)
+        server?.listen(config.MAIN_PORT, () => {
+            logger.http.log(`Server restarted on port ${config.MAIN_PORT}`)
             attempt = 0
         })
     }, 1000)
@@ -414,105 +607,6 @@ ipcMain.on('GET_TRACK_INFO', () => {
         }
     })
 })
-
-const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-    try {
-        const { query } = parse(req.url || '', true)
-        const name = query.name as string
-        if (!name) return sendNotFound(res, 'Handle events data not found')
-        const p = path.join(app.getPath('appData'), 'PulseSync', 'addons', name, 'handleEvents.json')
-        if (fs.existsSync(p)) {
-            const d = JSON.parse(fs.readFileSync(p, 'utf8'))
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            return res.end(JSON.stringify({ ok: true, data: d }))
-        }
-        sendNotFound(res, 'Handle events data not found')
-    } catch (err) {
-        logger.http.error('Error reading handle events:', err)
-        sendServerError(res, 'Error reading handle events')
-    }
-}
-const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-    try {
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-        const themePath = path.join(themesPath, selectedAddon)
-        const assets = path.join(themePath, 'Assets')
-        if (fs.existsSync(assets)) {
-            const files = getFilesInDirectory(assets)
-            res.writeHead(200, { 'Content-Type': 'application/json' })
-            return res.end(JSON.stringify({ ok: true, themePath, assetsPath: assets, files }))
-        }
-        sendNotFound(res, 'Assets folder not found')
-    } catch (err) {
-        logger.http.error('Error reading assets:', err)
-        sendServerError(res, 'Error reading assets')
-    }
-}
-const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-    try {
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-        const themePath = path.join(themesPath, selectedAddon)
-        const assets = path.join(themePath, 'Assets')
-        const fn = req.url!.substring('/assets/'.length)
-        const fp = getFilePathInAssets(fn, assets)
-        if (fp) {
-            const ext = path.extname(fp).slice(1)
-            const mimes: Record<string, string> = {
-                jpg: 'image/jpeg',
-                png: 'image/png',
-                gif: 'image/gif',
-                svg: 'image/svg+xml',
-                ico: 'image/x-icon',
-            }
-            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
-            return fs.createReadStream(fp).pipe(res)
-        }
-        sendNotFound(res, 'File not found')
-    } catch (err) {
-        logger.http.error('Error serving asset file:', err)
-        sendServerError(res, 'Error serving asset file')
-    }
-}
-
-const getFilesInDirectory = (dir: string): Record<string, string> =>
-    fs.readdirSync(dir).reduce(
-        (acc, f) => {
-            const fp = path.join(dir, f)
-            if (fs.statSync(fp).isDirectory()) Object.assign(acc, getFilesInDirectory(fp))
-            else acc[f] = fp
-            return acc
-        },
-        {} as Record<string, string>,
-    )
-
-const findFileInDirectory = (filename: string, dir: string): string | null => {
-    for (const f of fs.readdirSync(dir)) {
-        const fp = path.join(dir, f)
-        if (fs.statSync(fp).isDirectory()) {
-            const res = findFileInDirectory(filename, fp)
-            if (res) return res
-        } else if (path.basename(fp) === filename) {
-            return fp
-        }
-    }
-    return null
-}
-
-const getFilePathInAssets = (fn: string, assets: string): string | null => {
-    const fp = findFileInDirectory(fn, assets)
-    logger.http.log('File Path:', fp)
-    return fp
-}
-
-const sendNotFound = (res: http.ServerResponse, msg: string) => {
-    res.writeHead(404, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ error: msg }))
-}
-
-const sendServerError = (res: http.ServerResponse, msg: string) => {
-    res.writeHead(500, { 'Content-Type': 'application/json' })
-    res.end(JSON.stringify({ error: msg }))
-}
 
 const updateData = (newData: any) => {
     if (newData.type === 'refresh') {

@@ -23,7 +23,7 @@ export const mainConfig: Configuration = {
     },
     plugins: [
         new webpack.DefinePlugin({
-            'process.env.BRANCH':  JSON.stringify(packageJson.buildInfo?.BRANCH),
+            'process.env.BRANCH': JSON.stringify(packageJson.buildInfo?.BRANCH),
             'process.env.VERSION': JSON.stringify(packageJson.version),
         }),
     ],

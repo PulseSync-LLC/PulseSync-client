@@ -204,7 +204,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         ),
         createButtonSection('Мод', [
             {
-                label: app.mod.installed && app.mod.version ? `Eclipse v${app.mod.version}` : 'Не установлен',
+                label: app.mod.installed && app.mod.version ? `${app.mod.name || 'Eclipse'} v${app.mod.version}` : 'Не установлен',
                 onClick: () => store.dispatch(openModal()),
                 disabled: !app.mod.installed || !app.mod.version,
             },
