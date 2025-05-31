@@ -4,11 +4,12 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.0",
+    "version": "2.8.0-beta",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
-        "build:package": "ts-node scripts/build-package.ts --debug",
+        "build:package": "ts-node scripts/build.ts --debug",
+        "build:installer": "ts-node scripts/build.ts --installer",
         "make": "electron-forge make",
         "publish": "electron-forge publish",
         "lint": "eslint --ext .ts,.tsx .",
@@ -139,7 +140,7 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.0",
-        "BRANCH": "b4ef2de"
+        "VERSION": "2.8.0-beta",
+        "BRANCH": "faac752"
     }
 }

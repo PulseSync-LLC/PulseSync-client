@@ -9,6 +9,7 @@ import chalk from 'chalk'
 const exec = promisify(_exec)
 
 const debug = process.argv.includes('--debug') || process.argv.includes('-d')
+const buildInstaller = process.argv.includes('--installer') || process.argv.includes('-i')
 
 enum LogLevel {
     INFO = 'INFO',
@@ -85,10 +86,16 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `Working dir: ${process.cwd()}`)
     log(LogLevel.INFO, `Debug mode: ${debug ? 'ON' : 'OFF'}`)
-
-    log(LogLevel.INFO, `Running step "Generate build info"...`)
+    log(LogLevel.INFO, `Build Installer: ${buildInstaller ? 'ON' : 'OFF'}`)
+    const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+    if(buildInstaller) {
+        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${outDir}"`)
+        log(LogLevel.SUCCESS, 'All steps completed successfully')
+        return
+    }
     const t0 = performance.now()
     try {
+        log(LogLevel.INFO, `Running step "Generate build info"...`)
         generateBuildInfo()
         const d0 = ((performance.now() - t0) / 1000).toFixed(2)
         log(LogLevel.SUCCESS, `Step "Generate build info" completed in ${d0}s`)
@@ -101,7 +108,6 @@ async function main(): Promise<void> {
 
     await runCommandStep('Package (electron-forge)', 'electron-forge package')
 
-    const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
     await runCommandStep('Build (electron-builder)', `electron-builder --pd "${outDir}"`)
 
     log(LogLevel.SUCCESS, 'All steps completed successfully')
