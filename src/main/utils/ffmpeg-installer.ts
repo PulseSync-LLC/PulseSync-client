@@ -20,19 +20,19 @@ export const FFMPEG_INSTALL: Record<
     }
 > = {
     darwin: {
-        url: 'https://evermeet.cx/ffmpeg/ffmpeg-7.1.zip',
-        archiveName: 'ffmpeg-macos.zip',
+        url: 'https://raw.githubusercontent.com/foreA-adoxid/ffmpeg-builds/main/darwin/ffmpeg-darwin.zip',
+        archiveName: 'ffmpeg-darwin.zip',
         extractType: 'zip',
         execRelPath: 'ffmpeg',
     },
     win32: {
-        url: 'https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip',
+        url: 'https://raw.githubusercontent.com/foreA-adoxid/ffmpeg-builds/main/windows/ffmpeg-windows.zip',
         archiveName: 'ffmpeg-win.zip',
         extractType: 'zip',
         execRelPath: '**/bin/ffmpeg.exe',
     },
     linux: {
-        url: 'https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz',
+        url: 'https://raw.githubusercontent.com/foreA-adoxid/ffmpeg-builds/main/linux/ffmpeg-linux.tar.xz',
         archiveName: 'ffmpeg-linux.tar.xz',
         extractType: 'tar',
         execRelPath: 'ffmpeg-*-amd64-static/ffmpeg',
@@ -125,7 +125,7 @@ export async function installFfmpeg(window: BrowserWindow) {
         const pattern = `${storagePosix}/${relPattern}`
         const matches = await glob(pattern, { nodir: true })
         if (!matches.length) {
-            throw new Error('Не найден бинарь FFmpeg в распакованных файлах')
+            throw new Error('FFmpeg binary not found in extracted files')
         }
         const execSrc = matches[0]
 
@@ -161,8 +161,8 @@ export async function deleteFfmpeg() {
 
     if (fs.existsSync(installPath)) {
         await fs.promises.rm(installPath)
-        logger.modManager.info('FFmpeg удалён из Яндекс.Музыки')
+        logger.modManager.info('FFmpeg removed from Yandex.Music')
     } else {
-        logger.modManager.warn('FFmpeg не найден для удаления в Яндекс.Музыке')
+        logger.modManager.warn('FFmpeg not found for removal in Yandex.Music')
     }
 }

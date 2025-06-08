@@ -21,10 +21,13 @@ enum DiscordState {
 
 const execAsync = promisify(exec)
 const SET_ACTIVITY_TIMEOUT_MS = 1500
+
 let sendActivityTimeoutId: NodeJS.Timeout = undefined
 let previousActivity: SetActivity = undefined
+
 let reconnectTimeout: NodeJS.Timeout = undefined
-let closedRetryCount = 0
+let isReconnecting = false
+let reconnectInterval = 10 * 1000
 
 export async function readDiscord(): Promise<DiscordState> {
     const platform = process.platform
@@ -165,6 +168,41 @@ let changeId = false
 export let rpcConnected = false
 export let isConnecting = false
 
+function startReconnectLoop(delayMs: number = reconnectInterval) {
+    if (isReconnecting) {
+        return
+    }
+    isReconnecting = true
+
+    const attemptReconnect = async () => {
+        if (client) {
+            try {
+                await client.destroy()
+                client.removeAllListeners()
+                client = null
+            } catch (e) {
+                logger.discordRpc.error('Error destroying client during reconnect: ' + e.message)
+            }
+        }
+        previousActivity = undefined
+        rpcConnected = false
+
+        rpc_connect()
+
+        reconnectTimeout = setTimeout(() => {
+            if (!rpcConnected) {
+                attemptReconnect()
+            } else {
+                clearTimeout(reconnectTimeout)
+                reconnectTimeout = undefined
+                isReconnecting = false
+            }
+        }, delayMs)
+    }
+
+    attemptReconnect()
+}
+
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     if (rpcConnected && client) {
         if (compareActivities(activity)) return true
@@ -211,22 +249,6 @@ ipcMain.on('discordrpc-clearstate', () => {
     }
 })
 
-function scheduleReconnect(delayMs: number = 3000) {
-    if (store.get('discordRpc.status') && !reconnectTimeout) {
-        reconnectTimeout = setTimeout(() => {
-            reconnectTimeout = undefined
-            rpc_connect()
-        }, delayMs)
-    }
-}
-
-function clearActivityWithTimeout(client: Client, timeoutMs: number = 5000): Promise<void> {
-    return Promise.race([
-        client.user!.clearActivity(),
-        new Promise<void>((_, reject) => setTimeout(() => reject(new Error('clearActivity timed out')), timeoutMs)),
-    ])
-}
-
 async function rpc_connect() {
     if (isConnecting) {
         logger.discordRpc.info('rpc_connect in progress, skipping duplicate call')
@@ -235,14 +257,16 @@ async function rpc_connect() {
     isConnecting = true
     logger.discordRpc.info('Starting rpc_connect()')
     if (rpcConnected && client) {
-        logger.discordRpc.info('Already connected, skipping')
         isConnecting = false
         return
     }
     if (client) {
         try {
             if (client.user) {
-                await clearActivityWithTimeout(client, 5000)
+                await Promise.race([
+                    client.user.clearActivity(),
+                    new Promise<void>((_, reject) => setTimeout(() => reject(new Error('clearActivity timed out')), 5000)),
+                ])
             }
         } catch (e) {
             logger.discordRpc.error('Error clearing activity: ' + e.message)
@@ -265,29 +289,24 @@ async function rpc_connect() {
     })
     const discordState = await readDiscord()
     if (discordState !== DiscordState.SUCCESS) {
-        if (discordState === DiscordState.CLOSED) {
-            closedRetryCount++
-        } else {
-            closedRetryCount = 0
-        }
-        const delay = closedRetryCount >= 5 ? 10000 : 3000
-        logger.discordRpc.info(`Discord state ${discordState}. Closed count=${closedRetryCount}. Next retry in ${delay / 1000}s`)
+        logger.discordRpc.info(`Discord state ${discordState}. Next retry in 5s`)
         mainWindow.webContents.send('rpc-log', {
-            message: `Discord не найден. Следующая попытка через ${delay / 1000} секунд.`,
+            message: `Discord не найден. Следующая попытка через 5 сек.`,
             type: 'info',
         })
-        scheduleReconnect(delay)
         isConnecting = false
+        startReconnectLoop(5000)
         return
     }
     client.login().catch(async e => {
         const msg = await handleRpcError(e)
         logger.discordRpc.error('login error: ' + msg)
         mainWindow.webContents.send('rpc-log', { message: msg || 'Ошибка подключения к Discord RPC', type: 'error' })
-        scheduleReconnect()
+        isConnecting = false
+        startReconnectLoop()
     })
     client.on('ready', () => {
-        closedRetryCount = 0
+        isConnecting = false
         rpcConnected = true
         previousActivity = undefined
         if (changeId) changeId = false
@@ -299,7 +318,7 @@ async function rpc_connect() {
         previousActivity = undefined
         logger.discordRpc.info('Disconnected')
         mainWindow.webContents.send('rpc-log', { message: 'Отключение RPC', type: 'info' })
-        scheduleReconnect()
+        startReconnectLoop()
     })
     client.on('error', async e => {
         if (e.name === 'Could not connect') {
@@ -309,16 +328,15 @@ async function rpc_connect() {
         const msg = await handleRpcError(e)
         logger.discordRpc.error('Error: ' + msg)
         mainWindow.webContents.send('rpc-log', { message: msg || 'Ошибка подключения', type: 'error' })
-        scheduleReconnect()
+        startReconnectLoop()
     })
     client.on('close', () => {
         rpcConnected = false
         previousActivity = undefined
         logger.discordRpc.info('Connection closed')
         mainWindow.webContents.send('rpc-log', { message: 'Закрытие соединения', type: 'info' })
-        scheduleReconnect()
+        startReconnectLoop()
     })
-    isConnecting = false
 }
 
 function updateAppId(newAppId: string) {

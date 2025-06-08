@@ -1,6 +1,5 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import process from 'process'
-import './main/modules/index'
 import path from 'path'
 import * as fs from 'original-fs'
 import { initializeStore, store } from './main/modules/storage'
@@ -10,7 +9,7 @@ import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modul
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, formatJson, getPathToYandexMusic, isLinux } from './main/utils/appUtils'
+import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, uninstallApp } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -64,11 +63,50 @@ if (!isAppDev) {
 function checkCLIArgumentsWrapper() {
     updated = checkCLIArguments(isAppDev)
 }
+const checkOldYandexMusic = async () => {
+    try {
+        const namePart = "Yandex.Music";
+        const pkg: AppxPackage | null = await findAppByName(namePart);
+
+        if (pkg) {
+            const info =
+                `Найдена старая версия Яндекс.Музыки, ` +
+                `её наличие будет мешать работе мода. ` +
+                `Приложение необходимо удалить.`;
+
+            const { response } = await dialog.showMessageBox({
+                type: "warning",
+                buttons: ["Удалить", "Отмена"],
+                defaultId: 0,
+                cancelId: 1,
+                title: "Старая версия Яндекс.Музыки обнаружена",
+                message: info
+            });
+
+            if (response === 0) {
+                try {
+                    await uninstallApp(pkg.PackageFullName);
+                    app.relaunch();
+                    app.exit(0);
+                } catch (err) {
+                    await dialog.showMessageBox({
+                        type: "error",
+                        title: "Ошибка удаления",
+                        message: `Не удалось удалить приложение:\n${(err as Error).message}`
+                    });
+                }
+            }
+        }
+    } catch (err) {
+        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', err);
+    }
+}
 
 app.on('ready', async () => {
     HandleErrorsElectron.processStoredCrashes()
     corsAnywherePort = await initializeCorsAnywhere()
     checkCLIArgumentsWrapper()
+    await checkOldYandexMusic()
     createWindow()
     await checkForSingleInstance()
     handleEvents(mainWindow)
@@ -216,7 +254,6 @@ export async function prestartCheck() {
     if (!store.has('settings.closeAppInTray')) {
         store.set('settings.closeAppInTray', true)
     }
-
     checkAsar()
     initializeAddon()
 

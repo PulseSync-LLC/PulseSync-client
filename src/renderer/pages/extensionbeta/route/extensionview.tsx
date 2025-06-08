@@ -34,6 +34,11 @@ import config from '../../../api/config'
 
 const assetCache = new Map<string, { banner: string; readme: string }>()
 
+interface MarkdownLinkProps {
+    href?: string
+    children: React.ReactNode
+}
+
 const ExtensionViewPage: React.FC = () => {
     const [activatedTheme, setActivatedTheme] = useState<string>(window.electron.store.get('addons.theme') || 'Default')
 
@@ -642,17 +647,16 @@ const ExtensionViewPage: React.FC = () => {
         writeConfigFile(updatedConfig)
     }
 
-    function MarkdownLink(props: any) {
-        const { href, children } = props
+    function MarkdownLink(props: MarkdownLinkProps) {
+        const { href = '', children } = props
 
-        const isAbsolute = href.startsWith('http://') || href.startsWith('https://')
+        const isAbsolute = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
 
-        let fullHref: string
-        if (isAbsolute) {
-            fullHref = href
-        } else {
-            fullHref = `${encodeURIComponent(currentAddon.directoryName)}/${href}`
+        if (!href) {
+            return <>{children}</>
         }
+
+        const fullHref = isAbsolute ? href : `${encodeURIComponent(currentAddon.directoryName)}/${href}`
 
         return (
             <a href={fullHref} target="_blank" rel="noreferrer">

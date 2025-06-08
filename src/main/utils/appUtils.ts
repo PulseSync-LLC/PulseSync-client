@@ -20,6 +20,13 @@ const execAsync = promisify(exec)
 interface ProcessInfo {
     pid: number
 }
+export interface AppxPackage {
+    Name: string;
+    PackageFullName: string;
+    PackageFamilyName: string;
+    Version: string;
+    [key: string]: any;
+}
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     if (isMac()) {
@@ -432,4 +439,44 @@ export async function clearDirectory(directoryPath: string): Promise<void> {
             await fsp.unlink(fullPath)
         }
     }
+}
+export function findAppByName(namePart: string): Promise<AppxPackage | null> {
+    const psScript = `
+    $pkg = Get-AppxPackage 2>$null |
+      Where-Object { $_.Name -like '*${namePart}*' } |
+      Select-Object -First 1;
+    if ($pkg) { $pkg | ConvertTo-Json -Depth 4 -Compress }
+  `;
+    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "${psScript.replace(/\r?\n/g, " ")}"`;
+
+    return new Promise((resolve, reject) => {
+        exec(cmd, { windowsHide: true, timeout: 10000 }, (error, stdout, stderr) => {
+            if (error && stderr.trim()) {
+                return reject(new Error(`PowerShell error: ${stderr.trim()}`));
+            }
+            const out = stdout.trim();
+            if (!out) {
+                resolve(null);
+                return;
+            }
+            try {
+                const pkg: AppxPackage = JSON.parse(out);
+                resolve(pkg);
+            } catch (e) {
+                reject(new Error(`Ошибка разбора JSON: ${(e as Error).message}`));
+            }
+        });
+    });
+}
+
+export function uninstallApp(packageFullName: string): Promise<void> {
+    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "Remove-AppxPackage -Package '${packageFullName}'"`;
+    return new Promise((resolve, reject) => {
+        exec(cmd, { windowsHide: true, timeout: 10000 }, (error, _stdout, stderr) => {
+            if (error) {
+                return reject(new Error(stderr.trim() || error.message));
+            }
+            resolve();
+        });
+    });
 }
