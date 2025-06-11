@@ -985,7 +985,7 @@ const Player: React.FC<any> = ({ children }) => {
                             label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
                             url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
                         })
-                    } else if (track.trackSource === 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen) {
+                    } else if (track.trackSource === 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen && track.url) {
                         activity.buttons.push({
                             label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open music file',
                             url: track.url,
