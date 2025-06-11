@@ -60,7 +60,6 @@
         "@apollo/client": "^3.13.8",
         "@dr.pogodin/react-helmet": "^3.0.2",
         "@electron-forge/plugin-fuses": "^7.8.1",
-        "@electron/asar": "^4.0.0",
         "@electron/fuses": "^1.8.0",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.0",
@@ -142,6 +141,6 @@
     },
     "buildInfo": {
         "VERSION": "2.8.0-beta",
-        "BRANCH": "aa3eea7"
+        "BRANCH": "6ad00b3"
     }
 }

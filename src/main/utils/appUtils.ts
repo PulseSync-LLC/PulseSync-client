@@ -321,7 +321,7 @@ export class AsarPatcher {
         this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources')
         this.infoPlistPath = path.join(appBundlePath, 'Contents', 'Info.plist')
         this.asarPath = path.join(this.resourcesDir, this.asarRelPath)
-        this.tmpEntitlements = path.join(os.tmpdir(), 'entitlements-extracted.plist')
+        this.tmpEntitlements = path.join(os.tmpdir(), 'extracted_entitlements.xml')
     }
 
     private get isMac(): boolean {
