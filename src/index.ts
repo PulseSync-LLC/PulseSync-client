@@ -9,7 +9,16 @@ import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modul
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, uninstallApp } from './main/utils/appUtils'
+import {
+    AppxPackage,
+    checkAsar,
+    findAppByName,
+    formatJson,
+    getPathToYandexMusic,
+    isLinux,
+    isWindows,
+    uninstallApp,
+} from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -106,7 +115,9 @@ app.on('ready', async () => {
     HandleErrorsElectron.processStoredCrashes()
     corsAnywherePort = await initializeCorsAnywhere()
     checkCLIArgumentsWrapper()
-    await checkOldYandexMusic()
+    if(isWindows()) {
+        await checkOldYandexMusic()
+    }
     createWindow()
     await checkForSingleInstance()
     handleEvents(mainWindow)
