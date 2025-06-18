@@ -16,9 +16,6 @@ contextBridge.exposeInMainWorld('electron', {
         get(key: string) {
             return ipcRenderer.sendSync('electron-store-get', key)
         },
-        has(key: string): boolean {
-            return ipcRenderer.sendSync('electron-store-has', key)
-        },
         set(property: string, val: any) {
             ipcRenderer.send('electron-store-set', property, val)
         },
@@ -42,9 +39,6 @@ contextBridge.exposeInMainWorld('electron', {
         isMac() {
             return ipcRenderer.sendSync('electron-mac')
         },
-    },
-    musicDevice() {
-        return ipcRenderer.sendSync('get-music-device')
     },
     corsAnywherePort() {
         return ipcRenderer.sendSync('electron-corsanywhereport')

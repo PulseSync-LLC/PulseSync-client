@@ -9,7 +9,6 @@ declare global {
         electron: {
             store: {
                 get: (key: string) => any
-                has: (key: string) => string
                 set: (key: string, val: any) => void
                 delete: (key: string) => void
             }
@@ -26,7 +25,6 @@ declare global {
             }
             request: (url: string, config: AxiosRequestConfig) => AxiosResponse
             corsAnywherePort: () => number
-            musicDevice: () => string
             authorize: () => string
             version: () => string
             receive: (channel: string, func: (event: any, ...arg: any[]) => void) => void

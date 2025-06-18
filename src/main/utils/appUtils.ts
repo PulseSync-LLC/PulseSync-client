@@ -4,7 +4,6 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import fs from 'original-fs'
-import { store } from '../modules/storage'
 import { asarBackup, musicPath } from '../../index'
 import { app, BrowserWindow, dialog } from 'electron'
 import axios from 'axios'
@@ -14,9 +13,10 @@ import asar from '@electron/asar'
 import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
+import { getState } from '../modules/state'
 
 const execAsync = promisify(exec)
-
+const State = getState();
 interface ProcessInfo {
     pid: number
 }
@@ -94,7 +94,7 @@ export function getPathToYandexMusic() {
         case 'win32':
             return path.join(process?.env?.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
         case 'linux':
-            return store.get('settings.yandexMusicPath', '')
+            return State.get('settings.yandexMusicPath') || ''
         default:
             return ''
     }
@@ -167,12 +167,12 @@ export const getFolderSize = async (folderPath: any) => {
 export const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 export const checkAsar = () => {
-    if ((store.has('mod.installed') && store.get('mod.installed')) || store.get('mod.version')) {
+    if ((State.get('mod.installed')) || State.get('mod.version')) {
         if (!fs.existsSync(asarBackup)) {
-            store.delete('mod')
+            State.delete('mod')
         }
     } else if (fs.existsSync(asarBackup)) {
-        store.set('mod.installed', true)
+        State.set('mod.installed', true)
     }
 }
 export const checkMusic = () => {
@@ -193,7 +193,7 @@ export const checkMusic = () => {
                             })
                             .then(folderResult => {
                                 if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
-                                    store.set('settings.yandexMusicPath', folderResult.filePaths[0])
+                                    State.set('settings.yandexMusicPath', folderResult.filePaths[0])
                                 } else {
                                     app.quit()
                                 }

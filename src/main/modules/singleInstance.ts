@@ -6,13 +6,14 @@ import { handleUncaughtException } from './handlers/handleError'
 import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'original-fs'
-import { store } from './storage'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { authorized } from '../events'
 import { mainWindow } from './createWindow'
 import { clearDirectory } from '../utils/appUtils'
+import { getState } from './state'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
+const State = getState();
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance')
@@ -102,7 +103,7 @@ async function handlePextFile(filePath: string) {
     fs.writeFileSync(metadataFilePath, JSON.stringify(metadata, null, 4))
     logger.main.info(`Extension exported successfully to ${outputDir}`)
 
-    if (store.get('settings.deletePextAfterImport')) {
+    if (State.get('settings.deletePextAfterImport')) {
         if (process.platform === 'darwin') {
             fs.unlink(filePath, err => {
                 if (err) {

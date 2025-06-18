@@ -1,6 +1,5 @@
 import { app, BrowserWindow } from 'electron'
-import { state } from '../state'
-import { store } from '../storage'
+import { state } from './state'
 import config from '../../../renderer/api/config'
 import isAppDev from 'electron-is-dev'
 import logger from '../logger'

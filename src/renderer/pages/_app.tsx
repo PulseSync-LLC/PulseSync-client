@@ -220,9 +220,7 @@ function App() {
                         const isForbidden = e.graphQLErrors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
                             sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
-                            if (window.electron.store.has('tokens.token')) {
-                                window.electron.store.delete('tokens.token')
-                            }
+                            window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send('authStatus', {
@@ -236,9 +234,7 @@ function App() {
                             )
                             window.desktopEvents?.send('updater-start')
                             dispatch(setAppDeprecatedStatus(true))
-                            if (window.electron.store.has('tokens.token')) {
-                                window.electron.store.delete('tokens.token')
-                            }
+                            window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send('authStatus', {
@@ -416,6 +412,9 @@ function App() {
 
     useEffect(() => {
         if (user.id !== '-1') {
+            if(user.perms !== "developer") {
+                return window.electron.window.exit();
+            }
             if (!socket.connected) {
                 socket.connect()
             }

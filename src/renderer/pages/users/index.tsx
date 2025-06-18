@@ -10,7 +10,7 @@ import apolloClient from '../../api/apolloClient'
 import debounce from 'lodash.debounce'
 import { MdAllOut, MdHourglassEmpty, MdAccessTime, MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
 import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
-import { motion } from 'framer-motion'
+import { Easing, motion, RepeatType, Variants } from 'framer-motion'
 import config from '../../api/config'
 import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
@@ -69,13 +69,20 @@ export default function UsersPage() {
 
     const loadingText = 'Загрузка...'.split('')
     const containerVariants = { animate: { transition: { staggerChildren: 0.1 } } }
-    const letterVariants = {
+    const letterVariants: Variants = {
         initial: { y: 0 },
         animate: {
             y: [0, -10, 0],
-            transition: { y: { repeat: Infinity, repeatType: 'loop', duration: 1, ease: 'easeInOut' } },
+            transition: {
+                y: {
+                    repeat: Infinity,
+                    repeatType: 'loop' as RepeatType,
+                    duration: 1,
+                    ease: 'easeInOut' as Easing,
+                },
+            },
         },
-    }
+    };
 
     const defaultBackground = {
         backgroundImage: 'linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)',

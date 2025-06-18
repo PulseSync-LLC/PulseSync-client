@@ -1,7 +1,6 @@
 import { app, BrowserWindow, shell, powerMonitor } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import isAppDev from 'electron-is-dev'
-import { store } from './storage'
 import { getUpdater } from './updater/updater'
 import { updateAvailable } from '../events'
 import { isDevmark } from '../../renderer/api/config'
@@ -9,11 +8,14 @@ import * as electron from 'electron'
 import path from 'path'
 import fs from 'original-fs'
 import logger from './logger'
+import { getState } from './state'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_WEBPACK_ENTRY: string
+
+const State = getState();
 
 export let mainWindow: BrowserWindow
 export let inSleepMode = false
@@ -24,8 +26,8 @@ const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.
 }
 
 export function createWindow(): void {
-    const savedBounds = store.get('settings.windowBounds')
-    const shouldRestore = store.get('settings.saveWindowBoundsOnRestart') ?? true
+    const savedBounds = State.get('settings.windowBounds')
+    const shouldRestore = State.get('settings.saveWindowBoundsOnRestart') ?? true
 
     let position: { x: number; y: number } | undefined
     let dimensions: { width: number; height: number } | undefined
@@ -39,7 +41,7 @@ export function createWindow(): void {
         }
     }
 
-    const lastDisplayId = store.get('settings.lastDisplayId')
+    const lastDisplayId = State.get('settings.lastDisplayId')
     const displays = electron.screen.getAllDisplays()
     const preloadDisplay = displays.find(d => d.id === lastDisplayId) || electron.screen.getPrimaryDisplay()
     const workArea = preloadDisplay.workArea
@@ -90,8 +92,8 @@ export function createWindow(): void {
             nodeIntegration: true,
             devTools: isAppDev || isDevmark,
             webSecurity: true,
-            webgl: store.get('settings.hardwareAcceleration', true),
-            enableBlinkFeatures: store.get('settings.hardwareAcceleration', true) ? 'WebGL2' : '',
+            webgl: State.get('settings.hardwareAcceleration'),
+            enableBlinkFeatures: State.get('settings.hardwareAcceleration') ? 'WebGL2' : '',
         },
     })
 
@@ -99,7 +101,7 @@ export function createWindow(): void {
     mainWindow.once('ready-to-show', () => {
         preloaderWindow.close()
         preloaderWindow.destroy()
-        if (!store.get('settings.autoStartInTray')) {
+        if (!State.get('settings.autoStartInTray')) {
             mainWindow.show()
             mainWindow.moveTop()
         }
@@ -137,16 +139,16 @@ export function createWindow(): void {
 
     mainWindow.on('resized', () => {
         const bounds = mainWindow.getBounds()
-        store.set('settings.windowBounds', bounds)
+        State.set('settings.windowBounds', bounds)
     })
     mainWindow.on('moved', () => {
         const bounds = mainWindow.getBounds()
-        store.set('settings.windowBounds', bounds)
+        State.set('settings.windowBounds', bounds)
     })
     mainWindow.on('close', () => {
         const bounds = mainWindow.getBounds()
         const currentDisplay = electron.screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y })
-        store.set('settings.lastDisplayId', currentDisplay.id)
+        State.set('settings.lastDisplayId', currentDisplay.id)
     })
 
     if (isAppDev) {

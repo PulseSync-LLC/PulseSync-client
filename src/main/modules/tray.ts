@@ -2,12 +2,13 @@ import { app, Menu, MenuItem, shell, Tray } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import { checkOrFindUpdate } from '../events'
 import path from 'path'
-import { store } from './storage'
 import { setRpcStatus } from './discordRpc'
 import { mainWindow } from './createWindow'
+import { getState } from './state'
 
 let tray: Tray
 let menu: Menu
+const State = getState();
 
 function createTray() {
     const icon = getNativeImg('App', '.ico', 'icon').resize({
@@ -43,10 +44,10 @@ function createTray() {
     const menuItem = new MenuItem({
         type: 'checkbox',
         label: 'Discord RPC',
-        checked: store.get('discordRpc.status'),
+        checked: State.get('discordRpc.status'),
         id: 'rpc-status',
         click: async () => {
-            await setRpcStatus(!store.get('discordRpc.status'))
+            await setRpcStatus(!State.get('discordRpc.status'))
         },
     })
     menu.append(menuItem)
@@ -78,7 +79,7 @@ function createTray() {
     })
 }
 export const updateTray = () => {
-    menu.getMenuItemById('rpc-status').checked = store.get('discordRpc.status')
+    menu.getMenuItemById('rpc-status').checked = State.get('discordRpc.status')
     tray.setContextMenu(menu)
 }
 

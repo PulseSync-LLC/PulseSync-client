@@ -2,7 +2,6 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
-import { initializeStore, store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import config from './config.json'
 import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modules/handlers/handleDeepLink'
@@ -32,6 +31,7 @@ import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
+import { getState } from './main/modules/state'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -48,13 +48,7 @@ app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
 app.setAppUserModelId('pulsesync.app')
 
-initializeStore().then(() => {
-    logger.main.info('Store initialized')
-    hardwareAcceleration = store.get('settings.hardwareAcceleration', true)
-    if (!hardwareAcceleration) {
-        app.disableHardwareAcceleration()
-    }
-})
+const State = getState();
 
 if (!isAppDev) {
     logger.main.info('Sentry enabled')
@@ -141,7 +135,7 @@ app.on('activate', () => {
 })
 
 function initializeAddon() {
-    selectedAddon = store.get('addons.theme') || 'Default'
+    selectedAddon = State.get('addons.theme') || 'Default'
     logger.main.log('Addons: theme changed to:', selectedAddon)
     setAddon(selectedAddon)
 }
@@ -251,19 +245,19 @@ export async function prestartCheck() {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    if (isLinux() && store.has('settings.modFilename')) {
-        const modFilename = store.get('settings.modFilename')
+    if (isLinux() && State.get('settings.modFilename')) {
+        const modFilename = State.get('settings.modFilename')
         asarFilename = `${modFilename}.backup.asar`
     }
 
-    if (!store.has('discordRpc.enableGithubButton')) {
-        store.set('discordRpc.enableGithubButton', true)
+    if (!State.get('discordRpc.enableGithubButton')) {
+        State.set('discordRpc.enableGithubButton', true)
     }
-    if (!store.has('discordRpc.appId')) {
-        store.set('discordRpc.appId', '')
+    if (!State.get('discordRpc.appId')) {
+        State.set('discordRpc.appId', '')
     }
-    if (!store.has('settings.closeAppInTray')) {
-        store.set('settings.closeAppInTray', true)
+    if (!State.get('settings.closeAppInTray')) {
+        State.set('settings.closeAppInTray', true)
     }
     checkAsar()
     initializeAddon()

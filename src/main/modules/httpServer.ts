@@ -9,16 +9,18 @@ import logger from './logger'
 import { Server as IOServer, Socket } from 'socket.io'
 import trackInitials from '../../renderer/api/initials/track.initials'
 import { isFirstInstance } from './singleInstance'
-import { store } from './storage'
 import { parse } from 'url'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
 import config from '../../renderer/api/config'
+import { getState } from './state'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
+const State = getState();
+
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 const closeServer = async (): Promise<void> => {
     const oldServer = server
@@ -107,7 +109,7 @@ const initializeServer = () => {
     })
 
     io.on('connection', (socket: Socket) => {
-        const version = (socket.handshake.query.v as string) || store.get('mod.version')
+        const version = (socket.handshake.query.v as string) || State.get('mod.version')
         const clientType = (socket.handshake.query.type as string) || 'yaMusic'
         ;(socket as any).clientType = clientType
         ;(socket as any).hasPong = false
@@ -140,6 +142,13 @@ const initializeServer = () => {
             if (!authorized) return
             logger.http.log('UPDATE_DATA received:', payload)
             updateData(payload)
+        })
+
+        socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
+            if (!authorized) return
+            logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
+            mainWindow.webContents.send('TRACK_INFO', data)
+
         })
 
         socket.on('SEND_TRACK', (payload: any) => {
@@ -377,7 +386,7 @@ const handleBrowserAuth = (args: any) => {
             app.quit()
         })
 
-    store.set('tokens.token', args.token)
+    State.set('tokens.token', args.token)
 }
 
 const handlePortInUse = () => {
@@ -428,6 +437,7 @@ export const setAddon = (theme: string) => {
         io!.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
+                console.log(themeData.name)
                 sock.emit('THEME', {
                     theme: themeData,
                 })
@@ -440,7 +450,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     if (!io) return
 
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-    const themeFolder = themeDef ? 'Default' : store.get('addons.theme') || 'Default'
+    const themeFolder = themeDef ? 'Default' : State.get('addons.theme') || 'Default'
     const themePath = path.join(themesPath, themeFolder)
     const metadataPath = path.join(themePath, 'metadata.json')
     if (!fs.existsSync(metadataPath)) return
@@ -452,10 +462,11 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     const js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
 
     const themeData = {
-        name: themeDef ? 'Default' : store.get('addons.theme') || 'Default',
+        name: themeDef ? 'Default' : State.get('addons.theme') || 'Default',
         css: css || '{}',
         script: js || '',
     }
+    console.log(themeData.name)
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
@@ -477,7 +488,7 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
 export const sendExtensions = async (): Promise<void> => {
     if (!io) return
 
-    let scripts = store.get('addons.scripts')
+    let scripts = State.get('addons.scripts')
     if (!scripts) {
         return
     }
@@ -578,7 +589,7 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
 }
 
 ipcMain.on('WEBSOCKET_START', async () => {
-    if (isAppDev && !store.get('settings.devSocket')) return
+    if (isAppDev && !State.get('settings.devSocket')) return
     logger.http.log('WEBSOCKET_START: starting server...')
     await startSocketServer()
 })

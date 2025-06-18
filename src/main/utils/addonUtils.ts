@@ -3,9 +3,10 @@ import path from 'path'
 import * as fs from 'original-fs'
 import { getFolderSize, formatSizeUnits } from './appUtils'
 import logger from '../modules/logger'
-import { store } from '../modules/storage'
 import Addon from '../../renderer/api/interfaces/addon.interface'
+import { getState } from '../modules/state'
 
+const State = getState();
 const defaultAddon: Partial<Addon> = {
     name: 'Default',
     image: 'url',
@@ -19,7 +20,6 @@ const defaultAddon: Partial<Addon> = {
 }
 
 const defaultCssContent = `{}`
-
 const defaultScriptContent = ``
 
 export function createDefaultAddonIfNotExists(themesFolderPath: string) {
@@ -129,19 +129,19 @@ export async function loadAddons(): Promise<Addon[]> {
         }
     }
 
-    let selectedTheme = store.get('addons.theme') as string
-    let selectedScripts = store.get('addons.scripts') as string[]
+    let selectedTheme = State.get('addons.theme') ?? "Default"
+    let selectedScripts = State.get('addons.scripts') ?? []
+    logger.main.log(selectedScripts)
 
     const themeAddonExists = availableAddons.some(addon => addon.type === 'theme' && addon.directoryName === selectedTheme)
     if (!themeAddonExists) {
         selectedTheme = 'Default'
-        store.set('addons.theme', selectedTheme)
+        State.set('addons.theme', selectedTheme)
     }
-
     selectedScripts = availableAddons
         .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName!))
         .map(addon => addon.directoryName!)
-    store.set('addons.scripts', selectedScripts)
+    State.set('addons.scripts', selectedScripts)
 
     availableAddons.forEach(addon => {
         if (addon.type === 'theme' && addon.directoryName === selectedTheme) {

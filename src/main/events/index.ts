@@ -7,7 +7,6 @@ import os from 'node:os'
 import { v4 } from 'uuid'
 import { corsAnywherePort, musicPath, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
-import { store } from '../modules/storage'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
 import AdmZip from 'adm-zip'
@@ -16,14 +15,16 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic } from '../utils/appUtils'
+import { checkMusic, getYandexMusicAppDataPath } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 import { isDevmark } from '../../renderer/api/config'
+import { getState } from '../modules/state'
 
 const updater = getUpdater()
+const State = getState();
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
@@ -93,7 +94,7 @@ const registerWindowEvents = (window: BrowserWindow): void => {
         mainWindow.setSize(newWidth, newHeight)
 
         const [width, height] = mainWindow.getSize()
-        store.set('windowDimensions', {
+        State.set('windowDimensions', {
             width: width,
             height: height,
         })
@@ -101,7 +102,7 @@ const registerWindowEvents = (window: BrowserWindow): void => {
 
     mainWindow.on('moved', (): void => {
         const [x, y] = mainWindow.getPosition()
-        store.set('windowPosition', {
+        State.set('windowPosition', {
             x: x,
             y: y,
         })
@@ -123,6 +124,18 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on('getLastBranch', event => {
         event.returnValue = process.env.BRANCH
     })
+    ipcMain.on('electron-store-get', (event, val) => {
+        event.returnValue = State.get(val)
+    })
+
+    ipcMain.on('electron-store-set', (event, key, val) => {
+        State.set(key, val)
+    })
+
+    ipcMain.on('electron-store-delete', (event, key) => {
+        State.delete(key)
+    })
+
 
     ipcMain.handle('getSystemInfo', async () => ({
         appVersion: app.getVersion(),
@@ -324,19 +337,19 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
                 updateAppId(data.appId)
                 break
             case 'details':
-                store.set('discordRpc.details', data.details)
+                State.set('discordRpc.details', data.details)
                 break
             case 'state':
-                store.set('discordRpc.state', data.state)
+                State.set('discordRpc.state', data.state)
                 break
             case 'button':
-                store.set('discordRpc.button', data.button)
+                State.set('discordRpc.button', data.button)
                 break
         }
     })
 
     ipcMain.on('authStatus', async (_event, data: any) => {
-        if (data?.status && store.get('discordRpc.status') && rpcConnected) {
+        if (data?.status && State.get('discordRpc.status') && rpcConnected) {
             await rpc_connect()
         }
         authorized = data.status
@@ -402,6 +415,8 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
         }
 
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
+        const configPulsePath = path.join(app.getPath('userData'), 'settings.json')
+        const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
         try {
             fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')
         } catch (error: any) {
@@ -411,10 +426,12 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
         try {
             const zip = new AdmZip()
             zip.addLocalFolder(logDirPath, '', filePath => !filePath.endsWith('.zip') && filePath !== archiveName)
+            zip.addLocalFile(configPulsePath, '')
+            zip.addLocalFile(configYandexMusicPath, '')
             zip.writeZip(archivePath)
             shell.showItemInFolder(archivePath)
         } catch (error: any) {
-            logger.main.error(`Error while creating archive file: ${error.message}`)
+            logger.main.error(`Error while creating archive file: ${error}`)
         }
     })
 }
