@@ -103,7 +103,7 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
-async function publishToS3(branch: string, dir: string): Promise<void> {
+async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
@@ -114,7 +114,7 @@ async function publishToS3(branch: string, dir: string): Promise<void> {
         region: process.env.S3_REGION,
         credentials: {
             accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-            secretAccessKey: process.env.S3_SECRET_KEY!,
+            secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
         },
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: true,
@@ -127,31 +127,29 @@ async function publishToS3(branch: string, dir: string): Promise<void> {
             return fs.statSync(full).isDirectory() ? walk(full) : [full]
         })
 
-    let files = walk(dir).filter(fp => path.basename(fp) !== 'builder-debug.yml')
+    let files = walk(dir)
+        .filter(fp => path.basename(fp) !== 'builder-debug.yml')
+        .filter(fp => path.basename(fp).includes(version))
 
     const latestPath = path.join(dir, 'latest.yml')
-    const hasLatest = files.includes(latestPath)
-    files = files.filter(fp => fp !== latestPath)
+    const hasLatest = fs.existsSync(latestPath)
 
-    log(LogLevel.INFO, `Publishing ${files.length}${hasLatest ? ' + latest.yml' : ''} files to s3://${bucket}/builds/${branch}/`)
+    if (hasLatest) {
+        const raw = fs.readFileSync(latestPath, 'utf-8')
+        const data = yaml.load(raw) as any
+        data.commonConfig = {
+            DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
+            UPDATE_URL: `https://s3.pulsesync.dev/builds/${branch}/`,
+        }
+        fs.writeFileSync(latestPath, yaml.dump(data), 'utf-8')
+        files.push(latestPath)
+    }
+
+    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/builds/${branch}/`)
 
     for (const filePath of files) {
         const key = `builds/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
         const body = await fs.promises.readFile(filePath)
-        await client.send(
-            new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: body,
-                ACL: 'public-read',
-            }),
-        )
-        log(LogLevel.INFO, `Uploaded ${key}`)
-    }
-
-    if (hasLatest) {
-        const key = `${branch}/latest.yml`
-        const body = await fs.promises.readFile(latestPath)
         await client.send(
             new PutObjectCommand({
                 Bucket: bucket,
@@ -227,7 +225,7 @@ async function main(): Promise<void> {
     fs.unlinkSync(tmpPath)
 
     if (publishBranch) {
-        await publishToS3(publishBranch, releaseDir)
+        await publishToS3(publishBranch, releaseDir, version)
     }
 
     log(LogLevel.SUCCESS, 'All steps completed successfully')
