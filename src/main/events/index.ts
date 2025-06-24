@@ -15,7 +15,7 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getYandexMusicAppDataPath, isLinux } from '../utils/appUtils'
+import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
@@ -116,6 +116,10 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
     ipcMain.on('electron-isdev', event => {
         event.returnValue = isAppDev || isDevmark
+    })
+
+    ipcMain.handle('electron-isMac', async (event, args) => {
+        return isMac()
     })
 
     ipcMain.handle('getVersion', async () => {
@@ -325,13 +329,12 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('updater-start', () => {
-        checkOrFindUpdate().then(() => {
-            updater.start()
-            updater.onUpdate(version => {
-                mainWindow.webContents.send('update-available', version)
-                mainWindow.flashFrame(true)
-                updateAvailable = true
-            })
+        if(isMac()) return
+        updater.start()
+        updater.onUpdate(version => {
+            mainWindow.webContents.send('update-available', version)
+            mainWindow.flashFrame(true)
+            updateAvailable = true
         })
     })
 }

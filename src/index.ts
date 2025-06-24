@@ -4,7 +4,6 @@ import path from 'path'
 import * as fs from 'original-fs'
 import createTray from './main/modules/tray'
 import config from './config.json'
-import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
@@ -119,12 +118,10 @@ app.on('ready', async () => {
     if (isWindows()) {
         await checkOldYandexMusic()
     }
-    createWindow()
+    await createWindow()
     await checkForSingleInstance()
     handleEvents(mainWindow)
     modManager(mainWindow)
-    handleDeeplinkOnApplicationStartup()
-    handleDeeplink(mainWindow)
     createTray()
 })
 
@@ -250,7 +247,6 @@ export async function prestartCheck() {
     if (isLinux() && State.get('settings.modFilename')) {
         const modFilename = State.get('settings.modFilename')
         asarFilename = `${modFilename}.backup.asar`
-        // Обновляем путь бэкапа при изменении имени файла
         asarBackup = path.join(musicPath, asarFilename)
     }
 

@@ -25,14 +25,14 @@ const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.
     return pos.x >= area.x && pos.y >= area.y && pos.x < area.x + area.width && pos.y < area.y + area.height
 }
 
-export function createWindow(): void {
+export async function createWindow(): Promise<void> {
     const savedBounds = State.get('settings.windowBounds')
     const shouldRestore = State.get('settings.saveWindowBoundsOnRestart') ?? true
 
     let position: { x: number; y: number } | undefined
     let dimensions: { width: number; height: number } | undefined
 
-    if (shouldRestore && savedBounds) {
+    if (shouldRestore && typeof savedBounds.width === 'number' && typeof savedBounds.height === 'number') {
         position = { x: savedBounds.x, y: savedBounds.y }
         dimensions = { width: savedBounds.width, height: savedBounds.height }
         const nearest = electron.screen.getDisplayNearestPoint(position)

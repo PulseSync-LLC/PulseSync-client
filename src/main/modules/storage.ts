@@ -7,9 +7,9 @@ const ElectronStore = ElectronStoreModule
 let storeInstance: any
 
 export interface StoreType {
-    getAll(): Record<string, any>;
-    set(key: string, value: any): void;
-    delete(key: string): void;
+    getAll(): Record<string, any>
+    set(key: string, value: any): void
+    delete(key: string): void
 }
 
 const schema = {
@@ -20,53 +20,53 @@ const schema = {
             appId: {
                 type: 'string',
                 description: 'ID приложения Discord для Rich Presence',
-                default: ''
+                default: '',
             },
             status: {
                 type: 'boolean',
                 description: 'Включен ли статус Rich Presence',
-                default: true
+                default: true,
             },
             details: {
                 type: 'string',
                 description: 'Текст деталей, отображаемый в Rich Presence',
-                default: ''
+                default: '',
             },
             state: {
                 type: 'string',
                 description: 'Текущее состояние для Rich Presence',
-                default: ''
+                default: '',
             },
             button: {
                 type: 'string',
                 description: 'Текст кнопки в Rich Presence (например, URL или действие)',
-                default: ''
+                default: '',
             },
             displayPause: {
                 type: 'boolean',
                 description: 'Показывать паузу в статусе, если воспроизведение на паузе',
-                default: false
+                default: false,
             },
             showVersionOrDevice: {
                 type: 'boolean',
                 description: 'Показывать версию приложения или информацию об устройстве в статусе',
-                default: false
+                default: false,
             },
             showSmallIcon: {
                 type: 'boolean',
                 description: 'Использовать маленькую иконку для Rich Presence',
-                default: false
+                default: false,
             },
             enableRpcButtonListen: {
                 type: 'boolean',
                 description: 'Включить прослушивание кликов по кнопке Rich Presence',
-                default: true
+                default: true,
             },
             enableGithubButton: {
                 type: 'boolean',
                 description: 'Показывать кнопку GitHub в Rich Presence',
-                default: false
-            }
+                default: false,
+            },
         },
         required: [
             'appId',
@@ -78,7 +78,7 @@ const schema = {
             'showVersionOrDevice',
             'showSmallIcon',
             'enableRpcButtonListen',
-            'enableGithubButton'
+            'enableGithubButton',
         ],
         additionalProperties: false,
         default: {
@@ -91,8 +91,8 @@ const schema = {
             showVersionOrDevice: false,
             showSmallIcon: false,
             enableRpcButtonListen: true,
-            enableGithubButton: true
-        }
+            enableGithubButton: true,
+        },
     },
 
     settings: {
@@ -102,72 +102,95 @@ const schema = {
             saveWindowDimensionsOnRestart: {
                 type: 'boolean',
                 description: 'Сохранять размер окна при закрытии и восстанавливать при следующем запуске',
-                default: false
+                default: false,
             },
             saveWindowPositionOnRestart: {
                 type: 'boolean',
                 description: 'Сохранять позицию окна при закрытии и восстанавливать при следующем запуске',
-                default: false
+                default: false,
+            },
+            saveWindowBoundsOnRestart: {
+                type: 'boolean',
+                description: 'Восстанавливать размеры и позицию окна при следующем запуске',
+                default: true,
             },
             autoStartInTray: {
                 type: 'boolean',
                 description: 'Запускать приложение свернутым в трей при старте системы',
-                default: false
+                default: false,
             },
             autoStartMusic: {
                 type: 'boolean',
                 description: 'Автоматически запускать воспроизведение музыки при старте приложения',
-                default: false
+                default: false,
             },
             autoStartApp: {
                 type: 'boolean',
                 description: 'Автоматически запускать приложение при загрузке системы',
-                default: false
+                default: false,
             },
             hardwareAcceleration: {
                 type: 'boolean',
                 description: 'Включить или отключить аппаратное ускорение (GPU) для приложения',
-                default: true
+                default: true,
             },
             deletePextAfterImport: {
                 type: 'boolean',
                 description: 'Удалять временные файлы (Pext) после завершения импорта',
-                default: false
+                default: false,
             },
             closeAppInTray: {
                 type: 'boolean',
                 description: 'При закрытии окна сворачивать приложение в трей, а не выходить полностью',
-                default: false
+                default: false,
             },
             devSocket: {
                 type: 'boolean',
                 description: 'Включить режим разработчика: открывать сокет для отладки',
-                default: false
+                default: false,
             },
             askSavePath: {
                 type: 'boolean',
                 description: 'Спрашивать путь для сохранения при выгрузке/экспорте',
-                default: false
+                default: false,
             },
             saveAsMp3: {
                 type: 'boolean',
                 description: 'Сохранять треки или результаты в формате MP3 по умолчанию',
-                default: false
+                default: false,
             },
             showModModalAfterInstall: {
                 type: 'boolean',
                 description: 'Показывать окно с информацией о моде после установки',
-                default: false
+                default: false,
             },
             modSavePath: {
                 type: 'string',
                 description: 'Путь до мода',
-                default: ''
-            }
+                default: '',
+            },
+            windowBounds: {
+                type: 'object',
+                description: 'Последние сохранённые координаты и размеры окна',
+                properties: {
+                    x: { type: 'number' },
+                    y: { type: 'number' },
+                    width: { type: 'number' },
+                    height: { type: 'number' },
+                },
+                additionalProperties: false,
+                default: {},
+            },
+            lastDisplayId: {
+                type: 'number',
+                description: 'ID последнего экрана, на котором было окно приложения',
+                default: 0,
+            },
         },
         required: [
             'saveWindowDimensionsOnRestart',
             'saveWindowPositionOnRestart',
+            'saveWindowBoundsOnRestart',
             'autoStartInTray',
             'autoStartMusic',
             'autoStartApp',
@@ -178,12 +201,15 @@ const schema = {
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
-            'modSavePath'
+            'modSavePath',
+            'windowBounds',
+            'lastDisplayId',
         ],
         additionalProperties: false,
         default: {
             saveWindowDimensionsOnRestart: false,
             saveWindowPositionOnRestart: false,
+            saveWindowBoundsOnRestart: false,
             autoStartInTray: false,
             autoStartMusic: false,
             autoStartApp: false,
@@ -193,8 +219,11 @@ const schema = {
             devSocket: false,
             askSavePath: false,
             saveAsMp3: false,
-            showModModalAfterInstall: false
-        }
+            showModModalAfterInstall: false,
+            modSavePath: '',
+            windowBounds: {},
+            lastDisplayId: 0,
+        },
     },
 
     mod: {
@@ -204,28 +233,28 @@ const schema = {
             musicVersion: {
                 type: 'string',
                 description: 'Версия мода',
-                default: ''
+                default: '',
             },
             name: {
                 type: 'string',
                 description: 'Название мода',
-                default: ''
+                default: '',
             },
             version: {
                 type: 'string',
                 description: 'Версия мода',
-                default: ''
+                default: '',
             },
             installed: {
                 type: 'boolean',
                 description: 'Флаг, указывающий, установлен ли мод',
-                default: false
+                default: false,
             },
             updated: {
                 type: 'boolean',
                 description: 'Флаг, указывающий, обновлен ли мод до последней версии',
-                default: false
-            }
+                default: false,
+            },
         },
         required: ['musicVersion', 'name', 'version', 'installed', 'updated'],
         additionalProperties: false,
@@ -234,8 +263,8 @@ const schema = {
             name: '',
             version: '',
             installed: false,
-            updated: false
-        }
+            updated: false,
+        },
     },
 
     tokens: {
@@ -245,26 +274,32 @@ const schema = {
             token: {
                 type: 'string',
                 description: 'Основной токен сессии',
-                default: ''
-            }
+                default: '',
+            },
         },
         required: ['token'],
         additionalProperties: false,
         default: {
-            token: ''
-        }
+            token: '',
+        },
     },
-};
+}
 
 class Store {
     public store: any
+
     constructor() {
-        this.store = new ElectronStore({
-            name: 'settings',
-            encryptionKey: 'pulsesync',
-            schema,
-        })
-        logger.main.info('Store initialized')
+        try {
+            this.store = new ElectronStore({
+                name: 'settings',
+                encryptionKey: 'pulsesync',
+                schema,
+            })
+            logger.main.info('Store initialized')
+        } catch (error) {
+            logger.main.error('Error initializing ElectronStore:', error)
+        }
+
         if (!this.store.get('settings.hardwareAcceleration', true)) {
             app.disableHardwareAcceleration()
         }
