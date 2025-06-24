@@ -6,7 +6,6 @@ import crypto from 'crypto'
 import { promisify } from 'util'
 import * as zlib from 'zlib'
 import * as fs from 'original-fs'
-import { exec } from 'child_process'
 
 import logger from '../logger'
 import config from '../../../renderer/api/config'
@@ -19,7 +18,7 @@ import {
     AsarPatcher,
     isMac,
     copyFile,
-    getYandexMusicAppDataPath,
+    getYandexMusicVersion,
 } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
@@ -28,31 +27,29 @@ import { getState } from '../state'
 
 const TEMP_DIR = app.getPath('temp')
 const gunzipAsync = promisify(zlib.gunzip)
-const execAsync = promisify(exec)
 
 let yandexMusicVersion: string = null
 let modVersion: string = null
 let modName: string = null
-
-const musicPath = getPathToYandexMusic()
-const musicAppDataPath = getYandexMusicAppDataPath()
 const State = getState()
 
-let modFilenameBase = 'app'
-let modFilename = `${modFilenameBase}.asar`
-let asarBackupFilename = `${modFilenameBase}.backup.asar`
+let musicPath: string
+let defaultAsarPath: string
+let modSavePath: string
+let backupPath: string
 
-let asarPath = path.join(musicPath, modFilename)
-let backupPath = path.join(musicPath, asarBackupFilename)
-
-if (isLinux() && State.get('settings.modFilename')) {
-    const baseName = State.get('settings.modFilename') as string
-    modFilenameBase = baseName
-    modFilename = `${baseName}.asar`
-    asarBackupFilename = `${baseName}.backup.asar`
-    asarPath = path.join(musicPath, modFilename)
-    backupPath = path.join(musicPath, asarBackupFilename)
+const initializePaths = async () => {
+    try {
+        musicPath = await getPathToYandexMusic()
+        defaultAsarPath = path.join(musicPath, isLinux() ? 'yandex-music.asar' : 'app.asar')
+        modSavePath = (State.get('settings.modSavePath') as string) || defaultAsarPath
+        backupPath = modSavePath.replace(/\.asar$/, '.backup.asar')
+    } catch (err) {
+        logger.modManager.error('Ошибка при получении пути:', err)
+    }
 }
+
+initializePaths()
 
 function sendDownloadFailure(params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string }) {
     mainWindow?.webContents.send('download-failure', {
@@ -72,36 +69,39 @@ function sendRemoveModFailure(params: { error: string; type?: string }) {
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, force, spoof }) => {
         try {
-            if (!State.get('settings.modFilename') && isLinux()) {
+            await initializePaths()
+
+            if (isLinux() && !State.get('settings.modSavePath')) {
                 const res = await dialog.showMessageBox({
                     type: 'info',
-                    title: 'Укажите имя модификации',
-                    message: 'Пожалуйста, укажите имя файла модификации ASAR для клиента Яндекс Музыки.',
+                    title: 'Укажите путь к модификации ASAR',
+                    message: 'Пожалуйста, укажите, куда сохранить файл модификации ASAR для клиента Яндекс Музыки.',
                     buttons: ['Указать файл', 'Отменить'],
                 })
                 if (res.response === 0) {
                     const fileRes = await dialog.showSaveDialog({
                         title: 'Сохранить модификацию ASAR как...',
-                        defaultPath: path.join(musicPath, `${modFilenameBase}.mod.asar`),
-                        filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
+                        defaultPath: path.join(musicPath, 'app.asar'),
+                        filters: [
+                            {
+                                name: 'ASAR Files',
+                                extensions: ['asar'],
+                            },
+                        ],
                     })
                     if (fileRes.canceled || !fileRes.filePath) {
                         return sendDownloadFailure({
-                            error: 'Не указано имя файла модификации ASAR. Попробуйте снова.',
-                            type: 'mod_filename_missing',
+                            error: 'Не указан путь для сохранения модификации ASAR. Попробуйте снова.',
+                            type: 'mod_save_path_missing',
                         })
                     }
-                    const selectedBase = path.basename(fileRes.filePath, '.asar')
-                    State.set('settings.modFilename', selectedBase)
-                    modFilenameBase = selectedBase
-                    modFilename = `${selectedBase}.asar`
-                    asarBackupFilename = `${selectedBase}.backup.asar`
-                    asarPath = path.join(musicPath, modFilename)
-                    backupPath = path.join(musicPath, asarBackupFilename)
+                    modSavePath = fileRes.filePath
+                    State.set('settings.modSavePath', modSavePath)
+                    backupPath = modSavePath.replace(/\.asar$/, '.backup.asar')
                 } else {
                     return sendDownloadFailure({
-                        error: 'Не указано имя файла модификации ASAR.',
-                        type: 'mod_filename_missing',
+                        error: 'Не указан путь для сохранения модификации ASAR.',
+                        type: 'mod_save_path_missing',
                     })
                 }
             }
@@ -132,30 +132,33 @@ export const handleModEvents = (window: BrowserWindow): void => {
                         type,
                         url: comp.url,
                         requiredVersion: comp.requiredVersion,
-                        recommendedVersion: comp.recommendedVersion,
+                        recommendedVersion: comp.recommendedVersion || modVersion,
                     })
                 }
             }
 
             if (!fs.existsSync(backupPath)) {
-                if (fs.existsSync(asarPath)) {
-                    fs.copyFileSync(asarPath, backupPath)
-                    logger.modManager.info(`Original ${modFilename} saved as ${asarBackupFilename}`)
+                if (fs.existsSync(modSavePath)) {
+                    fs.copyFileSync(modSavePath, backupPath)
+                    logger.modManager.info(`Original ${path.basename(modSavePath)} saved as ${path.basename(backupPath)}`)
+                } else if (fs.existsSync(defaultAsarPath)) {
+                    fs.copyFileSync(defaultAsarPath, backupPath)
+                    logger.modManager.info(`Original ${path.basename(defaultAsarPath)} saved as ${path.basename(backupPath)}`)
                 } else {
                     sendDownloadFailure({
-                        error: `${modFilename} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                        error: `${path.basename(modSavePath)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
                         type: 'file_not_found',
                     })
                     return await downloadYandexMusic('reinstall')
                 }
             } else {
-                logger.modManager.info(`Backup ${asarBackupFilename} already exists`)
+                logger.modManager.info(`Backup ${path.basename(backupPath)} already exists`)
             }
 
             const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
             if (isMac()) {
                 try {
-                    await copyFile(asarPath, asarPath)
+                    await copyFile(modSavePath, modSavePath)
                 } catch (e) {
                     await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
                     return sendDownloadFailure({
@@ -164,7 +167,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     })
                 }
             }
-            await downloadAndUpdateFile(link, tempFilePath, asarPath, event, checksum)
+            await downloadAndUpdateFile(link, tempFilePath, modSavePath, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
             HandleErrorsElectron.handleError('modManager', 'update-music-asar', 'try-catch', error)
@@ -179,7 +182,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
         try {
             const doRemove = async () => {
                 if (fs.existsSync(backupPath)) {
-                    fs.renameSync(backupPath, asarPath)
+                    fs.renameSync(backupPath, modSavePath)
                     logger.modManager.info('Backup restored.')
                     State.delete('mod.version')
                     State.delete('mod.musicVersion')
@@ -216,44 +219,6 @@ export const handleModEvents = (window: BrowserWindow): void => {
             })
         }
     })
-}
-
-const getYandexMusicVersion = async (): Promise<string> => {
-    if (isLinux()) {
-        try {
-            const { stdout } = await execAsync('dpkg-query -W -f=${Version} yandex-music')
-            const version = stdout.trim()
-            if (version) {
-                return version
-            }
-        } catch {}
-
-        try {
-            const { stdout } = await execAsync('rpm -q --qf "%{VERSION}-%{RELEASE}" yandex-music')
-            const version = stdout.trim()
-            if (version && !version.startsWith('package yandex-music is not installed')) {
-                return version
-            }
-        } catch {}
-
-        try {
-            const { stdout } = await execAsync('pacman -Q yandex-music')
-            const parts = stdout.trim().split(/\s+/)
-            if (parts.length >= 2) {
-                const full = parts[1] 
-                const version = full.split('-')[0]
-                if (version) {
-                    return version
-                }
-            }
-        } catch {}
-    }
-
-    const cfgPath = path.join(musicAppDataPath, 'config.json')
-    if (!fs.existsSync(cfgPath)) throw new Error('Файл config.json не найден')
-    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
-    if (!cfg.version) throw new Error('Версия не найдена в config.json')
-    return cfg.version
 }
 
 const checkModCompatibility = async (

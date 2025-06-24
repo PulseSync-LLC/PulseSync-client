@@ -159,13 +159,9 @@ const schema = {
                 description: 'Показывать окно с информацией о моде после установки',
                 default: false
             },
-            yandexMusicPath: {
+            modSavePath: {
                 type: 'string',
-                description: 'Путь к Яндекс Музыке',
-            },
-            modFilename: {
-                type: 'string',
-                description: 'Имя файла мода',
+                description: 'Путь до мода',
                 default: ''
             }
         },
@@ -182,8 +178,7 @@ const schema = {
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
-            'yandexMusicPath',
-            'modFilename'
+            'modSavePath'
         ],
         additionalProperties: false,
         default: {
@@ -208,7 +203,7 @@ const schema = {
         properties: {
             musicVersion: {
                 type: 'string',
-                description: 'Версия музыкальной части мода',
+                description: 'Версия мода',
                 default: ''
             },
             name: {

@@ -14,18 +14,19 @@ import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
+import config from '../../renderer/api/config'
 
 const execAsync = promisify(exec)
-const State = getState();
+const State = getState()
 interface ProcessInfo {
     pid: number
 }
 export interface AppxPackage {
-    Name: string;
-    PackageFullName: string;
-    PackageFamilyName: string;
-    Version: string;
-    [key: string]: any;
+    Name: string
+    PackageFullName: string
+    PackageFamilyName: string
+    Version: string
+    [key: string]: any
 }
 
 async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
@@ -85,18 +86,30 @@ export async function closeYandexMusic(): Promise<void> {
         }
     }
 }
-
-export function getPathToYandexMusic() {
+export async function checkYandexMusicLinuxInstall(): Promise<boolean> {
+    const version = await getYandexMusicVersion()
+    if (!version) {
+        logger.main.error('Yandex Music version not found')
+        return false
+    }
+    return true
+}
+export async function getPathToYandexMusic(): Promise<string> {
     const platform = os.platform()
+
     switch (platform) {
         case 'darwin':
-            return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
+            return Promise.resolve(path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources'))
+
         case 'win32':
-            return path.join(process?.env?.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
+            return Promise.resolve(path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources'))
+
         case 'linux':
-            return State.get('settings.yandexMusicPath') || ''
+            const installed = await checkYandexMusicLinuxInstall()
+            return installed ? path.join('/usr', 'lib', 'yandex-music') : State.get('settings.modSavePath') || ''
+
         default:
-            return ''
+            return Promise.resolve('')
     }
 }
 export function getYandexMusicAppDataPath() {
@@ -167,7 +180,7 @@ export const getFolderSize = async (folderPath: any) => {
 export const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 export const checkAsar = () => {
-    if ((State.get('mod.installed')) || State.get('mod.version')) {
+    if (State.get('mod.installed') || State.get('mod.version')) {
         if (!fs.existsSync(asarBackup)) {
             State.delete('mod')
         }
@@ -176,49 +189,22 @@ export const checkAsar = () => {
     }
 }
 export const checkMusic = () => {
-    if (!fs.existsSync(musicPath)) {
-        if (isLinux()) {
-            dialog
-                .showMessageBox({
-                    type: 'info',
-                    title: 'Укажите путь к Яндекс Музыке',
-                    message: 'Путь к Яндекс Музыке не найден. Пожалуйста, выберите директорию, где установлена Яндекс Музыка.',
-                    buttons: ['Выбрать путь', 'Закрыть приложение'],
-                })
-                .then(result => {
-                    if (result.response === 0) {
-                        dialog
-                            .showOpenDialog({
-                                properties: ['openDirectory'],
-                            })
-                            .then(folderResult => {
-                                if (!folderResult.canceled && folderResult.filePaths && folderResult.filePaths[0]) {
-                                    State.set('settings.yandexMusicPath', folderResult.filePaths[0])
-                                } else {
-                                    app.quit()
-                                }
-                            })
-                    } else {
-                        app.quit()
-                    }
-                })
-        } else {
-            dialog
-                .showMessageBox(mainWindow, {
-                    type: 'info',
-                    title: 'Яндекс Музыка не установлена',
-                    message: 'Приложение Яндекс Музыка не найдено. Начать установку?',
-                    buttons: ['Начать', 'Отменить'],
-                    cancelId: 1,
-                })
-                .then(async result => {
-                    if (result.response === 0) {
-                        await downloadYandexMusic()
-                    } else {
-                        app.quit()
-                    }
-                })
-        }
+    if (!fs.existsSync(musicPath) && !isLinux()) {
+        dialog
+            .showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Яндекс Музыка не установлена',
+                message: 'Приложение Яндекс Музыка не найдено. Начать установку?',
+                buttons: ['Начать', 'Отменить'],
+                cancelId: 1,
+            })
+            .then(async result => {
+                if (result.response === 0) {
+                    await downloadYandexMusic()
+                } else {
+                    app.quit()
+                }
+            })
     }
 }
 
@@ -446,37 +432,75 @@ export function findAppByName(namePart: string): Promise<AppxPackage | null> {
       Where-Object { $_.Name -like '*${namePart}*' } |
       Select-Object -First 1;
     if ($pkg) { $pkg | ConvertTo-Json -Depth 4 -Compress }
-  `;
-    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "${psScript.replace(/\r?\n/g, " ")}"`;
+  `
+    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "${psScript.replace(/\r?\n/g, ' ')}"`
 
     return new Promise((resolve, reject) => {
         exec(cmd, { windowsHide: true, timeout: 10000 }, (error, stdout, stderr) => {
             if (error && stderr.trim()) {
-                return reject(new Error(`PowerShell error: ${stderr.trim()}`));
+                return reject(new Error(`PowerShell error: ${stderr.trim()}`))
             }
-            const out = stdout.trim();
+            const out = stdout.trim()
             if (!out) {
-                resolve(null);
-                return;
+                resolve(null)
+                return
             }
             try {
-                const pkg: AppxPackage = JSON.parse(out);
-                resolve(pkg);
+                const pkg: AppxPackage = JSON.parse(out)
+                resolve(pkg)
             } catch (e) {
-                reject(new Error(`Ошибка разбора JSON: ${(e as Error).message}`));
+                reject(new Error(`Ошибка разбора JSON: ${(e as Error).message}`))
             }
-        });
-    });
+        })
+    })
 }
 
 export function uninstallApp(packageFullName: string): Promise<void> {
-    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "Remove-AppxPackage -Package '${packageFullName}'"`;
+    const cmd = `powershell.exe -NoProfile -NonInteractive -Command "Remove-AppxPackage -Package '${packageFullName}'"`
     return new Promise((resolve, reject) => {
         exec(cmd, { windowsHide: true, timeout: 10000 }, (error, _stdout, stderr) => {
             if (error) {
-                return reject(new Error(stderr.trim() || error.message));
+                return reject(new Error(stderr.trim() || error.message))
             }
-            resolve();
-        });
-    });
+            resolve()
+        })
+    })
+}
+
+export const getYandexMusicVersion = async (): Promise<string> => {
+    if (isLinux()) {
+        try {
+            const { stdout } = await execAsync('dpkg-query -W -f=${Version} yandex-music')
+            const version = stdout.trim()
+            if (version) {
+                return version
+            }
+        } catch {}
+
+        try {
+            const { stdout } = await execAsync('rpm -q --qf "%{VERSION}-%{RELEASE}" yandex-music')
+            const version = stdout.trim()
+            if (version && !version.startsWith('package yandex-music is not installed')) {
+                return version
+            }
+        } catch {}
+
+        try {
+            const { stdout } = await execAsync('pacman -Q yandex-music')
+            const parts = stdout.trim().split(/\s+/)
+            if (parts.length >= 2) {
+                const full = parts[1]
+                const version = full.split('-')[0]
+                if (version) {
+                    return version
+                }
+            }
+        } catch {}
+    }
+
+    const cfgPath = path.join(getYandexMusicAppDataPath(), 'config.json')
+    if (!fs.existsSync(cfgPath)) throw new Error('Файл config.json не найден')
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
+    if (!cfg.version) throw new Error('Версия не найдена в config.json')
+    return cfg.version
 }

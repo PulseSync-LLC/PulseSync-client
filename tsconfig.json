@@ -15,6 +15,7 @@
         "noImplicitAny": true,
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
+        "inlineSources": true,
         "baseUrl": ".",
         "outDir": "dist",
         "moduleResolution": "node",
