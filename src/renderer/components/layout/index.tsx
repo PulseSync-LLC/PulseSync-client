@@ -5,8 +5,8 @@ import {
     MdExtension,
     MdHandyman,
     MdKeyboardArrowRight,
-    MdOutlineWarningAmber,
     MdOutlineInstallDesktop,
+    MdOutlineWarningAmber,
     MdPeople,
     MdStoreMallDirectory,
     MdUpdate,
@@ -54,8 +54,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }, [modInfo])
 
     useEffect(() => {
+        if (!modInfo[0]) return
         setIsModUpdateAvailable(
-            modInfo.length > 0 && musicInstalled && (!app.mod.installed || semver.gt(modInfo[0].modVersion, app.mod.version || '0.0.0')),
+            (() => {
+                return (
+                    musicInstalled &&
+                    Boolean(modInfo[0]?.modVersion) &&
+                    (!app.mod.installed || semver.gt(modInfo[0].modVersion, app.mod.version ?? '0.0.0'))
+                )
+            })(),
         )
     }, [app.mod, modInfo])
 

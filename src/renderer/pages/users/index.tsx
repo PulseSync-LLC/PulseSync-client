@@ -2,10 +2,8 @@ import Layout from '../../components/layout'
 import * as styles from './users.module.scss'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import { useEffect, useState, useCallback } from 'react'
-import { useSubscription } from '@apollo/client'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
-import GetAllUsersSubscription from '../../api/queries/user/getAllUsers.subscription'
 import apolloClient from '../../api/apolloClient'
 import debounce from 'lodash.debounce'
 import { MdAllOut, MdHourglassEmpty, MdAccessTime, MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
@@ -27,48 +25,12 @@ export default function UsersPage() {
 
     const { openUserProfile } = useUserProfileModal()
 
-    const isUserInactive = (lastOnline: string | null) => {
-        if (!lastOnline) return false
-        const lastDate = new Date(Number(lastOnline))
-        const oneWeekAgo = new Date()
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        return lastDate < oneWeekAgo
-    }
-
-    const { data: subData } = useSubscription(GetAllUsersSubscription, {
-        variables: { page, perPage: 51, sorting, search },
-    })
-
-    const processUsers = (rawUsers: UserInterface[]) => {
-        let filtered = rawUsers.filter(u => u.lastOnline && Number(u.lastOnline) > 0)
-
-        if (sorting[0].id === 'lastOnline') {
-            const desc = sorting[0].desc
-            const onlineUsers = filtered.filter(u => u.status === 'online')
-            const offlineUsers = filtered.filter(u => u.status !== 'online')
-            const sortFn = (a: UserInterface, b: UserInterface) =>
-                desc ? Number(b.lastOnline) - Number(a.lastOnline) : Number(a.lastOnline) - Number(b.lastOnline)
-
-            onlineUsers.sort(sortFn)
-            offlineUsers.sort(sortFn)
-
-            filtered = desc ? [...onlineUsers, ...offlineUsers] : [...offlineUsers, ...onlineUsers]
-        }
-
-        return filtered
-    }
-
-    useEffect(() => {
-        if (subData?.subscribeUsersWithPagination) {
-            const { users: raw, totalPages } = subData.subscribeUsersWithPagination
-            setUsers(processUsers(raw))
-            setMaxPages(totalPages)
-            setLoading(false)
-        }
-    }, [subData, sorting])
-
     const loadingText = 'Загрузка...'.split('')
-    const containerVariants = { animate: { transition: { staggerChildren: 0.1 } } }
+    const containerVariants = {
+        animate: {
+            transition: { staggerChildren: 0.1 },
+        },
+    }
     const letterVariants: Variants = {
         initial: { y: 0 },
         animate: {
@@ -82,12 +44,18 @@ export default function UsersPage() {
                 },
             },
         },
-    };
+    }
+
+    const isUserInactive = (lastOnline: string | null) => {
+        if (!lastOnline) return false
+        const lastOnlineDate = new Date(Number(lastOnline))
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        return lastOnlineDate < oneWeekAgo
+    }
 
     const defaultBackground = {
-        backgroundImage: 'linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center center',
+        background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)`,
         backgroundSize: 'cover',
     }
     const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
@@ -104,7 +72,34 @@ export default function UsersPage() {
                 .then(result => {
                     if (result.data) {
                         const data = result.data.getUsersWithPagination
-                        setUsers(processUsers(data.users))
+                        let filteredUsers = data.users.filter((user: UserInterface) => user.lastOnline && Number(user.lastOnline) > 0)
+
+                        if (sorting[0].id === 'lastOnline') {
+                            const sortDirection = sorting[0].desc ? 'desc' : 'asc'
+
+                            const onlineUsers = filteredUsers.filter((user: UserInterface) => user.status === 'online')
+                            const offlineUsers = filteredUsers.filter((user: UserInterface) => user.status !== 'online')
+
+                            const sortFunction = (a: UserInterface, b: UserInterface) => {
+                                if (sortDirection === 'desc') {
+                                    return Number(b.lastOnline) - Number(a.lastOnline)
+                                } else {
+                                    return Number(a.lastOnline) - Number(b.lastOnline)
+                                }
+                            }
+
+                            onlineUsers.sort(sortFunction)
+                            offlineUsers.sort(sortFunction)
+
+                            if (sortDirection === 'desc') {
+                                filteredUsers = [...onlineUsers, ...offlineUsers]
+                            } else {
+                                filteredUsers = [...offlineUsers, ...onlineUsers]
+                            }
+                        } else {
+                        }
+
+                        setUsers(filteredUsers)
                         setMaxPages(data.totalPages)
                     }
                     setLoading(false)
@@ -115,7 +110,7 @@ export default function UsersPage() {
                     setLoading(false)
                 })
         }, 300),
-        [sorting],
+        [],
     )
 
     useEffect(() => {
@@ -123,29 +118,41 @@ export default function UsersPage() {
     }, [sorting, page, search, debouncedFetchUsers])
 
     const handlePageChange = (newPage: number) => {
-        if (newPage >= 1 && newPage <= maxPages) setPage(newPage)
+        if (newPage >= 1 && newPage <= maxPages) {
+            setPage(newPage)
+        }
     }
 
     const handleSort = (field: string) => {
         setPage(1)
-        setSorting(prev => (prev[0].id === field ? [{ id: field, desc: !prev[0].desc }] : [{ id: field, desc: true }]))
+        setSorting(prevSorting => {
+            if (prevSorting.length > 0 && prevSorting[0].id === field) {
+                return [{ id: field, desc: !prevSorting[0].desc }]
+            } else {
+                return [{ id: field, desc: true }]
+            }
+        })
     }
 
     const getSortIcon = (field: string) => {
-        if (sorting[0].id !== field) return null
+        if (sorting.length === 0 || sorting[0].id !== field) return null
         return sorting[0].desc ? <MdKeyboardArrowDown className={styles.sortIcon} /> : <MdKeyboardArrowUp className={styles.sortIcon} />
     }
 
-    const isFieldSorted = (field: string) => sorting[0].id === field
+    const isFieldSorted = (field: string) => sorting.length > 0 && sorting[0].id === field
 
     const renderPagination = () => {
         const pages = []
-        const maxButtons = 2
-        let start = Math.max(1, page - Math.floor(maxButtons / 2))
-        let end = Math.min(maxPages, start + maxButtons - 1)
-        if (end - start + 1 < maxButtons) start = Math.max(1, end - maxButtons + 1)
+        const maxPageButtons = 2
+        let startPage = Math.max(1, page - Math.floor(maxPageButtons / 2))
+        let endPage = startPage + maxPageButtons - 1
 
-        for (let i = start; i <= end; i++) {
+        if (endPage > maxPages) {
+            endPage = maxPages
+            startPage = Math.max(1, endPage - maxPageButtons + 1)
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
             pages.push(
                 <Button key={i} className={`${styles.paginationButton} ${i === page ? styles.active : ''}`} onClick={() => handlePageChange(i)}>
                     {i}
@@ -158,18 +165,18 @@ export default function UsersPage() {
                 <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
                     Назад
                 </Button>
-                {start > 1 && (
+                {startPage > 1 && (
                     <>
                         <Button className={styles.paginationButton} onClick={() => handlePageChange(1)}>
                             1
                         </Button>
-                        {start > 2 && <span className={styles.ellipsis}>...</span>}
+                        {startPage > 2 && <span className={styles.ellipsis}>...</span>}
                     </>
                 )}
                 {pages}
-                {end < maxPages && (
+                {endPage < maxPages && (
                     <>
-                        {end < maxPages - 1 && <span className={styles.ellipsis}>...</span>}
+                        {endPage < maxPages - 1 && <span className={styles.ellipsis}>...</span>}
                         <Button className={styles.paginationButton} onClick={() => handlePageChange(maxPages)}>
                             {maxPages}
                         </Button>
@@ -183,36 +190,44 @@ export default function UsersPage() {
     }
 
     useEffect(() => {
-        const usersWithBanner = users.filter(u => u.bannerHash)
-        const checkBanner = (list: UserInterface[], idx = 0) => {
-            if (idx >= list.length) {
+        const usersWithBanner = users.filter(user => user.bannerHash)
+        const checkBannerAvailability = (userList: UserInterface[], index = 0) => {
+            if (index >= userList.length) {
                 setBackgroundStyle(defaultBackground)
                 return
             }
             const img = new Image()
-            const url = `${config.S3_URL}/banners/${list[idx].bannerHash}.${list[idx].bannerType}`
-            img.src = url
-            img.onload = () =>
+            img.src = `${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}`
+            img.onload = () => {
                 setBackgroundStyle({
-                    backgroundImage: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%), url(${url})`,
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'center center',
+                    background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%), url(${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}) no-repeat center center`,
                     backgroundSize: 'cover',
                 })
-            img.onerror = () => checkBanner(list, idx + 1)
+            }
+            img.onerror = () => checkBannerAvailability(userList, index + 1)
         }
-
-        usersWithBanner.length ? checkBanner(usersWithBanner) : setBackgroundStyle(defaultBackground)
+        if (usersWithBanner.length > 0) {
+            checkBannerAvailability(usersWithBanner)
+        } else {
+            setBackgroundStyle(defaultBackground)
+        }
     }, [users])
 
     const [isSticky, setIsSticky] = useState(false)
+
     useEffect(() => {
-        const onScroll = () => {
+        const handleScroll = () => {
             const nav = document.querySelector(`.${styles.userNav}`)
-            if (nav) setIsSticky(nav.getBoundingClientRect().top <= 0)
+            if (nav) {
+                const rect = nav.getBoundingClientRect()
+                setIsSticky(rect.top <= 0)
+            }
         }
-        window.addEventListener('scroll', onScroll)
-        return () => window.removeEventListener('scroll', onScroll)
+
+        window.addEventListener('scroll', handleScroll)
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+        }
     }, [])
 
     return (
@@ -270,13 +285,20 @@ export default function UsersPage() {
                                             variants={containerVariants}
                                             initial="initial"
                                             animate="animate"
-                                            style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                            }}
                                         >
-                                            {loadingText.map((char, i) => (
+                                            {loadingText.map((char, index) => (
                                                 <motion.span
-                                                    key={i}
+                                                    key={index}
                                                     variants={letterVariants}
-                                                    style={{ display: 'inline-block', marginRight: '2px' }}
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        marginRight: '2px',
+                                                    }}
                                                 >
                                                     {char}
                                                 </motion.span>
@@ -287,7 +309,7 @@ export default function UsersPage() {
                                     <div className={styles.userPage}>
                                         {users.length > 0 ? (
                                             <div className={styles.userGrid}>
-                                                {users.map(user => (
+                                                {users.map((user: UserInterface) => (
                                                     <UserCard key={user.id} user={user} onClick={openUserProfile} />
                                                 ))}
                                             </div>

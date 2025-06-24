@@ -65,7 +65,7 @@ const ExtensionViewPage: React.FC = () => {
 
     const getAssetUrl = useCallback(
         (filename: string) => {
-            return `http://localhost:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(
+            return `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(
                 currentAddon?.name || '',
             )}&file=${encodeURIComponent(filename)}`
         },
