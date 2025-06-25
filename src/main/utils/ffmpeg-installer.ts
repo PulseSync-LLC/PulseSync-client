@@ -4,12 +4,20 @@ import fs from 'fs'
 import os from 'os'
 import axios from 'axios'
 import { glob } from 'glob'
-import tar from 'tar'
+import * as tar from 'tar'
 import { pipeline } from 'stream/promises'
 import AdmZip from 'adm-zip'
 import logger from '../modules/logger'
 import { getPathToYandexMusic } from './appUtils'
 
+let musicPath: string
+(async () => {
+    try {
+        musicPath = await getPathToYandexMusic();
+    } catch (err) {
+        logger.modManager.error('Ошибка при получении пути:', err);
+    }
+})();
 export const FFMPEG_INSTALL: Record<
     string,
     {
@@ -85,8 +93,7 @@ export async function installFfmpeg(window: BrowserWindow) {
     }
 
     const execName = plat === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-    const installDir = getPathToYandexMusic()
-    const execDestPath = path.join(installDir, execName)
+    const execDestPath = path.join(musicPath, execName)
 
     const userDataPath = app.getPath('userData')
     const storageDir = path.join(userDataPath, 'ffmpeg')
@@ -95,7 +102,6 @@ export async function installFfmpeg(window: BrowserWindow) {
     try {
         if (fs.existsSync(storageExecPath)) {
             sendStatus(window, 'FFmpeg найден в хранилище, устанавливаю...', 10)
-            await fs.promises.mkdir(installDir, { recursive: true })
             await fs.promises.copyFile(storageExecPath, execDestPath)
             if (plat !== 'win32') {
                 await fs.promises.chmod(execDestPath, 0o755)
@@ -141,7 +147,6 @@ export async function installFfmpeg(window: BrowserWindow) {
             await fs.promises.rm(p, { recursive: true, force: true })
         }
 
-        await fs.promises.mkdir(installDir, { recursive: true })
         sendStatus(window, 'Установка FFmpeg...', 95)
         await fs.promises.copyFile(storageExecPath, execDestPath)
         if (plat !== 'win32') {
@@ -157,7 +162,7 @@ export async function installFfmpeg(window: BrowserWindow) {
 export async function deleteFfmpeg() {
     const plat = process.platform
     const execName = plat === 'win32' ? 'ffmpeg.exe' : 'ffmpeg'
-    const installPath = path.join(getPathToYandexMusic(), execName)
+    const installPath = path.join(musicPath, execName)
 
     if (fs.existsSync(installPath)) {
         await fs.promises.rm(installPath)

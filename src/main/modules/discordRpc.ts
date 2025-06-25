@@ -1,7 +1,6 @@
 import { ipcMain } from 'electron'
 import { Client } from '@xhayper/discord-rpc'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
-import { store } from './storage'
 import logger from './logger'
 import config from '../../config.json'
 import { updateTray } from './tray'
@@ -10,6 +9,7 @@ import * as net from 'net'
 import { promisify } from 'util'
 import { exec } from 'child_process'
 import { mainWindow } from './createWindow'
+import { getState } from './state'
 
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',
@@ -18,6 +18,7 @@ enum DiscordState {
     FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
     SUCCESS = '',
 }
+const State = getState();
 
 const execAsync = promisify(exec)
 const SET_ACTIVITY_TIMEOUT_MS = 1500
@@ -280,7 +281,7 @@ async function rpc_connect() {
             }
         }
     }
-    const customId = store.get('discordRpc.appId')
+    const customId = State.get('discordRpc.appId')
     clientId = customId.length > 0 ? customId : config.CLIENT_ID
     logger.discordRpc.info('Using clientId: ' + clientId)
     client = new Client({
@@ -342,7 +343,7 @@ async function rpc_connect() {
 function updateAppId(newAppId: string) {
     if (newAppId === config.CLIENT_ID) return
     changeId = true
-    store.set('discordRpc.appId', newAppId)
+    State.set('discordRpc.appId', newAppId)
     client.removeAllListeners()
     client.user
         ?.clearActivity()
@@ -361,7 +362,7 @@ function updateAppId(newAppId: string) {
 
 export const setRpcStatus = (status: boolean) => {
     logger.discordRpc.info('discordRpc state: ' + status)
-    store.set('discordRpc.status', status)
+    State.set('discordRpc.status', status)
     mainWindow.webContents.send('discordRpcState', status)
     updateTray()
     if (status && !rpcConnected) {

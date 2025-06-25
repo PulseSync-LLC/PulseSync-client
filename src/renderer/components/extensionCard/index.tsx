@@ -41,7 +41,7 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(({ addon, isCheck
 
     const getAssetUrl = useCallback(
         (filename: string) => {
-            return `http://localhost:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(filename)}`
+            return `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(filename)}`
         },
         [addon.name],
     )
@@ -59,12 +59,13 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(({ addon, isCheck
         const url = getAssetUrl(addon.image)
         fetch(url)
             .then(r => {
-                if (r.ok) {
-                    imageCache.set(key, url)
-                    setImageSrc(url)
-                } else {
-                    setImageSrc('static/assets/images/no_themeImage.png')
-                }
+                if (!r.ok) throw new Error('Not found')
+                return r.blob()
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob)
+                imageCache.set(key, blobUrl)
+                setImageSrc(blobUrl)
             })
             .catch(() => {
                 setImageSrc('static/assets/images/no_themeImage.png')
@@ -83,12 +84,13 @@ const ExtensionCard: React.FC<ExtensionCardProps> = React.memo(({ addon, isCheck
         const url = getAssetUrl(addon.banner)
         fetch(url)
             .then(r => {
-                if (r.ok) {
-                    bannerCache.set(key, url)
-                    setBannerSrc(url)
-                } else {
-                    setBannerSrc('static/assets/images/no_themeBackground.png')
-                }
+                if (!r.ok) throw new Error('Not found')
+                return r.blob()
+            })
+            .then(blob => {
+                const blobUrl = URL.createObjectURL(blob)
+                bannerCache.set(key, blobUrl)
+                setBannerSrc(blobUrl)
             })
             .catch(() => {
                 setBannerSrc('static/assets/images/no_themeBackground.png')

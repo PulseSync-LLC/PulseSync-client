@@ -54,10 +54,8 @@ log4js.configure({
             backups: 3,
         },
         updaterLog: {
-            type: 'dateFile',
-            filename: path.join(LOG_PATH, 'updater'),
-            pattern: 'yyyy-MM-dd.log',
-            alwaysIncludePattern: true,
+            type: 'file',
+            filename: path.join(LOG_PATH, 'updaterManager.log'),
             keepFileExt: true,
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,

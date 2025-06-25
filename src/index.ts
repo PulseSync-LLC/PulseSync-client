@@ -2,23 +2,12 @@ import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
-import { initializeStore, store } from './main/modules/storage'
 import createTray from './main/modules/tray'
 import config from './config.json'
-import { handleDeeplink, handleDeeplinkOnApplicationStartup } from './main/modules/handlers/handleDeepLink'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import {
-    AppxPackage,
-    checkAsar,
-    findAppByName,
-    formatJson,
-    getPathToYandexMusic,
-    isLinux,
-    isWindows,
-    uninstallApp,
-} from './main/utils/appUtils'
+import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -32,13 +21,14 @@ import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
+import { getState } from './main/modules/state'
 
 export let corsAnywherePort: string | number
 export let updated = false
 export let hardwareAcceleration = false
-export let musicPath = getPathToYandexMusic()
+export let musicPath: string
 export let asarFilename = 'app.backup.asar'
-export let asarBackup = path.join(musicPath, asarFilename)
+export let asarBackup: string
 export let selectedAddon: string
 
 registerSchemes()
@@ -48,15 +38,26 @@ app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
 app.setAppUserModelId('pulsesync.app')
 
-initializeStore().then(() => {
-    logger.main.info('Store initialized')
-    hardwareAcceleration = store.get('settings.hardwareAcceleration', true)
-    if (!hardwareAcceleration) {
-        app.disableHardwareAcceleration()
+const State = getState()
+
+const initializeMusicPath = async () => {
+    try {
+        musicPath = await getPathToYandexMusic()
+        asarBackup = path.join(musicPath, asarFilename)
+    } catch (err) {
+        logger.main.error('Ошибка при получении пути:', err)
     }
-})
+}
+initializeMusicPath()
 
 if (!isAppDev) {
+    const openAtLogin = app.getLoginItemSettings().openAtLogin
+    if (openAtLogin) {
+        app.setLoginItemSettings({
+            openAtLogin: false,
+            path: app.getPath('exe'),
+        })
+    }
     logger.main.info('Sentry enabled')
     Sentry.init({
         dsn: config.SENTRY_DSN,
@@ -74,56 +75,53 @@ function checkCLIArgumentsWrapper() {
 }
 const checkOldYandexMusic = async () => {
     try {
-        const namePart = "Yandex.Music";
-        const pkg: AppxPackage | null = await findAppByName(namePart);
+        const namePart = 'Yandex.Music'
+        const pkg: AppxPackage | null = await findAppByName(namePart)
 
         if (pkg) {
-            const info =
-                `Найдена старая версия Яндекс.Музыки, ` +
-                `её наличие будет мешать работе мода. ` +
-                `Приложение необходимо удалить.`;
+            const info = `Найдена старая версия Яндекс.Музыки, ` + `её наличие будет мешать работе мода. ` + `Приложение необходимо удалить.`
 
             const { response } = await dialog.showMessageBox({
-                type: "warning",
-                buttons: ["Удалить", "Отмена"],
+                type: 'warning',
+                buttons: ['Удалить', 'Отмена'],
                 defaultId: 0,
                 cancelId: 1,
-                title: "Старая версия Яндекс.Музыки обнаружена",
-                message: info
-            });
+                title: 'Старая версия Яндекс.Музыки обнаружена',
+                message: info,
+            })
 
             if (response === 0) {
                 try {
-                    await uninstallApp(pkg.PackageFullName);
-                    app.relaunch();
-                    app.exit(0);
+                    await uninstallApp(pkg.PackageFullName)
+                    app.relaunch()
+                    app.exit(0)
                 } catch (err) {
                     await dialog.showMessageBox({
-                        type: "error",
-                        title: "Ошибка удаления",
-                        message: `Не удалось удалить приложение:\n${(err as Error).message}`
-                    });
+                        type: 'error',
+                        title: 'Ошибка удаления',
+                        message: `Не удалось удалить приложение:\n${(err as Error).message}`,
+                    })
                 }
             }
         }
     } catch (err) {
-        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', err);
+        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', err)
     }
 }
 
 app.on('ready', async () => {
     HandleErrorsElectron.processStoredCrashes()
+    await initializeMusicPath()
+
     corsAnywherePort = await initializeCorsAnywhere()
     checkCLIArgumentsWrapper()
-    if(isWindows()) {
+    if (isWindows()) {
         await checkOldYandexMusic()
     }
-    createWindow()
+    await createWindow()
     await checkForSingleInstance()
     handleEvents(mainWindow)
     modManager(mainWindow)
-    handleDeeplinkOnApplicationStartup()
-    handleDeeplink(mainWindow)
     createTray()
 })
 
@@ -141,7 +139,7 @@ app.on('activate', () => {
 })
 
 function initializeAddon() {
-    selectedAddon = store.get('addons.theme') || 'Default'
+    selectedAddon = State.get('addons.theme') || 'Default'
     logger.main.log('Addons: theme changed to:', selectedAddon)
     setAddon(selectedAddon)
 }
@@ -154,7 +152,6 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
             } catch {
                 return false
             }
-
         case 'read-file':
             try {
                 return await fs.promises.readFile(filePath, 'utf8')
@@ -162,7 +159,6 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 console.error('Ошибка при чтении файла:', error)
                 return null
             }
-
         case 'create-config-file':
             try {
                 await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
@@ -171,7 +167,6 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 logger.main.error('Ошибка при создании файла конфигурации:', error)
                 return { success: false, error: error.message }
             }
-
         case 'write-file':
             try {
                 const content = typeof data === 'string' ? data : JSON.stringify(data, null, 4)
@@ -182,14 +177,12 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 logger.main.error('Ошибка при записи файла:', error)
                 return { success: false, error: error.message }
             }
-
         default:
             logger.main.error('Неизвестный тип события:', eventType)
             return { success: false, error: 'Неизвестный тип события' }
     }
 })
 
-// IPC: delete addon directory
 ipcMain.handle('deleteAddonDirectory', async (_event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {
@@ -251,19 +244,20 @@ export async function prestartCheck() {
         fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
     }
 
-    if (isLinux() && store.has('settings.modFilename')) {
-        const modFilename = store.get('settings.modFilename')
+    if (isLinux() && State.get('settings.modFilename')) {
+        const modFilename = State.get('settings.modFilename')
         asarFilename = `${modFilename}.backup.asar`
+        asarBackup = path.join(musicPath, asarFilename)
     }
 
-    if (!store.has('discordRpc.enableGithubButton')) {
-        store.set('discordRpc.enableGithubButton', true)
+    if (!State.get('discordRpc.enableGithubButton')) {
+        State.set('discordRpc.enableGithubButton', true)
     }
-    if (!store.has('discordRpc.appId')) {
-        store.set('discordRpc.appId', '')
+    if (!State.get('discordRpc.appId')) {
+        State.set('discordRpc.appId', '')
     }
-    if (!store.has('settings.closeAppInTray')) {
-        store.set('settings.closeAppInTray', true)
+    if (!State.get('settings.closeAppInTray')) {
+        State.set('settings.closeAppInTray', true)
     }
     checkAsar()
     initializeAddon()

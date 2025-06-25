@@ -1,18 +1,18 @@
 import { app, BrowserWindow } from 'electron'
-import { checkIsDeeplink, navigateToDeeplink } from './handlers/handleDeepLink'
 import logger from './logger'
 import { prestartCheck } from '../../index'
 import { handleUncaughtException } from './handlers/handleError'
 import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'original-fs'
-import { store } from './storage'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { authorized } from '../events'
 import { mainWindow } from './createWindow'
 import { clearDirectory } from '../utils/appUtils'
+import { getState } from './state'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
+const State = getState();
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance')
@@ -23,9 +23,6 @@ export const checkForSingleInstance = async (): Promise<void> => {
             app.on('open-url', (event, url) => {
                 event.preventDefault()
                 logger.main.info(`open-url event: ${url}`)
-                if (window && checkIsDeeplink(url)) {
-                    navigateToDeeplink(window, url)
-                }
             })
 
             app.on('open-file', (event, filePath) => {
@@ -44,12 +41,8 @@ export const checkForSingleInstance = async (): Promise<void> => {
                     logger.main.info('Restore window')
                 }
                 const lastCommandLineArg = commandLine.pop()
-                if (lastCommandLineArg) {
-                    if (checkIsDeeplink(lastCommandLineArg)) {
-                        navigateToDeeplink(window, lastCommandLineArg)
-                    } else if (lastCommandLineArg.toLowerCase().endsWith('.pext')) {
-                        await handlePextFile(lastCommandLineArg)
-                    }
+                if (lastCommandLineArg.toLowerCase().endsWith('.pext')) {
+                    await handlePextFile(lastCommandLineArg)
                 }
                 toggleWindowVisibility(window, true)
                 logger.main.info('Show window')
@@ -102,7 +95,7 @@ async function handlePextFile(filePath: string) {
     fs.writeFileSync(metadataFilePath, JSON.stringify(metadata, null, 4))
     logger.main.info(`Extension exported successfully to ${outputDir}`)
 
-    if (store.get('settings.deletePextAfterImport')) {
+    if (State.get('settings.deletePextAfterImport')) {
         if (process.platform === 'darwin') {
             fs.unlink(filePath, err => {
                 if (err) {

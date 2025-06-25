@@ -1,7 +1,7 @@
 import * as semver from 'semver'
 import { app, dialog } from 'electron'
 import { autoUpdater, ProgressInfo } from 'electron-updater'
-import { state } from '../state'
+import { state } from '../handlers/state'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'

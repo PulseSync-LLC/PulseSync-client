@@ -70,7 +70,7 @@ linux:
         - deb
     category: Development
     icon: ./icons/icon.png
-    executableName: pulsesync
+    executableName: PulseSync
     description: PulseSync App with Yandex Music Mod
     mimeTypes:
         - application/x-pext
@@ -88,3 +88,9 @@ linux:
             Type: Application
             Categories: Utility;AudioVideo;Audio;
             MimeType: application/x-pext;x-scheme-handler/pulsesync;
+deb:
+  depends:
+    - libgtk-3-0
+    - libnotify4
+    - libasound2
+    - libdbus-1-3
