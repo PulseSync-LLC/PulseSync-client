@@ -139,7 +139,7 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         const data = yaml.load(raw) as any
         data.commonConfig = {
             DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-            UPDATE_URL: `https://s3.pulsesync.dev/builds/${branch}/`,
+            UPDATE_URL: `${process.env.S3_URL}/builds/${branch}/`,
         }
         fs.writeFileSync(latestPath, yaml.dump(data), 'utf-8')
         files.push(latestPath)
@@ -174,7 +174,7 @@ async function main(): Promise<void> {
     if (publishBranch) {
         const appUpdateConfig = {
             provider: 'generic',
-            url: `https://s3.pulsesync.dev/builds/${publishBranch}/`,
+            url: `${process.env.S3_URL}/builds/${publishBranch}/`,
             channel: 'latest',
             updaterCacheDirName: 'pulsesyncapp-updater',
             useMultipleRangeRequest: true,
@@ -205,7 +205,7 @@ async function main(): Promise<void> {
         config.publish = [
             {
                 provider: 'generic',
-                url: `https://s3.pulsesync.dev/builds/${publishBranch}/`,
+                url: `${process.env.S3_URL}/builds/${publishBranch}/`,
                 channel: 'latest',
                 updaterCacheDirName: 'pulsesyncapp-updater',
                 useMultipleRangeRequest: true,
