@@ -46,9 +46,9 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
-        deeplinkManagerLog: {
+        socketManagerLog: {
             type: 'file',
-            filename: path.join(LOG_PATH, 'deeplinkManager.log'),
+            filename: path.join(LOG_PATH, 'socketManager.log'),
             keepFileExt: true,
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
@@ -87,8 +87,8 @@ log4js.configure({
             appenders: ['out', 'modManagerLog'],
             level: 'debug',
         },
-        deeplinkManager: {
-            appenders: ['out', 'deeplinkManagerLog'],
+        socketManager: {
+            appenders: ['out', 'socketManagerLog'],
             level: 'debug',
         },
         renderer: {
@@ -114,7 +114,7 @@ export default {
     http: log4js.getLogger('http'),
     main: log4js.getLogger('main'),
     modManager: log4js.getLogger('modManager'),
-    deeplinkManager: log4js.getLogger('deeplinkManager'),
+    socketManager: log4js.getLogger('socketManager'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
     discordRpc: log4js.getLogger('discordRpc'),

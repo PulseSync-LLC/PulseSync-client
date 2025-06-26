@@ -19,7 +19,7 @@ let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
-const State = getState();
+const State = getState()
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 const closeServer = async (): Promise<void> => {
@@ -130,7 +130,7 @@ const initializeServer = () => {
 
         socket.on('BROWSER_AUTH', (args: any) => {
             logger.http.log('BROWSER_AUTH received:', args)
-            handleBrowserAuth(args)
+            handleBrowserAuth(args, socket)
         })
 
         socket.on('BROWSER_BAN', (args: any) => {
@@ -148,7 +148,6 @@ const initializeServer = () => {
             if (!authorized) return
             logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
             mainWindow.webContents.send('TRACK_INFO', data)
-
         })
 
         socket.on('SEND_TRACK', (payload: any) => {
@@ -368,25 +367,32 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
     }
 }
 
-const handleBrowserAuth = (args: any) => {
-    const userId = args.userId
+const handleBrowserAuth = (payload: any, client: Socket) => {
+    const { userId, token } = payload.args
+
+    if (!userId || !token) {
+        logger.socketManager.error('Invalid authentication data received from browser.')
+        return app.quit()
+    }
     fetch(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
         .then(async res => {
             const j = await res.json()
+
             if (!j.ok || !j.access) {
-                logger.deeplinkManager.error(`Access denied for user ${userId}, quitting application.`)
+                logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
                 return app.quit()
             }
-            logger.deeplinkManager.info(`Access confirmed for user ${userId}.`)
+            logger.socketManager.info(`Access confirmed for user ${userId}.`)
             mainWindow.webContents.send('authSuccess')
+            client.emit('AUTH_SUCCESS')
             mainWindow.show()
         })
         .catch(error => {
-            logger.deeplinkManager.error(`Error checking access for user ${userId}: ${error}`)
+            logger.socketManager.error(`Error checking access for user ${userId}: ${error}`)
             app.quit()
         })
 
-    State.set('tokens.token', args.token)
+    State.set('tokens.token', token)
 }
 
 const handlePortInUse = () => {

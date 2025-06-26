@@ -275,9 +275,11 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             const current = crypto.createHash('sha256').update(buf).digest('hex')
             if (current === checksum) {
                 logger.modManager.info('app.asar matches checksum, skipping download')
-                State.set('mod.version', modVersion)
-                State.set('mod.musicVersion', yandexMusicVersion)
-                State.set('mod.name', modName)
+                State.set('mod', {
+                    version: modVersion,
+                    musicVersion: yandexMusicVersion,
+                    name: modName
+                })
                 mainWindow.webContents.send('download-success', {
                     success: true,
                     message: 'Мод уже установлен.',
