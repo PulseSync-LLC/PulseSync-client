@@ -1,4 +1,4 @@
-export default interface AddonInterface {
+export default interface Addon {
     name: string
     directoryName: string
     description: string

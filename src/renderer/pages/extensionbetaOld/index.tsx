@@ -4,7 +4,7 @@ import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as extensionStyles from './extension.module.scss'
 import ExtensionCard from '../../components/extensionCard'
-import AddonInterface from '../../api/interfaces/addon.interface'
+import Addon from '../../api/interfaces/addon.interface'
 import stringSimilarity from 'string-similarity'
 import CustomCheckbox from '../../components/checkbox_props'
 import toast from '../../components/toast'
@@ -20,7 +20,7 @@ import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import addonInitials from '../../api/initials/addon.initials'
 import Skeleton from 'react-loading-skeleton'
 
-function checkMissingFields(addon: AddonInterface): string[] {
+function checkMissingFields(addon: Addon): string[] {
     const missing: string[] = []
     if (!addon.name) missing.push('name')
     if (!addon.author) missing.push('author')
@@ -61,7 +61,7 @@ export default function ExtensionPage() {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents
                 .invoke('getAddons')
-                .then((fetchedAddons: AddonInterface[]) => {
+                .then((fetchedAddons: Addon[]) => {
                     setAddons(fetchedAddons)
                 })
                 .catch(error => console.error('Ошибка при загрузке аддонов:', error))
@@ -96,7 +96,7 @@ export default function ExtensionPage() {
         toast.custom('success', 'Сделано', 'Расширения перезагружены')
     }
 
-    const handleCheckboxChange = (addon: AddonInterface, newChecked: boolean) => {
+    const handleCheckboxChange = (addon: Addon, newChecked: boolean) => {
         if (addon.type === 'theme') {
             if (newChecked) {
                 setCurrentTheme(addon.directoryName)
@@ -134,7 +134,7 @@ export default function ExtensionPage() {
         setSelectedTags(updated)
     }
 
-    function filterAndSortAddons(list: AddonInterface[], query: string) {
+    function filterAndSortAddons(list: Addon[], query: string) {
         return list
             .filter(item => item.name !== 'Default')
             .map(item => {
@@ -163,16 +163,16 @@ export default function ExtensionPage() {
             .sort((a, b) => (a.matches === b.matches ? 0 : a.matches ? -1 : 1))
     }
 
-    function filterAddonsByTags(list: AddonInterface[], tags: Set<string>) {
+    function filterAddonsByTags(list: Addon[], tags: Set<string>) {
         if (tags.size === 0) return list
         return list.filter(item => item.tags?.some(t => tags.has(t)))
     }
 
-    function getMissingCount(addon: AddonInterface): number {
+    function getMissingCount(addon: Addon): number {
         return checkMissingFields(addon).length
     }
 
-    function getPriority(addon: AddonInterface): number {
+    function getPriority(addon: Addon): number {
         const missingCount = getMissingCount(addon)
         if (missingCount > 0) {
             return 999

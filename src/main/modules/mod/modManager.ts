@@ -8,7 +8,6 @@ import * as zlib from 'zlib'
 import * as fs from 'original-fs'
 
 import { store } from '../storage'
-import { mainWindow } from '../../../index'
 import logger from '../logger'
 import config from '../../../renderer/api/config'
 import {
@@ -23,6 +22,7 @@ import {
 } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
+import { mainWindow } from '../createWindow'
 
 const TEMP_DIR = app.getPath('temp')
 

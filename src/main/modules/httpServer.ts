@@ -2,20 +2,19 @@ import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { app, dialog, ipcMain } from 'electron'
-import { mainWindow, selectedAddon } from '../../index'
+import { selectedAddon } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
 import logger from './logger'
 import { Server as IOServer, Socket } from 'socket.io'
-import { EventEmitter } from 'events'
 import trackInitials from '../../renderer/api/initials/track.initials'
 import { isFirstInstance } from './singleInstance'
 import config from '../../config.json'
 import { store } from './storage'
 import { parse } from 'url'
 import { Track } from '../../renderer/api/interfaces/track.interface'
+import { mainWindow } from './createWindow'
 
-const eventEmitter = new EventEmitter()
 let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
@@ -279,7 +278,10 @@ export const sendExtensions = async (): Promise<void> => {
         return
     }
     if (typeof scripts === 'string') {
-        scripts = scripts.split(',').map(s => s.trim()).filter(Boolean)
+        scripts = scripts
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean)
     } else if (!Array.isArray(scripts)) {
         scripts = []
     }
@@ -304,7 +306,7 @@ export const sendExtensions = async (): Promise<void> => {
                 const addonName = metaName || folderName
 
                 const folderMatches = scripts.includes(folderName)
-                const nameMatches   = metaName.length > 0 && scripts.includes(metaName)
+                const nameMatches = metaName.length > 0 && scripts.includes(metaName)
                 if (!folderMatches && !nameMatches) return null
                 if ((!meta.type || (meta.type !== 'theme' && meta.type !== 'script')) && folderName !== 'Default') {
                     return null
@@ -335,7 +337,6 @@ export const sendExtensions = async (): Promise<void> => {
             }
         })
         .filter((x): x is { name: string; css: string | null; script: string | null } => Boolean(x))
-
 
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
@@ -514,5 +515,4 @@ const updateData = (newData: any) => {
 }
 
 export const getTrackInfo = () => data
-export { eventEmitter }
 export default server

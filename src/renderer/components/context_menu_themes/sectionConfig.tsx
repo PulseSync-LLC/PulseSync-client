@@ -4,7 +4,7 @@ import CheckOff from './../../../../static/assets/stratis-icons/minus-square-off
 import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.svg'
 import FileExport from './../../../../static/assets/stratis-icons/file-export.svg'
 import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
-import AddonInterface from '../../api/interfaces/addon.interface'
+import Addon from '../../api/interfaces/addon.interface'
 import toast from '../toast'
 
 export interface MenuItem {
@@ -25,7 +25,7 @@ export const createContextMenuActions = (
     handleToggleCheck: (themeName: string, isChecked: boolean) => void,
     checkedState: boolean = false,
     actionVisibility: ActionVisibility = {},
-    currentAddon: AddonInterface,
+    currentAddon: Addon,
 ): MenuItem[] => [
     {
         label: checkedState ? `Выключить ${currentAddon.name}` : `Включить ${currentAddon.name}`,

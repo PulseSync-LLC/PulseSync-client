@@ -9,6 +9,7 @@ import tar from 'tar'
 import { pipeline } from 'stream/promises'
 import logger from '../modules/logger'
 import { getPathToYandexMusic } from './appUtils'
+import AdmZip from 'adm-zip'
 
 export const FFMPEG_INSTALL: Record<
     string,
@@ -52,11 +53,9 @@ export async function downloadFile(url: string, dest: string, onProgress: (perce
     await pipeline(response.data, writer)
 }
 
-export async function extractZip(src: string, dest: string) {
-    await fs
-        .createReadStream(src)
-        .pipe(unzipper.Extract({ path: dest }))
-        .promise()
+export async function extractZip(src: string, dest: string): Promise<void> {
+    const zip = new AdmZip(src);
+    zip.extractAllTo(dest, true);
 }
 
 export async function extractTarXZ(src: string, dest: string) {
