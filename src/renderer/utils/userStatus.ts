@@ -11,12 +11,12 @@ export const getStatusColor = (user: UserInterface, dark = false): string => {
     return dark ? '#9DA8CE' : '#434B61'
 }
 
-export const getStatus = (user: UserInterface): { text: string; detail: string | null } => {
+export const getStatus = (user: UserInterface): { text: string; detail: string } => {
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {
         const artists = user.currentTrack.artists?.map(a => a.name).join(', ')
         return {
             text: 'Слушает',
-            detail: `${user.currentTrack.title} - ${artists}` || null,
+            detail: `${user.currentTrack.title} - ${artists}`,
         }
     }
     if (user.status === 'online') {
@@ -26,10 +26,7 @@ export const getStatus = (user: UserInterface): { text: string; detail: string |
         }
     }
     if (user.lastOnline) {
-        return {
-            text: 'Не в сети',
-            detail: timeAgo(Number(user.lastOnline)),
-        }
+        return { text: 'Не в сети', detail: `${timeAgo(Number(user.lastOnline))}` }
     }
     return {
         text: 'Не в сети',

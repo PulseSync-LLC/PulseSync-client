@@ -15,12 +15,6 @@
 
     &:hover {
         outline: #8d9dd6 solid 2px;
-
-        .commandWrapper {
-            border-left: #8d9dd6 solid 2px;
-            border-right: #8d9dd6 solid 2px;
-            border-bottom: #8d9dd6 solid 2px;
-        }
     }
 }
 
@@ -103,18 +97,16 @@
 
 .commandWrapper {
     position: absolute;
-    right: 20px;
-    left: 20px;
+    right: 0;
+    left: 0;
     width: -webkit-fill-available;
     max-height: fit-content;
     top: 100%;
-    transform: translateY(2px);
+    transform: translateY(10px);
     z-index: 20;
     background: #3b4052;
-    border-left: #3b4052 solid 2px;
-    border-right: #3b4052 solid 2px;
-    border-bottom: #3b4052 solid 2px;
-    border-radius: 0 0 8px 8px;
+    box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.25);
+    border-radius: 8px;
     overflow: hidden;
     animation: fadeInUp 0.2s ease-in-out;
     transition: var(--transition);
@@ -129,14 +121,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #2f3241;
+    background: #494e65;
     padding: 10px 16px;
     cursor: pointer;
     color: #c7cfee;
     transition: var(--transition);
 
     &:hover {
-        background: #42485d;
+        background: #383e51;
     }
 }
 

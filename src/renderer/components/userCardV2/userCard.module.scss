@@ -1,0 +1,142 @@
+.container {
+    display: flex;
+    flex-direction: column;
+    width: -webkit-fill-available;
+    height: 150px;
+    background: #00000033;
+    border-radius: 10px;
+    padding: 2px;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover {
+        background: #181a21;
+    }
+}
+
+.topSection {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-end;
+    padding: 10px;
+    gap: 10px;
+    width: 100%;
+    height: 125px;
+    border-radius: 9px;
+    background-repeat: no-repeat !important;
+    background-position: center !important;
+    background-size: cover !important;
+}
+
+.userAvatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 9px;
+    object-fit: cover;
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 2px;
+    height: 60px;
+}
+
+.badges {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 3px;
+    height: 20px;
+}
+
+.badge {
+    width: 20px;
+    height: 20px;
+}
+
+.badgeIcon {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.nickname {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 110%;
+    color: #FFFFFF;
+    height: 20px;
+}
+
+.bottomSection {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 3px 10px;
+    gap: 10px;
+    width: 100%;
+    height: 26px;
+}
+
+.statusText {
+    font-family: "Nunito", sans-serif;
+    font-weight: 800;
+    font-size: 12px;
+    line-height: 110%;
+    color: var(--statusColorProfile);
+    width: -webkit-fill-available;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.rssIcon {
+    width: 20px;
+    height: 20px;
+    color: var(--statusColorProfile);
+}
+
+.statusIcon {
+    width: 20px;
+    height: 20px;
+    color: var(--statusColorProfile);
+}
+
+// userCard.module.scss
+
+.userCardSkeleton {
+  position: relative;
+  width: 100%;
+  height: 150px;
+  border-radius: 8px;
+  background-color: #3a3e4d; // базовый цвет скелетона
+  overflow: hidden;
+
+  // световая полоса
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.08),
+      transparent
+    );
+    animation: shimmer 1.6s infinite;
+  }
+}
+
+// анимация «скользящей засветки»
+@keyframes shimmer {
+  100% {
+    transform: translateX(200%);
+  }
+}
