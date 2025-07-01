@@ -6,8 +6,6 @@ import { mainConfig } from './webpack.main.config'
 import { rendererConfig } from './webpack.renderer.config'
 import path from 'path'
 import fs from 'fs-extra'
-import os from 'os'
-import { execSync } from 'child_process'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
@@ -32,17 +30,13 @@ const forgeConfig: ForgeConfig = {
                         name: 'preloader',
                         html: './src/renderer/preloader.html',
                         js: './src/main/preload.ts',
-                        preload: {
-                            js: './src/main/preload.ts',
-                        },
+                        preload: { js: './src/main/preload.ts' },
                     },
                     {
                         name: 'main_window',
                         html: './src/renderer/index.html',
                         js: './src/main/renderer.ts',
-                        preload: {
-                            js: './src/main/mainWindowPreload.ts',
-                        },
+                        preload: { js: './src/main/mainWindowPreload.ts' },
                     },
                 ],
             },
@@ -59,7 +53,6 @@ const forgeConfig: ForgeConfig = {
         packageAfterPrune: async (_forgeConfig, buildPath) => {
             const packageJsonPath = path.resolve(buildPath, 'package.json')
             const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
-
             Object.keys(pkg).forEach(key => {
                 switch (key) {
                     case 'name':
@@ -75,7 +68,6 @@ const forgeConfig: ForgeConfig = {
             })
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
-
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },

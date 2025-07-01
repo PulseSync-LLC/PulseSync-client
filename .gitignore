@@ -113,3 +113,8 @@ pnpm-lock.yaml
 
 # Sentry Config File
 .env.sentry-build-plugin
+
+Release
+Debug
+build
+*.node
