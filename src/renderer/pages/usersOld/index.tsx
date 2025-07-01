@@ -13,7 +13,7 @@ import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
 import { motion } from 'framer-motion'
 import config from '../../api/config'
 import toast from '../../components/toast'
-import { useUserProfileModal } from '../../context/UserProfileModalContext'
+// import { useUserProfileModal } from '../../context/UserProfileWindowProvider'
 import UserCard from '../../components/userCard'
 import Button from '../../components/button'
 
@@ -25,7 +25,7 @@ export default function UsersPageOld() {
     const [sorting, setSorting] = useState([{ id: 'lastOnline', desc: true }])
     const [search, setSearch] = useState('')
 
-    const { openUserProfile } = useUserProfileModal()
+    // const { openUserProfile } = useUserProfileModal()
 
     const isUserInactive = (lastOnline: string | null) => {
         if (!lastOnline) return false
@@ -287,7 +287,12 @@ export default function UsersPageOld() {
                                         {users.length > 0 ? (
                                             <div className={styles.userGrid}>
                                                 {users.map(user => (
-                                                    <UserCard key={user.id} user={user} onClick={openUserProfile} />
+                                                    <UserCard
+                                                        key={user.id}
+                                                        user={user}
+                                                        onClick={null}
+                                                        // onClick={openUserProfile}
+                                                    />
                                                 ))}
                                             </div>
                                         ) : (
