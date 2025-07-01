@@ -1,7 +1,7 @@
 import type { Configuration } from 'webpack'
-
 import { rules } from './webpack.rules'
 import { plugins } from './webpack.plugins'
+import path from 'path'
 
 rules.push({
     test: /\.css$/,
@@ -14,15 +14,12 @@ rules.push({
         'style-loader',
         {
             loader: 'css-loader',
-            options: {
-                modules: {
-                    localIdentName: '[name]__[local]___[hash:base64:5]',
-                },
-            },
+            options: { modules: { localIdentName: '[name]__[local]___[hash:base64:5]' } },
         },
         'sass-loader',
     ],
 })
+
 rules.push({
     test: /\.svg$/,
     use: ['@svgr/webpack'],
@@ -30,21 +27,12 @@ rules.push({
 
 rules.push({
     test: /\.md$/,
-    use: [
-        {
-            loader: 'html-loader',
-        },
-        {
-            loader: 'markdown-loader',
-            options: {},
-        },
-    ],
+    use: [{ loader: 'html-loader' }, { loader: 'markdown-loader', options: {} }],
 })
 
 export const rendererConfig: Configuration = {
-    module: {
-        rules,
-    },
+    context: path.resolve(__dirname),
+    module: { rules },
     plugins,
     devtool: 'source-map',
     optimization: {

@@ -412,8 +412,8 @@ function App() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            if(user.perms !== "developer") {
-                return window.electron.window.exit();
+            if (user.perms !== 'developer') {
+                return window.electron.window.exit()
             }
             if (!socket.connected) {
                 socket.connect()
@@ -729,6 +729,7 @@ const Player: React.FC<any> = ({ children }) => {
                                 id: data.track?.major?.id ?? prev.major.id,
                                 name: data.track?.major?.name ?? prev.major.name,
                             },
+                            version: data.track?.version,
                             available: data.track?.available ?? prev.available,
                             availableForPremiumUsers: data.track?.availableForPremiumUsers ?? prev.availableForPremiumUsers,
                             availableFullWithoutPermission: data.track?.availableFullWithoutPermission ?? prev.availableFullWithoutPermission,
@@ -945,14 +946,20 @@ const Player: React.FC<any> = ({ children }) => {
                     let startTimestamp = Math.round(Date.now() - track.progress.position * 1000)
                     let endTimestamp = startTimestamp + track.durationMs
                     const artistName = track.artists.map(x => x.name).join(', ')
+                    let rawDetails: string;
+
+                    if (app.discordRpc.showTrackVersion && track.version) {
+                        rawDetails = `${track.title} (${track.version})`;
+                    } else if (app.discordRpc.details.length > 0) {
+                        rawDetails = replaceParams(app.discordRpc.details, track, app.discordRpc.showTrackVersion);
+                    } else {
+                        rawDetails = track.title || 'Unknown Track';
+                    }
 
                     const activity: any = {
                         type: 2,
                         largeImageKey: getCoverImage(track),
-                        details:
-                            app.discordRpc.details.length > 0
-                                ? fixStrings(replaceParams(app.discordRpc.details, track))
-                                : fixStrings(track.title || 'Unknown Track'),
+                        details: fixStrings(rawDetails),
                         state:
                             app.discordRpc.state.length > 0
                                 ? fixStrings(replaceParams(app.discordRpc.state, track))

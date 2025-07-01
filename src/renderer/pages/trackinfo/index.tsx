@@ -233,6 +233,12 @@ export default function TrackInfoPage() {
                                             </CheckboxNav>
                                             <div className={theme.line}></div>
                                             <CheckboxNav
+                                                checkType="showTrackVersion"
+                                                description="Если включить, то в активности будет к названию трека будет добавлятся его версия"
+                                            >
+                                                Включить показ версии трека
+                                            </CheckboxNav>
+                                            <CheckboxNav
                                                 checkType="showSmallIcon"
                                                 description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
                                             >

@@ -14,6 +14,9 @@ const releaseVersion = packageJson.version
 export const plugins = [
     new ForkTsCheckerWebpackPlugin({
         logger: 'webpack-infrastructure',
+        typescript: {
+            configFile: path.resolve(__dirname, 'tsconfig.json'),
+        },
     }),
     new CopyWebpackPlugin({
         patterns: [

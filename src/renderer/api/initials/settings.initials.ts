@@ -37,6 +37,7 @@ const settingsInitials: SettingsInterface = {
         enableGithubButton: true,
         showVersionOrDevice: false,
         showSmallIcon: true,
+        showTrackVersion: false,
         status: true,
         details: '',
         state: '',

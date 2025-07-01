@@ -52,6 +52,11 @@ const schema = {
                 description: 'Показывать версию приложения или информацию об устройстве в статусе',
                 default: false,
             },
+            showTrackVersion: {
+                type: 'boolean',
+                description: 'Показывать версию трека в rpc',
+                default: false,
+            },
             showSmallIcon: {
                 type: 'boolean',
                 description: 'Использовать маленькую иконку для Rich Presence',

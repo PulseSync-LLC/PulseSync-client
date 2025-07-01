@@ -278,7 +278,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 State.set('mod', {
                     version: modVersion,
                     musicVersion: yandexMusicVersion,
-                    name: modName
+                    name: modName,
                 })
                 mainWindow.webContents.send('download-success', {
                     success: true,
@@ -334,10 +334,19 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 if (!isFinished || isError) return
                 mainWindow.setProgressBar(-1)
 
-                const compressed = fs.readFileSync(tempFilePath)
-                const asarBuf: Buffer = await gunzipAsync(compressed)
+                const fileBuffer = fs.readFileSync(tempFilePath)
+                let asarBuf: Buffer
+
+                if (tempFilePath.endsWith('.gz')) {
+                    logger.modManager.info('Detected gzipped file, proceeding decompression')
+                    asarBuf = await gunzipAsync(fileBuffer)
+                } else {
+                    logger.modManager.info('Downloaded file is not gzipped, skipping decompression')
+                    asarBuf = fileBuffer
+                }
+
                 if (checksum) {
-                    const hash = crypto.createHash('sha256').update(compressed).digest('hex')
+                    const hash = crypto.createHash('sha256').update(asarBuf).digest('hex')
                     if (hash !== checksum) {
                         fs.unlinkSync(tempFilePath)
                         return sendDownloadFailure({
@@ -346,6 +355,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                         })
                     }
                 }
+
                 fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
 
@@ -375,6 +385,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                     installed: true,
                 })
                 await installFfmpeg(mainWindow)
+
                 mainWindow.setProgressBar(-1)
                 setTimeout(() => {
                     mainWindow.webContents.send('download-success', {

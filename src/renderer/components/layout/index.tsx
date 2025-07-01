@@ -54,17 +54,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }, [modInfo])
 
     useEffect(() => {
-        if (!modInfo[0]) return
+        if (!modInfo[0]?.modVersion) return
+
         setIsModUpdateAvailable(
-            (() => {
-                return (
-                    musicInstalled &&
-                    Boolean(modInfo[0]?.modVersion) &&
-                    (!app.mod.installed || semver.gt(modInfo[0].modVersion, app.mod.version ?? '0.0.0'))
-                )
-            })(),
+            musicInstalled &&
+                (!app.mod.installed ||
+                    semver.gt(semver.valid(modInfo[0].modVersion.trim()) || '0.0.0', semver.valid(app.mod.version?.trim() || '0.0.0') || '0.0.0')),
         )
-    }, [app.mod, modInfo])
+    }, [app.mod, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return

@@ -38,6 +38,7 @@ export interface discordRpc {
     showSmallIcon: boolean
     enableRpcButtonListen: boolean
     enableGithubButton: boolean
+    showTrackVersion: boolean
 }
 
 export default interface SettingsInterface {

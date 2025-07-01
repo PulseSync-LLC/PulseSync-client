@@ -18,6 +18,7 @@ export interface Track {
         id: number
         name: string
     }
+    version: string
     available: boolean
     availableForPremiumUsers: boolean
     availableFullWithoutPermission: boolean

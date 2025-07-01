@@ -45,6 +45,7 @@ const TrackInitials: Track = {
     canMoveForward: false,
     status: 'paused',
     ynisonProgress: 0,
+    version: '',
     progress: {
         duration: 0,
         loaded: 0,

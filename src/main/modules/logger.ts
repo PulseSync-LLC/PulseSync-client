@@ -53,6 +53,13 @@ log4js.configure({
             MaxLogsize: 1024 * 1024 * 100,
             backups: 3,
         },
+        nativeModuleManagerLog: {
+            type: 'file',
+            filename: path.join(LOG_PATH, 'nativeModuleManager.log'),
+            keepFileExt: true,
+            MaxLogsize: 1024 * 1024 * 100,
+            backups: 3,
+        },
         updaterLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'updaterManager.log'),
@@ -91,6 +98,10 @@ log4js.configure({
             appenders: ['out', 'socketManagerLog'],
             level: 'debug',
         },
+        nativeModuleManager: {
+            appenders: ['out', 'nativeModuleManagerLog'],
+            level: 'debug',
+        },
         renderer: {
             appenders: ['out', 'renderProcessLog'],
             level: 'debug',
@@ -115,6 +126,7 @@ export default {
     main: log4js.getLogger('main'),
     modManager: log4js.getLogger('modManager'),
     socketManager: log4js.getLogger('socketManager'),
+    nativeModuleManager: log4js.getLogger('nativeModuleManager'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
     discordRpc: log4js.getLogger('discordRpc'),

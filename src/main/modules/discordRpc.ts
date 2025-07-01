@@ -4,12 +4,11 @@ import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import logger from './logger'
 import config from '../../config.json'
 import { updateTray } from './tray'
-import * as fs from 'node:fs'
-import * as net from 'net'
 import { promisify } from 'util'
 import { exec } from 'child_process'
 import { mainWindow } from './createWindow'
 import { getState } from './state'
+import { isDiscordRunning, isAnyDiscordElevated } from './naviveModule'
 
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',
@@ -110,46 +109,19 @@ export async function checkDiscordStateMac(): Promise<DiscordState> {
     }
 }
 
-async function checkDiscordStateWin(): Promise<DiscordState> {
-    const clients = ['Discord.exe', 'DiscordPTB.exe', 'DiscordCanary.exe', 'DiscordDevelopment.exe']
-    const ipcPaths = Array.from({ length: 10 }, (_, i) => `\\\\.\\pipe\\discord-ipc-${i}`)
-    let ipcPathFound: string | null = null
-    for (const ipcPath of ipcPaths) {
-        try {
-            await fs.promises.access(ipcPath, fs.constants.F_OK)
-            ipcPathFound = ipcPath
-            break
-        } catch {}
-    }
-    if (!ipcPathFound) {
+export async function checkDiscordStateWin(): Promise<DiscordState> {
+    const running = isDiscordRunning()
+    logger.discordRpc.info('Discord running:', running)
+    if (!running) {
         return DiscordState.CLOSED
     }
-    try {
-        await new Promise<void>((resolve, reject) => {
-            const client = net.connect(ipcPathFound!, () => {
-                client.end()
-                resolve()
-            })
-            client.on('error', reject)
-        })
-    } catch {
+
+    const elevated = isAnyDiscordElevated()
+    logger.discordRpc.info('Discord elevated:', elevated)
+    if (elevated) {
         return DiscordState.ADMINISTRATOR
     }
-    try {
-        await fs.promises.access(ipcPathFound, fs.constants.R_OK | fs.constants.W_OK)
-    } catch {
-        return DiscordState.ADMINISTRATOR
-    }
-    try {
-        const { stdout } = await execAsync('tasklist /NH /FO CSV')
-        const isRunning = clients.some(name => stdout.includes(`"${name}"`))
-        if (!isRunning) {
-            return DiscordState.CLOSED
-        }
-    } catch (err) {
-        logger.discordRpc.error('Error checking Discord process list:', err)
-        return DiscordState.CLOSED
-    }
+
     return DiscordState.SUCCESS
 }
 
