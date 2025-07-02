@@ -68,6 +68,7 @@ function generateBuildInfo(): { version: string } {
     pkg.buildInfo = {
         VERSION: pkg.version,
         BRANCH: branchHash,
+        BUILD_TIME: new Date().toISOString(),
     }
 
     let baseVersion = pkg.version.split('-')[0]

@@ -193,6 +193,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                         success: true,
                     })
                 } else {
+                    State.delete('mod')
                     sendRemoveModFailure({
                         error: 'Резервная копия не найдена. Яндекс Музыка будет переустановлена.',
                         type: 'backup_not_found',

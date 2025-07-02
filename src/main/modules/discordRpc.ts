@@ -17,13 +17,14 @@ enum DiscordState {
     FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
     SUCCESS = '',
 }
-const State = getState();
+const State = getState()
 
 const execAsync = promisify(exec)
 const SET_ACTIVITY_TIMEOUT_MS = 1500
 
 let sendActivityTimeoutId: NodeJS.Timeout = undefined
 let previousActivity: SetActivity = undefined
+let pendingActivity: SetActivity = undefined
 
 let reconnectTimeout: NodeJS.Timeout = undefined
 let isReconnecting = false
@@ -197,7 +198,8 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
                 logger.discordRpc.error(e.message)
             }
         }, SET_ACTIVITY_TIMEOUT_MS)
-    } else if (!changeId) {
+    } else {
+        pendingActivity = activity
         rpc_connect()
     }
 })
@@ -208,9 +210,11 @@ ipcMain.on('discordrpc-discordRpc', (event, val) => {
 
 ipcMain.on('discordrpc-reset-activity', () => {
     previousActivity = undefined
+    pendingActivity = undefined
 })
 
 ipcMain.on('discordrpc-clearstate', () => {
+    pendingActivity = undefined
     if (rpcConnected && client) {
         client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e)
@@ -285,6 +289,18 @@ async function rpc_connect() {
         if (changeId) changeId = false
         logger.discordRpc.info('Connection established')
         mainWindow.webContents.send('rpc-log', { message: 'Успешное подключение', type: 'success' })
+
+        if (pendingActivity) {
+            client.user?.setActivity(pendingActivity).catch(async e => {
+                const msg = await handleRpcError(e)
+                mainWindow.webContents.send('rpc-log', {
+                    message: msg || 'Ошибка установки активности',
+                    type: 'error',
+                })
+            })
+            previousActivity = pendingActivity
+            pendingActivity = undefined
+        }
     })
     client.on('disconnected', () => {
         rpcConnected = false

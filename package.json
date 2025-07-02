@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.3-dev",
+    "version": "2.8.0-beta",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
@@ -23,9 +23,9 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.840.0",
-        "@babel/core": "^7.27.7",
-        "@babel/preset-env": "^7.27.2",
+        "@aws-sdk/client-s3": "^3.842.0",
+        "@babel/core": "^7.28.0",
+        "@babel/preset-env": "^7.28.0",
         "@babel/preset-react": "^7.27.1",
         "@babel/preset-typescript": "^7.27.1",
         "@electron-forge/cli": "^7.8.1",
@@ -38,7 +38,7 @@
         "@sentry/webpack-plugin": "^3.5.0",
         "@types/copy-webpack-plugin": "^10.1.3",
         "@types/electron": "^1.6.12",
-        "@types/node": "^24.0.8",
+        "@types/node": "^24.0.10",
         "@types/react": "^19.1.8",
         "@types/react-dom": "^19.1.6",
         "@types/react-modal": "^3.16.3",
@@ -51,7 +51,7 @@
         "copy-webpack-plugin": "^13.0.0",
         "electron": "37.1.0",
         "electron-builder": "^26.0.12",
-        "eslint": "^9.30.0",
+        "eslint": "^9.30.1",
         "eslint-plugin-import": "^2.32.0",
         "fork-ts-checker-webpack-plugin": "^9.1.0",
         "node-loader": "^2.1.0",
@@ -75,7 +75,7 @@
         "@svgr/webpack": "^8.1.0",
         "@types/adm-zip": "^0.5.7",
         "@types/chokidar": "^2.1.7",
-        "@types/glob": "^8.1.0",
+        "@types/glob": "^9.0.0",
         "@types/lodash.debounce": "^4.0.9",
         "@types/plist": "^3.0.5",
         "@types/semver": "^7.7.0",
@@ -94,12 +94,12 @@
         "cors-anywhere": "^0.4.4",
         "crypto-browserify": "^3.12.1",
         "css-loader": "^7.1.2",
-        "electron-chrome-web-store": "^0.12.0",
+        "electron-chrome-web-store": "^0.13.0",
         "electron-is-dev": "^3.0.1",
         "electron-store": "^10.1.0",
         "electron-updater": "^6.6.2",
         "formik": "^2.4.6",
-        "framer-motion": "^12.22.0",
+        "framer-motion": "^12.23.0",
         "fs-extra": "^11.3.0",
         "get-port": "^7.1.0",
         "glob": "^11.0.3",
@@ -145,7 +145,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.3-dev",
-        "BRANCH": "821cb3d"
+        "VERSION": "2.8.0-beta",
+        "BRANCH": "19ca541",
+        "BUILD_TIME": "2025-07-02T22:51:28.029Z"
     }
 }
