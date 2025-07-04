@@ -17,6 +17,7 @@ const defaultAddon: Partial<Addon> = {
     css: 'style.css',
     script: 'script.js',
     dependencies: [],
+    allowedUrls: [],
 }
 
 const defaultCssContent = `{}`

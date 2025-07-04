@@ -16,6 +16,7 @@ const AddonInitials: Addon[] = [
         tags: [],
         type: 'theme',
         dependencies: [],
+        allowedUrls: [],
     },
 ]
 export default AddonInitials

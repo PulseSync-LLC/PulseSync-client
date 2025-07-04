@@ -21,4 +21,5 @@ export default interface Addon {
 
     matches?: boolean
     dependencies?: string[]
+    allowedUrls?: string[]
 }
