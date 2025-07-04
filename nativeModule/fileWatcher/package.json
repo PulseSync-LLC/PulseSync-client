@@ -1,0 +1,21 @@
+{
+  "name": "file-watcher",
+  "version": "1.0.0",
+  "scripts": {
+    "clean": "node -e \"require('fs').rmSync('build', { recursive: true, force: true })\"",
+    "build": "yarn && node-gyp clean && node-gyp configure && node-gyp build",
+    "debug": "yarn && node-gyp clean && node-gyp configure --debug && node-gyp build --debug"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "A native Electron module for file watching",
+  "gypfile": true,
+  "dependencies": {
+    "bindings": "^1.5.0",
+    "node-addon-api": "^8.4.0"
+  },
+  "devDependencies": {
+    "node-gyp": "^11.2.0"
+  }
+}

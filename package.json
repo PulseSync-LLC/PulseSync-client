@@ -49,7 +49,7 @@
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
-        "electron": "37.1.0",
+        "electron": "37.2.0",
         "electron-builder": "^26.0.12",
         "eslint": "^9.30.1",
         "eslint-plugin-import": "^2.32.0",
@@ -74,7 +74,6 @@
         "@sentry/electron": "^6.8.0",
         "@svgr/webpack": "^8.1.0",
         "@types/adm-zip": "^0.5.7",
-        "@types/chokidar": "^2.1.7",
         "@types/glob": "^9.0.0",
         "@types/lodash.debounce": "^4.0.9",
         "@types/plist": "^3.0.5",
@@ -90,7 +89,6 @@
         "axios": "^1.10.0",
         "browserify-fs": "^1.0.0",
         "browserify-sign": "^4.2.3",
-        "chokidar": "^4.0.3",
         "cors-anywhere": "^0.4.4",
         "crypto-browserify": "^3.12.1",
         "css-loader": "^7.1.2",
@@ -146,7 +144,7 @@
     },
     "buildInfo": {
         "VERSION": "2.8.0-beta",
-        "BRANCH": "19ca541",
-        "BUILD_TIME": "2025-07-02T22:51:28.029Z"
+        "BRANCH": "9dde274",
+        "BUILD_TIME": "2025-07-04T14:51:16.495Z"
     }
 }

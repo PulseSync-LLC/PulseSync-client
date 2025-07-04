@@ -199,11 +199,24 @@ async function main(): Promise<void> {
     await runCommandStep('Package (electron-forge)', 'electron-forge package')
 
     if (os.platform() === 'win32') {
-        const src = path.resolve(__dirname, '../nativeModule/checkAccess/build/Release/checkAccessAddon.node')
-        const dest = path.join(outDir, 'modules', 'checkAccess', 'checkAccessAddon.node')
-        fs.mkdirSync(path.dirname(dest), { recursive: true })
-        fs.copyFileSync(src, dest)
-        log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+        const nativeDir = path.resolve(__dirname, '../nativeModule')
+
+        function copyNodes(srcDir: string) {
+            fs.readdirSync(srcDir, { withFileTypes: true }).forEach(entry => {
+                const fullPath = path.join(srcDir, entry.name)
+                if (entry.isDirectory()) {
+                    copyNodes(fullPath)
+                } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
+                    const relativePath = path.relative(nativeDir, fullPath)
+                    const dest = path.join(outDir, 'modules', relativePath)
+
+                    fs.mkdirSync(path.dirname(dest), { recursive: true })
+                    fs.copyFileSync(fullPath, dest)
+                    log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+                }
+            })
+        }
+        copyNodes(nativeDir)
     }
 
     const builderBase = path.resolve(__dirname, '../electron-builder.yml')

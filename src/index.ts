@@ -11,7 +11,6 @@ import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
-import chokidar from 'chokidar'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
 import * as dns from 'node:dns'
 
@@ -22,6 +21,7 @@ import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
+import { startThemeWatcher } from './main/modules/naviveModule'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -264,20 +264,10 @@ export async function prestartCheck() {
 
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     createDefaultAddonIfNotExists(themesPath)
-
-    const watcher = chokidar.watch([path.join(themesPath, '**/*.js'), path.join(themesPath, '**/*.css')], { persistent: true, ignoreInitial: false })
-
-    watcher
-        .on('add', p => {
-            logger.main.info(`File ${p} has been added`)
-            sendAddon(true)
-        })
-        .on('change', p => {
-            logger.main.info(`File ${p} has been changed`)
-            sendAddon(true)
-        })
-        .on('unlink', p => {
-            logger.main.info(`File ${p} has been removed`)
-            sendAddon(true)
-        })
+    try {
+        startThemeWatcher(themesPath);
+    }
+    catch (e) {
+        logger.main.error('Error setting up file watcher for themes:', e);
+    }
 }
