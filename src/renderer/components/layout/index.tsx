@@ -49,19 +49,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const toastReference = useRef<string | null>(null)
     const ffmpegToastIdRef = useRef<string | null>(null)
 
+    const clean = (version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0'
+
     useEffect(() => {
         setLoadingModInfo(modInfo.length === 0)
     }, [modInfo])
 
     useEffect(() => {
-        if (!modInfo[0]?.modVersion) return
+        const serverRaw = modInfo[0]?.modVersion
+        if (!serverRaw) return
 
-        setIsModUpdateAvailable(
-            musicInstalled &&
-                (!app.mod.installed ||
-                    semver.gt(semver.valid(modInfo[0].modVersion.trim()) || '0.0.0', semver.valid(app.mod.version?.trim() || '0.0.0') || '0.0.0')),
-        )
-    }, [app.mod, modInfo, musicInstalled])
+        const serverVer = clean(serverRaw)
+        const localVer = clean(app.mod?.version)
+
+        setIsModUpdateAvailable(musicInstalled && (!app.mod.installed || semver.gt(serverVer, localVer)))
+    }, [app.mod.installed, app.mod.version, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return
@@ -322,6 +324,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         'info',
                         `Установленная версия (${app.mod.version}) устарела`,
                         `Найдена новая версия ${latestVersion}. Выполняю автообновление...`,
+                        null,
+                        15000,
                     )
                     startUpdate()
                 }

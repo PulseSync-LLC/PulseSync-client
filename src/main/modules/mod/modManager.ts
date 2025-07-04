@@ -338,7 +338,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 const fileBuffer = fs.readFileSync(tempFilePath)
                 let asarBuf: Buffer
 
-                if (tempFilePath.endsWith('.gz')) {
+                if (link.endsWith('.gz')) {
                     logger.modManager.info('Detected gzipped file, proceeding decompression')
                     asarBuf = await gunzipAsync(fileBuffer)
                 } else {
@@ -347,7 +347,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 }
 
                 if (checksum) {
-                    const hash = crypto.createHash('sha256').update(asarBuf).digest('hex')
+                    const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex')
                     if (hash !== checksum) {
                         fs.unlinkSync(tempFilePath)
                         return sendDownloadFailure({
