@@ -8,7 +8,7 @@ import { promisify } from 'util'
 import { exec } from 'child_process'
 import { mainWindow } from './createWindow'
 import { getState } from './state'
-import { isDiscordRunning, isAnyDiscordElevated } from './naviveModule'
+import { isDiscordRunning, isAnyDiscordElevated, isProcessElevated } from './naviveModule'
 
 enum DiscordState {
     CLOSED = 'Не удалось обнаружить запущенный Discord!',
@@ -120,6 +120,11 @@ export async function checkDiscordStateWin(): Promise<DiscordState> {
     const elevated = isAnyDiscordElevated()
     logger.discordRpc.info('Discord elevated:', elevated)
     if (elevated) {
+        const selfElevated = isProcessElevated('PulseSync.exe')
+        logger.discordRpc.info('PulseSync elevated:', selfElevated)
+        if (selfElevated) {
+            return DiscordState.SUCCESS
+        }
         return DiscordState.ADMINISTRATOR
     }
 
@@ -257,6 +262,7 @@ async function rpc_connect() {
             }
         }
     }
+
     const customId = State.get('discordRpc.appId')
     clientId = customId.length > 0 ? customId : config.CLIENT_ID
     logger.discordRpc.info('Using clientId: ' + clientId)
@@ -264,17 +270,19 @@ async function rpc_connect() {
         clientId,
         transport: { type: 'ipc' },
     })
+
     const discordState = await readDiscord()
     if (discordState !== DiscordState.SUCCESS) {
         logger.discordRpc.info(`Discord state ${discordState}. Next retry in 5s`)
         mainWindow.webContents.send('rpc-log', {
-            message: `Discord не найден. Следующая попытка через 5 сек.`,
+            message: `${discordState} Следующая попытка через 5 сек.`,
             type: 'info',
         })
         isConnecting = false
         startReconnectLoop(5000)
         return
     }
+
     client.login().catch(async e => {
         const msg = await handleRpcError(e)
         logger.discordRpc.error('login error: ' + msg)
@@ -282,6 +290,7 @@ async function rpc_connect() {
         isConnecting = false
         startReconnectLoop()
     })
+
     client.on('ready', () => {
         isConnecting = false
         rpcConnected = true
@@ -302,6 +311,7 @@ async function rpc_connect() {
             pendingActivity = undefined
         }
     })
+
     client.on('disconnected', () => {
         rpcConnected = false
         previousActivity = undefined
@@ -309,6 +319,7 @@ async function rpc_connect() {
         mainWindow.webContents.send('rpc-log', { message: 'Отключение RPC', type: 'info' })
         startReconnectLoop()
     })
+
     client.on('error', async e => {
         if (e.name === 'Could not connect') {
             rpcConnected = false
@@ -319,6 +330,7 @@ async function rpc_connect() {
         mainWindow.webContents.send('rpc-log', { message: msg || 'Ошибка подключения', type: 'error' })
         startReconnectLoop()
     })
+
     client.on('close', () => {
         rpcConnected = false
         previousActivity = undefined

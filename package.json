@@ -8,11 +8,12 @@
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
-        "build:package": "ts-node scripts/build.ts --debug",
-        "build:installer": "ts-node scripts/build.ts --installer",
-        "publish:beta": "ts-node scripts/build.ts --publish beta --debug",
-        "publish:alpha": "ts-node scripts/build.ts --publish alpha --debug",
-        "publish:dev": "ts-node scripts/build.ts --publish dev --debug",
+        "build:package": "ts-node scripts/build.ts --application --nativeModules --debug",
+        "build:installer": "ts-node scripts/build.ts --installer --debug",
+        "build:nativeModules": "ts-node scripts/build.ts --application --nativeModules --debug",
+        "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",
+        "publish:alpha": "ts-node scripts/build.ts --application --publish alpha --debug",
+        "publish:dev": "ts-node scripts/build.ts --application --publish dev --debug",
         "make": "electron-forge make",
         "publish": "electron-forge publish",
         "lint": "eslint --ext .ts,.tsx .",
@@ -144,7 +145,7 @@
     },
     "buildInfo": {
         "VERSION": "2.8.0-beta",
-        "BRANCH": "9dde274",
-        "BUILD_TIME": "2025-07-04T14:51:16.495Z"
+        "BRANCH": "40f0e32",
+        "BUILD_TIME": "2025-07-05T19:37:59.097Z"
     }
 }

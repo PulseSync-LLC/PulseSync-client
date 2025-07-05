@@ -11,6 +11,8 @@ declare const __non_webpack_require__: (moduleId: string) => any
 interface CheckAccessAddon {
     isDiscordRunning(): boolean;
     isAnyDiscordElevated(): boolean;
+    isProcessRunning(target: string): boolean;
+    isProcessElevated(target: string): boolean;
 }
 
 interface FileWatcherAddon {
@@ -29,7 +31,7 @@ const loadNativeModules = (): NativeModules => {
         return {}
     }
 
-    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModule') : path.join(app.getPath('exe'), '..', 'modules')
+    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
 
     logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
 
@@ -85,6 +87,34 @@ export const isAnyDiscordElevated = (): boolean => {
     return addon.isAnyDiscordElevated()
 }
 
+export const isProcessElevated = (name: string): boolean => {
+    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined;
+    if (!addon) {
+        logger.nativeModuleManager.error('checkAccess addon not loaded.');
+        throw new Error('checkAccess addon not loaded.');
+    }
+    try {
+        return addon.isProcessElevated(name)
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`);
+        return false;
+    }
+}
+
+export const isProcessRunning = (name: string): boolean => {
+    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined;
+    if (!addon) {
+        logger.nativeModuleManager.error('checkAccess addon not loaded.');
+        throw new Error('checkAccess addon not loaded.');
+    }
+    try {
+        return addon.isProcessRunning(name)
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`);
+        return false;
+    }
+}
+
 function watchFile(
     target: string,
     callback: (eventType: string, filename: string) => void,
@@ -105,7 +135,6 @@ export function startThemeWatcher(
     logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`);
 
     watchFile(themesPath, (eventType, filename) => {
-        const fullPath = path.join(themesPath, filename);
         switch (eventType) {
             case 'add':
                 logger.main.info(`File ${filename} has been added`);

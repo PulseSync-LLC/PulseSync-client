@@ -13,7 +13,9 @@ import { S3Client, S3ClientConfig, PutObjectCommand } from '@aws-sdk/client-s3'
 const exec = promisify(_exec)
 
 const debug = process.argv.includes('--debug') || process.argv.includes('-d')
-const buildInstaller = process.argv.includes('--installer') || process.argv.includes('-i')
+const buildOnlyInstaller = process.argv.includes('--installer') || process.argv.includes('-i')
+const buildApplication = process.argv.includes('--application') || process.argv.includes('-app')
+const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
@@ -169,88 +171,106 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
     log(LogLevel.INFO, `Debug: ${debug ? 'ON' : 'OFF'}`)
-    log(LogLevel.INFO, `Installer only: ${buildInstaller ? 'YES' : 'NO'}`)
+    log(LogLevel.INFO, `Installer only: ${buildOnlyInstaller ? 'YES' : 'NO'}`)
+    log(LogLevel.INFO, `Build native modules: ${buildNativeModules ? 'YES' : 'NO'}`)
+    log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
 
-    if (publishBranch) {
-        const appUpdateConfig = {
-            provider: 'generic',
-            url: `${process.env.S3_URL}/builds/${publishBranch}/`,
-            channel: 'latest',
-            updaterCacheDirName: 'pulsesyncapp-updater',
-            useMultipleRangeRequest: true,
+    if (buildNativeModules) {
+        const nmDir = path.resolve(__dirname, '../nativeModules')
+        log(LogLevel.INFO, `Building native modules in ${nmDir}`)
+        const modules = fs.readdirSync(nmDir).filter(name => fs.statSync(path.join(nmDir, name)).isDirectory())
+        for (const mod of modules) {
+            const fullPath = path.join(nmDir, mod)
+            await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)
         }
-        const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
-        fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
-        log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
+        log(LogLevel.SUCCESS, 'All native modules built successfully')
     }
 
-    const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
-    const releaseDir = path.join('.', 'release')
-
-    if (buildInstaller && !publishBranch) {
-        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${outDir}"`)
+    if (!buildNativeModules && buildOnlyInstaller && !publishBranch) {
+        await runCommandStep(
+            'Build (electron-builder)',
+            `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}"`,
+        )
         log(LogLevel.SUCCESS, 'Done')
         return
     }
 
-    const { version } = generateBuildInfo()
-
-    await runCommandStep('Package (electron-forge)', 'electron-forge package')
-
-    if (os.platform() === 'win32') {
-        const nativeDir = path.resolve(__dirname, '../nativeModule')
-
-        function copyNodes(srcDir: string) {
-            fs.readdirSync(srcDir, { withFileTypes: true }).forEach(entry => {
-                const fullPath = path.join(srcDir, entry.name)
-                if (entry.isDirectory()) {
-                    copyNodes(fullPath)
-                } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
-                    const relativePath = path.relative(nativeDir, fullPath)
-                    const dest = path.join(outDir, 'modules', relativePath)
-
-                    fs.mkdirSync(path.dirname(dest), { recursive: true })
-                    fs.copyFileSync(fullPath, dest)
-                    log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
-                }
-            })
-        }
-        copyNodes(nativeDir)
-    }
-
-    const builderBase = path.resolve(__dirname, '../electron-builder.yml')
-    const baseYml = fs.readFileSync(builderBase, 'utf-8')
-    const config = yaml.load(baseYml) as any
-
-    if (publishBranch) {
-        config.publish = [
-            {
+    if (buildApplication) {
+        if (publishBranch) {
+            const appUpdateConfig = {
                 provider: 'generic',
                 url: `${process.env.S3_URL}/builds/${publishBranch}/`,
                 channel: 'latest',
                 updaterCacheDirName: 'pulsesyncapp-updater',
                 useMultipleRangeRequest: true,
-            },
-        ]
-        config.extraMetadata = config.extraMetadata || {}
-        config.extraMetadata.branch = publishBranch
-        config.extraMetadata.version = version
+            }
+            const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
+            fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
+            log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
+        }
+
+        const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+        const releaseDir = path.join('.', 'release')
+
+        const { version } = generateBuildInfo()
+
+        await runCommandStep('Package (electron-forge)', 'electron-forge package')
+
+        if (os.platform() === 'win32') {
+            const nativeDir = path.resolve(__dirname, '../nativeModules')
+
+            function copyNodes(srcDir: string) {
+                fs.readdirSync(srcDir, { withFileTypes: true }).forEach(entry => {
+                    const fullPath = path.join(srcDir, entry.name)
+                    if (entry.isDirectory()) {
+                        copyNodes(fullPath)
+                    } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
+                        const relativePath = path.relative(nativeDir, fullPath)
+                        const dest = path.join(outDir, 'modules', relativePath)
+
+                        fs.mkdirSync(path.dirname(dest), { recursive: true })
+                        fs.copyFileSync(fullPath, dest)
+                        log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+                    }
+                })
+            }
+            copyNodes(nativeDir)
+        }
+
+        const builderBase = path.resolve(__dirname, '../electron-builder.yml')
+        const baseYml = fs.readFileSync(builderBase, 'utf-8')
+        const configObj = yaml.load(baseYml) as any
+
+        if (publishBranch) {
+            configObj.publish = [
+                {
+                    provider: 'generic',
+                    url: `${process.env.S3_URL}/builds/${publishBranch}/`,
+                    channel: 'latest',
+                    updaterCacheDirName: 'pulsesyncapp-updater',
+                    useMultipleRangeRequest: true,
+                },
+            ]
+            configObj.extraMetadata = configObj.extraMetadata || {}
+            configObj.extraMetadata.branch = publishBranch
+            configObj.extraMetadata.version = version
+        }
+
+        const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
+        const tmpPath = path.join(os.tmpdir(), tmpName)
+        fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
+
+        const buildCmd = `electron-builder --pd "${outDir}" --config "${tmpPath}" --publish never`
+        await runCommandStep('Build (electron-builder)', buildCmd)
+        fs.unlinkSync(tmpPath)
+
+        if (publishBranch) {
+            await publishToS3(publishBranch, releaseDir, version)
+        }
+
+        log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
-
-    const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
-    const tmpPath = path.join(os.tmpdir(), tmpName)
-    fs.writeFileSync(tmpPath, yaml.dump(config), 'utf-8')
-
-    const buildCmd = `electron-builder --pd "${outDir}" --config "${tmpPath}" --publish never`
-    await runCommandStep('Build (electron-builder)', buildCmd)
-    fs.unlinkSync(tmpPath)
-
-    if (publishBranch) {
-        await publishToS3(publishBranch, releaseDir, version)
-    }
-
-    log(LogLevel.SUCCESS, 'All steps completed successfully')
 }
 
 main().catch(err => {
