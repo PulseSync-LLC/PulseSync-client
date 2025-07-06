@@ -412,9 +412,6 @@ function App() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            if (user.perms !== 'developer') {
-                return window.electron.window.exit()
-            }
             if (!socket.connected) {
                 socket.connect()
             }

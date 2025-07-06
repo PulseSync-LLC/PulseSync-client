@@ -8,7 +8,7 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { S3Client, S3ClientConfig, PutObjectCommand } from '@aws-sdk/client-s3'
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 
 const exec = promisify(_exec)
 
@@ -16,6 +16,7 @@ const debug = process.argv.includes('--debug') || process.argv.includes('-d')
 const buildOnlyInstaller = process.argv.includes('--installer') || process.argv.includes('-i')
 const buildApplication = process.argv.includes('--application') || process.argv.includes('-app')
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
+const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
@@ -142,16 +143,16 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         const data = yaml.load(raw) as any
         data.commonConfig = {
             DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-            UPDATE_URL: `${process.env.S3_URL}/builds/${branch}/`,
+            UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
         }
         fs.writeFileSync(latestPath, yaml.dump(data), 'utf-8')
         files.push(latestPath)
     }
 
-    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/builds/${branch}/`)
+    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/builds/app/${branch}/`)
 
     for (const filePath of files) {
-        const key = `builds/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
+        const key = `builds/app/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
         const body = await fs.promises.readFile(filePath)
         await client.send(
             new PutObjectCommand({
@@ -167,7 +168,56 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
 }
 
+async function sendPatchNotes(): Promise<void> {
+    const webhookUrl = process.env.DISCORD_WEBHOOK
+    if (!webhookUrl) {
+        log(LogLevel.ERROR, 'DISCORD_WEBHOOK is not set in env')
+        process.exit(1)
+    }
+    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
+    if (!fs.existsSync(patchPath)) {
+        log(LogLevel.WARN, `PATCHNOTES.md not found at ${patchPath}`)
+        return
+    }
+    const rawPatch = fs.readFileSync(patchPath, 'utf-8')
+    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'))
+    const version = pkg.version
+
+    const embed = {
+        title: 'PulseSync',
+        description: 'Вышла новая версия приложения!',
+        color: 0x5865f2,
+        fields: [
+            { name: 'Версия:', value: version, inline: true },
+            { name: 'Изменения:', value: rawPatch, inline: true },
+        ],
+        footer: { text: 'https://pulsesync.dev', icon_url: process.env.BOT_AVATAR_URL },
+        timestamp: new Date().toISOString(),
+    }
+
+    try {
+        const res = await fetch(webhookUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ embeds: [embed] }),
+        })
+        if (!res.ok) {
+            log(LogLevel.ERROR, `Failed to send patchnotes: ${res.status} ${res.statusText}`)
+            process.exit(1)
+        }
+        log(LogLevel.SUCCESS, 'Patchnotes sent successfully')
+    } catch (err: any) {
+        log(LogLevel.ERROR, `Error sending patchnotes: ${err.message || err}`)
+        process.exit(1)
+    }
+}
+
 async function main(): Promise<void> {
+    // if (sendPatchNotesFlag && !buildApplication) {
+    //     await sendPatchNotes()
+    //     return
+    // }
+
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
     log(LogLevel.INFO, `Debug: ${debug ? 'ON' : 'OFF'}`)
@@ -200,7 +250,7 @@ async function main(): Promise<void> {
         if (publishBranch) {
             const appUpdateConfig = {
                 provider: 'generic',
-                url: `${process.env.S3_URL}/builds/${publishBranch}/`,
+                url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                 channel: 'latest',
                 updaterCacheDirName: 'pulsesyncapp-updater',
                 useMultipleRangeRequest: true,
@@ -246,7 +296,7 @@ async function main(): Promise<void> {
             configObj.publish = [
                 {
                     provider: 'generic',
-                    url: `${process.env.S3_URL}/builds/${publishBranch}/`,
+                    url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
                     updaterCacheDirName: 'pulsesyncapp-updater',
                     useMultipleRangeRequest: true,
@@ -265,10 +315,7 @@ async function main(): Promise<void> {
         await runCommandStep('Build (electron-builder)', buildCmd)
         fs.unlinkSync(tmpPath)
 
-        if (publishBranch) {
-            await publishToS3(publishBranch, releaseDir, version)
-        }
-
+        if (publishBranch) await publishToS3(publishBranch, releaseDir, version)
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
 }

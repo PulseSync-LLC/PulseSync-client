@@ -152,7 +152,7 @@ const schema = {
             devSocket: {
                 type: 'boolean',
                 description: 'Включить режим разработчика: открывать сокет для отладки',
-                default: false,
+                default: true,
             },
             askSavePath: {
                 type: 'boolean',
@@ -221,7 +221,7 @@ const schema = {
             hardwareAcceleration: true,
             deletePextAfterImport: false,
             closeAppInTray: false,
-            devSocket: false,
+            devSocket: true,
             askSavePath: false,
             saveAsMp3: false,
             showModModalAfterInstall: false,
@@ -296,7 +296,7 @@ class Store {
     constructor() {
         try {
             this.store = new ElectronStore({
-                name: 'settings',
+                name: 'pulsesync_settings',
                 encryptionKey: 'pulsesync',
                 schema,
             })

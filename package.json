@@ -4,13 +4,14 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.0-beta",
+    "version": "2.8.1-beta",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
         "build:package": "ts-node scripts/build.ts --application --nativeModules --debug",
         "build:installer": "ts-node scripts/build.ts --installer --debug",
         "build:nativeModules": "ts-node scripts/build.ts --application --nativeModules --debug",
+        "publish:patchNotes": "ts-node scripts/build.ts --sendPatchNotes",
         "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",
         "publish:alpha": "ts-node scripts/build.ts --application --publish alpha --debug",
         "publish:dev": "ts-node scripts/build.ts --application --publish dev --debug",
@@ -144,8 +145,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.0-beta",
-        "BRANCH": "40f0e32",
-        "BUILD_TIME": "2025-07-05T19:37:59.097Z"
+        "VERSION": "2.8.1-beta",
+        "BRANCH": "0448431",
+        "BUILD_TIME": "2025-07-06T21:06:34.587Z"
     }
 }

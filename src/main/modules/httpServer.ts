@@ -382,6 +382,7 @@ const handleBrowserAuth = (payload: any, client: Socket) => {
                 logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
                 return app.quit()
             }
+            State.set('tokens.token', token)
             logger.socketManager.info(`Access confirmed for user ${userId}.`)
             mainWindow.webContents.send('authSuccess')
             client.emit('AUTH_SUCCESS')
@@ -391,8 +392,6 @@ const handleBrowserAuth = (payload: any, client: Socket) => {
             logger.socketManager.error(`Error checking access for user ${userId}: ${error}`)
             app.quit()
         })
-
-    State.set('tokens.token', token)
 }
 
 const handlePortInUse = () => {
