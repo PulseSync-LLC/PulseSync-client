@@ -25,8 +25,8 @@ const Checkbox: React.FC<Props> = ({ children, disabled, description, checkType,
                 case 'enableRpcButtonListen':
                     setIsActive(app.discordRpc.enableRpcButtonListen)
                     break
-                case 'enableGithubButton':
-                    setIsActive(app.discordRpc.enableGithubButton)
+                case 'enableWebsiteButton':
+                    setIsActive(app.discordRpc.enableWebsiteButton)
                     break
                 case 'displayPause':
                     setIsActive(app.discordRpc.displayPause)
@@ -73,15 +73,15 @@ const Checkbox: React.FC<Props> = ({ children, disabled, description, checkType,
                         },
                     })
                     break
-                case 'enableGithubButton':
+                case 'enableWebsiteButton':
                     window.discordRpc.clearActivity()
                     window.desktopEvents?.send('GET_TRACK_INFO')
-                    window.electron.store.set('discordRpc.enableGithubButton', event.target.checked)
+                    window.electron.store.set('discordRpc.enableWebsiteButton', event.target.checked)
                     setApp({
                         ...app,
                         discordRpc: {
                             ...app.discordRpc,
-                            enableGithubButton: event.target.checked,
+                            enableWebsiteButton: event.target.checked,
                         },
                     })
                     break

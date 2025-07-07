@@ -67,10 +67,10 @@ const schema = {
                 description: 'Включить прослушивание кликов по кнопке Rich Presence',
                 default: true,
             },
-            enableGithubButton: {
+            enableWebsiteButton: {
                 type: 'boolean',
-                description: 'Показывать кнопку GitHub в Rich Presence',
-                default: false,
+                description: 'Показывать кнопку Website в Rich Presence',
+                default: true,
             },
         },
         required: [
@@ -83,9 +83,9 @@ const schema = {
             'showVersionOrDevice',
             'showSmallIcon',
             'enableRpcButtonListen',
-            'enableGithubButton',
+            'enableWebsiteButton',
         ],
-        additionalProperties: false,
+        additionalProperties: true,
         default: {
             appId: '',
             status: true,
@@ -96,7 +96,7 @@ const schema = {
             showVersionOrDevice: false,
             showSmallIcon: false,
             enableRpcButtonListen: true,
-            enableGithubButton: true,
+            enableWebsiteButton: true,
         },
     },
 

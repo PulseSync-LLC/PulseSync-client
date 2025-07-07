@@ -34,7 +34,7 @@ const settingsInitials: SettingsInterface = {
         appId: '',
         displayPause: false,
         enableRpcButtonListen: false,
-        enableGithubButton: true,
+        enableWebsiteButton: true,
         showVersionOrDevice: false,
         showSmallIcon: true,
         showTrackVersion: false,

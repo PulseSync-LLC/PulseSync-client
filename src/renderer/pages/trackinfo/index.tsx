@@ -226,8 +226,8 @@ export default function TrackInfoPage() {
                                                 ) : null}
                                             </div>
                                             <CheckboxNav
-                                                checkType="enableGithubButton"
-                                                description="Если включить, то в активности появится кнопка, ведущая на гитхаб-репозиторий проекта."
+                                                checkType="enableWebsiteButton"
+                                                description="Если включить, то в активности появится кнопка, ведущая на сайт проекта."
                                             >
                                                 Включить кнопку (PulseSync Project)
                                             </CheckboxNav>
@@ -355,7 +355,7 @@ export default function TrackInfoPage() {
                                                     <div
                                                         className={theme.button}
                                                         onClick={() => {
-                                                            window.open('https://github.com/PulseSync-LLC/PulseSync-client/tree/dev')
+                                                            window.open('https://pulsesync.dev')
                                                         }}
                                                     >
                                                         ♡ PulseSync Project

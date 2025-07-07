@@ -75,10 +75,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.desktopEvents?.send('remove-mod')
     }
 
-    const openGitHub = () => {
-        window.open('https://github.com/PulseSync-LLC/PulseSync-client/tree/dev')
-    }
-
     const toggleSetting = (type: string, status: boolean) => {
         const updatedSettings = { ...app.settings }
         switch (type) {

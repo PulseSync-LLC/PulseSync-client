@@ -440,6 +440,7 @@ function App() {
             const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
             window.desktopEvents?.send('REFRESH_MOD_INFO')
+            window.desktopEvents?.send('GET_TRACK_INFO')
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
             })
@@ -924,10 +925,10 @@ const Player: React.FC<any> = ({ children }) => {
                         url: deepShareTrackUrl,
                     })
                 }
-                if (app.discordRpc.enableGithubButton) {
+                if (app.discordRpc.enableWebsiteButton) {
                     activity.buttons.push({
                         label: '♡ PulseSync Project',
-                        url: 'https://github.com/PulseSync-LLC/PulseSync-client/tree/dev',
+                        url: 'https://pulsesync.dev',
                     })
                 }
                 if (activity.buttons.length === 0) {
@@ -995,10 +996,10 @@ const Player: React.FC<any> = ({ children }) => {
                         })
                     }
 
-                    if (app.discordRpc.enableGithubButton) {
+                    if (app.discordRpc.enableWebsiteButton) {
                         activity.buttons.push({
                             label: '♡ PulseSync Project',
-                            url: `https://github.com/PulseSync-LLC/PulseSync-client/tree/dev`,
+                            url: `https://pulsesync.dev`,
                         })
                     }
 
