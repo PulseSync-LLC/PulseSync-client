@@ -9,6 +9,7 @@ import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import fetch from 'node-fetch'
 
 const exec = promisify(_exec)
 
@@ -168,6 +169,48 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
 }
 
+async function sendChangelogToApi(version: string): Promise<void> {
+    const apiUrl = process.env.CDN_API_URL
+    if (!apiUrl) {
+        log(LogLevel.ERROR, 'CDN_API_URL is not set in env')
+        process.exit(1)
+    }
+    const token = process.env.CDN_API_TOKEN
+    if (!token) {
+        log(LogLevel.ERROR, 'CDN_API_TOKEN is not set in env')
+        process.exit(1)
+    }
+    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
+    if (!fs.existsSync(patchPath)) {
+        log(LogLevel.WARN, `PATCHNOTES.md not found at ${patchPath}`)
+        return
+    }
+    const rawPatch = fs.readFileSync(patchPath, 'utf-8')
+    const changelog = rawPatch
+        .split(/\r?\n/)
+        .map(line => line.trim())
+        .filter(line => line.length > 0)
+
+    try {
+        const res = await fetch(`${apiUrl}/cdn/app/changelog`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ version, changelog }),
+        })
+        if (!res.ok) {
+            log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
+            process.exit(1)
+        }
+        log(LogLevel.SUCCESS, 'Changelog sent successfully')
+    } catch (err: any) {
+        log(LogLevel.ERROR, `Error sending changelog: ${err.message || err}`)
+        process.exit(1)
+    }
+}
+
 async function sendPatchNotes(): Promise<void> {
     const webhookUrl = process.env.DISCORD_WEBHOOK
     if (!webhookUrl) {
@@ -213,10 +256,10 @@ async function sendPatchNotes(): Promise<void> {
 }
 
 async function main(): Promise<void> {
-    // if (sendPatchNotesFlag && !buildApplication) {
-    //     await sendPatchNotes()
-    //     return
-    // }
+    if (sendPatchNotesFlag && !buildApplication) {
+        await sendPatchNotes()
+        return
+    }
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
@@ -315,7 +358,10 @@ async function main(): Promise<void> {
         await runCommandStep('Build (electron-builder)', buildCmd)
         fs.unlinkSync(tmpPath)
 
-        if (publishBranch) await publishToS3(publishBranch, releaseDir, version)
+        if (publishBranch) {
+            await publishToS3(publishBranch, releaseDir, version)
+            await sendChangelogToApi(version)
+        }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
 }
