@@ -118,8 +118,8 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         event.returnValue = isAppDev || isDevmark
     })
 
-    ipcMain.handle('electron-isMac', async (event, args) => {
-        return isMac()
+    ipcMain.on('electron-ismac', async (event, args) => {
+        event.returnValue = isMac()
     })
 
     ipcMain.handle('getVersion', async () => {

@@ -17,7 +17,6 @@ declare global {
                 minimize: () => void
                 close: (val: boolean) => void
                 exit: () => void
-                isMac: () => boolean
             }
             player: {
                 setTrack: (track: Track, currentPercent: number) => void
@@ -31,6 +30,7 @@ declare global {
             receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
             isAppDev: () => boolean
+            isMac: () => boolean
         }
         refreshAddons: () => void
         getModInfo: (args?: any) => void

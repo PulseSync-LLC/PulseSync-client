@@ -15,8 +15,6 @@
         "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",
         "publish:alpha": "ts-node scripts/build.ts --application --publish alpha --debug",
         "publish:dev": "ts-node scripts/build.ts --application --publish dev --debug",
-        "make": "electron-forge make",
-        "publish": "electron-forge publish",
         "lint": "eslint --ext .ts,.tsx .",
         "format": "prettier --write .",
         "updateDeps": "ncu -u"
@@ -145,8 +143,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.1-beta",
-        "BRANCH": "6d11682",
-        "BUILD_TIME": "2025-07-07T21:19:46.606Z"
+        "VERSION": "2.8.2-beta",
+        "BRANCH": "0b46c12",
+        "BUILD_TIME": "2025-07-07T23:11:30.529Z"
     }
 }
