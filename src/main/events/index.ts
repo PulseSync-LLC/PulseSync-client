@@ -424,7 +424,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
         }
 
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
-        const configPulsePath = path.join(app.getPath('userData'), 'settings.json')
+        const configPulsePath = path.join(app.getPath('userData'), 'pulsesync_settings.json')
         const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
         try {
             fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')

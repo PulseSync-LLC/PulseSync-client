@@ -244,7 +244,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             ),
         ]),
         createButtonSection('Особое', [
-            { label: `Beta v${app.info.version}`, onClick: openUpdateModal },
+            { label: `Версия: v${app.info.version} #${window.appInfo.getBranch()}`, onClick: openUpdateModal },
             {
                 label: 'Проверить обновления',
                 onClick: () => window.desktopEvents?.send('checkUpdate'),

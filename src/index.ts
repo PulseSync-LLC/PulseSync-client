@@ -250,9 +250,6 @@ export async function prestartCheck() {
         asarBackup = path.join(musicPath, asarFilename)
     }
 
-    if (!State.get('discordRpc.enableGithubButton')) {
-        State.set('discordRpc.enableGithubButton', true)
-    }
     if (!State.get('discordRpc.appId')) {
         State.set('discordRpc.appId', '')
     }

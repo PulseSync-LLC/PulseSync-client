@@ -368,10 +368,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <MdExtension size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text="Users" disabled={!features.usersPage || !musicInstalled}>
+                            <NavButtonPulse to="/users" text="Users" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text="Store" disabled={!features.storePage || !musicInstalled}>
+                            <NavButtonPulse to="/store" text="Store" disabled={!features?.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
