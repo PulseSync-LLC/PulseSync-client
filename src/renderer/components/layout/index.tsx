@@ -375,10 +375,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/extension" text="Extension" disabled={!musicInstalled}>
                                 <MdExtension size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/usersOld" text="Users Old" disabled={!features.usersPage || !musicInstalled}>
-                                <MdPeople size={24} />
-                                <div className={pageStyles.betatest}>old</div>
-                            </NavButtonPulse>
                             <NavButtonPulse to="/users" text="Users" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>

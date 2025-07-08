@@ -14,6 +14,7 @@ import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
 import config from '../../renderer/api/config'
 import { getState } from './state'
+import fetch from 'electron-fetch'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -376,6 +377,7 @@ const handleBrowserAuth = (payload: any, client: Socket) => {
     }
     fetch(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
         .then(async res => {
+            console.log(res)
             const j = await res.json()
 
             if (!j.ok || !j.access) {

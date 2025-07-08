@@ -95,6 +95,7 @@
         "crypto-browserify": "^3.12.1",
         "css-loader": "^7.1.2",
         "electron-chrome-web-store": "^0.13.0",
+        "electron-fetch": "^1.9.1",
         "electron-is-dev": "^3.0.1",
         "electron-store": "^10.1.0",
         "electron-updater": "^6.6.2",

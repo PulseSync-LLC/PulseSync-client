@@ -7,7 +7,6 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import UsersPageOld from './usersOld'
 import ExtensionPage from './extension'
 import ExtensionBetaPageOld from './extensionbetaOld'
 import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
@@ -120,14 +119,6 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <UsersPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/usersOld',
-            element: (
-                <ErrorBoundary>
-                    <UsersPageOld />
                 </ErrorBoundary>
             ),
         },

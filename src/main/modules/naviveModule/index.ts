@@ -68,7 +68,6 @@ const nativeModules = loadNativeModules()
 
 if (Object.keys(nativeModules).length === 0) {
     logger.nativeModuleManager.error('No native modules available.')
-    throw new Error('Native addons not available.')
 }
 
 export const isDiscordRunning = (): boolean => {
