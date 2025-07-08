@@ -1,4 +1,5 @@
 import { getStore, StoreType } from './storage'
+import logger from './logger'
 
 class State {
     private store: StoreType;
@@ -9,7 +10,7 @@ class State {
         this.state = {
             ...this.store.getAll(),
         };
-        console.log('State initialized with:', this.state);
+        logger.main.info('State initialized with:', this.state);
     }
 
     public get(key: string): any {
