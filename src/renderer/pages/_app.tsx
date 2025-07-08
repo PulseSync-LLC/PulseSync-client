@@ -545,43 +545,42 @@ function App() {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
 
-                if (data.updateAvailable) {
-                    const onDownloadProgress = (event: any, value: any) => {
-                        toast.custom(
-                            'loading',
-                            'Загрузка.',
-                            <>
-                                <span>Загрузка обновления</span>
-                                <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
-                            </>,
-                            { id: toastReference.current },
-                            value,
-                        )
-                    }
-
-                    const onDownloadFailed = () => {
-                        toast.custom('error', 'Ошибка.', 'Ошибка загрузки обновления', { id: toastReference.current })
-                        toastReference.current = null
-                    }
-
-                    const onDownloadFinished = () => {
-                        toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                            id: toastReference.current,
-                        })
-                        toastReference.current = null
-                        setUpdate(true)
-                    }
-
-                    window.desktopEvents?.on('download-update-progress', onDownloadProgress)
-                    window.desktopEvents?.on('download-update-failed', onDownloadFailed)
-                    window.desktopEvents?.on('download-update-finished', onDownloadFinished)
-                } else {
+                if (!data.updateAvailable) {
                     toast.custom('info', 'О как...', 'Обновление не найдено', {
                         id: toastReference.current,
                     })
                     toastReference.current = null
                 }
             })
+            const onDownloadProgress = (event: any, value: any) => {
+                toast.custom(
+                    'loading',
+                    'Загрузка.',
+                    <>
+                        <span>Загрузка обновления</span>
+                        <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
+                    </>,
+                    { id: toastReference.current },
+                    value,
+                )
+            }
+
+            const onDownloadFailed = () => {
+                toast.custom('error', 'Ошибка.', 'Ошибка загрузки обновления', { id: toastReference.current })
+                toastReference.current = null
+            }
+
+            const onDownloadFinished = () => {
+                toast.custom('success', 'Успешно.', 'Обновление загружено', {
+                    id: toastReference.current,
+                })
+                toastReference.current = null
+                setUpdate(true)
+            }
+
+            window.desktopEvents?.on('download-update-progress', onDownloadProgress)
+            window.desktopEvents?.on('download-update-failed', onDownloadFailed)
+            window.desktopEvents?.on('download-update-finished', onDownloadFinished)
             const loadSettings = async () => {
                 await fetchSettings(setApp)
             }
@@ -944,14 +943,14 @@ const Player: React.FC<any> = ({ children }) => {
                     let startTimestamp = Math.round(Date.now() - track.progress.position * 1000)
                     let endTimestamp = startTimestamp + track.durationMs
                     const artistName = track.artists.map(x => x.name).join(', ')
-                    let rawDetails: string;
+                    let rawDetails: string
 
                     if (app.discordRpc.showTrackVersion && track.version) {
-                        rawDetails = `${track.title} (${track.version})`;
+                        rawDetails = `${track.title} (${track.version})`
                     } else if (app.discordRpc.details.length > 0) {
-                        rawDetails = replaceParams(app.discordRpc.details, track, app.discordRpc.showTrackVersion);
+                        rawDetails = replaceParams(app.discordRpc.details, track, app.discordRpc.showTrackVersion)
                     } else {
-                        rawDetails = track.title || 'Unknown Track';
+                        rawDetails = track.title || 'Unknown Track'
                     }
 
                     const activity: any = {

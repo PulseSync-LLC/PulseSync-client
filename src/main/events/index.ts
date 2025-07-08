@@ -87,26 +87,6 @@ const registerWindowEvents = (window: BrowserWindow): void => {
         if (!val) app.quit()
         mainWindow.hide()
     })
-    mainWindow.on('resized', (): void => {
-        const [widthBefore, heightBefore] = mainWindow.getSize()
-        const newWidth = Math.floor(widthBefore / 2) * 2
-        const newHeight = Math.floor(heightBefore / 2) * 2
-        mainWindow.setSize(newWidth, newHeight)
-
-        const [width, height] = mainWindow.getSize()
-        State.set('windowDimensions', {
-            width: width,
-            height: height,
-        })
-    })
-
-    mainWindow.on('moved', (): void => {
-        const [x, y] = mainWindow.getPosition()
-        State.set('windowPosition', {
-            x: x,
-            y: y,
-        })
-    })
 }
 
 const registerSystemEvents = (window: BrowserWindow): void => {

@@ -43,6 +43,7 @@ class Updater {
         })
         autoUpdater.on('download-progress', (info: ProgressInfo) => {
             mainWindow.setProgressBar(info.percent / 100)
+            logger.updater.log('Download progress', info.percent)
             mainWindow.webContents.send('download-update-progress', info.percent)
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
@@ -93,6 +94,11 @@ class Updater {
                 updateAvailable: false,
             })
             return
+        }
+        else {
+            mainWindow.webContents.send('check-update', {
+                updateAvailable: true,
+            })
         }
 
         logger.updater.info('New version available', app.getVersion(), '->', updateInfo.version)
@@ -154,6 +160,7 @@ class Updater {
     }
 
     start() {
+        this.check()
         this.updaterId = setInterval(() => {
             this.check()
         }, 900000)

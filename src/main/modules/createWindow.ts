@@ -1,10 +1,9 @@
-import { app, BrowserWindow, shell, powerMonitor } from 'electron'
+import { app, BrowserWindow, shell, powerMonitor, screen } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import isAppDev from 'electron-is-dev'
 import { getUpdater } from './updater/updater'
 import { updateAvailable } from '../events'
 import { isDevmark } from '../../renderer/api/config'
-import * as electron from 'electron'
 import path from 'path'
 import fs from 'original-fs'
 import logger from './logger'
@@ -15,10 +14,12 @@ declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_WEBPACK_ENTRY: string
 
-const State = getState();
-
+const State = getState()
 export let mainWindow: BrowserWindow
 export let inSleepMode = false
+
+const minMain = { width: 1157, height: 750 }
+const preloaderSize = { width: 250, height: 271 }
 
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
     const area = display.workArea
@@ -26,35 +27,52 @@ const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.
 }
 
 export async function createWindow(): Promise<void> {
-    const savedBounds = State.get('settings.windowBounds')
-    const shouldRestore = State.get('settings.saveWindowBoundsOnRestart') ?? true
+    const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
+    const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
+    const savedPosition = restorePos ? State.get('settings.windowPosition') : undefined
+    const savedDimensions = restoreDim ? State.get('settings.windowDimensions') : undefined
 
-    let position: { x: number; y: number } | undefined
-    let dimensions: { width: number; height: number } | undefined
+    let position: { x: number; y: number } | undefined =
+        savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number'
+            ? { x: savedPosition.x, y: savedPosition.y }
+            : undefined
 
-    if (shouldRestore && typeof savedBounds.width === 'number' && typeof savedBounds.height === 'number') {
-        position = { x: savedBounds.x, y: savedBounds.y }
-        dimensions = { width: savedBounds.width, height: savedBounds.height }
-        const nearest = electron.screen.getDisplayNearestPoint(position)
-        if (!isWithinDisplayBounds(position, nearest)) {
+    const dimensions: { width: number; height: number } | undefined =
+        savedDimensions && typeof savedDimensions.width === 'number' && typeof savedDimensions.height === 'number'
+            ? { width: savedDimensions.width, height: savedDimensions.height }
+            : undefined
+
+    const lastDisplayId: number | undefined = State.get('settings.lastDisplayId')
+    const displays = screen.getAllDisplays()
+    let usedDisplay: Electron.Display
+
+    if (restorePos && position) {
+        const nearest = screen.getDisplayNearestPoint(position)
+        if (isWithinDisplayBounds(position, nearest)) {
+            usedDisplay = nearest
+        } else {
             position = undefined
+            usedDisplay = screen.getPrimaryDisplay()
         }
+    } else if (lastDisplayId) {
+        usedDisplay = displays.find(d => d.id === lastDisplayId) || screen.getPrimaryDisplay()
+        position = undefined
+    } else {
+        usedDisplay = screen.getPrimaryDisplay()
+        position = undefined
     }
 
-    const lastDisplayId = State.get('settings.lastDisplayId')
-    const displays = electron.screen.getAllDisplays()
-    const preloadDisplay = displays.find(d => d.id === lastDisplayId) || electron.screen.getPrimaryDisplay()
-    const workArea = preloadDisplay.workArea
-    const preloaderSize = { width: 250, height: 271 }
-    const preloaderPosition = {
+    State.set('settings.lastDisplayId', usedDisplay.id)
+    const workArea = usedDisplay.workArea
+    const prePos = {
         x: Math.floor(workArea.x + (workArea.width - preloaderSize.width) / 2),
         y: Math.floor(workArea.y + (workArea.height - preloaderSize.height) / 2),
     }
 
     const icon = getNativeImg('appicon', '.ico', 'icon').resize({ width: 40, height: 40 })
     const preloaderWindow = new BrowserWindow({
-        x: preloaderPosition.x,
-        y: preloaderPosition.y,
+        x: prePos.x,
+        y: prePos.y,
         width: preloaderSize.width,
         height: preloaderSize.height,
         backgroundColor: '#08070d',
@@ -79,11 +97,11 @@ export async function createWindow(): Promise<void> {
         show: false,
         frame: false,
         backgroundColor: '#16181E',
-        width: dimensions?.width ?? 1157,
-        height: dimensions?.height ?? 750,
+        width: dimensions?.width ?? minMain.width,
+        height: dimensions?.height ?? minMain.height,
         ...(position ? { x: position.x, y: position.y } : { center: true }),
-        minWidth: 1157,
-        minHeight: 750,
+        minWidth: minMain.width,
+        minHeight: minMain.height,
         transparent: false,
         trafficLightPosition: { x: 16, y: 10 },
         icon,
@@ -97,7 +115,7 @@ export async function createWindow(): Promise<void> {
         },
     })
 
-    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(e => console.error(e))
+    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(console.error)
     mainWindow.once('ready-to-show', () => {
         preloaderWindow.close()
         preloaderWindow.destroy()
@@ -107,29 +125,27 @@ export async function createWindow(): Promise<void> {
         }
     })
 
-    mainWindow.webContents.on('before-input-event', (event, input) => {
+    mainWindow.webContents.on('before-input-event', (e, input) => {
         if (input.control && (input.key === '+' || input.key === '-')) {
-            event.preventDefault()
+            e.preventDefault()
         }
     })
 
-    mainWindow.webContents.setWindowOpenHandler(electronData => {
-        const url = electronData.url
+    mainWindow.webContents.setWindowOpenHandler(data => {
+        const url = data.url
         const marker = '/main_window/'
         const idx = url.indexOf(marker)
         if (idx !== -1) {
             const after = url.slice(idx + marker.length)
             const parts = after.split('/')
-            const addonName = parts.shift()
-            const relativePath = parts.join(path.sep)
-            const addonsDir = path.join(app.getPath('appData'), 'PulseSync', 'addons', addonName)
-            const fullPath = path.join(addonsDir, relativePath)
-
-            if (fs.existsSync(fullPath)) {
-                const fileUri = `file://${fullPath}`
-                shell.openExternal(fileUri)
+            const addon = parts.shift()
+            const rel = parts.join(path.sep)
+            const dir = path.join(app.getPath('appData'), 'PulseSync', 'addons', addon!)
+            const full = path.join(dir, rel)
+            if (fs.existsSync(full)) {
+                shell.openExternal(`file://${full}`)
             } else {
-                logger.renderer.error(`Файл не найден: ${fullPath}`)
+                logger.renderer.error(`Файл не найден: ${full}`)
             }
             return { action: 'deny' }
         }
@@ -137,26 +153,28 @@ export async function createWindow(): Promise<void> {
         return { action: 'deny' }
     })
 
-    mainWindow.on('resized', () => {
-        const bounds = mainWindow.getBounds()
-        State.set('settings.windowBounds', bounds)
+    mainWindow.on('resized', (): void => {
+        const [widthBefore, heightBefore] = mainWindow.getSize()
+        const newWidth = Math.floor(widthBefore / 2) * 2
+        const newHeight = Math.floor(heightBefore / 2) * 2
+        mainWindow.setSize(newWidth, newHeight)
+        const [width, height] = mainWindow.getSize()
+        State.set('settings.windowDimensions', { width, height })
     })
-    mainWindow.on('moved', () => {
-        const bounds = mainWindow.getBounds()
-        State.set('settings.windowBounds', bounds)
+
+    mainWindow.on('moved', (): void => {
+        const [x, y] = mainWindow.getPosition()
+        State.set('settings.windowPosition', { x, y })
     })
+
     mainWindow.on('close', () => {
         const bounds = mainWindow.getBounds()
-        const currentDisplay = electron.screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y })
-        State.set('settings.lastDisplayId', currentDisplay.id)
+        const disp = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y })
+        State.set('settings.lastDisplayId', disp.id)
     })
 
     if (isAppDev) {
-        Object.defineProperty(app, 'isPackaged', {
-            get() {
-                return true
-            },
-        })
+        Object.defineProperty(app, 'isPackaged', { get: () => true })
     }
 
     powerMonitor.on('suspend', () => {

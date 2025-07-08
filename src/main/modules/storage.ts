@@ -81,6 +81,7 @@ const schema = {
             'button',
             'displayPause',
             'showVersionOrDevice',
+            'showTrackVersion',
             'showSmallIcon',
             'enableRpcButtonListen',
             'enableWebsiteButton',
@@ -94,6 +95,7 @@ const schema = {
             button: '',
             displayPause: false,
             showVersionOrDevice: false,
+            showTrackVersion: false,
             showSmallIcon: false,
             enableRpcButtonListen: true,
             enableWebsiteButton: true,
@@ -113,11 +115,6 @@ const schema = {
                 type: 'boolean',
                 description: 'Сохранять позицию окна при закрытии и восстанавливать при следующем запуске',
                 default: false,
-            },
-            saveWindowBoundsOnRestart: {
-                type: 'boolean',
-                description: 'Восстанавливать размеры и позицию окна при следующем запуске',
-                default: true,
             },
             autoStartInTray: {
                 type: 'boolean',
@@ -174,14 +171,22 @@ const schema = {
                 description: 'Путь до мода',
                 default: '',
             },
-            windowBounds: {
+            windowDimensions: {
                 type: 'object',
-                description: 'Последние сохранённые координаты и размеры окна',
+                description: 'Последние сохранённые размеры окна',
+                properties: {
+                    width: { type: 'number' },
+                    height: { type: 'number' },
+                },
+                additionalProperties: false,
+                default: {},
+            },
+            windowPosition: {
+                type: 'object',
+                description: 'Последние сохранённые координаты окна',
                 properties: {
                     x: { type: 'number' },
                     y: { type: 'number' },
-                    width: { type: 'number' },
-                    height: { type: 'number' },
                 },
                 additionalProperties: false,
                 default: {},
@@ -195,7 +200,6 @@ const schema = {
         required: [
             'saveWindowDimensionsOnRestart',
             'saveWindowPositionOnRestart',
-            'saveWindowBoundsOnRestart',
             'autoStartInTray',
             'autoStartMusic',
             'autoStartApp',
@@ -207,14 +211,14 @@ const schema = {
             'saveAsMp3',
             'showModModalAfterInstall',
             'modSavePath',
-            'windowBounds',
+            'windowDimensions',
+            'windowPosition',
             'lastDisplayId',
         ],
-        additionalProperties: false,
+        additionalProperties: true,
         default: {
             saveWindowDimensionsOnRestart: false,
             saveWindowPositionOnRestart: false,
-            saveWindowBoundsOnRestart: false,
             autoStartInTray: false,
             autoStartMusic: false,
             autoStartApp: false,
@@ -226,7 +230,8 @@ const schema = {
             saveAsMp3: false,
             showModModalAfterInstall: false,
             modSavePath: '',
-            windowBounds: {},
+            windowDimensions: {},
+            windowPosition: {},
             lastDisplayId: 0,
         },
     },
@@ -326,6 +331,7 @@ class Store {
         return this.store.store
     }
 }
+
 export const getStore = (() => {
     return () => {
         if (!storeInstance) {

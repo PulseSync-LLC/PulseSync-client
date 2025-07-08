@@ -6,24 +6,22 @@ const LOG_PATH = path.join(app.getPath('userData'), 'logs')
 
 log4js.configure({
     appenders: {
-        out: {
-            type: 'console',
-        },
+        out: { type: 'console' },
         alldateFileLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'log.log'),
-            AlwaysInCludePattern: true,
+            alwaysIncludePattern: true,
         },
         httpLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'http.log'),
-            KeepfileExt: true,
+            keepFileExt: true,
             alwaysIncludePattern: true,
         },
         errorsLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'errors.log'),
-            KeepfileExt: true,
+            keepFileExt: true,
             alwaysIncludePattern: true,
         },
         renderProcessLog: {
@@ -36,35 +34,35 @@ log4js.configure({
             type: 'file',
             filename: path.join(LOG_PATH, 'main.log'),
             keepFileExt: true,
-            MaxLogsize: 1024 * 1024 * 100,
+            maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
         modManagerLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'modManager.log'),
             keepFileExt: true,
-            MaxLogsize: 1024 * 1024 * 100,
+            maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
         socketManagerLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'socketManager.log'),
             keepFileExt: true,
-            MaxLogsize: 1024 * 1024 * 100,
+            maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
         nativeModuleManagerLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'nativeModuleManager.log'),
             keepFileExt: true,
-            MaxLogsize: 1024 * 1024 * 100,
+            maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
         updaterLog: {
             type: 'file',
             filename: path.join(LOG_PATH, 'updaterManager.log'),
             keepFileExt: true,
-            MaxLogsize: 1024 * 1024 * 100,
+            maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
         discordRpc: {
@@ -74,7 +72,7 @@ log4js.configure({
         error: {
             type: 'logLevelFilter',
             level: 'error',
-            appender: 'errorLog',
+            appender: 'errorsLog',
         },
     },
     categories: {
