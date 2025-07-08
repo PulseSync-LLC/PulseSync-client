@@ -9,7 +9,7 @@ import FriendsTab from './tabs/FriendsTab'
 import SettingsTab from './tabs/SettingsTab'
 import * as styles from './userProfileModal.module.scss'
 
-import { MdPersonOutline, MdPeopleOutline, MdSettings } from 'react-icons/md'
+import { MdPersonOutline, MdPeopleOutline, MdSettings, MdClose } from 'react-icons/md'
 
 export interface ExtendedUser extends UserInterface {
     allAchievements?: any[]
@@ -123,9 +123,14 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
     }
 
     return (
-        <div className={`${styles.overlay} ${animationClass}`} onClick={onClose}>
+        <div className={`${styles.overlay} ${animationClass}`}>
             <div className={`${styles.modalContainer} ${animationClass}`} onClick={e => e.stopPropagation()}>
-                <div className={styles.currentTabLabel}>{renderTabTitle()}</div>
+                <div className={styles.currentTabLabel}>
+                    {renderTabTitle()}
+                    <button className={styles.closeBtn} onClick={onClose} aria-label="Закрыть">
+                        <MdClose size={22} />
+                    </button>
+                </div>
 
                 {/* <div className={styles.tabsHeader}>
                     <button

@@ -1,0 +1,100 @@
+.inputContainer {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 10px 16px;
+    width: -webkit-fill-available;
+    background: #3b4052;
+    border-radius: 8px;
+    gap: 2px;
+    outline: transparent solid 2px;
+    transition: var(--transition);
+
+    &:hover {
+        outline: #8d9dd6 solid 2px;
+    }
+}
+
+.label {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.textInput {
+    font-weight: 500;
+    font-size: 18px;
+    line-height: 140%;
+    color: #c7cfee;
+    background: transparent;
+    transition: var(--transition);
+    word-break: break-word;
+    width: -webkit-fill-available;
+
+    &.activeText {
+        color: #C7FFD1;
+    }
+
+    &.inactiveText {
+        color: #FFC3C3;
+    }
+}
+
+.error {
+    font-size: 0.75rem;
+    color: #ffe55e;
+    animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.control {
+    display: flex;
+    flex-direction: row;
+    gap: 6px;
+    width: -webkit-fill-available;
+}
+
+.controlButton {
+    position: relative;
+    cursor: pointer;
+    padding: 1px;
+    background: transparent;
+    transition: var(--transition);
+
+    &:hover {
+        background: transparent;
+
+        svg {
+            color: #fff;
+        }
+    }
+
+    svg {
+        transition: var(--transition);
+        color: #7d849d;
+    }
+}
+
+.activeText {
+    color: #C7FFD1;
+}
+
+.inactiveText {
+    color: #FFC3C3;
+}

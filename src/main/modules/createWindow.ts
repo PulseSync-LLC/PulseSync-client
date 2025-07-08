@@ -15,7 +15,11 @@ declare const PRELOADER_PRELOAD_WEBPACK_ENTRY: string
 declare const PRELOADER_WEBPACK_ENTRY: string
 
 const State = getState()
+declare const SETTINGS_WINDOW_WEBPACK_ENTRY: string
+declare const SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY: string
+
 export let mainWindow: BrowserWindow
+export let settingsWindow: BrowserWindow
 export let inSleepMode = false
 
 const minMain = { width: 1157, height: 750 }
@@ -185,5 +189,32 @@ export async function createWindow(): Promise<void> {
             getUpdater().install()
         }
         inSleepMode = false
+    })
+}
+export function createSettingsWindow() {
+    if (settingsWindow) {
+        settingsWindow.focus()
+        return
+    }
+
+    settingsWindow = new BrowserWindow({
+        width: 1157,
+        height: 750,
+        minWidth: 1157,
+        minHeight: 750,
+        resizable: true,
+        fullscreenable: false,
+        frame: false,
+        backgroundColor: '#16181E',
+        webPreferences: {
+            preload: SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY,
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
+    })
+
+    settingsWindow.loadURL(SETTINGS_WINDOW_WEBPACK_ENTRY)
+    settingsWindow.on('closed', () => {
+        settingsWindow = null
     })
 }

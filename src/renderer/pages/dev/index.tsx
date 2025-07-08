@@ -1,106 +1,102 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './dev.module.scss'
 import toast from '../../components/toast'
+import { motion } from 'framer-motion'
+
+import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, ReferenceLine, Label, Area, AreaChart } from 'recharts'
 
 function Dev() {
-    const [downloadProgress, setDownloadProgress] = useState(0)
+    const [stats, setStats] = useState([])
+    const [count, setCount] = useState<{ users: number; online: number } | null>(null)
+    const [loading, setLoading] = useState(true)
 
-    const handleSuccess = () => {
-        toast.custom('success', 'Отлично', 'Операция выполнена успешно!')
-    }
+    useEffect(() => {
+        const loadStats = fetch('https://ru-node-1.pulsesync.dev/api/v1/users/stats')
+            .then(res => res.json())
+            .then(json => {
+                if (json.ok) {
+                    setStats(json.data)
+                } else {
+                    toast.custom('error', 'Ошибка', 'Ошибка загрузки статистики')
+                }
+            })
 
-    const handleError = () => {
-        toast.custom('error', 'Ошибка', 'Произошла ошибка во время выполнения!')
-    }
+        const loadCount = fetch('https://ru-node-1.pulsesync.dev/api/v1/users/count')
+            .then(res => res.json())
+            .then(json => {
+                if (json.ok) {
+                    setCount({ users: json.users, online: json.online })
+                } else {
+                    toast.custom('error', 'Ошибка', 'Ошибка загрузки онлайна')
+                }
+            })
 
-    const handleWarning = () => {
-        toast.custom('warning', 'Предупреждение', 'Будьте осторожны!')
-    }
+        Promise.all([loadStats, loadCount]).finally(() => setLoading(false))
+    }, [])
 
-    const handleInfo = () => {
-        toast.custom('info', 'Информация', 'Обновление данных завершено.')
-    }
+    const formattedData = stats.map(d => ({
+        ...d,
+        timeRaw: new Date(d.time).toISOString(),
+        timeFormatted: new Date(d.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    }))
 
-    const handleExport = () => {
-        toast.custom('export', 'Экспорт', 'Экспорт данных завершён успешно!')
-    }
-
-    const handleImport = () => {
-        toast.custom('import', 'Импорт', 'Импорт данных завершён успешно!')
-    }
-
-    const handleDownload = () => {
-        const duration = 6000
-        const intervalTime = 100
-        const steps = duration / intervalTime
-        const step = 100 / steps
-
-        let progress = 0
-
-        toast.custom(
-            'loading',
-            'Скачивание',
-            <>
-                <span>Загрузка обновления</span>
-                <b style={{ marginLeft: '.5em' }}>{Math.floor(progress)}%</b>
-            </>,
-            { id: 'download-toast' },
-            progress,
-        )
-
-        const interval = setInterval(() => {
-            progress += step
-
-            if (progress >= 100) {
-                clearInterval(interval)
-                progress = 100
-                toast.custom('success', 'Готово', 'Скачивание завершено!', {
-                    id: 'download-toast',
-                })
-            } else {
-                toast.custom(
-                    'loading',
-                    'Скачивание',
-                    <>
-                        <span>Загрузка обновления</span>
-                        <b style={{ marginLeft: '.5em' }}>{Math.floor(progress)}%</b>
-                    </>,
-                    { id: 'download-toast' },
-                    progress,
-                )
-            }
-        }, intervalTime)
-    }
+    const maxOnline = Math.max(...stats.map(s => s.online), 0)
 
     return (
         <Layout title="Dev">
             <div className={`${globalStyles.page} ${styles.devPage}`}>
-                <h1 className={styles.header}>Тестирование Уведомлений</h1>
-                <div className={styles.buttonContainer}>
-                    <button className={`${styles.button} ${styles.success}`} onClick={handleSuccess}>
-                        Показать "Успех"
-                    </button>
-                    <button className={`${styles.button} ${styles.error}`} onClick={handleError}>
-                        Показать "Ошибка"
-                    </button>
-                    <button className={`${styles.button} ${styles.warning}`} onClick={handleWarning}>
-                        Показать "Предупреждение"
-                    </button>
-                    <button className={`${styles.button} ${styles.info}`} onClick={handleInfo}>
-                        Показать "Информация"
-                    </button>
-                    <button className={`${styles.button} ${styles.export}`} onClick={handleExport}>
-                        Показать "Экспорт"
-                    </button>
-                    <button className={`${styles.button} ${styles.import}`} onClick={handleImport}>
-                        Показать "Импорт"
-                    </button>
-                    <button className={`${styles.button} ${styles.loading}`} onClick={handleDownload}>
-                        Начать загрузку
-                    </button>
+                <div className={styles.stats}>
+                    <div className={styles.statBlock}>
+                        <div className={styles.label}>Users</div>
+                        <div className={styles.value}>{count?.users?.toLocaleString('ru-RU') ?? '—'}</div>
+                    </div>
+                    <div className={styles.statBlock}>
+                        <div className={styles.label}>Peak Online 48h</div>
+                        <div className={styles.value}>{maxOnline?.toLocaleString('ru-RU') ?? '—'}</div>
+                    </div>
+                    <div className={styles.statBlock}>
+                        <div className={styles.label}>Online Now</div>
+                        <div className={styles.value}>{count?.online?.toLocaleString('ru-RU') ?? '—'}</div>
+                    </div>
                 </div>
+
+                {loading ? (
+                    <p>Загрузка...</p>
+                ) : (
+                    <motion.div
+                        className={styles.chartWrapper}
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                    >
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={formattedData}>
+                                <defs>
+                                    <linearGradient id="gradientOnline" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stopColor="#a276ff" stopOpacity={1} />
+                                        <stop offset="100%" stopColor="#a276ff" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+
+                                <Tooltip contentStyle={{ backgroundColor: '#2e2e3d', border: 'none' }} isAnimationActive={false} formatter={v => v} />
+                                <XAxis dataKey="timeRaw" hide />
+                                <Area
+                                    type="monotone"
+                                    dataKey="online"
+                                    stroke="#a276ff"
+                                    fill="url(#gradientOnline)"
+                                    strokeWidth={2}
+                                    isAnimationActive={false}
+                                    dot={({ index, cx, cy }) =>
+                                        index === formattedData.length - 1 ? <circle cx={cx} cy={cy} r={6} className={styles.pulseDot} /> : null
+                                    }
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </motion.div>
+                )}
             </div>
         </Layout>
     )

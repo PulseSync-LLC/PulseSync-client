@@ -1,0 +1,55 @@
+.scrollWrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.scrollContent {
+    overflow-y: overlay;
+}
+
+.scrollbarTrack {
+    position: absolute;
+    top: 5px;
+    bottom: 5px;
+    right: 0;
+    width: 0px;
+    padding: 0 5px;
+    margin: 0 5px;
+    display: flex;
+    height: -webkit-fill-available;
+    background-color: #00000000;
+    transition: var(--transition);
+    z-index: 9999;
+
+    &:hover {
+        width: 5px;
+    }
+}
+
+.scrollbarTrackHover {
+    width: 5px;
+
+    &>.scrollbarThumb {
+        background-color: #98b1ff96;
+    }
+}
+
+.scrollbarThumb {
+    z-index: 9999;
+    cursor: pointer;
+    position: absolute;
+    width: 100%;
+    background-color: #a5b5e752;
+    border-radius: 3px;
+    transition: var(--transition);
+    transform: translateY(0);
+}
+
+.scrollbarTrack.visible {
+    z-index: 9999;
+    background-color: #a5b5e752;
+}
+
+.scrollbarThumb:hover {
+    background-color: #98b1ff96;
+}

@@ -18,7 +18,7 @@ import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { inSleepMode, mainWindow } from '../modules/createWindow'
+import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 import { isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
@@ -60,7 +60,8 @@ async function registerAppReadyEvents(): Promise<void> {
     }
 }
 
-const registerWindowEvents = (window: BrowserWindow): void => {
+// Для обычного окна
+const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
     })
@@ -71,16 +72,7 @@ const registerWindowEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on('electron-window-maximize', () => {
-        if (mainWindow.isMaximized()) mainWindow.unmaximize()
-        else mainWindow.maximize()
-    })
-
-    ipcMain.on('before-quit', async () => {
-        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        if (fs.existsSync(tempFilePath)) {
-            fs.rmSync(tempFilePath)
-        }
-        mainWindow.close()
+        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
 
     ipcMain.on('electron-window-close', (_event, val: boolean) => {
@@ -88,6 +80,37 @@ const registerWindowEvents = (window: BrowserWindow): void => {
         mainWindow.hide()
     })
 }
+
+const registerSettingsEvents = (): void => {
+    ipcMain.on('electron-settings-minimize', () => {
+        settingsWindow.minimize()
+    })
+
+    ipcMain.on('electron-settings-exit', () => {
+        logger.main.info('Exit app')
+        app.quit()
+    })
+
+    ipcMain.on('electron-settings-maximize', () => {
+        settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
+    })
+
+    ipcMain.on('electron-settings-close', (event, val) => {
+        if (!val) {
+            settingsWindow.close()
+        } else {
+            settingsWindow.hide()
+        }
+    })
+}
+
+ipcMain.on('before-quit', async () => {
+    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+    if (fs.existsSync(tempFilePath)) {
+        fs.rmSync(tempFilePath)
+    }
+    if (mainWindow) mainWindow.close()
+})
 
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', event => {
@@ -437,12 +460,15 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             logger.main.error('Addons: Error loading themes:', error)
         }
     })
+    ipcMain.on('open-settings-window', () => {
+        createSettingsWindow()
+    })
     ipcMain.handle('create-new-extension', async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
                 name: 'New Extension',
-                image: 'test.png',
-                banner: 'test.png',
+                image: '',
+                banner: '',
                 author: 'Your Name',
                 version: '1.0.0',
                 description: 'Default theme.',
@@ -506,9 +532,13 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     })
 }
 
+// app
+
 export const handleEvents = (window: BrowserWindow): void => {
+    registerWindowEvents()
+    registerSettingsEvents()
     registerAppReadyEvents()
-    registerWindowEvents(window)
+    registerWindowEvents()
     registerSystemEvents(window)
     registerFileOperations(window)
     registerMediaEvents(window)
@@ -519,6 +549,9 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
+}
+export const handleAppEvents = (window: BrowserWindow): void => {
+    handleEvents(window)
 }
 
 export const checkOrFindUpdate = async (hard?: boolean) => {

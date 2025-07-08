@@ -7,8 +7,10 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import ExtensionBetaPage from './extensionbeta'
-import ExtensionViewPage from './extensionbeta/route/extensionview'
+import UsersPageOld from './usersOld'
+import ExtensionPage from './extension'
+import ExtensionBetaPageOld from './extensionbetaOld'
+import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -45,6 +47,7 @@ import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
+import TrackInfoPageOld from './trackinfoOld'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 
 function App() {
@@ -105,6 +108,14 @@ function App() {
             ),
         },
         {
+            path: '/trackinfoOld',
+            element: (
+                <ErrorBoundary>
+                    <TrackInfoPageOld />
+                </ErrorBoundary>
+            ),
+        },
+        {
             path: '/users',
             element: (
                 <ErrorBoundary>
@@ -113,18 +124,34 @@ function App() {
             ),
         },
         {
-            path: '/extensionbeta',
+            path: '/usersOld',
             element: (
                 <ErrorBoundary>
-                    <ExtensionBetaPage />
+                    <UsersPageOld />
                 </ErrorBoundary>
             ),
         },
         {
-            path: '/extensionbeta/:contactId',
+            path: '/extension',
             element: (
                 <ErrorBoundary>
-                    <ExtensionViewPage />
+                    <ExtensionPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/extensionbetaOld',
+            element: (
+                <ErrorBoundary>
+                    <ExtensionBetaPageOld />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/extensionbetaOld/:contactId',
+            element: (
+                <ErrorBoundary>
+                    <ExtensionViewPageOld />
                 </ErrorBoundary>
             ),
         },
@@ -469,7 +496,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${foundAddon.name}`)
                         setNavigateState(foundAddon)
                     }
                 })
@@ -604,7 +631,7 @@ function App() {
         ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extensionbeta', { replace: true })
+                router.navigate('/extension', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
