@@ -23,7 +23,7 @@ export default function AuthPage() {
     const imgLogo = useRef(null)
 
     const startAuthProcess = () => {
-        window.open(config.SERVER_URL + '/auth/discord')
+        window.open(config.WEBSITE_URL + '/callback')
         navigate('/auth/callback', { replace: true })
     }
     const checkUpdate = () => {

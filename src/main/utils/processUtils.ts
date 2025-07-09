@@ -14,7 +14,6 @@ export function checkCLIArguments(isAppDev: boolean): boolean {
             }).show()
             return true
         }
-        app.quit()
     }
     return false
 }

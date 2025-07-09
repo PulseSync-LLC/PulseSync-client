@@ -71,9 +71,6 @@ if (!isAppDev) {
     }
 }
 
-function checkCLIArgumentsWrapper() {
-    updated = checkCLIArguments(isAppDev)
-}
 const checkOldYandexMusic = async () => {
     try {
         const namePart = 'Yandex.Music'
@@ -111,19 +108,25 @@ const checkOldYandexMusic = async () => {
 }
 
 app.on('ready', async () => {
-    HandleErrorsElectron.processStoredCrashes()
-    await initializeMusicPath()
+    try {
+        HandleErrorsElectron.processStoredCrashes()
+        await initializeMusicPath()
 
-    corsAnywherePort = await initializeCorsAnywhere()
-    checkCLIArgumentsWrapper()
-    if (isWindows()) {
-        await checkOldYandexMusic()
+        corsAnywherePort = await initializeCorsAnywhere()
+        updated = checkCLIArguments(isAppDev)
+        if (isWindows()) {
+            await checkOldYandexMusic()
+        }
+        await createWindow()
+        await checkForSingleInstance()
+        handleEvents(mainWindow)
+        modManager(mainWindow)
+        createTray()
     }
-    await createWindow()
-    await checkForSingleInstance()
-    handleEvents(mainWindow)
-    modManager(mainWindow)
-    createTray()
+    catch (e) {
+        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
+        logger.main.error('Ошибка при запуске приложения:', e)
+    }
 })
 
 app.on('window-all-closed', () => {
