@@ -22,6 +22,7 @@ let attempt = 0
 const State = getState()
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
+
 const closeServer = async (): Promise<void> => {
     const oldServer = server
     const oldIO = io
@@ -57,11 +58,52 @@ const stopSocketServer = async () => {
     await closeServer()
 }
 
+function getAllAllowedUrls(): string[] {
+    const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const urls = new Set<string>()
+
+    const themeFolder = State.get('addons.theme') || selectedAddon || 'Default'
+    const themeMeta = path.join(addonsFolder, themeFolder, 'metadata.json')
+    if (fs.existsSync(themeMeta)) {
+        try {
+            const meta = JSON.parse(fs.readFileSync(themeMeta, 'utf8'))
+            if (Array.isArray(meta.allowedUrls)) {
+                meta.allowedUrls.forEach((u: string) => u && urls.add(u))
+            }
+        } catch {}
+    }
+
+    let scripts = State.get('addons.scripts')
+    if (typeof scripts === 'string') {
+        scripts = scripts
+            .split(',')
+            .map((s: string) => s.trim())
+            .filter(Boolean)
+    } else if (!Array.isArray(scripts)) {
+        scripts = []
+    }
+
+    try {
+        for (const folder of fs.readdirSync(addonsFolder)) {
+            if (!scripts.includes(folder)) continue
+            const metaPath = path.join(addonsFolder, folder, 'metadata.json')
+            if (!fs.existsSync(metaPath)) continue
+            try {
+                const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+                if (Array.isArray(meta.allowedUrls)) {
+                    meta.allowedUrls.forEach((u: string) => u && urls.add(u))
+                }
+            } catch {}
+        }
+    } catch {}
+
+    return Array.from(urls)
+}
+
 const initializeServer = () => {
     server = http.createServer((req, res) => {
         const { method, url, headers } = req
         const { pathname } = parse(url || '', true)
-
         const origin = headers.origin as string | undefined
 
         if (origin && allowedOrigins.includes(origin)) {
@@ -102,7 +144,7 @@ const initializeServer = () => {
 
     io = new IOServer(server, {
         cors: {
-            origin: ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000'],
+            origin: allowedOrigins,
             methods: ['GET', 'POST'],
             allowedHeaders: ['Content-Type', 'sentry-trace'],
         },
@@ -374,7 +416,7 @@ const handleBrowserAuth = (payload: any, client: Socket) => {
         logger.socketManager.error('Invalid authentication data received from browser.')
         return app.quit()
     }
-    fetch(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
+    fetch(`https://ru-node-1.pulsesync.dev/api/v1/user/${userId}/access`)
         .then(async res => {
             const j = await res.json()
 
@@ -423,8 +465,8 @@ export const setAddon = (theme: string) => {
     const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
     const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
     const js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
-    console.log('test: ' + selectedAddon)
     const themeData = { name: selectedAddon, css: css || '{}', script: js || '' }
+
     if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
         return
     }
@@ -442,9 +484,9 @@ export const setAddon = (theme: string) => {
         io!.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-                console.log(themeData.name)
                 sock.emit('THEME', {
                     theme: themeData,
+                    allowedUrls: getAllAllowedUrls(),
                 })
             }
         })
@@ -471,21 +513,21 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
         css: css || '{}',
         script: js || '',
     }
-    console.log(themeData.name)
+
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            if (withJs)
+            if (withJs) {
                 sock.emit('THEME', {
                     theme: themeData,
+                    allowedUrls: getAllAllowedUrls(),
                 })
-            else
+            } else {
                 sock.emit('UPDATE_CSS', {
-                    theme: {
-                        css: themeData.css,
-                        name: themeData.name,
-                    },
+                    theme: { css: themeData.css, name: themeData.name },
+                    allowedUrls: getAllAllowedUrls(),
                 })
+            }
         }
     })
 }
@@ -510,7 +552,7 @@ export const sendExtensions = async (): Promise<void> => {
     let dirs: string[] = []
     try {
         dirs = fs.readdirSync(addonsFolder)
-    } catch (err) {
+    } catch {
         return
     }
 
@@ -534,16 +576,16 @@ export const sendExtensions = async (): Promise<void> => {
 
                 let css: string | null = null
                 if (meta.css) {
-                    const cssPath = path.join(addonsFolder, folderName, meta.css)
-                    if (fs.existsSync(cssPath)) {
-                        css = fs.readFileSync(cssPath, 'utf8')
+                    const cssFile = path.join(addonsFolder, folderName, meta.css)
+                    if (fs.existsSync(cssFile)) {
+                        css = fs.readFileSync(cssFile, 'utf8')
                     }
                 }
                 let script: string | null = null
                 if (meta.script) {
-                    const jsPath = path.join(addonsFolder, folderName, meta.script)
-                    if (fs.existsSync(jsPath)) {
-                        script = fs.readFileSync(jsPath, 'utf8')
+                    const jsFile = path.join(addonsFolder, folderName, meta.script)
+                    if (fs.existsSync(jsFile)) {
+                        script = fs.readFileSync(jsFile, 'utf8')
                     }
                 }
 
@@ -552,7 +594,7 @@ export const sendExtensions = async (): Promise<void> => {
                     css,
                     script,
                 }
-            } catch (err) {
+            } catch {
                 return null
             }
         })
@@ -561,7 +603,10 @@ export const sendExtensions = async (): Promise<void> => {
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            sock.emit('REFRESH_EXTENSIONS', { addons: found })
+            sock.emit('REFRESH_EXTENSIONS', {
+                addons: found,
+                allowedUrls: getAllAllowedUrls(),
+            })
         }
     })
 }
@@ -574,7 +619,7 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sendAddon(true, true)
-            sock.emit('REFRESH_EXTENSIONS', { addons: [] })
+            sock.emit('REFRESH_EXTENSIONS', { addons: [], allowedUrls: getAllAllowedUrls() })
             logger.http.log('Data sent after READY')
         }
     }
@@ -631,7 +676,6 @@ const updateData = (newData: any) => {
         })
     }
     data = newData
-    console.log('Data updated:', data)
     mainWindow.webContents.send('TRACK_INFO', data)
 }
 

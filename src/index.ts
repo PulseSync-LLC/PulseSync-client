@@ -51,13 +51,6 @@ const initializeMusicPath = async () => {
 initializeMusicPath()
 
 if (!isAppDev) {
-    const openAtLogin = app.getLoginItemSettings().openAtLogin
-    if (openAtLogin) {
-        app.setLoginItemSettings({
-            openAtLogin: false,
-            path: app.getPath('exe'),
-        })
-    }
     logger.main.info('Sentry enabled')
     Sentry.init({
         dsn: config.SENTRY_DSN,
@@ -68,6 +61,14 @@ if (!isAppDev) {
         enableRendererProfiling: true,
         attachScreenshot: true,
     })
+} else {
+    const openAtLogin = app.getLoginItemSettings().openAtLogin
+    if (openAtLogin) {
+        app.setLoginItemSettings({
+            openAtLogin: false,
+            path: app.getPath('exe'),
+        })
+    }
 }
 
 function checkCLIArgumentsWrapper() {
@@ -262,9 +263,8 @@ export async function prestartCheck() {
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     createDefaultAddonIfNotExists(themesPath)
     try {
-        startThemeWatcher(themesPath);
-    }
-    catch (e) {
-        logger.main.error('Error setting up file watcher for themes:', e);
+        startThemeWatcher(themesPath)
+    } catch (e) {
+        logger.main.error('Error setting up file watcher for themes:', e)
     }
 }

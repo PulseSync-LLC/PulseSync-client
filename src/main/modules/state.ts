@@ -1,3 +1,4 @@
+import logger from './logger'
 import { getStore, StoreType } from './storage'
 
 class State {
@@ -9,7 +10,7 @@ class State {
         this.state = {
             ...this.store.getAll(),
         };
-        console.log('State initialized with:', this.state);
+        logger.main.info('State initialized with:', this.state);
     }
 
     public get(key: string): any {
@@ -38,8 +39,19 @@ class State {
 
         this.store.set(key, value);
     }
+
     public delete(key: string): void {
-        this.store.delete(key)
+        const keys = key.split('.');
+        let obj: any = this.state;
+        for (let i = 0; i < keys.length - 1; i++) {
+            const segment = keys[i];
+            if (obj[segment] == null || typeof obj[segment] !== 'object') {
+                return;
+            }
+            obj = obj[segment];
+        }
+        delete obj[keys[keys.length - 1]];
+        this.store.delete(key);
     }
 }
 

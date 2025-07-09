@@ -15,7 +15,7 @@ export const isFirstInstance = app.requestSingleInstanceLock()
 const State = getState();
 
 export const checkForSingleInstance = async (): Promise<void> => {
-    logger.main.info('Single instance')
+    logger.main.info('Single instance: ', isFirstInstance ? 'yes' : 'no')
     if (isFirstInstance) {
         const [window] = BrowserWindow.getAllWindows()
 
@@ -51,6 +51,7 @@ export const checkForSingleInstance = async (): Promise<void> => {
         await prestartCheck()
         handleUncaughtException()
     } else {
+        logger.main.info('Another instance is already running, quitting this instance.')
         app.quit()
     }
 }
