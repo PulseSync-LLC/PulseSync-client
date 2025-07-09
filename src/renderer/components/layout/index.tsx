@@ -301,12 +301,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsUpdating(true)
         const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
         downloadToastIdRef.current = id
-        const { modVersion, downloadUrl, checksum, spoof, name } = modInfo[0]
+        const { modVersion, downloadUrl, checksum, spoof, name, shouldReinstall } = modInfo[0]
+        console.log(modInfo[0])
         window.desktopEvents?.send('update-music-asar', {
             version: modVersion,
-            name: name,
+            name,
             link: downloadUrl,
             checksum,
+            shouldReinstall,
             force: force || false,
             spoof: spoof || false,
         })

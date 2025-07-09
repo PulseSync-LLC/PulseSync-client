@@ -8,6 +8,7 @@ export interface ModInterface {
     showModal: string
     createdAt: string
     changelog: string
+    shouldReinstall: boolean
     spoof: boolean
     deprecated: boolean
 }

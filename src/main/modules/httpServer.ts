@@ -58,17 +58,35 @@ const stopSocketServer = async () => {
     await closeServer()
 }
 
-function getAllAllowedUrls(): string[] {
+export function getAllAllowedUrls(): string[] {
     const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     const urls = new Set<string>()
 
-    const themeFolder = State.get('addons.theme') || selectedAddon || 'Default'
-    const themeMeta = path.join(addonsFolder, themeFolder, 'metadata.json')
-    if (fs.existsSync(themeMeta)) {
+    let folders: string[] = []
+    try {
+        folders = fs.readdirSync(addonsFolder)
+    } catch {
+        return []
+    }
+
+    const stateTheme = State.get('addons.theme')
+    const themeFolder =
+        typeof stateTheme === 'string' && stateTheme.trim()
+            ? stateTheme.trim()
+            : typeof selectedAddon === 'string' && selectedAddon.trim()
+              ? selectedAddon.trim()
+              : 'Default'
+
+    const themeMetaPath = path.join(addonsFolder, themeFolder, 'metadata.json')
+    if (fs.existsSync(themeMetaPath)) {
         try {
-            const meta = JSON.parse(fs.readFileSync(themeMeta, 'utf8'))
-            if (Array.isArray(meta.allowedUrls)) {
-                meta.allowedUrls.forEach((u: string) => u && urls.add(u))
+            const meta = JSON.parse(fs.readFileSync(themeMetaPath, 'utf8'))
+            if (Array.isArray((meta as any).allowedUrls)) {
+                ;(meta as any).allowedUrls.forEach((u: unknown) => {
+                    if (typeof u === 'string' && u.trim()) {
+                        urls.add(u.trim())
+                    }
+                })
             }
         } catch {}
     }
@@ -79,23 +97,24 @@ function getAllAllowedUrls(): string[] {
             .split(',')
             .map((s: string) => s.trim())
             .filter(Boolean)
-    } else if (!Array.isArray(scripts)) {
-        scripts = []
     }
+    if (!Array.isArray(scripts)) scripts = []
 
-    try {
-        for (const folder of fs.readdirSync(addonsFolder)) {
-            if (!scripts.includes(folder)) continue
-            const metaPath = path.join(addonsFolder, folder, 'metadata.json')
-            if (!fs.existsSync(metaPath)) continue
-            try {
-                const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
-                if (Array.isArray(meta.allowedUrls)) {
-                    meta.allowedUrls.forEach((u: string) => u && urls.add(u))
-                }
-            } catch {}
-        }
-    } catch {}
+    for (const folder of folders) {
+        if (!scripts.includes(folder)) continue
+        const metaPath = path.join(addonsFolder, folder, 'metadata.json')
+        if (!fs.existsSync(metaPath)) continue
+        try {
+            const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'))
+            if (Array.isArray((meta as any).allowedUrls)) {
+                ;(meta as any).allowedUrls.forEach((u: unknown) => {
+                    if (typeof u === 'string' && u.trim()) {
+                        urls.add(u.trim())
+                    }
+                })
+            }
+        } catch {}
+    }
 
     return Array.from(urls)
 }
@@ -403,7 +422,7 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
             return res.end(JSON.stringify({ error: 'File not found in addon root' }))
         }
     } catch (err) {
-        logger.http.error('Error serving addon root file:', err)
+        logger.socketManager.error('Error serving addon root file:', err)
         res.writeHead(500, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({ error: 'Error serving addon root file' }))
     }
@@ -452,6 +471,15 @@ const handlePortInUse = () => {
     }, 1000)
 }
 
+function sanitizeScript(js: string): string {
+    const oauthPattern = /localStorage\.getItem\(\s*['"]oauth['"]\s*\)/
+    if (oauthPattern.test(js)) {
+        logger.http.warn('SUS script.')
+        return ''
+    }
+    return js
+}
+
 export const setAddon = (theme: string) => {
     if (!authorized || !io) return
 
@@ -464,7 +492,9 @@ export const setAddon = (theme: string) => {
     const cssPath = path.join(themePath, metadata.css || '')
     const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
     const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
-    const js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
+    let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
+    js = sanitizeScript(js)
+
     const themeData = { name: selectedAddon, css: css || '{}', script: js || '' }
 
     if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
@@ -488,6 +518,7 @@ export const setAddon = (theme: string) => {
                     theme: themeData,
                     allowedUrls: getAllAllowedUrls(),
                 })
+                sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
         })
     })
@@ -506,7 +537,8 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     const cssPath = path.join(themePath, metadata.css || '')
     const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
     const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
-    const js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
+    let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
+    js = sanitizeScript(js)
 
     const themeData = {
         name: themeDef ? 'Default' : State.get('addons.theme') || 'Default',
@@ -520,14 +552,13 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
             if (withJs) {
                 sock.emit('THEME', {
                     theme: themeData,
-                    allowedUrls: getAllAllowedUrls(),
                 })
             } else {
                 sock.emit('UPDATE_CSS', {
                     theme: { css: themeData.css, name: themeData.name },
-                    allowedUrls: getAllAllowedUrls(),
                 })
             }
+            sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
         }
     })
 }
@@ -585,7 +616,9 @@ export const sendExtensions = async (): Promise<void> => {
                 if (meta.script) {
                     const jsFile = path.join(addonsFolder, folderName, meta.script)
                     if (fs.existsSync(jsFile)) {
-                        script = fs.readFileSync(jsFile, 'utf8')
+                        let content = fs.readFileSync(jsFile, 'utf8')
+                        content = sanitizeScript(content)
+                        script = content
                     }
                 }
 
@@ -605,8 +638,8 @@ export const sendExtensions = async (): Promise<void> => {
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sock.emit('REFRESH_EXTENSIONS', {
                 addons: found,
-                allowedUrls: getAllAllowedUrls(),
             })
+            sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
         }
     })
 }
@@ -619,7 +652,7 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sendAddon(true, true)
-            sock.emit('REFRESH_EXTENSIONS', { addons: [], allowedUrls: getAllAllowedUrls() })
+            sock.emit('REFRESH_EXTENSIONS', { addons: [] })
             logger.http.log('Data sent after READY')
         }
     }

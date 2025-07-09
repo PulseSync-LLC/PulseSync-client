@@ -10,6 +10,7 @@ export default gql`
             downloadUrl
             createdAt
             showModal
+            shouldReinstall
             checksum
             spoof
             deprecated

@@ -196,6 +196,11 @@ const schema = {
                 description: 'ID последнего экрана, на котором было окно приложения',
                 default: 0,
             },
+            musicReinstalled: {
+                type: 'boolean',
+                description: 'Флаг, указывающий, переустановлена ли музыка',
+                default: false,
+            }
         },
         required: [
             'saveWindowDimensionsOnRestart',
@@ -214,6 +219,7 @@ const schema = {
             'windowDimensions',
             'windowPosition',
             'lastDisplayId',
+            'musicReinstalled',
         ],
         additionalProperties: true,
         default: {
@@ -233,6 +239,7 @@ const schema = {
             windowDimensions: {},
             windowPosition: {},
             lastDisplayId: 0,
+            musicReinstalled: false,
         },
     },
 
@@ -264,7 +271,7 @@ const schema = {
                 type: 'boolean',
                 description: 'Флаг, указывающий, обновлен ли мод до последней версии',
                 default: false,
-            },
+            }
         },
         required: ['musicVersion', 'name', 'version', 'installed', 'updated'],
         additionalProperties: false,

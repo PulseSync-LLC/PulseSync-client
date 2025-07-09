@@ -19,15 +19,17 @@ import {
     isMac,
     copyFile,
     getYandexMusicVersion,
+    updateIntegrityHashInExe,
+    isWindows,
 } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 import { mainWindow } from '../createWindow'
 import { getState } from '../state'
+import asar from '@electron/asar'
 
 const TEMP_DIR = app.getPath('temp')
 const gunzipAsync = promisify(zlib.gunzip)
-
 let yandexMusicVersion: string = null
 let modVersion: string = null
 let modName: string = null
@@ -59,6 +61,11 @@ function sendDownloadFailure(params: { error: string; type?: string; url?: strin
     mainWindow.setProgressBar(-1)
 }
 
+function calcAsarHeaderHashFromFile(asarPath: string): string {
+    const headerString = asar.getRawHeader(asarPath).headerString
+    return crypto.createHash('sha256').update(headerString).digest('hex')
+}
+
 function sendRemoveModFailure(params: { error: string; type?: string }) {
     mainWindow?.webContents.send('remove-mod-failure', {
         success: false,
@@ -67,8 +74,14 @@ function sendRemoveModFailure(params: { error: string; type?: string }) {
 }
 
 export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, force, spoof }) => {
+    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
         try {
+            if (shouldReinstall && !State.get('settings.musicReinstalled')) {
+                State.set('settings', {
+                    musicReinstalled: true,
+                })
+                return await downloadYandexMusic('reinstall')
+            }
             await initializePaths()
 
             if (isLinux() && !State.get('settings.modSavePath')) {
@@ -82,12 +95,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     const fileRes = await dialog.showSaveDialog({
                         title: 'Сохранить модификацию ASAR как...',
                         defaultPath: path.join(musicPath, 'app.asar'),
-                        filters: [
-                            {
-                                name: 'ASAR Files',
-                                extensions: ['asar'],
-                            },
-                        ],
+                        filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
                     })
                     if (fileRes.canceled || !fileRes.filePath) {
                         return sendDownloadFailure({
@@ -107,9 +115,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
 
             if (await isYandexMusicRunning()) {
-                mainWindow.webContents.send('update-message', {
-                    message: 'Закрытие Яндекс Музыки...',
-                })
+                mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
                 await closeYandexMusic()
             }
 
@@ -156,17 +162,19 @@ export const handleModEvents = (window: BrowserWindow): void => {
             }
 
             const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
+
             if (isMac()) {
                 try {
                     await copyFile(modSavePath, modSavePath)
                 } catch (e) {
                     await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
                     return sendDownloadFailure({
-                        error: 'Пожалуйста, предоставьте приложению полный доступ к диску в «Системных настройках» > «Безопасность и конфиденциальность»',
+                        error: 'Пожалуйста, предоставьте приложению полный доступ к диску.',
                         type: 'file_copy_error',
                     })
                 }
             }
+
             await downloadAndUpdateFile(link, tempFilePath, modSavePath, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
@@ -181,31 +189,47 @@ export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('remove-mod', async () => {
         try {
             const doRemove = async () => {
-                if (fs.existsSync(backupPath)) {
+                if(fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, modSavePath)
-                    logger.modManager.info('Backup restored.')
-                    State.delete('mod.version')
-                    State.delete('mod.musicVersion')
-                    State.delete('mod.name')
-                    State.set('mod.installed', false)
-                    await deleteFfmpeg()
-                    mainWindow.webContents.send('remove-mod-success', {
-                        success: true,
-                    })
-                } else {
-                    State.delete('mod')
-                    sendRemoveModFailure({
-                        error: 'Резервная копия не найдена. Яндекс Музыка будет переустановлена.',
-                        type: 'backup_not_found',
-                    })
-                    await downloadYandexMusic('reinstall')
                 }
+                else {
+                    return await downloadYandexMusic('reinstall')
+                }
+                logger.modManager.info('Backup restored.')
+
+                if (isWindows()) {
+                    try {
+                        const exePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
+                        const newHash = calcAsarHeaderHashFromFile(modSavePath)
+                        await updateIntegrityHashInExe(exePath, newHash)
+                        logger.modManager.info('Windows Integrity hash restored.')
+                    } catch (winErr) {
+                        logger.modManager.error('Ошибка восстановления Integrity hash в exe:', winErr)
+                    }
+                }
+                else if (isMac()) {
+                    try {
+                        const appBundlePath = path.resolve(path.dirname(modSavePath), '..', '..')
+                        const patcher = new AsarPatcher(appBundlePath)
+                        await patcher.patch((p, msg) => {
+                            logger.modManager.info(`restore-mac: ${msg} (${p})`)
+                        })
+                        logger.modManager.info('macOS Integrity hash restored.')
+                    } catch (macErr) {
+                        logger.modManager.error('Ошибка восстановления Integrity hash в Info.plist:', macErr)
+                    }
+                }
+
+                State.delete('mod.version')
+                State.delete('mod.musicVersion')
+                State.delete('mod.name')
+                State.set('mod.installed', false)
+                await deleteFfmpeg()
+                mainWindow.webContents.send('remove-mod-success', { success: true })
             }
 
             if (await isYandexMusicRunning()) {
-                mainWindow.webContents.send('update-message', {
-                    message: 'Закрытие Яндекс Музыки...',
-                })
+                mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
                 await closeYandexMusic()
                 setTimeout(doRemove, 1500)
             } else {
@@ -234,7 +258,9 @@ const checkModCompatibility = async (
     recommendedVersion?: string
 }> => {
     try {
-        const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, { params: { yandexVersion: ymV, modVersion: modV } })
+        const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
+            params: { yandexVersion: ymV, modVersion: modV },
+        })
         const d = resp.data
         if (d.error) return { success: false, message: d.error }
         return {
@@ -360,23 +386,21 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
 
-                if (isMac()) {
-                    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
-                    const progressCb = (p: number, status: string) => {
-                        logger.modManager.info('status:', status, 'progress:', p)
-                        patchFrac = Math.min(p / 100, 1)
-                        sendUnifiedProgress()
+                const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
+                const progressCb = (p: number, status: string) => {
+                    logger.modManager.info('status:', status, 'progress:', p)
+                    patchFrac = Math.min(p / 100, 1)
+                    sendUnifiedProgress()
+                }
+                const ok = await patcher.patch(progressCb)
+                if (!ok) {
+                    if (fs.existsSync(backupPath)) {
+                        fs.renameSync(backupPath, savePath)
                     }
-                    const ok = await patcher.patch(progressCb)
-                    if (!ok) {
-                        if (fs.existsSync(backupPath)) {
-                            fs.renameSync(backupPath, savePath)
-                        }
-                        return sendDownloadFailure({
-                            error: 'Не удалось пропатчить ASAR',
-                            type: 'patch_error',
-                        })
-                    }
+                    return sendDownloadFailure({
+                        error: 'Не удалось пропатчить ASAR',
+                        type: 'patch_error',
+                    })
                 }
 
                 State.set('mod', {
@@ -389,9 +413,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
 
                 mainWindow.setProgressBar(-1)
                 setTimeout(() => {
-                    mainWindow.webContents.send('download-success', {
-                        success: true,
-                    })
+                    mainWindow.webContents.send('download-success', { success: true })
                 }, 1500)
             } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
