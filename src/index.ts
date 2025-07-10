@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, crashReporter, dialog, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
@@ -22,6 +22,7 @@ import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/naviveModule'
+import renderConfig from './renderer/api/config'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -109,6 +110,15 @@ const checkOldYandexMusic = async () => {
 
 app.on('ready', async () => {
     try {
+        crashReporter.start({
+            productName: 'PulseSyncApp',
+            submitURL: `${renderConfig.SERVER_URL}/crash-report`,
+            uploadToServer: true,
+            compress: true,
+            extra: {
+                sessionId: `${Date.now()}`,
+            },
+        })
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
@@ -122,8 +132,7 @@ app.on('ready', async () => {
         handleEvents(mainWindow)
         modManager(mainWindow)
         createTray()
-    }
-    catch (e) {
+    } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
         logger.main.error('Ошибка при запуске приложения:', e)
     }

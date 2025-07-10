@@ -5,8 +5,10 @@ import { getFolderSize, formatSizeUnits } from './appUtils'
 import logger from '../modules/logger'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { getState } from '../modules/state'
+import * as acorn from 'acorn'
+import { simple as walkSimple } from 'acorn-walk'
 
-const State = getState();
+const State = getState()
 const defaultAddon: Partial<Addon> = {
     name: 'Default',
     image: 'url',
@@ -130,7 +132,7 @@ export async function loadAddons(): Promise<Addon[]> {
         }
     }
 
-    let selectedTheme = State.get('addons.theme') ?? "Default"
+    let selectedTheme = State.get('addons.theme') ?? 'Default'
     let selectedScripts = State.get('addons.scripts') ?? []
     logger.main.log(selectedScripts)
 
@@ -153,4 +155,111 @@ export async function loadAddons(): Promise<Addon[]> {
     })
 
     return availableAddons
+}
+export function sanitizeScript(js: string): string {
+    let found = false
+    try {
+        const ast = acorn.parse(js, { ecmaVersion: 'latest', sourceType: 'script' }) as acorn.Node
+        const oauthVars = new Set<string>()
+
+        function evalStaticString(node: any): string | undefined {
+            if (node.type === 'Literal' && typeof node.value === 'string') {
+                return node.value
+            }
+            if (node.type === 'BinaryExpression' && node.operator === '+') {
+                const left = evalStaticString(node.left)
+                const right = evalStaticString(node.right)
+                if (typeof left === 'string' && typeof right === 'string') {
+                    return left + right
+                }
+            }
+            if (node.type === 'TemplateLiteral' && node.expressions.length === 0) {
+                return node.quasis.map((q: any ) => q.value.cooked).join('')
+            }
+            return undefined
+        }
+
+        walkSimple(ast, {
+            VariableDeclarator(node: any) {
+                const name = node.id.type === 'Identifier' ? node.id.name : undefined
+                if (!name) return
+                const val = node.init ? evalStaticString(node.init) : undefined
+                if (val === 'oauth') {
+                    oauthVars.add(name)
+                }
+            },
+        })
+
+        function getMemberPath(node: any): string[] {
+            const path: string[] = []
+            let current: any = node
+            while (current && current.type === 'MemberExpression') {
+                if (current.property.type === 'Identifier') {
+                    path.unshift(current.property.name)
+                } else if (current.property.type === 'Literal') {
+                    path.unshift(String(current.property.value))
+                }
+                current = current.object
+            }
+            if (current && current.type === 'Identifier') {
+                path.unshift(current.name)
+            }
+            return path
+        }
+
+        function inspectCall(node: any): void {
+            const callee = node.callee
+            if (callee.type !== 'MemberExpression') return
+            const path = getMemberPath(callee)
+            const len = path.length
+            const method = path[len - 1]
+            const target = path[len - 2]
+            if (target !== 'localStorage') return
+            if (!['getItem', 'setItem', 'removeItem', 'clear'].includes(method)) return
+            if (method === 'clear') {
+                found = true
+                return
+            }
+            const arg = node.arguments[0]
+            if (!arg) return
+            const staticVal = evalStaticString(arg)
+            const isLiteral = staticVal === 'oauth'
+            const isVar = arg.type === 'Identifier' && oauthVars.has(arg.name)
+            const isDirectId = arg.type === 'Identifier' && arg.name === 'oauth'
+            if (isLiteral || isVar || isDirectId) {
+                found = true
+            }
+        }
+
+        function inspectMember(node: any): void {
+            const path = getMemberPath(node)
+            const len = path.length
+            if (len >= 2 && path[len - 2] === 'localStorage' && path[len - 1] === 'oauth') {
+                found = true
+            }
+        }
+
+        walkSimple(ast, {
+            CallExpression(node: any) {
+                inspectCall(node)
+            },
+            ChainExpression(node: any) {
+                const expr = (node as any).expression
+                if (expr.type === 'CallExpression') {
+                    inspectCall(expr)
+                } else if (expr.type === 'MemberExpression') {
+                    inspectMember(expr)
+                }
+            },
+            MemberExpression(node: any) {
+                inspectMember(node)
+            },
+        })
+    } catch {}
+
+    if (found) {
+        logger.http.warn('SUS script detected.')
+        return ''
+    }
+    return js
 }

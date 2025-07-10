@@ -14,6 +14,7 @@ import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
 import config from '../../renderer/api/config'
 import { getState } from './state'
+import { sanitizeScript } from '../utils/addonUtils'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -469,15 +470,6 @@ const handlePortInUse = () => {
             attempt = 0
         })
     }, 1000)
-}
-
-function sanitizeScript(js: string): string {
-    const oauthPattern = /localStorage\.getItem\(\s*['"]oauth['"]\s*\)/
-    if (oauthPattern.test(js)) {
-        logger.http.warn('SUS script.')
-        return ''
-    }
-    return js
 }
 
 export const setAddon = (theme: string) => {

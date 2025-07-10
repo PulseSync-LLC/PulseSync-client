@@ -1,5 +1,5 @@
 import logger from '../logger'
-import { app } from 'electron'
+import { app, crashReporter } from 'electron'
 import { HandleErrorsElectron } from './handleErrorsElectron'
 
 const firstLine = (message: string | Error) => {
@@ -20,16 +20,22 @@ export const toPlainError = (error: Error | any) => {
 export const handleUncaughtException = () => {
     process.on('uncaughtException', (error: Error) => {
         HandleErrorsElectron.handleError('error_handler', error?.name, firstLine(error?.message), error)
+        crashReporter.addExtraParameter('errorMessage', error.message);
+        crashReporter.addExtraParameter('stack', error.stack || '');
+        process.crash();
     })
     app.on('render-process-gone', (event, webContents, detailed) => {
         const REASON_CRASHED = 'crashed'
         const REASON_OOM = 'oom'
         HandleErrorsElectron.handleError('error_handler', 'render_process_gone', 'render_process_gone', detailed)
+        logger.renderer.error('Error in renderer: ' + detailed)
         if ([REASON_CRASHED, REASON_OOM].includes(detailed?.reason)) {
             if (detailed.reason === REASON_CRASHED) {
+                logger.renderer.error('Crash renderer: ' + detailed)
                 logger.renderer.info('Relaunching')
                 app.relaunch()
             }
+            logger.renderer.error('Error in renderer_oom: ' + detailed)
             app.exit(0)
         }
     })

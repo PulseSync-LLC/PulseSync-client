@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.3-beta",
+    "version": "2.8.4-beta",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
@@ -23,7 +23,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.842.0",
+        "@aws-sdk/client-s3": "^3.844.0",
         "@babel/core": "^7.28.0",
         "@babel/preset-env": "^7.28.0",
         "@babel/preset-react": "^7.27.1",
@@ -49,7 +49,7 @@
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
-        "electron": "37.2.0",
+        "electron": "^37.2.0",
         "electron-builder": "^26.0.12",
         "eslint": "^9.30.1",
         "eslint-plugin-import": "^2.32.0",
@@ -85,6 +85,8 @@
         "@types/unzipper": "^0.10.11",
         "@types/yazl": "^3.3.0",
         "@xhayper/discord-rpc": "^1.2.2",
+        "acorn": "^8.15.0",
+        "acorn-walk": "^8.3.4",
         "adm-zip": "^0.5.16",
         "axios": "^1.10.0",
         "browserify-fs": "^1.0.0",
@@ -145,7 +147,7 @@
     },
     "buildInfo": {
         "VERSION": "2.8.3-beta",
-        "BRANCH": "b5b05c2",
-        "BUILD_TIME": "2025-07-09T23:29:01.468Z"
+        "BRANCH": "d22ccc7",
+        "BUILD_TIME": "2025-07-10T00:01:14.729Z"
     }
 }

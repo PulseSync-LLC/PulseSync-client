@@ -1,4 +1,14 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
+import {
+    app,
+    BrowserWindow,
+    dialog,
+    ipcMain,
+    Notification,
+    shell,
+    session,
+    session as electronSession,
+    crashReporter,
+} from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
 import fs from 'original-fs'
@@ -344,6 +354,8 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         authorized = data.status
         if (data?.user) {
             Sentry.setUser({ id: data.user.id, username: data.user.username, email: data.user.email })
+            crashReporter.addExtraParameter("id", data.user.id)
+            crashReporter.addExtraParameter('email', data.user.email)
         } else {
             Sentry.setUser(null)
         }
