@@ -15,6 +15,7 @@ import { mainWindow } from './createWindow'
 import config from '../../renderer/api/config'
 import { getState } from './state'
 import { sanitizeScript } from '../utils/addonUtils'
+import axios from 'axios'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -429,31 +430,28 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
     }
 }
 
-const handleBrowserAuth = (payload: any, client: Socket) => {
+const handleBrowserAuth = async (payload: any, client: Socket) => {
     const { userId, token } = payload.args
 
     if (!userId || !token) {
         logger.socketManager.error('Invalid authentication data received from browser.')
         return app.quit()
     }
-    fetch(`https://ru-node-1.pulsesync.dev/api/v1/user/${userId}/access`)
-        .then(async res => {
-            const j = await res.json()
-
-            if (!j.ok || !j.access) {
-                logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
-                return app.quit()
-            }
-            State.set('tokens.token', token)
-            logger.socketManager.info(`Access confirmed for user ${userId}.`)
-            mainWindow.webContents.send('authSuccess')
-            client.emit('AUTH_SUCCESS')
-            mainWindow.show()
-        })
-        .catch(error => {
-            logger.socketManager.error(`Error checking access for user ${userId}: ${error}`)
-            app.quit()
-        })
+    try {
+        const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
+        if (!data.ok || !data.access) {
+            logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
+            return app.quit()
+        }
+        State.set('tokens.token', token)
+        logger.socketManager.info(`Access confirmed for user ${userId}.`)
+        mainWindow.webContents.send('authSuccess')
+        client.emit('AUTH_SUCCESS')
+        mainWindow.show()
+    } catch (error) {
+        logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)
+        app.quit()
+    }
 }
 
 const handlePortInUse = () => {

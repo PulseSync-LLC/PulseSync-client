@@ -76,7 +76,7 @@ function sendRemoveModFailure(params: { error: string; type?: string }) {
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
         try {
-            if (shouldReinstall && !State.get('settings.musicReinstalled')) {
+            if ((shouldReinstall && !State.get('settings.musicReinstalled') && isWindows())) {
                 State.set('settings', {
                     musicReinstalled: true,
                 })

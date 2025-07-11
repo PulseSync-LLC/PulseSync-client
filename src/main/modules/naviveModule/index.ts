@@ -9,20 +9,20 @@ import { sendAddon } from '../httpServer'
 declare const __non_webpack_require__: (moduleId: string) => any
 
 interface CheckAccessAddon {
-    isDiscordRunning(): boolean;
-    isAnyDiscordElevated(): boolean;
-    isProcessRunning(target: string): boolean;
-    isProcessElevated(target: string): boolean;
+    isDiscordRunning(): boolean
+    isAnyDiscordElevated(): boolean
+    isProcessRunning(target: string): boolean
+    isProcessElevated(target: string): boolean
 }
 
 interface FileWatcherAddon {
-    watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void;
+    watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
 }
 
 interface NativeModules {
-    checkAccess?: CheckAccessAddon;
-    fileWatcher?: FileWatcherAddon;
-    [addonName: string]: any;
+    checkAccess?: CheckAccessAddon
+    fileWatcher?: FileWatcherAddon
+    [addonName: string]: any
 }
 
 const loadNativeModules = (): NativeModules => {
@@ -60,98 +60,102 @@ const loadNativeModules = (): NativeModules => {
         })
     }
 
-    scanDir(baseDir)
+    try {
+        scanDir(baseDir)
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
+    }
+
+    if (isWindows() && Object.keys(modules).length === 0) {
+        logger.nativeModuleManager.warn('No native modules available.')
+    }
+
     return modules
 }
 
 const nativeModules = loadNativeModules()
 
-if (Object.keys(nativeModules).length === 0) {
-    logger.nativeModuleManager.error('No native modules available.')
-    throw new Error('Native addons not available.')
-}
-
 export const isDiscordRunning = (): boolean => {
     const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
     if (!addon) {
-        throw new Error('checkAccess addon not loaded.')
+        logger.nativeModuleManager.warn('checkAccess addon not loaded. isDiscordRunning will return false.')
+        return false
     }
-    return addon.isDiscordRunning()
+    try {
+        return addon.isDiscordRunning()
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in isDiscordRunning: ${err}`)
+        return false
+    }
 }
 
 export const isAnyDiscordElevated = (): boolean => {
     const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
     if (!addon) {
-        throw new Error('checkAccess addon not loaded.')
+        logger.nativeModuleManager.warn('checkAccess addon not loaded. isAnyDiscordElevated will return false.')
+        return false
     }
-    return addon.isAnyDiscordElevated()
+    try {
+        return addon.isAnyDiscordElevated()
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in isAnyDiscordElevated: ${err}`)
+        return false
+    }
 }
 
 export const isProcessElevated = (name: string): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined;
+    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
     if (!addon) {
-        logger.nativeModuleManager.error('checkAccess addon not loaded.');
-        throw new Error('checkAccess addon not loaded.');
+        logger.nativeModuleManager.warn('checkAccess addon not loaded. isProcessElevated will return false.')
+        return false
     }
     try {
         return addon.isProcessElevated(name)
     } catch (err) {
-        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`);
-        return false;
+        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`)
+        return false
     }
 }
 
 export const isProcessRunning = (name: string): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined;
+    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
     if (!addon) {
-        logger.nativeModuleManager.error('checkAccess addon not loaded.');
-        throw new Error('checkAccess addon not loaded.');
+        logger.nativeModuleManager.warn('checkAccess addon not loaded. isProcessRunning will return false.')
+        return false
     }
     try {
         return addon.isProcessRunning(name)
     } catch (err) {
-        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`);
-        return false;
+        logger.nativeModuleManager.error(`Error checking process running: ${err}`)
+        return false
     }
 }
 
-function watchFile(
-    target: string,
-    callback: (eventType: string, filename: string) => void,
-    intervalMs: number = 1000
-): void {
-    const addon = nativeModules['fileWatcher'] as FileWatcherAddon | undefined;
+export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
+    const addon = nativeModules['fileWatcher'] as FileWatcherAddon | undefined
     if (!addon) {
-        logger.nativeModuleManager.error('fileWatcher addon not loaded.');
-        throw new Error('fileWatcher addon not loaded.');
+        logger.main.warn('fileWatcher addon not loaded. startThemeWatcher will not watch files.')
+        return
     }
-    addon.watch(target, intervalMs, callback);
-}
-
-export function startThemeWatcher(
-    themesPath: string,
-    intervalMs: number = 1000
-): void {
-    logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`);
-
-    watchFile(themesPath, (eventType, filename) => {
+    logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
+    addon.watch(themesPath, intervalMs, (eventType, filename) => {
         switch (eventType) {
             case 'add':
-                logger.main.info(`File ${filename} has been added`);
-                sendAddon(true);
-                break;
+                logger.main.info(`File ${filename} has been added`)
+                sendAddon(true)
+                break
             case 'change':
-                logger.main.info(`File ${filename} has been changed`);
-                sendAddon(true);
-                break;
+                logger.main.info(`File ${filename} has been changed`)
+                sendAddon(true)
+                break
             case 'unlink':
-                logger.main.info(`File ${filename} has been removed`);
-                sendAddon(true);
-                break;
+                logger.main.info(`File ${filename} has been removed`)
+                sendAddon(true)
+                break
             default:
-                logger.main.warn(`Unknown event ${eventType} on ${filename}`);
+                logger.main.warn(`Unknown event ${eventType} on ${filename}`)
         }
-    }, intervalMs);
+    })
 }
 
 export default nativeModules as NativeModules

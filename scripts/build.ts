@@ -136,18 +136,40 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
         .filter(fp => path.basename(fp).includes(version))
 
-    const latestPath = path.join(dir, 'latest.yml')
-    const hasLatest = fs.existsSync(latestPath)
+    const platform = os.platform()
+    let variantFile = 'latest.yml'
+    if (platform === 'darwin') variantFile = 'latest-mac.yml'
+    else if (platform === 'linux') variantFile = 'latest-linux.yml'
 
-    if (hasLatest) {
-        const raw = fs.readFileSync(latestPath, 'utf-8')
-        const data = yaml.load(raw) as any
+    const variantPath = path.join(dir, variantFile)
+    if (fs.existsSync(variantPath)) {
+        log(LogLevel.INFO, `Processing ${variantFile}`)
+        const raw = fs.readFileSync(variantPath, 'utf-8')
+        let data: any = {}
+        try {
+            data = yaml.load(raw) as any
+        } catch (e: any) {
+            log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
+        }
         data.commonConfig = {
             DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
             UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
         }
-        fs.writeFileSync(latestPath, yaml.dump(data), 'utf-8')
-        files.push(latestPath)
+        fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
+        files.push(variantPath)
+        log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
+    }
+
+    const zipFiles = fs
+        .readdirSync(dir)
+        .filter(name => name.endsWith('.zip') && name.includes(version))
+        .map(name => path.join(dir, name))
+
+    for (const zipPath of zipFiles) {
+        if (!files.includes(zipPath)) {
+            files.push(zipPath)
+            log(LogLevel.SUCCESS, `Queued ZIP installer: ${path.basename(zipPath)}`)
+        }
     }
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/builds/app/${branch}/`)
@@ -257,7 +279,7 @@ async function sendPatchNotes(): Promise<void> {
 
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
-        await sendPatchNotes()
+        //await sendPatchNotes()
         return
     }
 
@@ -360,7 +382,7 @@ async function main(): Promise<void> {
 
         if (publishBranch) {
             await publishToS3(publishBranch, releaseDir, version)
-            await sendChangelogToApi(version)
+            //await sendChangelogToApi(version)
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }

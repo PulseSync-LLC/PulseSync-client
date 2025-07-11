@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.4-beta",
+    "version": "2.8.3-dev",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
@@ -49,7 +49,7 @@
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
-        "electron": "^37.2.0",
+        "electron": "^37.2.1",
         "electron-builder": "^26.0.12",
         "eslint": "^9.30.1",
         "eslint-plugin-import": "^2.32.0",
@@ -99,7 +99,7 @@
         "electron-store": "^10.1.0",
         "electron-updater": "^6.6.2",
         "formik": "^2.4.6",
-        "framer-motion": "^12.23.1",
+        "framer-motion": "^12.23.3",
         "fs-extra": "^11.3.0",
         "get-port": "^7.1.0",
         "glob": "^11.0.3",
@@ -146,8 +146,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.3-beta",
-        "BRANCH": "d22ccc7",
-        "BUILD_TIME": "2025-07-10T00:01:14.729Z"
+        "VERSION": "2.8.3-dev",
+        "BRANCH": "8043629",
+        "BUILD_TIME": "2025-07-10T21:09:27.128Z"
     }
 }

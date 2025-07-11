@@ -363,17 +363,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/trackinfo" text="Track Info">
+                            <NavButtonPulse to="/trackinfo" text="Информация о треке">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensionbeta" text="Extension Beta" disabled={!musicInstalled}>
+                            <NavButtonPulse to="/extensionbeta" text="Аддоны Бета" disabled={!musicInstalled}>
                                 <MdExtension size={24} />
                                 <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text="Users" disabled={!features?.usersPage || !musicInstalled}>
+                            <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text="Store" disabled={!features?.storePage || !musicInstalled}>
+                            <NavButtonPulse to="/store" text="Магазин расширений" disabled={!features?.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
@@ -384,7 +384,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 </NavButtonPulse>
                             )}
                             {updateAvailable && (
-                                <TooltipButton tooltipText="Install Update" as={'div'}>
+                                <TooltipButton tooltipText="Установить обновление" as={'div'}>
                                     <button
                                         onClick={() => {
                                             if (window.electron.isMac()) {
