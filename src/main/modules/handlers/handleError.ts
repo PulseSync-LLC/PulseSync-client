@@ -19,10 +19,11 @@ export const toPlainError = (error: Error | any) => {
 
 export const handleUncaughtException = () => {
     process.on('uncaughtException', (error: Error) => {
+        logger.main.error('Uncaught Exception:', toPlainError(error))
         HandleErrorsElectron.handleError('error_handler', error?.name, firstLine(error?.message), error)
-        crashReporter.addExtraParameter('errorMessage', error.message);
-        crashReporter.addExtraParameter('stack', error.stack || '');
-        process.crash();
+        crashReporter.addExtraParameter('errorMessage', error.message)
+        crashReporter.addExtraParameter('stack', error.stack || '')
+        process.crash()
     })
     app.on('render-process-gone', (event, webContents, detailed) => {
         const REASON_CRASHED = 'crashed'
