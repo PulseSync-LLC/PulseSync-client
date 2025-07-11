@@ -10,7 +10,7 @@ interface UserStatusProps {
 const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
     const statusColor = getStatusColor(userProfile)
     const statusColorDark = getStatusColor(userProfile, true)
-    const statusUser = getStatus(userProfile)
+    const statusUser = getStatus(userProfile, true)
 
     const handleClick = (e: React.MouseEvent<HTMLDivElement>) => {
         if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && userProfile.currentTrack.trackSource !== 'UGC') {
@@ -37,30 +37,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
                 userProfile.currentTrack && userProfile.currentTrack.status === 'playing' ? styles.hoverEffect : ''
             }`}
         >
-            {(() => {
-                if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing') {
-                    if (typeof statusUser === 'string') {
-                        return `Слушает: ${statusUser}`
-                    } else if (statusUser && typeof statusUser === 'object' && 'text' in statusUser && 'detail' in statusUser) {
-                        return (
-                            <>
-                                {statusUser.text}: {statusUser.detail}
-                            </>
-                        )
-                    }
-                } else {
-                    if (typeof statusUser === 'string') {
-                        return statusUser;
-                    } else if (statusUser && typeof statusUser === 'object' && 'text' in statusUser && 'detail' in statusUser) {
-                        return (
-                            <>
-                                {statusUser.text} {statusUser.detail}
-                            </>
-                        );
-                    }
-                }
-                return null;
-            })()}
+            {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' ? `Слушает: ${statusUser}` : statusUser}
             {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && <MdOpenInNew size={20} />}
         </div>
     )

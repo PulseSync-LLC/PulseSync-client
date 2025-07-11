@@ -37,23 +37,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.send('electron-window-exit')
         },
     },
-    settings: {
-        minimize() {
-            ipcRenderer.send('electron-settings-minimize')
-        },
-        maximize() {
-            ipcRenderer.send('electron-settings-maximize')
-        },
-        close(val: boolean) {
-            ipcRenderer.send('electron-settings-close', val)
-        },
-        exit() {
-            ipcRenderer.send('electron-settings-exit')
-        },
-        isMac() {
-            return ipcRenderer.sendSync('electron-mac')
-        },
-    },
     corsAnywherePort() {
         return ipcRenderer.sendSync('electron-corsanywhereport')
     },

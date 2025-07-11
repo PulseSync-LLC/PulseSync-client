@@ -4,7 +4,7 @@
     color: var(--color1);
     height: fit-content;
     -webkit-app-region: drag;
-    padding: 0 0 0 20px;
+    padding: 0 0 0 25px;
     width: -webkit-fill-available;
     z-index: 9997;
 
@@ -16,38 +16,20 @@
         .app_menu {
             display: flex;
             align-items: center;
-            gap: 23px;
-
-            .settingsButton {
-                transition: var(--transition);
-                display: flex;
-                flex-direction: row;
-                align-items: center;
-                padding: 10px 10px;
-                border-radius: 10px;
-                gap: 4px;
-
-                &:hover {
-                    background: #20232c;
-                }
-            }
-
-            .line {
-                width: 1px;
-                height: 20px;
-                background: #20232c;
-            }
+            gap: 16px;
 
             .logoplace {
-                padding: 10px 20px;
-                border-radius: 10px;
                 display: flex;
                 align-items: center;
                 gap: 8px;
+                background: var(--Main);
+                outline: solid 0px var(--Main);
                 transition: var(--transition);
 
                 &:hover {
-                    background: #20232c;
+                    border-radius: 2px;
+                    background: var(--MainBG);
+                    outline: solid 9px var(--MainBG);
                 }
 
                 .false {
@@ -73,10 +55,6 @@
 
                     color: var(--HeaderBarTextColor);
                 }
-            }
-
-            .active {
-                background: #1f222b;
             }
 
             button {
@@ -258,7 +236,7 @@
                     gap: 7px;
 
                     color: var(--statusColor);
-                    background: #ffffff00;
+                    background: #20232c;
                     border-radius: 15px 8px 8px 15px;
 
                     &:hover {
@@ -288,18 +266,59 @@
 
                         & > .status {
                             position: absolute;
-                            top: 0;
-                            bottom: 0px;
-                            height: -webkit-fill-available;
-                            right: -10px;
-                            align-content: center;
+                            bottom: -1px;
+                            right: -2px;
+                            outline: solid 3px #20232c;
+                            border-radius: 50%;
 
                             & > .dot {
-                                width: 5px;
-                                height: 26px;
+                                width: 9px;
+                                height: 9px;
+                                border-radius: 50%;
                                 background: var(--statusColor);
-                                border-radius: 39px;
                             }
+                        }
+                    }
+
+                    & > .user_info {
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;
+                        align-items: flex-start;
+                        padding: 0px;
+                        gap: 2px;
+
+                        font-weight: 500;
+                        font-size: 14px;
+                        line-height: 16px;
+
+                        & > .username {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 900;
+                            font-size: 12px;
+                            line-height: 110%;
+
+                            color: var(--statusColor);
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
+                        }
+                        & > .status_text {
+                            min-width: 59px;
+                            max-width: 85px;
+
+                            font-weight: 500;
+                            font-size: 10px;
+                            line-height: 110%;
+
+                            color: var(--statusColor);
+                            text-overflow: ellipsis;
+                            flex: none;
+                            overflow: hidden;
+                            white-space: nowrap;
                         }
                     }
                 }
@@ -585,7 +604,7 @@
                     -webkit-app-region: no-drag;
 
                     &:hover {
-                        background: #20232c;
+                        background: var(--MainBG);
                     }
                 }
             }

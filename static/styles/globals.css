@@ -12,7 +12,7 @@
     --gray: #777;
     --grayer: #25252d;
     --Main: #16181e;
-    --MainBG: #232631;
+    --MainBG: #1e2027;
 
     --BorderColor: #363944;
     --BorderRadius: 8px;
@@ -73,7 +73,7 @@ a.disabled {
 }
 
 a.active > button {
-    background: #3e6aff;
+    background: var(--panelsColor);
     border: none;
 
     & > svg {
@@ -210,166 +210,226 @@ form {
         animate-svg-fill-3 0.7s cubic-bezier(0.39, 0.575, 0.565, 1) 0.9s both;
 }
 
-/*  */
-
-/* === Контейнер Markdown === */
+/* Общие стили для всех элементов в markdown */
 [class*='markdownText'] {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #e5e7eb; /* светло-серый текст */
-    background: transparent;
-    line-height: 1.7;
-    padding: 24px;
+    font-family: 'Arial', sans-serif;
+    color: #333;
+    line-height: 1.6;
+    margin: 0;
+    padding: 20px;
+    background-color: #f9f9f9;
 }
 
-/* === Заголовки === */
+/* Заголовки */
 [class*='markdownText'] h1,
 [class*='markdownText'] h2,
 [class*='markdownText'] h3 {
-    font-weight: 700;
-    margin: 32px 0 16px;
-    line-height: 1.3;
-    color: #B1E3CF; /* насыщенный голубой */
+    color: #d9dadd;
+    font-weight: bold;
+    margin: 20px 0 10px;
 }
 
 [class*='markdownText'] h1 {
-    font-size: 2.25rem;
-    border-bottom: 2px solid #a1ffd998;
-    padding-bottom: 6px;
+    font-size: 2.5em;
+    border-bottom: 2px solid #d9dadd;
+    padding-bottom: 5px;
 }
 
 [class*='markdownText'] h2 {
-    font-size: 1.75rem;
+    font-size: 2em;
+    color: #d9dadd;
 }
 
 [class*='markdownText'] h3 {
-    font-size: 1.4rem;
+    font-size: 1.5em;
+    color: #d9dadd;
 }
 
-/* === Параграфы === */
+/* Абзацы */
 [class*='markdownText'] p {
-    font-size: 1rem;
-    margin-bottom: 20px;
-    font-weight: 500;
+    font-size: 16px;
+    margin-bottom: 15px;
 }
 
-/* === Списки === */
-[class*='markdownText'] ul,
-[class*='markdownText'] ol {
-    margin: 0;
-    padding: 0px 20px;
-}
-[class*='markdownText'] li {
-    margin-bottom: 8px;
-    font-size: 1rem;
-    font-weight: 500;
-}
-
-/* === Ссылки === */
-[class*='markdownText'] a {
-    font-weight: 500;
-    color: #B1E3CF;
-    text-decoration: none;
-    border-bottom: 1px dashed #B1E3CF;
-    transition:
-        color 0.2s,
-        border-bottom-color 0.2s;
-}
-[class*='markdownText'] a:hover {
-    color: #ffffff;
-    border-bottom-color: #ffffff;
-}
-
-/* === Изображения === */
+/* Изображения */
 [class*='markdownText'] img {
-    display: block;
-    max-width: 100%;
+    width: 100%;
+    max-width: 600px;
     height: auto;
+    display: block;
+    margin: 20px 0px;
     border-radius: 8px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* === Цитаты === */
-[class*='markdownText'] blockquote {
-    background: rgba(138, 174, 255, 0.1);
-    padding: 16px 20px;
-    margin: 24px 0;
-    border-left: 4px solid #B1E3CF;
-    color: #e7fff5;
-    font-style: italic;
-    border-radius: 4px;
+/* Стиль для ссылок */
+[class*='markdownText'] a {
+    color: #80a0ff;
+    text-decoration: none;
+    border-bottom: 2px solid #80a0ff;
+    transition:
+        color 0.3s ease,
+        border-color 0.3s ease;
 }
+
+[class*='markdownText'] a:hover {
+    color: #333;
+    border-color: #333;
+}
+
+/* Стиль для цитат */
+[class*='markdownText'] blockquote {
+    background-color: #171921;
+    border-left: 5px solid #75a4ff;
+    padding: 15px 20px;
+    margin: 10px 0;
+    border-radius: 2px;
+    font-style: italic;
+    color: #75a4ff;
+}
+
 [class*='markdownText'] blockquote p {
     margin: 0;
 }
 
-/* === Встроенный код === */
-[class*='markdownText'] code {
-    background: #3b4154;
-    padding: 2px 4px;
-    border-radius: 4px;
-    font-family: 'Source Code Pro', monospace;
-    font-size: 0.9rem;
-    text-wrap: auto;
-    font-weight: 500;
+[class*='markdownText'] blockquote code {
+    background-color: #2a314d;
+    color: #75a4ff;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
 }
 
-/* === Блочный код === */
-[class*='markdownText'] pre {
-    background: #3b4154;
-    padding: 16px;
-    margin: 24px 0;
-    border-radius: 6px;
-    overflow-x: auto;
-}
-[class*='markdownText'] pre code {
-    display: block;
-    white-space: pre;
-    font-family: 'Source Code Pro', monospace;
-    font-size: 0.9rem;
-    color: #f0f0f0;
-    text-wrap: auto;
-    font-weight: 500;
-}
-
-/* === Таблицы === */
+/* Стиль для таблиц */
 [class*='markdownText'] table {
     width: 100%;
     border-collapse: collapse;
-    margin: 24px 0;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 6px;
+    margin: 10px 0;
+    border-radius: 8px;
     overflow: hidden;
+    outline: 1px solid #555e75;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-[class*='markdownText'] th,
-[class*='markdownText'] td {
-    padding: 12px 16px;
+
+[class*='markdownText'] table th,
+[class*='markdownText'] table td {
+    padding: 12px 25px;
     text-align: left;
 }
-[class*='markdownText'] th {
-    background: rgba(255, 255, 255, 0.08);
-    color: #e0e7ff;
-    font-weight: 500;
-    font-weight: 500;
-}
-[class*='markdownText'] tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+
+[class*='markdownText'] table th {
+    background-color: #333743;
+    color: white;
+    font-weight: bold;
 }
 
-/* === Горизонтальные линии === */
-[class*='markdownText'] hr {
+[class*='markdownText'] table tr:nth-child(even) {
+    background-color: #2d303b;
+}
+
+[class*='markdownText'] table tr:hover {
+    background-color: #494f67;
+}
+
+/* Стили для кодов */
+[class*='markdownText'] pre code {
+    display: block;
+    padding: 15px;
+    margin: 10px 0;
+    background: #171921;
+    border-radius: 2px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    box-sizing: border-box;
+    overflow-x: auto;
+}
+
+[class*='markdownText'] pre code.language-python {
+    border-left: 5px solid #f7ea7b;
+    color: #f7ea7b;
+}
+
+[class*='markdownText'] pre code.language-html {
+    border-left: 5px solid #ff9b6b;
+    color: #ff9b6b;
+}
+
+[class*='markdownText'] pre code.language-scss {
+    border-left: 5px solid #6ec8ff;
+    color: #6ec8ff;
+}
+
+[class*='markdownText'] pre code::-webkit-scrollbar {
+    height: 8px;
+}
+
+[class*='markdownText'] pre code::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 10px;
+}
+
+[class*='markdownText'] pre code::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(255, 255, 255, 0.5);
+}
+
+/* Стили для списков */
+[class*='markdownText'] ol,
+[class*='markdownText'] ul {
+    margin-left: 20px;
+    margin-bottom: 20px;
+}
+
+[class*='markdownText'] ol li,
+[class*='markdownText'] ul li {
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+[class*='markdownText'] .carousel-container {
+    position: relative;
+    width: 100%;
+    overflow: hidden;
+}
+
+/* Стиль для самой карусели */
+[class*='markdownText'] .carousel {
+    display: flex;
+    transition: transform 0.5s ease-in-out;
+}
+
+/* Слайды карусели */
+[class*='markdownText'] .carousel-slide {
+    min-width: 100%;
+    transition: 0.3s ease-in-out;
+}
+
+[class*='markdownText'] .carousel-slide img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Кнопки для переключения */
+[class*='markdownText'] .carousel-prev,
+[class*='markdownText'] .carousel-next {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
-    margin: 32px 0;
+    padding: 10px;
+    cursor: pointer;
+    font-size: 18px;
 }
 
-/* === Скролл для pre === */
-[class*='markdownText'] pre::-webkit-scrollbar {
-    height: 6px;
+[class*='markdownText'] .carousel-prev {
+    left: 10px;
 }
-[class*='markdownText'] pre::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
-    border-radius: 3px;
-}
-[class*='markdownText'] pre::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
+
+[class*='markdownText'] .carousel-next {
+    right: 10px;
 }

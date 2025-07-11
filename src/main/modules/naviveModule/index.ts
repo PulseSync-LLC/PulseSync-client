@@ -75,10 +75,6 @@ const loadNativeModules = (): NativeModules => {
 
 const nativeModules = loadNativeModules()
 
-if (Object.keys(nativeModules).length === 0) {
-    logger.nativeModuleManager.error('No native modules available.')
-}
-
 export const isDiscordRunning = (): boolean => {
     const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
     if (!addon) {

@@ -24,7 +24,9 @@ export const UserProfileModalProvider: React.FC<{
 
     const closeUserProfile = () => {
         setModalOpen(false)
-        setSelectedUser(null)
+        setTimeout(() => {
+            setSelectedUser(null)
+        }, 300)
     }
 
     return (

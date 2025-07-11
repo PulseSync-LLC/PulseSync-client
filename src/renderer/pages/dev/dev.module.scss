@@ -1,49 +1,102 @@
 .devPage {
-    background-color: #1F212B;
+    text-align: center;
     padding: 20px;
-    border-radius: 12px;
-    color: #fff;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
-    flex-direction: column;
+    background-color: #8bbee7;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .header {
     font-size: 24px;
     font-weight: bold;
     margin-bottom: 20px;
-    color: #fff;
+    color: #333;
 }
 
-.stats {
+.buttonContainer {
     display: flex;
-    justify-content: space-around;
-    margin-bottom: 20px;
-
-    .statBlock {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-
-        .label {
-            font-size: 14px;
-            color: #a0a0a0;
-        }
-
-        .value {
-            font-size: 20px;
-            font-weight: 600;
-        }
-    }
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
 }
 
-.chartWrapper {
-    height: 120px;
-    position: relative;
+.button {
+    display: inline-block;
+    padding: 10px 20px;
+    font-size: 16px;
+    font-weight: bold;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition:
+        background-color 0.3s ease,
+        transform 0.2s ease;
 }
 
-.pulseDot {
-    fill: #a276ff;
-    stroke-width: 1;
-    transform-origin: center;
-    pointer-events: none;
+.button:hover {
+    transform: scale(1.05);
+}
+
+.button:active {
+    transform: scale(0.95);
+}
+
+/* Уникальные цвета кнопок */
+.success {
+    background-color: #87ff77;
+}
+
+.success:hover {
+    background-color: #76e86a;
+}
+
+.error {
+    background-color: #ff7777;
+}
+
+.error:hover {
+    background-color: #e86a6a;
+}
+
+.warning {
+    background-color: #ffef77;
+    color: #333;
+}
+
+.warning:hover {
+    background-color: #e8d76a;
+}
+
+.info {
+    background-color: #77ffc9;
+}
+
+.info:hover {
+    background-color: #6ae8b2;
+}
+
+.export {
+    background-color: #77f1ff;
+}
+
+.export:hover {
+    background-color: #6ad8e8;
+}
+
+.import {
+    background-color: #77f1ff;
+}
+
+.import:hover {
+    background-color: #6ad8e8;
+}
+
+.loading {
+    background-color: #ffef77;
+    color: #333;
+}
+
+.loading:hover {
+    background-color: #e8d76a;
 }

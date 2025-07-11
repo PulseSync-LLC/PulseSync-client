@@ -7,9 +7,8 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import ExtensionPage from './extension'
-import ExtensionBetaPageOld from './extensionbetaOld'
-import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
+import ExtensionBetaPage from './extensionbeta'
+import ExtensionViewPage from './extensionbeta/route/extensionview'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -46,7 +45,6 @@ import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
-import TrackInfoPageOld from './trackinfoOld'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 
 function App() {
@@ -107,14 +105,6 @@ function App() {
             ),
         },
         {
-            path: '/trackinfoOld',
-            element: (
-                <ErrorBoundary>
-                    <TrackInfoPageOld />
-                </ErrorBoundary>
-            ),
-        },
-        {
             path: '/users',
             element: (
                 <ErrorBoundary>
@@ -123,26 +113,18 @@ function App() {
             ),
         },
         {
-            path: '/extension',
+            path: '/extensionbeta',
             element: (
                 <ErrorBoundary>
-                    <ExtensionPage />
+                    <ExtensionBetaPage />
                 </ErrorBoundary>
             ),
         },
         {
-            path: '/extensionbetaOld',
+            path: '/extensionbeta/:contactId',
             element: (
                 <ErrorBoundary>
-                    <ExtensionBetaPageOld />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/extensionbetaOld/:contactId',
-            element: (
-                <ErrorBoundary>
-                    <ExtensionViewPageOld />
+                    <ExtensionViewPage />
                 </ErrorBoundary>
             ),
         },
@@ -487,7 +469,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extension/${foundAddon.name}`)
+                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
                         setNavigateState(foundAddon)
                     }
                 })
@@ -622,7 +604,7 @@ function App() {
         ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extension', { replace: true })
+                router.navigate('/extensionbeta', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {

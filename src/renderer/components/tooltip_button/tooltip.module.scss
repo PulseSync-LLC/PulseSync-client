@@ -1,16 +1,15 @@
 /* reset */
 button {
     all: unset;
-    display: flex;
 }
 
 .TooltipContent {
-    max-width: 340px;
     border-radius: 4px;
     padding: 10px 15px;
     font-size: 15px;
     line-height: 1;
     color: #c4cce7;
+    background-color: #292c36;
     outline: 1px solid #494f66;
     box-shadow:
         hsla(210, 23%, 9%, 0.521) 0px 10px 38px -10px,
@@ -21,16 +20,6 @@ button {
     will-change: transform, opacity;
     z-index: 9999;
     white-space: pre-line;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 3px 8px;
-    background: rgba(39, 42, 51, 0.7882352941);
-    font-weight: 600;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
 }
 .TooltipContent[data-state='delayed-open'][data-side='top'] {
     animation-name: slideDownAndFade;

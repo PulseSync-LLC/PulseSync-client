@@ -1,8 +1,7 @@
 .modMenu {
     --widthMenu: 260px;
     position: absolute;
-    top: 51px;
-    left: 81px;
+    top: 52px;
     color: white;
     z-index: 1000;
     display: flex;
@@ -11,7 +10,7 @@
     align-items: flex-start;
     box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
     background: #1f222b;
-    border-radius: 10px;
+    border-radius: 8px;
     padding: 7px 0;
 }
 
@@ -68,7 +67,7 @@
             transform: translateX(calc(var(--spacing) * 24.4));
             margin-left: var(--spacing);
             position: absolute;
-            top: -7px;
+            top: 0;
             color: white;
             z-index: 1000;
             display: flex;
@@ -79,7 +78,7 @@
             background: #1f222b;
             border-radius: 8px;
             padding: 7px 0;
-            min-width: 370px;
+            min-width: 322px;
 
             &::after {
                 content: '';

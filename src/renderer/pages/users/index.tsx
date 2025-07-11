@@ -1,20 +1,19 @@
 import Layout from '../../components/layout'
-import * as s from './users.module.scss'
-import * as styles from '../../../../static/styles/page/index.module.scss'
-import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import * as styles from './users.module.scss'
+import * as globalStyles from '../../../../static/styles/page/index.module.scss'
+import { useEffect, useState, useCallback } from 'react'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
 import debounce from 'lodash.debounce'
-import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
+import { MdAllOut, MdHourglassEmpty, MdAccessTime, MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
+import SearchImg from './../../../../static/assets/stratis-icons/search.svg'
+import { Easing, motion, RepeatType, Variants } from 'framer-motion'
 import config from '../../api/config'
 import toast from '../../components/toast'
 import { useUserProfileModal } from '../../context/UserProfileModalContext'
-import UserCardV2 from '../../components/userCardV2'
-import Scrollbar from '../../components/PSUI/Scrollbar'
-
-const PER_PAGE = 51
-const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
+import UserCard from '../../components/userCard'
+import Button from '../../components/button'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -23,61 +22,85 @@ export default function UsersPage() {
     const [maxPages, setMaxPages] = useState(1)
     const [sorting, setSorting] = useState([{ id: 'lastOnline', desc: true }])
     const [search, setSearch] = useState('')
-    const [debouncedSearch, setDebouncedSearch] = useState('')
-    const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
 
-    const inputRef = useRef<HTMLInputElement>(null)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
     const { openUserProfile } = useUserProfileModal()
 
-    const setSortRef =
-        (idx: number) =>
-        (el: HTMLDivElement | null): void => {
-            sortRefs.current[idx] = el
-        }
-
-    const calculateIndicator = (index: number) => {
-        const el = sortRefs.current[index]
-        if (el && el.parentElement) {
-            const rect = el.getBoundingClientRect()
-            const containerRect = el.parentElement.getBoundingClientRect()
-            setIndicatorStyle({
-                left: rect.left - containerRect.left,
-                width: rect.width,
-            })
-        }
+    const loadingText = 'Загрузка...'.split('')
+    const containerVariants = {
+        animate: {
+            transition: { staggerChildren: 0.1 },
+        },
+    }
+    const letterVariants: Variants = {
+        initial: { y: 0 },
+        animate: {
+            y: [0, -10, 0],
+            transition: {
+                y: {
+                    repeat: Infinity,
+                    repeatType: 'loop' as RepeatType,
+                    duration: 1,
+                    ease: 'easeInOut' as Easing,
+                },
+            },
+        },
     }
 
-    const processUsers = (rawUsers: UserInterface[]): UserInterface[] => {
-        let filtered = rawUsers.filter(u => u.lastOnline && Number(u.lastOnline) > 0)
-        if (sorting[0].id === 'lastOnline') {
-            const desc = sorting[0].desc
-            const onlineUsers = filtered.filter(u => u.status === 'online')
-            const offlineUsers = filtered.filter(u => u.status !== 'online')
-            const sortFn = (a: UserInterface, b: UserInterface) =>
-                desc ? Number(b.lastOnline) - Number(a.lastOnline) : Number(a.lastOnline) - Number(b.lastOnline)
-            onlineUsers.sort(sortFn)
-            offlineUsers.sort(sortFn)
-            filtered = desc ? [...onlineUsers, ...offlineUsers] : [...offlineUsers, ...onlineUsers]
-        }
-        return filtered
+    const isUserInactive = (lastOnline: string | null) => {
+        if (!lastOnline) return false
+        const lastOnlineDate = new Date(Number(lastOnline))
+        const oneWeekAgo = new Date()
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
+        return lastOnlineDate < oneWeekAgo
     }
 
-    const fetchUsers = useCallback(
-        (page_: number, perPage_: number, sorting_: any, search_: string) => {
+    const defaultBackground = {
+        background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%)`,
+        backgroundSize: 'cover',
+    }
+    const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
+
+    const debouncedFetchUsers = useCallback(
+        debounce((page: number, perPage: number, sorting: any, search: string) => {
             setLoading(true)
             apolloClient
                 .query({
                     query: GetAllUsersQuery,
-                    variables: { perPage: perPage_, page: page_, sorting: sorting_, search: search_ },
+                    variables: { perPage, page, sorting, search },
                     fetchPolicy: 'no-cache',
                 })
                 .then(result => {
                     if (result.data) {
-                        const { users: raw, totalPages } = result.data.getUsersWithPagination
-                        setUsers(processUsers(raw))
-                        setMaxPages(totalPages)
+                        const data = result.data.getUsersWithPagination
+                        let filteredUsers = data.users.filter((user: UserInterface) => user.lastOnline && Number(user.lastOnline) > 0)
+
+                        if (sorting[0].id === 'lastOnline') {
+                            const sortDirection = sorting[0].desc ? 'desc' : 'asc'
+
+                            const onlineUsers = filteredUsers.filter((user: UserInterface) => user.status === 'online')
+                            const offlineUsers = filteredUsers.filter((user: UserInterface) => user.status !== 'online')
+
+                            const sortFunction = (a: UserInterface, b: UserInterface) => {
+                                if (sortDirection === 'desc') {
+                                    return Number(b.lastOnline) - Number(a.lastOnline)
+                                } else {
+                                    return Number(a.lastOnline) - Number(b.lastOnline)
+                                }
+                            }
+
+                            onlineUsers.sort(sortFunction)
+                            offlineUsers.sort(sortFunction)
+
+                            if (sortDirection === 'desc') {
+                                filteredUsers = [...onlineUsers, ...offlineUsers]
+                            } else {
+                                filteredUsers = [...offlineUsers, ...onlineUsers]
+                            }
+                        } else {
+                        }
+
+                        setUsers(filteredUsers)
+                        setMaxPages(data.totalPages)
                     }
                     setLoading(false)
                 })
@@ -86,203 +109,217 @@ export default function UsersPage() {
                     toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
                     setLoading(false)
                 })
-        },
-        [sorting],
-    )
-
-    const debouncedFetchUsers = useMemo(() => debounce(fetchUsers, 300), [fetchUsers])
-
-    useEffect(() => {
-        const handler = setTimeout(() => {
-            setDebouncedSearch(search)
-        }, 500)
-        return () => clearTimeout(handler)
-    }, [search])
-
-    useEffect(() => {
-        debouncedFetchUsers(page, PER_PAGE, sorting, debouncedSearch)
-    }, [sorting, page, debouncedSearch, debouncedFetchUsers])
-
-    useLayoutEffect(() => {
-        const activeIndex = SORT_FIELDS.indexOf(sorting[0].id as (typeof SORT_FIELDS)[number])
-        const timer = setTimeout(() => calculateIndicator(activeIndex), 0)
-        return () => clearTimeout(timer)
-    }, [sorting, users])
-
-    useEffect(() => {
-        const handler = () => {
-            const idx = SORT_FIELDS.indexOf(sorting[0].id as (typeof SORT_FIELDS)[number])
-            calculateIndicator(idx)
-        }
-        window.addEventListener('resize', handler)
-        return () => window.removeEventListener('resize', handler)
-    }, [sorting])
-
-    const handleSort = (field: string) => {
-        setPage(1)
-        setSorting(prev => (prev[0].id === field ? [{ id: field, desc: !prev[0].desc }] : [{ id: field, desc: true }]))
-    }
-
-    const getSortIcon = (field: string) => {
-        if (sorting[0].id !== field) return null
-        return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
-    }
-
-    const defaultBackground = useMemo(
-        () => ({
-            alignItems: 'stretch',
-            display: 'flex',
-            padding: '15vh 40px 12px 40px',
-            background: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png), #1D202B',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center center',
-            backgroundSize: 'cover',
-        }),
+        }, 300),
         [],
     )
 
-    const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
-
     useEffect(() => {
-        const usersWithBanner = users.filter(u => u.bannerHash)
-        const checkBanner = (list: UserInterface[], idx = 0) => {
-            if (idx >= list.length) {
-                setBackgroundStyle(defaultBackground)
-                return
-            }
-            const img = new Image()
-            const url = `${config.S3_URL}/banners/${list[idx].bannerHash}.${list[idx].bannerType}`
-            img.src = url
-            img.onload = () =>
-                setBackgroundStyle({
-                    ...defaultBackground,
-                    background: `linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(${url}), #1D202B`,
-                })
-            img.onerror = () => checkBanner(list, idx + 1)
+        debouncedFetchUsers(page, 51, sorting, search)
+    }, [sorting, page, search, debouncedFetchUsers])
+
+    const handlePageChange = (newPage: number) => {
+        if (newPage >= 1 && newPage <= maxPages) {
+            setPage(newPage)
         }
-        usersWithBanner.length ? checkBanner(usersWithBanner) : setBackgroundStyle(defaultBackground)
-    }, [users, defaultBackground])
+    }
+
+    const handleSort = (field: string) => {
+        setPage(1)
+        setSorting(prevSorting => {
+            if (prevSorting.length > 0 && prevSorting[0].id === field) {
+                return [{ id: field, desc: !prevSorting[0].desc }]
+            } else {
+                return [{ id: field, desc: true }]
+            }
+        })
+    }
+
+    const getSortIcon = (field: string) => {
+        if (sorting.length === 0 || sorting[0].id !== field) return null
+        return sorting[0].desc ? <MdKeyboardArrowDown className={styles.sortIcon} /> : <MdKeyboardArrowUp className={styles.sortIcon} />
+    }
+
+    const isFieldSorted = (field: string) => sorting.length > 0 && sorting[0].id === field
 
     const renderPagination = () => {
-        if (maxPages <= 1) return null
+        const pages = []
+        const maxPageButtons = 2
+        let startPage = Math.max(1, page - Math.floor(maxPageButtons / 2))
+        let endPage = startPage + maxPageButtons - 1
 
-        const handlePageChange = (newPage: number) => {
-            setPage(newPage)
-            setTimeout(() => {
-                containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-            }, 0)
+        if (endPage > maxPages) {
+            endPage = maxPages
+            startPage = Math.max(1, endPage - maxPageButtons + 1)
         }
 
-        const pages = []
-        const maxVisibleButtons = 5
-        let startPage = Math.max(1, page - Math.floor(maxVisibleButtons / 2))
-        let endPage = Math.min(maxPages, startPage + maxVisibleButtons - 1)
-
-        if (endPage - startPage + 1 < maxVisibleButtons) {
-            startPage = Math.max(1, endPage - maxVisibleButtons + 1)
+        for (let i = startPage; i <= endPage; i++) {
+            pages.push(
+                <Button key={i} className={`${styles.paginationButton} ${i === page ? styles.active : ''}`} onClick={() => handlePageChange(i)}>
+                    {i}
+                </Button>,
+            )
         }
 
         return (
-            <div className={s.paginationContainer}>
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1} className={s.paginationNavButton}>
-                    <MdKeyboardArrowLeft />
-                </button>
+            <div className={styles.pagination}>
+                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page - 1)} disabled={page === 1}>
+                    Назад
+                </Button>
                 {startPage > 1 && (
                     <>
-                        <button onClick={() => handlePageChange(1)} className={s.paginationPageButton}>
+                        <Button className={styles.paginationButton} onClick={() => handlePageChange(1)}>
                             1
-                        </button>
-                        {startPage > 2 && <span className={s.paginationEllipsis}>...</span>}
+                        </Button>
+                        {startPage > 2 && <span className={styles.ellipsis}>...</span>}
                     </>
                 )}
-                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
-                    const pageNum = startPage + i
-                    return (
-                        <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={`${s.paginationPageButton} ${pageNum === page ? s.activePage : ''}`}
-                        >
-                            {pageNum}
-                        </button>
-                    )
-                })}
+                {pages}
                 {endPage < maxPages && (
                     <>
-                        {endPage < maxPages - 1 && <span className={s.paginationEllipsis}>...</span>}
-                        <button onClick={() => handlePageChange(maxPages)} className={s.paginationPageButton}>
+                        {endPage < maxPages - 1 && <span className={styles.ellipsis}>...</span>}
+                        <Button className={styles.paginationButton} onClick={() => handlePageChange(maxPages)}>
                             {maxPages}
-                        </button>
+                        </Button>
                     </>
                 )}
-                <button onClick={() => handlePageChange(page + 1)} disabled={page === maxPages} className={s.paginationNavButton}>
-                    <MdKeyboardArrowRight />
-                </button>
+                <Button className={styles.paginationButtonLR} onClick={() => handlePageChange(page + 1)} disabled={page === maxPages}>
+                    Вперед
+                </Button>
             </div>
         )
     }
 
+    useEffect(() => {
+        const usersWithBanner = users.filter(user => user.bannerHash)
+        const checkBannerAvailability = (userList: UserInterface[], index = 0) => {
+            if (index >= userList.length) {
+                setBackgroundStyle(defaultBackground)
+                return
+            }
+            const img = new Image()
+            img.src = `${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}`
+            img.onload = () => {
+                setBackgroundStyle({
+                    background: `linear-gradient(180deg, rgba(30, 32, 39, 0.85) 0%, #1e2027 100%), url(${config.S3_URL}/banners/${userList[index].bannerHash}.${userList[index].bannerType}) no-repeat center center`,
+                    backgroundSize: 'cover',
+                })
+            }
+            img.onerror = () => checkBannerAvailability(userList, index + 1)
+        }
+        if (usersWithBanner.length > 0) {
+            checkBannerAvailability(usersWithBanner)
+        } else {
+            setBackgroundStyle(defaultBackground)
+        }
+    }, [users])
+
+    const [isSticky, setIsSticky] = useState(false)
+
+    useEffect(() => {
+        const handleScroll = () => {
+            const nav = document.querySelector(`.${styles.userNav}`)
+            if (nav) {
+                const rect = nav.getBoundingClientRect()
+                setIsSticky(rect.top <= 0)
+            }
+        }
+
+        window.addEventListener('scroll', handleScroll)
+        return () => {
+            window.removeEventListener('scroll', handleScroll)
+        }
+    }, [])
+
     return (
         <Layout title="Пользователи">
-            <div className={styles.page}>
-                <div className={styles.container}>
-                    <div className={styles.main_container}>
-                        <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
-                            <div style={backgroundStyle} className={s.headerSection}>
-                                <div className={s.topSection}>
-                                    <h1 className={s.title}>Пользователи</h1>
-                                    <div className={s.searchContainer} onClick={() => inputRef.current?.focus()}>
+            <div className={globalStyles.page}>
+                <div className={globalStyles.container}>
+                    <div className={globalStyles.main_container}>
+                        <div className={globalStyles.container0x0}>
+                            <div style={backgroundStyle} className={styles.previewImage}></div>
+                            <div className={styles.searchContainer}>
+                                <div className={styles.BoxContainer}>
+                                    <div className={styles.titlePage}>Пользователи</div>
+                                    <div className={styles.searchBoxContainer}>
+                                        <SearchImg />
                                         <input
-                                            ref={inputRef}
+                                            className={styles.searchInput}
                                             type="text"
-                                            placeholder="найти..."
+                                            placeholder="Поиск..."
                                             value={search}
                                             onChange={e => {
                                                 setSearch(e.target.value)
                                                 setPage(1)
                                             }}
-                                            className={s.searchInput}
                                         />
-                                        <div className={s.searchIconWrapper}>
-                                            <MdSearch className={s.searchIcon} />
-                                        </div>
                                     </div>
                                 </div>
-                                <div className={s.sortOptions}>
-                                    {SORT_FIELDS.map((field, idx) => (
-                                        <div
-                                            key={field}
-                                            ref={setSortRef(idx)}
-                                            className={`${s.sortOption} ${sorting[0].id === field ? s.active : ''}`}
-                                            onClick={() => handleSort(field)}
-                                        >
-                                            {
-                                                {
-                                                    lastOnline: 'Последняя активность',
-                                                    createdAt: 'Дата регистрации',
-                                                    username: 'Имя пользователя',
-                                                    level: 'Уровень',
-                                                }[field]
-                                            }{' '}
-                                            {getSortIcon(field)}
-                                        </div>
-                                    ))}
-                                    <div className={s.indicator} style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px` }} />
-                                </div>
                             </div>
-                            <div className={s.userPage}>
-                                {users.length > 0 ? (
-                                    <div className={s.userGrid}>
-                                        {users.map(user => (
-                                            <UserCardV2 key={user.id} user={user} onClick={openUserProfile} />
-                                        ))}
+                            <div className={`${styles.userNav} ${isSticky ? styles.sticky : ''}`}>
+                                <div className={styles.userNavContainer}>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('lastOnline') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('lastOnline')}
+                                    >
+                                        <MdAccessTime /> Последняя активность {getSortIcon('lastOnline')}
+                                    </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('createdAt') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('createdAt')}
+                                    >
+                                        <MdHourglassEmpty /> Дата регистрации {getSortIcon('createdAt')}
+                                    </Button>
+                                    <Button
+                                        className={`${styles.userNavButton} ${isFieldSorted('username') ? styles.activeSort : ''}`}
+                                        onClick={() => handleSort('username')}
+                                    >
+                                        <MdAllOut /> Имя пользователя {getSortIcon('username')}
+                                    </Button>
+                                </div>
+                                {users.length > 0 && renderPagination()}
+                            </div>
+                            <div className={globalStyles.containerUsesPage}>
+                                {loading ? (
+                                    <div className={styles.loading}>
+                                        <motion.div
+                                            variants={containerVariants}
+                                            initial="initial"
+                                            animate="animate"
+                                            style={{
+                                                display: 'flex',
+                                                justifyContent: 'center',
+                                                alignItems: 'center',
+                                            }}
+                                        >
+                                            {loadingText.map((char, index) => (
+                                                <motion.span
+                                                    key={index}
+                                                    variants={letterVariants}
+                                                    style={{
+                                                        display: 'inline-block',
+                                                        marginRight: '2px',
+                                                    }}
+                                                >
+                                                    {char}
+                                                </motion.span>
+                                            ))}
+                                        </motion.div>
                                     </div>
                                 ) : (
-                                    !loading && <div className={s.noResults}>Нет результатов</div>
+                                    <div className={styles.userPage}>
+                                        {users.length > 0 ? (
+                                            <div className={styles.userGrid}>
+                                                {users.map((user: UserInterface) => (
+                                                    <UserCard key={user.id} user={user} onClick={openUserProfile} />
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className={styles.noResults}>Нет результатов</div>
+                                        )}
+                                    </div>
                                 )}
                             </div>
-                            {renderPagination()}
-                        </Scrollbar>
+                        </div>
                     </div>
                 </div>
             </div>

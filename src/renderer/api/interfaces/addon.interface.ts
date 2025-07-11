@@ -7,7 +7,6 @@ export default interface Addon {
 
     image: string
     banner: string
-    libraryLogo: string
 
     path: string
     lastModified: string
