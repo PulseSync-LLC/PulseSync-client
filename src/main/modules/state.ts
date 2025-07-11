@@ -1,5 +1,6 @@
 import logger from './logger'
 import { getStore, StoreType } from './storage'
+import logger from './logger'
 
 class State {
     private store: StoreType;

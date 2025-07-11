@@ -72,6 +72,8 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
 
     const [isHovered, setIsHovered] = useState(false)
 
+    const statusInfo = getStatus(user as UserInterface)
+
     const bannerBackground = useMemo(
         () =>
             getMediaUrl({
@@ -102,8 +104,12 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                 setIsStatusVisible(false)
 
                 setTimeout(() => {
-                    const fullStatus = getStatus(user, true)
-                    setStatusUser(prevStatus => (prevStatus === 'Слушает' ? fullStatus : 'Слушает'))
+                    const fullStatus = getStatus(user)
+                    setStatusUser(prevStatus =>
+                        prevStatus.text === 'Слушает'
+                            ? fullStatus
+                            : { text: 'Слушает', detail: '' }
+                    )
                     setIsStatusVisible(true)
                 }, 500)
             }
@@ -202,7 +208,12 @@ const UserCard: React.FC<UserCardProps> = ({ user, onClick }) => {
                     </TooltipButton>
                 </div>
                 <div className={styles.userStatusInfo}>
-                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>{statusUser}</div>
+                    <div className={`${styles.statusText} ${isStatusVisible ? styles.fadeIn : styles.fadeOut}`}>
+                        {statusInfo.text}
+                        {statusInfo.detail && (
+                            <span className={styles.statusDetail}> — {statusInfo.detail}</span>
+                        )}
+                    </div>
                 </div>
             </button>
         </div>

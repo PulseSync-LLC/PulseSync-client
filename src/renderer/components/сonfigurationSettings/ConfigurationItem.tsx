@@ -37,6 +37,10 @@ interface ConfigurationItemProps {
     removeItem: (sectionIndex: number, itemIndex: number) => void
 }
 
+function clamp(value: number, min: number, max: number): number {
+    return Math.min(Math.max(value, min), max)
+}
+
 const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
     sectionIndex,
     itemIndex,
@@ -112,29 +116,41 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
 
     const finishSliderCheck = () => {
         if (item.type === 'slider') {
+            if (item.type !== 'slider') return
             const sliderItem = item as SliderItem
 
-            let correctedDefault = sliderItem.defaultParameter
-            if (correctedDefault < sliderItem.min) correctedDefault = sliderItem.min
-            if (correctedDefault > sliderItem.max) correctedDefault = sliderItem.max
+            // Обновляем min/max сами по себе
+            const newMin = sliderItem.min
+            const newMax = Math.max(sliderItem.min, sliderItem.max)
 
-            if (correctedDefault !== sliderItem.defaultParameter) {
-                updateConfigField(sectionIndex, itemIndex, 'defaultParameter', correctedDefault)
+            // Если max < min — принудительно выравниваем
+            if (newMax !== sliderItem.max) {
+                updateConfigField(sectionIndex, itemIndex, 'max', newMax)
+            }
+            if (newMin !== sliderItem.min) {
+                updateConfigField(sectionIndex, itemIndex, 'min', newMin)
             }
 
-            let correctedValue = sliderItem.value
-            if (correctedValue < sliderItem.min) correctedValue = sliderItem.min
-            if (correctedValue > sliderItem.max) correctedValue = sliderItem.max
+            // Обрезаем defaultParameter и value
+            const clampedDefault = clamp(sliderItem.defaultParameter, newMin, newMax)
+            if (clampedDefault !== sliderItem.defaultParameter) {
+                updateConfigField(sectionIndex, itemIndex, 'defaultParameter', clampedDefault)
+            }
 
-            if (correctedValue !== sliderItem.value) {
-                updateConfigField(sectionIndex, itemIndex, 'value', correctedValue)
+            const clampedValue = clamp(sliderItem.value, newMin, newMax)
+            if (clampedValue !== sliderItem.value) {
+                updateConfigField(sectionIndex, itemIndex, 'value', clampedValue)
             }
         }
         setSliderEditMode(false)
     }
 
     const finishSliderEdit = () => {
-        updateConfigField(sectionIndex, itemIndex, 'value', sliderValue)
+        if (item.type === 'slider') {
+            const sliderItem = item as SliderItem
+            const clamped = clamp(sliderValue, sliderItem.min, sliderItem.max)
+            updateConfigField(sectionIndex, itemIndex, 'value', clamped)
+        }
     }
 
     const finishColorEdit = () => {
@@ -462,45 +478,74 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 <div className={styles.sliderContainerEdit}>
                     {editMode ? (
                         <>
+                            {/* Min */}
                             <div className={styles.defaultParameterContainerEdit}>
                                 <div className={styles.defaultLabelEdit}>Min:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
-                                    value={item.min}
-                                    onChange={e => updateConfigField(sectionIndex, itemIndex, 'min', Number(e.target.value))}
-                                    onBlur={finishSliderCheck}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') finishSliderCheck()
+                                    value={(item as SliderItem).min}
+                                    onChange={e => {
+                                        const raw = Number(e.target.value)
+                                        const clamped = clamp(raw, Number.MIN_SAFE_INTEGER, (item as SliderItem).max)
+                                        updateConfigField(sectionIndex, itemIndex, 'min', clamped)
                                     }}
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={e => e.key === 'Enter' && finishSliderCheck()}
                                 />
                             </div>
+
+                            {/* Max */}
                             <div className={styles.defaultParameterContainerEdit}>
                                 <div className={styles.defaultLabelEdit}>Max:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
-                                    value={item.max}
-                                    onChange={e => updateConfigField(sectionIndex, itemIndex, 'max', Number(e.target.value))}
-                                    onBlur={finishSliderCheck}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') finishSliderCheck()
+                                    value={(item as SliderItem).max}
+                                    onChange={e => {
+                                        const raw = Number(e.target.value)
+                                        const clamped = clamp(raw, (item as SliderItem).min, Number.MAX_SAFE_INTEGER)
+                                        updateConfigField(sectionIndex, itemIndex, 'max', clamped)
                                     }}
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={e => e.key === 'Enter' && finishSliderCheck()}
                                 />
                             </div>
+
+                            {/* Step */}
                             <div className={styles.defaultParameterContainerEdit}>
                                 <div className={styles.defaultLabelEdit}>Step:</div>
                                 <input
                                     type="number"
                                     className={styles.inputEdit}
-                                    value={item.step}
-                                    onChange={e => updateConfigField(sectionIndex, itemIndex, 'step', Number(e.target.value))}
-                                    onBlur={finishSliderCheck}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') finishSliderCheck()
+                                    value={(item as SliderItem).step}
+                                    onChange={e => {
+                                        const raw = Number(e.target.value)
+                                        const clamped = Math.max(1, raw)
+                                        updateConfigField(sectionIndex, itemIndex, 'step', clamped)
                                     }}
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={e => e.key === 'Enter' && finishSliderCheck()}
                                 />
                             </div>
+
+                            {/* DefaultParameter */}
+                            <div className={styles.defaultParameterContainerEdit}>
+                                <div className={styles.defaultLabelEdit}>Параметр по умолчанию (число):</div>
+                                <input
+                                    type="number"
+                                    className={styles.inputEdit}
+                                    value={(item as SliderItem).defaultParameter}
+                                    onChange={e => {
+                                        const raw = Number(e.target.value)
+                                        const clamped = clamp(raw, (item as SliderItem).min, (item as SliderItem).max)
+                                        updateConfigField(sectionIndex, itemIndex, 'defaultParameter', clamped)
+                                    }}
+                                    onBlur={finishSliderCheck}
+                                    onKeyDown={e => e.key === 'Enter' && finishSliderCheck()}
+                                />
+                            </div>
+
                             {isDifferent && (
                                 <button
                                     className={styles.resetButtonEdit}
@@ -510,30 +555,19 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                                     <MdRestore />
                                 </button>
                             )}
-                            <div className={styles.defaultParameterContainerEdit}>
-                                <div className={styles.defaultLabelEdit}>Параметр по умолчанию (число):</div>
-                                <input
-                                    type="number"
-                                    className={styles.inputEdit}
-                                    value={item.defaultParameter ?? 0}
-                                    onChange={e => {
-                                        updateConfigField(sectionIndex, itemIndex, 'defaultParameter', Number(e.target.value))
-                                    }}
-                                    onBlur={finishSliderCheck}
-                                    onKeyDown={e => {
-                                        if (e.key === 'Enter') finishSliderCheck()
-                                    }}
-                                />
-                            </div>
                         </>
                     ) : (
                         <>
                             <CustomSlider
-                                min={item.min}
-                                max={item.max}
-                                step={item.step}
-                                value={item.value}
-                                onChange={e => updateConfigField(sectionIndex, itemIndex, 'value', Number(e.target.value))}
+                                min={(item as SliderItem).min}
+                                max={(item as SliderItem).max}
+                                step={(item as SliderItem).step}
+                                value={(item as SliderItem).value}
+                                onChange={e => {
+                                    const raw = Number(e.target.value)
+                                    const clamped = clamp(raw, (item as SliderItem).min, (item as SliderItem).max)
+                                    updateConfigField(sectionIndex, itemIndex, 'value', clamped)
+                                }}
                             />
                             {isDifferent && (
                                 <button className={styles.resetButton} onClick={() => resetConfigField(sectionIndex, itemIndex)} title="Сбросить">

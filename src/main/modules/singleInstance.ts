@@ -16,6 +16,7 @@ const State = getState();
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance: ', isFirstInstance ? 'yes' : 'no')
+
     if (isFirstInstance) {
         const [window] = BrowserWindow.getAllWindows()
 

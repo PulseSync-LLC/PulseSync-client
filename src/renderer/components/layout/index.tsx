@@ -368,7 +368,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                             <NavButtonPulse to="/extensionbeta" text="Аддоны Бета" disabled={!musicInstalled}>
                                 <MdExtension size={24} />
-                                <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
@@ -402,7 +401,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             )}
                         </div>
                     </div>
-                    {isModUpdateAvailable && (
+                    {!isModUpdateAvailable && (
                         <div className={pageStyles.alert_patch}>
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>
