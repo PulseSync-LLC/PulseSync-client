@@ -4,6 +4,11 @@
 #include <chrono>
 #include <filesystem>
 #include <unordered_map>
+#ifdef _WIN32
+#include <windows.h>
+#include <codecvt>
+#include <locale>
+#endif
 
 void Watcher(const Napi::CallbackInfo& info) {
     Napi::Env env = info.Env();
@@ -19,11 +24,19 @@ void Watcher(const Napi::CallbackInfo& info) {
         1
     );
 
-    std::thread([path, interval, tsfn]() mutable {
+#ifdef _WIN32
+    std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
+    std::wstring wpath = converter.from_bytes(path);
+    std::filesystem::path fsPath(wpath);
+#else
+    std::filesystem::path fsPath(path);
+#endif
+
+    std::thread([fsPath, interval, tsfn]() mutable {
         namespace fs = std::filesystem;
         std::unordered_map<std::string, fs::file_time_type> files;
 
-        for (auto& entry : fs::recursive_directory_iterator(path)) {
+        for (auto& entry : fs::recursive_directory_iterator(fsPath)) {
             if (entry.is_regular_file()) {
                 auto ext = entry.path().extension();
                 if (ext == ".js" || ext == ".css") {
@@ -36,7 +49,7 @@ void Watcher(const Napi::CallbackInfo& info) {
             std::this_thread::sleep_for(std::chrono::milliseconds(interval));
             std::unordered_map<std::string, fs::file_time_type> current;
 
-            for (auto& entry : fs::recursive_directory_iterator(path)) {
+            for (auto& entry : fs::recursive_directory_iterator(fsPath)) {
                 if (entry.is_regular_file()) {
                     auto ext = entry.path().extension();
                     if (ext == ".js" || ext == ".css") {
