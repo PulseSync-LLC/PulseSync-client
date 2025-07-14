@@ -1,4 +1,4 @@
-import { app, BrowserWindow, crashReporter, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
@@ -112,15 +112,6 @@ const checkOldYandexMusic = async () => {
 
 app.on('ready', async () => {
     try {
-        crashReporter.start({
-            productName: 'PulseSyncApp',
-            submitURL: `${renderConfig.CRASH_REPORT_SERVER}/crash-report`,
-            uploadToServer: true,
-            compress: true,
-            extra: {
-                sessionId: `${Date.now()}`,
-            },
-        })
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 

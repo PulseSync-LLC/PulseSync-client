@@ -1,5 +1,5 @@
 import logger from '../logger'
-import { app, crashReporter } from 'electron'
+import { app } from 'electron'
 import { HandleErrorsElectron } from './handleErrorsElectron'
 
 const firstLine = (message: string | Error) => {
@@ -21,8 +21,6 @@ export const handleUncaughtException = () => {
     process.on('uncaughtException', (error: Error) => {
         logger.main.error('Uncaught Exception:', toPlainError(error))
         HandleErrorsElectron.handleError('error_handler', error?.name, firstLine(error?.message), error)
-        crashReporter.addExtraParameter('errorMessage', error.message)
-        crashReporter.addExtraParameter('stack', error.stack || '')
         process.exit(1)
     })
     app.on('render-process-gone', (event, webContents, detailed) => {
