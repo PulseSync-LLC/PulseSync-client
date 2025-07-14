@@ -23,7 +23,7 @@ export const handleUncaughtException = () => {
         HandleErrorsElectron.handleError('error_handler', error?.name, firstLine(error?.message), error)
         crashReporter.addExtraParameter('errorMessage', error.message)
         crashReporter.addExtraParameter('stack', error.stack || '')
-        process.crash()
+        process.exit(1)
     })
     app.on('render-process-gone', (event, webContents, detailed) => {
         const REASON_CRASHED = 'crashed'

@@ -3,9 +3,9 @@ import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin'
-import config from './src/config.json'
+import config from '../src/config.json'
 import webpack from 'webpack'
-import packageJson from './package.json'
+import packageJson from '../package.json'
 import path from 'path'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
@@ -15,13 +15,13 @@ export const plugins = [
     new ForkTsCheckerWebpackPlugin({
         logger: 'webpack-infrastructure',
         typescript: {
-            configFile: path.resolve(__dirname, 'tsconfig.json'),
+            configFile: path.resolve(__dirname, '..', 'tsconfig.json'),
         },
     }),
     new CopyWebpackPlugin({
         patterns: [
-            { from: 'static', to: 'static' },
-            { from: 'static', to: 'main_window/static' },
+            { from: '../static', to: 'static' },
+            { from: '../static', to: 'main_window/static' },
         ],
     }),
     new webpack.ProvidePlugin({

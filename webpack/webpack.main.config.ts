@@ -1,16 +1,16 @@
 import webpack, { Configuration } from 'webpack'
 import { rules } from './webpack.rules'
 import path from 'path'
-import packageJson from './package.json'
+import packageJson from '../package.json'
 
 export const mainConfig: Configuration = {
     context: path.resolve(__dirname),
     entry: {
-        main: path.resolve(__dirname, 'src/index.ts'),
+        main: path.resolve(__dirname, '..', 'src/index.ts'),
     },
     target: 'electron-main',
     output: {
-        path: path.resolve(__dirname, '.webpack', 'main'),
+        path: path.resolve(__dirname, '..', '.webpack', 'main'),
         filename: pathData => (pathData.chunk.name === 'main' ? 'index.js' : '[name].js'),
         chunkFilename: '[id].js',
     },
@@ -23,7 +23,7 @@ export const mainConfig: Configuration = {
     ],
     cache: { type: 'filesystem', allowCollectingMemory: true },
     resolve: {
-        alias: { '@': path.resolve(__dirname, 'static') },
+        alias: { '@': path.resolve(__dirname, '..', 'static') },
         extensions: ['.js', '.mjs', '.ts', '.jsx', '.tsx', '.css', '.scss', '.json', '.md', '.svg'],
     },
     externals: [
