@@ -46,7 +46,7 @@
         "@types/uuid": "^10.0.0",
         "@typescript-eslint/eslint-plugin": "^8.36.0",
         "@typescript-eslint/parser": "^8.36.0",
-        "@vercel/webpack-asset-relocator-loader": "1.10.0",
+        "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
         "electron": "^37.2.1",
@@ -146,8 +146,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.3-beta",
-        "BRANCH": "d656493",
-        "BUILD_TIME": "2025-07-13T10:05:06.164Z"
+        "VERSION": "2.8.4-beta",
+        "BRANCH": "e2ebe79",
+        "BUILD_TIME": "2025-07-14T15:05:12.673Z"
     }
 }

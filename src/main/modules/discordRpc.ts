@@ -183,6 +183,7 @@ function startReconnectLoop(delayMs: number = reconnectInterval) {
 }
 
 ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
+    if (!State.get('discordRpc.status')) return
     if (rpcConnected && client) {
         if (compareActivities(activity)) return true
         previousActivity = activity
@@ -234,6 +235,11 @@ ipcMain.on('discordrpc-clearstate', () => {
 async function rpc_connect() {
     if (isConnecting) {
         logger.discordRpc.info('rpc_connect in progress, skipping duplicate call')
+        return
+    }
+    if (!State.get('discordRpc.status')) {
+        logger.discordRpc.info('discordRpc.status == false, skipping rpc_connect')
+        isConnecting = false
         return
     }
     isConnecting = true
