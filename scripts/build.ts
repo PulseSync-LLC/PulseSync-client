@@ -208,11 +208,6 @@ async function sendChangelogToApi(version: string): Promise<void> {
         return
     }
     const rawPatch = fs.readFileSync(patchPath, 'utf-8')
-    const changelog = rawPatch
-        .split(/\r?\n/)
-        .map(line => line.trim())
-        .filter(line => line.length > 0)
-
     try {
         const res = await fetch(`${apiUrl}/cdn/app/changelog`, {
             method: 'POST',
@@ -220,7 +215,7 @@ async function sendChangelogToApi(version: string): Promise<void> {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ version, changelog }),
+            body: JSON.stringify({ version, rawPatch }),
         })
         if (!res.ok) {
             log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
@@ -277,9 +272,18 @@ async function sendPatchNotes(): Promise<void> {
     }
 }
 
+function setConfigDevFalse() {
+    const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+    let content = fs.readFileSync(configPath, 'utf-8')
+    content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
+    content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
+    fs.writeFileSync(configPath, content, 'utf-8')
+    log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in config.ts`)
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
-        //await sendPatchNotes()
+        await sendPatchNotes()
         return
     }
 
@@ -313,6 +317,7 @@ async function main(): Promise<void> {
 
     if (buildApplication) {
         if (publishBranch) {
+            setConfigDevFalse();
             const appUpdateConfig = {
                 provider: 'generic',
                 url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
@@ -382,7 +387,7 @@ async function main(): Promise<void> {
 
         if (publishBranch) {
             await publishToS3(publishBranch, releaseDir, version)
-            //await sendChangelogToApi(version)
+            await sendChangelogToApi(version)
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
