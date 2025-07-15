@@ -441,8 +441,6 @@ function App() {
             fetchModInfo(app)
             const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            window.desktopEvents?.send('REFRESH_MOD_INFO')
-            window.desktopEvents?.send('GET_TRACK_INFO')
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
             })
@@ -519,7 +517,6 @@ function App() {
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
-            window.desktopEvents.removeAllListeners('rpc-log')
             window.desktopEvents?.on('discordRpcState', (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -531,6 +528,10 @@ function App() {
             })
             window.desktopEvents?.on('check-mod-update', async (event, data) => {
                 await fetchModInfo(app)
+            })
+            window.desktopEvents.on('CLIENT_READY', async (event, data) => {
+                window.desktopEvents?.send('REFRESH_MOD_INFO')
+                window.desktopEvents?.send('GET_TRACK_INFO')
             })
             window.desktopEvents?.on('rpc-log', onRpcLog)
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
@@ -595,6 +596,7 @@ function App() {
             window.desktopEvents?.removeAllListeners('download-update-finished')
             window.desktopEvents?.removeAllListeners('check-update')
             window.desktopEvents?.removeAllListeners('discordRpcState')
+            window.desktopEvents?.removeAllListeners('CLIENT_READY')
         }
     }, [])
 
@@ -1037,25 +1039,25 @@ const Player: React.FC<any> = ({ children }) => {
         }
     }, [app.settings, user, track, app.discordRpc])
     useEffect(() => {
-        if (socket) {
-            if (features.sendTrack && track.title !== '' && track.sourceType !== 'ynison') {
-                const { title, status, progress } = track
-                if (
-                    title !== lastSentTrack.current.title ||
-                    status !== lastSentTrack.current.status ||
-                    progress.position !== lastSentTrack.current.progressPlayed
-                ) {
-                    socket.emit('send_track', track)
+        if (!socket || !features.sendTrack) return
 
-                    lastSentTrack.current = {
-                        title,
-                        status,
-                        progressPlayed: progress.position,
-                    }
-                }
-            }
+        const { title, status, sourceType, progress } = track
+        const progressPlayed = progress?.position
+
+        if (!title || sourceType === 'ynison' || !['playing', 'paused'].includes(status)) {
+            return
         }
+
+        const last = lastSentTrack.current
+
+        if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) {
+            return
+        }
+
+        socket.emit('send_track', track)
+        lastSentTrack.current = { title, status, progressPlayed }
     }, [socket, track, features.sendTrack])
+
     useEffect(() => {
         if (socket) {
             const parseExtensions = () => {

@@ -184,6 +184,7 @@ const initializeServer = () => {
         socket.on('READY', () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
+                mainWindow.webContents.send('CLIENT_READY')
                 ;(socket as any).hasPong = true
                 if (authorized) {
                     sendDataToMusic({ targetSocket: socket })
@@ -438,6 +439,12 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         return app.quit()
     }
     try {
+        if(isAppDev) {
+            State.set('tokens.token', token)
+            mainWindow.webContents.send('authSuccess')
+            mainWindow.show()
+            return;
+        }
         const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
         if (!data.ok || !data.access) {
             logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
@@ -446,7 +453,6 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         State.set('tokens.token', token)
         logger.socketManager.info(`Access confirmed for user ${userId}.`)
         mainWindow.webContents.send('authSuccess')
-        client.emit('AUTH_SUCCESS')
         mainWindow.show()
     } catch (error) {
         logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)

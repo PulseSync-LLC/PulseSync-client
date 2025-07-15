@@ -36,8 +36,6 @@ registerSchemes()
 
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
 app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
-app.commandLine.appendSwitch('enable-logging');
-app.commandLine.appendSwitch('v', '1');
 
 app.setAppUserModelId('pulsesync.app')
 
