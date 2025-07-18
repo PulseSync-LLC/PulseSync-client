@@ -121,131 +121,6 @@ export function getAllAllowedUrls(): string[] {
     return Array.from(urls)
 }
 
-const initializeServer = () => {
-    server = http.createServer((req, res) => {
-        const { method, url, headers } = req
-        const { pathname } = parse(url || '', true)
-        const origin = headers.origin as string | undefined
-
-        if (origin && allowedOrigins.includes(origin)) {
-            res.setHeader('Access-Control-Allow-Origin', origin)
-        }
-        res.setHeader('Access-Control-Allow-Origin', '*')
-        res.setHeader('Access-Control-Allow-Credentials', 'true')
-        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
-        res.setHeader(
-            'Access-Control-Allow-Headers',
-            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, sentry-trace, baggage',
-        )
-
-        if (method === 'OPTIONS') {
-            res.writeHead(204)
-            return res.end()
-        }
-        if (pathname?.startsWith('/socket.io/')) {
-            return
-        }
-
-        if (method === 'GET' && pathname === '/get_handle') {
-            return handleGetHandleRequest(req, res)
-        }
-        if (method === 'GET' && pathname === '/assets') {
-            return handleGetAssetsRequest(req, res)
-        }
-        if (method === 'GET' && pathname?.startsWith('/assets/')) {
-            return handleGetAssetFileRequest(req, res)
-        }
-        if (method === 'GET' && pathname === '/addon_file') {
-            return handleGetAddonRootFileRequest(req, res)
-        }
-
-        res.writeHead(404, { 'Content-Type': 'application/json' })
-        res.end(JSON.stringify({ error: 'Not found' }))
-    })
-
-    io = new IOServer(server, {
-        cors: {
-            origin: allowedOrigins,
-            methods: ['GET', 'POST'],
-            allowedHeaders: ['Content-Type', 'sentry-trace'],
-        },
-    })
-
-    io.on('connection', (socket: Socket) => {
-        const version = (socket.handshake.query.v as string) || State.get('mod.version')
-        const clientType = (socket.handshake.query.type as string) || 'yaMusic'
-        ;(socket as any).clientType = clientType
-        ;(socket as any).hasPong = false
-
-        logger.http.log(`New client connected: version=${version}, type=${clientType}`)
-
-        socket.emit('PING', { message: 'Connected to server' })
-
-        socket.on('READY', () => {
-            logger.http.log('READY received from client')
-            if ((socket as any).clientType === 'yaMusic') {
-                mainWindow.webContents.send('CLIENT_READY')
-                ;(socket as any).hasPong = true
-                if (authorized) {
-                    sendDataToMusic({ targetSocket: socket })
-                }
-            }
-        })
-
-        socket.on('BROWSER_AUTH', (args: any) => {
-            logger.http.log('BROWSER_AUTH received:', args)
-            handleBrowserAuth(args, socket)
-        })
-
-        socket.on('BROWSER_BAN', (args: any) => {
-            logger.http.log('BROWSER_BAN received:', args)
-            mainWindow.webContents.send('authBanned', { reason: args.reason })
-        })
-
-        socket.on('UPDATE_DATA', (payload: any) => {
-            if (!authorized) return
-            logger.http.log('UPDATE_DATA received:', payload)
-            updateData(payload)
-        })
-
-        socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
-            if (!authorized) return
-            logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
-            mainWindow.webContents.send('TRACK_INFO', data)
-        })
-
-        socket.on('SEND_TRACK', (payload: any) => {
-            if (!authorized) return
-            logger.http.log('SEND_TRACK received:', payload)
-            mainWindow.webContents.send('SEND_TRACK', payload.data)
-        })
-
-        socket.on('disconnect', () => {
-            logger.http.log('Client disconnected')
-            mainWindow.webContents.send('TRACK_INFO', {
-                type: 'refresh',
-            })
-        })
-
-        socket.on('error', (err: any) => {
-            logger.http.error('Socket.IO error:', err)
-        })
-    })
-
-    server.listen(config.MAIN_PORT, () => {
-        logger.http.log(`Socket.IO server running on port ${config.MAIN_PORT}`)
-        attempt = 0
-    })
-
-    server.on('error', (error: any) => {
-        if (error.code === 'EADDRINUSE') {
-            handlePortInUse()
-        } else {
-            logger.http.error('HTTP server error:', error)
-        }
-    })
-}
-
 const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const { query } = parse(req.url || '', true)
@@ -357,37 +232,6 @@ const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerRe
         res.end(JSON.stringify({ error: 'Error serving asset file' }))
     }
 }
-
-const getFilesInDirectory = (dir: string): Record<string, string> =>
-    fs.readdirSync(dir).reduce(
-        (acc, f) => {
-            const fp = path.join(dir, f)
-            if (fs.statSync(fp).isDirectory()) Object.assign(acc, getFilesInDirectory(fp))
-            else acc[f] = fp
-            return acc
-        },
-        {} as Record<string, string>,
-    )
-
-const findFileInDirectory = (filename: string, dir: string): string | null => {
-    for (const f of fs.readdirSync(dir)) {
-        const fp = path.join(dir, f)
-        if (fs.statSync(fp).isDirectory()) {
-            const res = findFileInDirectory(filename, fp)
-            if (res) return res
-        } else if (path.basename(fp) === filename) {
-            return fp
-        }
-    }
-    return null
-}
-
-const getFilePathInAssets = (fn: string, assets: string): string | null => {
-    const fp = findFileInDirectory(fn, assets)
-    logger.http.log('File Path:', fp)
-    return fp
-}
-
 const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
     try {
         const { query } = parse(req.url || '', true)
@@ -431,6 +275,180 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
     }
 }
 
+const handleGetTrack = (req: http.IncomingMessage, res: http.ServerResponse) => {
+    try {
+        if (!authorized) {
+            res.writeHead(403, { 'Content-Type': 'application/json' })
+            return res.end(JSON.stringify({ error: 'Unauthorized' }))
+        }
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        return res.end(JSON.stringify(data))
+    } catch (err) {
+        logger.http.error('Error processing get_track:', err)
+        res.writeHead(500, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Internal server error' }))
+    }
+}
+
+const routes: Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => void> = {
+    '/get_handle': handleGetHandleRequest,
+    '/assets': handleGetAssetsRequest,
+    '/addon_file': handleGetAddonRootFileRequest,
+    '/get_track': handleGetTrack,
+}
+
+const assetPrefix = '/assets/'
+
+const initializeServer = () => {
+    server = http.createServer((req, res) => {
+        const { method, url, headers } = req
+        const { pathname } = parse(url || '', true)
+        const origin = headers.origin as string | undefined
+
+        if (origin && allowedOrigins.includes(origin)) {
+            res.setHeader('Access-Control-Allow-Origin', origin)
+        }
+        res.setHeader('Access-Control-Allow-Origin', '*')
+        res.setHeader('Access-Control-Allow-Credentials', 'true')
+        res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
+        res.setHeader(
+            'Access-Control-Allow-Headers',
+            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, sentry-trace, baggage',
+        )
+
+        if (method === 'OPTIONS') {
+            res.writeHead(204)
+            return res.end()
+        }
+        if (pathname?.startsWith('/socket.io/')) {
+            return
+        }
+
+        if (method === 'GET') {
+            if (pathname && routes[pathname]) {
+                return routes[pathname](req, res)
+            }
+            if (pathname && pathname.startsWith(assetPrefix)) {
+                return handleGetAssetFileRequest(req, res)
+            }
+        }
+
+        res.writeHead(404, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({ error: 'Not found' }))
+    })
+
+    io = new IOServer(server, {
+        cors: {
+            origin: allowedOrigins,
+            methods: ['GET', 'POST'],
+            allowedHeaders: ['Content-Type', 'sentry-trace'],
+        },
+    })
+
+    io.on('connection', (socket: Socket) => {
+        const version = (socket.handshake.query.v as string) || State.get('mod.version')
+        const clientType = (socket.handshake.query.type as string) || 'yaMusic'
+        ;(socket as any).clientType = clientType
+        ;(socket as any).hasPong = false
+
+        logger.http.log(`New client connected: version=${version}, type=${clientType}`)
+
+        socket.emit('PING', { message: 'Connected to server' })
+
+        socket.on('READY', () => {
+            logger.http.log('READY received from client')
+            if ((socket as any).clientType === 'yaMusic') {
+                mainWindow.webContents.send('CLIENT_READY')
+                ;(socket as any).hasPong = true
+                if (authorized) {
+                    sendDataToMusic({ targetSocket: socket })
+                }
+            }
+        })
+
+        socket.on('BROWSER_AUTH', (args: any) => {
+            logger.http.log('BROWSER_AUTH received:', args)
+            handleBrowserAuth(args, socket)
+        })
+
+        socket.on('BROWSER_BAN', (args: any) => {
+            logger.http.log('BROWSER_BAN received:', args)
+            mainWindow.webContents.send('authBanned', { reason: args.reason })
+        })
+
+        socket.on('UPDATE_DATA', (payload: any) => {
+            if (!authorized) return
+            logger.http.log('UPDATE_DATA received:', payload)
+            updateData(payload)
+        })
+
+        socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
+            if (!authorized) return
+            logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
+            mainWindow.webContents.send('TRACK_INFO', data)
+        })
+
+        socket.on('SEND_TRACK', (payload: any) => {
+            if (!authorized) return
+            logger.http.log('SEND_TRACK received:', payload)
+            mainWindow.webContents.send('SEND_TRACK', payload.data)
+        })
+
+        socket.on('disconnect', () => {
+            logger.http.log('Client disconnected')
+            mainWindow.webContents.send('TRACK_INFO', {
+                type: 'refresh',
+            })
+        })
+
+        socket.on('error', (err: any) => {
+            logger.http.error('Socket.IO error:', err)
+        })
+    })
+
+    server.listen(config.MAIN_PORT, () => {
+        logger.http.log(`Socket.IO server running on port ${config.MAIN_PORT}`)
+        attempt = 0
+    })
+
+    server.on('error', (error: any) => {
+        if (error.code === 'EADDRINUSE') {
+            handlePortInUse()
+        } else {
+            logger.http.error('HTTP server error:', error)
+        }
+    })
+}
+const getFilesInDirectory = (dir: string): Record<string, string> =>
+    fs.readdirSync(dir).reduce(
+        (acc, f) => {
+            const fp = path.join(dir, f)
+            if (fs.statSync(fp).isDirectory()) Object.assign(acc, getFilesInDirectory(fp))
+            else acc[f] = fp
+            return acc
+        },
+        {} as Record<string, string>,
+    )
+
+const findFileInDirectory = (filename: string, dir: string): string | null => {
+    for (const f of fs.readdirSync(dir)) {
+        const fp = path.join(dir, f)
+        if (fs.statSync(fp).isDirectory()) {
+            const res = findFileInDirectory(filename, fp)
+            if (res) return res
+        } else if (path.basename(fp) === filename) {
+            return fp
+        }
+    }
+    return null
+}
+
+const getFilePathInAssets = (fn: string, assets: string): string | null => {
+    const fp = findFileInDirectory(fn, assets)
+    logger.http.log('File Path:', fp)
+    return fp
+}
+
 const handleBrowserAuth = async (payload: any, client: Socket) => {
     const { userId, token } = payload.args
 
@@ -439,11 +457,11 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         return app.quit()
     }
     try {
-        if(isAppDev) {
+        if (isAppDev) {
             State.set('tokens.token', token)
             mainWindow.webContents.send('authSuccess')
             mainWindow.show()
-            return;
+            return
         }
         const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
         if (!data.ok || !data.access) {
