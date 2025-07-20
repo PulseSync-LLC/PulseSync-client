@@ -234,12 +234,18 @@ export default function TrackInfoPage() {
                                     className={themeV2.userBanner}
                                     src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
                                     alt={user.bannerHash}
+                                    onError={e => {
+                                        ;(e.currentTarget as HTMLImageElement).src = `${config.S3_URL}/banners/default_banner.webp`
+                                    }}
                                 />
                                 <div className={themeV2.userInfo}>
                                     <img
                                         className={themeV2.userAvatar}
                                         src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                         alt={user.avatarHash}
+                                        onError={e => {
+                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                        }}
                                     />
                                     <div className={themeV2.userInfoContainer}>
                                         <div className={themeV2.userName}>{user.username}</div>

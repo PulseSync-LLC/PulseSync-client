@@ -4,7 +4,7 @@
     color: var(--color1);
     height: fit-content;
     -webkit-app-region: drag;
-    padding: 0 0 0 20px;
+    padding: 0 0 0 21px;
     width: -webkit-fill-available;
     z-index: 9997;
 
@@ -24,14 +24,25 @@
                 flex-direction: row;
                 align-items: center;
                 padding: 10px 10px;
-                border-radius: 10px;
+                border-radius: 28px;
                 gap: 4px;
+                cursor: pointer;
 
                 &:hover {
                     background: #20232c;
                 }
-            }
 
+                &:disabled {
+                    opacity: 0.5;
+                    background: transparent;
+                    cursor: not-allowed;
+                    pointer-events: none;
+
+                    &:hover {
+                        background: #3c3f4a;
+                    }
+                }
+            }
             .line {
                 width: 1px;
                 height: 20px;

@@ -11,7 +11,7 @@ interface AchievementsSectionProps {
 
 const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, username }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
-    const { user } = useContext(userContext)
+    const { user, features } = useContext(userContext)
     const canViewDetails = user.username === username
 
     const toggleExpand = (id: number) => {
@@ -38,6 +38,19 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 
     return (
         <div className={styles.userPageDown}>
+            {features?.usersPage && (
+                <div className={styles.warning}>
+                    <span className={styles.title}>
+                        <span className={styles.warnDot}></span>
+                        <span className={styles.pulsingDot}></span>
+                        Внимание! Система достижений временно не работает
+                    </span>
+                    <span className={styles.description}>
+                        Мы перерабатываем систему достижений, чтобы сделать её лучше! Сейчас достижения не засчитываются при прослушивании, но мы
+                        скоро всё исправим. Спасибо за ваше терпение! 😊
+                    </span>
+                </div>
+            )}
             <div className={styles.achievementsSection}>
                 <div>
                     <div className={styles.titleHeader}>Достижения</div>

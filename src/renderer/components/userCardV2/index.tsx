@@ -1,4 +1,3 @@
-// src/renderer/components/userCardV2/index.tsx
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as styles from './userCard.module.scss'
 import config from '../../api/config'
@@ -17,7 +16,10 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
     const [isIntersecting, setIsIntersecting] = useState(false)
     useEffect(() => {
         if (!ref.current) return
-        const obs = new IntersectionObserver(([e]) => setIsIntersecting(e.isIntersecting), options)
+        const obs = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
+            ...options,
+            rootMargin: '50%', // Расширяем зону видимости на 50% высоты экрана
+        })
         obs.observe(ref.current)
         return () => obs.disconnect()
     }, [ref, options])
@@ -28,7 +30,7 @@ const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; 
     if (!hash) {
         return type === 'avatar'
             ? './static/assets/images/undef.png'
-            : 'linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(./static/assets/images/undef.png)'
+            : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
     }
     const base = `${config.S3_URL}/${type}s/${hash}`
     if (ext === 'gif') {
@@ -44,38 +46,49 @@ const isInactive = (lastOnline?: number) => {
     if (!lastOnline) return false
     const date = new Date(lastOnline)
     const weekAgo = new Date()
-    weekAgo.setDate(weekAgo.getDate() - 7)
+    weekAgo.setDate(weekAgo.getDate() - 31)
     return date < weekAgo
 }
 
 const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
-    const [showContent, setShowContent] = useState(false)
     const [isHovered, setIsHovered] = useState(false)
+    const [bannerUrl, setBannerUrl] = useState(
+        getMediaUrl({
+            type: 'banner',
+            hash: (user as UserInterface).bannerHash,
+            ext: (user as UserInterface).bannerType,
+            hovered: false,
+        })
+    )
 
-    // Как только попали в зону видимости — включаем контент
     useEffect(() => {
-        if (isVisible) setShowContent(true)
-    }, [isVisible])
+        const img = new Image()
+        const bannerSrc = `${config.S3_URL}/banners/${(user as UserInterface).bannerHash}.${(user as UserInterface).bannerType}`
+        img.src = bannerSrc
+        img.onload = () => {
+            setBannerUrl(
+                getMediaUrl({
+                    type: 'banner',
+                    hash: (user as UserInterface).bannerHash,
+                    ext: (user as UserInterface).bannerType,
+                    hovered: isHovered,
+                })
+            )
+        }
+        img.onerror = () => {
+            setBannerUrl(
+                `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
+            )
+        }
+    }, [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered])
 
-    // === ВСЕ ХУКИ ВЫЗЫВАЕМ ВСЕГДА, ВНЕ ЗАВИСИМОСТИ ОТ showContent ===
     const statusInfo = getStatus(user as UserInterface)
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
 
     const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
-
-    const bannerBackground = useMemo(
-        () =>
-            getMediaUrl({
-                type: 'banner',
-                hash: (user as UserInterface).bannerHash,
-                ext: (user as UserInterface).bannerType,
-                hovered: isHovered,
-            }),
-        [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered],
-    )
 
     const avatarUrl = useMemo(
         () =>
@@ -85,23 +98,19 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                 ext: (user as UserInterface).avatarType,
                 hovered: isHovered,
             }),
-        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered],
+        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered]
     )
 
-    // === РЕНДЕРИМ ЛИБО skeleton, ЛИБО контент ===
     return (
-        <div ref={containerRef} style={{ width: '100%', height: '150px' }}>
-            {!showContent ? (
-                <div className={styles.userCardSkeleton} aria-hidden="true" style={{ width: '100%', height: '150px' }} />
-            ) : (
+        <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!isVisible}>
+            {isVisible ? (
                 <div
-                    className={styles.container}
+                    className={`${styles.container} ${styles.visible}`}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     onClick={() => onClick(user.username!)}
                     style={
                         {
-                            animation: 'fadeIn 0.4s ease forwards',
                             '--statusColorProfile': statusColor,
                             '--statusColorDark': statusColorDark,
                         } as React.CSSProperties
@@ -110,7 +119,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                     <div
                         className={styles.topSection}
                         style={{
-                            background: bannerBackground,
+                            background: bannerUrl,
                             backgroundRepeat: 'no-repeat',
                             backgroundPosition: 'center center',
                             backgroundSize: 'cover',
@@ -160,7 +169,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         )}
                     </div>
                 </div>
-            )}
+            ) : null}
         </div>
     )
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router'
 import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
 import AddonInterface from '../../../../../api/interfaces/addon.interface'
@@ -30,17 +30,22 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
     const [logoUrl, setLogoUrl] = useState<string | null>(null)
 
-    const bannerCache = new Map<string, string>()
-    const logoCache = new Map<string, string>()
+    const bannerCacheRef = useRef<Map<string, string>>(new Map())
+    const logoCacheRef = useRef<Map<string, string>>(new Map())
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
 
     useEffect(() => {
-        if (!addon.banner) return
-        const key = `${addon.directoryName}|banner`
-        if (bannerCache.has(key)) {
-            setBannerUrl(bannerCache.get(key)!)
+        if (!addon.banner) {
+            setBannerUrl('static/assets/images/no_themeBackground.png')
+            return
+        }
+        const key = `${addon.directoryName}|banner|${addon.banner}`
+        const cache = bannerCacheRef.current
+
+        if (cache.has(key)) {
+            setBannerUrl(cache.get(key)!)
             return
         }
 
@@ -48,21 +53,25 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             .then(r => (r.ok ? r.blob() : Promise.reject()))
             .then(b => {
                 const url = URL.createObjectURL(b)
-                bannerCache.set(key, url)
+                cache.set(key, url)
                 setBannerUrl(url)
             })
-            .catch(() => bannerCache.set(key, 'static/assets/images/no_themeBackground.png'))
-    }, [addon.banner])
+            .catch(() => cache.set(key, 'static/assets/images/no_themeBackground.png'))
+        return () => {
+            if (getAssetUrl(addon.libraryLogo)) URL.revokeObjectURL(getAssetUrl(addon.libraryLogo))
+        }
+    }, [addon.banner, addon.directoryName])
 
     useEffect(() => {
-        /** подкачиваем логотип */
         if (!addon.libraryLogo) {
             setLogoUrl(null)
             return
         }
-        const key = `${addon.directoryName}|logo`
-        if (logoCache.has(key)) {
-            setLogoUrl(logoCache.get(key)!)
+        const key = `${addon.directoryName}|logo|${addon.libraryLogo}`
+        const cache = logoCacheRef.current
+
+        if (cache.has(key)) {
+            setLogoUrl(cache.get(key)!)
             return
         }
 
@@ -70,17 +79,21 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             .then(r => (r.ok ? r.blob() : Promise.reject()))
             .then(b => {
                 const url = URL.createObjectURL(b)
-                logoCache.set(key, url)
+                cache.set(key, url)
                 setLogoUrl(url)
             })
-            .catch(() => logoCache.set(key, null))
-    }, [addon.libraryLogo])
+            .catch(() => cache.set(key, null))
+
+        return () => {
+            if (logoUrl && logoUrl.startsWith('blob:')) URL.revokeObjectURL(logoUrl)
+        }
+    }, [addon.libraryLogo, addon.directoryName])
 
     return (
         <>
             <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
                 <div className={s.content}>
-                    <div className={s.libraryLogo}>
+                    <div className={s.libraryLogo} onClick={() => nav(`/themes/${encodeURIComponent(addon.directoryName)}`)}>
                         {logoUrl ? (
                             <img className={s.libraryLogoImg} src={logoUrl} alt="Library Logo" />
                         ) : (
@@ -171,4 +184,4 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     )
 }
 
-export default ThemeInfo
+export default ThemeInfo;

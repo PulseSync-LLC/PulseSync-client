@@ -389,12 +389,80 @@
 }
 
 .userPageDown {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
     padding: 5px 0px;
     gap: 5px;
 }
+
+// warning
+
+.warning {
+    display: flex;
+    width: 100%;
+    background: transparent;
+    justify-content: center;
+    padding: 20px 40px;
+    margin: 0 20px;
+    font-weight: 700;
+    color: #ffee6d;
+    z-index: 2;
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+
+    .title {
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .description {
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    .warnDot {
+        position: absolute;
+        left: 16px;
+        width: 10px;
+        height: 10px;
+        background-color: #ffee6d;
+        border-radius: 50%;
+    }
+
+    .pulsingDot {
+        position: absolute;
+        left: 13px;
+        width: 16px;
+        height: 16px;
+        background-color: #ffee6d;
+        border-radius: 50%;
+        animation: pulse 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(0.7);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1);
+            opacity: 0.7;
+        }
+        100% {
+            transform: scale(1.4);
+            opacity: 0;
+        }
+    }
+}
+//
 
 .achievementsList {
     display: flex;

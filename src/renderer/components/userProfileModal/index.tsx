@@ -82,9 +82,7 @@ const UserProfileModal: React.FC<UserProfileModalProps> = ({ isOpen, onClose, us
             })
             .catch(err => setError(err))
             .finally(() => {
-                setTimeout(() => {
-                    setLoading(false)
-                }, 1000)
+                setLoading(false)
             })
     }, [isOpen, username])
 

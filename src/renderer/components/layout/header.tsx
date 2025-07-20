@@ -370,6 +370,20 @@ const Header: React.FC<p> = () => {
         fetchModData()
     }, [isModModalOpen, app.mod, modInfo])
 
+    const bannerRef = useRef<HTMLDivElement>(null)
+    const [bannerUrl, setBannerUrl] = useState(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
+
+    useEffect(() => {
+        const img = new Image()
+        img.src = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+        img.onload = () => {
+            setBannerUrl(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
+        }
+        img.onerror = () => {
+            setBannerUrl(`${config.S3_URL}/banners/default_banner.webp`)
+        }
+    }, [user.bannerHash, user.bannerType])
+
     return (
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
@@ -426,8 +440,8 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button className={styles.settingsButton} onClick={openSettings}>
-                                <MdSettings size={20} />
+                            <button className={styles.settingsButton} onClick={openSettings} disabled>
+                                <MdSettings size={22} />
                             </button>
                             <div className={styles.line} />
                             <button
@@ -499,10 +513,9 @@ const Header: React.FC<p> = () => {
                                             <div className={styles.user_info}>
                                                 <div
                                                     className={styles.user_banner}
+                                                    ref={bannerRef}
                                                     style={{
-                                                        backgroundImage: `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType})`
-                                                            : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage: `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${bannerUrl})`,
                                                     }}
                                                 >
                                                     <motion.div
@@ -552,6 +565,9 @@ const Header: React.FC<p> = () => {
                                                                 : 'static/assets/images/undef.png'
                                                         }
                                                         alt="card_avatar"
+                                                        onError={e => {
+                                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                        }}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}
