@@ -151,6 +151,7 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         } catch (e: any) {
             log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
         }
+        data.updateUrgency = 'soft'
         data.commonConfig = {
             DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
             UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
