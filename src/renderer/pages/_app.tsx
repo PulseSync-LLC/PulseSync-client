@@ -338,7 +338,7 @@ function App() {
         setLoading(false)
     })
 
-    socket.on('disconnect', (reason, description) => {
+    socket.on('disconnect', () => {
         console.log('Socket disconnected')
         setSocketError(1)
         setSocket(null)
@@ -414,36 +414,38 @@ function App() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            if (!socket.connected) {
-                socket.connect()
-            }
+            const initializeApp = async () => {
+                if (!socket.connected) {
+                    socket.connect()
+                }
 
-            window.desktopEvents?.send('updater-start')
-            window.desktopEvents?.send('checkMusicInstall')
-            window.desktopEvents?.invoke('getMusicStatus').then((status: any) => {
-                setMusicInstalled(status)
-            })
-            const fetchAppInfo = async () => {
+                window.desktopEvents?.send('updater-start')
+                window.desktopEvents?.send('checkMusicInstall')
+                window.desktopEvents?.send('ui-ready')
+                const [musicStatus, fetchedAddons] = await Promise.all([
+                    window.desktopEvents?.invoke('getMusicStatus'),
+                    window.desktopEvents?.invoke('getAddons'),
+                ])
+                setMusicInstalled(musicStatus)
+                setAddons(fetchedAddons)
+
                 try {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
                     const data = await res.json()
                     if (data.ok && Array.isArray(data.appInfo)) {
                         const sortedAppInfos = data.appInfo.sort((a: any, b: any) => b.id - a.id)
                         setAppInfo(sortedAppInfos)
-                    } else {
-                        console.error('Invalid response format:', data)
                     }
                 } catch (error) {
                     console.error('Failed to fetch app info:', error)
                 }
-            }
-            fetchAppInfo()
-            fetchModInfo(app)
-            const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
-                setAddons(fetchedAddons)
-            })
+                await fetchModInfo(app)
+            }
+
+            initializeApp()
+
+            const modCheckId = setInterval(() => fetchModInfo(app), 10 * 60 * 1000)
 
             return () => {
                 clearInterval(modCheckId)
@@ -517,6 +519,7 @@ function App() {
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
+
             window.desktopEvents?.on('discordRpcState', (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -526,14 +529,16 @@ function App() {
                     },
                 }))
             })
-            window.desktopEvents?.on('check-mod-update', async (event, data) => {
+
+            window.desktopEvents?.on('check-mod-update', async () => {
                 await fetchModInfo(app)
             })
-            window.desktopEvents.on('CLIENT_READY', async (event, data) => {
+            window.desktopEvents.on('CLIENT_READY', () => {
                 window.desktopEvents?.send('REFRESH_MOD_INFO')
                 window.desktopEvents?.send('GET_TRACK_INFO')
             })
             window.desktopEvents?.on('rpc-log', onRpcLog)
+
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -543,6 +548,7 @@ function App() {
                     },
                 }))
             })
+
             window.desktopEvents?.on('check-update', (event, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
@@ -555,6 +561,7 @@ function App() {
                     toastReference.current = null
                 }
             })
+
             const onDownloadProgress = (event: any, value: any) => {
                 toast.custom(
                     'loading',
@@ -584,19 +591,22 @@ function App() {
             window.desktopEvents?.on('download-update-progress', onDownloadProgress)
             window.desktopEvents?.on('download-update-failed', onDownloadFailed)
             window.desktopEvents?.on('download-update-finished', onDownloadFinished)
+
             const loadSettings = async () => {
                 await fetchSettings(setApp)
             }
             loadSettings()
-        }
-        return () => {
-            window.desktopEvents?.removeListener('rpc-log', onRpcLog)
-            window.desktopEvents?.removeAllListeners('download-update-progress')
-            window.desktopEvents?.removeAllListeners('download-update-failed')
-            window.desktopEvents?.removeAllListeners('download-update-finished')
-            window.desktopEvents?.removeAllListeners('check-update')
-            window.desktopEvents?.removeAllListeners('discordRpcState')
-            window.desktopEvents?.removeAllListeners('CLIENT_READY')
+
+            return () => {
+                window.desktopEvents?.removeListener('rpc-log', onRpcLog)
+                window.desktopEvents?.removeAllListeners('download-update-progress')
+                window.desktopEvents?.removeAllListeners('download-update-failed')
+                window.desktopEvents?.removeAllListeners('download-update-finished')
+                window.desktopEvents?.removeAllListeners('check-update')
+                window.desktopEvents?.removeAllListeners('discordRpcState')
+                window.desktopEvents?.removeAllListeners('CLIENT_READY')
+                window.desktopEvents?.removeAllListeners('check-mod-update')
+            }
         }
     }, [])
 
