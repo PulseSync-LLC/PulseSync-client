@@ -3,33 +3,6 @@ import { rules } from './webpack.rules'
 import { plugins } from './webpack.plugins'
 import path from 'path'
 
-rules.push({
-    test: /\.css$/,
-    use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
-})
-
-rules.push({
-    test: /\.scss$/,
-    use: [
-        'style-loader',
-        {
-            loader: 'css-loader',
-            options: { modules: { localIdentName: '[name]__[local]___[hash:base64:5]' } },
-        },
-        'sass-loader',
-    ],
-})
-
-rules.push({
-    test: /\.svg$/,
-    use: ['@svgr/webpack'],
-})
-
-rules.push({
-    test: /\.md$/,
-    use: [{ loader: 'html-loader' }, { loader: 'markdown-loader', options: {} }],
-})
-
 export const rendererConfig: Configuration = {
     context: path.resolve(__dirname),
     module: { rules },
