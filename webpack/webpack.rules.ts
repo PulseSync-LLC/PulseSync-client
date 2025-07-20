@@ -61,4 +61,30 @@ export const rules: Required<ModuleOptions>['rules'] = [
         test: /\.m?js$/,
         resolve: { fullySpecified: false },
     },
+    {
+        test: /\.scss$/,
+        use: [
+            'style-loader',
+            {
+                loader: 'css-loader',
+                options: { modules: { localIdentName: '[name]__[local]___[hash:base64:5]' } },
+            },
+            'sass-loader',
+        ],
+    },
+    {
+        test: /\.svg$/,
+        use: ['@svgr/webpack'],
+    },
+    {
+        test: /\.md$/,
+        use: [
+            { loader: 'html-loader' },
+            { loader: 'markdown-loader', options: {} },
+        ],
+    },
+    {
+        test: /\.css$/,
+        use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
+    }
 ]
