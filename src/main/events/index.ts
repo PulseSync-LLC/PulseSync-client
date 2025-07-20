@@ -65,7 +65,6 @@ const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
     })
-
     ipcMain.on('electron-window-exit', () => {
         logger.main.info('Exit app')
         app.quit()
@@ -538,7 +537,6 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerSettingsEvents()
     registerAppReadyEvents()
-    registerWindowEvents()
     registerSystemEvents(window)
     registerFileOperations(window)
     registerMediaEvents(window)
@@ -549,9 +547,6 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
-}
-export const handleAppEvents = (window: BrowserWindow): void => {
-    handleEvents(window)
 }
 
 export const checkOrFindUpdate = async (hard?: boolean) => {

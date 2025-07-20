@@ -106,14 +106,12 @@ export async function createWindow(): Promise<void> {
         ...(position ? { x: position.x, y: position.y } : { center: true }),
         minWidth: minMain.width,
         minHeight: minMain.height,
-        transparent: false,
         trafficLightPosition: { x: 16, y: 10 },
         icon,
         webPreferences: {
             preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
             nodeIntegration: true,
             devTools: isAppDev || isDevmark,
-            webSecurity: true,
             webgl: State.get('settings.hardwareAcceleration'),
             enableBlinkFeatures: State.get('settings.hardwareAcceleration') ? 'WebGL2' : '',
         },
@@ -203,7 +201,7 @@ export function createSettingsWindow() {
         minWidth: 1157,
         minHeight: 750,
         resizable: true,
-        fullscreenable: false,
+        fullscreenable: true,
         frame: false,
         backgroundColor: '#16181E',
         webPreferences: {
