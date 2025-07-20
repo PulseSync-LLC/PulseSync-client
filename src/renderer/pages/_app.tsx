@@ -394,7 +394,7 @@ function App() {
 
             const latest = mods[0]
 
-            if (!app.mod?.installed || !app.mod?.version) {
+            if (!app?.mod?.installed || !app?.mod?.version) {
                 toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
                 return
             }
