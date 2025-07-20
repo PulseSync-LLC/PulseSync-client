@@ -8,7 +8,7 @@ import { getState } from './state'
 
 let tray: Tray
 let menu: Menu
-const State = getState();
+const State = getState()
 
 function createTray() {
     const icon = getNativeImg('App', '.ico', 'icon').resize({

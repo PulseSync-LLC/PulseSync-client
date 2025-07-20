@@ -174,7 +174,7 @@ export function sanitizeScript(js: string): string {
                 }
             }
             if (node.type === 'TemplateLiteral' && node.expressions.length === 0) {
-                return node.quasis.map((q: any ) => q.value.cooked).join('')
+                return node.quasis.map((q: any) => q.value.cooked).join('')
             }
             return undefined
         }

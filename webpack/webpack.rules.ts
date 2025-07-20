@@ -78,13 +78,10 @@ export const rules: Required<ModuleOptions>['rules'] = [
     },
     {
         test: /\.md$/,
-        use: [
-            { loader: 'html-loader' },
-            { loader: 'markdown-loader', options: {} },
-        ],
+        use: [{ loader: 'html-loader' }, { loader: 'markdown-loader', options: {} }],
     },
     {
         test: /\.css$/,
         use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
-    }
+    },
 ]

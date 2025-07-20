@@ -1,0 +1,31 @@
+.timelineContainer {
+    width: -webkit-fill-available;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.timestamp {
+    width: 30px;
+
+    font-weight: 600;
+    font-size: 11px;
+    line-height: 15px;
+
+    color: #ffffff;
+}
+
+.timeline {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #ffffff33;
+    position: relative;
+    overflow: hidden;
+}
+
+.progress {
+    height: 100%;
+    background-color: #fff;
+    transition: width var(--transition);
+}

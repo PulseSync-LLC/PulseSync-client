@@ -782,7 +782,7 @@ const ExtensionViewPage: React.FC = () => {
                                             />
                                             <div className={localStyles.themeTitle}>
                                                 <div className={localStyles.titleContainer}>
-                                                    <NavLink className={localStyles.path} to="/extensionbeta" title="Перейти в Extension">
+                                                    <NavLink className={localStyles.path} to="/extensionbetaOld" title="Перейти в Extension">
                                                         Extension
                                                     </NavLink>
                                                     /<div className={localStyles.title}>{currentAddon.name || 'Название недоступно'}</div>

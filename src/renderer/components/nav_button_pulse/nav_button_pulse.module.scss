@@ -5,17 +5,17 @@
     display: flex;
     background: transparent;
     border: none;
-    border-radius: 16px;
-    padding: 12px;
+    border-radius: 10px;
+    padding: 8px;
     position: relative;
 
     & > svg {
         transition: var(--transition);
-        fill: var(--NavigationIconDefaultSvgColor);
+        fill: #eef1ff;
     }
 
     &:hover {
-        background: #292c36;
+        background: #3456c8;
         & > svg {
             fill: white;
         }

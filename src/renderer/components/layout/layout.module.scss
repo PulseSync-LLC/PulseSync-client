@@ -9,21 +9,20 @@
 .main_window {
     display: flex;
     position: absolute;
-    max-width: 1157px;
+    // max-width: 1157px;
     width: -webkit-fill-available;
     bottom: 0;
     top: 50px;
     // background: var(--MainBG);
     z-index: 8000;
+    padding: 0 20px 20px 0;
 
     .navigation_bar {
-        border-radius: 0px 0px 20px 0px;
-        // background: var(--Main);
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         align-items: center;
-        padding: 20px;
+        padding: 10px 20px 0 20px;
 
         .navigation_buttons {
             display: flex;

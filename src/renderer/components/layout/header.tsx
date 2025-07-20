@@ -31,11 +31,17 @@ import { RootState } from '../../api/store/store'
 import { closeModal, openModal } from '../../api/store/modalSlice'
 import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
+import NavButtonPulse from '../nav_button_pulse'
+import { MdSettings } from 'react-icons/md'
 interface p {
     goBack?: boolean
 }
 
 const Header: React.FC<p> = () => {
+    const openSettings = () => {
+        window.desktopEvents.send('open-settings-window')
+    }
+
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -420,7 +426,15 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button className={styles.logoplace} onClick={toggleMenu} disabled={user.id === '-1'}>
+                            <button className={styles.settingsButton} onClick={openSettings}>
+                                <MdSettings size={20} />
+                            </button>
+                            <div className={styles.line} />
+                            <button
+                                className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}
+                                onClick={toggleMenu}
+                                disabled={user.id === '-1'}
+                            >
                                 <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
@@ -460,12 +474,6 @@ const Header: React.FC<p> = () => {
                                             <div className={styles.status}>
                                                 <div className={styles.dot}></div>
                                             </div>
-                                        </div>
-                                        <div className={styles.user_info}>
-                                            <div className={styles.username}>{user.username}</div>
-                                            {/*<div className={styles.status_text}>*/}
-                                            {/*    {renderPlayerStatus()}*/}
-                                            {/*</div>*/}
                                         </div>
                                     </div>
                                     {isUserCardOpen && (
@@ -615,17 +623,17 @@ const Header: React.FC<p> = () => {
                         </div>
                         <div className={styles.button_container}>
                             <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
-                                <Minus color="#E4E5EA" />
+                                <Minus />
                             </button>
                             <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
-                                <Minimize color="#E4E5EA" />
+                                <Minimize />
                             </button>
                             <button
                                 id="close"
                                 className={styles.button_title}
                                 onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
                             >
-                                <Close color="#E4E5EA" />
+                                <Close />
                             </button>
                         </div>
                     </div>

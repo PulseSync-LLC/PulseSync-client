@@ -1,4 +1,5 @@
 export interface AddonConfig {
+    [x: string]: any
     sections: Section[]
 }
 

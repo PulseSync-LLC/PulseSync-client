@@ -200,7 +200,7 @@ const schema = {
                 type: 'boolean',
                 description: 'Флаг, указывающий, переустановлена ли музыка',
                 default: false,
-            }
+            },
         },
         required: [
             'saveWindowDimensionsOnRestart',
@@ -271,7 +271,7 @@ const schema = {
                 type: 'boolean',
                 description: 'Флаг, указывающий, обновлен ли мод до последней версии',
                 default: false,
-            }
+            },
         },
         required: ['musicVersion', 'name', 'version', 'installed', 'updated'],
         additionalProperties: false,

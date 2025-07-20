@@ -317,7 +317,7 @@ async function main(): Promise<void> {
 
     if (buildApplication) {
         if (publishBranch) {
-            setConfigDevFalse();
+            setConfigDevFalse()
             const appUpdateConfig = {
                 provider: 'generic',
                 url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,

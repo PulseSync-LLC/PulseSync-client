@@ -94,8 +94,7 @@ class Updater {
                 updateAvailable: false,
             })
             return
-        }
-        else {
+        } else {
             mainWindow.webContents.send('check-update', {
                 updateAvailable: true,
             })

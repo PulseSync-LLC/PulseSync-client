@@ -193,6 +193,7 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
         }
         sendActivityTimeoutId = setTimeout(() => {
             try {
+
                 client.user?.setActivity(activity).catch(async e => {
                     const msg = await handleRpcError(e)
                     mainWindow.webContents.send('rpc-log', {

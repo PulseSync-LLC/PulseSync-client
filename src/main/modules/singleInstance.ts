@@ -12,7 +12,7 @@ import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
-const State = getState();
+const State = getState()
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance: ', isFirstInstance ? 'yes' : 'no')

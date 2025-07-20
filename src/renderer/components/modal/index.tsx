@@ -1,8 +1,8 @@
-import './modal.css'
 import React from 'react'
 import RModal from 'react-modal'
 import Button from '../button'
 import { IoCloseSharp } from 'react-icons/io5'
+import './modal.css'
 interface p {
     title?: string
     isOpen: boolean

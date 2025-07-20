@@ -7,8 +7,9 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import ExtensionBetaPage from './extensionbeta'
-import ExtensionViewPage from './extensionbeta/route/extensionview'
+import ExtensionPage from './extension'
+import ExtensionBetaPageOld from './extensionbetaOld'
+import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -45,7 +46,9 @@ import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
+import TrackInfoPageOld from './trackinfoOld'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
+import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -107,6 +110,14 @@ function App() {
             ),
         },
         {
+            path: '/trackinfoOld',
+            element: (
+                <ErrorBoundary>
+                    <TrackInfoPageOld />
+                </ErrorBoundary>
+            ),
+        },
+        {
             path: '/users',
             element: (
                 <ErrorBoundary>
@@ -115,18 +126,26 @@ function App() {
             ),
         },
         {
-            path: '/extensionbeta',
+            path: '/extension',
             element: (
                 <ErrorBoundary>
-                    <ExtensionBetaPage />
+                    <ExtensionPage />
                 </ErrorBoundary>
             ),
         },
         {
-            path: '/extensionbeta/:contactId',
+            path: '/extensionbetaOld',
             element: (
                 <ErrorBoundary>
-                    <ExtensionViewPage />
+                    <ExtensionBetaPageOld />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/extensionbetaOld/:contactId',
+            element: (
+                <ErrorBoundary>
+                    <ExtensionViewPageOld />
                 </ErrorBoundary>
             ),
         },
@@ -469,7 +488,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${foundAddon.name}`)
                         setNavigateState(foundAddon)
                     }
                 })
@@ -957,7 +976,7 @@ const Player: React.FC<any> = ({ children }) => {
                         rawDetails = track.title || 'Unknown Track'
                     }
 
-                    const activity: any = {
+                    const activity: SetActivity = {
                         type: 2,
                         largeImageKey: getCoverImage(track),
                         details: fixStrings(rawDetails),

@@ -76,7 +76,7 @@ function sendRemoveModFailure(params: { error: string; type?: string }) {
 export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
         try {
-            if ((shouldReinstall && !State.get('settings.musicReinstalled') && isWindows())) {
+            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                 State.set('settings', {
                     musicReinstalled: true,
                 })
@@ -189,10 +189,9 @@ export const handleModEvents = (window: BrowserWindow): void => {
     ipcMain.on('remove-mod', async () => {
         try {
             const doRemove = async () => {
-                if(fs.existsSync(backupPath)) {
+                if (fs.existsSync(backupPath)) {
                     fs.renameSync(backupPath, modSavePath)
-                }
-                else {
+                } else {
                     return await downloadYandexMusic('reinstall')
                 }
                 logger.modManager.info('Backup restored.')
@@ -206,8 +205,7 @@ export const handleModEvents = (window: BrowserWindow): void => {
                     } catch (winErr) {
                         logger.modManager.error('Ошибка восстановления Integrity hash в exe:', winErr)
                     }
-                }
-                else if (isMac()) {
+                } else if (isMac()) {
                     try {
                         const appBundlePath = path.resolve(path.dirname(modSavePath), '..', '..')
                         const patcher = new AsarPatcher(appBundlePath)

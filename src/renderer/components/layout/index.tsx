@@ -366,9 +366,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/trackinfo" text="Информация о треке">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensionbeta" text="Аддоны Бета" disabled={!musicInstalled}>
+                            <NavButtonPulse to="/extension" text="Аддоны Бета" disabled={!musicInstalled}>
                                 <MdExtension size={24} />
-                                <div className={pageStyles.betatest}>beta</div>
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
