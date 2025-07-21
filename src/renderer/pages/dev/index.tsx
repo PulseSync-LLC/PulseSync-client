@@ -121,6 +121,16 @@ function Dev() {
                         },
                     ]}
                 />
+                <div className={styles.toastTestButtons}>
+                    <ButtonV2 onClick={() => toast.custom('success', 'Успех', 'Операция прошла успешно')}>Успех</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('error', 'Ошибка', 'Что-то пошло не так')}>Ошибка</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('warning', 'Внимание', 'Будь осторожен')}>Внимание</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('info', 'Инфо', 'Это полезное сообщение')}>Инфо</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('loading', 'Загрузка', 'Идёт загрузка...', undefined, 0)}>Загрузка</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('download', 'Скачивание', 'Скачиваем данные...', undefined, 42)}>Скачивание</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('import', 'Импорт', 'Импортируем файлы...', undefined, 73)}>Импорт</ButtonV2>
+                    <ButtonV2 onClick={() => toast.custom('export', 'Экспорт', 'Экспортируем в ад', undefined, 100)}>Экспорт (100%)</ButtonV2>
+                </div>
             </div>
         </Layout>
     )

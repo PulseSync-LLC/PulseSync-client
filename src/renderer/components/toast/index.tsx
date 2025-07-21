@@ -1,141 +1,189 @@
-import React, { JSX, useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef, useLayoutEffect, JSX } from 'react'
 import toast, { Renderable, ToastOptions, Toast } from 'react-hot-toast'
 import * as styles from './toast.module.scss'
+import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
 
-import Check from './../../../../static/assets/toast/check.svg'
-import ImportExport from './../../../../static/assets/toast/importExport.svg'
-import Warning from './../../../../static/assets/toast/warning.svg'
-import Download from './../../../../static/assets/toast/download.svg'
-import Error from './../../../../static/assets/toast/error.svg'
-import Info from './../../../../static/assets/toast/info.svg'
-import Loading from './../../../../static/assets/toast/loading.svg'
-import Hide from './../../../../static/assets/toast/hide.svg'
+type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
-const iToast = {
-    custom: (customType: string, customTitle: string, message: Renderable, options?: ToastOptions, value?: number, duration: number = 5000) =>
-        createToast(customType, customTitle, message, options, value, duration),
-}
-
-function createToast(customType: string, customTitle: string, message: Renderable, options?: ToastOptions, value?: number, duration: number = 5000) {
-    const isPersistent = ['loading', 'export', 'import', 'download'].includes(customType)
-
-    const toastId = toast.custom(
-        (t: Toast) => (
-            <ToastComponent
-                t={t}
-                customType={customType}
-                customTitle={customTitle}
-                message={message}
-                value={value}
-                isPersistent={isPersistent}
-                duration={isPersistent ? Infinity : duration}
-            />
-        ),
-        {
-            ...options,
-            duration: isPersistent ? Infinity : duration,
-        },
-    )
-
-    return toastId
-}
-
-const ToastComponent = ({
-    t,
-    customType,
-    customTitle,
-    message,
-    value,
-    isPersistent,
-    duration,
-}: {
-    t: Toast
-    customType: string
-    customTitle: string
-    message: Renderable
+interface ToastData {
+    id: string
+    kind: Kind
+    title: string
+    msg: Renderable
     value?: number
-    isPersistent: boolean
+    sticky: boolean
     duration: number
-}) => {
-    const [isVisible, setIsVisible] = useState(false)
+}
 
-    useEffect(() => {
-        const showTimer = setTimeout(() => setIsVisible(true), 100)
+let queue: ToastData[] = []
+const subs = new Set<(s: ToastData[]) => void>()
+const emit = () => subs.forEach(fn => fn(queue))
+const sub = (fn: (s: ToastData[]) => void) => {
+    subs.add(fn)
+    return () => subs.delete(fn)
+}
 
-        return () => {
-            clearTimeout(showTimer)
+export const iToast = {
+    custom: (kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) => {
+        const sticky = ['loading', 'export', 'import', 'download'].includes(kind)
+        const id = `t-${Date.now()}-${Math.random()}`
+        queue.push({ id, kind, title, msg, value, sticky, duration })
+        emit()
+        renderStack(options)
+        return id
+    },
+}
+
+function remove(id: string) {
+    queue = queue.filter(t => t.id !== id)
+    queue.length ? renderStack() : toast.dismiss('android-stack')
+}
+
+function renderStack(opts?: ToastOptions) {
+    toast.custom((t: Toast) => <ToastStack toasts={queue} />, { id: 'android-stack', duration: Infinity, position: 'top-center', ...opts })
+}
+
+const ToastStack: React.FC<{ toasts: ToastData[] }> = ({ toasts }) => {
+    const [open, setOpen] = useState(toasts.length === 1)
+    const list = [...toasts].slice(-7).reverse()
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const [offsets, setOffsets] = useState<number[]>([])
+
+    useLayoutEffect(() => {
+        if (open && cardRefs.current.length) {
+            let acc = 0
+            const arr: number[] = []
+            for (let i = 0; i < list.length; ++i) {
+                arr[i] = acc
+                const h = cardRefs.current[i]?.getBoundingClientRect().height ?? 64
+                acc += h + 10
+            }
+            setOffsets(arr)
+        } else {
+            setOffsets(Array(list.length).fill(0))
         }
-    }, [])
+    }, [open, list.length, toasts.map(t => t.id).join('|')])
 
+    const prevCount = useRef(list.length)
     useEffect(() => {
-        if (!isPersistent && !t.visible) {
-            setIsVisible(false)
-        }
-    }, [t.visible, isPersistent])
-
-    const handleDismiss = () => {
-        setIsVisible(false)
-        setTimeout(() => {
-            toast.dismiss(t.id)
-        }, 500)
-    }
-
-    useEffect(() => {
-        if (isPersistent && value === 100) {
-            setTimeout(() => handleDismiss(), 500)
-        }
-    }, [value, isPersistent])
+        if (list.length === 1) setOpen(true)
+        else if (list.length > 1 && list.length > prevCount.current) setOpen(false)
+        prevCount.current = list.length
+    }, [list.length])
 
     return (
         <div
-            className={`${styles.toast} ${isVisible ? styles.toastVisible : styles.toastHidden} ${styles[customType || 'default']}`}
-            style={
-                {
-                    '--colorToast': getColor(customType),
-                } as React.CSSProperties
-            }
+            className={`${styles.stack} ${open || list.length === 1 ? styles.expanded : styles.collapsed}`}
+            onClick={() => list.length > 1 && setOpen(o => !o)}
         >
-            <div className={styles.iconContainer}>
-                {isPersistent ? <ProgressCircle value={value} customType={customType} /> : getIcon(customType)}
-            </div>
-            <div className={styles.textContainer}>
-                <div className={styles.title}>{customTitle || 'Без заголовка'}</div>
-                <div className={styles.message}>{message}</div>
-            </div>
-            {(isPersistent || customType === 'error' || customType === 'info') && (
-                <div className={styles.buttonContainer}>
-                    <button className={styles.dismissButton} onClick={handleDismiss}>
-                        <Hide height={24} width={24} />
-                    </button>
-                </div>
-            )}
+            {list.map((td, idx) => (
+                <Card
+                    key={td.id}
+                    data={td}
+                    index={idx}
+                    stackSize={list.length}
+                    open={open || list.length === 1}
+                    offset={open ? offsets[idx] : 0}
+                    ref={el => {
+                        cardRefs.current[idx] = el
+                    }}
+                    onDismiss={() => remove(td.id)}
+                />
+            ))}
         </div>
     )
 }
 
-const ProgressCircle = ({ value, customType }: { value?: number; customType?: string }) => (
-    <div className={styles.progressCircle}>
-        <svg viewBox="0 0 36 36" className={styles.circularProgress}>
+interface CardProps {
+    data: ToastData
+    index: number
+    stackSize: number
+    open: boolean
+    offset: number
+    onDismiss: () => void
+}
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, onDismiss }, ref) => {
+    const { kind, title, msg, value, sticky, duration } = data
+    const [show, setShow] = useState(false)
+
+    useEffect(() => {
+        const t = setTimeout(() => setShow(true), 60)
+        return () => clearTimeout(t)
+    }, [])
+
+    useEffect(() => {
+        if (!sticky && show) {
+            const t = setTimeout(() => {
+                setShow(false)
+                setTimeout(onDismiss, 280)
+            }, duration)
+            return () => clearTimeout(t)
+        }
+    }, [show, sticky, duration, onDismiss])
+
+    useEffect(() => {
+        if (sticky && value === 100) {
+            setTimeout(() => {
+                setShow(false)
+                setTimeout(onDismiss, 280)
+            }, 350)
+        }
+    }, [sticky, value, onDismiss])
+
+    const scale = open ? 1 : 1 - index * 0.04
+    const zIndex = stackSize - index
+
+    return (
+        <div
+            ref={ref}
+            className={`${styles.card} ${show ? styles.cardIn : styles.cardOut} ${styles[kind]}`}
+            style={
+                {
+                    transform: `translateY(${offset}px) scale(${scale})`,
+                    zIndex,
+                    color: palette(kind),
+                } as React.CSSProperties
+            }
+        >
+            <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
+            <div className={styles.text}>
+                <div className={styles.title}>{title}</div>
+                <div className={styles.msg}>{msg}</div>
+            </div>
+            {(sticky || kind === 'error' || kind === 'info') && (
+                <button
+                    className={styles.hide}
+                    onClick={e => {
+                        e.stopPropagation()
+                        setShow(false)
+                        setTimeout(onDismiss, 220)
+                    }}
+                >
+                    <MdClose size={18} />
+                </button>
+            )}
+        </div>
+    )
+})
+
+const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
+    <div className={styles.progressContainer}>
+        <div className={styles.progressText}>{Math.round(val)}%</div>
+        <svg viewBox="0 0 36 36" className={styles.prog}>
+            <path className={styles.bg} d="M18 2.1a15.9 15.9 0 1 1 0 31.8 15.9 15.9 0 0 1 0-31.8" fill="none" strokeWidth="3" />
             <path
-                className={styles.circleBg}
-                d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831"
-            />
-            <path
-                className={styles.circle}
-                strokeDasharray={`${value || 0}, 100`}
-                d="M18 2.0845
-                    a 15.9155 15.9155 0 0 1 0 31.831
-                    a 15.9155 15.9155 0 0 1 0 -31.831"
+                className={styles.fg}
+                strokeDasharray={`${val},100`}
+                d="M18 2.1a15.9 15.9 0 1 1 0 31.8 15.9 15.9 0 0 1 0-31.8"
+                fill="none"
+                strokeWidth="3"
             />
         </svg>
-        <span className={styles.progressText}>{getIcon(customType)}</span>
     </div>
 )
 
-const getColor = (type: string): string => {
-    const typeColors: Record<string, string> = {
+const palette = (k: Kind) =>
+    ({
         success: '#87FF77',
         error: '#FF7777',
         warning: '#FFEF77',
@@ -145,22 +193,18 @@ const getColor = (type: string): string => {
         export: '#77F1FF',
         import: '#77F1FF',
         default: '#87FF77',
-    }
-    return typeColors[type] || typeColors.default
-}
+    })[k]
 
-const getIcon = (type: string) => {
-    const icons: Record<string, JSX.Element> = {
-        success: <Check height={24} width={24} />,
-        error: <Error height={24} width={24} />,
-        info: <Info height={24} width={24} />,
-        warning: <Warning height={24} width={24} />,
-        download: <Download height={24} width={24} />,
-        loading: <Loading height={24} width={24} />,
-        export: <ImportExport height={24} width={24} />,
-        import: <ImportExport height={24} width={24} />,
-    }
-    return icons[type] || icons.info
+const icons: Record<Kind, JSX.Element> = {
+    success: <MdCheckCircle size={22} />,
+    error: <MdError size={22} />,
+    info: <MdInfo size={22} />,
+    warning: <MdWarning size={22} />,
+    download: <MdDownload size={22} />,
+    loading: <MdLoop size={22} />,
+    export: <MdImportExport size={22} />,
+    import: <MdImportExport size={22} />,
+    default: <MdInfo size={22} />,
 }
 
 export default iToast

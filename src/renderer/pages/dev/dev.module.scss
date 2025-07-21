@@ -47,3 +47,14 @@
     transform-origin: center;
     pointer-events: none;
 }
+
+.toastTestButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 32px;
+
+    button {
+        min-width: 140px;
+    }
+}
