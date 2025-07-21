@@ -13,6 +13,7 @@ interface ContextMenuProps {
 const viewModal: React.FC<ContextMenuProps> = ({ items }) => {
     return (
         <div className={`${cm.contextMenu}`}>
+            <div className={cm.title}>Управление</div>
             {items
                 .filter(item => item.show)
                 .map((item, index) => (

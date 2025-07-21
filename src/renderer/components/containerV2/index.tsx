@@ -9,9 +9,10 @@ interface p {
     onClick?: () => void
     children?: any
     style?: CSSProperties
+    classNameButton?: string
 }
 
-const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, onClick, style }) => {
+const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, onClick, style, classNameButton }) => {
     return (
         <>
             <div className={styles.mainContainer} style={style}>
@@ -19,7 +20,7 @@ const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, 
                     <img src={`static/assets/container_icons/${imageName}.svg`} alt={imageName} />
                     <div className={styles.title}>{titleName}</div>
                 </div>
-                {onClick && <ButtonV2 onClick={onClick}>{buttonName}</ButtonV2>}
+                {onClick && <ButtonV2 onClick={onClick} className={classNameButton}>{buttonName}</ButtonV2>}
                 {children}
             </div>
         </>

@@ -4,6 +4,8 @@ import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './dev.module.scss'
 import toast from '../../components/toast'
 import { motion } from 'framer-motion'
+import CustomModalPS from '../../components/PSUI/CustomModalPS'
+import ButtonV2 from '../../components/buttonV2'
 
 import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, ReferenceLine, Label, Area, AreaChart } from 'recharts'
 
@@ -11,6 +13,7 @@ function Dev() {
     const [stats, setStats] = useState([])
     const [count, setCount] = useState<{ users: number; online: number } | null>(null)
     const [loading, setLoading] = useState(true)
+    const [modalOpen, setModalOpen] = useState(false)
 
     useEffect(() => {
         const loadStats = fetch('https://ru-node-1.pulsesync.dev/api/v1/users/stats')
@@ -97,6 +100,27 @@ function Dev() {
                         </ResponsiveContainer>
                     </motion.div>
                 )}
+                <ButtonV2 style={{ marginTop: 32 }} onClick={() => setModalOpen(true)}>
+                    Показать модалку
+                </ButtonV2>
+                <CustomModalPS
+                    isOpen={modalOpen}
+                    onClose={() => setModalOpen(false)}
+                    title="Про рыбу"
+                    text="Это тестовый вызов нашей кастомной модалки. Можно закрыть кликом по backdrop либо кнопкой."
+                    buttons={[
+                        {
+                            text: 'Отмена',
+                            onClick: () => setModalOpen(false),
+                            variant: 'secondary',
+                        },
+                        {
+                            text: 'Ok',
+                            onClick: () => setModalOpen(false),
+                            variant: 'primary',
+                        },
+                    ]}
+                />
             </div>
         </Layout>
     )

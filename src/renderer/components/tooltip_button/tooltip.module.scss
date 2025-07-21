@@ -10,11 +10,11 @@ button {
     padding: 10px 15px;
     font-size: 15px;
     line-height: 1;
-    color: #c4cce7;
-    outline: 1px solid #494f66;
-    box-shadow:
-        hsla(210, 23%, 9%, 0.521) 0px 10px 38px -10px,
-        hsla(208, 25%, 10%, 0.61) 0px 10px 20px -15px;
+    color: #fff;
+    outline: 1px solid #040508;
+    // box-shadow:
+    //     hsla(210, 23%, 9%, 0.521) 0px 10px 38px -10px,
+    //     hsla(208, 25%, 10%, 0.61) 0px 10px 20px -15px;
     user-select: none;
     animation-duration: 400ms;
     animation-timing-function: cubic-bezier(0.16, 1, 0.3, 1);
@@ -26,9 +26,9 @@ button {
     justify-content: center;
     align-items: flex-start;
     padding: 3px 8px;
-    background: rgba(39, 42, 51, 0.7882352941);
-    font-weight: 600;
-    font-size: 12px;
+    background: #040508;
+    font-weight: 800;
+    font-size: 14px;
     line-height: 140%;
     color: #ffffff;
 }
@@ -46,7 +46,9 @@ button {
 }
 
 .TooltipArrow {
-    fill: #494f66;
+    fill: #040508;
+    width: 16px;
+    height: 7px;
 }
 
 .IconButton {

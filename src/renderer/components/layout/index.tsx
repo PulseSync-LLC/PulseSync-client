@@ -12,9 +12,9 @@ import {
     MdUpdate,
 } from 'react-icons/md'
 import Header from './header'
-import NavButtonPulse from '../nav_button_pulse'
+import NavButtonPulse from '../PSUI/NavButton'
 import DiscordIcon from './../../../../static/assets/icons/discord.svg'
-import Preloader from '../preloader'
+import Preloader from '../Preloader'
 import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'

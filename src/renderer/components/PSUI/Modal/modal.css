@@ -1,0 +1,112 @@
+/* modal.css – redesigned to match the style shown in the screenshot */
+
+:root {
+    --modal-bg: #292c36;
+    --modal-text: #ffffff;
+    --modal-border: rgb(255 255 255 / 6%);
+}
+
+.ReactModalPortal {
+    z-index: 99999;
+}
+
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9006;
+    background-color: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+    overflow: hidden;
+}
+
+.ReactModal__Overlay--after-open {
+    opacity: 1;
+}
+
+.ReactModal__Overlay--before-close {
+    opacity: 0;
+}
+
+.modal-content {
+    outline: none !important;
+    max-width: 720px;
+    width: 92%;
+    max-height: 80vh;
+    transform: translateY(-20px);
+    transition:
+        transform 0.3s ease,
+        opacity 0.3s ease;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--modal-bg);
+    color: var(--modal-text);
+    padding: 0;
+    overflow-y: auto;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+}
+
+.ReactModal__Content--after-open {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.ReactModal__Content--before-close {
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px;
+    outline: 1px solid var(--modal-border);
+    position: sticky;
+    top: 0;
+    background: #292c36;
+}
+
+.modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.modal-header button svg {
+    width: 20px;
+    height: 20px;
+}
+
+.close-button {
+    transition: background 0.2s ease;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    padding: 6px;
+    border-radius: 50%;
+    border: none;
+    background: transparent;
+    color: #ffffff;
+}
+
+.close-button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+em {
+    font-style: italic !important;
+}
+
+del {
+    text-decoration: line-through;
+    color: rgba(255, 255, 255, 0.5);
+}

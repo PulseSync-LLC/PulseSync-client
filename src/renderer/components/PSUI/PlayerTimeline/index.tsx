@@ -1,9 +1,9 @@
 // PlayerTimeline.tsx
 import React, { useContext, useEffect, useRef, useState } from 'react'
-import PlayerContext from '../../api/context/player.context'
-import UserContext from '../../api/context/user.context'
-import { Track } from '../../api/interfaces/track.interface'
-import trackInitials from '../../api/initials/track.initials'
+import PlayerContext from '../../../api/context/player.context'
+import UserContext from '../../../api/context/user.context'
+import { Track } from '../../../api/interfaces/track.interface'
+import trackInitials from '../../../api/initials/track.initials'
 import * as styles from './PlayerTimeline.module.scss'
 
 const formatTime = (seconds: number): string => {

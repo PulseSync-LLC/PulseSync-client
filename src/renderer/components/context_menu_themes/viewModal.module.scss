@@ -1,20 +1,23 @@
 /* contextMenu.module.scss */
 
 .contextMenu {
-    display: flex;
-    flex-direction: column;
     align-items: flex-start;
     position: absolute;
     top: 78px;
     z-index: 2;
-    padding: 7px 0;
     right: 45px;
     width: fit-content;
-    height: fit-content;
-    background: #292c36;
-    box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
-    border-radius: 8px;
     justify-content: center;
+    border-radius: 8px;
+    box-shadow: 0px 0px 8px 2px rgba(0, 0, 0, 0.4705882353);
+    background-color: #2e313d;
+    height: fit-content;
+    overflow: scroll;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: max-content;
+    gap: 5px;
+    padding: 5px;
     animation: fadeIn 0.3s forwards;
 }
 
@@ -22,36 +25,50 @@
     animation: fadeOut 0.3s forwards;
 }
 
+.title {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+    border-radius: 8px;
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    text-transform: uppercase;
+    color: #98ffd6;
+}
+
 .contextMenuItem {
     cursor: pointer;
     display: flex;
-    gap: 10px;
     flex-direction: row;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 8px 20px;
-    width: -webkit-fill-available;
-    font-weight: 700;
+    align-items: flex-start;
+    padding: 6px 13px;
+    gap: 13px;
+    border-radius: 8px;
+    font-weight: 400;
     font-size: 14px;
-    line-height: 140%;
-    color: #ffffff;
+    color: #b9c5e6;
+    width: -webkit-fill-available;
     transition: var(--transition);
 
     &:hover {
-        background: #3b4155;
+        color: #b1e3cf;
+        background: #51616881;
     }
 }
 
 .contextMenuItem:last-child {
     transition: var(--transition);
     &:hover {
+        color: #ffa4a4;
         background: rgba(239, 101, 101, 0.2);
     }
 }
 
 .icon {
-    width: 24px;
-    height: 24px;
+    width: 20px;
+    height: 20px;
 }
 
 @keyframes fadeIn {

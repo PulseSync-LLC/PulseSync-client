@@ -8,8 +8,6 @@ import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
 import ExtensionPage from './extension'
-import ExtensionBetaPageOld from './extensionbetaOld'
-import ExtensionViewPageOld from './extensionbetaOld/route/extensionview'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -31,7 +29,7 @@ import getUserToken from '../api/getUserToken'
 import config from '../api/config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
-import Preloader from '../components/preloader'
+import Preloader from '../components/Preloader'
 import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
 import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
@@ -46,7 +44,6 @@ import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
-import TrackInfoPageOld from './trackinfoOld'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
@@ -110,14 +107,6 @@ function App() {
             ),
         },
         {
-            path: '/trackinfoOld',
-            element: (
-                <ErrorBoundary>
-                    <TrackInfoPageOld />
-                </ErrorBoundary>
-            ),
-        },
-        {
             path: '/users',
             element: (
                 <ErrorBoundary>
@@ -134,18 +123,10 @@ function App() {
             ),
         },
         {
-            path: '/extensionbetaOld',
+            path: '/extension/:contactId',
             element: (
                 <ErrorBoundary>
-                    <ExtensionBetaPageOld />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/extensionbetaOld/:contactId',
-            element: (
-                <ErrorBoundary>
-                    <ExtensionViewPageOld />
+                    <ExtensionPage />
                 </ErrorBoundary>
             ),
         },

@@ -7,11 +7,11 @@ import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'
-import Modal from '../modal'
+import Modal from '../PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import * as modalStyles from '../modal/modal.modules.scss'
+import * as modalStyles from '../PSUI/Modal/modal.modules.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
@@ -31,7 +31,7 @@ import { RootState } from '../../api/store/store'
 import { closeModal, openModal } from '../../api/store/modalSlice'
 import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
-import NavButtonPulse from '../nav_button_pulse'
+import NavButtonPulse from '../PSUI/NavButton'
 import { MdSettings } from 'react-icons/md'
 interface p {
     goBack?: boolean
@@ -391,15 +391,17 @@ const Header: React.FC<p> = () => {
                     {memoizedAppInfo
                         .filter(info => info.version <= app.info.version)
                         .map(info => (
-                            <div key={info.id}>
+                            <div key={info.id} className={modalStyles.updateItem}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
-                                    {info.changelog}
-                                </ReactMarkdown>
-                                <hr />
+
+                                <div className={modalStyles.remerkStyle}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                        {info.changelog}
+                                    </ReactMarkdown>
+                                </div>
                             </div>
                         ))}
                 </div>
@@ -408,31 +410,34 @@ const Header: React.FC<p> = () => {
                 <div className={modalStyles.updateModal}>
                     {loading && <p>Loading...</p>}
                     {error && <p>Error: {error}</p>}
+
                     {!loading &&
                         !error &&
                         modChangesInfo.length > 0 &&
                         modChangesInfo.map(info => (
-                            <div key={info.id}>
+                            <div key={info.id} className={modalStyles.updateItem}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
 
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                                    components={{
-                                        a: ({ href, children }) => (
-                                            <a href={href} target="_blank" rel="noopener noreferrer">
-                                                {children}
-                                            </a>
-                                        ),
-                                    }}
-                                >
-                                    {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
-                                </ReactMarkdown>
-                                <hr />
+                                <div className={modalStyles.remerkStyle}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                                        components={{
+                                            a: ({ href, children }) => (
+                                                <a href={href} target="_blank" rel="noopener noreferrer">
+                                                    {children}
+                                                </a>
+                                            ),
+                                        }}
+                                    >
+                                        {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
+                                    </ReactMarkdown>
+                                </div>
                             </div>
                         ))}
+
                     {!loading && !error && modChangesInfo.length === 0 && <p>Список изменений не найден.</p>}
                 </div>
             </Modal>

@@ -3,6 +3,14 @@
     --scrollHTrackInfo: 100%;
 }
 
+.buttonRpcStatus {
+    background: #577EFF;
+
+    &:hover {
+        background: #4d6edb;
+    }
+}
+
 .container {
     width: var(--scrollWTrackInfo);
     height: var(--scrollHTrackInfo);

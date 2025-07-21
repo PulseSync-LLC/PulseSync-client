@@ -1,6 +1,6 @@
 import React from 'react'
 import RModal from 'react-modal'
-import Button from '../button'
+import Button from '../../buttonV2'
 import { IoCloseSharp } from 'react-icons/io5'
 import './modal.css'
 interface p {

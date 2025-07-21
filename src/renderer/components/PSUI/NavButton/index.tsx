@@ -1,7 +1,7 @@
 import React from 'react'
 import { NavLink } from 'react-router'
 import * as styles from './nav_button_pulse.module.scss'
-import TooltipButton from '../tooltip_button'
+import TooltipButton from '../../tooltip_button'
 
 interface NavButtonPulseProps {
     to?: string

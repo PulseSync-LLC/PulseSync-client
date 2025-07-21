@@ -1,13 +1,10 @@
 import Layout from '../../components/layout'
-import Container from '../../components/container'
-
-import CheckboxNav from '../../components/checkbox'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
 import userContext from '../../api/context/user.context'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
@@ -15,13 +12,11 @@ import { Cubic } from '../../components/PSUI/Cubic'
 import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
-import { MdClose, MdContentCopy } from 'react-icons/md'
-import toast from '../../components/toast'
 import { replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
-import PlayerTimeline from '../../components/playerTimeline'
+import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
 import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
@@ -129,6 +124,7 @@ export default function TrackInfoPage() {
                                     },
                                 })
                             }}
+                            classNameButton={themeV2.buttonRpcStatus}
                             buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
                         ></ContainerV2>
                         <Scrollbar className={themeV2.container} classNameInner={themeV2.containerInner}>
