@@ -608,7 +608,7 @@ function App() {
         ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extensionbeta', { replace: true })
+                router.navigate('/extension', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
