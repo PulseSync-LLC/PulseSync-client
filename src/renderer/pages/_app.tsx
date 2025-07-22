@@ -610,6 +610,21 @@ function App() {
         }
     }, [])
 
+    const setAppWithSocket = useCallback(
+        (updater: (arg0: SettingsInterface) => any) => {
+            setApp(prevSettings => {
+                const newSettings = typeof updater === 'function' ? updater(prevSettings) : updater
+                if (socketIo && socketIo.connected) {
+                    delete newSettings.tokens
+                    delete newSettings.info
+                    socketIo.emit('user_settings_update', newSettings)
+                }
+                return newSettings
+            })
+        },
+        [socketIo],
+    )
+
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
@@ -639,7 +654,7 @@ function App() {
                     socket: socketIo,
                     socketConnected,
                     app,
-                    setApp,
+                    setApp: setAppWithSocket,
                     updateAvailable,
                     setUpdate,
                     appInfo,
