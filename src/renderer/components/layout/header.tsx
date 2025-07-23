@@ -291,16 +291,23 @@ const Header: React.FC<p> = () => {
                 toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
-            if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
-            } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
-            } else {
-                toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
-                Sentry.captureException(error)
+                switch (error.response?.data?.message) {
+                    case 'FILE_TOO_LARGE':
+                        toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                        break
+                    case 'FILE_NOT_ALLOWED':
+                        toast.custom('error', 'Так-так', 'Файл не является изображением')
+                        break
+                    case 'UPLOAD_FORBIDDEN':
+                        toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
+                        break
+                    default:
+                        toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
+                        Sentry.captureException(error)
+                        break
+                }
+                setAvatarProgress(-1)
             }
-            setAvatarProgress(-1)
-        }
     }
 
     const handleBannerUpload = async (file: File) => {

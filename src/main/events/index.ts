@@ -22,6 +22,7 @@ import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '.
 import { loadAddons } from '../utils/addonUtils'
 import { isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
+import { get_current_track } from '../modules/httpServer'
 
 const updater = getUpdater()
 const State = getState()
@@ -151,6 +152,9 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         freeMemory: os.freemem(),
         arch: os.arch(),
     }))
+    ipcMain.on('ui-ready', () => {
+        get_current_track()
+    })
 }
 
 const registerFileOperations = (window: BrowserWindow): void => {
