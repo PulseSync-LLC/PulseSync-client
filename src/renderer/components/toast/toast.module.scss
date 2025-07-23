@@ -62,6 +62,7 @@
 
 .icon {
     flex-shrink: 0;
+    display: flex;
 }
 
 .text {
@@ -70,12 +71,14 @@
 }
 
 .title {
-    font: 700 15px/1 sans-serif;
+    font-size: 16px;
+    font-weight: 900;
     color: var(--clr);
 }
 
 .msg {
-    font: 500 14px/1.2 sans-serif;
+    font-size: 14px;
+    font-weight: 400;
     color: var(--clr);
 }
 

@@ -130,7 +130,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         }
     }, [sticky, value, onDismiss])
 
-    const scale = open ? 1 : 1 - index * 0.04
+    const scale = 1
     const zIndex = stackSize - index
 
     return (
@@ -150,18 +150,16 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                 <div className={styles.title}>{title}</div>
                 <div className={styles.msg}>{msg}</div>
             </div>
-            {(sticky || kind === 'error' || kind === 'info') && (
-                <button
-                    className={styles.hide}
-                    onClick={e => {
-                        e.stopPropagation()
-                        setShow(false)
-                        setTimeout(onDismiss, 220)
-                    }}
-                >
-                    <MdClose size={18} />
-                </button>
-            )}
+            <button
+                className={styles.hide}
+                onClick={e => {
+                    e.stopPropagation()
+                    setShow(false)
+                    setTimeout(onDismiss, 220)
+                }}
+            >
+                <MdClose size={18} />
+            </button>
         </div>
     )
 })
