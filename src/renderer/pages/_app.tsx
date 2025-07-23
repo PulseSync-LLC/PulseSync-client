@@ -615,9 +615,10 @@ function App() {
             setApp(prevSettings => {
                 const newSettings = typeof updater === 'function' ? updater(prevSettings) : updater
                 if (socketIo && socketIo.connected) {
-                    delete newSettings.tokens
-                    delete newSettings.info
-                    socketIo.emit('user_settings_update', newSettings)
+                    const socketInfo: any = prevSettings
+                    delete socketInfo.tokens
+                    delete socketInfo.info
+                    socketIo.emit('user_settings_update', socketInfo)
                 }
                 return newSettings
             })
