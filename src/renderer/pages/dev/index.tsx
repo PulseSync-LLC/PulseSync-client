@@ -5,15 +5,20 @@ import * as styles from './dev.module.scss'
 import toast from '../../components/toast'
 import { motion } from 'framer-motion'
 import CustomModalPS from '../../components/PSUI/CustomModalPS'
+import CustomFormikModalPS from '../../components/PSUI/CustomFormikModalPS'
 import ButtonV2 from '../../components/buttonV2'
+import { Line } from 'react-chartjs-2'
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend, InteractionMode } from 'chart.js'
 
-import { LineChart, Line, XAxis, Tooltip, ResponsiveContainer, ReferenceLine, Label, Area, AreaChart } from 'recharts'
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend)
 
 function Dev() {
     const [stats, setStats] = useState([])
     const [count, setCount] = useState<{ users: number; online: number } | null>(null)
     const [loading, setLoading] = useState(true)
     const [modalOpen, setModalOpen] = useState(false)
+    const [formikModalOpen, setFormikModalOpen] = useState(false)
+    const [isHovered, setIsHovered] = useState(false)
 
     useEffect(() => {
         const loadStats = fetch('https://ru-node-1.pulsesync.dev/api/v1/users/stats')
@@ -46,91 +51,201 @@ function Dev() {
     }))
 
     const maxOnline = Math.max(...stats.map(s => s.online), 0)
+    const avgOnline = stats.length > 0 ? stats.reduce((sum, s) => sum + s.online, 0) / stats.length : 0
+
+    const chartData = {
+        labels: formattedData.map(d => d.timeFormatted),
+        datasets: [
+            {
+                label: 'Online Users',
+                data: formattedData.map(d => d.online),
+                borderColor: '#8888ff',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.3,
+                pointRadius: 0,
+                pointHoverRadius: 0,
+                borderWidth: 2,
+            },
+        ],
+    }
+
+    const chartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: {
+                enabled: true,
+                mode: 'index' as InteractionMode,
+                intersect: false,
+                backgroundColor: '#2c303f',
+                titleFont: {
+                    size: 11,
+                    family: 'Inter, sans-serif',
+                    weight: 400,
+                },
+                bodyFont: {
+                    size: 11,
+                    family: 'Inter, sans-serif',
+                    weight: 400,
+                },
+                padding: 8,
+                cornerRadius: 4,
+                displayColors: false,
+                callbacks: {
+                    label: (context: { parsed: { y: any } }) => `${context.parsed.y} users online`,
+                    title: (context: { label: any }[]) => `Time: ${context[0].label}`,
+                },
+            },
+        },
+        scales: {
+            x: {
+                ticks: { color: '#b0b0b0', font: { size: 10, family: 'Inter, sans-serif' } },
+                grid: { display: false, drawBorder: false },
+            },
+            y: {
+                ticks: { color: '#b0b0b0', font: { size: 10, family: 'Inter, sans-serif' }, padding: 10 },
+                grid: { color: 'rgba(255, 255, 255, 0.02)', drawBorder: false },
+                min: 0,
+                max: maxOnline * 1.2,
+            },
+        },
+        interaction: {
+            mode: 'index' as InteractionMode,
+            intersect: false,
+        },
+    }
 
     return (
         <Layout title="Dev">
             <div className={`${globalStyles.page} ${styles.devPage}`}>
-                <div className={styles.stats}>
-                    <div className={styles.statBlock}>
-                        <div className={styles.label}>Users</div>
-                        <div className={styles.value}>{count?.users?.toLocaleString('ru-RU') ?? '—'}</div>
-                    </div>
-                    <div className={styles.statBlock}>
-                        <div className={styles.label}>Peak Online 48h</div>
-                        <div className={styles.value}>{maxOnline?.toLocaleString('ru-RU') ?? '—'}</div>
-                    </div>
-                    <div className={styles.statBlock}>
-                        <div className={styles.label}>Online Now</div>
-                        <div className={styles.value}>{count?.online?.toLocaleString('ru-RU') ?? '—'}</div>
-                    </div>
-                </div>
+                <motion.div
+                    className={styles.glassPanel}
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6 }}
+                >
+                    <h1 className={styles.header}>Developer Dashboard</h1>
 
-                {loading ? (
-                    <p>Загрузка...</p>
-                ) : (
-                    <motion.div
-                        className={styles.chartWrapper}
-                        initial={{ opacity: 0, scale: 0.95 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.6, ease: 'easeOut' }}
-                    >
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={formattedData}>
-                                <defs>
-                                    <linearGradient id="gradientOnline" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="0%" stopColor="#a276ff" stopOpacity={1} />
-                                        <stop offset="100%" stopColor="#a276ff" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
+                    <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}>👥</div>
+                            <div className={styles.statContent}>
+                                <div className={styles.statLabel}>Total Users</div>
+                                <div className={styles.statValue}>{count?.users?.toLocaleString('ru-RU') ?? '—'}</div>
+                            </div>
+                        </div>
 
-                                <Tooltip contentStyle={{ backgroundColor: '#2e2e3d', border: 'none' }} isAnimationActive={false} formatter={v => v} />
-                                <XAxis dataKey="timeRaw" hide />
-                                <Area
-                                    type="monotone"
-                                    dataKey="online"
-                                    stroke="#a276ff"
-                                    fill="url(#gradientOnline)"
-                                    strokeWidth={2}
-                                    isAnimationActive={false}
-                                    dot={({ index, cx, cy }) =>
-                                        index === formattedData.length - 1 ? <circle cx={cx} cy={cy} r={6} className={styles.pulseDot} /> : null
-                                    }
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </motion.div>
-                )}
-                <ButtonV2 style={{ marginTop: 32 }} onClick={() => setModalOpen(true)}>
-                    Показать модалку
-                </ButtonV2>
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}>📈</div>
+                            <div className={styles.statContent}>
+                                <div className={styles.statLabel}>Peak Online (48h)</div>
+                                <div className={styles.statValue}>{maxOnline?.toLocaleString('ru-RU') ?? '—'}</div>
+                            </div>
+                        </div>
+
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}>🟢</div>
+                            <div className={styles.statContent}>
+                                <div className={styles.statLabel}>Online Now</div>
+                                <div className={styles.statValue}>{count?.online?.toLocaleString('ru-RU') ?? '—'}</div>
+                            </div>
+                        </div>
+
+                        <div className={styles.statCard}>
+                            <div className={styles.statIcon}>⏱️</div>
+                            <div className={styles.statContent}>
+                                <div className={styles.statLabel}>Average Online</div>
+                                <div className={styles.statValue}>{Math.round(avgOnline)?.toLocaleString('ru-RU') ?? '—'}</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {loading ? (
+                        <div className={styles.loadingContainer}>
+                            <div className={styles.loadingSpinner} />
+                            <p>Loading analytics data...</p>
+                        </div>
+                    ) : (
+                        <div className={styles.chartContainer} onMouseEnter={() => setIsHovered(true)} onMouseLeave={() => setIsHovered(false)}>
+                            <div className={styles.chartHeader}>
+                                <h3>User Activity</h3>
+                                <div className={styles.timeRange}>Last 48 hours</div>
+                            </div>
+                            <div className={styles.chartWrapper}>
+                                <Line data={chartData} options={chartOptions} />
+                            </div>
+                        </div>
+                    )}
+
+                    <div className={styles.actionsSection}>
+                        <h3 className={styles.sectionTitle}>UI Components</h3>
+                        <div className={styles.actionButtons}>
+                            <ButtonV2 className={styles.devButton} onClick={() => setModalOpen(true)}>
+                                Show Modal
+                            </ButtonV2>
+                            <ButtonV2 className={styles.devButton} onClick={() => setFormikModalOpen(true)}>
+                                Show Formik Modal
+                            </ButtonV2>
+                        </div>
+                    </div>
+
+                    <div className={styles.toastSection}>
+                        <h3 className={styles.sectionTitle}>Toast Notifications</h3>
+                        <div className={styles.toastGrid}>
+                            {[
+                                { type: 'success', title: 'Success', message: 'Operation completed', icon: '✅' },
+                                { type: 'error', title: 'Error', message: 'Something went wrong', icon: '❌' },
+                                { type: 'warning', title: 'Warning', message: 'Be careful', icon: '⚠️' },
+                                { type: 'info', title: 'Info', message: 'Helpful information', icon: 'ℹ️' },
+                                { type: 'loading', title: 'Loading', message: 'Processing...', icon: '⏳' },
+                                { type: 'download', title: 'Download', message: 'Fetching data...', icon: '⬇️' },
+                                { type: 'import', title: 'Import', message: 'Importing files', icon: '📤' },
+                                { type: 'export', title: 'Export', message: 'Export complete', icon: '📥' },
+                            ].map(({ type, title, message }) => (
+                                <ButtonV2 key={type} className={styles.devButton} onClick={() => toast.custom(type as any, title, message)}>
+                                    {title}
+                                </ButtonV2>
+                            ))}
+                        </div>
+                    </div>
+                </motion.div>
+
                 <CustomModalPS
                     isOpen={modalOpen}
                     onClose={() => setModalOpen(false)}
-                    title="Про рыбу"
-                    text="Это тестовый вызов нашей кастомной модалки. Можно закрыть кликом по backdrop либо кнопкой."
+                    title="Sample Modal"
+                    text="This is a demonstration of our custom modal component."
                     buttons={[
+                        { text: 'Cancel', onClick: () => setModalOpen(false), variant: 'secondary' },
+                        { text: 'Confirm', onClick: () => setModalOpen(false), variant: 'primary' },
+                    ]}
+                />
+
+                <CustomFormikModalPS
+                    isOpen={formikModalOpen}
+                    onClose={() => setFormikModalOpen(false)}
+                    title="Form Example"
+                    text="Please enter your information below:"
+                    initialInputValue=""
+                    inputPlaceholder="Type something..."
+                    onSubmit={values => {
+                        toast.custom('success', 'Submitted', `You entered: ${values.input}`)
+                        setFormikModalOpen(false)
+                    }}
+                    buttons={[
+                        { text: 'Cancel', onClick: () => setFormikModalOpen(false), variant: 'secondary' },
                         {
-                            text: 'Отмена',
-                            onClick: () => setModalOpen(false),
-                            variant: 'secondary',
-                        },
-                        {
-                            text: 'Ok',
-                            onClick: () => setModalOpen(false),
+                            text: 'Submit',
+                            onClick: values => {
+                                toast.custom('success', 'Submitted', `You entered: ${values?.input}`)
+                                setFormikModalOpen(false)
+                            },
                             variant: 'primary',
                         },
                     ]}
                 />
-                <div className={styles.toastTestButtons}>
-                    <ButtonV2 onClick={() => toast.custom('success', 'Успех', 'Операция прошла успешно')}>Успех</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('error', 'Ошибка', 'Что-то пошло не так')}>Ошибка</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('warning', 'Внимание', 'Будь осторожен')}>Внимание</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('info', 'Инфо', 'Это полезное сообщение')}>Инфо</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('loading', 'Загрузка', 'Идёт загрузка...', undefined, 0)}>Загрузка</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('download', 'Скачивание', 'Скачиваем данные...', undefined, 42)}>Скачивание</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('import', 'Импорт', 'Импортируем файлы...', undefined, 73)}>Импорт</ButtonV2>
-                    <ButtonV2 onClick={() => toast.custom('export', 'Экспорт', 'Экспортируем в ад', undefined, 100)}>Экспорт (100%)</ButtonV2>
-                </div>
             </div>
         </Layout>
     )
