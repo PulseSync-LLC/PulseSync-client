@@ -611,16 +611,18 @@ function App() {
     }, [])
 
     const setAppWithSocket = useCallback(
-        (updater: (arg0: SettingsInterface) => any) => {
+        (updater: (prev: SettingsInterface) => SettingsInterface) => {
             setApp(prevSettings => {
-                const newSettings = typeof updater === 'function' ? updater(prevSettings) : updater
+                const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
+
                 if (socketIo && socketIo.connected) {
-                    const socketInfo: any = newSettings
+                    const socketInfo = { ...updatedSettings }
                     delete socketInfo.tokens
                     delete socketInfo.info
                     socketIo.emit('user_settings_update', socketInfo)
                 }
-                return newSettings
+
+                return updatedSettings
             })
         },
         [socketIo],
