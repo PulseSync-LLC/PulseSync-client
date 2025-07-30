@@ -9,7 +9,6 @@ import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import fetch from 'node-fetch'
 
 const exec = promisify(_exec)
 
@@ -317,8 +316,8 @@ async function main(): Promise<void> {
     }
 
     if (buildApplication) {
-        if (publishBranch) {
-            setConfigDevFalse();
+        if (publishBranch && publishBranch === 'beta') {
+            setConfigDevFalse()
             const appUpdateConfig = {
                 provider: 'generic',
                 url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
@@ -331,14 +330,15 @@ async function main(): Promise<void> {
             log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
         }
 
-        const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+        const baseOutDir = path.join('.', 'out')
         const releaseDir = path.join('.', 'release')
-
         const { version } = generateBuildInfo()
 
-        await runCommandStep('Package (electron-forge)', 'electron-forge package')
-
-        if (os.platform() === 'win32') {
+        if (os.platform() === 'darwin') {
+            await runCommandStep('Package (electron-forge:x64)', 'electron-forge package --arch x64')
+            await runCommandStep('Package (electron-forge:arm64)', 'electron-forge package --arch arm64')
+        } else {
+            await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 
             function copyNodes(srcDir: string) {
@@ -348,7 +348,7 @@ async function main(): Promise<void> {
                         copyNodes(fullPath)
                     } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
                         const relativePath = path.relative(nativeDir, fullPath)
-                        const dest = path.join(outDir, 'modules', relativePath)
+                        const dest = path.join(baseOutDir, 'modules', relativePath)
 
                         fs.mkdirSync(path.dirname(dest), { recursive: true })
                         fs.copyFileSync(fullPath, dest)
@@ -358,6 +358,9 @@ async function main(): Promise<void> {
             }
             copyNodes(nativeDir)
         }
+
+        const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
+        const outDirARM64 = path.join(baseOutDir, `PulseSync-${os.platform()}-arm64`)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -382,8 +385,22 @@ async function main(): Promise<void> {
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
-        const buildCmd = `electron-builder --pd "${outDir}" --config "${tmpPath}" --publish never`
-        await runCommandStep('Build (electron-builder)', buildCmd)
+        if (os.platform() === 'darwin') {
+            await runCommandStep(
+                'Build (electron-builder:x64)',
+                `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
+            )
+            await runCommandStep(
+                'Build (electron-builder:arm64)',
+                `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
+            )
+        } else {
+            await runCommandStep(
+                'Build (electron-builder)',
+                `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}" --config "${tmpPath}" --publish never`,
+            )
+        }
+
         fs.unlinkSync(tmpPath)
 
         if (publishBranch) {
