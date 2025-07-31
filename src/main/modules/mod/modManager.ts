@@ -4,7 +4,7 @@ import * as https from 'https'
 import axios from 'axios'
 import crypto from 'crypto'
 import { promisify } from 'util'
-import * as zlib from 'zlib'
+import * as zlib from 'node:zlib'
 import * as fs from 'original-fs'
 
 import logger from '../logger'
@@ -30,218 +30,92 @@ import asar from '@electron/asar'
 
 const TEMP_DIR = app.getPath('temp')
 const gunzipAsync = promisify(zlib.gunzip)
-let yandexMusicVersion: string = null
-let modVersion: string = null
-let modName: string = null
+const zstdDecompressAsync = promisify(zlib.zstdDecompress)
 const State = getState()
 
-let musicPath: string
-let defaultAsarPath: string
-let modSavePath: string
-let backupPath: string
+const paths = {
+    music: '' as string,
+    defaultAsar: '' as string,
+    modAsar: '' as string,
+    backupAsar: '' as string,
+}
+const versions = {
+    yandexMusic: '' as string,
+    mod: '' as string,
+    modName: '' as string,
+}
 
-const initializePaths = async () => {
+async function initializePaths(): Promise<void> {
     try {
-        musicPath = await getPathToYandexMusic()
-        defaultAsarPath = path.join(musicPath, isLinux() ? 'yandex-music.asar' : 'app.asar')
-        modSavePath = (State.get('settings.modSavePath') as string) || defaultAsarPath
-        backupPath = modSavePath.replace(/\.asar$/, '.backup.asar')
+        paths.music = await getPathToYandexMusic()
+        paths.defaultAsar = path.join(paths.music, isLinux() ? 'yandex-music.asar' : 'app.asar')
+        paths.modAsar = (State.get('settings.modSavePath') as string) || paths.defaultAsar
+        paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
     } catch (err) {
         logger.modManager.error('Ошибка при получении пути:', err)
     }
 }
 
-initializePaths()
-
-function sendDownloadFailure(params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string }) {
-    mainWindow?.webContents.send('download-failure', {
-        success: false,
-        ...params,
-    })
+function sendFailure(
+    channel: 'download-failure' | 'remove-mod-failure',
+    params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string },
+) {
+    mainWindow?.webContents.send(channel, { success: false, ...params })
     mainWindow.setProgressBar(-1)
 }
 
-function calcAsarHeaderHashFromFile(asarPath: string): string {
-    const headerString = asar.getRawHeader(asarPath).headerString
-    return crypto.createHash('sha256').update(headerString).digest('hex')
+async function closeMusicIfRunning(): Promise<void> {
+    if (await isYandexMusicRunning()) {
+        mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
+        await closeYandexMusic()
+        await new Promise(r => setTimeout(r, 500))
+    }
 }
 
-function sendRemoveModFailure(params: { error: string; type?: string }) {
-    mainWindow?.webContents.send('remove-mod-failure', {
-        success: false,
-        ...params,
-    })
+async function ensureBackup(): Promise<void> {
+    if (!fs.existsSync(paths.backupAsar)) {
+        let source: string | null = null
+        if (fs.existsSync(paths.modAsar)) source = paths.modAsar
+        else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
+
+        if (!source) {
+            sendFailure('download-failure', {
+                error: `${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                type: 'file_not_found',
+            })
+            await downloadYandexMusic('reinstall')
+            throw new Error('file_not_found')
+        }
+
+        fs.copyFileSync(source, paths.backupAsar)
+        logger.modManager.info(`Создана резервная копия ${path.basename(source)} → ${path.basename(paths.backupAsar)}`)
+    } else {
+        logger.modManager.info(`Резервная копия уже существует: ${path.basename(paths.backupAsar)}`)
+    }
 }
 
-export const handleModEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
-        try {
-            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
-                State.set('settings', {
-                    musicReinstalled: true,
-                })
-                return await downloadYandexMusic('reinstall')
-            }
-            await initializePaths()
+async function restoreWindowsIntegrity(): Promise<void> {
+    try {
+        const exePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
+        const newHash = crypto.createHash('sha256').update(asar.getRawHeader(paths.modAsar).headerString).digest('hex')
+        await updateIntegrityHashInExe(exePath, newHash)
+        logger.modManager.info('Windows Integrity hash восстановлен.')
+    } catch (err) {
+        logger.modManager.error('Ошибка восстановления Integrity hash в exe:', err)
+    }
+}
 
-            if (isLinux() && !State.get('settings.modSavePath')) {
-                const res = await dialog.showMessageBox({
-                    type: 'info',
-                    title: 'Укажите путь к модификации ASAR',
-                    message: 'Пожалуйста, укажите, куда сохранить файл модификации ASAR для клиента Яндекс Музыки.',
-                    buttons: ['Указать файл', 'Отменить'],
-                })
-                if (res.response === 0) {
-                    const fileRes = await dialog.showSaveDialog({
-                        title: 'Сохранить модификацию ASAR как...',
-                        defaultPath: path.join(musicPath, 'app.asar'),
-                        filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
-                    })
-                    if (fileRes.canceled || !fileRes.filePath) {
-                        return sendDownloadFailure({
-                            error: 'Не указан путь для сохранения модификации ASAR. Попробуйте снова.',
-                            type: 'mod_save_path_missing',
-                        })
-                    }
-                    modSavePath = fileRes.filePath
-                    State.set('settings.modSavePath', modSavePath)
-                    backupPath = modSavePath.replace(/\.asar$/, '.backup.asar')
-                } else {
-                    return sendDownloadFailure({
-                        error: 'Не указан путь для сохранения модификации ASAR.',
-                        type: 'mod_save_path_missing',
-                    })
-                }
-            }
-
-            if (await isYandexMusicRunning()) {
-                mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
-                await closeYandexMusic()
-            }
-
-            yandexMusicVersion = await getYandexMusicVersion()
-            modVersion = version
-            modName = name
-            logger.modManager.info(`Current Yandex Music version: ${yandexMusicVersion}`)
-
-            if (!force && !spoof) {
-                const comp = await checkModCompatibility(version, yandexMusicVersion)
-                if (!comp.success) {
-                    const type =
-                        comp.code === 'YANDEX_VERSION_OUTDATED'
-                            ? 'version_outdated'
-                            : comp.code === 'YANDEX_VERSION_TOO_NEW'
-                              ? 'version_too_new'
-                              : 'unknown'
-                    return sendDownloadFailure({
-                        error: comp.message || 'Этот мод не совместим с текущей версией Яндекс Музыки.',
-                        type,
-                        url: comp.url,
-                        requiredVersion: comp.requiredVersion,
-                        recommendedVersion: comp.recommendedVersion || modVersion,
-                    })
-                }
-            }
-
-            if (!fs.existsSync(backupPath)) {
-                if (fs.existsSync(modSavePath)) {
-                    fs.copyFileSync(modSavePath, backupPath)
-                    logger.modManager.info(`Original ${path.basename(modSavePath)} saved as ${path.basename(backupPath)}`)
-                } else if (fs.existsSync(defaultAsarPath)) {
-                    fs.copyFileSync(defaultAsarPath, backupPath)
-                    logger.modManager.info(`Original ${path.basename(defaultAsarPath)} saved as ${path.basename(backupPath)}`)
-                } else {
-                    sendDownloadFailure({
-                        error: `${path.basename(modSavePath)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
-                        type: 'file_not_found',
-                    })
-                    return await downloadYandexMusic('reinstall')
-                }
-            } else {
-                logger.modManager.info(`Backup ${path.basename(backupPath)} already exists`)
-            }
-
-            const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
-
-            if (isMac()) {
-                try {
-                    await copyFile(modSavePath, modSavePath)
-                } catch (e) {
-                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
-                    return sendDownloadFailure({
-                        error: 'Пожалуйста, предоставьте приложению полный доступ к диску.',
-                        type: 'file_copy_error',
-                    })
-                }
-            }
-
-            await downloadAndUpdateFile(link, tempFilePath, modSavePath, event, checksum)
-        } catch (error: any) {
-            logger.modManager.error('Unexpected error:', error)
-            HandleErrorsElectron.handleError('modManager', 'update-music-asar', 'try-catch', error)
-            sendDownloadFailure({
-                error: error.message,
-                type: 'unexpected_error',
-            })
-        }
-    })
-
-    ipcMain.on('remove-mod', async () => {
-        try {
-            const doRemove = async () => {
-                if (fs.existsSync(backupPath)) {
-                    fs.renameSync(backupPath, modSavePath)
-                } else {
-                    return await downloadYandexMusic('reinstall')
-                }
-                logger.modManager.info('Backup restored.')
-
-                if (isWindows()) {
-                    try {
-                        const exePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
-                        const newHash = calcAsarHeaderHashFromFile(modSavePath)
-                        await updateIntegrityHashInExe(exePath, newHash)
-                        logger.modManager.info('Windows Integrity hash restored.')
-                    } catch (winErr) {
-                        logger.modManager.error('Ошибка восстановления Integrity hash в exe:', winErr)
-                    }
-                } else if (isMac()) {
-                    try {
-                        const appBundlePath = path.resolve(path.dirname(modSavePath), '..', '..')
-                        const patcher = new AsarPatcher(appBundlePath)
-                        await patcher.patch((p, msg) => {
-                            logger.modManager.info(`restore-mac: ${msg} (${p})`)
-                        })
-                        logger.modManager.info('macOS Integrity hash restored.')
-                    } catch (macErr) {
-                        logger.modManager.error('Ошибка восстановления Integrity hash в Info.plist:', macErr)
-                    }
-                }
-
-                State.delete('mod.version')
-                State.delete('mod.musicVersion')
-                State.delete('mod.name')
-                State.set('mod.installed', false)
-                await deleteFfmpeg()
-                mainWindow.webContents.send('remove-mod-success', { success: true })
-            }
-
-            if (await isYandexMusicRunning()) {
-                mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
-                await closeYandexMusic()
-                setTimeout(doRemove, 1500)
-            } else {
-                await doRemove()
-            }
-        } catch (error: any) {
-            logger.modManager.error('Error removing mod:', error)
-            HandleErrorsElectron.handleError('modManager', 'remove-mod', 'remove-mod', error)
-            sendRemoveModFailure({
-                error: error.message,
-                type: 'remove_mod_error',
-            })
-        }
-    })
+async function restoreMacIntegrity(): Promise<void> {
+    try {
+        const appBundlePath = path.resolve(path.dirname(paths.modAsar), '..', '..')
+        const patcher = new AsarPatcher(appBundlePath)
+        await patcher.patch((p, msg) => {
+            logger.modManager.info(`restore-mac: ${msg} (${p})`)
+        })
+        logger.modManager.info('macOS Integrity hash восстановлен.')
+    } catch (err) {
+        logger.modManager.error('Ошибка восстановления Integrity hash в Info.plist:', err)
+    }
 }
 
 const checkModCompatibility = async (
@@ -262,7 +136,7 @@ const checkModCompatibility = async (
         const d = resp.data
         if (d.error) return { success: false, message: d.error }
         return {
-            success: d.success || false,
+            success: d.success ?? false,
             message: d.message,
             code: d.code,
             url: d.url,
@@ -271,10 +145,7 @@ const checkModCompatibility = async (
         }
     } catch (err) {
         logger.modManager.error('Ошибка при проверке совместимости мода:', err)
-        return {
-            success: false,
-            message: 'Произошла ошибка при проверке совместимости мода.',
-        }
+        return { success: false, message: 'Произошла ошибка при проверке совместимости мода.' }
     }
 }
 
@@ -282,42 +153,33 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
     const phaseWeight = { download: 0.6, patch: 0.4 }
     let downloadFrac = 0
     let patchFrac = 0
-
-    function sendUnifiedProgress() {
-        const overall = downloadFrac * phaseWeight.download + patchFrac * phaseWeight.patch
-        mainWindow?.setProgressBar(overall)
-        mainWindow?.webContents.send('download-progress', {
-            progress: Math.round(overall * 100),
-        })
-    }
-
     let isFinished = false
     let isError = false
+
+    const sendUnifiedProgress = () => {
+        const overall = downloadFrac * phaseWeight.download + patchFrac * phaseWeight.patch
+        mainWindow?.setProgressBar(overall)
+        mainWindow?.webContents.send('download-progress', { progress: Math.round(overall * 100) })
+    }
 
     try {
         if (checksum && fs.existsSync(savePath)) {
             const buf = fs.readFileSync(savePath)
-            const current = crypto.createHash('sha256').update(buf).digest('hex')
-            if (current === checksum) {
-                logger.modManager.info('app.asar matches checksum, skipping download')
+            const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
+            if (currentHash === checksum) {
+                logger.modManager.info('app.asar совпадает с checksum, пропускаем загрузку')
                 State.set('mod', {
-                    version: modVersion,
-                    musicVersion: yandexMusicVersion,
-                    name: modName,
+                    version: versions.mod,
+                    musicVersion: versions.yandexMusic,
+                    name: versions.modName,
                 })
-                mainWindow.webContents.send('download-success', {
-                    success: true,
-                    message: 'Мод уже установлен.',
-                })
+                mainWindow.webContents.send('download-success', { success: true, message: 'Мод уже установлен.' })
                 return
             }
         }
 
         const httpsAgent = new https.Agent({ rejectUnauthorized: false })
-        const response = await axios.get(link, {
-            httpsAgent,
-            responseType: 'stream',
-        })
+        const response = await axios.get(link, { httpsAgent, responseType: 'stream' })
         const total = parseInt(response.headers['content-length'] || '0', 10)
         let downloaded = 0
         const writer = fs.createWriteStream(tempFilePath)
@@ -331,9 +193,10 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
         })
 
         response.data.on('end', () => {
-            if (isFinished) return
-            isFinished = true
-            writer.end()
+            if (!isFinished) {
+                isFinished = true
+                writer.end()
+            }
         })
 
         response.data.on('error', (err: Error) => {
@@ -342,88 +205,60 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             isError = true
             writer.end()
             fs.unlink(tempFilePath, () => {})
-            if (fs.existsSync(backupPath)) {
-                fs.renameSync(backupPath, savePath)
-                State.delete('mod')
-            }
+            if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
-            sendDownloadFailure({
-                error: 'Произошла ошибка при скачивании. Пожалуйста, проверьте интернет-соединение.',
-                type: 'download_error',
-            })
+            sendFailure('download-failure', { error: 'Ошибка при скачивании. Проверьте интернет.', type: 'download_error' })
         })
 
         writer.on('finish', async () => {
+            if (!isFinished || isError) return
+            mainWindow.setProgressBar(-1)
+
             try {
-                if (!isFinished || isError) return
-                mainWindow.setProgressBar(-1)
-
                 const fileBuffer = fs.readFileSync(tempFilePath)
-                let asarBuf: Buffer
 
-                if (link.endsWith('.gz')) {
-                    logger.modManager.info('Detected gzipped file, proceeding decompression')
-                    asarBuf = await gunzipAsync(fileBuffer)
-                } else {
-                    logger.modManager.info('Downloaded file is not gzipped, skipping decompression')
-                    asarBuf = fileBuffer
-                }
+                let asarBuf = fileBuffer
+                const ext = path.extname(new URL(link).pathname).toLowerCase()
+                if (ext === '.gz') asarBuf = await gunzipAsync(fileBuffer)
+                else if (ext === '.zst' || ext === '.zstd') asarBuf = await zstdDecompressAsync(fileBuffer)
 
                 if (checksum) {
                     const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex')
                     if (hash !== checksum) {
                         fs.unlinkSync(tempFilePath)
-                        return sendDownloadFailure({
-                            error: 'Ошибка при проверке целостности файла.',
-                            type: 'checksum_mismatch',
-                        })
+                        return sendFailure('download-failure', { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
                     }
                 }
 
                 fs.writeFileSync(savePath, asarBuf)
                 fs.unlinkSync(tempFilePath)
-
                 const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
-                const progressCb = (p: number, status: string) => {
-                    logger.modManager.info('status:', status, 'progress:', p)
+                const ok = await patcher.patch((p, status) => {
                     patchFrac = Math.min(p / 100, 1)
                     sendUnifiedProgress()
-                }
-                const ok = await patcher.patch(progressCb)
+                    logger.modManager.info(`patch status: ${status}, progress: ${p}`)
+                })
                 if (!ok) {
-                    if (fs.existsSync(backupPath)) {
-                        fs.renameSync(backupPath, savePath)
-                    }
-                    return sendDownloadFailure({
-                        error: 'Не удалось пропатчить ASAR',
-                        type: 'patch_error',
-                    })
+                    if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
+                    return sendFailure('download-failure', { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
                 }
 
                 State.set('mod', {
-                    version: modVersion,
-                    musicVersion: yandexMusicVersion,
-                    name: modName,
+                    version: versions.mod,
+                    musicVersion: versions.yandexMusic,
+                    name: versions.modName,
                     installed: true,
                 })
                 await installFfmpeg(mainWindow)
-
                 mainWindow.setProgressBar(-1)
-                setTimeout(() => {
-                    mainWindow.webContents.send('download-success', { success: true })
-                }, 1500)
+                setTimeout(() => mainWindow.webContents.send('download-success', { success: true }), 1500)
             } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
-                if (fs.existsSync(backupPath)) {
-                    fs.renameSync(backupPath, savePath)
-                }
+                if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
                 logger.modManager.error('Error processing downloaded file:', e)
                 HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
-                sendDownloadFailure({
-                    error: e.message,
-                    type: 'finish_error',
-                })
+                sendFailure('download-failure', { error: e.message, type: 'finish_error' })
             }
         })
 
@@ -431,22 +266,134 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             fs.unlink(tempFilePath, () => {})
             logger.modManager.error('Error writing file:', err)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
-            sendDownloadFailure({
-                error: err.message,
-                type: 'writer_error',
-            })
+            sendFailure('download-failure', { error: err.message, type: 'writer_error' })
         })
     } catch (err: any) {
         fs.unlink(tempFilePath, () => {})
         logger.modManager.error('Error downloading file:', err)
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
-        sendDownloadFailure({
-            error: err.message,
-            type: 'download_outer_error',
-        })
+        sendFailure('download-failure', { error: err.message, type: 'download_outer_error' })
     }
 }
 
 export const modManager = (window: BrowserWindow): void => {
-    handleModEvents(window)
+    initializePaths()
+
+    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
+        try {
+            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
+                State.set('settings', { musicReinstalled: true })
+                return await downloadYandexMusic('reinstall')
+            }
+
+            await initializePaths()
+
+            if (isLinux() && !State.get('settings.modSavePath')) {
+                const { response } = await dialog.showMessageBox({
+                    type: 'info',
+                    title: 'Укажите путь к модификации ASAR',
+                    message: 'Куда сохранить модификацию ASAR для Яндекс Музыки?',
+                    buttons: ['Указать файл', 'Отменить'],
+                })
+                if (response === 0) {
+                    const fileRes = await dialog.showSaveDialog({
+                        title: 'Сохранить модификацию ASAR как...',
+                        defaultPath: path.join(paths.music, 'app.asar'),
+                        filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
+                    })
+                    if (fileRes.canceled || !fileRes.filePath) {
+                        return sendFailure('download-failure', {
+                            error: 'Не указан путь для сохранения модификации ASAR.',
+                            type: 'mod_save_path_missing',
+                        })
+                    }
+                    paths.modAsar = fileRes.filePath
+                    State.set('settings', { modSavePath: paths.modAsar })
+                    paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
+                } else {
+                    return sendFailure('download-failure', {
+                        error: 'Не указан путь для сохранения модификации ASAR.',
+                        type: 'mod_save_path_missing',
+                    })
+                }
+            }
+
+            await closeMusicIfRunning()
+
+            versions.yandexMusic = await getYandexMusicVersion()
+            versions.mod = version
+            versions.modName = name
+            logger.modManager.info(`Текущая версия Яндекс Музыки: ${versions.yandexMusic}`)
+
+            if (!force && !spoof) {
+                const comp = await checkModCompatibility(version, versions.yandexMusic)
+                if (!comp.success) {
+                    const type =
+                        comp.code === 'YANDEX_VERSION_OUTDATED'
+                            ? 'version_outdated'
+                            : comp.code === 'YANDEX_VERSION_TOO_NEW'
+                              ? 'version_too_new'
+                              : 'unknown'
+                    return sendFailure('download-failure', {
+                        error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
+                        type,
+                        url: comp.url,
+                        requiredVersion: comp.requiredVersion,
+                        recommendedVersion: comp.recommendedVersion,
+                    })
+                }
+            }
+
+            await ensureBackup()
+
+            if (isMac()) {
+                try {
+                    await copyFile(paths.modAsar, paths.modAsar)
+                } catch (e) {
+                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
+                    return sendFailure('download-failure', {
+                        error: 'Пожалуйста, предоставьте приложению полный доступ к диску.',
+                        type: 'file_copy_error',
+                    })
+                }
+            }
+
+            const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
+            await downloadAndUpdateFile(link, tempFilePath, paths.modAsar, event, checksum)
+        } catch (error: any) {
+            logger.modManager.error('Unexpected error:', error)
+            HandleErrorsElectron.handleError('modManager', 'update-music-asar', 'handler', error)
+            sendFailure('download-failure', { error: error.message, type: 'unexpected_error' })
+        }
+    })
+
+    ipcMain.on('remove-mod', async () => {
+        try {
+            const doRemove = async () => {
+                if (fs.existsSync(paths.backupAsar)) {
+                    fs.renameSync(paths.backupAsar, paths.modAsar)
+                    logger.modManager.info('Резервная копия восстановлена.')
+                } else {
+                    return await downloadYandexMusic('reinstall')
+                }
+
+                if (isWindows()) await restoreWindowsIntegrity()
+                else if (isMac()) await restoreMacIntegrity()
+
+                State.delete('mod.version')
+                State.delete('mod.musicVersion')
+                State.delete('mod.name')
+                State.set('mod.installed', false)
+                await deleteFfmpeg()
+                mainWindow.webContents.send('remove-mod-success', { success: true })
+            }
+
+            await closeMusicIfRunning()
+            await doRemove()
+        } catch (error: any) {
+            logger.modManager.error('Error removing mod:', error)
+            HandleErrorsElectron.handleError('modManager', 'remove-mod', 'handler', error)
+            sendFailure('remove-mod-failure', { error: error.message, type: 'remove_mod_error' })
+        }
+    })
 }

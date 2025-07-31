@@ -235,25 +235,31 @@ export const downloadYandexMusic = async (type?: string) => {
 export type PatchCallback = (progress: number, message: string) => void
 
 export async function updateIntegrityHashInExe(exePath: string, newHash: string): Promise<void> {
-    const buf = await fsp.readFile(exePath)
-    const marker = Buffer.from('"file":"resources\\\\app.asar"', 'utf8')
-    const markerIdx = buf.indexOf(marker)
-    if (markerIdx < 0) throw new Error('RCDATA JSON запись не найдена')
-    const startIdx = buf.lastIndexOf(Buffer.from('[', 'utf8'), markerIdx)
-    if (startIdx < 0) throw new Error('Не найдено начало JSON-массива')
-    const endIdx = buf.indexOf(Buffer.from(']', 'utf8'), markerIdx + marker.length)
-    if (endIdx < 0) throw new Error('Не найден конец JSON-массива')
-    const jsonBuf = buf.subarray(startIdx, endIdx + 1)
-    const arr = JSON.parse(jsonBuf.toString('utf8')) as Array<{ file: string; alg: string; value: string }>
-    const entry = arr.find(e => e.file.replace(/\\\\/g, '\\').toLowerCase() === 'resources\\app.asar')
-    if (!entry) throw new Error('Запись resources\\app.asar не найдена')
-    entry.value = newHash
-    const newJson = JSON.stringify(arr)
-    if (Buffer.byteLength(newJson, 'utf8') !== jsonBuf.length) {
-        throw new Error('Новая JSON длина не совпадает со старой')
+    try {
+        const buf = await fsp.readFile(exePath)
+        const marker = Buffer.from('"file":"resources\\\\app.asar"', 'utf8')
+        const markerIdx = buf.indexOf(marker)
+        if (markerIdx < 0) throw new Error('RCDATA JSON запись не найдена')
+        const startIdx = buf.lastIndexOf(Buffer.from('[', 'utf8'), markerIdx)
+        if (startIdx < 0) throw new Error('Не найдено начало JSON-массива')
+        const endIdx = buf.indexOf(Buffer.from(']', 'utf8'), markerIdx + marker.length)
+        if (endIdx < 0) throw new Error('Не найден конец JSON-массива')
+        const jsonBuf = buf.subarray(startIdx, endIdx + 1)
+        const arr = JSON.parse(jsonBuf.toString('utf8')) as Array<{ file: string; alg: string; value: string }>
+        const entry = arr.find(e => e.file.replace(/\\\\/g, '\\').toLowerCase() === 'resources\\app.asar')
+        if (!entry) throw new Error('Запись resources\\app.asar не найдена')
+        entry.value = newHash
+        const newJson = JSON.stringify(arr)
+        if (Buffer.byteLength(newJson, 'utf8') !== jsonBuf.length) {
+            throw new Error('Новая JSON длина не совпадает со старой')
+        }
+        Buffer.from(newJson, 'utf8').copy(buf, startIdx)
+        await fsp.writeFile(exePath, buf)
+    } catch (err) {
+        logger.main.error('Ошибка в updateIntegrityHashInExe:', err)
+        await downloadYandexMusic('reinstall')
+        throw err
     }
-    Buffer.from(newJson, 'utf8').copy(buf, startIdx)
-    await fsp.writeFile(exePath, buf)
 }
 
 export class AsarPatcher {
@@ -418,25 +424,13 @@ export function uninstallApp(packageFullName: string): Promise<void> {
 }
 
 export const getYandexMusicVersion = async (): Promise<string> => {
-    if (isLinux()) {
-        try {
-            const { stdout } = await execAsync('dpkg-query -W -f=${Version} yandex-music')
-            if (stdout.trim()) return stdout.trim()
-        } catch {}
-        try {
-            const { stdout } = await execAsync('rpm -q --qf "%{VERSION}-%{RELEASE}" yandex-music')
-            const v = stdout.trim()
-            if (v && !v.startsWith('package')) return v
-        } catch {}
-        try {
-            const { stdout } = await execAsync('pacman -Q yandex-music')
-            const parts = stdout.trim().split(/\s+/)
-            if (parts[1]) return parts[1].split('-')[0]
-        } catch {}
+    const asarPath = path.join(await getPathToYandexMusic(), 'app.asar')
+    try {
+        const pkgJson = asar.extractFile(asarPath, 'package.json')
+        const pkg = JSON.parse(pkgJson.toString('utf8'))
+        if (pkg.version) return pkg.version
+        throw new Error('Version not found in package.json')
+    } catch (e) {
+        throw new Error('Не удалось прочитать версию из app.asar: ' + (e as Error).message)
     }
-    const cfgPath = path.join(getYandexMusicAppDataPath(), 'config.json')
-    if (!fs.existsSync(cfgPath)) throw new Error('config.json не найден')
-    const cfg = JSON.parse(fs.readFileSync(cfgPath, 'utf8'))
-    if (!cfg.version) throw new Error('Version not found in config.json')
-    return cfg.version
 }

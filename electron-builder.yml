@@ -4,91 +4,93 @@ artifactName: pulsesync-app-${version}-${arch}.${ext}
 copyright: 'Copyright (C) 2025 PulseSync LLC'
 
 directories:
-    output: release
+  output: release
 
 files:
-    - package.json
+  - package.json
 
 fileAssociations:
+  - ext: pext
+    name: PulseSync extension
+    description: PulseSync extension
+    role: Editor
+    icon: ./icons/pext/pext.ico
+
+win:
+  requestedExecutionLevel: asInvoker
+  icon: ./icons/icon.ico
+  target: nsis
+  fileAssociations:
     - ext: pext
       name: PulseSync extension
       description: PulseSync extension
-      role: Editor
       icon: ./icons/pext/pext.ico
-
-win:
-    requestedExecutionLevel: asInvoker
-    icon: ./icons/icon.ico
-    target: nsis
-    fileAssociations:
-        - ext: pext
-          name: PulseSync extension
-          description: PulseSync extension
-          icon: ./icons/pext/pext.ico
-    compression: maximum
+  compression: maximum
 
 mac:
-    target:
-        - dmg
-        - zip
-    category: public.app-category.developer-tools
-    icon: ./icons/icon.icns
-    protocols:
-        - name: 'PulseSync Deep Link'
-          schemes: ['pulsesync']
-    fileAssociations:
-        - ext: pext
-          name: PulseSync extension
-          description: PulseSync extension
-          icon: ./icons/pext/pext.icns
+  target:
+    - dmg
+    - zip
+  category: public.app-category.developer-tools
+  icon: ./icons/icon.icns
+  protocols:
+    - name: 'PulseSync Deep Link'
+      schemes:
+        - pulsesync
+  fileAssociations:
+    - ext: pext
+      name: PulseSync extension
+      description: PulseSync extension
+      icon: ./icons/pext/pext.icns
 
 dmg:
-    artifactName: pulsesync-app-${version}-${arch}.${ext}
-    title: '${productName}-${version}-${arch}'
-    format: UDZO
-    contents:
-        - { x: 130, y: 220 }
-        - { x: 410, y: 220, type: link, path: /Applications }
+  artifactName: pulsesync-app-${version}-${arch}.${ext}
+  title: '${productName}-${version}-${arch}'
+  format: UDZO
+  contents:
+    - { x: 130, y: 220, type: file }
+    - { x: 410, y: 220, type: link, path: /Applications }
 
 nsis:
-    oneClick: false
-    createDesktopShortcut: true
-    createStartMenuShortcut: true
-    perMachine: false
-    allowElevation: false
-    unicode: true
-    language: 1251
-    deleteAppDataOnUninstall: false
-    packElevateHelper: true
-    license: ./license_ru.txt
-    allowToChangeInstallationDirectory: true
-    include: scriptsInstaller/installer.nsh
-    useZip: false
+  oneClick: false
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  perMachine: false
+  allowElevation: false
+  unicode: true
+  language: 1251
+  deleteAppDataOnUninstall: false
+  packElevateHelper: true
+  license: ./license_ru.txt
+  allowToChangeInstallationDirectory: true
+  include: scriptsInstaller/installer.nsh
+  useZip: false
 
 linux:
-    target:
-        - AppImage
-        - deb
-    category: Development
-    icon: ./icons/icon.png
-    executableName: PulseSync
-    description: PulseSync App with Yandex Music Mod
-    mimeTypes:
-        - application/x-pext
-        - x-scheme-handler/pulsesync
-    protocols:
-        - name: 'PulseSync Deep Link'
-          schemes:
-              - pulsesync
-    desktop:
-        entry:
-            Name: PulseSync
-            Comment: PulseSync App with Yandex Music Mod
-            Icon: pulsesync
-            Terminal: false
-            Type: Application
-            Categories: Utility;AudioVideo;Audio;
-            MimeType: application/x-pext;x-scheme-handler/pulsesync;
+  target:
+    - AppImage
+    - deb
+  category: Development
+  icon: ./icons/icon.png
+  executableName: PulseSync
+  description: PulseSync App with Yandex Music Mod
+  mimeTypes:
+    - application/x-pext
+    - x-scheme-handler/pulsesync
+  protocols:
+    - name: 'PulseSync Deep Link'
+      schemes:
+        - pulsesync
+  desktop:
+    entry:
+      Name: PulseSync
+      Comment: PulseSync App with Yandex Music Mod
+      Icon: pulsesync
+      Terminal: false
+      Type: Application
+      Categories: Utility;AudioVideo;Audio;
+      MimeType: application/x-pext;x-scheme-handler/pulsesync;
+
 deb:
   depends:
     - libgtk-3-0
