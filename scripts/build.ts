@@ -331,6 +331,7 @@ async function main(): Promise<void> {
         }
 
         const baseOutDir = path.join('.', 'out')
+        const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${os.arch()}`)
         const releaseDir = path.join('.', 'release')
         const { version } = generateBuildInfo()
 
@@ -348,7 +349,7 @@ async function main(): Promise<void> {
                         copyNodes(fullPath)
                     } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
                         const relativePath = path.relative(nativeDir, fullPath)
-                        const dest = path.join(baseOutDir, 'modules', relativePath)
+                        const dest = path.join(outDir, 'modules', relativePath)
 
                         fs.mkdirSync(path.dirname(dest), { recursive: true })
                         fs.copyFileSync(fullPath, dest)
