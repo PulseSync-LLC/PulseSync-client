@@ -12,10 +12,10 @@ const forgeConfig: ForgeConfig = {
         icon: './icons/icon',
         name: 'PulseSync',
         executableName: 'PulseSync',
-        appCopyright: 'Copyright (C) 2025 PulseSync LLC',
+        appCopyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»',
         asar: true,
         win32metadata: {
-            CompanyName: 'PulseSync LLC',
+            CompanyName: 'ИП «Деднев Григорий Дмитриевич»',
         },
         appBundleId: "pulsesync.app",
         extendInfo: 'Info.plist',

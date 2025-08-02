@@ -1,7 +1,7 @@
 appId: pulsesync.app
 productName: PulseSync
 artifactName: pulsesync-app-${version}-${arch}.${ext}
-copyright: 'Copyright (C) 2025 PulseSync LLC'
+copyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»'
 
 directories:
   output: release
