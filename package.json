@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.8.5-beta",
+    "version": "2.9.0-beta",
     "main": ".webpack/main",
     "scripts": {
         "start": "electron-forge start",
@@ -150,8 +150,8 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.8.5-beta",
-        "BRANCH": "f823a9b",
-        "BUILD_TIME": "2025-08-01T22:47:50.407Z"
+        "VERSION": "2.9.0-beta",
+        "BRANCH": "77e0079",
+        "BUILD_TIME": "2025-08-02T01:12:49.863Z"
     }
 }
