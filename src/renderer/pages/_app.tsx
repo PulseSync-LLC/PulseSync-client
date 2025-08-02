@@ -29,7 +29,7 @@ import getUserToken from '../api/getUserToken'
 import config from '../api/config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
-import Preloader from '../components/Preloader'
+import Preloader from '../components/preloader'
 import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
 import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
@@ -555,7 +555,7 @@ function App() {
                 }
 
                 if (!data.updateAvailable) {
-                    toast.custom('info', 'О как...', 'Обновление не найдено', {
+                    toast.custom('info', 'Эвана как...', 'Обновление не найдено', {
                         id: toastReference.current,
                     })
                     toastReference.current = null

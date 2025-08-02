@@ -371,10 +371,6 @@
                         align-items: flex-start;
                         padding: 0px;
 
-                        // &:hover {
-                        //     background: #242834;
-                        // }
-
                         & > .user_banner {
                             position: relative;
                             width: calc(var(--userBanner) + 45px);

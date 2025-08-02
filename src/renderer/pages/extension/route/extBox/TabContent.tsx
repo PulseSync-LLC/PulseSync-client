@@ -11,19 +11,28 @@ import { AddonConfig } from '../../../../components/сonfigurationSettings/types
 import { ActiveTab, DocTab } from './types'
 import * as s from './../extensionview.module.scss'
 import appConfig from '../../../../api/config'
+import Addon from '../../../../api/interfaces/addon.interface'
 
 interface Props {
     active: ActiveTab
     docs: DocTab[]
-    description: string
     configExists: boolean | null
     config: AddonConfig | null
     configApi: any
     editMode: boolean
-    addonPath: string
+    addon: Addon
 }
 
-const MarkdownLink: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({ children, href = '', ...rest }) => {
+interface MarkdownLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+    href?: string
+    addon: Addon
+}
+
+const MarkdownLink: React.FC<MarkdownLinkProps> = ({ children, href = '', addon, ...rest }) => {
+    if (!href) {
+        return <>{children}</>
+    }
+
     if (href.startsWith('#')) {
         return (
             <a href={href} {...rest}>
@@ -31,8 +40,13 @@ const MarkdownLink: React.FC<React.AnchorHTMLAttributes<HTMLAnchorElement>> = ({
             </a>
         )
     }
+
+    const isAbsolute = typeof href === 'string' && (href.startsWith('http://') || href.startsWith('https://'))
+
+    const fullHref = isAbsolute ? href : `${encodeURIComponent(addon.directoryName)}/${href}`
+
     return (
-        <a href={href} {...rest} target="_blank" rel="noreferrer">
+        <a href={fullHref} target="_blank" rel="noreferrer" {...rest}>
             {children}
         </a>
     )
@@ -59,8 +73,8 @@ const HeadingRenderer =
         )
     }
 
-const TabContent: React.FC<Props> = ({ active, docs, description, configExists, config, configApi, editMode, addonPath }) => {
-    const addonName = path.basename(addonPath)
+const TabContent: React.FC<Props> = ({ active, docs, configExists, config, configApi, editMode, addon }) => {
+    const addonName = path.basename(addon.path)
 
     const buildAssetUrl = useMemo(
         () => (file: string) =>
@@ -84,7 +98,7 @@ const TabContent: React.FC<Props> = ({ active, docs, description, configExists, 
     }
 
     if (active === 'Metadata') {
-        return <MetadataEditor addonPath={addonPath} />
+        return <MetadataEditor addonPath={addon.path} />
     }
 
     const doc = docs.find(d => d.title === active)
@@ -100,7 +114,11 @@ const TabContent: React.FC<Props> = ({ active, docs, description, configExists, 
                         rehypePlugins={[rehypeRaw]}
                         components={{
                             img: MarkdownImg,
-                            a: MarkdownLink,
+                            a: ({ node, ...props }) => (
+                                <MarkdownLink href={props.href} addon={addon} {...props}>
+                                    {props.children}
+                                </MarkdownLink>
+                            ),
                             h1: HeadingRenderer(1),
                             h2: HeadingRenderer(2),
                             h3: HeadingRenderer(3),
@@ -109,7 +127,7 @@ const TabContent: React.FC<Props> = ({ active, docs, description, configExists, 
                             h6: HeadingRenderer(6),
                         }}
                     >
-                        {doc.content || description}
+                        {doc.content || addon.description}
                     </ReactMarkdown>
                 </div>
             </div>

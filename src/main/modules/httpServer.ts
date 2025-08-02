@@ -251,7 +251,7 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
         const addonPath = path.join(addonsPath, name)
         const targetPath = path.join(addonPath, fileName)
 
-        logger.http.log(`Looking for addon root file: ${targetPath}`)
+        console.info(`Looking for addon root file: ${targetPath}`)
 
         if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
             const ext = path.extname(targetPath).slice(1)

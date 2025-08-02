@@ -1,4 +1,3 @@
-// src/renderer/components/PSUI/ButtonInput/index.tsx
 import React, { useState, useContext, useEffect } from 'react'
 import * as styles from './ButtonInput.module.scss'
 import clsx from 'clsx'

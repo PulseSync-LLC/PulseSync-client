@@ -235,7 +235,6 @@ export default function ExtensionPage() {
                 mergedAddons.map(async addon => {
                     if (!addon.image) return
 
-                    // уже есть в глобальном или локальном кэше
                     if (previewCache.has(addon.directoryName) || imageCache[addon.directoryName]) return
 
                     const url =

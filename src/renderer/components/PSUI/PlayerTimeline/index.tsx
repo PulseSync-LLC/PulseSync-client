@@ -1,4 +1,3 @@
-// PlayerTimeline.tsx
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import PlayerContext from '../../../api/context/player.context'
 import UserContext from '../../../api/context/user.context'

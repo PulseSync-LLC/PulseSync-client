@@ -82,7 +82,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         if (!meta) return
         try {
             const file = path.join(addonPath, 'metadata.json')
-            await window.desktopEvents.invoke('file-event', 'write-file', file, JSON.stringify(meta, null, 2))
+            await window.desktopEvents.invoke('file-event', 'write-file', file, JSON.stringify(meta, null, 4))
             setDirty(false)
             setError(null)
         } catch (e) {

@@ -10,7 +10,6 @@ export interface Section {
 
 export type ItemType = 'button' | 'color' | 'text' | 'slider' | 'file' | 'selector'
 
-// ------------ Общая структура кнопки ------------
 export interface ButtonAction {
     id: string
     name: string
@@ -18,7 +17,6 @@ export interface ButtonAction {
     defaultParameter?: string
 }
 
-// ------------ Базовый интерфейс для любого Item ------------
 export interface ItemBase {
     id: string
     name: string
@@ -26,7 +24,6 @@ export interface ItemBase {
     type: ItemType
 }
 
-// ------------ Типы Items ------------
 export interface ButtonItem extends ItemBase {
     type: 'button'
     bool: boolean
@@ -75,10 +72,8 @@ export interface SelectorItem extends ItemBase {
     defaultParameter?: number
 }
 
-// ------------ Union всех Item ------------
 export type Item = ButtonItem | ColorItem | TextItem | SliderItem | FileItem | SelectorItem
 
-// ------------ Помощники для определения типа ------------
 export function isTextItem(item: Item): item is TextItem {
     return item.type === 'text'
 }

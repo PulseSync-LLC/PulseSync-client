@@ -65,12 +65,11 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                     <TabContent
                         active={activeTab}
                         docs={docs}
-                        description={addon.description}
                         configExists={configExists}
                         config={cfg.config}
                         configApi={cfg}
                         editMode={editMode}
-                        addonPath={addon.path}
+                        addon={addon}
                     />
                 </div>
             </Scrollbar>

@@ -1,4 +1,3 @@
-// src/pages/extension/TagFilterPanel.tsx
 import React from 'react'
 import * as extensionStyles from './../../../../renderer/pages/extension/extension.module.scss'
 

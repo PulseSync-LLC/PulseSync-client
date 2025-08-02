@@ -331,7 +331,7 @@ export default function TrackInfoPage() {
 
                                                 <div
                                                     className={themeV2.button}
-                                                    onClick={() => window.open('https://github.com/PulseSync-LLC/PulseSync-client/tree/dev')}
+                                                    onClick={() => window.open('https://pulsesync.dev')}
                                                 >
                                                     ♡ PulseSync Project
                                                 </div>

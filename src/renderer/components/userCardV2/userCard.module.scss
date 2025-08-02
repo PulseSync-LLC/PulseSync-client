@@ -3,9 +3,11 @@
     flex-direction: column;
     width: -webkit-fill-available;
     height: 150px;
+    padding: 2px;
+    box-sizing: border-box;
+    overflow: hidden;
     background: #00000033;
     border-radius: 10px;
-    padding: 2px;
     cursor: pointer;
     transition: var(--transition);
     animation: fadeInUp 0.4s ease-out forwards;
@@ -32,8 +34,7 @@
     align-items: flex-end;
     padding: 10px;
     gap: 10px;
-    width: 100%;
-    height: 125px;
+    flex: 1;
     border-radius: 9px;
     background-repeat: no-repeat !important;
     background-position: center !important;
@@ -90,7 +91,6 @@
     align-items: center;
     padding: 3px 10px;
     gap: 10px;
-    width: 100%;
     height: 26px;
 }
 
@@ -100,18 +100,13 @@
     font-size: 12px;
     line-height: 110%;
     color: var(--statusColorProfile);
-    width: -webkit-fill-available;
+    width: 100%;               /* Вместо -webkit-fill-available */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.rssIcon {
-    width: 20px;
-    height: 20px;
-    color: var(--statusColorProfile);
-}
-
+.rssIcon,
 .statusIcon {
     width: 20px;
     height: 20px;

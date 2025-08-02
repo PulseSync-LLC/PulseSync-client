@@ -61,7 +61,6 @@ async function registerAppReadyEvents(): Promise<void> {
     }
 }
 
-// Для обычного окна
 const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
@@ -534,8 +533,6 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 }
-
-// app
 
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()

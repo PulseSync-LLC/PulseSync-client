@@ -218,7 +218,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             try {
                 const fileBuffer = fs.readFileSync(tempFilePath)
 
-                let asarBuf = fileBuffer
+                let asarBuf: Buffer<ArrayBufferLike> = fileBuffer
                 const ext = path.extname(new URL(link).pathname).toLowerCase()
                 if (ext === '.gz') asarBuf = await gunzipAsync(fileBuffer)
                 else if (ext === '.zst' || ext === '.zstd') asarBuf = await zstdDecompressAsync(fileBuffer)

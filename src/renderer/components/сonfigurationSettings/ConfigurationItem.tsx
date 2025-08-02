@@ -1,4 +1,3 @@
-// ConfigurationItem.tsx
 
 import React, { useEffect, useRef, useState } from 'react'
 import { MdDelete, MdDragIndicator, MdFolder, MdHelp, MdRestore } from 'react-icons/md'
@@ -119,11 +118,9 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
             if (item.type !== 'slider') return
             const sliderItem = item as SliderItem
 
-            // Обновляем min/max сами по себе
             const newMin = sliderItem.min
             const newMax = Math.max(sliderItem.min, sliderItem.max)
 
-            // Если max < min — принудительно выравниваем
             if (newMax !== sliderItem.max) {
                 updateConfigField(sectionIndex, itemIndex, 'max', newMax)
             }
@@ -131,7 +128,6 @@ const ConfigurationItem: React.FC<ConfigurationItemProps> = ({
                 updateConfigField(sectionIndex, itemIndex, 'min', newMin)
             }
 
-            // Обрезаем defaultParameter и value
             const clampedDefault = clamp(sliderItem.defaultParameter, newMin, newMax)
             if (clampedDefault !== sliderItem.defaultParameter) {
                 updateConfigField(sectionIndex, itemIndex, 'defaultParameter', clampedDefault)

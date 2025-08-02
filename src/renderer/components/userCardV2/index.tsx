@@ -18,7 +18,7 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
         if (!ref.current) return
         const obs = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
             ...options,
-            rootMargin: '50%', // Расширяем зону видимости на 50% высоты экрана
+            rootMargin: '50%',
         })
         obs.observe(ref.current)
         return () => obs.disconnect()

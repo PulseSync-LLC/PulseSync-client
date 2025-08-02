@@ -117,7 +117,15 @@ export default function UsersPage() {
         window.addEventListener('resize', handler)
         return () => window.removeEventListener('resize', handler)
     }, [sorting])
+    const getPT = () => Math.round(window.innerHeight * 0.15);
 
+    const [pt, setPt] = useState(getPT());
+
+    useEffect(() => {
+        const onResize = () => setPt(getPT());
+        window.addEventListener('resize', onResize);
+        return () => window.removeEventListener('resize', onResize);
+    }, []);
     const handleSort = (field: string) => {
         setPage(1)
         setSorting(prev => (prev[0].id === field ? [{ id: field, desc: !prev[0].desc }] : [{ id: field, desc: true }]))
@@ -128,18 +136,17 @@ export default function UsersPage() {
         return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
     }
 
-    const defaultBackground = useMemo(
-        () => ({
-            alignItems: 'stretch',
-            display: 'flex',
-            padding: '15vh 40px 12px 40px',
-            background: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png), #1D202B',
-            backgroundRepeat: 'no-repeat',
-            backgroundPosition: 'center center',
-            backgroundSize: 'cover',
-        }),
-        [],
-    )
+    const defaultBackground = useMemo(() => ({
+        display: 'flex',
+        alignItems: 'stretch',
+        padding: `${pt}px 40px 12px 40px`,
+        backgroundImage:
+            'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png)',
+        backgroundColor: '#1D202B',
+        backgroundRepeat: 'no-repeat',
+        backgroundPosition: 'center center',
+        backgroundSize: 'cover',
+    }), [pt]);
 
     const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
 
@@ -156,7 +163,7 @@ export default function UsersPage() {
             img.onload = () =>
                 setBackgroundStyle({
                     ...defaultBackground,
-                    background: `linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(${url}), #1D202B`,
+                    backgroundImage: `linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(${url})`,
                 })
             img.onerror = () => checkBanner(list, idx + 1)
         }
