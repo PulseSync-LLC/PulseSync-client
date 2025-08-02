@@ -481,7 +481,9 @@ export default function ExtensionPage() {
                                     </div>
                                     {enabled.length > 0 && disabled.length > 0 && <div className={extensionStylesV2.line}></div>}
                                     {enabled.length === 0 && disabled.length === 0 && (
-                                        <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
+                                        <div className={extensionStylesV2.noFix}>
+                                            <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
+                                        </div>
                                     )}
                                     <div className={extensionStylesV2.disabledAddons}>
                                         {mergedAddons
