@@ -4,7 +4,6 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
 import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
 
-/* ─── types ─── */
 
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
@@ -19,12 +18,10 @@ interface ToastData {
     ts: number
 }
 
-/* ─── constants ─── */
 
 const STICKY_KINDS: Kind[] = ['loading', 'download', 'export', 'import']
 const STICKY_SET = new Set<Kind>(STICKY_KINDS)
 
-/* ─── queue / bus ─── */
 
 let queue: ToastData[] = []
 const subs = new Set<(s: ToastData[]) => void>()
@@ -48,7 +45,6 @@ function remove(id: string) {
     }
 }
 
-/* ─── singleton renderer ─── */
 
 let stackShown = false
 function ensureStack(opts?: ToastOptions) {
@@ -62,14 +58,12 @@ function ensureStack(opts?: ToastOptions) {
     stackShown = true
 }
 
-/* ─── public API ─── */
 
 export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
         const now = Date.now()
 
-        /* 1) sticky → ищем и патчим */
         if (sticky) {
             const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
             if (existing) {
@@ -80,7 +74,6 @@ export const iToast = {
             }
         }
 
-        /* 2) создаём новый */
         const id = `t-${now}-${Math.random()}`
         queue.push({
             id,
@@ -111,7 +104,6 @@ export const iToast = {
     },
 }
 
-/* ─── ToastStack ─── */
 
 const ToastStack: React.FC = () => {
     const [toasts, setToasts] = useState<ToastData[]>(queue)
@@ -197,7 +189,6 @@ const ToastStack: React.FC = () => {
     )
 }
 
-/* ─── Card ─── */
 
 interface CardProps {
     data: ToastData
@@ -212,13 +203,11 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
-    /* появление */
     useEffect(() => {
         const t = setTimeout(() => setShow(true), 60)
         return () => clearTimeout(t)
     }, [])
 
-    /* авто-hide для нестики */
     useEffect(() => {
         if (!sticky && show) {
             const t = setTimeout(() => {
@@ -229,11 +218,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         }
     }, [show, sticky, duration, onDismiss])
 
-    /* ★ закрыть sticky при value ≥ 100 */
     useEffect(() => {
         if (sticky && (value ?? 0) >= 100) {
             setShow(false)
-            toast.dismiss(data.id) // Явное удаление тоста
+            toast.dismiss(data.id)
             setTimeout(onDismiss, 220)
         }
     }, [sticky, value, onDismiss, data.id])
@@ -271,7 +259,6 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     )
 })
 
-/* ─── Progress circle ─── */
 
 const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
     <div className={styles.progressContainer}>
@@ -289,7 +276,6 @@ const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
     </div>
 )
 
-/* ─── palette / icons ─── */
 
 const palette = (k: Kind) =>
     ({
