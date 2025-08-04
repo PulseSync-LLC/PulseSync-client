@@ -253,16 +253,35 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         const handleFfmpegStatus = (_: any, { message, progress, success }: { message: string; progress: number; success?: boolean }) => {
             if (ffmpegToastIdRef.current) {
                 if (success) {
-                    toast.custom('success', message, 'Готово', { id: ffmpegToastIdRef.current })
-                    ffmpegToastIdRef.current = null
+                    toast.update(ffmpegToastIdRef.current, {
+                        kind: 'success',
+                        title: 'FFmpeg установлен',
+                        msg: message,
+                        sticky: false,
+                        value: undefined,
+                    })
+                } else if (progress === 100 && !success) {
+                    toast.update(ffmpegToastIdRef.current, {
+                        kind: 'error',
+                        title: 'Ошибка установки',
+                        msg: message,
+                        sticky: false,
+                        value: undefined,
+                    })
                 } else {
-                    toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { id: ffmpegToastIdRef.current, duration: Infinity }, progress)
+                    toast.update(ffmpegToastIdRef.current, {
+                        title: `Установка FFmpeg: ${progress}%`,
+                        msg: message,
+                        value: progress,
+                    })
                 }
             } else {
                 if (success) {
-                    toast.custom('success', message, 'Готово')
+                    toast.custom('success', 'FFmpeg установлен', message)
+                } else if (progress === 100 && !success) {
+                    toast.custom('error', 'Ошибка установки', message)
                 } else {
-                    const id = toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { duration: Infinity }, progress)
+                    const id = toast.custom('loading', `Установка FFmpeg: ${progress}%`, message, { duration: Infinity }, progress)
                     ffmpegToastIdRef.current = id
                 }
             }

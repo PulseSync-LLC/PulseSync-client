@@ -1,3 +1,4 @@
+/* ——— контейнер стека ——— */
 .stack {
     position: fixed;
     bottom: -20px;
@@ -34,6 +35,7 @@
         box-shadow 0.2s;
 }
 
+/* ——— карточка ——— */
 .card {
     position: absolute;
     left: 0;
@@ -55,11 +57,11 @@
 .cardIn {
     opacity: 1;
 }
-
 .cardOut {
     opacity: 0;
 }
 
+/* ——— содержимое ——— */
 .icon {
     flex-shrink: 0;
     display: flex;
@@ -96,6 +98,7 @@
     }
 }
 
+/* ——— прогресс-спиннер ——— */
 .progressContainer {
     position: relative;
     width: 36px;
@@ -132,4 +135,69 @@
     position: absolute;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
+}
+
+.fadeEnter {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+}
+
+.fadeEnterActive {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fadeExit {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.fadeExitActive {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+/* ——— kind-модификаторы (цвет + левый бордер) ——— */
+.success,
+.download,
+.default {
+    --clr: #87ff77;
+}
+
+.error {
+    --clr: #ff7777;
+}
+
+.warning,
+.loading {
+    --clr: #ffef77;
+}
+
+.info {
+    --clr: #77ffc9;
+}
+
+.export,
+.import {
+    --clr: #77f1ff;
+}
+
+/* небольшой визуальный акцент слева */
+.success,
+.error,
+.warning,
+.info,
+.download,
+.loading,
+.export,
+.import,
+.default {
+    cursor: pointer;
+    border-left: 4px solid var(--clr);
 }

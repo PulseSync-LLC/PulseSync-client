@@ -1,7 +1,10 @@
 import React, { useEffect, useState, useRef, useLayoutEffect, JSX } from 'react'
-import toast, { Renderable, ToastOptions, Toast } from 'react-hot-toast'
+import toast, { Renderable, ToastOptions } from 'react-hot-toast'
+import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
 import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
+
+/* ─── types ─── */
 
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
@@ -13,42 +16,130 @@ interface ToastData {
     value?: number
     sticky: boolean
     duration: number
+    ts: number
 }
+
+/* ─── constants ─── */
+
+const STICKY_KINDS: Kind[] = ['loading', 'download', 'export', 'import']
+const STICKY_SET = new Set<Kind>(STICKY_KINDS)
+
+/* ─── queue / bus ─── */
 
 let queue: ToastData[] = []
 const subs = new Set<(s: ToastData[]) => void>()
 const emit = () => subs.forEach(fn => fn(queue))
-const sub = (fn: (s: ToastData[]) => void) => {
-    subs.add(fn)
-    return () => subs.delete(fn)
-}
 
-export const iToast = {
-    custom: (kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) => {
-        const sticky = ['loading', 'export', 'import', 'download'].includes(kind)
-        const id = `t-${Date.now()}-${Math.random()}`
-        queue.push({ id, kind, title, msg, value, sticky, duration })
-        emit()
-        renderStack(options)
-        return id
-    },
+function sortQueue() {
+    queue.sort((a, b) => {
+        const ap = STICKY_SET.has(a.kind) ? 1 : 0
+        const bp = STICKY_SET.has(b.kind) ? 1 : 0
+        if (ap !== bp) return ap - bp
+        return a.ts - b.ts
+    })
 }
 
 function remove(id: string) {
     queue = queue.filter(t => t.id !== id)
-    queue.length ? renderStack() : toast.dismiss('android-stack')
+    if (queue.length) emit()
+    else {
+        toast.dismiss('android-stack')
+        stackShown = false
+    }
 }
 
-function renderStack(opts?: ToastOptions) {
-    toast.custom((t: Toast) => <ToastStack toasts={queue} />, { id: 'android-stack', duration: Infinity, position: 'top-center', ...opts })
+/* ─── singleton renderer ─── */
+
+let stackShown = false
+function ensureStack(opts?: ToastOptions) {
+    if (stackShown) return
+    toast.custom(() => <ToastStack />, {
+        id: 'android-stack',
+        duration: Infinity,
+        position: 'top-center',
+        ...opts,
+    })
+    stackShown = true
 }
 
-const ToastStack: React.FC<{ toasts: ToastData[] }> = ({ toasts }) => {
-    const [open, setOpen] = useState(toasts.length === 1)
+/* ─── public API ─── */
+
+export const iToast = {
+    custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
+        const sticky = STICKY_SET.has(kind)
+        const now = Date.now()
+
+        /* 1) sticky → ищем и патчим */
+        if (sticky) {
+            const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
+            if (existing) {
+                Object.assign(existing, { title, msg, value, duration, ts: now })
+                sortQueue()
+                emit()
+                return existing.id
+            }
+        }
+
+        /* 2) создаём новый */
+        const id = `t-${now}-${Math.random()}`
+        queue.push({
+            id,
+            kind,
+            title,
+            msg,
+            value,
+            sticky,
+            duration,
+            ts: now,
+        })
+        sortQueue()
+        emit()
+        ensureStack(options)
+        return id
+    },
+
+    update(id: string, patch: Partial<Omit<ToastData, 'id' | 'ts'>>) {
+        const t = queue.find(x => x.id === id)
+        if (!t) return
+        Object.assign(t, patch, { ts: Date.now() })
+        sortQueue()
+        emit()
+    },
+
+    dismiss(id: string) {
+        remove(id)
+    },
+}
+
+/* ─── ToastStack ─── */
+
+const ToastStack: React.FC = () => {
+    const [toasts, setToasts] = useState<ToastData[]>(queue)
+    const [open, setOpen] = useState(false)
+
+    useEffect(() => {
+        const sub = (s: ToastData[]) => setToasts([...s])
+        subs.add(sub)
+        return () => {
+            subs.delete(sub)
+        }
+    }, [])
+
     const list = [...toasts].slice(-7).reverse()
-    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
-    const [offsets, setOffsets] = useState<number[]>([])
+    const renderList = open || list.length === 1 ? list : [list[0]]
 
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const nodeRefs = useRef(new Map<string, React.RefObject<HTMLDivElement>>())
+    const getNodeRef = (id: string) => {
+        let r = nodeRefs.current.get(id)
+        if (!r) {
+            r = React.createRef<HTMLDivElement>()
+            nodeRefs.current.set(id, r)
+        }
+        return r
+    }
+
+    const [offsets, setOffsets] = useState<number[]>([])
     useLayoutEffect(() => {
         if (open && cardRefs.current.length) {
             let acc = 0
@@ -64,35 +155,49 @@ const ToastStack: React.FC<{ toasts: ToastData[] }> = ({ toasts }) => {
         }
     }, [open, list.length, toasts.map(t => t.id).join('|')])
 
-    const prevCount = useRef(list.length)
-    useEffect(() => {
-        if (list.length === 1) setOpen(true)
-        else if (list.length > 1 && list.length > prevCount.current) setOpen(false)
-        prevCount.current = list.length
-    }, [list.length])
+    if (!toasts.length) return null
 
     return (
         <div
             className={`${styles.stack} ${open || list.length === 1 ? styles.expanded : styles.collapsed}`}
             onClick={() => list.length > 1 && setOpen(o => !o)}
         >
-            {list.map((td, idx) => (
-                <Card
-                    key={td.id}
-                    data={td}
-                    index={idx}
-                    stackSize={list.length}
-                    open={open || list.length === 1}
-                    offset={open ? offsets[idx] : 0}
-                    ref={el => {
-                        cardRefs.current[idx] = el
-                    }}
-                    onDismiss={() => remove(td.id)}
-                />
-            ))}
+            <TransitionGroup component={null}>
+                {renderList.map((td, idx) => (
+                    <CSSTransition
+                        key={td.id}
+                        timeout={320}
+                        nodeRef={getNodeRef(td.id)}
+                        classNames={{
+                            enter: styles.fadeEnter,
+                            enterActive: styles.fadeEnterActive,
+                            exit: styles.fadeExit,
+                            exitActive: styles.fadeExitActive,
+                        }}
+                    >
+                        <Card
+                            data={td}
+                            index={idx}
+                            stackSize={renderList.length}
+                            open={open || list.length === 1}
+                            offset={open ? offsets[idx] : 0}
+                            ref={el => {
+                                cardRefs.current[idx] = el
+                                getNodeRef(td.id).current = el
+                            }}
+                            onDismiss={() => {
+                                nodeRefs.current.delete(td.id)
+                                remove(td.id)
+                            }}
+                        />
+                    </CSSTransition>
+                ))}
+            </TransitionGroup>
         </div>
     )
 }
+
+/* ─── Card ─── */
 
 interface CardProps {
     data: ToastData
@@ -102,15 +207,18 @@ interface CardProps {
     offset: number
     onDismiss: () => void
 }
+
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, onDismiss }, ref) => {
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
+    /* появление */
     useEffect(() => {
         const t = setTimeout(() => setShow(true), 60)
         return () => clearTimeout(t)
     }, [])
 
+    /* авто-hide для нестики */
     useEffect(() => {
         if (!sticky && show) {
             const t = setTimeout(() => {
@@ -121,16 +229,15 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         }
     }, [show, sticky, duration, onDismiss])
 
+    /* ★ закрыть sticky при value ≥ 100 */
     useEffect(() => {
-        if (sticky && value === 100) {
-            setTimeout(() => {
-                setShow(false)
-                setTimeout(onDismiss, 280)
-            }, 350)
+        if (sticky && (value ?? 0) >= 100) {
+            setShow(false)
+            toast.dismiss(data.id) // Явное удаление тоста
+            setTimeout(onDismiss, 220)
         }
-    }, [sticky, value, onDismiss])
+    }, [sticky, value, onDismiss, data.id])
 
-    const scale = 1
     const zIndex = stackSize - index
 
     return (
@@ -139,7 +246,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             className={`${styles.card} ${show ? styles.cardIn : styles.cardOut} ${styles[kind]}`}
             style={
                 {
-                    transform: `translateY(${offset}px) scale(${scale})`,
+                    transform: `translateY(${offset}px) scale(1)`,
                     zIndex,
                     color: palette(kind),
                 } as React.CSSProperties
@@ -164,6 +271,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     )
 })
 
+/* ─── Progress circle ─── */
+
 const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
     <div className={styles.progressContainer}>
         <div className={styles.progressText}>{Math.round(val)}%</div>
@@ -179,6 +288,8 @@ const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
         </svg>
     </div>
 )
+
+/* ─── palette / icons ─── */
 
 const palette = (k: Kind) =>
     ({
