@@ -371,3 +371,26 @@
 .metaType {
     background: #414862;
 }
+
+.primaryButton {
+    margin-top: 12px;
+    padding: 8px 20px;
+    border: none;
+    border-radius: 6px;
+    background: #3468f2;
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        transform 0.06s ease;
+
+    &:hover {
+        background: #2a57d1;
+    }
+
+    &:active {
+        transform: scale(0.97);
+    }
+}
