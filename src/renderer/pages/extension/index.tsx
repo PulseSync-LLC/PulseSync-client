@@ -113,6 +113,8 @@ export default function ExtensionPage() {
                 newChecked ? 'Скрипт включен' : 'Скрипт выключен',
                 `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
             )
+            window.electron.store.set('addons.scripts', updated)
+            window.desktopEvents?.send('REFRESH_EXTENSIONS')
             setEnabledScripts(updated)
         }
     }
