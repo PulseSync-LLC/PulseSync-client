@@ -520,69 +520,66 @@ function App() {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
 
-            window.desktopEvents?.on('discordRpcState', (event, data) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    discordRpc: {
-                        ...prevSettings.discordRpc,
-                        status: data,
-                    },
-                }))
-            })
+            window.desktopEvents?.on('discordRpcState', (_e, data) => setApp(prev => ({ ...prev, discordRpc: { ...prev.discordRpc, status: data } })))
 
-            window.desktopEvents?.on('check-mod-update', async () => {
-                await fetchModInfo(app)
-            })
+            window.desktopEvents?.on('check-mod-update', async () => await fetchModInfo(app))
+
             window.desktopEvents.on('CLIENT_READY', () => {
                 window.desktopEvents?.send('REFRESH_MOD_INFO')
                 window.desktopEvents?.send('GET_TRACK_INFO')
             })
+
             window.desktopEvents?.on('rpc-log', onRpcLog)
 
-            window.desktopEvents?.invoke('getVersion').then((version: string) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    info: {
-                        ...prevSettings.info,
-                        version: version,
-                    },
-                }))
-            })
+            window.desktopEvents?.invoke('getVersion').then((v: string) => setApp(prev => ({ ...prev, info: { ...prev.info, version: v } })))
 
-            window.desktopEvents?.on('check-update', (event, data) => {
+            window.desktopEvents?.on('check-update', (_e, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
-
                 if (!data.updateAvailable) {
-                    toast.custom('info', 'Эвана как...', 'Обновление не найдено', {
-                        id: toastReference.current,
+                    toast.update(toastReference.current!, {
+                        kind: 'info',
+                        title: 'Эва как...',
+                        msg: 'Обновление не найдено',
+                        sticky: false,
+                        duration: 5000,
                     })
                     toastReference.current = null
                 }
             })
 
-            const onDownloadProgress = (event: any, value: any) => {
-                toast.custom(
-                    'loading',
-                    'Загрузка.',
-                    <>
-                        <span>Загрузка обновления</span>
-                        <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
-                    </>,
-                    { id: toastReference.current },
+            const onDownloadProgress = (_e: any, value: number) => {
+                toast.update(toastReference.current!, {
+                    kind: 'loading',
+                    title: 'Загрузка',
+                    msg: (
+                        <>
+                            Загрузка обновления&nbsp;
+                            <b>{Math.floor(value)}%</b>
+                        </>
+                    ),
                     value,
-                )
+                })
             }
 
             const onDownloadFailed = () => {
-                toast.custom('error', 'Ошибка.', 'Ошибка загрузки обновления', { id: toastReference.current })
+                toast.update(toastReference.current!, {
+                    kind: 'error',
+                    title: 'Ошибка',
+                    msg: 'Ошибка загрузки обновления',
+                    sticky: false,
+                })
                 toastReference.current = null
             }
 
             const onDownloadFinished = () => {
-                toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                    id: toastReference.current,
+                toast.update(toastReference.current!, {
+                    kind: 'success',
+                    title: 'Успешно',
+                    msg: 'Обновление загружено',
+                    sticky: false,
+                    duration: 5000,
                 })
                 toastReference.current = null
                 setUpdate(true)
@@ -591,11 +588,7 @@ function App() {
             window.desktopEvents?.on('download-update-progress', onDownloadProgress)
             window.desktopEvents?.on('download-update-failed', onDownloadFailed)
             window.desktopEvents?.on('download-update-finished', onDownloadFinished)
-
-            const loadSettings = async () => {
-                await fetchSettings(setApp)
-            }
-            loadSettings()
+            ;(async () => await fetchSettings(setApp))()
 
             return () => {
                 window.desktopEvents?.removeListener('rpc-log', onRpcLog)
