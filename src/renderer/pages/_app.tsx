@@ -520,9 +520,19 @@ function App() {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
 
-            window.desktopEvents?.on('discordRpcState', (_e, data) => setApp(prev => ({ ...prev, discordRpc: { ...prev.discordRpc, status: data } })))
+            window.desktopEvents?.on('discordRpcState', (event, data) => {
+                setApp(prevSettings => ({
+                    ...prevSettings,
+                    discordRpc: {
+                        ...prevSettings.discordRpc,
+                        status: data,
+                    },
+                }))
+            })
 
-            window.desktopEvents?.on('check-mod-update', async () => await fetchModInfo(app))
+            window.desktopEvents?.on('check-mod-update', async () => {
+                await fetchModInfo(app)
+            })
 
             window.desktopEvents.on('CLIENT_READY', () => {
                 window.desktopEvents?.send('REFRESH_MOD_INFO')
@@ -531,9 +541,17 @@ function App() {
 
             window.desktopEvents?.on('rpc-log', onRpcLog)
 
-            window.desktopEvents?.invoke('getVersion').then((v: string) => setApp(prev => ({ ...prev, info: { ...prev.info, version: v } })))
+            window.desktopEvents?.invoke('getVersion').then((version: string) => {
+                setApp(prevSettings => ({
+                    ...prevSettings,
+                    info: {
+                        ...prevSettings.info,
+                        version: version,
+                    },
+                }))
+            })
 
-            window.desktopEvents?.on('check-update', (_e, data) => {
+            window.desktopEvents?.on('check-update', (event, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
@@ -588,7 +606,11 @@ function App() {
             window.desktopEvents?.on('download-update-progress', onDownloadProgress)
             window.desktopEvents?.on('download-update-failed', onDownloadFailed)
             window.desktopEvents?.on('download-update-finished', onDownloadFinished)
-            ;(async () => await fetchSettings(setApp))()
+
+            const loadSettings = async () => {
+                await fetchSettings(setApp)
+            }
+            loadSettings()
 
             return () => {
                 window.desktopEvents?.removeListener('rpc-log', onRpcLog)
