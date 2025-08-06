@@ -62,6 +62,7 @@ function App() {
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
+
     const socket = io(config.SOCKET_URL, {
         path: '/ws',
         autoConnect: false,
@@ -393,17 +394,21 @@ function App() {
             setMod(mods)
 
             const latest = mods[0]
-
-            if (!app?.mod?.installed || !app?.mod?.version) {
+            console.log(app.mod)
+            if (!app.mod.installed || !app.mod.version) {
                 toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
                 return
             }
-
-            if (compareVersions(latest.modVersion, app?.mod?.version) > 0) {
-                window.desktopEvents?.send('show-notification', {
-                    title: 'Доступно обновление мода',
-                    body: `Версия ${latest.modVersion} доступна для установки.`,
-                })
+            console.log(latest.modVersion)
+            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+                const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
+                if (lastNotifiedModVersion !== latest.modVersion) {
+                    window.desktopEvents?.send('show-notification', {
+                        title: 'Доступно обновление мода',
+                        body: `Версия ${latest.modVersion} доступна для установки.`,
+                    })
+                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                }
             } else {
                 toast.custom('info', 'Всё в порядке', 'У вас установлена последняя версия мода')
             }
@@ -558,7 +563,7 @@ function App() {
                 if (!data.updateAvailable) {
                     toast.update(toastReference.current!, {
                         kind: 'info',
-                        title: 'Эва как...',
+                        title: 'Эвана как...',
                         msg: 'Обновление не найдено',
                         sticky: false,
                         duration: 5000,

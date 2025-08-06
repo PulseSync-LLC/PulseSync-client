@@ -73,6 +73,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const deleteMod = (e: any) => {
         showLoadingToast(e, 'Удаление мода...')
         window.desktopEvents?.send('remove-mod')
+        window.localStorage.removeItem('lastNotifiedModVersion')
     }
 
     const toggleSetting = (type: string, status: boolean) => {
