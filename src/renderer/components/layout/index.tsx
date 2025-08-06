@@ -71,12 +71,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleProgress = (_: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
-                toast.custom(
-                    'loading',
-                    `Прогресс загрузки: ${progress}%`,
-                    `Загружаю`,
-                    { id: downloadToastIdRef.current, duration: Infinity },
-                    progress,
+                toast.update(
+                    downloadToastIdRef.current,
+                    {
+                        kind: 'loading',
+                        title: `Прогресс загрузки: ${progress}%`,
+                        msg: `Загружаю`,
+                        value: progress,
+                    },
                 )
             } else {
                 const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, { duration: Infinity }, progress)
@@ -131,7 +133,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
 
             if (downloadToastIdRef.current) {
-                toast.custom('error', 'Произошла ошибка', getErrorMessage(), { id: downloadToastIdRef.current })
+                toast.update(downloadToastIdRef.current, {
+                    kind: 'error',
+                    title: 'Произошла ошибка',
+                    msg: getErrorMessage(),
+                    sticky: false,
+                    value: 0,
+                })
                 downloadToastIdRef.current = null
             } else {
                 toast.custom('error', 'Произошла ошибка', getErrorMessage())
@@ -173,7 +181,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onProgressUpdate = (_: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
-                toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { id: toastReference.current, duration: Infinity }, progress)
+                toast.update(
+                    toastReference.current,
+                    {
+                        kind: 'loading',
+                        title: `Загрузка: ${progress}%`,
+                        msg: 'Прогресс загрузки',
+                        value: progress,
+                    },
+                )
             } else {
                 const id = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
                 toastReference.current = id
@@ -182,12 +198,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onUpdateFailure = (_: any, error: any) => {
             if (toastReference.current) {
-                toast.custom(
-                    'error',
-                    `Ошибка: ${error.error}`,
-                    !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
-                    { id: toastReference.current },
-                )
+                toast.update(toastReference.current, {
+                    kind: 'error',
+                    title: `Ошибка: ${error.error}`,
+                    msg: !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                    sticky: false,
+                    value: 0,
+                })
                 toastReference.current = null
             } else {
                 toast.custom(
