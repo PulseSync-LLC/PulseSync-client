@@ -30,7 +30,6 @@ win:
 mac:
   target:
     - dmg
-    - zip
   category: public.app-category.developer-tools
   icon: ./icons/icon.icns
   protocols:
