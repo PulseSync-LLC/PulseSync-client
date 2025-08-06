@@ -178,7 +178,7 @@ export default function TrackInfoPage() {
                                         <ButtonInput
                                             label="Включить кнопку (Слушать)"
                                             checkType="enableRpcButtonListen"
-                                            description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам 15+-, по английским 30+-"
+                                            description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам ~15, по английским ~30"
                                         />
                                         <TextInput
                                             name="button"
@@ -203,7 +203,7 @@ export default function TrackInfoPage() {
                                         <ButtonInput
                                             label="Включить показ версии трека"
                                             checkType="showTrackVersion"
-                                            description="Если включить, то в активности будет к названию трека будет добавлятся его версия"
+                                            description="Если включить, то в активности к названию трека будет добавлятся его версия"
                                         />
                                         <ButtonInput
                                             label="Включить иконоку статуса прослушивания"
