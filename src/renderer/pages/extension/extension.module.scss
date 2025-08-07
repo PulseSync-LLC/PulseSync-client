@@ -15,7 +15,7 @@
 }
 .checkSelect {
     transition: var(--transition);
-    opacity: 0;
+    opacity: 0.5;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -36,7 +36,7 @@
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
+    align-items: flex-end;
     padding: 15px 15px 15px 40px;
     gap: 5px;
     width: var(--scrollWExtension);
@@ -150,7 +150,7 @@
     align-items: flex-start;
     padding: 0px;
     gap: 5px;
-    width: -webkit-fill-available;
+    min-width: calc(100% + 25px);
 }
 .optionsButton {
     padding: 7px;

@@ -373,7 +373,6 @@ export default function ExtensionPage() {
             <div className={styles.page}>
                 <div className={styles.container}>
                     <div className={styles.main_container}>
-                        <ContainerV2 titleName="Addons" imageName="extension" />
                         <div ref={containerRef}>
                             {showFilters && (
                                 <AddonFilters
