@@ -33,6 +33,7 @@ import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
 import NavButtonPulse from '../PSUI/NavButton'
 import { MdSettings } from 'react-icons/md'
+import Loader from '../PSUI/Loader'
 interface p {
     goBack?: boolean
 }
@@ -62,9 +63,6 @@ const Header: React.FC<p> = () => {
 
     const dispatch = useDispatch()
     const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
-    const [modChangesInfo, setModChangesInfo] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
     const { openUserProfile } = useUserProfileModal()
@@ -218,8 +216,6 @@ const Header: React.FC<p> = () => {
         })
     }
 
-    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
-
     const formatDate = (timestamp: any) => {
         const date = new Date(timestamp * 1000)
         return date.toLocaleDateString('ru-RU', {
@@ -291,23 +287,23 @@ const Header: React.FC<p> = () => {
                 toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
-                switch (error.response?.data?.message) {
-                    case 'FILE_TOO_LARGE':
-                        toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
-                        break
-                    case 'FILE_NOT_ALLOWED':
-                        toast.custom('error', 'Так-так', 'Файл не является изображением')
-                        break
-                    case 'UPLOAD_FORBIDDEN':
-                        toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
-                        break
-                    default:
-                        toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
-                        Sentry.captureException(error)
-                        break
-                }
-                setAvatarProgress(-1)
+            switch (error.response?.data?.message) {
+                case 'FILE_TOO_LARGE':
+                    toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                    break
+                case 'FILE_NOT_ALLOWED':
+                    toast.custom('error', 'Так-так', 'Файл не является изображением')
+                    break
+                case 'UPLOAD_FORBIDDEN':
+                    toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
+                    break
+                default:
+                    toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
+                    Sentry.captureException(error)
+                    break
             }
+            setAvatarProgress(-1)
+        }
     }
 
     const handleBannerUpload = async (file: File) => {
@@ -356,25 +352,42 @@ const Header: React.FC<p> = () => {
             console.error('Error uploading banner:', error)
         }
     }
+
+    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
+
+    const [appUpdatesInfo, setAppUpdatesInfo] = useState<typeof appInfo>([])
+    const [loadingAppUpdates, setLoadingAppUpdates] = useState(true)
+    const [appError, setAppError] = useState<string | null>(null)
+
+    useEffect(() => {
+        setLoadingAppUpdates(true)
+        setAppError(null)
+
+        Promise.resolve(memoizedAppInfo)
+            .then(data => {
+                setAppUpdatesInfo(data || [])
+            })
+            .catch(e => {
+                setAppError(e.message)
+            })
+            .finally(() => {
+                setLoadingAppUpdates(false)
+            })
+    }, [memoizedAppInfo])
+
+    const [modChangesInfoRaw, setModChangesInfoRaw] = useState<any[]>([])
+    const [loadingModChanges, setLoadingModChanges] = useState(true)
+    const [modError, setModError] = useState<string | null>(null)
+
     useEffect(() => {
         if (!app.mod.installed || !app.mod.version) return
-
-        const fetchModData = async () => {
-            try {
-                setLoading(true)
-                const { data } = await client.query({
-                    query: GetModUpdates,
-                    variables: { modVersion: app.mod.version },
-                })
-                setModChangesInfo(data.getChangelogEntries)
-            } catch (err) {
-                setError(err.message)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchModData()
+        setLoadingModChanges(true)
+        setModError(null)
+        client
+            .query({ query: GetModUpdates, variables: { modVersion: app.mod.version } })
+            .then(({ data }) => setModChangesInfoRaw(data.getChangelogEntries))
+            .catch(err => setModError(err.message))
+            .finally(() => setLoadingModChanges(false))
     }, [isModModalOpen, app.mod, modInfo])
 
     const bannerRef = useRef<HTMLDivElement>(null)
@@ -395,39 +408,43 @@ const Header: React.FC<p> = () => {
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
-                    {memoizedAppInfo
-                        .filter(info => info.version <= app.info.version)
-                        .map(info => (
-                            <div key={info.id} className={modalStyles.updateItem}>
-                                <div className={modalStyles.version_info}>
-                                    <h3>{info.version}</h3>
-                                    <span>{formatDate(info.createdAt)}</span>
+                    {loadingAppUpdates && <Loader text="Загрузка…" />}
+                    {appError && <p>Error: {appError}</p>}
+                    {!loadingAppUpdates &&
+                        !appError &&
+                        appUpdatesInfo
+                            .filter(info => info.version <= app.info.version)
+                            .map(info => (
+                                <div key={info.id} className={modalStyles.updateItem}>
+                                    <div className={modalStyles.version_info}>
+                                        <h3>{info.version}</h3>
+                                        <span>{formatDate(info.createdAt)}</span>
+                                    </div>
+                                    <div className={modalStyles.remerkStyle}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                            {info.changelog}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
-
-                                <div className={modalStyles.remerkStyle}>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
-                                        {info.changelog}
-                                    </ReactMarkdown>
-                                </div>
-                            </div>
-                        ))}
+                            ))}
+                    {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= app.info.version).length === 0 && (
+                        <p>Список изменений не найден.</p>
+                    )}
                 </div>
             </Modal>
             <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loading && <p>Loading...</p>}
-                    {error && <p>Error: {error}</p>}
-
-                    {!loading &&
-                        !error &&
-                        modChangesInfo.length > 0 &&
-                        modChangesInfo.map(info => (
+                    {loadingModChanges && <Loader text="Загрузка…" />}
+                    {modError && <p>Error: {modError}</p>}
+                    {!loadingModChanges &&
+                        !modError &&
+                        modChangesInfoRaw.length > 0 &&
+                        modChangesInfoRaw.map(info => (
                             <div key={info.id} className={modalStyles.updateItem}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
-
                                 <div className={modalStyles.remerkStyle}>
                                     <ReactMarkdown
                                         remarkPlugins={[remarkGfm, remarkBreaks]}
@@ -444,8 +461,7 @@ const Header: React.FC<p> = () => {
                                 </div>
                             </div>
                         ))}
-
-                    {!loading && !error && modChangesInfo.length === 0 && <p>Список изменений не найден.</p>}
+                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>Список изменений не найден.</p>}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
