@@ -22,6 +22,8 @@ import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/config'
 
+const loadedRef = { current: false }
+
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
     const [currentTheme, setCurrentTheme] = useState(window.electron.store.get('addons.theme') || 'Default')
@@ -58,6 +60,13 @@ export default function ExtensionPage() {
     } as const
 
     useEffect(() => {
+        if (!loadedRef.current) {
+            loadAddons()
+            loadedRef.current = true
+        }
+    }, [])
+
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             const target = event.target as Node
             if (
@@ -87,10 +96,6 @@ export default function ExtensionPage() {
             })
             .catch(error => console.error('Ошибка при загрузке аддонов:', error))
     }
-
-    useEffect(() => {
-        loadAddons()
-    }, [])
 
     const handleCheckboxChange = (addon: Addon, newChecked: boolean) => {
         if (addon.type === 'theme') {
@@ -292,6 +297,12 @@ export default function ExtensionPage() {
         }
     }, [currentTheme, enabledScripts, mergedAddons, isListFullyLoaded, selectedAddon])
 
+    useEffect(() => {
+        if (selectedAddon && !mergedAddons.some(addon => addon.directoryName === selectedAddon.directoryName)) {
+            setSelectedAddon(mergedAddons[0] || null)
+        }
+    }, [mergedAddons, selectedAddon])
+
     const handleAddonClick = (addon: Addon) => setSelectedAddon(addon)
 
     const toggleFilterPanel = () => {
@@ -304,19 +315,10 @@ export default function ExtensionPage() {
         setShowFilters(false)
     }
 
-    const isValidPath = (path: string) => typeof path === 'string' && path.trim() !== ''
-    const isValidImage = (image: string) => typeof image === 'string' && image.trim() !== ''
-
     const getImagePath = (addon: Addon, cache: Record<string, string>) => {
         if (!addon.image) return 'static/assets/images/no_themeImage.png'
-
-        // 1️⃣ HTTP / data URI уже готов – отдаём как есть
         if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
-
-        // 2️⃣ Если превью уже скачано – используем кэш
         if (cache[addon.directoryName]) return cache[addon.directoryName]
-
-        // 3️⃣ Пока нет превью – временно заглушка
         return 'static/assets/images/no_themeImage.png'
     }
 
@@ -346,6 +348,24 @@ export default function ExtensionPage() {
     const disabled = mergedAddons.filter(
         addon => !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
     )
+
+    function ThemeNotFound() {
+        const [entered, setEntered] = React.useState(false)
+
+        React.useEffect(() => {
+            setEntered(true)
+        }, [])
+
+        return (
+            <div className={extensionStylesV2.notFound}>
+                <h2>Расширение не найдено</h2>
+                <p>Возможно, расширение было удалено или ещё не установлено.</p>
+                <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
+                    Перейдите в официальный Discord для скачивания тем
+                </a>
+            </div>
+        )
+    }
 
     return (
         <Layout title="Аддоны">
@@ -538,7 +558,7 @@ export default function ExtensionPage() {
                                 </div>
                             </Scrollbar>
                             <div className={extensionStylesV2.rightSide}>
-                                {selectedAddon && (
+                                {selectedAddon ? (
                                     <ExtensionView
                                         addon={selectedAddon}
                                         isEnabled={
@@ -550,6 +570,8 @@ export default function ExtensionPage() {
                                         setSelectedTags={setSelectedTags}
                                         setShowFilters={setShowFilters}
                                     />
+                                ) : (
+                                    <ThemeNotFound />
                                 )}
                             </div>
                         </div>

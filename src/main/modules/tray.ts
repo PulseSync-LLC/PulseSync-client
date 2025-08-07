@@ -28,7 +28,7 @@ function createTray() {
             label: 'Перейти в дискорд PulseSync',
             icon: dsIcon,
             click: async () => {
-                await shell.openExternal('https://discord.gg/pulsesync')
+                await shell.openExternal('https://discord.gg/qy42uGTzRy')
             },
         }),
     )

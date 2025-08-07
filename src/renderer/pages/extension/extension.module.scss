@@ -105,26 +105,10 @@
     height: -webkit-fill-available;
     color: #b9c5e6;
     font-size: small;
-    animation: fly-in-bounce 900ms cubic-bezier(0, 1.21, 1, 1) forwards;
     transform-origin: center;
     font-size: 1.15rem;
 }
 
-@keyframes fly-in-bounce {
-    0% {
-        opacity: 0;
-        transform: translate(-10%, 40%) rotate(-339deg) scale(0.7);
-    }
-    70% {
-        opacity: 0.5;
-        transform: translate(9%, -6%) rotate(308deg) scale(1.05);
-    }
-    100% {
-        opacity: 1;
-        transform: translate(-2%, 2%) rotate(18deg) scale(1.27);
-        font-size: 1.15rem;
-    }
-}
 .addonCardSelected {
     background: #464d62;
     & > .addonType {
@@ -338,5 +322,53 @@
         font-size: 14px;
         line-height: 140%;
         color: #ffffff;
+    }
+}
+
+.notFound {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: -webkit-fill-available;
+    width: 100%;
+    background: transparent;
+    color: #b9c5e6;
+    text-align: center;
+    font-size: 1.1rem;
+    gap: 5px;
+    padding: 40px 24px;
+
+    h2 {
+        color: #f3f3f3;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    p {
+        margin: 0 0 8px 0;
+        color: #b9c5e6;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    a {
+        display: inline-block;
+        color: #7097ff;
+        background: #3468f21f;
+        padding: 10px 25px;
+        border-radius: 33px;
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 8px;
+        transition:
+            background 0.2s,
+            color 0.2s;
+        &:hover,
+        &:focus {
+            background: #3468f2;
+            color: #ffffff;
+        }
     }
 }
