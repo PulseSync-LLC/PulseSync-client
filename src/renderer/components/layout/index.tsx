@@ -2,12 +2,12 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import {
     MdDownload,
-    MdExtension,
     MdHandyman,
     MdKeyboardArrowRight,
     MdOutlineInstallDesktop,
     MdOutlineWarningAmber,
     MdPeople,
+    MdPower,
     MdStoreMallDirectory,
     MdUpdate,
 } from 'react-icons/md'
@@ -403,7 +403,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/extension" text="Аддоны Бета" disabled={!musicInstalled}>
-                                <MdExtension size={24} />
+                                <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
