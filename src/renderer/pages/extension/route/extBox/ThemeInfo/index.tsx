@@ -170,7 +170,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     >
                         {isEnabled ? 'Выключить' : 'Включить'}
                     </Button>
-                    <Button className={s.miniButton} title="Ещё" disabled={menuOpen}>
+                    <Button className={s.miniButton} title="Магазин" disabled>
                         <MdStoreMallDirectory size={20} />
                     </Button>
                     <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё" ref={moreBtnRef}>

@@ -81,7 +81,7 @@
     transition: var(--transition);
 
     &:hover {
-        color: #b1e3cf;
+        color: #98ffd6;
         background: #51616881;
     }
 }
@@ -122,7 +122,7 @@ input[type='checkbox'] {
     position: absolute;
     width: 10px;
     height: 10px;
-    background-color: #b1e3cf;
+    background-color: #98ffd6;
     border-radius: 50%;
     top: 50%;
     left: 50%;
@@ -136,13 +136,13 @@ input[type='checkbox'] {
 }
 
 .selected {
-    color: #b1e3cf;
+    color: #98ffd6;
     background: #516168;
 }
 
 .radioLabel.selected .customRadio {
     background-color: #516168;
-    border-color: #b1e3cf;
+    border-color: #98ffd6;
 }
 
 .radioLabel:hover .customRadio {
@@ -176,7 +176,7 @@ input[type='checkbox'] {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 5px solid #b1e3cf;
+    border: 5px solid #98ffd6;
     opacity: 0;
     transition:
         opacity 0.3s,
@@ -186,12 +186,12 @@ input[type='checkbox'] {
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox::before {
     opacity: 1;
     transform: translate(-50%, -50%) scale(0.5);
-    background-color: #b1e3cf;
+    background-color: #98ffd6;
 }
 
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox {
     background-color: #516168;
-    border-color: #b1e3cf;
+    border-color: #98ffd6;
 }
 
 .checkboxLabel:hover .customCheckbox {

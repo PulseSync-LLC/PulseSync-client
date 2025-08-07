@@ -50,12 +50,12 @@
         bottom: 0px;
         width: -webkit-fill-available;
         height: 0px;
-        background: #b1e3cf;
+        background: #98ffd6;
     }
 
     &:hover {
         cursor: pointer;
-        color: #b1e3cf;
+        color: #98ffd6;
 
         &::after {
             bottom: -1px;
@@ -79,11 +79,11 @@
 }
 
 .activeTabButton {
-    color: #b1e3cf;
+    color: #98ffd6;
 
     &::after {
         bottom: -1px;
         height: 4px;
-        background: #b1e3cf;
+        background: #98ffd6;
     }
 }

@@ -1,6 +1,6 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { MdCheckCircle, MdColorLens, MdFilterList, MdMoreHoriz, MdTextSnippet } from 'react-icons/md'
+import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
 import stringSimilarity from 'string-similarity'
 
 import userContext from '../../api/context/user.context'
@@ -9,7 +9,6 @@ import Addon from '../../api/interfaces/addon.interface'
 import toast from '../../components/toast'
 
 import Layout from '../../components/layout'
-import ContainerV2 from '../../components/containerV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
 import OptionMenu from '../../components/PSUI/OptionMenu'
@@ -496,7 +495,11 @@ export default function ExtensionPage() {
                                                     />
                                                     <div className={extensionStylesV2.addonName}>{addon.name}</div>
                                                     <div className={extensionStylesV2.addonType}>
-                                                        {addon.type === 'theme' ? <MdColorLens size={21} /> : <MdTextSnippet size={21} />}
+                                                        {addon.type === 'theme' ? (
+                                                            <MdInvertColors size={24} />
+                                                        ) : (
+                                                            <MdIntegrationInstructions size={24} />
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
@@ -550,7 +553,11 @@ export default function ExtensionPage() {
                                                     />
                                                     <div className={extensionStylesV2.addonName}>{addon.name}</div>
                                                     <div className={extensionStylesV2.addonType}>
-                                                        {addon.type === 'theme' ? <MdColorLens size={21} /> : <MdTextSnippet size={21} />}
+                                                        {addon.type === 'theme' ? (
+                                                            <MdInvertColors size={21} />
+                                                        ) : (
+                                                            <MdIntegrationInstructions size={21} />
+                                                        )}
                                                     </div>
                                                 </div>
                                             ))}
