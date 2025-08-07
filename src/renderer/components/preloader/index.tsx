@@ -1,7 +1,7 @@
 import React from 'react'
 import * as styles from './preloader.module.scss'
 
-const Preloader: React.FC = ({}) => {
+const preloader: React.FC = ({}) => {
     return (
         <div className={styles.preloader}>
             <div className={styles.container}>
@@ -23,4 +23,4 @@ const Preloader: React.FC = ({}) => {
     )
 }
 
-export default Preloader
+export default preloader
