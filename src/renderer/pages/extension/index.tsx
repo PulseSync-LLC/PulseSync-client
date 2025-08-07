@@ -13,6 +13,7 @@ import ContainerV2 from '../../components/containerV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
 import OptionMenu from '../../components/PSUI/OptionMenu'
+import Loader from '../../components/PSUI/Loader'
 
 import ExtensionView from './route/extensionview'
 
@@ -558,7 +559,9 @@ export default function ExtensionPage() {
                                 </div>
                             </Scrollbar>
                             <div className={extensionStylesV2.rightSide}>
-                                {selectedAddon ? (
+                                {!isListFullyLoaded ? (
+                                    <Loader text="Анализирую аддоны…" />
+                                ) : selectedAddon ? (
                                     <ExtensionView
                                         addon={selectedAddon}
                                         isEnabled={
