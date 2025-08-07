@@ -1,4 +1,4 @@
-import React, { ButtonHTMLAttributes, CSSProperties } from 'react'
+import React, { ButtonHTMLAttributes, CSSProperties, forwardRef } from 'react'
 import * as styles from './button.module.scss'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -9,7 +9,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     className?: string
 }
 
-const ButtonV2: React.FC<ButtonProps> = ({ onClick, style, children, disableOnClickSound = true, className, ...rest }) => {
+const ButtonV2 = forwardRef<HTMLButtonElement, ButtonProps>(({ onClick, style, children, disableOnClickSound = true, className, ...rest }, ref) => {
     const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
         if (onClick) {
             onClick(event)
@@ -17,10 +17,10 @@ const ButtonV2: React.FC<ButtonProps> = ({ onClick, style, children, disableOnCl
     }
 
     return (
-        <button style={style} className={`${styles.button} ${className ? className : undefined}`} onClick={handleClick} {...rest}>
+        <button ref={ref} style={style} className={`${styles.button} ${className ? className : ''}`} onClick={handleClick} {...rest}>
             {children}
         </button>
     )
-}
+})
 
 export default ButtonV2

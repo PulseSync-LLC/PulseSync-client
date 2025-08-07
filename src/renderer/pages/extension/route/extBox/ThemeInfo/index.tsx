@@ -23,7 +23,8 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const { openUserProfile } = useUserProfileModal()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
-    const ref = useRef<HTMLDivElement>(null)
+    const actionsRef = useRef<HTMLDivElement>(null)
+    const moreBtnRef = useRef<HTMLButtonElement>(null)
 
     const authorNames = typeof addon.author === 'string' ? addon.author.split(', ') : addon.author
 
@@ -89,6 +90,19 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         }
     }, [addon.libraryLogo, addon.directoryName])
 
+    useEffect(() => {
+        if (!menuOpen) return
+
+        function handleClickOutside(e: MouseEvent) {
+            const target = e.target as Node
+            if (actionsRef.current && actionsRef.current.contains(target)) return
+            setMenuOpen(false)
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [menuOpen])
+
     return (
         <>
             <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
@@ -149,20 +163,19 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         <span className={s.value}>{addon.lastModified ?? '—'}</span>
                     </div>
                 </div>
-                <div className={s.actions} ref={ref}>
+                <div className={s.actions} ref={actionsRef}>
                     <Button
                         className={`${s.toggleButton} ${isEnabled ? s.enabledState : s.disabledState}`}
                         onClick={() => onToggleEnabled(!isEnabled)}
                     >
                         {isEnabled ? 'Выключить' : 'Включить'}
                     </Button>
-                    <Button className={s.miniButton} title="Ещё" disabled>
+                    <Button className={s.miniButton} title="Ещё" disabled={menuOpen}>
                         <MdStoreMallDirectory size={20} />
                     </Button>
-                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё">
+                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё" ref={moreBtnRef}>
                         <MdMoreHoriz size={20} />
                     </Button>
-
                     {menuOpen && (
                         <ViewModal
                             items={createContextMenuActions(
@@ -184,4 +197,4 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     )
 }
 
-export default ThemeInfo;
+export default ThemeInfo
