@@ -12,47 +12,17 @@ const formatTime = (seconds: number): string => {
 }
 
 const PlayerTimeline: React.FC = () => {
-    const [track, setTrack] = useState<Track>(trackInitials)
     const { currentTrack } = useContext(PlayerContext)
-    const { socket, features } = useContext(UserContext)
     const [currentTime, setCurrentTime] = useState<number>(0)
     const animationFrameRef = useRef<number | null>(null)
     const lastTimestampRef = useRef<number>(performance.now())
 
-    const lastSentTrack = useRef({
-        title: null,
-        status: null,
-        progressPlayed: null,
-    })
-
     const playingRef = useRef<boolean>(false)
 
     useEffect(() => {
-        setTrack(currentTrack)
         setCurrentTime(currentTrack?.progress?.position || 0)
         playingRef.current = currentTrack.status === 'playing'
     }, [currentTrack])
-
-    useEffect(() => {
-        if (socket) {
-            if (features.sendTrack && track.title !== '' && track.sourceType !== 'ynison') {
-                const { title, status, progress } = track
-                if (
-                    title !== lastSentTrack.current.title ||
-                    status !== lastSentTrack.current.status ||
-                    progress.position !== lastSentTrack.current.progressPlayed
-                ) {
-                    socket.emit('send_track', track)
-
-                    lastSentTrack.current = {
-                        title,
-                        status,
-                        progressPlayed: progress.position,
-                    }
-                }
-            }
-        }
-    }, [socket, track, features.sendTrack])
 
     useEffect(() => {
         const updateTime = (timestamp: number) => {
@@ -62,7 +32,7 @@ const PlayerTimeline: React.FC = () => {
 
                 setCurrentTime(prevTime => {
                     const newTime = prevTime + elapsed
-                    return newTime < (track.progress?.duration || 0) ? newTime : prevTime
+                    return newTime < (currentTrack.progress?.duration || 0) ? newTime : prevTime
                 })
             } else {
                 lastTimestampRef.current = timestamp
@@ -78,9 +48,9 @@ const PlayerTimeline: React.FC = () => {
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [track.progress?.duration])
+    }, [currentTrack.progress?.duration])
 
-    const progressPercent = track.progress?.duration && currentTime ? (currentTime / track.progress.duration) * 100 : 0
+    const progressPercent = currentTrack.progress?.duration && currentTime ? (currentTime / currentTrack.progress.duration) * 100 : 0
 
     return (
         <div className={styles.timelineContainer}>
@@ -90,7 +60,7 @@ const PlayerTimeline: React.FC = () => {
                 <div className={styles.progress} style={{ width: `${progressPercent}%` }}></div>
             </div>
 
-            <div className={styles.timestamp}>{track.progress?.duration ? formatTime(track.progress.duration) : '00:00'}</div>
+            <div className={styles.timestamp}>{currentTrack.progress?.duration ? formatTime(currentTrack.progress.duration) : '00:00'}</div>
         </div>
     )
 }
