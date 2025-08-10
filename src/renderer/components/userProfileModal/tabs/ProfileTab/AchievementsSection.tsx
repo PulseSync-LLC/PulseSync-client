@@ -38,7 +38,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 
     return (
         <div className={styles.userPageDown}>
-            {features?.achievements && (
+            {!features?.achievements && (
                 <div className={styles.warning}>
                     <span className={styles.title}>
                         <span className={styles.warnDot}></span>

@@ -495,6 +495,10 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
     })
 }
 
+const registerSleepModeEvent = (window: BrowserWindow): void => {
+    ipcMain.handle('checkSleepMode', async () => inSleepMode)
+}
+
 const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle('getAddons', async () => {
         try {
@@ -575,8 +579,6 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     })
 }
 
-ipcMain.handle('checkSleepMode', async () => inSleepMode)
-
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerSettingsEvents()
@@ -589,6 +591,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerDiscordAndLoggingEvents(window)
     registerNotificationEvents(window)
     registerLogArchiveEvent(window)
+    registerSleepModeEvent(window)
     registerExtensionEvents(window)
 }
 
