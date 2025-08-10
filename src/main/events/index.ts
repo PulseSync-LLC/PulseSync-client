@@ -379,6 +379,9 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             case 'button':
                 State.set('discordRpc.button', data.button)
                 break
+            case 'statusDisplayType':
+                State.set('discordRpc.statusDisplayType', data.statusDisplayType)
+                break
         }
     })
 
