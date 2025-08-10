@@ -1,40 +1,48 @@
 export interface Track {
-    currentDevice: CurrentDevice
-    downloadInfo: DownloadInfo
-    isPlaying: boolean
-    albumArt: string
-    canMoveBackward: boolean
-    canMoveForward: boolean
-    status: string
-    sourceType: string
-    ynisonProgress: number
-    progress: Progress
-    availableActions: AvailableActions
-    actionsStore: ActionsStore
+    currentDevice?: CurrentDevice
+    downloadInfo?: DownloadInfo
+    isPlaying?: boolean
+    albumArt?: string
+    canMoveBackward?: boolean
+    canMoveForward?: boolean
+    status?: string
+    sourceType?: string
+    ynisonProgress?: number
+    progress?: Progress
+    availableActions?: AvailableActions
+    actionsStore?: ActionsStore
+
     id: string
     realId: string
     title: string
+    contentWarning?: string
     major: {
         id: number
         name: string
     }
-    version: string
+    version?: string
+
     available: boolean
     availableForPremiumUsers: boolean
     availableFullWithoutPermission: boolean
     availableForOptions: string[]
-    disclaimers: any[]
+    disclaimers: string[]
     storageDir: string
     durationMs: number
     fileSize: number
+
     r128: R128
     fade: Fade
+
     previewDurationMs: number
     artists: Artist[]
     albums: Album[]
+
+    coverUri: string
     derivedColors: DerivedColors
     ogImage: string
-    url: string
+
+    url?: string
     lyricsAvailable: boolean
     type: string
     rememberPosition: boolean
@@ -67,15 +75,17 @@ export interface Artist {
         uri: string
         prefix: string
     }
-    genres: any[]
-    disclaimers: any[]
+    genres: string[]
+    disclaimers: string[]
 }
 
 export interface Album {
     id: number
     title: string
+    type?: string
     metaType: string
-    version: string
+    version?: string
+    contentWarning?: string
     year: number
     releaseDate: string
     coverUri: string
@@ -93,7 +103,7 @@ export interface Album {
     availableForMobile: boolean
     availablePartially: boolean
     bests: any[]
-    disclaimers: any[]
+    disclaimers: string[]
     listeningFinished: boolean
     trackPosition: {
         volume: number
@@ -120,8 +130,9 @@ export interface LyricsInfo {
 
 export interface Progress {
     duration: number
-    position: number
     loaded: number
+    position: number
+    played?: number
 }
 
 export interface AvailableActions {
@@ -138,6 +149,7 @@ export interface ActionsStore {
     isLiked: boolean
     isDisliked: boolean
 }
+
 export interface DownloadInfo {
     trackId: string
     quality: string
@@ -151,13 +163,8 @@ export interface DownloadInfo {
     url: string
     realId: string
 }
-export interface Progress {
-    duration: number
-    loaded: number
-    position: number
-    played: number
-}
-interface CurrentDevice {
+
+export interface CurrentDevice {
     info: {
         device_id: string
         title: string

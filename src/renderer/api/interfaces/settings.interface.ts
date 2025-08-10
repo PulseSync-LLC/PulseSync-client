@@ -35,9 +35,11 @@ export interface discordRpc {
     button: string
     displayPause: boolean
     showVersionOrDevice: boolean
+    statusDisplayType: number
     showSmallIcon: boolean
     enableRpcButtonListen: boolean
     enableWebsiteButton: boolean
+    enableDeepLink: boolean
     showTrackVersion: boolean
 }
 

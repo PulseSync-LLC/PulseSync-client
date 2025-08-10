@@ -21,15 +21,24 @@ import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 
+type FormValues = {
+    appId: string
+    details: string
+    state: string
+    button: string
+    statusDisplayType: string
+}
+
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
-    const [previousValues, setPreviousValues] = useState({
+    const [previousValues, setPreviousValues] = useState<FormValues>({
         appId: '',
         details: '',
         state: '',
         button: '',
+        statusDisplayType: '',
     })
     const schema = object().shape({
         appId: string()
@@ -44,6 +53,9 @@ export default function TrackInfoPage() {
             .test('len', 'Минимальная длина 2 символа', val => !val || val.length >= 2)
             .test('len', 'Максимальная длина 128 символов', val => !val || val.length <= 128),
         button: string().test('len', 'Максимальная длина 30 символов', val => !val || val.length <= 30),
+        statusDisplayType: string()
+            .matches(/^[012]$/, 'Введите 0 (Name), 1 (State) или 2 (Details)')
+            .required('Введите 0, 1 или 2'),
     })
     const getChangedValues = (initialValues: any, currentValues: any) => {
         const changedValues: any = {}
@@ -61,19 +73,24 @@ export default function TrackInfoPage() {
             details: app.discordRpc.details,
             state: app.discordRpc.state,
             button: app.discordRpc.button,
+            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
         })
     }, [])
-    const formik = useFormik({
+    const formik = useFormik<FormValues>({
         initialValues: {
             appId: app.discordRpc.appId,
             details: app.discordRpc.details,
             state: app.discordRpc.state,
             button: app.discordRpc.button,
+            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
         },
         validationSchema: schema,
         onSubmit: values => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
+                if (Object.prototype.hasOwnProperty.call(changedValues, 'statusDisplayType')) {
+                    changedValues.statusDisplayType = parseInt(changedValues.statusDisplayType, 10)
+                }
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
                 window.desktopEvents?.send('GET_TRACK_INFO')
                 setPreviousValues(values)
@@ -82,6 +99,7 @@ export default function TrackInfoPage() {
                     discordRpc: {
                         ...app.discordRpc,
                         ...values,
+                        statusDisplayType: parseInt(values.statusDisplayType, 10),
                     },
                 })
             }
@@ -140,7 +158,7 @@ export default function TrackInfoPage() {
                                             value={formik.values.appId}
                                             onChange={val => formik.setFieldValue('appId', val)}
                                             onBlur={handleBlur}
-                                            error={formik.errors.appId}
+                                            error={formik.errors.appId as any}
                                             touched={formik.touched.appId}
                                             description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
                                         />
@@ -153,7 +171,7 @@ export default function TrackInfoPage() {
                                             value={formik.values.details}
                                             onChange={val => formik.setFieldValue('details', val)}
                                             onBlur={handleBlur}
-                                            error={formik.errors.details}
+                                            error={formik.errors.details as any}
                                             touched={formik.touched.details}
                                             description="Описание Details"
                                             showCommandsButton={true}
@@ -167,10 +185,26 @@ export default function TrackInfoPage() {
                                             value={formik.values.state}
                                             onChange={val => formik.setFieldValue('state', val)}
                                             onBlur={handleBlur}
-                                            error={formik.errors.state}
+                                            error={formik.errors.state as any}
                                             touched={formik.touched.state}
                                             description="Описание State"
                                             showCommandsButton={true}
+                                        />
+                                        <TextInput
+                                            name="statusDisplayType"
+                                            label="Поменять тип отображения статуса активности"
+                                            description="В статусе меняет, как будет отображаться активность после «Слушать»"
+                                            placeholder="0"
+                                            ariaLabel="DisplayType"
+                                            value={formik.values.statusDisplayType}
+                                            onChange={val => {
+                                                formik.setFieldValue('statusDisplayType', String(val))
+                                            }}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.statusDisplayType as any}
+                                            touched={formik.touched.statusDisplayType as any}
+                                            showCommandsButton={true}
+                                            commandsType="status"
                                         />
                                     </div>
                                     <div className={themeV2.optionalContainer}>
@@ -188,7 +222,7 @@ export default function TrackInfoPage() {
                                             value={formik.values.button}
                                             onChange={val => formik.setFieldValue('button', val)}
                                             onBlur={handleBlur}
-                                            error={formik.errors.button}
+                                            error={formik.errors.button as any}
                                             touched={formik.touched.button}
                                             description="Текст отображаемой кнопки"
                                         />
@@ -196,6 +230,11 @@ export default function TrackInfoPage() {
                                             label="Включить кнопку (PulseSync Project)"
                                             checkType="enableWebsiteButton"
                                             description="Если включить, то в активности появится кнопка, ведущая на сайт проекта."
+                                        />
+                                        <ButtonInput
+                                            label="Включить DeepLink"
+                                            checkType="enableDeepLink"
+                                            description="Если включить, то в активности появится кнопки ведущие на сайт и приложение Яндекс Музыки."
                                         />
                                     </div>
                                     <div className={themeV2.optionalContainer}>
@@ -293,7 +332,7 @@ export default function TrackInfoPage() {
                                                                     : currentTrack.title}
                                                             </div>
 
-                                                            <div className={themeV2.autor}>
+                                                            <div className={themeV2.author}>
                                                                 {app.discordRpc.state.length > 0
                                                                     ? replaceParams(app.discordRpc.state, currentTrack)
                                                                     : currentTrack.artists?.length
@@ -329,10 +368,7 @@ export default function TrackInfoPage() {
                                                     </video>
                                                 )}
 
-                                                <div
-                                                    className={themeV2.button}
-                                                    onClick={() => window.open('https://pulsesync.dev')}
-                                                >
+                                                <div className={themeV2.button} onClick={() => window.open('https://pulsesync.dev')}>
                                                     ♡ PulseSync Project
                                                 </div>
                                             </div>

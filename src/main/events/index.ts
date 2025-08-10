@@ -402,6 +402,12 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             case 'state':
                 State.set('discordRpc.state', data.state)
                 break
+            case 'button':
+                State.set('discordRpc.button', data.button)
+                break
+            case 'statusDisplayType':
+                State.set('discordRpc.statusDisplayType', data.statusDisplayType)
+                break
         }
     })
 
