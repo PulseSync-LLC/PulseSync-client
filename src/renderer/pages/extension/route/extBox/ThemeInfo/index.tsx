@@ -1,11 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router'
+import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
 import AddonInterface from '../../../../../api/interfaces/addon.interface'
 import Button from '../../../../../components/buttonV2'
 import ViewModal from '../../../../../components/context_menu_themes/viewModal'
 import { createContextMenuActions } from '../../../../../components/context_menu_themes/sectionConfig'
-import { useUserProfileModal } from '../../../../../context/UserProfileModalContext'
 import * as s from './ThemeInfo.module.scss'
 import config from '../../../../../api/config'
 
@@ -20,7 +19,6 @@ interface Props {
 }
 
 const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
-    const { openUserProfile } = useUserProfileModal()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -50,16 +48,18 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             return
         }
 
+        let objectUrl: string | null = null
         fetch(getAssetUrl(addon.banner))
             .then(r => (r.ok ? r.blob() : Promise.reject()))
             .then(b => {
-                const url = URL.createObjectURL(b)
-                cache.set(key, url)
-                setBannerUrl(url)
+                objectUrl = URL.createObjectURL(b)
+                cache.set(key, objectUrl!)
+                setBannerUrl(objectUrl!)
             })
             .catch(() => cache.set(key, 'static/assets/images/no_themeBackground.png'))
+
         return () => {
-            if (getAssetUrl(addon.libraryLogo)) URL.revokeObjectURL(getAssetUrl(addon.libraryLogo))
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
         }
     }, [addon.banner, addon.directoryName])
 
@@ -76,29 +76,28 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             return
         }
 
+        let objectUrl: string | null = null
         fetch(getAssetUrl(addon.libraryLogo))
             .then(r => (r.ok ? r.blob() : Promise.reject()))
             .then(b => {
-                const url = URL.createObjectURL(b)
-                cache.set(key, url)
-                setLogoUrl(url)
+                objectUrl = URL.createObjectURL(b)
+                cache.set(key, objectUrl!)
+                setLogoUrl(objectUrl!)
             })
             .catch(() => cache.set(key, null))
 
         return () => {
-            if (logoUrl && logoUrl.startsWith('blob:')) URL.revokeObjectURL(logoUrl)
+            if (objectUrl) URL.revokeObjectURL(objectUrl)
         }
     }, [addon.libraryLogo, addon.directoryName])
 
     useEffect(() => {
         if (!menuOpen) return
-
         function handleClickOutside(e: MouseEvent) {
             const target = e.target as Node
             if (actionsRef.current && actionsRef.current.contains(target)) return
             setMenuOpen(false)
         }
-
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
@@ -116,6 +115,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     </div>
                 </div>
             </div>
+
             <div className={s.topTags}>
                 {addon.tags &&
                     addon.tags.length > 0 &&
@@ -134,7 +134,9 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         </Button>
                     ))}
             </div>
+
             <div className={s.invisible}></div>
+
             <div className={s.bottomBar}>
                 <div className={s.meta}>
                     <div className={s.metaItem}>
@@ -142,7 +144,10 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         <span className={s.value}>
                             {authorNames.map((u, i) => (
                                 <React.Fragment key={u}>
-                                    <span onClick={() => openUserProfile(u)} style={{ cursor: 'pointer', textDecoration: 'underline' }}>
+                                    <span
+                                        onClick={() => nav(`/profile/${encodeURIComponent(u)}`)} // <-- новый переход на страницу профиля
+                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
                                         {u}
                                     </span>
                                     {i < authorNames.length - 1 && <span>, </span>}
@@ -150,19 +155,23 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                             ))}
                         </span>
                     </div>
+
                     <div className={s.metaItem}>
                         <span className={s.label}>Размер</span>
                         <span className={s.value}>{addon.size ?? '—'}</span>
                     </div>
+
                     <div className={s.metaItem}>
                         <span className={s.label}>Версия</span>
                         <span className={s.value}>{addon.version ?? '—'}</span>
                     </div>
+
                     <div className={s.metaItem}>
                         <span className={s.label}>Обновлялось</span>
                         <span className={s.value}>{addon.lastModified ?? '—'}</span>
                     </div>
                 </div>
+
                 <div className={s.actions} ref={actionsRef}>
                     <Button
                         className={`${s.toggleButton} ${isEnabled ? s.enabledState : s.disabledState}`}
@@ -170,23 +179,21 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     >
                         {isEnabled ? 'Выключить' : 'Включить'}
                     </Button>
+
                     <Button className={s.miniButton} title="Магазин" disabled>
                         <MdStoreMallDirectory size={20} />
                     </Button>
+
                     <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё" ref={moreBtnRef}>
                         <MdMoreHoriz size={20} />
                     </Button>
+
                     {menuOpen && (
                         <ViewModal
                             items={createContextMenuActions(
                                 undefined,
                                 themeActive,
-                                {
-                                    showCheck: false,
-                                    showDirectory: true,
-                                    showExport: true,
-                                    showDelete: true,
-                                },
+                                { showCheck: false, showDirectory: true, showExport: true, showDelete: true },
                                 addon,
                             )}
                         />

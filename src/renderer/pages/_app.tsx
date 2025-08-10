@@ -42,10 +42,10 @@ import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
-import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
+import ProfilePage from './profile/[username]'
 
 const STATUS_DISPLAY_TYPES: Record<number, number> = {
     0: 0,
@@ -175,6 +175,14 @@ function App() {
             element: (
                 <ErrorBoundary>
                     <JointPage />
+                </ErrorBoundary>
+            ),
+        },
+        {
+            path: '/profile/:username',
+            element: (
+                <ErrorBoundary>
+                    <ProfilePage />
                 </ErrorBoundary>
             ),
         },
@@ -730,15 +738,7 @@ function App() {
             >
                 <Player>
                     <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                        <CssVarsProvider>
-                            {loading ? (
-                                <Preloader />
-                            ) : (
-                                <UserProfileModalProvider>
-                                    <RouterProvider router={router} />
-                                </UserProfileModalProvider>
-                            )}
-                        </CssVarsProvider>
+                        <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
                     </SkeletonTheme>
                 </Player>
             </UserContext.Provider>

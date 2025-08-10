@@ -1,0 +1,35 @@
+/* Внешний каркас даёт общий index.module.scss, тут — локальная вёрстка страницы профиля */
+
+.scrollArea {
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    overflow: overlay;
+}
+.scrollAreaInner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+}
+
+.tabs {
+    display: flex;
+    gap: 8px;
+    padding-top: 12px;
+}
+.tabs button {
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.06);
+    cursor: pointer;
+}
+.activeTab {
+    background: rgba(255, 255, 255, 0.12);
+    font-weight: 600;
+}

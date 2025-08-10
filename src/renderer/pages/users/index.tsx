@@ -2,6 +2,7 @@ import Layout from '../../components/layout'
 import * as s from './users.module.scss'
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
@@ -9,7 +10,6 @@ import debounce from 'lodash.debounce'
 import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
 import config from '../../api/config'
 import toast from '../../components/toast'
-import { useUserProfileModal } from '../../context/UserProfileModalContext'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 
@@ -29,7 +29,16 @@ export default function UsersPage() {
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
-    const { openUserProfile } = useUserProfileModal()
+    const nav = useNavigate()
+
+    const openProfile = useCallback(
+        (u: any) => {
+            const name: string | undefined = typeof u === 'string' ? u : u?.username
+            if (!name) return
+            nav(`/profile/${encodeURIComponent(name)}`)
+        },
+        [nav],
+    )
 
     const setSortRef =
         (idx: number) =>
@@ -117,15 +126,16 @@ export default function UsersPage() {
         window.addEventListener('resize', handler)
         return () => window.removeEventListener('resize', handler)
     }, [sorting])
-    const getPT = () => Math.round(window.innerHeight * 0.15);
 
-    const [pt, setPt] = useState(getPT());
+    const getPT = () => Math.round(window.innerHeight * 0.15)
+    const [pt, setPt] = useState(getPT())
 
     useEffect(() => {
-        const onResize = () => setPt(getPT());
-        window.addEventListener('resize', onResize);
-        return () => window.removeEventListener('resize', onResize);
-    }, []);
+        const onResize = () => setPt(getPT())
+        window.addEventListener('resize', onResize)
+        return () => window.removeEventListener('resize', onResize)
+    }, [])
+
     const handleSort = (field: string) => {
         setPage(1)
         setSorting(prev => (prev[0].id === field ? [{ id: field, desc: !prev[0].desc }] : [{ id: field, desc: true }]))
@@ -136,17 +146,19 @@ export default function UsersPage() {
         return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
     }
 
-    const defaultBackground = useMemo(() => ({
-        display: 'flex',
-        alignItems: 'stretch',
-        padding: `${pt}px 40px 12px 40px`,
-        backgroundImage:
-            'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png)',
-        backgroundColor: '#1D202B',
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center center',
-        backgroundSize: 'cover',
-    }), [pt]);
+    const defaultBackground = useMemo(
+        () => ({
+            display: 'flex',
+            alignItems: 'stretch',
+            padding: `${pt}px 40px 12px 40px`,
+            backgroundImage: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png)',
+            backgroundColor: '#1D202B',
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center center',
+            backgroundSize: 'cover',
+        }),
+        [pt],
+    )
 
     const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
 
@@ -281,7 +293,7 @@ export default function UsersPage() {
                                 {users.length > 0 ? (
                                     <div className={s.userGrid}>
                                         {users.map(user => (
-                                            <UserCardV2 key={user.id} user={user} onClick={openUserProfile} />
+                                            <UserCardV2 key={user.id} user={user} onClick={openProfile} />
                                         ))}
                                     </div>
                                 ) : (

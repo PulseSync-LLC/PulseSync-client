@@ -23,7 +23,7 @@ import axios from 'axios'
 import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
-import { useUserProfileModal } from '../../context/UserProfileModalContext'
+import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 import { useDispatch, useSelector } from 'react-redux'
@@ -65,7 +65,7 @@ const Header: React.FC<p> = () => {
     const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
-    const { openUserProfile } = useUserProfileModal()
+    const nav = useNavigate()
 
     const fixedAddon = { charCount: inputStyle.charCount }
 
@@ -627,7 +627,7 @@ const Header: React.FC<p> = () => {
                                                 <div className={styles.user_details}>
                                                     <div className={styles.user_info}>
                                                         <div
-                                                            onClick={() => openUserProfile(user.username)}
+                                                            onClick={() => nav(`/profile/${encodeURIComponent(user.username)}`)}
                                                             key={user.username}
                                                             className={styles.username}
                                                         >
@@ -647,7 +647,11 @@ const Header: React.FC<p> = () => {
                                                 </div>
                                             </div>
                                             <div className={styles.user_menu_buttons}>
-                                                <button onClick={() => openUserProfile(user.username)} key={user.id} className={styles.menu_button}>
+                                                <button
+                                                    onClick={() => nav(`/profile/${encodeURIComponent(user.username)}`)}
+                                                    key={user.id}
+                                                    className={styles.menu_button}
+                                                >
                                                     Мой профиль
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
