@@ -23,6 +23,7 @@ import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/naviveModule'
 import renderConfig from './renderer/api/config'
+import * as fsp from 'fs/promises'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -40,6 +41,16 @@ app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 app.setAppUserModelId('pulsesync.app')
 
 const State = getState()
+
+const mimeByExt: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+}
 
 const initializeMusicPath = async () => {
     try {
@@ -147,43 +158,200 @@ function initializeAddon() {
     logger.main.log('Addons: theme changed to:', selectedAddon)
     setAddon(selectedAddon)
 }
+
 ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
-    switch (eventType) {
-        case 'check-file-exists':
+    const ensureDir = async (p: string) => fsp.mkdir(path.dirname(p), { recursive: true })
+    const safeJson = (obj: any) => {
+        try {
+            return JSON.stringify(obj, null, 4)
+        } catch {
+            return String(obj ?? '')
+        }
+    }
+
+    // ----- resilient reader -----
+    const readBufResilient = async (p0: string): Promise<Buffer> => {
+        if (!p0) throw new Error('empty path')
+
+        const candidates: string[] = []
+
+        if (p0.startsWith('file://')) {
             try {
-                await fs.promises.access(filePath)
+                const u = new URL(p0)
+                candidates.push(path.normalize(decodeURI(u.pathname)))
+            } catch {}
+        }
+
+        const norm = path.normalize(p0)
+        candidates.push(norm)
+
+        if (process.platform === 'win32') {
+            candidates.push(norm.replace(/\//g, '\\'))
+            candidates.push(norm.replace(/\\/g, '/'))
+            if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
+        }
+
+        try {
+            candidates.push(norm.normalize('NFC'))
+        } catch {}
+        try {
+            candidates.push(norm.normalize('NFD'))
+        } catch {}
+
+        candidates.push(norm.replace(/^["']|["']$/g, ''))
+
+        let lastErr: any = null
+        for (const p of candidates) {
+            try {
+                return await fsp.readFile(p)
+            } catch (e1) {
+                lastErr = e1
+                try {
+                    const buf = await new Promise<Buffer>((resolve, reject) => {
+                        fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
+                    })
+                    return buf
+                } catch (e2) {
+                    lastErr = e2
+                }
+            }
+        }
+        throw lastErr ?? new Error('Unable to read file')
+    }
+
+    const mimeFromExt = (p: string) => {
+        const ext = path.extname(p).toLowerCase()
+        return (mimeByExt as any)?.[ext] || 'application/octet-stream'
+    }
+    // ----------------------------
+
+    try {
+        switch (eventType) {
+            case 'exists':
+            case 'check-file-exists': {
+                if (!filePath) return false
+                try {
+                    await fsp.access(filePath, fs.constants.F_OK)
+                    return true
+                } catch {
+                    return false
+                }
+            }
+
+            case 'read-file': {
+                if (!filePath) return null
+                try {
+                    const enc = (data?.encoding as BufferEncoding) || 'utf8'
+                    return await fsp.readFile(filePath, enc)
+                } catch (error) {
+                    console.error('[file-event:read-file]', error)
+                    return null
+                }
+            }
+
+            case 'write-file': {
+                if (!filePath) return { success: false, error: 'filePath is required' }
+                try {
+                    const enc = (data?.encoding as BufferEncoding) || 'utf8'
+                    const content = typeof data === 'string' ? data : typeof data?.content === 'string' ? data.content : safeJson(data)
+                    await ensureDir(filePath)
+                    await fsp.writeFile(filePath, content, enc)
+                    return { success: true }
+                } catch (error: any) {
+                    logger?.main?.error?.('[file-event:write-file]', error)
+                    return { success: false, error: error?.message || String(error) }
+                }
+            }
+
+            case 'read-file-base64': {
+                if (!filePath) return null
+                try {
+                    const buf = await readBufResilient(filePath)
+                    return buf.toString('base64')
+                } catch (error) {
+                    console.error('[file-event:read-file-base64]', error)
+                    return null
+                }
+            }
+
+            case 'write-file-base64': {
+                if (!filePath) return false
+                try {
+                    const base64: string = typeof data === 'string' ? data : data?.base64
+                    if (!base64) return false
+                    await ensureDir(filePath)
+                    const buf = Buffer.from(base64, 'base64')
+                    await fsp.writeFile(filePath, buf)
+                    return true
+                } catch (error) {
+                    console.error('[file-event:write-file-base64]', error)
+                    return false
+                }
+            }
+
+            case 'delete-file': {
+                if (!filePath) return false
+                try {
+                    await fsp.rm(filePath, { force: true })
+                } catch {}
                 return true
-            } catch {
+            }
+
+            case 'copy-file': {
+                const src: string = filePath
+                const dest: string = data?.dest
+                if (!src || !dest) return false
+                await ensureDir(dest)
+                try {
+                    const buf = await readBufResilient(src)
+                    await fsp.writeFile(dest, buf)
+                } catch {
+                    await fsp.copyFile(src, dest)
+                }
+                return true
+            }
+
+            case 'as-data-url': {
+                if (!filePath) return null
+                try {
+                    const buf = await readBufResilient(filePath)
+                    const mime = mimeFromExt(filePath)
+                    return `data:${mime};base64,${buf.toString('base64')}`
+                } catch (e) {
+                    console.error('[file-event:as-data-url] resilient read error:', e)
+                    return null
+                }
+            }
+
+            case 'create-config-file': {
+                if (!filePath) return { success: false, error: 'filePath is required' }
+                try {
+                    await ensureDir(filePath)
+                    await fsp.writeFile(filePath, safeJson(data), 'utf8')
+                    return { success: true }
+                } catch (error: any) {
+                    logger?.main?.error?.('[file-event:create-config-file]', error)
+                    return { success: false, error: error?.message || String(error) }
+                }
+            }
+
+            default:
+                logger?.main?.error?.('[file-event] Unknown eventType:', eventType)
+                return { success: false, error: 'Unknown eventType' }
+        }
+    } catch (err: any) {
+        logger?.main?.error?.('[file-event] Fatal:', eventType, err)
+        switch (eventType) {
+            case 'exists':
+            case 'check-file-exists':
                 return false
-            }
-        case 'read-file':
-            try {
-                return await fs.promises.readFile(filePath, 'utf8')
-            } catch (error) {
-                console.error('Ошибка при чтении файла:', error)
+            case 'read-file':
+            case 'read-file-base64':
+            case 'as-data-url':
                 return null
-            }
-        case 'create-config-file':
-            try {
-                await fs.promises.writeFile(filePath, formatJson(data), 'utf8')
-                return { success: true }
-            } catch (error) {
-                logger.main.error('Ошибка при создании файла конфигурации:', error)
-                return { success: false, error: error.message }
-            }
-        case 'write-file':
-            try {
-                const content = typeof data === 'string' ? data : JSON.stringify(data, null, 4)
-                fs.writeFileSync(filePath, content, 'utf8')
-                logger.main.log('Файл успешно записан:', filePath)
-                return { success: true }
-            } catch (error) {
-                logger.main.error('Ошибка при записи файла:', error)
-                return { success: false, error: error.message }
-            }
-        default:
-            logger.main.error('Неизвестный тип события:', eventType)
-            return { success: false, error: 'Неизвестный тип события' }
+            default:
+                return { success: false, error: err?.message || String(err) }
+        }
     }
 })
 

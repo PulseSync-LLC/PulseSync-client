@@ -9,6 +9,7 @@ type Props = {
     onSave?: () => void | Promise<void>
     saving?: boolean
     durationMs?: number
+    disabledSave?: boolean
 }
 
 const ChangesBar: React.FC<Props> = ({
@@ -18,6 +19,7 @@ const ChangesBar: React.FC<Props> = ({
     onSave,
     saving: savingProp,
     durationMs = 220,
+    disabledSave = false,
 }) => {
     const [mounted, setMounted] = useState(open)
     const [phase, setPhase] = useState<'enter' | 'show' | 'hide'>('hide')
@@ -47,7 +49,7 @@ const ChangesBar: React.FC<Props> = ({
     )
 
     const doSave = async () => {
-        if (!onSave || saving) return
+        if (!onSave || saving || disabledSave) return
         try {
             setSavingInt(true)
             await onSave()
@@ -74,7 +76,7 @@ const ChangesBar: React.FC<Props> = ({
             )}
 
             {onSave && (
-                <button className={css.saveBtn} type="button" onClick={doSave} disabled={saving}>
+                <button className={css.saveBtn} type="button" onClick={doSave} disabled={saving || disabledSave}>
                     {saving ? 'Сохранение…' : 'Сохранить изменения'}
                 </button>
             )}

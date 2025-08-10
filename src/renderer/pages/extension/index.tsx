@@ -22,8 +22,6 @@ import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/config'
 
-const loadedRef = { current: false }
-
 export default function ExtensionPage() {
     const { addons, setAddons } = useContext(userContext)
     const [currentTheme, setCurrentTheme] = useState(window.electron.store.get('addons.theme') || 'Default')
@@ -47,7 +45,8 @@ export default function ExtensionPage() {
 
     const [imageCache, setImageCache] = useState<Record<string, string>>({})
 
-    const previewCache = new Map<string, string>()
+    const previewCacheRef = React.useRef<Map<string, string>>(new Map())
+    const loadedRef = React.useRef(false)
 
     type SortKey = keyof typeof defaultOrder
 
@@ -60,9 +59,12 @@ export default function ExtensionPage() {
     } as const
 
     useEffect(() => {
-        if (!loadedRef.current) {
-            loadAddons()
+        const init = async () => {
+            await loadAddons()
             loadedRef.current = true
+        }
+        if (!loadedRef.current) {
+            init()
         }
     }, [])
 
@@ -87,14 +89,19 @@ export default function ExtensionPage() {
         }
     }, [])
 
-    const loadAddons = () => {
-        window.desktopEvents
-            ?.invoke('getAddons')
-            .then((fetchedAddons: Addon[]) => {
-                const filtered = fetchedAddons.filter(a => a.name !== 'Default')
-                setAddons(filtered)
-            })
-            .catch(error => console.error('Ошибка при загрузке аддонов:', error))
+    const loadAddons = async (force = false) => {
+        try {
+            const result = await window.desktopEvents?.invoke('getAddons', { force })
+            const fetchedAddons: Addon[] = Array.isArray(result) ? result : []
+            const filtered = fetchedAddons.filter(a => a.name !== 'Default')
+            setAddons(filtered)
+
+            const themeFromStore = window.electron.store.get('addons.theme') || 'Default'
+            setCurrentTheme(themeFromStore)
+        } catch (error) {
+            console.error('Ошибка при загрузке аддонов:', error)
+            throw error
+        }
     }
 
     const handleCheckboxChange = (addon: Addon, newChecked: boolean) => {
@@ -242,7 +249,7 @@ export default function ExtensionPage() {
                 mergedAddons.map(async addon => {
                     if (!addon.image) return
 
-                    if (previewCache.has(addon.directoryName) || imageCache[addon.directoryName]) return
+                    if (previewCacheRef.current.has(addon.directoryName) || imageCache[addon.directoryName]) return
 
                     const url =
                         `http://127.0.0.1:${config.MAIN_PORT}/addon_file` +
@@ -252,10 +259,10 @@ export default function ExtensionPage() {
                         const res = await fetch(url)
                         if (!res.ok) throw new Error('404')
                         const blobUrl = URL.createObjectURL(await res.blob())
-                        previewCache.set(addon.directoryName, blobUrl)
+                        previewCacheRef.current.set(addon.directoryName, blobUrl)
                         updates[addon.directoryName] = blobUrl
                     } catch (e) {
-                        previewCache.set(addon.directoryName, 'static/assets/images/no_themeImage.png')
+                        previewCacheRef.current.set(addon.directoryName, 'static/assets/images/no_themeImage.png')
                     }
                 }),
             )
@@ -322,9 +329,32 @@ export default function ExtensionPage() {
         return 'static/assets/images/no_themeImage.png'
     }
 
-    const handleReloadAddons = () => {
-        loadAddons()
-        toast.custom('info', 'Информация', 'Аддоны перезагружены')
+    const handleReloadAddons = async () => {
+        try {
+            await window.desktopEvents?.invoke?.('refresh-extensions').catch(() => {
+                window.desktopEvents?.send('REFRESH_EXTENSIONS')
+            })
+
+            Object.values(imageCache).forEach(url => {
+                if (typeof url === 'string' && url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url)
+                }
+            })
+            previewCacheRef.current.forEach(url => {
+                if (typeof url === 'string' && url.startsWith('blob:')) {
+                    URL.revokeObjectURL(url)
+                }
+            })
+            previewCacheRef.current.clear()
+            setImageCache({})
+
+            await loadAddons(true)
+
+            toast.custom('success', 'Готово', 'Аддоны перезагружены')
+        } catch (e) {
+            console.error(e)
+            toast.custom('error', 'Упс', 'Не удалось перезагрузить аддоны')
+        }
     }
 
     const handleOpenAddonsDirectory = () => {
@@ -332,11 +362,11 @@ export default function ExtensionPage() {
     }
 
     const handleCreateNewAddon = () => {
-        window.desktopEvents.invoke('create-new-extension').then(res => {
+        window.desktopEvents.invoke('create-new-extension').then(async res => {
             if (res.success) {
                 toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
                 setAddons([])
-                loadAddons()
+                await loadAddons(true)
             }
         })
     }
