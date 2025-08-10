@@ -427,6 +427,7 @@ export const getYandexMusicVersion = async (): Promise<string> => {
     const asarPath = path.join(await getPathToYandexMusic(), 'app.asar')
     try {
         const pkgJson = asar.extractFile(asarPath, 'package.json')
+        if (!pkgJson) throw new Error('package.json not found in app.asar')
         const pkg = JSON.parse(pkgJson.toString('utf8'))
         if (pkg.version) return pkg.version
         throw new Error('Version not found in package.json')
