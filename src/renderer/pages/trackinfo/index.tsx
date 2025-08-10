@@ -332,7 +332,7 @@ export default function TrackInfoPage() {
                                                                     : currentTrack.title}
                                                             </div>
 
-                                                            <div className={themeV2.autor}>
+                                                            <div className={themeV2.author}>
                                                                 {app.discordRpc.state.length > 0
                                                                     ? replaceParams(app.discordRpc.state, currentTrack)
                                                                     : currentTrack.artists?.length
