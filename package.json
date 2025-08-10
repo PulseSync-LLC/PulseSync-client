@@ -23,7 +23,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.859.0",
+        "@aws-sdk/client-s3": "^3.863.0",
         "@babel/core": "^7.28.0",
         "@babel/preset-env": "^7.28.0",
         "@babel/preset-react": "^7.27.1",
@@ -50,7 +50,7 @@
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.0",
-        "electron": "^37.2.5",
+        "electron": "^37.2.6",
         "electron-builder": "^26.0.12",
         "eslint": "^9.32.0",
         "eslint-plugin-import": "^2.32.0",
@@ -126,7 +126,7 @@
         "react-modal": "^3.16.3",
         "react-redux": "^9.2.0",
         "react-refresh": "^0.17.0",
-        "react-router-dom": "^7.7.1",
+        "react-router-dom": "^7.8.0",
         "react-transition-group": "^4.4.5",
         "rehype-raw": "^7.0.0",
         "remark-breaks": "^4.0.0",
@@ -153,7 +153,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.0-beta",
-        "BRANCH": "acdae0e",
-        "BUILD_TIME": "2025-08-06T02:41:23.798Z"
+        "BRANCH": "8e91ea3",
+        "BUILD_TIME": "2025-08-09T17:16:06.322Z"
     }
 }
