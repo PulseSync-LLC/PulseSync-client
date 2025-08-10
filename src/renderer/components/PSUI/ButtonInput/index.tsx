@@ -44,6 +44,9 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
             case 'enableWebsiteButton':
                 setIsActive(app.discordRpc.enableWebsiteButton)
                 break
+            case 'enableDeepLink':
+                setIsActive(app.discordRpc.enableDeepLink)
+                break
             case 'displayPause':
                 setIsActive(app.discordRpc.displayPause)
                 break
@@ -99,6 +102,18 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                         discordRpc: {
                             ...app.discordRpc,
                             enableWebsiteButton: newValue,
+                        },
+                    })
+                    break
+                case 'enableDeepLink':
+                    window.discordRpc.clearActivity()
+                    window.desktopEvents?.send('GET_TRACK_INFO')
+                    window.electron.store.set('discordRpc.enableDeepLink', newValue)
+                    setApp({
+                        ...app,
+                        discordRpc: {
+                            ...app.discordRpc,
+                            enableDeepLink: newValue,
                         },
                     })
                     break
