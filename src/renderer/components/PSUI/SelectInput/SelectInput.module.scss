@@ -1,0 +1,122 @@
+:root {
+    --sel-panel-w: 260px;
+}
+
+.inputContainer {
+    cursor: pointer;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 16px;
+    background: #3b4052;
+    border-radius: 8px;
+    outline: transparent solid 2px;
+    transition: var(--transition);
+    &:hover {
+        outline: #8d9dd6 solid 2px;
+    }
+}
+
+.label {
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.value {
+    font-weight: 500;
+    font-size: 18px;
+    color: #c7cfee;
+    transition: var(--transition);
+}
+.placeholder {
+    color: #b5bdd8;
+}
+
+.arrow {
+    transition:
+        transform var(--transition),
+        color var(--transition);
+    color: #c7cfee;
+}
+.open .arrow {
+    transform: rotate(180deg);
+    color: #e4e9ff;
+}
+
+.panel {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 1000;
+    min-width: var(--sel-panel-w);
+    background: #2b3042;
+    border: 1px solid #3e465f;
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    width: -webkit-fill-available;
+}
+.panel.right {
+    left: auto;
+    right: 0;
+}
+
+.list {
+    display: grid;
+    gap: 4px;
+    max-height: 280px;
+    overflow: auto;
+}
+
+.option {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 10px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    color: #e7ecf3;
+    text-align: left;
+    transition:
+        background-color var(--transition),
+        border-color var(--transition);
+
+    &:hover,
+    &.hover {
+        background: #3a4057;
+        border-color: #4a5473;
+    }
+}
+.optionLabel {
+    pointer-events: none;
+}
+.check {
+    color: #c7cfee;
+}
+
+.active {
+    background: #3a4057;
+    border-color: #8d9dd6;
+    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+}
+
+.valueLine {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    pointer-events: none;
+}
+
+.arrowOpen {
+    transform: rotate(180deg);
+    color: #e4e9ff;
+}

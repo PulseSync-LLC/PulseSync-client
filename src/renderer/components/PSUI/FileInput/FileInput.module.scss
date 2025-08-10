@@ -1,0 +1,125 @@
+.inputContainer {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: #3b4052;
+    border-radius: 12px;
+    outline: transparent solid 2px;
+    transition: var(--transition);
+    overflow: hidden;
+    &:hover {
+        outline: #8d9dd6 solid 2px;
+    }
+}
+
+.previewWrap {
+    width: 100%;
+    max-height: 180px;
+    overflow: hidden;
+    background: #2b3042;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    position: relative;
+}
+.previewWrap.skeleton {
+    height: 180px;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
+    background-size: 240% 100%;
+    animation: shimmer 1.4s infinite linear;
+}
+.previewWrap.hasSurface {
+    cursor: pointer;
+}
+
+@keyframes shimmer {
+    0% {
+        background-position: 0% 0;
+    }
+    100% {
+        background-position: -240% 0;
+    }
+}
+
+.preview {
+    display: block;
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s ease;
+}
+.preview.loaded {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.label {
+    padding: 10px 16px 0;
+    font-weight: 400;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+
+.box {
+    margin: 0 16px 12px;
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    align-items: center;
+    gap: 6px;
+    background: #353b4f;
+    border: 1px solid #3e465f;
+    border-radius: 8px;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: var(--transition);
+    &:hover {
+        border-color: #4a5473;
+        transform: translateY(-1px);
+    }
+    &:active {
+        transform: translateY(0);
+    }
+}
+
+.text {
+    width: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: #e7ecf3;
+    font: 500 14px/1.2 system-ui;
+}
+
+.clearBtn,
+.pickBtn {
+    display: inline-grid;
+    place-items: center;
+    height: 26px;
+    width: 26px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: #c7cfee;
+    transition: var(--transition);
+    cursor: pointer;
+}
+.clearBtn:hover,
+.pickBtn:hover {
+    background: #3a4057;
+    border-color: #4a5473;
+}
+.clearBtn:active,
+.pickBtn:active {
+    transform: translateY(1px);
+}
+
+.hidden {
+    display: none;
+}

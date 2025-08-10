@@ -1,0 +1,317 @@
+:root {
+    --cfg-text: var(--text-primary, #e7ecf3);
+    --cfg-muted: var(--text-secondary, #9fb0c6);
+    --cfg-gap: 12px;
+    --cfg-gap-lg: 20px;
+    --cfg-accent: var(--accent, #8d9dd6);
+    --cfg-success: #63d69b;
+    --cfg-surface: #3b4052;
+    --cfg-surface-2: #353b4f;
+    --cfg-border: #3e465f;
+}
+
+.root {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cfg-gap-lg);
+    color: var(--cfg-text);
+    width: -webkit-fill-available;
+    padding: 15px 40px;
+}
+
+.topBar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.rightBtns {
+    display: flex;
+    gap: 6px;
+}
+
+.addBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 10px;
+    border: 1px solid #4b5575;
+    background: #40465b;
+    color: #e7ecf3;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+.addBtn:hover {
+    border-color: #6b76a3;
+    transform: translateY(-1px);
+}
+
+.iconBtn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid #48516b;
+    background: #40465b;
+    color: #e7ecf3;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+.iconBtn:hover {
+    transform: translateY(-1px);
+    border-color: #5b6586;
+}
+.warnBtn {
+    color: #f7d37b;
+}
+.dangerBtn {
+    color: #ff8080;
+}
+
+.section {
+    position: relative;
+    background: var(--cfg-surface);
+    border: 1px solid var(--cfg-border);
+    border-radius: 14px;
+    outline: transparent 2px solid;
+    transition: 0.18s ease;
+}
+.section:hover {
+    outline-color: var(--cfg-accent);
+}
+
+.sectionHeader {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    padding: 12px 14px;
+    align-items: center;
+    border-bottom: 1px solid var(--cfg-border);
+    cursor: default;
+}
+.sectionBody {
+    display: flex;
+    flex-direction: column;
+    gap: var(--cfg-gap);
+    padding: 12px 14px 12px;
+}
+.sectionFooter {
+    padding: 0 14px 16px;
+    display: flex;
+    justify-content: flex-start;
+}
+.sectionTools {
+    display: flex;
+    gap: 6px;
+}
+
+.dropSection {
+    outline-color: rgba(141, 157, 214, 0.9) !important;
+    box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.25) inset;
+}
+.dropTail::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 10px;
+    height: 3px;
+    border-radius: 2px;
+    background: var(--cfg-success);
+    box-shadow: 0 0 10px rgba(99, 214, 155, 0.35);
+}
+
+.item {
+    background: var(--cfg-surface-2);
+    border: 1px solid var(--cfg-border);
+    border-radius: 12px;
+    padding: 10px;
+    display: grid;
+    gap: 8px;
+    outline: transparent 2px solid;
+    transition: 0.18s ease;
+}
+.item:hover {
+    outline-color: rgba(141, 157, 214, 0.35);
+}
+
+.itemHeader {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 8px;
+    align-items: center;
+}
+.metaGrid {
+    display: grid;
+    grid-template-columns: 1fr 220px;
+    gap: 8px;
+}
+.body {
+    display: grid;
+    gap: 8px;
+}
+
+.handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    color: #c7cfee;
+    cursor: grab;
+    user-select: none;
+    border-radius: 8px;
+    transition: background 0.12s ease;
+}
+.handle:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+.handle:active {
+    cursor: grabbing;
+}
+
+.dropBefore {
+    box-shadow:
+        0 -3px 0 0 var(--cfg-success) inset,
+        0 -1px 10px rgba(99, 214, 155, 0.25) inset;
+}
+.dropAfter {
+    box-shadow:
+        0 3px 0 0 var(--cfg-success) inset,
+        0 1px 10px rgba(99, 214, 155, 0.25) inset;
+}
+
+.rowWithDelete {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 8px;
+}
+.addRow {
+    display: grid;
+    gap: 6px;
+    margin-top: 2px;
+}
+.smallTitle {
+    font-size: 12px;
+    color: var(--cfg-muted);
+}
+
+.addButtons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+    border-radius: 999px;
+    border: 1px solid #4b5575;
+    background: #40465b;
+    color: #e7ecf3;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+.chip:hover {
+    border-color: #6b76a3;
+    transform: translateY(-1px);
+}
+
+.rowEnd {
+    display: flex;
+    justify-content: flex-end;
+}
+.inlineGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(130px, 1fr));
+    gap: 8px;
+}
+
+.table {
+    display: grid;
+    gap: 8px;
+}
+.tableRow {
+    display: grid;
+    grid-template-columns: 160px 1fr 1fr auto;
+    gap: 8px;
+    align-items: end;
+}
+
+@keyframes pop {
+    from {
+        opacity: 0;
+        transform: translateY(-4px) scale(0.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+.addMenu {
+    position: fixed;
+    z-index: 9999;
+    min-width: 160px;
+    padding: 6px;
+    background: #2b3042;
+    border: 1px solid var(--cfg-border);
+    border-radius: 10px;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    animation: pop 0.12s ease-out both;
+    transform-origin: top left;
+}
+.addMenuUp {
+    transform-origin: bottom left;
+}
+.addMenuItem {
+    width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 30px;
+    padding: 0 10px;
+    border-radius: 8px;
+    background: transparent;
+    color: #e7ecf3;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: 0.15s ease;
+}
+.addMenuItem:hover {
+    background: #3a4057;
+    border-color: #4a5473;
+}
+
+.placeholder {
+    padding: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: grid;
+    gap: 6px;
+}
+.phTitle {
+    font-weight: 600;
+}
+.phHint {
+    color: var(--cfg-muted);
+    font-size: 12px;
+}
+
+.dropTarget {
+    outline-color: rgba(141, 157, 214, 0.9) !important;
+    box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.25) inset;
+}
+.list {
+    display: grid;
+    gap: 8px;
+}
+.footerSpace {
+    height: 8px;
+}

@@ -2,6 +2,7 @@ import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, sess
 import logger from '../modules/logger'
 import path from 'path'
 import fs from 'original-fs'
+import * as fsp from 'fs/promises'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
@@ -61,6 +62,16 @@ async function registerAppReadyEvents(): Promise<void> {
     }
 }
 
+const mimeByExt: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+}
+
 const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
@@ -103,13 +114,13 @@ const registerSettingsEvents = (): void => {
     })
 }
 
-    ipcMain.on('before-quit', async () => {
-        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        if (fs.existsSync(tempFilePath)) {
-            fs.rmSync(tempFilePath)
-        }
+ipcMain.on('before-quit', async () => {
+    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+    if (fs.existsSync(tempFilePath)) {
+        fs.rmSync(tempFilePath)
+    }
     if (mainWindow) mainWindow.close()
-    })
+})
 
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', event => {
@@ -219,17 +230,26 @@ const registerFileOperations = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle('dialog:openFile', async () => {
+    ipcMain.handle('dialog:openFile', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
+            filters: opts?.filters,
         })
         if (canceled || !filePaths.length) return null
+        return path.normalize(filePaths[0])
+    })
 
-        const [fullPath] = filePaths
-        const normalizedPath = path.normalize(fullPath)
-        const searchSubstr = path.join('PulseSync', 'addons') + path.sep
-
-        return normalizedPath.includes(searchSubstr) ? path.basename(normalizedPath) : fullPath
+    ipcMain.handle('file:asDataUrl', async (_evt, fullPath: string) => {
+        if (!fullPath) return null
+        try {
+            const buf = await fsp.readFile(fullPath)
+            const ext = path.extname(fullPath).toLowerCase()
+            const mime = mimeByExt[ext] || 'application/octet-stream'
+            return `data:${mime};base64,${buf.toString('base64')}`
+        } catch (e) {
+            console.error('[file:asDataUrl] read error:', e)
+            return null
+        }
     })
 }
 

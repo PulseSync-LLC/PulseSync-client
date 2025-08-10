@@ -13,19 +13,17 @@ import toast from '../../../components/toast'
 import * as s from './extensionview.module.scss'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
-    const { docs, config, configExists } = useAddonFiles(addon)
-    const cfg = useConfig(addon.path, config)
+    const { docs } = useAddonFiles(addon)
+    const { configExists, config, configApi } = useConfig(addon.path)
 
-    const [activeTab, setActiveTab] = useState<ActiveTab>('Settings')
+    const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
 
     useEffect(() => {
-        if (docs.length && activeTab === 'Settings') setActiveTab(docs[0].title)
-    }, [docs])
-
-    useEffect(() => {
-        if (!docs.length) setActiveTab('Settings')
-    }, [docs])
+        setEditMode(false)
+        if (docs.length) setActiveTab(docs[0].title as ActiveTab)
+        else setActiveTab('Settings')
+    }, [addon.path, docs])
 
     const themeActive = useMemo(() => isEnabled && addon.type === 'theme', [isEnabled, addon.type])
 
@@ -63,11 +61,12 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                 <div className={s.extensionContent}>
                     <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
                     <TabContent
+                        key={addon.path}
                         active={activeTab}
                         docs={docs}
                         configExists={configExists}
-                        config={cfg.config}
-                        configApi={cfg}
+                        config={config}
+                        configApi={configApi}
                         editMode={editMode}
                         addon={addon}
                     />
