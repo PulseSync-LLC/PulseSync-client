@@ -18,13 +18,34 @@ interface TextInputProps {
     onChange?: (value: string) => void
     onBlur?: (e: React.FocusEvent<HTMLDivElement>) => void
     showCommandsButton?: boolean
+    commandsType?: 'music' | 'status'
 }
 
-const commands = [
+const STATUS_DISPLAY_TYPES: Record<number, number> = {
+    0: 0,
+    1: 1,
+    2: 2,
+}
+
+const STATUS_DISPLAY_NAMES: Record<number, string> = {
+    0: 'Name',
+    1: 'State',
+    2: 'Details',
+}
+
+const musicCommands = [
     { key: '{track}', label: 'название трека' },
     { key: '{artist}', label: 'имя артиста' },
     { key: '{album}', label: 'название альбома' },
 ]
+
+const statusCommands = Object.keys(STATUS_DISPLAY_TYPES).map(k => {
+    const num = Number(k)
+    return {
+        key: k,
+        label: STATUS_DISPLAY_NAMES[num],
+    }
+})
 
 const TextInput: React.FC<TextInputProps> = ({
     name,
@@ -39,6 +60,7 @@ const TextInput: React.FC<TextInputProps> = ({
     onChange,
     onBlur,
     showCommandsButton = false,
+    commandsType = 'music',
 }) => {
     const [isFocused, setIsFocused] = useState(false)
     const [commandsVisible, setCommandsVisible] = useState(false)
@@ -48,10 +70,11 @@ const TextInput: React.FC<TextInputProps> = ({
     const rafRef = useRef<number | null>(null)
     const selectionRef = useRef<{ start: number; end: number } | null>(null)
 
+    const activeCommands = commandsType === 'status' ? statusCommands : musicCommands
+
     const saveSelection = useCallback(() => {
         const sel = window.getSelection()
         if (!sel?.rangeCount || !editorRef.current) return
-
         const range = sel.getRangeAt(0)
         const pre = range.cloneRange()
         pre.selectNodeContents(editorRef.current)
@@ -116,22 +139,17 @@ const TextInput: React.FC<TextInputProps> = ({
     const insertCommandAtCursor = (cmd: string) => {
         const el = editorRef.current
         if (!el) return
-
         el.focus()
         const sel = window.getSelection()
         if (!sel || sel.rangeCount === 0) return
-
         const range = sel.getRangeAt(0)
         range.deleteContents()
-
         const textNode = document.createTextNode(cmd)
         range.insertNode(textNode)
-
         range.setStartAfter(textNode)
         range.setEndAfter(textNode)
         sel.removeAllRanges()
         sel.addRange(range)
-
         handleInput()
         saveSelection()
         setCommandsVisible(false)
@@ -194,7 +212,7 @@ const TextInput: React.FC<TextInputProps> = ({
             {commandsVisible && (
                 <div className={styles.commandWrapper}>
                     <div className={styles.commandList}>
-                        {commands.map(cmd => (
+                        {activeCommands.map(cmd => (
                             <button key={cmd.key} className={styles.commandButton} onClick={() => insertCommandAtCursor(cmd.key)}>
                                 <div className={styles.commandInfo}>
                                     <div className={styles.commandPreview}>{cmd.key}</div> — {cmd.label}

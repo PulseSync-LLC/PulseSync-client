@@ -47,6 +47,44 @@ import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 
+const STATUS_DISPLAY_TYPES: Record<number, number> = {
+    0: 0,
+    1: 1,
+    2: 2,
+}
+
+class ConvertableLink {
+    link?: string
+    constructor(link?: string) {
+        this.link = link
+    }
+    toString() {
+        return this.link ?? ''
+    }
+    toWeb() {
+        if (!this.link) return undefined
+        return `https://music.yandex.ru/${this.link}?utm_source=discord&utm_medium=rich_presence_click`
+    }
+    toApp() {
+        if (!this.link) return undefined
+        return `yandexmusic://${this.link}`
+    }
+}
+
+function buildShareLinks(t: Track) {
+    const albumId = t.albums?.[0]?.id
+    const trackId = t.id
+    const realTrackId = t.realId
+    const artistId = t.artists?.[0]?.id
+
+    const shareTrackPathYnison = new ConvertableLink(albumId && trackId ? `album/${albumId}/track/${trackId}` : undefined)
+    const shareTrackPathRegular = new ConvertableLink(albumId && realTrackId ? `album/${albumId}/track/${realTrackId}` : undefined)
+    const shareAlbumPath = new ConvertableLink(albumId ? `album/${albumId}` : undefined)
+    const shareArtistPath = new ConvertableLink(artistId ? `artist/${artistId}` : undefined)
+
+    return { shareTrackPathYnison, shareTrackPathRegular, shareAlbumPath, shareArtistPath }
+}
+
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
     const [socketError, setSocketError] = useState(-1)
@@ -72,6 +110,7 @@ function App() {
             version: app?.info?.version,
         },
     })
+
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
     const router = createHashRouter([
@@ -637,8 +676,8 @@ function App() {
 
                 if (socketIo && socketIo.connected) {
                     const socketInfo = { ...updatedSettings }
-                    delete socketInfo.tokens
-                    delete socketInfo.info
+                    delete (socketInfo as any).tokens
+                    delete (socketInfo as any).info
                     socketIo.emit('user_settings_update', socketInfo)
                 }
 
@@ -711,10 +750,11 @@ const Player: React.FC<any> = ({ children }) => {
     const { user, app, socket, features } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({
-        title: null,
-        status: null,
-        progressPlayed: null,
+        title: null as string | null,
+        status: null as string | null,
+        progressPlayed: null as number | null,
     })
+
     useEffect(() => {
         if (user.id !== '-1') {
             ;(async () => {
@@ -732,8 +772,6 @@ const Player: React.FC<any> = ({ children }) => {
                     })
                     window.desktopEvents?.on('TRACK_INFO', (event, data) => {
                         if (!data) return
-                        console.log(data)
-
                         if (data.type === 'refresh') {
                             return setTrack(trackInitials)
                         }
@@ -935,157 +973,198 @@ const Player: React.FC<any> = ({ children }) => {
         return track.albumArt || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     }
 
+    const buildActivityButtons = useCallback((t: Track, settings: SettingsInterface) => {
+        const buttons: { label: string; url: string }[] = []
+        const { shareTrackPathYnison, shareTrackPathRegular } = buildShareLinks(t)
+        const shareTrackPath = t.sourceType === 'ynison' ? shareTrackPathYnison : shareTrackPathRegular
+
+        if (settings.discordRpc.enableRpcButtonListen) {
+            if (t.trackSource === 'UGC' && !t.id.includes('generative') && t.url) {
+                buttons.push({
+                    label: settings.discordRpc.button ? truncateLabel(settings.discordRpc.button) : '✌️ Open music file',
+                    url: t.url,
+                })
+            } else if (!t.id.includes('generative')) {
+                const appUrl = shareTrackPath.toApp()
+                const webUrl = shareTrackPath.toWeb()
+
+                if (settings.discordRpc.enableDeepLink) {
+                    if (settings.discordRpc.enableWebsiteButton) {
+                        if (appUrl) {
+                            buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                        } else if (webUrl) {
+                            buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
+                        }
+                    } else {
+                        if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                        if (webUrl && buttons.length < 2) buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
+                    }
+                } else {
+                    if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                }
+            }
+        }
+
+        if (settings.discordRpc.enableWebsiteButton && buttons.length < 2) {
+            buttons.push({
+                label: '♡ PulseSync Project',
+                url: 'https://pulsesync.dev',
+            })
+        }
+
+        if (buttons.length > 2) {
+            return buttons.slice(0, 2)
+        }
+        return buttons.length ? buttons : undefined
+    }, [])
+
+    const buildDiscordActivity = useCallback(
+        (t: Track, settings: SettingsInterface): SetActivity | null => {
+            if (t.title === '') return null
+            if (t.status === 'paused' && !settings.discordRpc.displayPause) return null
+
+            const { shareAlbumPath, shareArtistPath, shareTrackPathRegular } = buildShareLinks(t)
+
+            if (t.sourceType === 'ynison') {
+                const startTimestamp = Math.round(Date.now() - (t.ynisonProgress / 1000) * 1000)
+                const endTimestamp = startTimestamp + t.durationMs
+
+                const activity: SetActivity = {
+                    statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
+                    type: 2,
+                    details: t.title,
+                    largeImageKey: t.albumArt,
+                    largeImageText: `PulseSync ${settings.info.version}`,
+                    largeImageUrl: 'https://pulsesync.dev',
+                }
+
+                if (t.albums?.[0]?.title) {
+                    activity.largeImageText = fixStrings(t.albums[0].title)
+                    const web = shareAlbumPath.toWeb()
+                    if (web) activity.largeImageUrl = web
+                }
+
+                if (settings.discordRpc.showSmallIcon) {
+                    activity.smallImageText = settings.discordRpc.showVersionOrDevice
+                        ? settings.info.version
+                        : ' on ' + (t.currentDevice?.info?.type ?? 'DESKTOP')
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
+                }
+
+                if (t.status === 'paused' && settings.discordRpc.displayPause) {
+                    activity.smallImageText = 'Paused'
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
+                    activity.details = fixStrings(t.title)
+                    delete activity.startTimestamp
+                    delete activity.endTimestamp
+                } else if (!t.id.includes('generative')) {
+                    activity.startTimestamp = startTimestamp
+                    activity.endTimestamp = endTimestamp
+                }
+
+                const buttons = buildActivityButtons(t, settings)
+                if (buttons) activity.buttons = buttons
+
+                return activity
+            } else {
+                const startTimestamp = Math.round(Date.now() - t.progress.position * 1000)
+                const endTimestamp = startTimestamp + t.durationMs
+                const artistName = t.artists.map(x => x.name).join(', ')
+                let rawDetails: string
+
+                if (settings.discordRpc.showTrackVersion && t.version) {
+                    rawDetails = `${t.title} (${t.version})`
+                } else if (settings.discordRpc.details.length > 0) {
+                    rawDetails = replaceParams(settings.discordRpc.details, t, settings.discordRpc.showTrackVersion)
+                } else {
+                    rawDetails = t.title || 'Unknown Track'
+                }
+
+                const activity: SetActivity = {
+                    type: 2,
+                    statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
+                    largeImageKey: getCoverImage(t),
+                    largeImageText: `PulseSync ${settings.info.version}`,
+                    largeImageUrl: 'https://pulsesync.dev',
+                    details: fixStrings(rawDetails),
+                    detailsUrl: shareTrackPathRegular.toWeb(),
+                    state:
+                        settings.discordRpc.state.length > 0
+                            ? fixStrings(replaceParams(settings.discordRpc.state, t))
+                            : fixStrings(artistName || 'Unknown Artist'),
+                    stateUrl: shareArtistPath.toWeb(),
+                }
+
+                if (t.albums?.[0]?.title) {
+                    activity.largeImageText = fixStrings(t.albums[0].title)
+                    const web = shareAlbumPath.toWeb()
+                    if (web) activity.largeImageUrl = web
+                }
+
+                if (settings.discordRpc.showSmallIcon) {
+                    activity.smallImageText = settings.discordRpc.showVersionOrDevice
+                        ? settings.info.version
+                        : ' on ' + (t.currentDevice?.info?.type ?? 'DESKTOP')
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
+                }
+
+                if (t.status === 'paused' && settings.discordRpc.displayPause) {
+                    activity.smallImageText = 'Paused'
+                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
+                    activity.details = fixStrings(t.title)
+                    delete activity.startTimestamp
+                    delete activity.endTimestamp
+                } else if (!t.id.includes('generative')) {
+                    activity.startTimestamp = startTimestamp
+                    activity.endTimestamp = endTimestamp
+                }
+
+                if ((!t.artists || t.artists.length === 0) && t.trackSource !== 'UGC') {
+                    const newDetails = t.title.endsWith(' - Нейромузыка') ? t.title : `${t.title} - Нейромузыка`
+                    activity.details = fixStrings(newDetails)
+                    if (t.albumArt && t.albumArt.includes('%%')) {
+                        activity.largeImageKey = `https://${t.albumArt.replace('%%', 'orig')}`
+                    }
+                    delete activity.state
+                }
+
+                const buttons = buildActivityButtons(t, settings)
+                if (buttons) activity.buttons = buttons
+
+                return activity
+            }
+        },
+        [buildActivityButtons],
+    )
+
     useEffect(() => {
         if (app.discordRpc.status && user.id !== '-1') {
             if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
                 window.discordRpc.clearActivity()
                 return
             }
-            if (track.sourceType === 'ynison') {
-                const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
-                const deepShareTrackUrl = `yandexmusic://${shareTrackPath}`
-                let startTimestamp = Math.round(Date.now() - (track.ynisonProgress / 1000) * 1000)
-                let endTimestamp = startTimestamp + track.durationMs
 
-                const activity: any = {
-                    type: 2,
-                    details: track.title,
-                    largeImageKey: track.albumArt,
-                    buttons: [],
-                }
-                if (app.discordRpc.showSmallIcon) {
-                    activity.smallImageText = app.discordRpc.showVersionOrDevice
-                        ? app.info.version
-                        : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
-                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
-                }
-                if (track.status === 'paused' && app.discordRpc.displayPause) {
-                    activity.smallImageText = 'Paused'
-                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
-                    activity.details = fixStrings(track.title)
-                    delete activity.startTimestamp
-                    delete activity.endTimestamp
-                } else if (!track.id.includes('generative')) {
-                    activity.startTimestamp = startTimestamp
-                    activity.endTimestamp = endTimestamp
-                }
-
-                if (app.discordRpc.enableRpcButtonListen) {
-                    activity.buttons.push({
-                        label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
-                        url: deepShareTrackUrl,
-                    })
-                }
-                if (app.discordRpc.enableWebsiteButton) {
-                    activity.buttons.push({
-                        label: '♡ PulseSync Project',
-                        url: 'https://pulsesync.dev',
-                    })
-                }
-                if (activity.buttons.length === 0) {
-                    delete activity.buttons
-                }
-                window.discordRpc.setActivity(activity)
-                return
-            } else {
-                if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                    window.discordRpc.clearActivity()
-                    return
-                } else {
-                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000)
-                    let endTimestamp = startTimestamp + track.durationMs
-                    const artistName = track.artists.map(x => x.name).join(', ')
-                    let rawDetails: string
-
-                    if (app.discordRpc.showTrackVersion && track.version) {
-                        rawDetails = `${track.title} (${track.version})`
-                    } else if (app.discordRpc.details.length > 0) {
-                        rawDetails = replaceParams(app.discordRpc.details, track, app.discordRpc.showTrackVersion)
-                    } else {
-                        rawDetails = track.title || 'Unknown Track'
+            if ((!track.artists || track.artists.length === 0) && track.trackSource !== 'UGC') {
+                setTrack(prevTrack => {
+                    if (prevTrack.title && prevTrack.title.endsWith(' - Нейромузыка')) {
+                        return prevTrack
                     }
-
-                    const activity: SetActivity = {
-                        type: 2,
-                        largeImageKey: getCoverImage(track),
-                        details: fixStrings(rawDetails),
-                        state:
-                            app.discordRpc.state.length > 0
-                                ? fixStrings(replaceParams(app.discordRpc.state, track))
-                                : fixStrings(artistName || 'Unknown Artist'),
+                    return {
+                        ...prevTrack,
+                        title: `${track.title} - Нейромузыка`,
                     }
-                    if (app.discordRpc.showSmallIcon) {
-                        activity.smallImageText = app.discordRpc.showVersionOrDevice
-                            ? app.info.version
-                            : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
-                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
-                    }
-
-                    if (track.status === 'paused' && app.discordRpc.displayPause) {
-                        activity.smallImageText = 'Paused'
-                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
-                        activity.details = fixStrings(track.title)
-                        delete activity.startTimestamp
-                        delete activity.endTimestamp
-                    } else if (!track.id.includes('generative')) {
-                        activity.startTimestamp = startTimestamp
-                        activity.endTimestamp = endTimestamp
-                    }
-
-                    activity.buttons = []
-
-                    if (track.trackSource !== 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen) {
-                        const linkTitle = track.albums[0].id
-                        activity.buttons.push({
-                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
-                            url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
-                        })
-                    } else if (track.trackSource === 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen && track.url) {
-                        activity.buttons.push({
-                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open music file',
-                            url: track.url,
-                        })
-                    }
-
-                    if (app.discordRpc.enableWebsiteButton) {
-                        activity.buttons.push({
-                            label: '♡ PulseSync Project',
-                            url: `https://pulsesync.dev`,
-                        })
-                    }
-
-                    if (activity.buttons.length === 0) {
-                        delete activity.buttons
-                    }
-
-                    if ((!track.artists || track.artists.length === 0) && track.trackSource !== 'UGC') {
-                        setTrack(prevTrack => {
-                            if (prevTrack.title && prevTrack.title.endsWith(' - Нейромузыка')) {
-                                return prevTrack
-                            }
-                            return {
-                                ...prevTrack,
-                                title: `${track.title} - Нейромузыка`,
-                            }
-                        })
-
-                        if (!track.title.endsWith(' - Нейромузыка')) {
-                            activity.details = fixStrings(`${track.title} - Нейромузыка`)
-                        } else {
-                            activity.details = fixStrings(track.title)
-                        }
-
-                        if (track.albumArt.includes('%%')) {
-                            activity.largeImageKey = `https://${track.albumArt.replace('%%', 'orig')}`
-                        }
-
-                        delete activity.state
-                    }
-                    window.discordRpc.setActivity(activity)
-                }
+                })
             }
+
+            const activity = buildDiscordActivity(track, app)
+            if (!activity) {
+                window.discordRpc.clearActivity()
+                return
+            }
+            window.discordRpc.setActivity(activity)
         }
-    }, [app.settings, user, track, app.discordRpc])
+    }, [app.settings, user, track, app.discordRpc, buildDiscordActivity])
+
     useEffect(() => {
         if (!socket || !features.sendTrack) return
 
