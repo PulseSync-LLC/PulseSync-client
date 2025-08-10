@@ -6,7 +6,7 @@ const TrackInitials: Track = {
         info: {
             device_id: '',
             title: '',
-            type: null,
+            type: '',
             app_name: '',
             app_version: '',
         },
@@ -68,6 +68,7 @@ const TrackInitials: Track = {
     id: '',
     realId: '',
     title: '',
+    contentWarning: '',
     major: { id: 0, name: '' },
     available: false,
     availableForPremiumUsers: false,
@@ -101,8 +102,10 @@ const TrackInitials: Track = {
         {
             id: 0,
             title: '',
+            type: '',
             metaType: '',
             version: '',
+            contentWarning: '',
             year: 0,
             releaseDate: '',
             coverUri: '',
@@ -137,6 +140,7 @@ const TrackInitials: Track = {
         },
     ],
     albumArt: '',
+    coverUri: '',
     derivedColors: {
         average: '',
         waveText: '',
