@@ -95,6 +95,10 @@
     outline: none;
     color: #e7ecf3;
     font: 500 14px/1.2 system-ui;
+
+    &:focus-visible {
+        outline: none;
+    }
 }
 
 .clearBtn,
