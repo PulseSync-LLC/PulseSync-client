@@ -16,10 +16,8 @@ import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
 import * as pageStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './profilePage.module.scss'
 import { MdPersonOutline, MdPeopleOutline, MdSettings, MdClose } from 'react-icons/md'
+import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
 
-export interface ExtendedUser extends UserInterface {
-  allAchievements?: any[]
-}
 const USER_NOT_FOUND_MSG = 'Пользователь не найден'
 
 const ProfilePage: React.FC = () => {
