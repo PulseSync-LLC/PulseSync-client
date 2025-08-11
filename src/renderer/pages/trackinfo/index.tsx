@@ -12,7 +12,7 @@ import { Cubic } from '../../components/PSUI/Cubic'
 import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
-import { buildShareLinks, replaceParams, truncateLabel } from '../../utils/formatRpc'
+import { buildShareLinks, fixStrings, replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
@@ -20,6 +20,8 @@ import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
 import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
+
+import statusDisplayTip from './../../../../static/assets/tips/statusDisplayType.gif'
 
 type FormValues = {
     appId: string
@@ -213,7 +215,6 @@ export default function TrackInfoPage() {
                                             touched={formik.touched.appId}
                                             description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
                                         />
-
                                         <TextInput
                                             name="details"
                                             label="Details"
@@ -227,7 +228,6 @@ export default function TrackInfoPage() {
                                             description="Описание Details"
                                             showCommandsButton={true}
                                         />
-
                                         <TextInput
                                             name="state"
                                             label="State"
@@ -244,7 +244,12 @@ export default function TrackInfoPage() {
                                         <TextInput
                                             name="statusDisplayType"
                                             label="Поменять тип отображения статуса активности"
-                                            description="В статусе меняет, как будет отображаться активность после «Слушать»"
+                                            description={
+                                                <>
+                                                    <img src={statusDisplayTip} alt="" srcSet="" /> В статусе меняет, как будет отображаться
+                                                    активность после «Слушать»
+                                                </>
+                                            }
                                             placeholder="0"
                                             ariaLabel="DisplayType"
                                             value={formik.values.statusDisplayType}
@@ -392,6 +397,12 @@ export default function TrackInfoPage() {
                                                                     : currentTrack.artists?.length
                                                                       ? currentTrack.artists.map((x: any) => x.name).join(', ')
                                                                       : null}
+                                                            </div>
+
+                                                            <div className={themeV2.author}>
+                                                                {currentTrack.albums?.[0]?.title
+                                                                    ? fixStrings(currentTrack.albums?.[0]?.title)
+                                                                    : `PulseSync ${app.info.version}`}
                                                             </div>
 
                                                             <PlayerTimeline />

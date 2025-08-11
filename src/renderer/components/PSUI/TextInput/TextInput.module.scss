@@ -186,3 +186,12 @@
         color: #7d849d;
     }
 }
+
+.itemName {
+    display: flex;
+    flex-direction: column;
+
+    & > img {
+        border-radius: 4px;
+    }
+}

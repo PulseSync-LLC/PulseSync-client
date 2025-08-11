@@ -8,7 +8,7 @@ import ButtonV2 from '../../buttonV2'
 interface TextInputProps {
     name: string
     label: string
-    description?: string
+    description?: React.ReactNode
     placeholder?: string
     className?: string
     ariaLabel?: string
