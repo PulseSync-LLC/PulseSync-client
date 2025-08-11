@@ -44,7 +44,6 @@ const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; childr
 
         if (firstPaint.current) {
             firstPaint.current = false
-            el.style.overflow = 'hidden'
             if (open) {
                 el.style.height = 'auto'
                 el.style.opacity = '1'

@@ -32,17 +32,6 @@
     pointer-events: none;
 }
 
-.changesBar::before {
-    content: '';
-    width: 6px;
-    align-self: stretch;
-    border-radius: 8px;
-    background: linear-gradient(180deg, var(--cfg-accent), #8bd3ff);
-    box-shadow:
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 0 18px rgba(110, 168, 254, 0.45);
-}
-
 .show {
     opacity: 1;
     transform: translateY(0) scale(1);

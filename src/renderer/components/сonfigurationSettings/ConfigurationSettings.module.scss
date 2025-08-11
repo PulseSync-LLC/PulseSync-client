@@ -121,12 +121,6 @@
     text-decoration: underline;
 }
 
-/* --- Контейнер коллапса --- */
-.collapse {
-    overflow: hidden;
-    /* состояния как базовые — чтобы не было скачков,
-       JS всё равно выставляет финальные значения. */
-}
 .collapse[data-state='closed'] {
     height: 0;
     opacity: 0;
