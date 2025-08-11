@@ -30,7 +30,7 @@ import config from '../api/config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
-import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
+import { buildShareLinks, fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
 import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
 import Addon from '../api/interfaces/addon.interface'
@@ -38,7 +38,7 @@ import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
-import { Track } from '../api/interfaces/track.interface'
+import { Album, Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
@@ -51,38 +51,6 @@ const STATUS_DISPLAY_TYPES: Record<number, number> = {
     0: 0,
     1: 1,
     2: 2,
-}
-
-class ConvertableLink {
-    link?: string
-    constructor(link?: string) {
-        this.link = link
-    }
-    toString() {
-        return this.link ?? ''
-    }
-    toWeb() {
-        if (!this.link) return undefined
-        return `https://music.yandex.ru/${this.link}?utm_source=discord&utm_medium=rich_presence_click`
-    }
-    toApp() {
-        if (!this.link) return undefined
-        return `yandexmusic://${this.link}`
-    }
-}
-
-function buildShareLinks(t: Track) {
-    const albumId = t.albums?.[0]?.id
-    const trackId = t.id
-    const realTrackId = t.realId
-    const artistId = t.artists?.[0]?.id
-
-    const shareTrackPathYnison = new ConvertableLink(albumId && trackId ? `album/${albumId}/track/${trackId}` : undefined)
-    const shareTrackPathRegular = new ConvertableLink(albumId && realTrackId ? `album/${albumId}/track/${realTrackId}` : undefined)
-    const shareAlbumPath = new ConvertableLink(albumId ? `album/${albumId}` : undefined)
-    const shareArtistPath = new ConvertableLink(artistId ? `artist/${artistId}` : undefined)
-
-    return { shareTrackPathYnison, shareTrackPathRegular, shareAlbumPath, shareArtistPath }
 }
 
 function App() {
@@ -772,6 +740,7 @@ const Player: React.FC<any> = ({ children }) => {
                     })
                     window.desktopEvents?.on('TRACK_INFO', (event, data) => {
                         if (!data) return
+                        console.log(data)
                         if (data.type === 'refresh') {
                             return setTrack(trackInitials)
                         }
@@ -1028,7 +997,7 @@ const Player: React.FC<any> = ({ children }) => {
             if (t.sourceType === 'ynison') {
                 const startTimestamp = Math.round(Date.now() - (t.ynisonProgress / 1000) * 1000)
                 const endTimestamp = startTimestamp + t.durationMs
-
+                const album: Album = t.albums?.[0]
                 const activity: SetActivity = {
                     statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
                     type: 2,
@@ -1038,7 +1007,7 @@ const Player: React.FC<any> = ({ children }) => {
                     largeImageUrl: 'https://pulsesync.dev',
                 }
 
-                if (t.albums?.[0]?.title) {
+                if (album?.title && album?.title !== t.title) {
                     activity.largeImageText = fixStrings(t.albums[0].title)
                     const web = shareAlbumPath.toWeb()
                     if (web) activity.largeImageUrl = web
@@ -1070,6 +1039,8 @@ const Player: React.FC<any> = ({ children }) => {
                 const startTimestamp = Math.round(Date.now() - t.progress.position * 1000)
                 const endTimestamp = startTimestamp + t.durationMs
                 const artistName = t.artists.map(x => x.name).join(', ')
+                const album: Album = t.albums?.[0]
+
                 let rawDetails: string
 
                 if (settings.discordRpc.showTrackVersion && t.version) {
@@ -1095,7 +1066,7 @@ const Player: React.FC<any> = ({ children }) => {
                     stateUrl: shareArtistPath.toWeb(),
                 }
 
-                if (t.albums?.[0]?.title) {
+                if (album?.title && album?.title !== t.title) {
                     activity.largeImageText = fixStrings(t.albums[0].title)
                     const web = shareAlbumPath.toWeb()
                     if (web) activity.largeImageUrl = web

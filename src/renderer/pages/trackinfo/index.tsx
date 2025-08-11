@@ -4,7 +4,7 @@ import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
-import { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState, useMemo, useCallback } from 'react'
 import userContext from '../../api/context/user.context'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
@@ -12,7 +12,7 @@ import { Cubic } from '../../components/PSUI/Cubic'
 import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
-import { replaceParams, truncateLabel } from '../../utils/formatRpc'
+import { buildShareLinks, replaceParams, truncateLabel } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
@@ -118,6 +118,57 @@ export default function TrackInfoPage() {
     const fixedAddon = { charCount: inputStyle.charCount }
     useCharCount(containerRef, fixedAddon)
 
+    const hasData = currentTrack.realId !== trackInitials.realId
+    const shouldShowByStatus = currentTrack.status === 'playing' || (currentTrack.status === 'paused' && app.discordRpc.displayPause)
+    const isReady = app.discordRpc.status && hasData && shouldShowByStatus
+
+    const buildActivityButtons = useCallback((t: any, settings: any) => {
+        const buttons: { label: string; url: string }[] = []
+
+        const isGenerative = typeof t?.id === 'string' && t.id.includes('generative')
+
+        const { shareTrackPathRegular } = buildShareLinks(t)
+        const webUrl = shareTrackPathRegular.toWeb()
+        const appUrl = shareTrackPathRegular.toApp()
+        if (settings.discordRpc.enableRpcButtonListen) {
+            if (t.trackSource === 'UGC' && !t.id.includes('generative') && t.url) {
+                buttons.push({
+                    label: settings.discordRpc.button ? truncateLabel(settings.discordRpc.button) : '✌️ Open music file',
+                    url: t.url,
+                })
+            } else if (!isGenerative) {
+                if (settings.discordRpc.enableDeepLink) {
+                    if (settings.discordRpc.enableWebsiteButton) {
+                        if (appUrl) {
+                            buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                        } else if (webUrl) {
+                            buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
+                        }
+                    } else {
+                        if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                        if (webUrl && buttons.length < 2) buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
+                    }
+                } else {
+                    if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                }
+            }
+        }
+
+        if (settings.discordRpc.enableWebsiteButton && buttons.length < 2) {
+            buttons.push({
+                label: '♡ PulseSync Project',
+                url: 'https://pulsesync.dev',
+            })
+        }
+
+        if (buttons.length > 2) {
+            return buttons.slice(0, 2)
+        }
+        return buttons.length ? buttons : undefined
+    }, [])
+
+    const activityButtons = useMemo(() => buildActivityButtons(currentTrack, app), [buildActivityButtons, currentTrack, app])
+
     return (
         <Layout title="Discord RPC">
             <div className={styles.page}>
@@ -212,7 +263,7 @@ export default function TrackInfoPage() {
                                         <ButtonInput
                                             label="Включить кнопку (Слушать)"
                                             checkType="enableRpcButtonListen"
-                                            description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам ~15, по английским ~30"
+                                            description="Показывает кнопку «Слушать» в статусе."
                                         />
                                         <TextInput
                                             name="button"
@@ -229,12 +280,12 @@ export default function TrackInfoPage() {
                                         <ButtonInput
                                             label="Включить кнопку (PulseSync Project)"
                                             checkType="enableWebsiteButton"
-                                            description="Если включить, то в активности появится кнопка, ведущая на сайт проекта."
+                                            description="Добавляет кнопку на сайт проекта."
                                         />
                                         <ButtonInput
                                             label="Включить DeepLink"
                                             checkType="enableDeepLink"
-                                            description="Если включить, то в активности появится кнопки ведущие на сайт и приложение Яндекс Музыки."
+                                            description="Добавляет кнопки «Открыть в вебе/приложении Яндекс Музыки»."
                                         />
                                     </div>
                                     <div className={themeV2.optionalContainer}>
@@ -242,23 +293,23 @@ export default function TrackInfoPage() {
                                         <ButtonInput
                                             label="Включить показ версии трека"
                                             checkType="showTrackVersion"
-                                            description="Если включить, то в активности к названию трека будет добавлятся его версия"
+                                            description="Добавляет версию трека к названию."
                                         />
                                         <ButtonInput
                                             label="Включить иконоку статуса прослушивания"
                                             checkType="showSmallIcon"
-                                            description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
+                                            description="Показывает маленькую иконку со статусом прослушивания."
                                         />
                                         <ButtonInput
                                             label="Показывать версию приложения вместо устройства, где играет трек."
                                             disabled={!app.discordRpc.showSmallIcon}
                                             checkType="showVersionOrDevice"
-                                            description="Если включить, то в активности при наведении на иконку будет показываться версия приложения, а не устройство, где играет трек."
+                                            description="В подсказке к иконке показывает версию приложения вместо устройства."
                                         />
                                         <ButtonInput
                                             label="Показывать трек на паузе"
                                             checkType="displayPause"
-                                            description="Активируйте этот параметр, чтобы показывать трек на паузе."
+                                            description="Показывает трек в статусе, даже когда он на паузе."
                                         />
                                     </div>
                                 </div>
@@ -317,11 +368,14 @@ export default function TrackInfoPage() {
 
                                         <div className={themeV2.statusRPC}>
                                             <>
-                                                {app.discordRpc.status && currentTrack.status !== trackInitials.status ? (
+                                                {isReady ? (
                                                     <div className={themeV2.flex_container}>
                                                         <img
                                                             className={themeV2.img}
                                                             src={currentTrack.albumArt || './static/assets/logo/logoapp.png'}
+                                                            onClick={() => {
+                                                                setRickRoll(!rickRollClick)
+                                                            }}
                                                             alt="Обложка альбома"
                                                         />
 
@@ -336,7 +390,7 @@ export default function TrackInfoPage() {
                                                                 {app.discordRpc.state.length > 0
                                                                     ? replaceParams(app.discordRpc.state, currentTrack)
                                                                     : currentTrack.artists?.length
-                                                                      ? currentTrack.artists.map(x => x.name).join(', ')
+                                                                      ? currentTrack.artists.map((x: any) => x.name).join(', ')
                                                                       : null}
                                                             </div>
 
@@ -356,21 +410,16 @@ export default function TrackInfoPage() {
                                             </>
 
                                             <div className={themeV2.buttonRpc}>
-                                                <div className={themeV2.button} onClick={() => setRickRoll(!rickRollClick)}>
-                                                    {app.discordRpc.button.length > 0
-                                                        ? truncateLabel(app.discordRpc.button)
-                                                        : '✌️ Open in Yandex Music'}
-                                                </div>
-
+                                                {activityButtons?.map((btn, idx) => (
+                                                    <div key={`${btn.label}-${idx}`} className={themeV2.button} onClick={() => window.open(btn.url)}>
+                                                        {btn.label}
+                                                    </div>
+                                                ))}
                                                 {rickRollClick && (
                                                     <video className={themeV2.rickRoll} width="600" autoPlay loop>
                                                         <source src="https://s3.pulsesync.dev/files/heheheha.mp4" type="video/mp4" />
                                                     </video>
                                                 )}
-
-                                                <div className={themeV2.button} onClick={() => window.open('https://pulsesync.dev')}>
-                                                    ♡ PulseSync Project
-                                                </div>
                                             </div>
                                         </div>
                                     </div>

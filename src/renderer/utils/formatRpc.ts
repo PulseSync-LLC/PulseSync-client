@@ -22,3 +22,33 @@ export function fixStrings(string: string): string {
     }
     return string
 }
+class ConvertableLink {
+    link?: string
+    constructor(link?: string) {
+        this.link = link
+    }
+    toString() {
+        return this.link ?? ''
+    }
+    toWeb() {
+        if (!this.link) return undefined
+        return `https://music.yandex.ru/${this.link}?utm_source=discord&utm_medium=rich_presence_click`
+    }
+    toApp() {
+        if (!this.link) return undefined
+        return `yandexmusic://${this.link}`
+    }
+}
+export function buildShareLinks(t: Track) {
+    const albumId = t.albums?.[0]?.id
+    const trackId = t.id
+    const realTrackId = t.realId
+    const artistId = t.artists?.[0]?.id
+
+    const shareTrackPathYnison = new ConvertableLink(albumId && trackId ? `album/${albumId}/track/${trackId}` : undefined)
+    const shareTrackPathRegular = new ConvertableLink(albumId && realTrackId ? `album/${albumId}/track/${realTrackId}` : undefined)
+    const shareAlbumPath = new ConvertableLink(albumId ? `album/${albumId}` : undefined)
+    const shareArtistPath = new ConvertableLink(artistId ? `artist/${artistId}` : undefined)
+
+    return { shareTrackPathYnison, shareTrackPathRegular, shareAlbumPath, shareArtistPath }
+}
