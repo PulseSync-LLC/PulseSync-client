@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import clsx from 'clsx'
 import { AddonConfig, Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, ButtonAction } from './types'
 
@@ -24,6 +24,96 @@ function produce<S>(state: S, mut: (draft: S) => void): S {
     const copy: S = structuredClone(state as any)
     mut(copy)
     return copy
+}
+
+const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; children: React.ReactNode }> = ({ open, id, duration = 220, children }) => {
+    const ref = useRef<HTMLDivElement>(null)
+    const animRef = useRef<Animation | null>(null)
+    const firstPaint = useRef(true)
+
+    useEffect(() => {
+        const el = ref.current
+        if (!el) return
+        if (!open) el.setAttribute('inert', '')
+        else el.removeAttribute('inert')
+    }, [open])
+
+    useLayoutEffect(() => {
+        const el = ref.current
+        if (!el) return
+
+        if (firstPaint.current) {
+            firstPaint.current = false
+            el.style.overflow = 'hidden'
+            if (open) {
+                el.style.height = 'auto'
+                el.style.opacity = '1'
+            } else {
+                el.style.height = '0px'
+                el.style.opacity = '0'
+            }
+            return
+        }
+
+        const prefersReduced = typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+        animRef.current?.cancel()
+
+        const canAnimate = typeof el.animate === 'function' && !prefersReduced
+
+        if (open) {
+            el.style.height = 'auto'
+            const target = el.scrollHeight
+            el.style.height = '0px'
+            el.style.opacity = '0'
+            void el.getBoundingClientRect()
+
+            if (!canAnimate) {
+                el.style.height = 'auto'
+                el.style.opacity = '1'
+                return
+            }
+
+            animRef.current = el.animate(
+                [
+                    { height: '0px', opacity: 0 },
+                    { height: `${target}px`, opacity: 1 },
+                ],
+                { duration, easing: 'cubic-bezier(.2,.9,.2,1)' },
+            )
+            animRef.current.onfinish = () => {
+                el.style.height = 'auto'
+                el.style.opacity = '1'
+                animRef.current = null
+            }
+        } else {
+            const from = el.offsetHeight
+            if (!canAnimate) {
+                el.style.height = '0px'
+                el.style.opacity = '0'
+                return
+            }
+
+            animRef.current = el.animate(
+                [
+                    { height: `${from}px`, opacity: 1 },
+                    { height: '0px', opacity: 0 },
+                ],
+                { duration, easing: 'cubic-bezier(.2,.9,.2,1)' },
+            )
+            animRef.current.onfinish = () => {
+                el.style.height = '0px'
+                el.style.opacity = '0'
+                animRef.current = null
+            }
+        }
+    }, [open, duration])
+
+    return (
+        <div id={id} ref={ref} className={css.collapse} data-state={open ? 'open' : 'closed'} aria-hidden={!open}>
+            {children}
+        </div>
+    )
 }
 
 const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
@@ -324,19 +414,21 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                             type="button"
                             className={clsx(css.sectionHeader, isCollapsed && css.collapsed)}
                             onClick={() => setCollapsed(c => ({ ...c, [si]: !c[si] }))}
+                            aria-expanded={!isCollapsed}
+                            aria-controls={`section-panel-${si}`}
                         >
                             <span className={css.badge}>{si + 1}</span>
                             <span className={css.sectionTitle}>{s.title}</span>
                             <span className={css.chev} aria-hidden />
                         </button>
 
-                        {!isCollapsed && (
+                        <Collapse open={!isCollapsed} id={`section-panel-${si}`}>
                             <div className={css.list}>
                                 {s.items.map((it, ii) => (
                                     <div key={it.id}>{renderItem(si, ii, it)}</div>
                                 ))}
                             </div>
-                        )}
+                        </Collapse>
                     </div>
                 )
             })}

@@ -1,8 +1,6 @@
 :root {
     --cfg-text: var(--text-primary, #e7ecf3);
     --cfg-muted: var(--text-secondary, #9fb0c6);
-    --cfg-gap: 12px;
-    --cfg-gap-lg: 20px;
     --cfg-accent: var(--accent, #6ea8fe);
     --cfg-surface: #2e3446;
     --cfg-surface-2: #3b4052;
@@ -12,7 +10,7 @@
 .root {
     display: flex;
     flex-direction: column;
-    gap: var(--cfg-gap-lg);
+    gap: 5px;
     color: var(--cfg-text);
     width: -webkit-fill-available;
     padding: 15px 40px;
@@ -20,7 +18,7 @@
 
 .section {
     display: grid;
-    gap: 10px;
+    gap: 5px;
 }
 
 .sectionHeader {
@@ -76,8 +74,8 @@
 .list {
     display: flex;
     flex-direction: column;
-    gap: var(--cfg-gap);
-    padding-left: 6px;
+    gap: 12px;
+    padding: 2px;
 }
 
 .title {
@@ -121,4 +119,22 @@
 }
 .resetLink:hover {
     text-decoration: underline;
+}
+
+/* --- Контейнер коллапса --- */
+.collapse {
+    overflow: hidden;
+    /* состояния как базовые — чтобы не было скачков,
+       JS всё равно выставляет финальные значения. */
+}
+.collapse[data-state='closed'] {
+    height: 0;
+    opacity: 0;
+}
+
+/* reduced motion — пусть просто щёлкает, без will-change */
+@media (prefers-reduced-motion: reduce) {
+    .collapse {
+        will-change: auto;
+    }
 }

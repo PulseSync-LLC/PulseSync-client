@@ -9,7 +9,7 @@ import SelectInput from '../PSUI/SelectInput'
 import SliderInput from '../PSUI/SliderInput'
 import FileInput from '../PSUI/FileInput'
 
-import { MdDragIndicator, MdContentCopy, MdDelete, MdAdd, MdUnfoldMore, MdUnfoldLess, MdAddCircleOutline } from 'react-icons/md'
+import { MdDragIndicator, MdContentCopy, MdDelete, MdAdd, MdUnfoldMore, MdUnfoldLess, MdAddCircleOutline, MdRestartAlt } from 'react-icons/md'
 import * as css from './ConfigurationSettingsEdit.module.scss'
 import ChangesBar from '../PSUI/ChangesBar'
 
@@ -701,7 +701,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                         </button>
                         {base && dirty && (
                             <button className={clsx(css.iconBtn, css.warnBtn)} title="Сбросить к эталону" onClick={() => resetEditor(si, ii)}>
-                                ↺
+                                <MdRestartAlt size={18} />
                             </button>
                         )}
                         <button className={clsx(css.iconBtn, css.dangerBtn)} title="Удалить" onClick={() => deleteItem(si, ii)}>
