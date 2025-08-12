@@ -399,7 +399,7 @@ export default function TrackInfoPage() {
                                                                       : null}
                                                             </div>
 
-                                                            <div className={themeV2.author}>
+                                                            <div className={themeV2.album}>
                                                                 {currentTrack.albums?.[0]?.title
                                                                     ? fixStrings(currentTrack.albums?.[0]?.title)
                                                                     : `PulseSync ${app.info.version}`}
