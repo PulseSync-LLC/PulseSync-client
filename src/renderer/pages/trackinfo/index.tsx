@@ -414,6 +414,7 @@ export default function TrackInfoPage() {
                                                         <div className={themeV2.gap}>
                                                             <Skeleton width={70} height={19} />
                                                             <Skeleton width={190} height={14} />
+                                                            <Skeleton width={90} height={14} />
                                                             <Skeleton width={240} height={15} />
                                                         </div>
                                                     </div>

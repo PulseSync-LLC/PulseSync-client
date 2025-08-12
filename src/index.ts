@@ -22,7 +22,6 @@ import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/naviveModule'
-import renderConfig from './renderer/api/config'
 import * as fsp from 'fs/promises'
 
 export let corsAnywherePort: string | number

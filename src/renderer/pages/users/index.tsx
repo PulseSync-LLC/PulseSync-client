@@ -59,18 +59,48 @@ export default function UsersPage() {
     }
 
     const processUsers = (rawUsers: UserInterface[]): UserInterface[] => {
-        let filtered = rawUsers.filter(u => u.lastOnline && Number(u.lastOnline) > 0)
-        if (sorting[0].id === 'lastOnline') {
-            const desc = sorting[0].desc
-            const onlineUsers = filtered.filter(u => u.status === 'online')
-            const offlineUsers = filtered.filter(u => u.status !== 'online')
-            const sortFn = (a: UserInterface, b: UserInterface) =>
-                desc ? Number(b.lastOnline) - Number(a.lastOnline) : Number(a.lastOnline) - Number(b.lastOnline)
-            onlineUsers.sort(sortFn)
-            offlineUsers.sort(sortFn)
-            filtered = desc ? [...onlineUsers, ...offlineUsers] : [...offlineUsers, ...onlineUsers]
+        const id = sorting[0].id as (typeof SORT_FIELDS)[number]
+        const desc = sorting[0].desc
+        if (id === 'lastOnline') {
+            const arr = [...rawUsers]
+            arr.sort((a, b) => {
+                const aOnline = a.status === 'online'
+                const bOnline = b.status === 'online'
+                if (aOnline !== bOnline) return aOnline ? -1 : 1
+                const aT = a.lastOnline ? Number(a.lastOnline) : 0
+                const bT = b.lastOnline ? Number(b.lastOnline) : 0
+                if (aT === bT) return 0
+                return desc ? bT - aT : aT - bT
+            })
+            return arr
         }
-        return filtered
+        if (id === 'createdAt') {
+            const arr = [...rawUsers]
+            arr.sort((a, b) => {
+                const aT = a.createdAt ? Number(a.createdAt) : 0
+                const bT = b.createdAt ? Number(b.createdAt) : 0
+                return desc ? bT - aT : aT - bT
+            })
+            return arr
+        }
+        if (id === 'username') {
+            const arr = [...rawUsers]
+            arr.sort((a, b) => {
+                const r = (a.username || '').localeCompare(b.username || '', undefined, { sensitivity: 'base' })
+                return desc ? -r : r
+            })
+            return arr
+        }
+        if (id === 'level') {
+            const arr = [...rawUsers]
+            arr.sort((a, b) => {
+                const aPts = a.levelInfo?.totalPoints ?? 0
+                const bPts = b.levelInfo?.totalPoints ?? 0
+                return desc ? bPts - aPts : aPts - bPts
+            })
+            return arr
+        }
+        return rawUsers
     }
 
     const fetchUsers = useCallback(
@@ -83,10 +113,16 @@ export default function UsersPage() {
                     fetchPolicy: 'no-cache',
                 })
                 .then(result => {
-                    if (result.data) {
-                        const { users: raw, totalPages } = result.data.getUsersWithPagination
+                    const data: any = result.data || {}
+                    const payload = data.getUsersWithPagination || null
+                    if (payload) {
+                        const raw: UserInterface[] = payload.users || []
+                        const totalPages: number = payload.totalPages || 1
                         setUsers(processUsers(raw))
                         setMaxPages(totalPages)
+                    } else {
+                        setUsers([])
+                        setMaxPages(1)
                     }
                     setLoading(false)
                 })
@@ -192,7 +228,6 @@ export default function UsersPage() {
             }, 0)
         }
 
-        const pages = []
         const maxVisibleButtons = 5
         let startPage = Math.max(1, page - Math.floor(maxVisibleButtons / 2))
         let endPage = Math.min(maxPages, startPage + maxVisibleButtons - 1)
