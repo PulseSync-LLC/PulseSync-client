@@ -35,21 +35,21 @@
         "@electron-forge/maker-squirrel": "^7.8.3",
         "@electron-forge/maker-zip": "^7.8.3",
         "@electron-forge/plugin-webpack": "^7.8.3",
-        "@sentry/webpack-plugin": "^4.0.2",
+        "@sentry/webpack-plugin": "^4.1.0",
         "@types/copy-webpack-plugin": "^10.1.3",
         "@types/electron": "^1.6.12",
         "@types/node": "^24.2.1",
-        "@types/react": "^19.1.9",
+        "@types/react": "^19.1.10",
         "@types/react-dom": "^19.1.7",
         "@types/react-modal": "^3.16.3",
         "@types/react-transition-group": "^4.4.12",
         "@types/systeminformation": "^3.54.1",
         "@types/uuid": "^10.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.39.0",
-        "@typescript-eslint/parser": "^8.39.0",
+        "@typescript-eslint/eslint-plugin": "^8.39.1",
+        "@typescript-eslint/parser": "^8.39.1",
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
-        "copy-webpack-plugin": "^13.0.0",
+        "copy-webpack-plugin": "^13.0.1",
         "electron": "^37.2.6",
         "electron-builder": "^26.0.12",
         "eslint": "^9.33.0",
@@ -146,7 +146,7 @@
         "tar": "^7.4.3",
         "url": "^0.11.4",
         "uuid": "^11.1.0",
-        "webpack": "5.101.0",
+        "webpack": "5.101.1",
         "yaml": "^2.8.1",
         "yup": "^1.7.0"
     },
@@ -155,7 +155,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.0-beta",
-        "BRANCH": "a877423",
-        "BUILD_TIME": "2025-08-11T01:11:00.299Z"
+        "BRANCH": "4cc84d1",
+        "BUILD_TIME": "2025-08-12T21:55:16.177Z"
     }
 }
