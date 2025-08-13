@@ -16,12 +16,29 @@ import Scrollbar from '../../components/PSUI/Scrollbar'
 const PER_PAGE = 51
 const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
 
+type SortState = { id: (typeof SORT_FIELDS)[number]; desc: boolean }[]
+
+const SAFE_LEVEL = {
+    totalPoints: 0,
+    currentLevel: 1,
+    progressInCurrentLevel: 0,
+    currentLevelThreshold: 100,
+}
+
+function normalizeUser(u: any): UserInterface {
+    return {
+        ...u,
+        badges: Array.isArray(u?.badges) ? u.badges : [],
+        levelInfo: u?.levelInfo && typeof u.levelInfo === 'object' ? u.levelInfo : SAFE_LEVEL,
+    }
+}
+
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
-    const [sorting, setSorting] = useState([{ id: 'lastOnline', desc: true }])
+    const [sorting, setSorting] = useState<SortState>([{ id: 'lastOnline', desc: true }])
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
@@ -59,11 +76,12 @@ export default function UsersPage() {
     }
 
     const processUsers = (rawUsers: UserInterface[]): UserInterface[] => {
-        const id = sorting[0].id as (typeof SORT_FIELDS)[number]
+        const id = sorting[0].id
         const desc = sorting[0].desc
+        const arr = rawUsers.map(normalizeUser)
+
         if (id === 'lastOnline') {
-            const arr = [...rawUsers]
-            arr.sort((a, b) => {
+            return [...arr].sort((a, b) => {
                 const aOnline = a.status === 'online'
                 const bOnline = b.status === 'online'
                 if (aOnline !== bOnline) return aOnline ? -1 : 1
@@ -72,39 +90,36 @@ export default function UsersPage() {
                 if (aT === bT) return 0
                 return desc ? bT - aT : aT - bT
             })
-            return arr
         }
+
         if (id === 'createdAt') {
-            const arr = [...rawUsers]
-            arr.sort((a, b) => {
+            return [...arr].sort((a, b) => {
                 const aT = a.createdAt ? Number(a.createdAt) : 0
                 const bT = b.createdAt ? Number(b.createdAt) : 0
                 return desc ? bT - aT : aT - bT
             })
-            return arr
         }
+
         if (id === 'username') {
-            const arr = [...rawUsers]
-            arr.sort((a, b) => {
+            return [...arr].sort((a, b) => {
                 const r = (a.username || '').localeCompare(b.username || '', undefined, { sensitivity: 'base' })
                 return desc ? -r : r
             })
-            return arr
         }
+
         if (id === 'level') {
-            const arr = [...rawUsers]
-            arr.sort((a, b) => {
+            return [...arr].sort((a, b) => {
                 const aPts = a.levelInfo?.totalPoints ?? 0
                 const bPts = b.levelInfo?.totalPoints ?? 0
                 return desc ? bPts - aPts : aPts - bPts
             })
-            return arr
         }
-        return rawUsers
+
+        return arr
     }
 
     const fetchUsers = useCallback(
-        (page_: number, perPage_: number, sorting_: any, search_: string) => {
+        (page_: number, perPage_: number, sorting_: SortState, search_: string) => {
             setLoading(true)
             apolloClient
                 .query({
@@ -116,7 +131,7 @@ export default function UsersPage() {
                     const data: any = result.data || {}
                     const payload = data.getUsersWithPagination || null
                     if (payload) {
-                        const raw: UserInterface[] = payload.users || []
+                        const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
                         const totalPages: number = payload.totalPages || 1
                         setUsers(processUsers(raw))
                         setMaxPages(totalPages)
@@ -149,14 +164,14 @@ export default function UsersPage() {
     }, [sorting, page, debouncedSearch, debouncedFetchUsers])
 
     useLayoutEffect(() => {
-        const activeIndex = SORT_FIELDS.indexOf(sorting[0].id as (typeof SORT_FIELDS)[number])
+        const activeIndex = SORT_FIELDS.indexOf(sorting[0].id)
         const timer = setTimeout(() => calculateIndicator(activeIndex), 0)
         return () => clearTimeout(timer)
     }, [sorting, users])
 
     useEffect(() => {
         const handler = () => {
-            const idx = SORT_FIELDS.indexOf(sorting[0].id as (typeof SORT_FIELDS)[number])
+            const idx = SORT_FIELDS.indexOf(sorting[0].id)
             calculateIndicator(idx)
         }
         window.addEventListener('resize', handler)
@@ -174,11 +189,11 @@ export default function UsersPage() {
 
     const handleSort = (field: string) => {
         setPage(1)
-        setSorting(prev => (prev[0].id === field ? [{ id: field, desc: !prev[0].desc }] : [{ id: field, desc: true }]))
+        setSorting(prev => (prev[0].id === field ? [{ id: field as any, desc: !prev[0].desc }] : [{ id: field as any, desc: true }]))
     }
 
     const getSortIcon = (field: string) => {
-        if (sorting[0].id !== field) return null
+        if (sorting[0].id !== (field as any)) return null
         return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
     }
 
