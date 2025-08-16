@@ -48,7 +48,7 @@ const versions = {
 async function initializePaths(): Promise<void> {
     try {
         paths.music = await getPathToYandexMusic()
-        paths.defaultAsar = path.join(paths.music, isLinux() ? 'yandex-music.asar' : 'app.asar')
+        paths.defaultAsar = path.join(paths.music, 'app.asar')
         paths.modAsar = (State.get('settings.modSavePath') as string) || paths.defaultAsar
         paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
     } catch (err) {
@@ -288,33 +288,44 @@ export const modManager = (window: BrowserWindow): void => {
 
             await initializePaths()
 
-            if (isLinux() && !State.get('settings.modSavePath')) {
-                const { response } = await dialog.showMessageBox({
-                    type: 'info',
-                    title: 'Укажите путь к модификации ASAR',
-                    message: 'Куда сохранить модификацию ASAR для Яндекс Музыки?',
-                    buttons: ['Указать файл', 'Отменить'],
-                })
-                if (response === 0) {
-                    const fileRes = await dialog.showSaveDialog({
-                        title: 'Сохранить модификацию ASAR как...',
-                        defaultPath: path.join(paths.music, 'app.asar'),
-                        filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
+            if (isLinux()) {
+                const defaultExists = fs.existsSync(paths.defaultAsar)
+                if (!defaultExists && !State.get('settings.modSavePath')) {
+                    const { response } = await dialog.showMessageBox({
+                        type: 'info',
+                        title: 'Укажите путь к модификации ASAR',
+                        message: 'Куда сохранить модификацию ASAR для Яндекс Музыки?',
+                        buttons: ['Указать файл', 'Отменить'],
                     })
-                    if (fileRes.canceled || !fileRes.filePath) {
+                    if (response === 0) {
+                        const fileRes = await dialog.showSaveDialog({
+                            title: 'Сохранить модификацию ASAR как...',
+                            defaultPath: path.join(paths.music, 'app.asar'),
+                            filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
+                        })
+                        if (fileRes.canceled || !fileRes.filePath) {
+                            return sendFailure('download-failure', {
+                                error: 'Не указан путь для сохранения модификации ASAR.',
+                                type: 'mod_save_path_missing',
+                            })
+                        }
+                        paths.modAsar = fileRes.filePath
+                        State.set('settings', { modSavePath: paths.modAsar })
+                        paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
+                    } else {
                         return sendFailure('download-failure', {
                             error: 'Не указан путь для сохранения модификации ASAR.',
                             type: 'mod_save_path_missing',
                         })
                     }
-                    paths.modAsar = fileRes.filePath
-                    State.set('settings', { modSavePath: paths.modAsar })
-                    paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
                 } else {
-                    return sendFailure('download-failure', {
-                        error: 'Не указан путь для сохранения модификации ASAR.',
-                        type: 'mod_save_path_missing',
-                    })
+                    if (!State.get('settings.modSavePath')) {
+                        paths.modAsar = paths.defaultAsar
+                        paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
+                    } else {
+                        paths.modAsar = State.get('settings.modSavePath') as string
+                        paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
+                    }
                 }
             }
 

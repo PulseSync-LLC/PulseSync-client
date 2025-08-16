@@ -99,14 +99,14 @@ export async function checkYandexMusicLinuxInstall(): Promise<boolean> {
 
 export async function getPathToYandexMusic(): Promise<string> {
     const platform = os.platform()
+    const customSavePath = State.get('settings.modSavePath')
     if (platform === 'darwin') {
         return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
-    }
-    if (platform === 'win32') {
+    } else if (platform === 'win32') {
         return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
+    } else if (platform === 'linux') {
+        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath)
     }
-    const installed = await checkYandexMusicLinuxInstall()
-    return installed ? '/usr/lib/yandex-music' : State.get('settings.modSavePath') || ''
 }
 
 export function getYandexMusicAppDataPath(): string {

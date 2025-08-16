@@ -295,6 +295,8 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
 
+    const desiredLinuxExeName = 'pulsesync'
+
     if (buildNativeModules) {
         const nmDir = path.resolve(__dirname, '../nativeModules')
         log(LogLevel.INFO, `Building native modules in ${nmDir}`)
@@ -358,6 +360,27 @@ async function main(): Promise<void> {
                 })
             }
             copyNodes(nativeDir)
+
+            if (os.platform() === 'linux') {
+                const builderBaseForName = path.resolve(__dirname, '../electron-builder.yml')
+                let productNameFromYml = 'PulseSync'
+                try {
+                    const cfgRaw = fs.readFileSync(builderBaseForName, 'utf-8')
+                    const cfg = yaml.load(cfgRaw) as any
+                    if (cfg && typeof cfg.productName === 'string') productNameFromYml = cfg.productName
+                } catch {}
+
+                const currentBinUpper = path.join(outDir, productNameFromYml)
+                const targetBinLower = path.join(outDir, desiredLinuxExeName)
+                try {
+                    if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
+                        fs.renameSync(currentBinUpper, targetBinLower)
+                        log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredLinuxExeName}`)
+                    }
+                } catch (e: any) {
+                    log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
+                }
+            }
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
@@ -366,6 +389,14 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+
+        if (!configObj.linux) configObj.linux = {}
+        configObj.linux.executableName = desiredLinuxExeName
+        if (configObj.linux.desktop && configObj.linux.desktop.entry) {
+            if (configObj.linux.desktop.entry.Icon) {
+                configObj.linux.desktop.entry.Icon = desiredLinuxExeName
+            }
+        }
 
         if (publishBranch) {
             configObj.publish = [
