@@ -75,7 +75,7 @@ function App() {
         auth: {
             page: window.location.pathname,
             token: getUserToken(),
-            version: app?.info?.version,
+            version: app.info.version.split("-")[0],
         },
     })
 

@@ -24,7 +24,8 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
 
-    const authorNames = typeof addon.author === 'string' ? addon.author.split(', ') : addon.author
+    const authorNames =
+        typeof addon.author === 'string' ? addon.author.split(', ').map(name => name.toLowerCase()) : addon.author.map(name => name.toLowerCase())
 
     const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
     const [logoUrl, setLogoUrl] = useState<string | null>(null)

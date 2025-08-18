@@ -74,7 +74,7 @@
         "@mui/joy": "^5.0.0-beta.52",
         "@radix-ui/react-tooltip": "^1.2.8",
         "@reduxjs/toolkit": "^2.8.2",
-        "@sentry/electron": "^6.10.0",
+        "@sentry/electron": "^6.11.0",
         "@svgr/webpack": "^8.1.0",
         "@types/adm-zip": "^0.5.7",
         "@types/fs-extra": "^11.0.4",
@@ -155,7 +155,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.0-beta",
-        "BRANCH": "c345d34",
-        "BUILD_TIME": "2025-08-13T02:56:48.704Z"
+        "BRANCH": "0a63a2e",
+        "BUILD_TIME": "2025-08-18T12:27:09.246Z"
     }
 }
