@@ -627,7 +627,10 @@ const Header: React.FC<p> = () => {
                                                 <div className={styles.user_details}>
                                                     <div className={styles.user_info}>
                                                         <div
-                                                            onClick={() => nav(`/profile/${encodeURIComponent(user.username)}`)}
+                                                            onClick={() => {
+                                                                nav(`/profile/${encodeURIComponent(user.username)}`)
+                                                                setIsUserCardOpen(false)
+                                                            }}
                                                             key={user.username}
                                                             className={styles.username}
                                                         >
