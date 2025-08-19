@@ -39,7 +39,7 @@ const settingsInitials: SettingsInterface = {
         showVersionOrDevice: false,
         showSmallIcon: true,
         showTrackVersion: false,
-        statusDisplayType: 0,
+        statusDisplayType: 1,
         status: true,
         details: '',
         state: '',

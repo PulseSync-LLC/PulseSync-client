@@ -234,7 +234,7 @@ const schema = {
             devSocket: true,
             askSavePath: false,
             saveAsMp3: false,
-            showModModalAfterInstall: false,
+            showModModalAfterInstall: true,
             modSavePath: '',
             windowDimensions: {},
             windowPosition: {},
