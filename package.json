@@ -45,12 +45,12 @@
         "@types/react-transition-group": "^4.4.12",
         "@types/systeminformation": "^3.54.1",
         "@types/uuid": "^10.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.39.1",
-        "@typescript-eslint/parser": "^8.39.1",
+        "@typescript-eslint/eslint-plugin": "^8.40.0",
+        "@typescript-eslint/parser": "^8.40.0",
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.1",
-        "electron": "^37.3.0",
+        "electron": "^37.3.1",
         "electron-builder": "^26.0.12",
         "eslint": "^9.33.0",
         "eslint-plugin-import": "^2.32.0",
@@ -146,7 +146,7 @@
         "tar": "^7.4.3",
         "url": "^0.11.4",
         "uuid": "^11.1.0",
-        "webpack": "5.101.2",
+        "webpack": "5.101.3",
         "yaml": "^2.8.1",
         "yup": "^1.7.0"
     },
@@ -155,7 +155,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.0-beta",
-        "BRANCH": "0a63a2e",
-        "BUILD_TIME": "2025-08-18T12:27:09.246Z"
+        "BRANCH": "e3a4966",
+        "BUILD_TIME": "2025-08-19T07:24:53.097Z"
     }
 }
