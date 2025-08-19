@@ -18,6 +18,38 @@ interface Props {
     setShowFilters?: (show: boolean) => void
 }
 
+type UrlEntry = { url: string; refs: number }
+
+const bannerUrlCache: Map<string, UrlEntry> = new Map()
+const logoUrlCache: Map<string, UrlEntry> = new Map()
+
+async function acquireObjectUrl(
+    cache: Map<string, UrlEntry>,
+    key: string,
+    fetchFactory: () => Promise<string>,
+): Promise<{ url: string; acquired: boolean }> {
+    const existing = cache.get(key)
+    if (existing) {
+        existing.refs += 1
+        return { url: existing.url, acquired: true }
+    }
+    const url = await fetchFactory()
+    cache.set(key, { url, refs: 1 })
+    return { url, acquired: true }
+}
+
+function releaseObjectUrl(cache: Map<string, UrlEntry>, key: string) {
+    const entry = cache.get(key)
+    if (!entry) return
+    entry.refs -= 1
+    if (entry.refs <= 0) {
+        try {
+            URL.revokeObjectURL(entry.url)
+        } catch {}
+        cache.delete(key)
+    }
+}
+
 const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
@@ -30,67 +62,105 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
     const [logoUrl, setLogoUrl] = useState<string | null>(null)
 
-    const bannerCacheRef = useRef<Map<string, string>>(new Map())
-    const logoCacheRef = useRef<Map<string, string>>(new Map())
+    const currentBannerKeyRef = useRef<string | null>(null)
+    const currentLogoKeyRef = useRef<string | null>(null)
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
 
     useEffect(() => {
+        let didAcquire = false
+        let cancelled = false
+        const controller = new AbortController()
+
         if (!addon.banner) {
+            if (currentBannerKeyRef.current) {
+                releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
+                currentBannerKeyRef.current = null
+            }
             setBannerUrl('static/assets/images/no_themeBackground.png')
-            return
+            return () => controller.abort()
         }
+
         const key = `${addon.directoryName}|banner|${addon.banner}`
-        const cache = bannerCacheRef.current
 
-        if (cache.has(key)) {
-            setBannerUrl(cache.get(key)!)
-            return
-        }
-
-        let objectUrl: string | null = null
-        fetch(getAssetUrl(addon.banner))
-            .then(r => (r.ok ? r.blob() : Promise.reject()))
-            .then(b => {
-                objectUrl = URL.createObjectURL(b)
-                cache.set(key, objectUrl!)
-                setBannerUrl(objectUrl!)
+        acquireObjectUrl(bannerUrlCache, key, async () => {
+            const res = await fetch(getAssetUrl(addon.banner!), { signal: controller.signal })
+            if (!res.ok) throw new Error('Failed to fetch banner')
+            const blob = await res.blob()
+            return URL.createObjectURL(blob)
+        })
+            .then(({ url, acquired }) => {
+                if (cancelled) return
+                didAcquire = acquired
+                if (currentBannerKeyRef.current && currentBannerKeyRef.current !== key) {
+                    releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
+                }
+                currentBannerKeyRef.current = key
+                setBannerUrl(url)
             })
-            .catch(() => cache.set(key, 'static/assets/images/no_themeBackground.png'))
+            .catch(err => {
+                if (cancelled) return
+                if (err?.name === 'AbortError') return
+                setBannerUrl('static/assets/images/no_themeBackground.png')
+            })
 
         return () => {
-            if (objectUrl) URL.revokeObjectURL(objectUrl)
+            cancelled = true
+            controller.abort()
+            if (didAcquire) {
+                releaseObjectUrl(bannerUrlCache, key)
+                if (currentBannerKeyRef.current === key) currentBannerKeyRef.current = null
+            }
         }
-    }, [addon.banner, addon.directoryName])
+    }, [addon.banner, addon.directoryName, addon.name])
 
     useEffect(() => {
+        let didAcquire = false
+        let cancelled = false
+        const controller = new AbortController()
+
         if (!addon.libraryLogo) {
+            if (currentLogoKeyRef.current) {
+                releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
+                currentLogoKeyRef.current = null
+            }
             setLogoUrl(null)
-            return
+            return () => controller.abort()
         }
+
         const key = `${addon.directoryName}|logo|${addon.libraryLogo}`
-        const cache = logoCacheRef.current
 
-        if (cache.has(key)) {
-            setLogoUrl(cache.get(key)!)
-            return
-        }
-
-        let objectUrl: string | null = null
-        fetch(getAssetUrl(addon.libraryLogo))
-            .then(r => (r.ok ? r.blob() : Promise.reject()))
-            .then(b => {
-                objectUrl = URL.createObjectURL(b)
-                cache.set(key, objectUrl!)
-                setLogoUrl(objectUrl!)
+        acquireObjectUrl(logoUrlCache, key, async () => {
+            const res = await fetch(getAssetUrl(addon.libraryLogo!), { signal: controller.signal })
+            if (!res.ok) throw new Error('Failed to fetch logo')
+            const blob = await res.blob()
+            return URL.createObjectURL(blob)
+        })
+            .then(({ url, acquired }) => {
+                if (cancelled) return
+                didAcquire = acquired
+                if (currentLogoKeyRef.current && currentLogoKeyRef.current !== key) {
+                    releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
+                }
+                currentLogoKeyRef.current = key
+                setLogoUrl(url)
             })
-            .catch(() => cache.set(key, null))
+            .catch(err => {
+                if (cancelled) return
+                if (err?.name === 'AbortError') return
+                setLogoUrl(null)
+            })
 
         return () => {
-            if (objectUrl) URL.revokeObjectURL(objectUrl)
+            cancelled = true
+            controller.abort()
+            if (didAcquire) {
+                releaseObjectUrl(logoUrlCache, key)
+                if (currentLogoKeyRef.current === key) currentLogoKeyRef.current = null
+            }
         }
-    }, [addon.libraryLogo, addon.directoryName])
+    }, [addon.libraryLogo, addon.directoryName, addon.name])
 
     useEffect(() => {
         if (!menuOpen) return
@@ -146,7 +216,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                             {authorNames.map((u, i) => (
                                 <React.Fragment key={u}>
                                     <span
-                                        onClick={() => nav(`/profile/${encodeURIComponent(u)}`)} // <-- новый переход на страницу профиля
+                                        onClick={() => nav(`/profile/${encodeURIComponent(u)}`)}
                                         style={{ cursor: 'pointer', textDecoration: 'underline' }}
                                     >
                                         {u}
