@@ -422,10 +422,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <TooltipButton tooltipText="Установить обновление" as={'div'}>
                                     <button
                                         onClick={() => {
-                                            if (window.electron.isMac()) {
-                                                toast.custom('error', 'Ошибка', 'Обновление внутри приложения доступно только для Windows и Linux')
-                                                return
-                                            }
                                             setUpdate(false)
                                             window.desktopEvents?.send('update-install')
                                         }}
