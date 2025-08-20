@@ -107,14 +107,13 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
-async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
+function createS3Client(): S3Client {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
-
-    const client = new S3Client({
+    return new S3Client({
         region: process.env.S3_REGION,
         credentials: {
             accessKeyId: process.env.S3_ACCESS_KEY_ID!,
@@ -124,6 +123,16 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         forcePathStyle: true,
         maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
     })
+}
+
+async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
+    const bucket = process.env.S3_BUCKET
+    if (!bucket) {
+        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
+        process.exit(1)
+    }
+
+    const client = createS3Client()
 
     const walk = (p: string): string[] =>
         fs.readdirSync(p).flatMap(name => {
@@ -189,6 +198,78 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
+}
+
+async function hashFileSha512(filePath: string): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha512')
+        const stream = fs.createReadStream(filePath)
+        stream.on('data', chunk => hash.update(chunk))
+        stream.on('error', reject)
+        stream.on('end', () => resolve(hash.digest('hex')))
+    })
+}
+
+function selectMacArtifact(releaseDir: string, version: string): { file: string; type: 'dmg' | 'zip' } | null {
+    const files = fs.readdirSync(releaseDir)
+    const cand = (suffix: string) => files.find(n => n.includes(version) && n.toLowerCase().endsWith(suffix))
+    const tryList = ['-universal.dmg', '-universal.zip', '-arm64.dmg', '-x64.dmg', '-arm64.zip', '-x64.zip', '.dmg', '.zip']
+    for (const suf of tryList) {
+        const name = cand(suf)
+        if (name) {
+            const ext = name.toLowerCase().endsWith('.dmg') ? 'dmg' : 'zip'
+            return { file: path.join(releaseDir, name), type: ext as 'dmg' | 'zip' }
+        }
+    }
+    return null
+}
+
+async function generateAndPublishMacDownloadJson(branch: string, releaseDir: string, version: string): Promise<void> {
+    if (os.platform() !== 'darwin') return
+    const bucket = process.env.S3_BUCKET
+    const baseUrl = process.env.S3_URL
+    if (!bucket) {
+        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
+        process.exit(1)
+    }
+    if (!baseUrl) {
+        log(LogLevel.ERROR, 'S3_URL is not set in env')
+        process.exit(1)
+    }
+    const sel = selectMacArtifact(releaseDir, version)
+    if (!sel) {
+        log(LogLevel.ERROR, `No macOS artifact found for version ${version} in ${releaseDir}`)
+        process.exit(1)
+    }
+    const fileName = path.basename(sel.file)
+    const sha512 = await hashFileSha512(sel.file)
+    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
+    let releaseNotes = ''
+    if (fs.existsSync(patchPath)) {
+        releaseNotes = fs.readFileSync(patchPath, 'utf-8')
+    }
+    const manifest = {
+        version,
+        url: `${baseUrl}/builds/app/${branch}/${fileName}`,
+        fileType: sel.type,
+        sha512,
+        releaseNotes,
+        updateUrgency: 'soft',
+        minOsVersion: '>=10.13',
+    }
+    const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
+    const client = createS3Client()
+    const key = `builds/${branch}/download.json`
+    await client.send(
+        new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: body,
+            ACL: 'public-read',
+            ContentType: 'application/json',
+        }),
+    )
+    log(LogLevel.SUCCESS, `Uploaded macOS download.json → s3://${bucket}/${key}`)
 }
 
 async function sendChangelogToApi(version: string): Promise<void> {
@@ -437,6 +518,9 @@ async function main(): Promise<void> {
 
         if (publishBranch) {
             await publishToS3(publishBranch, releaseDir, version)
+            if (os.platform() === 'darwin') {
+                await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
+            }
             await sendChangelogToApi(version)
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')

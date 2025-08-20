@@ -21,15 +21,44 @@ import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import { isDevmark } from '../../renderer/api/config'
+import config, { isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
+import { getMacUpdater } from '../modules/updater/macOsUpdater'
 
 const updater = getUpdater()
 const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
+const macManifestUrl = `${config.S3_URL}/builds/beta/download.json`
+const macUpdater = isMac()
+    ? getMacUpdater({
+          manifestUrl: macManifestUrl,
+          appName: 'PulseSync',
+          attemptAutoInstall: false,
+          openFinderOnMount: true,
+          onProgress: p => {
+              try {
+                  if (mainWindow) mainWindow.setProgressBar(p / 100)
+              } catch {}
+          },
+          onStatus: s => {
+              if (s === UpdateStatus.DOWNLOADING) {
+                  mainWindow?.webContents.send('check-update', { updateAvailable: true })
+                  updateAvailable = true
+              } else if (s === UpdateStatus.DOWNLOADED) {
+                  mainWindow?.webContents.send('download-update-finished')
+                  updateAvailable = true
+                  try {
+                      if (mainWindow) mainWindow.setProgressBar(-1)
+                  } catch {}
+              }
+          },
+          onLog: m => logger.updater.info(m),
+      })
+    : null
+
 export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
     return path.resolve(`${savePath}/extensions/${args}`)
@@ -373,14 +402,36 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 }
 
 const registerUpdateEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-install', () => updater.install())
+    ipcMain.on('update-install', async () => {
+        if (isMac()) {
+            try {
+                await macUpdater?.installUpdate()
+            } catch (e: any) {
+                logger.updater.error(`macOS install error: ${e?.message || e}`)
+            }
+            return
+        }
+        updater.install()
+    })
 
     ipcMain.on('checkUpdate', async (_event, args: { hard?: boolean }) => {
         await checkOrFindUpdate(args?.hard)
     })
 
-    ipcMain.on('updater-start', () => {
-        if (isMac()) return
+    ipcMain.on('updater-start', async () => {
+        if (isMac()) {
+            try {
+                const m = await macUpdater?.checkForUpdates()
+                if (m) {
+                    mainWindow.webContents.send('update-available', m.version)
+                    mainWindow.flashFrame(true)
+                    updateAvailable = true
+                }
+            } catch (e: any) {
+                logger.updater.error(`macOS updater-start error: ${e?.message || e}`)
+            }
+            return
+        }
         updater.start()
         updater.onUpdate(version => {
             mainWindow.webContents.send('update-available', version)
@@ -597,6 +648,30 @@ export const handleEvents = (window: BrowserWindow): void => {
 
 export const checkOrFindUpdate = async (hard?: boolean) => {
     logger.updater.info('Check update')
+    if (isMac()) {
+        try {
+            const m = await macUpdater?.checkForUpdates()
+            if (m) {
+                mainWindow.webContents.send('check-update', { updateAvailable: true })
+                updateAvailable = true
+                try {
+                    await macUpdater?.downloadUpdate(m)
+                    mainWindow.webContents.send('download-update-finished')
+                    if (hard) await macUpdater?.installUpdate(m)
+                } catch (e: any) {
+                    logger.updater.error(`macOS download/install error: ${e?.message || e}`)
+                    try {
+                        if (mainWindow) mainWindow.setProgressBar(-1)
+                    } catch {}
+                }
+            } else {
+                mainWindow.webContents.send('check-update', { updateAvailable: false })
+            }
+        } catch (e: any) {
+            logger.updater.error(`macOS check error: ${e?.message || e}`)
+        }
+        return
+    }
     const status = await updater.check()
     if (status === UpdateStatus.DOWNLOADING) {
         mainWindow.webContents.send('check-update', { updateAvailable: true })

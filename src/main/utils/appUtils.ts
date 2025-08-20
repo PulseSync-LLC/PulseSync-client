@@ -212,6 +212,80 @@ export const downloadYandexMusic = async (type?: string) => {
     mainWindow.setProgressBar(-1)
     fs.chmodSync(downloadPath, 0o755)
 
+    const execFileAsync = (file: string, args: string[] = []) =>
+        new Promise<void>((resolve, reject) => {
+            execFile(file, args, error => {
+                if (error) return reject(error)
+                resolve()
+            })
+        })
+
+    const sendFailure = (err: Error | string) => {
+        mainWindow.webContents.send('download-music-failure', {
+            success: false,
+            error: typeof err === 'string' ? err : `Failed to execute: ${err.message}`,
+        })
+    }
+
+    if (isMac()) {
+        const mountPoint = `/Volumes/YandexMusic-${Date.now()}`
+        try {
+            await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
+            const entries = await fs.promises.readdir(mountPoint)
+            const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
+            if (!appName) throw new Error('В DMG не найден .app пакет')
+            const appBundlePath = path.join(mountPoint, appName)
+
+            let targetDir = '/Applications'
+            let targetAppPath = path.join(targetDir, appName)
+
+            try {
+                await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+            } catch {
+                targetDir = path.join(app.getPath('home'), 'Applications')
+                await fs.promises.mkdir(targetDir, { recursive: true })
+                targetAppPath = path.join(targetDir, appName)
+                await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+            }
+
+            const detach = async () => {
+                try {
+                    await execFileAsync('hdiutil', ['detach', mountPoint])
+                } catch {
+                    await new Promise(r => setTimeout(r, 500))
+                    try {
+                        await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
+                    } catch {}
+                }
+            }
+
+            await detach()
+            try {
+                fs.unlinkSync(downloadPath)
+            } catch {}
+
+            try {
+                await execFileAsync('open', [targetAppPath])
+            } catch (e) {
+                sendFailure(e as Error)
+                return
+            }
+
+            checkAsar()
+            mainWindow.webContents.send('download-music-execution-success', {
+                success: true,
+                message: 'Приложение установлено и запущено.',
+                type: type || 'update',
+            })
+        } catch (error) {
+            try {
+                await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
+            } catch {}
+            sendFailure(error as Error)
+        }
+        return
+    }
+
     setTimeout(() => {
         execFile(downloadPath, error => {
             if (error) {
@@ -221,7 +295,9 @@ export const downloadYandexMusic = async (type?: string) => {
                 })
                 return
             }
-            fs.unlinkSync(downloadPath)
+            try {
+                fs.unlinkSync(downloadPath)
+            } catch {}
             checkAsar()
             mainWindow.webContents.send('download-music-execution-success', {
                 success: true,
