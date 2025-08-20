@@ -31,7 +31,7 @@ const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
-const macManifestUrl = `${config.S3_URL}/builds/${branch}/download.json`
+const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
           manifestUrl: macManifestUrl,
