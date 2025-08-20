@@ -40,7 +40,10 @@ const macUpdater = isMac()
           openFinderOnMount: true,
           onProgress: p => {
               try {
-                  if (mainWindow) mainWindow.setProgressBar(p / 100)
+                  if (mainWindow) {
+                      mainWindow.setProgressBar(p / 100)
+                      mainWindow.webContents.send('download-update-progress', p)
+                  }
               } catch {}
           },
           onStatus: s => {

@@ -1,4 +1,4 @@
-import { app, dialog, shell } from 'electron'
+import { app, dialog, shell, Notification } from 'electron'
 import axios from 'axios'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -254,6 +254,10 @@ export class MacOSUpdater extends EventEmitter {
             if (this.options.openFinderOnMount !== false) {
                 await shell.openPath(mountPoint)
             }
+            new Notification({
+                title: 'Готово к установке',
+                body: 'Перетащите приложение из открытого окна в папку Applications.'
+            }).show()
             await dialog.showMessageBox({
                 type: 'info',
                 buttons: ['Ок'],
