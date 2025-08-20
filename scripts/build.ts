@@ -293,7 +293,7 @@ async function generateAndPublishMacDownloadJson(branch: string, releaseDir: str
     }
     const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
     const client = createS3Client()
-    const key = `builds/${branch}/download.json`
+    const key = `builds/app/${branch}/download.json`
     await client.send(
         new PutObjectCommand({
             Bucket: bucket,
