@@ -10,15 +10,24 @@ import { EventEmitter } from 'events'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 
+export type MacUpdateAsset = {
+    arch: 'arm64' | 'x64'
+    url: string
+    fileType?: 'dmg' | 'zip'
+    sha256?: string
+    sha512?: string
+}
+
 export type MacUpdateManifest = {
     version: string
-    url: string
+    url?: string
     fileType?: 'dmg' | 'zip'
     sha256?: string
     sha512?: string
     releaseNotes?: string
     updateUrgency?: UpdateUrgency
     minOsVersion?: string
+    assets?: MacUpdateAsset[]
 }
 
 export type MacUpdaterOptions = {
@@ -32,11 +41,20 @@ export type MacUpdaterOptions = {
     onLog?: (message: string) => void
 }
 
+type PickedAsset = {
+    arch: 'arm64' | 'x64'
+    url: string
+    fileType: 'dmg' | 'zip'
+    sha256?: string
+    sha512?: string
+}
+
 export class MacOSUpdater extends EventEmitter {
-    private readonly options: MacUpdaterOptions
+    private options: MacUpdaterOptions
     private status: UpdateStatus = UpdateStatus.IDLE
     private currentManifest: MacUpdateManifest | null = null
     private downloadedFile: string | null = null
+    private pickedAsset: PickedAsset | null = null
 
     constructor(options: MacUpdaterOptions) {
         super()
@@ -66,7 +84,7 @@ export class MacOSUpdater extends EventEmitter {
         const { manifestUrl } = this.options
         const res = await axios.get<MacUpdateManifest>(manifestUrl, { timeout: 15000 })
         const manifest = res.data
-        if (!manifest?.version || !manifest?.url) {
+        if (!manifest?.version || (!manifest?.url && !(manifest as any)?.assets?.length)) {
             throw new Error('Некорректный манифест обновления')
         }
         const current = app.getVersion()
@@ -108,12 +126,14 @@ export class MacOSUpdater extends EventEmitter {
     async downloadUpdate(manifest?: MacUpdateManifest) {
         const m = manifest ?? this.currentManifest
         if (!m) throw new Error('Манифест обновления не найден')
+        const hwArch = await this.detectHardwareArch()
+        const asset = this.pickAsset(m, hwArch)
         const downloadsDir = this.options.downloadsDir || path.join(app.getPath('userData'), 'updates')
         await fs.promises.mkdir(downloadsDir, { recursive: true })
-        const fileName = this.suggestFileName(m)
+        const fileName = this.suggestFileName(m, asset)
         const dest = path.join(downloadsDir, fileName)
         const writer = fs.createWriteStream(dest)
-        const response = await axios.get(m.url, { responseType: 'stream' })
+        const response = await axios.get(asset.url, { responseType: 'stream' })
         const total = Number(response.headers['content-length'] || 0)
         let received = 0
         const hash512 = crypto.createHash('sha512')
@@ -137,13 +157,14 @@ export class MacOSUpdater extends EventEmitter {
         })
         const digest512 = hash512.digest('hex')
         const digest256 = hash256.digest('hex')
-        if (m.sha512 && !this.matchDigest(m.sha512, digest512)) {
+        if (asset.sha512 && !this.matchDigest(asset.sha512, digest512)) {
             throw new Error('Контрольная сумма sha512 не совпала')
         }
-        if (m.sha256 && !this.matchDigest(m.sha256, digest256)) {
+        if (asset.sha256 && !this.matchDigest(asset.sha256, digest256)) {
             throw new Error('Контрольная сумма sha256 не совпала')
         }
         this.downloadedFile = dest
+        this.pickedAsset = asset
         this.setStatus(UpdateStatus.DOWNLOADED)
         this.log(`Файл загружен: ${dest}`)
         return dest
@@ -158,10 +179,42 @@ export class MacOSUpdater extends EventEmitter {
         return normalize(expected) === normalize(actualHex)
     }
 
-    private suggestFileName(m: MacUpdateManifest) {
-        const ext = m.fileType ?? (m.url.endsWith('.dmg') ? 'dmg' : m.url.endsWith('.zip') ? 'zip' : 'dmg')
+    private inferFileTypeFromUrl(u: string): 'dmg' | 'zip' {
+        const lower = u.toLowerCase()
+        if (lower.endsWith('.zip')) return 'zip'
+        return 'dmg'
+    }
+
+    private normalizeAsset(a: MacUpdateAsset): PickedAsset {
+        return {
+            arch: a.arch,
+            url: a.url,
+            fileType: a.fileType ?? this.inferFileTypeFromUrl(a.url),
+            sha256: a.sha256,
+            sha512: a.sha512,
+        }
+    }
+
+    private pickAsset(m: MacUpdateManifest, hwArch: 'arm64' | 'x64'): PickedAsset {
+        if (m.assets && m.assets.length) {
+            const onlyValid = m.assets.filter(a => a.arch === 'arm64' || a.arch === 'x64')
+            const exact = onlyValid.find(a => a.arch === hwArch)
+            if (exact) return this.normalizeAsset(exact)
+            if (onlyValid.length) return this.normalizeAsset(onlyValid[0])
+        }
+        if (!m.url) throw new Error('В манифесте нет url/assets')
+        return {
+            arch: hwArch,
+            url: m.url,
+            fileType: m.fileType ?? this.inferFileTypeFromUrl(m.url),
+            sha256: m.sha256,
+            sha512: m.sha512,
+        }
+    }
+
+    private suggestFileName(m: MacUpdateManifest, asset: PickedAsset) {
         const name = this.options.appName || app.getName()
-        return `${name}-${m.version}.${ext}`
+        return `${name}-${m.version}-${asset.arch}.${asset.fileType}`
     }
 
     async installUpdate(manifest?: MacUpdateManifest) {
@@ -169,7 +222,7 @@ export class MacOSUpdater extends EventEmitter {
         if (!m) throw new Error('Манифест обновления не найден')
         const filePath = this.downloadedFile
         if (!filePath) throw new Error('Файл обновления не загружен')
-        const fileType = (m.fileType || (filePath.endsWith('.zip') ? 'zip' : 'dmg')) as 'dmg' | 'zip'
+        const fileType: 'dmg' | 'zip' = filePath.toLowerCase().endsWith('.zip') ? 'zip' : 'dmg'
         if (fileType === 'dmg') {
             await this.installFromDMG(filePath, m)
         } else {
@@ -273,7 +326,6 @@ export class MacOSUpdater extends EventEmitter {
         const processName = path.basename(process.execPath)
         const script = [
             'set -e',
-            `echo "Copying to ${tmpDest}"`,
             `/usr/bin/xattr -dr com.apple.quarantine "${bundlePath}" || true`,
             `/usr/bin/ditto "${bundlePath}" "${tmpDest}"`,
             '/bin/sleep 0.5',
@@ -281,7 +333,7 @@ export class MacOSUpdater extends EventEmitter {
             `[ -d "${dest}" ] && /bin/rm -rf "${dest}" || true`,
             `/bin/mv "${tmpDest}" "${dest}"`,
             `/usr/bin/xattr -dr com.apple.quarantine "${dest}" || true`,
-            `open -a "${dest}"`,
+            `open "${dest}"`,
         ].join('\n')
         await fs.promises.writeFile(scriptFile, script, { mode: 0o755 })
         spawn('sh', [scriptFile], { detached: true, stdio: 'ignore' }).unref()
@@ -303,6 +355,15 @@ export class MacOSUpdater extends EventEmitter {
         }
         return res
     }
+
+    private async detectHardwareArch(): Promise<'arm64' | 'x64'> {
+        try {
+            const { stdout } = await this.runWithOutput('/usr/sbin/sysctl', ['-n', 'hw.optional.arm64'])
+            const flag = String(stdout).trim()
+            if (flag === '1') return 'arm64'
+        } catch {}
+        return 'x64'
+    }
 }
 
 export const createMacUpdater = (options: MacUpdaterOptions) => new MacOSUpdater(options)
@@ -311,8 +372,7 @@ export const getMacUpdater = (() => {
     let updater: MacOSUpdater | undefined
     return (options?: MacUpdaterOptions) => {
         if (!updater) {
-            if (!options) throw new Error('MacOSUpdater does not initialized')
-            if (!options.manifestUrl) throw new Error('Manifest URL is required for MacOSUpdater')
+            if (!options) throw new Error('Первый вызов getMacUpdater требует options')
             updater = new MacOSUpdater(options)
         }
         return updater

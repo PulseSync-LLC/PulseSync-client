@@ -145,28 +145,30 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         .filter(fp => path.basename(fp).includes(version))
 
     const platform = os.platform()
-    let variantFile = 'latest.yml'
-    if (platform === 'darwin') variantFile = 'latest-mac.yml'
+    let variantFile: string | null = 'latest.yml'
+    if (platform === 'darwin') variantFile = null
     else if (platform === 'linux') variantFile = 'latest-linux.yml'
 
-    const variantPath = path.join(dir, variantFile)
-    if (fs.existsSync(variantPath)) {
-        log(LogLevel.INFO, `Processing ${variantFile}`)
-        const raw = fs.readFileSync(variantPath, 'utf-8')
-        let data: any = {}
-        try {
-            data = yaml.load(raw) as any
-        } catch (e: any) {
-            log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
+    if (variantFile) {
+        const variantPath = path.join(dir, variantFile)
+        if (fs.existsSync(variantPath)) {
+            log(LogLevel.INFO, `Processing ${variantFile}`)
+            const raw = fs.readFileSync(variantPath, 'utf-8')
+            let data: any = {}
+            try {
+                data = yaml.load(raw) as any
+            } catch (e: any) {
+                log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
+            }
+            data.updateUrgency = 'soft'
+            data.commonConfig = {
+                DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
+                UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
+            }
+            fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
+            files.push(variantPath)
+            log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
         }
-        data.updateUrgency = 'soft'
-        data.commonConfig = {
-            DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-            UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
-        }
-        fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
-        files.push(variantPath)
-        log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
     }
 
     const zipFiles = fs
@@ -210,18 +212,39 @@ async function hashFileSha512(filePath: string): Promise<string> {
     })
 }
 
-function selectMacArtifact(releaseDir: string, version: string): { file: string; type: 'dmg' | 'zip' } | null {
-    const files = fs.readdirSync(releaseDir)
-    const cand = (suffix: string) => files.find(n => n.includes(version) && n.toLowerCase().endsWith(suffix))
-    const tryList = ['-universal.dmg', '-universal.zip', '-arm64.dmg', '-x64.dmg', '-arm64.zip', '-x64.zip', '.dmg', '.zip']
-    for (const suf of tryList) {
-        const name = cand(suf)
-        if (name) {
-            const ext = name.toLowerCase().endsWith('.dmg') ? 'dmg' : 'zip'
-            return { file: path.join(releaseDir, name), type: ext as 'dmg' | 'zip' }
-        }
-    }
+function isDmg(name: string) {
+    return name.toLowerCase().endsWith('.dmg')
+}
+function isZip(name: string) {
+    return name.toLowerCase().endsWith('.zip')
+}
+function fileTypeOf(name: string): 'dmg' | 'zip' {
+    return isZip(name) ? 'zip' : 'dmg'
+}
+
+function parseMacArtifactArch(name: string): 'arm64' | 'x64' | null {
+    const lower = name.toLowerCase()
+    if (lower.includes('arm64')) return 'arm64'
+    if (lower.includes('x64') || lower.includes('intel')) return 'x64'
+    if (lower.includes('-mac') || lower.includes('mac')) return null
+    if (lower.includes('universal')) return null
     return null
+}
+
+function collectMacArtifacts(releaseDir: string, version: string) {
+    const files = fs.readdirSync(releaseDir).filter(n => n.includes(version) && (isDmg(n) || isZip(n)))
+    const out: Array<{ arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }> = []
+    for (const n of files) {
+        const arch = parseMacArtifactArch(n)
+        if (!arch) continue
+        out.push({ arch, file: path.join(releaseDir, n), type: fileTypeOf(n) })
+    }
+    const uniq = new Map<string, { arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }>()
+    for (const a of out) {
+        const key = `${a.arch}:${a.type}`
+        if (!uniq.has(key)) uniq.set(key, a)
+    }
+    return Array.from(uniq.values())
 }
 
 async function generateAndPublishMacDownloadJson(branch: string, releaseDir: string, version: string): Promise<void> {
@@ -236,26 +259,37 @@ async function generateAndPublishMacDownloadJson(branch: string, releaseDir: str
         log(LogLevel.ERROR, 'S3_URL is not set in env')
         process.exit(1)
     }
-    const sel = selectMacArtifact(releaseDir, version)
-    if (!sel) {
-        log(LogLevel.ERROR, `No macOS artifact found for version ${version} in ${releaseDir}`)
+    const artifacts = collectMacArtifacts(releaseDir, version)
+    if (!artifacts.length) {
+        log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
         process.exit(1)
     }
-    const fileName = path.basename(sel.file)
-    const sha512 = await hashFileSha512(sel.file)
     const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
     let releaseNotes = ''
     if (fs.existsSync(patchPath)) {
         releaseNotes = fs.readFileSync(patchPath, 'utf-8')
     }
+    const assets = []
+    for (const a of artifacts) {
+        const sha512 = await hashFileSha512(a.file)
+        const fileName = path.basename(a.file)
+        assets.push({
+            arch: a.arch,
+            url: `${baseUrl}/builds/app/${branch}/${fileName}`,
+            fileType: a.type,
+            sha512,
+        })
+    }
+    const preferred = assets.find(x => x.arch === 'x64') || assets.find(x => x.arch === 'arm64') || assets[0]
     const manifest = {
         version,
-        url: `${baseUrl}/builds/app/${branch}/${fileName}`,
-        fileType: sel.type,
-        sha512,
+        url: preferred.url,
+        fileType: preferred.fileType,
+        sha512: preferred.sha512,
         releaseNotes,
         updateUrgency: 'soft',
         minOsVersion: '>=10.13',
+        assets,
     }
     const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
     const client = createS3Client()
@@ -399,7 +433,7 @@ async function main(): Promise<void> {
     }
 
     if (buildApplication) {
-        if (publishBranch && publishBranch === 'beta') {
+        if (publishBranch && publishBranch === 'beta' && os.platform() !== 'darwin') {
             setConfigDevFalse()
             const appUpdateConfig = {
                 provider: 'generic',
@@ -411,6 +445,8 @@ async function main(): Promise<void> {
             const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
             fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
             log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
+        } else if (publishBranch && publishBranch === 'beta' && os.platform() === 'darwin') {
+            setConfigDevFalse()
         }
 
         const baseOutDir = path.join('.', 'out')
