@@ -396,6 +396,15 @@ function setConfigDevFalse() {
     log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in config.ts`)
 }
 
+function setConfigBranch(branch: string) {
+    const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+    let content = fs.readFileSync(configPath, 'utf-8')
+    content = content.replace(/export const branch\s*=\s*.*$/m, `export const BRANCH = ${branch}`)
+
+    fs.writeFileSync(configPath, content, 'utf-8')
+    log(LogLevel.SUCCESS, `Set branch=${branch} in config.ts`)
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await sendPatchNotes()
@@ -411,6 +420,8 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
 
     const desiredLinuxExeName = 'pulsesync'
+    const branchForConfig = publishBranch ?? 'beta'
+    setConfigBranch(branchForConfig)
 
     if (buildNativeModules) {
         const nmDir = path.resolve(__dirname, '../nativeModules')

@@ -21,7 +21,7 @@ import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import config, { isDevmark } from '../../renderer/api/config'
+import config, { branch, isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -31,7 +31,7 @@ const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
-const macManifestUrl = `${config.S3_URL}/builds/beta/download.json`
+const macManifestUrl = `${config.S3_URL}/builds/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
           manifestUrl: macManifestUrl,
