@@ -399,7 +399,7 @@ function setConfigDevFalse() {
 function setConfigBranch(branch: string) {
     const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
-    content = content.replace(/export const branch\s*=\s*.*$/m, `export const BRANCH = ${branch}`)
+    content = content.replace(/export const branch\s*=\s*.*$/m, `export const branch = ${branch}`)
 
     fs.writeFileSync(configPath, content, 'utf-8')
     log(LogLevel.SUCCESS, `Set branch=${branch} in config.ts`)
