@@ -78,19 +78,31 @@ export function buildActivityButtons(t: Track, settings: SettingsInterface) {
         } else if (typeof t.id === 'string' && !t.id.includes('generative')) {
             const appUrl = shareTrackPath.toApp()
             const webUrl = shareTrackPath.toWeb()
+
             if (settings.discordRpc.enableDeepLink) {
                 if (settings.discordRpc.enableWebsiteButton) {
+                    const custom =
+                        settings.discordRpc.button && settings.discordRpc.button.trim().length > 0
+                            ? truncateLabel(settings.discordRpc.button)
+                            : undefined
+
                     if (appUrl) {
-                        buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                        buttons.push({ label: custom ?? '✌️ Open in Yandex Music App', url: appUrl })
                     } else if (webUrl) {
-                        buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
+                        buttons.push({ label: custom ?? '✌️ Open in Yandex Music Web', url: webUrl })
                     }
                 } else {
                     if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
                     if (webUrl && buttons.length < 2) buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
                 }
             } else {
-                if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
+                if (appUrl) {
+                    const custom =
+                        settings.discordRpc.button && settings.discordRpc.button.trim().length > 0
+                            ? truncateLabel(settings.discordRpc.button)
+                            : '✌️ Open in Yandex Music App'
+                    buttons.push({ label: custom, url: appUrl })
+                }
             }
         }
     }

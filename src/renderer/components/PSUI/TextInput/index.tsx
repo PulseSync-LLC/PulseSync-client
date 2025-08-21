@@ -28,9 +28,9 @@ const STATUS_DISPLAY_TYPES: Record<number, number> = {
 }
 
 const STATUS_DISPLAY_NAMES: Record<number, string> = {
-    0: 'Name',
-    1: 'State',
-    2: 'Details',
+    0: 'Название приложения',
+    1: 'Автор трека',
+    2: 'Название трека',
 }
 
 const musicCommands = [

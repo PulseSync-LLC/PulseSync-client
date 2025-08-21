@@ -4,7 +4,7 @@ import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
-import { useContext, useEffect, useRef, useState, useMemo, useCallback } from 'react'
+import { useContext, useRef, useState, useMemo } from 'react'
 import userContext from '../../api/context/user.context'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
@@ -12,7 +12,7 @@ import { Cubic } from '../../components/PSUI/Cubic'
 import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
-import { buildShareLinks, fixStrings, replaceParams, truncateLabel } from '../../utils/formatRpc'
+import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
 import ContainerV2 from '../../components/containerV2'
@@ -35,13 +35,15 @@ export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
-    const [previousValues, setPreviousValues] = useState<FormValues>({
-        appId: '',
-        details: '',
-        state: '',
-        button: '',
-        statusDisplayType: '',
-    })
+
+    const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
+        appId: app.discordRpc.appId || '',
+        details: app.discordRpc.details || '',
+        state: app.discordRpc.state || '',
+        button: app.discordRpc.button || '',
+        statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+    }))
+
     const schema = object().shape({
         appId: string()
             .nullable()
@@ -59,6 +61,7 @@ export default function TrackInfoPage() {
             .matches(/^[012]$/, 'Введите 0 (Name), 1 (State) или 2 (Details)')
             .required('Введите 0, 1 или 2'),
     })
+
     const getChangedValues = (initialValues: any, currentValues: any) => {
         const changedValues: any = {}
         for (const key in initialValues) {
@@ -68,16 +71,7 @@ export default function TrackInfoPage() {
         }
         return changedValues
     }
-    useEffect(() => {
-        setPreviousValues({
-            ...(previousValues as any),
-            appId: app.discordRpc.appId,
-            details: app.discordRpc.details,
-            state: app.discordRpc.state,
-            button: app.discordRpc.button,
-            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
-        })
-    }, [])
+
     const formik = useFormik<FormValues>({
         initialValues: {
             appId: app.discordRpc.appId,
@@ -124,52 +118,7 @@ export default function TrackInfoPage() {
     const shouldShowByStatus = currentTrack.status === 'playing' || (currentTrack.status === 'paused' && app.discordRpc.displayPause)
     const isReady = app.discordRpc.status && hasData && shouldShowByStatus
 
-    const buildActivityButtons = useCallback((t: any, settings: any) => {
-        const buttons: { label: string; url: string }[] = []
-
-        const isGenerative = typeof t?.id === 'string' && t.id.includes('generative')
-
-        const { shareTrackPathRegular } = buildShareLinks(t)
-        const webUrl = shareTrackPathRegular.toWeb()
-        const appUrl = shareTrackPathRegular.toApp()
-        if (settings.discordRpc.enableRpcButtonListen) {
-            if (t.trackSource === 'UGC' && !t.id.includes('generative') && t.url) {
-                buttons.push({
-                    label: settings.discordRpc.button ? truncateLabel(settings.discordRpc.button) : '✌️ Open music file',
-                    url: t.url,
-                })
-            } else if (!isGenerative) {
-                if (settings.discordRpc.enableDeepLink) {
-                    if (settings.discordRpc.enableWebsiteButton) {
-                        if (appUrl) {
-                            buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
-                        } else if (webUrl) {
-                            buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
-                        }
-                    } else {
-                        if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
-                        if (webUrl && buttons.length < 2) buttons.push({ label: '✌️ Open in Yandex Music Web', url: webUrl })
-                    }
-                } else {
-                    if (appUrl) buttons.push({ label: '✌️ Open in Yandex Music App', url: appUrl })
-                }
-            }
-        }
-
-        if (settings.discordRpc.enableWebsiteButton && buttons.length < 2) {
-            buttons.push({
-                label: '♡ PulseSync Project',
-                url: 'https://pulsesync.dev',
-            })
-        }
-
-        if (buttons.length > 2) {
-            return buttons.slice(0, 2)
-        }
-        return buttons.length ? buttons : undefined
-    }, [])
-
-    const activityButtons = useMemo(() => buildActivityButtons(currentTrack, app), [buildActivityButtons, currentTrack, app])
+    const activityButtons = useMemo(() => buildActivityButtonsRpc(currentTrack, app), [currentTrack, app])
 
     return (
         <Layout title="Discord RPC">
@@ -180,13 +129,8 @@ export default function TrackInfoPage() {
                             titleName={'Discord RPC'}
                             imageName={'discord'}
                             onClick={() => {
-                                if (app.discordRpc.status) {
-                                    window.desktopEvents?.send('GET_TRACK_INFO')
-                                    window.discordRpc.discordRpc(false)
-                                } else {
-                                    window.desktopEvents?.send('GET_TRACK_INFO')
-                                    window.discordRpc.discordRpc(true)
-                                }
+                                window.desktopEvents?.send('GET_TRACK_INFO')
+                                window.discordRpc.discordRpc(!app.discordRpc.status)
                                 setApp({
                                     ...app,
                                     discordRpc: {
