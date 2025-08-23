@@ -8,7 +8,8 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { publishToS3, generateAndPublishMacDownloadJson } from './s3-upload'
+import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
 
 const exec = promisify(_exec)
 
@@ -107,286 +108,6 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
-function createS3Client(): S3Client {
-    const bucket = process.env.S3_BUCKET
-    if (!bucket) {
-        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
-        process.exit(1)
-    }
-    return new S3Client({
-        region: process.env.S3_REGION,
-        credentials: {
-            accessKeyId: process.env.S3_ACCESS_KEY_ID!,
-            secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
-        },
-        endpoint: process.env.S3_ENDPOINT,
-        forcePathStyle: true,
-        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
-    })
-}
-
-async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
-    const bucket = process.env.S3_BUCKET
-    if (!bucket) {
-        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
-        process.exit(1)
-    }
-
-    const client = createS3Client()
-
-    const walk = (p: string): string[] =>
-        fs.readdirSync(p).flatMap(name => {
-            const full = path.join(p, name)
-            return fs.statSync(full).isDirectory() ? walk(full) : [full]
-        })
-
-    let files = walk(dir)
-        .filter(fp => path.basename(fp) !== 'builder-debug.yml')
-        .filter(fp => path.basename(fp).includes(version))
-
-    const platform = os.platform()
-    let variantFile: string | null = 'latest.yml'
-    if (platform === 'darwin') variantFile = null
-    else if (platform === 'linux') variantFile = 'latest-linux.yml'
-
-    if (variantFile) {
-        const variantPath = path.join(dir, variantFile)
-        if (fs.existsSync(variantPath)) {
-            log(LogLevel.INFO, `Processing ${variantFile}`)
-            const raw = fs.readFileSync(variantPath, 'utf-8')
-            let data: any = {}
-            try {
-                data = yaml.load(raw) as any
-            } catch (e: any) {
-                log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
-            }
-            data.updateUrgency = 'soft'
-            data.commonConfig = {
-                DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-                UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
-            }
-            fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
-            files.push(variantPath)
-            log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
-        }
-    }
-
-    const zipFiles = fs
-        .readdirSync(dir)
-        .filter(name => name.endsWith('.zip') && name.includes(version))
-        .map(name => path.join(dir, name))
-
-    for (const zipPath of zipFiles) {
-        if (!files.includes(zipPath)) {
-            files.push(zipPath)
-            log(LogLevel.SUCCESS, `Queued ZIP installer: ${path.basename(zipPath)}`)
-        }
-    }
-
-    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/builds/app/${branch}/`)
-
-    for (const filePath of files) {
-        const key = `builds/app/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
-        const body = await fs.promises.readFile(filePath)
-        await client.send(
-            new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: body,
-                ACL: 'public-read',
-            }),
-        )
-        log(LogLevel.INFO, `Uploaded ${key}`)
-    }
-
-    log(LogLevel.SUCCESS, 'Publish to S3 completed')
-}
-
-async function hashFileSha512(filePath: string): Promise<string> {
-    return await new Promise<string>((resolve, reject) => {
-        const hash = crypto.createHash('sha512')
-        const stream = fs.createReadStream(filePath)
-        stream.on('data', chunk => hash.update(chunk))
-        stream.on('error', reject)
-        stream.on('end', () => resolve(hash.digest('hex')))
-    })
-}
-
-function isDmg(name: string) {
-    return name.toLowerCase().endsWith('.dmg')
-}
-function isZip(name: string) {
-    return name.toLowerCase().endsWith('.zip')
-}
-function fileTypeOf(name: string): 'dmg' | 'zip' {
-    return isZip(name) ? 'zip' : 'dmg'
-}
-
-function parseMacArtifactArch(name: string): 'arm64' | 'x64' | null {
-    const lower = name.toLowerCase()
-    if (lower.includes('arm64')) return 'arm64'
-    if (lower.includes('x64') || lower.includes('intel')) return 'x64'
-    if (lower.includes('-mac') || lower.includes('mac')) return null
-    if (lower.includes('universal')) return null
-    return null
-}
-
-function collectMacArtifacts(releaseDir: string, version: string) {
-    const files = fs.readdirSync(releaseDir).filter(n => n.includes(version) && (isDmg(n) || isZip(n)))
-    const out: Array<{ arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }> = []
-    for (const n of files) {
-        const arch = parseMacArtifactArch(n)
-        if (!arch) continue
-        out.push({ arch, file: path.join(releaseDir, n), type: fileTypeOf(n) })
-    }
-    const uniq = new Map<string, { arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }>()
-    for (const a of out) {
-        const key = `${a.arch}:${a.type}`
-        if (!uniq.has(key)) uniq.set(key, a)
-    }
-    return Array.from(uniq.values())
-}
-
-async function generateAndPublishMacDownloadJson(branch: string, releaseDir: string, version: string): Promise<void> {
-    if (os.platform() !== 'darwin') return
-    const bucket = process.env.S3_BUCKET
-    const baseUrl = process.env.S3_URL
-    if (!bucket) {
-        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
-        process.exit(1)
-    }
-    if (!baseUrl) {
-        log(LogLevel.ERROR, 'S3_URL is not set in env')
-        process.exit(1)
-    }
-    const artifacts = collectMacArtifacts(releaseDir, version)
-    if (!artifacts.length) {
-        log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
-        process.exit(1)
-    }
-    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
-    let releaseNotes = ''
-    if (fs.existsSync(patchPath)) {
-        releaseNotes = fs.readFileSync(patchPath, 'utf-8')
-    }
-    const assets = []
-    for (const a of artifacts) {
-        const sha512 = await hashFileSha512(a.file)
-        const fileName = path.basename(a.file)
-        assets.push({
-            arch: a.arch,
-            url: `${baseUrl}/builds/app/${branch}/${fileName}`,
-            fileType: a.type,
-            sha512,
-        })
-    }
-    const preferred = assets.find(x => x.arch === 'x64') || assets.find(x => x.arch === 'arm64') || assets[0]
-    const manifest = {
-        version,
-        url: preferred.url,
-        fileType: preferred.fileType,
-        sha512: preferred.sha512,
-        releaseNotes,
-        updateUrgency: 'soft',
-        minOsVersion: '>=10.13',
-        assets,
-    }
-    const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
-    const client = createS3Client()
-    const key = `builds/app/${branch}/download.json`
-    await client.send(
-        new PutObjectCommand({
-            Bucket: bucket,
-            Key: key,
-            Body: body,
-            ACL: 'public-read',
-            ContentType: 'application/json',
-        }),
-    )
-    log(LogLevel.SUCCESS, `Uploaded macOS download.json → s3://${bucket}/${key}`)
-}
-
-async function sendChangelogToApi(version: string): Promise<void> {
-    const apiUrl = process.env.CDN_API_URL
-    if (!apiUrl) {
-        log(LogLevel.ERROR, 'CDN_API_URL is not set in env')
-        process.exit(1)
-    }
-    const token = process.env.CDN_API_TOKEN
-    if (!token) {
-        log(LogLevel.ERROR, 'CDN_API_TOKEN is not set in env')
-        process.exit(1)
-    }
-    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
-    if (!fs.existsSync(patchPath)) {
-        log(LogLevel.WARN, `PATCHNOTES.md not found at ${patchPath}`)
-        return
-    }
-    const rawPatch = fs.readFileSync(patchPath, 'utf-8')
-    try {
-        const res = await fetch(`${apiUrl}/cdn/app/changelog`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ version, rawPatch }),
-        })
-        if (!res.ok) {
-            log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
-            process.exit(1)
-        }
-        log(LogLevel.SUCCESS, 'Changelog sent successfully')
-    } catch (err: any) {
-        log(LogLevel.ERROR, `Error sending changelog: ${err.message || err}`)
-        process.exit(1)
-    }
-}
-
-async function sendPatchNotes(): Promise<void> {
-    const webhookUrl = process.env.DISCORD_WEBHOOK
-    if (!webhookUrl) {
-        log(LogLevel.ERROR, 'DISCORD_WEBHOOK is not set in env')
-        process.exit(1)
-    }
-    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
-    if (!fs.existsSync(patchPath)) {
-        log(LogLevel.WARN, `PATCHNOTES.md not found at ${patchPath}`)
-        return
-    }
-    const rawPatch = fs.readFileSync(patchPath, 'utf-8')
-    const pkg = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../package.json'), 'utf-8'))
-    const version = pkg.version
-
-    const embed = {
-        title: 'PulseSync',
-        description: 'Вышла новая версия приложения!',
-        color: 0x5865f2,
-        fields: [
-            { name: 'Версия:', value: version, inline: true },
-            { name: 'Изменения:', value: rawPatch, inline: true },
-        ],
-        footer: { text: 'https://pulsesync.dev', icon_url: process.env.BOT_AVATAR_URL },
-        timestamp: new Date().toISOString(),
-    }
-
-    try {
-        const res = await fetch(webhookUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ embeds: [embed] }),
-        })
-        if (!res.ok) {
-            log(LogLevel.ERROR, `Failed to send patchnotes: ${res.status} ${res.statusText}`)
-            process.exit(1)
-        }
-        log(LogLevel.SUCCESS, 'Patchnotes sent successfully')
-    } catch (err: any) {
-        log(LogLevel.ERROR, `Error sending patchnotes: ${err.message || err}`)
-        process.exit(1)
-    }
-}
-
 function applyConfigFromEnv() {
     const configJson = process.env.CONFIG_JSON
     const rendererConfig = process.env.RENDERER_CONFIG
@@ -424,7 +145,7 @@ function setConfigBranch(branch: string) {
 
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
-        await sendPatchNotes()
+        await publishPatchNotesToDiscord()
         return
     }
     log(LogLevel.INFO, `CONFIG_JSON length: ${process.env.CONFIG_JSON?.length}`)
@@ -539,10 +260,10 @@ async function main(): Promise<void> {
         const configObj = yaml.load(baseYml) as any
 
         if (!configObj.linux) configObj.linux = {}
-        configObj.linux.executableName = desiredLinuxExeName
+        configObj.linux.executableName = 'pulsesync'
         if (configObj.linux.desktop && configObj.linux.desktop.entry) {
             if (configObj.linux.desktop.entry.Icon) {
-                configObj.linux.desktop.entry.Icon = desiredLinuxExeName
+                configObj.linux.desktop.entry.Icon = 'pulsesync'
             }
         }
 
@@ -588,7 +309,7 @@ async function main(): Promise<void> {
             if (os.platform() === 'darwin') {
                 await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
             }
-            await sendChangelogToApi(version)
+            await publishChangelogToApi(version)
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
