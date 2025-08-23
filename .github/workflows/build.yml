@@ -1,0 +1,25 @@
+name: Build Application
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    environment: BUILD_APP
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: yarn install --frozen-lockfile
+      - run: yarn build:package
+        env:
+          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
+          RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
