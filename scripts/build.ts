@@ -387,6 +387,23 @@ async function sendPatchNotes(): Promise<void> {
     }
 }
 
+function applyConfigFromEnv() {
+    const configJson = process.env.CONFIG_JSON
+    const rendererConfig = process.env.RENDERER_CONFIG
+
+    if (configJson) {
+        const configJsonPath = path.resolve(__dirname, '../src/config.json')
+        fs.writeFileSync(configJsonPath, configJson, 'utf-8')
+        log(LogLevel.SUCCESS, `Wrote ${configJsonPath}`)
+    }
+
+    if (rendererConfig) {
+        const rendererConfigPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+        fs.writeFileSync(rendererConfigPath, rendererConfig, 'utf-8')
+        log(LogLevel.SUCCESS, `Wrote ${rendererConfigPath}`)
+    }
+}
+
 function setConfigDevFalse() {
     const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
@@ -410,6 +427,9 @@ async function main(): Promise<void> {
         await sendPatchNotes()
         return
     }
+    log(LogLevel.INFO, `CONFIG_JSON length: ${process.env.CONFIG_JSON?.length}`)
+    log(LogLevel.INFO, `RENDERER_CONFIG length: ${process.env.RENDERER_CONFIG?.length}`)
+    applyConfigFromEnv()
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
