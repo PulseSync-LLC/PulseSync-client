@@ -67,7 +67,6 @@ jobs:
           RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
 
       - name: Show release contents (debug)
-        if: ${{ inputs.upload_to_s3 == true }}
         shell: bash
         run: |
           if [ -d release ]; then
@@ -78,7 +77,6 @@ jobs:
           fi
 
       - name: Upload release/ to S3 (optional)
-        if: ${{ inputs.upload_to_s3 == true }}
         env:
           DEPRECATED_VERSIONS: ${{ secrets.DEPRECATED_VERSIONS }}
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
