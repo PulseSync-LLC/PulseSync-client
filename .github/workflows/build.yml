@@ -1,6 +1,7 @@
 name: Build Application
 
 on:
+  pull_request:
   workflow_dispatch:
     inputs:
       target:
