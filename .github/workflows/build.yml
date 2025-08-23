@@ -77,6 +77,7 @@ jobs:
           fi
 
       - name: Upload release/ to S3 (optional)
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_to_s3 == true && inputs.s3_branch != '') || github.event_name == 'pull_request' }}
         env:
           DEPRECATED_VERSIONS: ${{ secrets.DEPRECATED_VERSIONS }}
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
@@ -88,10 +89,17 @@ jobs:
           S3_URL: ${{ secrets.S3_URL }}
         shell: bash
         run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            BRANCH="${{ inputs.s3_branch }}"
+            PREFIX="${{ inputs.s3_prefix }}"
+          else
+            BRANCH="${{ github.head_ref }}"
+            PREFIX="builds/pr"
+          fi
           npx -y tsx scripts/s3-upload.ts \
-            --branch "${{ inputs.s3_branch }}" \
+            --branch "$BRANCH" \
             --dir "release" \
-            --prefix "${{ inputs.s3_prefix }}" \
+            --prefix "$PREFIX" \
             --mac-manifest
 
       - name: Publish changelog (optional, single-run on ubuntu)
