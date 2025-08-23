@@ -44,7 +44,7 @@ enum LogLevel {
 }
 
 function log(level: LogLevel, message: string): void {
-    const ts = new Date().toISOString()
+    const ts = new Date().toLocaleString()
     const tag = {
         [LogLevel.INFO]: chalk.blue('[INFO] '),
         [LogLevel.SUCCESS]: chalk.green('[SUCCESS]'),
@@ -72,7 +72,7 @@ function generateBuildInfo(): { version: string } {
     pkg.buildInfo = {
         VERSION: pkg.version,
         BRANCH: branchHash,
-        BUILD_TIME: new Date().toISOString(),
+        BUILD_TIME: new Date().toLocaleString(),
     }
 
     let baseVersion = pkg.version.split('-')[0]

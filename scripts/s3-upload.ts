@@ -15,7 +15,7 @@ enum LogLevel {
 }
 
 function log(level: LogLevel, message: string): void {
-    const ts = new Date().toISOString()
+    const ts = new Date().toLocaleString()
     const tag = {
         [LogLevel.INFO]: chalk.blue('[INFO] '),
         [LogLevel.SUCCESS]: chalk.green('[SUCCESS]'),

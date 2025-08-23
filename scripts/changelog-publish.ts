@@ -11,7 +11,7 @@ enum LogLevel {
 }
 
 function log(level: LogLevel, message: string): void {
-    const ts = new Date().toISOString()
+    const ts = new Date().toLocaleString()
     const tag = {
         [LogLevel.INFO]: chalk.blue('[INFO] '),
         [LogLevel.SUCCESS]: chalk.green('[SUCCESS]'),
@@ -94,7 +94,7 @@ export async function publishPatchNotesToDiscord(): Promise<void> {
             { name: 'Изменения:', value: rawPatch || '—', inline: true },
         ],
         footer: { text: 'https://pulsesync.dev', icon_url: process.env.BOT_AVATAR_URL },
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toLocaleString(),
     }
 
     try {
