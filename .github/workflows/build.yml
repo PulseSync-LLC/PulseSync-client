@@ -5,6 +5,11 @@ on:
     branches: ["main"]
   pull_request:
   workflow_dispatch:
+    inputs:
+      target:
+        description: "Choose build branch"
+        required: true
+        default: "test-actions"
 
 jobs:
   build:
