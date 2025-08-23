@@ -3,7 +3,7 @@ import type IForkTsCheckerWebpackPlugin from 'fork-ts-checker-webpack-plugin'
 import CopyWebpackPlugin from 'copy-webpack-plugin'
 import NodePolyfillPlugin from 'node-polyfill-webpack-plugin'
 import { sentryWebpackPlugin } from '@sentry/webpack-plugin'
-import config from '../src/config.json'
+import config from '../config.json'
 import webpack from 'webpack'
 import packageJson from '../package.json'
 import path from 'path'
@@ -45,9 +45,9 @@ export const plugins = [
     //     release: {
     //         name: 'pulsesync@' + releaseVersion,
     //         uploadLegacySourcemaps: {
-    //             paths: [path.resolve(__dirname, '.webpack/main'), path.resolve(__dirname, '.webpack/renderer')],
+    //             paths: [path.resolve(__dirname, '..', '.webpack/main'), path.resolve(__dirname, '..', '.webpack/renderer')],
     //             urlPrefix: '/',
-    //             stripPrefix: [path.resolve(__dirname, '.webpack')],
+    //             stripPrefix: [path.resolve(__dirname, '..', '.webpack')],
     //         },
     //     },
     //     sourcemaps: {

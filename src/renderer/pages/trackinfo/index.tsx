@@ -1,37 +1,49 @@
 import Layout from '../../components/layout'
-import Container from '../../components/container'
-
-import CheckboxNav from '../../components/checkbox'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
-import * as theme from './trackinfo.module.scss'
+import * as themeV2 from './trackinfo.module.scss'
 
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import { useContext, useRef, useState, useMemo } from 'react'
 import userContext from '../../api/context/user.context'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
+import { Cubic } from '../../components/PSUI/Cubic'
 import playerContext from '../../api/context/player.context'
 import { object, string } from 'yup'
 import { useFormik } from 'formik'
-import { MdClose, MdContentCopy } from 'react-icons/md'
-import toast from '../../components/toast'
-import { replaceParams, truncateLabel } from '../../utils/formatRpc'
+import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
 import config from '../../api/config'
+import ContainerV2 from '../../components/containerV2'
+import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
+import TextInput from '../../components/PSUI/TextInput'
+import ButtonInput from '../../components/PSUI/ButtonInput'
+import Scrollbar from '../../components/PSUI/Scrollbar'
+
+import statusDisplayTip from './../../../../static/assets/tips/statusDisplayType.gif'
+
+type FormValues = {
+    appId: string
+    details: string
+    state: string
+    button: string
+    statusDisplayType: string
+}
 
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const [rickRollClick, setRickRoll] = useState(false)
-    const [modal, setModal] = useState(false)
-    const [modalAnim, setModalAnim] = useState(false)
-    const [previousValues, setPreviousValues] = useState({
-        appId: '',
-        details: '',
-        state: '',
-        button: '',
-    })
+
+    const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
+        appId: app.discordRpc.appId || '',
+        details: app.discordRpc.details || '',
+        state: app.discordRpc.state || '',
+        button: app.discordRpc.button || '',
+        statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+    }))
+
     const schema = object().shape({
         appId: string()
             .nullable()
@@ -45,13 +57,11 @@ export default function TrackInfoPage() {
             .test('len', 'Минимальная длина 2 символа', val => !val || val.length >= 2)
             .test('len', 'Максимальная длина 128 символов', val => !val || val.length <= 128),
         button: string().test('len', 'Максимальная длина 30 символов', val => !val || val.length <= 30),
+        statusDisplayType: string()
+            .matches(/^[012]$/, 'Введите 0 (Name), 1 (State) или 2 (Details)')
+            .required('Введите 0, 1 или 2'),
     })
-    const copyValues = async (value: string) => {
-        setModalAnim(false)
-        setTimeout(() => setModal(false), 200)
-        await navigator.clipboard.writeText(value)
-        toast.custom('success', 'Крутяк', 'Скопировано в буфер обмена')
-    }
+
     const getChangedValues = (initialValues: any, currentValues: any) => {
         const changedValues: any = {}
         for (const key in initialValues) {
@@ -61,26 +71,22 @@ export default function TrackInfoPage() {
         }
         return changedValues
     }
-    useEffect(() => {
-        setPreviousValues({
-            ...(previousValues as any),
-            appId: app.discordRpc.appId,
-            details: app.discordRpc.details,
-            state: app.discordRpc.state,
-            button: app.discordRpc.button,
-        })
-    }, [])
-    const formik = useFormik({
+
+    const formik = useFormik<FormValues>({
         initialValues: {
             appId: app.discordRpc.appId,
             details: app.discordRpc.details,
             state: app.discordRpc.state,
             button: app.discordRpc.button,
+            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
         },
         validationSchema: schema,
         onSubmit: values => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
+                if (Object.prototype.hasOwnProperty.call(changedValues, 'statusDisplayType')) {
+                    changedValues.statusDisplayType = parseInt(changedValues.statusDisplayType, 10)
+                }
                 window.desktopEvents?.send('update-rpcSettings', changedValues)
                 window.desktopEvents?.send('GET_TRACK_INFO')
                 setPreviousValues(values)
@@ -89,6 +95,7 @@ export default function TrackInfoPage() {
                     discordRpc: {
                         ...app.discordRpc,
                         ...values,
+                        statusDisplayType: parseInt(values.statusDisplayType, 10),
                     },
                 })
             }
@@ -107,23 +114,23 @@ export default function TrackInfoPage() {
     const fixedAddon = { charCount: inputStyle.charCount }
     useCharCount(containerRef, fixedAddon)
 
+    const hasData = currentTrack.realId !== trackInitials.realId
+    const shouldShowByStatus = currentTrack.status === 'playing' || (currentTrack.status === 'paused' && app.discordRpc.displayPause)
+    const isReady = app.discordRpc.status && hasData && shouldShowByStatus
+
+    const activityButtons = useMemo(() => buildActivityButtonsRpc(currentTrack, app), [currentTrack, app])
+
     return (
         <Layout title="Discord RPC">
             <div className={styles.page}>
                 <div className={styles.container}>
                     <div ref={containerRef} className={styles.main_container}>
-                        <Container
+                        <ContainerV2
                             titleName={'Discord RPC'}
-                            description={`Активируйте этот параметр, чтобы ваш текущий статус отображался в Discord`}
                             imageName={'discord'}
                             onClick={() => {
-                                if (app.discordRpc.status) {
-                                    window.desktopEvents?.send('GET_TRACK_INFO')
-                                    window.discordRpc.discordRpc(false)
-                                } else {
-                                    window.desktopEvents?.send('GET_TRACK_INFO')
-                                    window.discordRpc.discordRpc(true)
-                                }
+                                window.desktopEvents?.send('GET_TRACK_INFO')
+                                window.discordRpc.discordRpc(!app.discordRpc.status)
                                 setApp({
                                     ...app,
                                     discordRpc: {
@@ -132,286 +139,259 @@ export default function TrackInfoPage() {
                                     },
                                 })
                             }}
+                            classNameButton={themeV2.buttonRpcStatus}
                             buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
-                        ></Container>
-                        <div className={styles.container30x15}>
-                            <div className={theme.container}>
-                                <form>
-                                    <div className={theme.discordRpcSettings}>
-                                        <div className={theme.optionalContainer}>
-                                            <div className={theme.optionalTitle}>Настроить статус</div>
-                                            <div className={inputStyle.textInputContainer}>
-                                                <div>App ID</div>
-                                                <input
-                                                    type="text"
-                                                    name="appId"
-                                                    aria-errormessage={(formik.errors as any)['appId']}
-                                                    placeholder="1270726237605855395"
-                                                    className={inputStyle.styledInput}
-                                                    value={formik.values.appId}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={e => {
-                                                        handleBlur(e)
-                                                    }}
-                                                />
-                                                {formik.touched.appId && formik.errors.appId ? (
-                                                    <div className={inputStyle.error}>{formik.errors.appId}</div>
-                                                ) : null}
-                                            </div>
-                                            <div className={inputStyle.textInputContainer}>
-                                                <div>Details</div>
-                                                <input
-                                                    type="text"
-                                                    name="details"
-                                                    placeholder="enter text"
-                                                    className={inputStyle.styledInput}
-                                                    value={formik.values.details}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={e => {
-                                                        handleBlur(e)
-                                                    }}
-                                                />
-                                                {formik.touched.details && formik.errors.details ? (
-                                                    <div className={inputStyle.error}>{formik.errors.details}</div>
-                                                ) : null}
-                                            </div>
-                                            <div className={inputStyle.textInputContainer}>
-                                                <div>State</div>
-                                                <input
-                                                    type="text"
-                                                    name="state"
-                                                    placeholder="enter text"
-                                                    className={inputStyle.styledInput}
-                                                    value={formik.values.state}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={e => {
-                                                        handleBlur(e)
-                                                    }}
-                                                />
-                                                {formik.touched.state && formik.errors.state ? (
-                                                    <div className={inputStyle.error}>{formik.errors.state}</div>
-                                                ) : null}
-                                            </div>
-                                            <div
-                                                className={theme.openModalButton}
-                                                onClick={() => {
-                                                    setModalAnim(true)
-                                                    setModal(true)
-                                                }}
-                                            >
-                                                Посмотреть все параметры полей.
-                                            </div>
-                                            <div className={theme.line}></div>
-                                            <CheckboxNav
-                                                checkType="enableRpcButtonListen"
-                                                description="Активируйте этот параметр, чтобы включить отображение в активности кнопку слушать. Ограничения по русским символам 15+-, по английским 30+-"
-                                            >
-                                                Включить кнопку (Слушать)
-                                            </CheckboxNav>
-                                            <div className={inputStyle.textInputContainer}>
-                                                <div>Button</div>
-                                                <input
-                                                    type="text"
-                                                    name="button"
-                                                    placeholder="enter text"
-                                                    className={inputStyle.styledInput}
-                                                    value={formik.values.button}
-                                                    onChange={formik.handleChange}
-                                                    onBlur={e => {
-                                                        handleBlur(e)
-                                                    }}
-                                                />
-                                                {formik.touched.button && formik.errors.button ? (
-                                                    <div className={inputStyle.error}>{formik.errors.button}</div>
-                                                ) : null}
-                                            </div>
-                                            <CheckboxNav
-                                                checkType="enableWebsiteButton"
-                                                description="Если включить, то в активности появится кнопка, ведущая на сайт проекта."
-                                            >
-                                                Включить кнопку (PulseSync Project)
-                                            </CheckboxNav>
-                                            <div className={theme.line}></div>
-                                            <CheckboxNav
-                                                checkType="showTrackVersion"
-                                                description="Если включить, то в активности будет к названию трека будет добавлятся его версия"
-                                            >
-                                                Включить показ версии трека
-                                            </CheckboxNav>
-                                            <CheckboxNav
-                                                checkType="showSmallIcon"
-                                                description="Если включить, то в активности будет показываться иконка с текстом который настраивается ниже."
-                                            >
-                                                Включить иконоку статуса прослушивания
-                                            </CheckboxNav>
-                                            <CheckboxNav
-                                                checkType="showVersionOrDevice"
-                                                disabled={!app.discordRpc.showSmallIcon}
-                                                description="Если включить, то в активности при наведении на иконку будет показываться версия приложения, а не устройство, где играет трек."
-                                            >
-                                                Показывать версию приложения вместо устройства, где играет трек.
-                                            </CheckboxNav>
-                                            <CheckboxNav
-                                                checkType="displayPause"
-                                                description="Активируйте этот параметр, чтобы показывать трек на паузе."
-                                            >
-                                                Показывать трек на паузе
-                                            </CheckboxNav>
+                        ></ContainerV2>
+                        <Scrollbar className={themeV2.container} classNameInner={themeV2.containerInner}>
+                            <div className={themeV2.form}>
+                                <div className={themeV2.discordRpcSettings}>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Статус</div>
+                                        <TextInput
+                                            name="appId"
+                                            label="App ID"
+                                            placeholder="1270726237605855395"
+                                            ariaLabel="App ID"
+                                            value={formik.values.appId}
+                                            onChange={val => formik.setFieldValue('appId', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.appId as any}
+                                            touched={formik.touched.appId}
+                                            description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
+                                        />
+                                        <TextInput
+                                            name="details"
+                                            label="Details"
+                                            placeholder="enter text"
+                                            ariaLabel="Details"
+                                            value={formik.values.details}
+                                            onChange={val => formik.setFieldValue('details', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.details as any}
+                                            touched={formik.touched.details}
+                                            description="Описание Details"
+                                            showCommandsButton={true}
+                                        />
+                                        <TextInput
+                                            name="state"
+                                            label="State"
+                                            placeholder="enter text"
+                                            ariaLabel="State"
+                                            value={formik.values.state}
+                                            onChange={val => formik.setFieldValue('state', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.state as any}
+                                            touched={formik.touched.state}
+                                            description="Описание State"
+                                            showCommandsButton={true}
+                                        />
+                                        <TextInput
+                                            name="statusDisplayType"
+                                            label="Поменять тип отображения статуса активности"
+                                            description={
+                                                <>
+                                                    <img src={statusDisplayTip} alt="" srcSet="" /> В статусе меняет, как будет отображаться
+                                                    активность после «Слушать»
+                                                </>
+                                            }
+                                            placeholder="0"
+                                            ariaLabel="DisplayType"
+                                            value={formik.values.statusDisplayType}
+                                            onChange={val => {
+                                                formik.setFieldValue('statusDisplayType', String(val))
+                                            }}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.statusDisplayType as any}
+                                            touched={formik.touched.statusDisplayType as any}
+                                            showCommandsButton={true}
+                                            commandsType="status"
+                                        />
+                                    </div>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Кнопки</div>
+                                        <ButtonInput
+                                            label="Включить кнопку (Слушать)"
+                                            checkType="enableRpcButtonListen"
+                                            description="Показывает кнопку «Слушать» в статусе."
+                                        />
+                                        <TextInput
+                                            name="button"
+                                            label="Слушать трек на Яндекс Музыке"
+                                            placeholder="enter text"
+                                            ariaLabel="Button"
+                                            value={formik.values.button}
+                                            onChange={val => formik.setFieldValue('button', val)}
+                                            onBlur={handleBlur}
+                                            error={formik.errors.button as any}
+                                            touched={formik.touched.button}
+                                            description="Текст отображаемой кнопки"
+                                        />
+                                        <ButtonInput
+                                            label="Включить кнопку (PulseSync Project)"
+                                            checkType="enableWebsiteButton"
+                                            description="Добавляет кнопку на сайт проекта."
+                                        />
+                                        <ButtonInput
+                                            label="Включить DeepLink"
+                                            checkType="enableDeepLink"
+                                            description="Добавляет кнопки «Открыть в вебе/приложении Яндекс Музыки»."
+                                        />
+                                    </div>
+                                    <div className={themeV2.optionalContainer}>
+                                        <div className={themeV2.optionalTitle}>Особое</div>
+                                        <ButtonInput
+                                            label="Включить показ версии трека"
+                                            checkType="showTrackVersion"
+                                            description="Добавляет версию трека к названию."
+                                        />
+                                        <ButtonInput
+                                            label="Включить иконоку статуса прослушивания"
+                                            checkType="showSmallIcon"
+                                            description="Показывает маленькую иконку со статусом прослушивания."
+                                        />
+                                        <ButtonInput
+                                            label="Показывать версию приложения вместо устройства, где играет трек."
+                                            disabled={!app.discordRpc.showSmallIcon}
+                                            checkType="showVersionOrDevice"
+                                            description="В подсказке к иконке показывает версию приложения вместо устройства."
+                                        />
+                                        <ButtonInput
+                                            label="Показывать трек на паузе"
+                                            checkType="displayPause"
+                                            description="Показывает трек в статусе, даже когда он на паузе."
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className={themeV2.discordRpc}>
+                                <img
+                                    className={themeV2.userBanner}
+                                    src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
+                                    alt={user.bannerHash}
+                                    onError={e => {
+                                        ;(e.currentTarget as HTMLImageElement).src = `${config.S3_URL}/banners/default_banner.webp`
+                                    }}
+                                />
+                                <div className={themeV2.userInfo}>
+                                    <img
+                                        className={themeV2.userAvatar}
+                                        src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
+                                        alt={user.avatarHash}
+                                        onError={e => {
+                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                        }}
+                                    />
+                                    <div className={themeV2.userInfoContainer}>
+                                        <div className={themeV2.userName}>{user.username}</div>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="72" color="#F2F3F5" />
+                                            <Cubic width="6" height="6" color="#F2F3F5" />
+                                            <Cubic width="56" color="#F2F3F5" />
+                                            <Cubic width="12" color="#F2F3F5" />
+                                            <Cubic width="12" color="#F2F3F5" />
+                                            <Cubic width="12" color="#F2F3F5" />
+                                            <Cubic width="12" color="#F2F3F5" />
                                         </div>
                                     </div>
-                                </form>
-                                <div className={theme.discordRpc}>
-                                    <img
-                                        className={theme.userBanner}
-                                        src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
-                                        alt={user.bannerHash}
-                                    />
-                                    <div>
-                                        <img
-                                            className={theme.userAvatar}
-                                            src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
-                                            alt={user.avatarHash}
-                                        />
-                                        <div className={theme.userName}>{user.username}</div>
-                                        <div className={theme.userRPC}>
-                                            <div className={theme.status}>Слушает</div>
-                                            <div className={theme.statusRPC}>
-                                                <div>
-                                                    {app.discordRpc.status && currentTrack !== trackInitials ? (
-                                                        <div className={theme.flex_container}>
-                                                            <img
-                                                                className={theme.img}
-                                                                src={
-                                                                    currentTrack.albumArt ? currentTrack.albumArt : './static/assets/logo/logoapp.png'
-                                                                }
-                                                                alt=""
-                                                            />
-                                                            <div className={theme.gap}>
-                                                                <div className={theme.appName}>PulseSync</div>
-                                                                <div className={theme.name}>
-                                                                    {app.discordRpc.details.length > 0
-                                                                        ? replaceParams(app.discordRpc.details, currentTrack)
-                                                                        : currentTrack.title}
-                                                                </div>
-                                                                <div className={theme.name}>
-                                                                    {app.discordRpc.state.length > 0
-                                                                        ? replaceParams(app.discordRpc.state, currentTrack)
-                                                                        : currentTrack.artists && currentTrack.artists.length > 0
-                                                                          ? currentTrack.artists.map(x => x.name).join(', ')
-                                                                          : null}
-                                                                </div>
-                                                                {/*{currentTrack*/}
-                                                                {/*    .timestamps*/}
-                                                                {/*    .length >*/}
-                                                                {/*    0 && (*/}
-                                                                {/*    <div*/}
-                                                                {/*        className={*/}
-                                                                {/*            theme.time*/}
-                                                                {/*        }*/}
-                                                                {/*    >*/}
-                                                                {/*        {app*/}
-                                                                {/*            .discordRpc*/}
-                                                                {/*            .state*/}
-                                                                {/*            .length >*/}
-                                                                {/*        0*/}
-                                                                {/*            ? replaceParams(*/}
-                                                                {/*                  app*/}
-                                                                {/*                      .discordRpc*/}
-                                                                {/*                      .state,*/}
-                                                                {/*                  currentTrack,*/}
-                                                                {/*              )*/}
-                                                                {/*            : `${currentTrack.timestamps[0]} - ${currentTrack.timestamps[1]}`}*/}
-                                                                {/*    </div>*/}
-                                                                {/*)}*/}
+                                    <div className={themeV2.userInfoContainer}>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="17" color="#FFC250" />
+                                            <Cubic width="20" color="#F2F3F5" />
+                                            <Cubic width="44" color="#F2F3F5" />
+                                            <Cubic width="137" color="#7FAAFF" />
+                                        </div>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="17" color="#FFC250" />
+                                            <Cubic width="113" color="#F2F3F5" />
+                                            <Cubic width="12" color="#F2F3F5" />
+                                            <Cubic width="32" color="#F2F3F5" />
+                                        </div>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="300" color="#80AAFF" />
+                                        </div>
+                                    </div>
+                                    <Cubic width="72" color="#8E96B3" />
+                                    <div className={themeV2.userRPC}>
+                                        <div className={themeV2.status}>Слушает PulseSync</div>
+
+                                        <div className={themeV2.statusRPC}>
+                                            <>
+                                                {isReady ? (
+                                                    <div className={themeV2.flex_container}>
+                                                        <img
+                                                            className={themeV2.img}
+                                                            src={currentTrack.albumArt || './static/assets/logo/logoapp.png'}
+                                                            onClick={() => {
+                                                                setRickRoll(!rickRollClick)
+                                                            }}
+                                                            alt="Обложка альбома"
+                                                        />
+
+                                                        <div className={themeV2.gap}>
+                                                            <div className={themeV2.name}>
+                                                                {app.discordRpc.details.length > 0
+                                                                    ? replaceParams(app.discordRpc.details, currentTrack)
+                                                                    : currentTrack.title}
                                                             </div>
-                                                        </div>
-                                                    ) : (
-                                                        <div className={theme.flex_container}>
-                                                            <Skeleton width={58} height={58} />
-                                                            <div className={theme.gap}>
-                                                                <Skeleton width={70} height={19} />
-                                                                <Skeleton width={190} height={16} />
-                                                                <Skeleton width={80} height={16} />
+
+                                                            <div className={themeV2.author}>
+                                                                {app.discordRpc.state.length > 0
+                                                                    ? replaceParams(app.discordRpc.state, currentTrack)
+                                                                    : currentTrack.artists?.length
+                                                                      ? currentTrack.artists.map((x: any) => x.name).join(', ')
+                                                                      : null}
                                                             </div>
+
+                                                            <div className={themeV2.album}>
+                                                                {currentTrack.albums?.[0]?.title
+                                                                    ? fixStrings(currentTrack.albums?.[0]?.title)
+                                                                    : `PulseSync ${app.info.version}`}
+                                                            </div>
+
+                                                            <PlayerTimeline />
                                                         </div>
-                                                    )}
-                                                </div>
-                                                <div className={theme.buttonRpc}>
-                                                    <div
-                                                        className={theme.button}
-                                                        onClick={() => {
-                                                            setRickRoll(!rickRollClick)
-                                                        }}
-                                                    >
-                                                        {app.discordRpc.button.length > 0
-                                                            ? truncateLabel(app.discordRpc.button)
-                                                            : '✌️ Open in Yandex Music'}
                                                     </div>
-                                                    {rickRollClick && (
-                                                        <video width="600" autoPlay loop>
-                                                            <source src="https://s3.pulsesync.dev/files/heheheha.mp4" type="video/mp4" />
-                                                        </video>
-                                                    )}
-                                                    <div
-                                                        className={theme.button}
-                                                        onClick={() => {
-                                                            window.open('https://pulsesync.dev')
-                                                        }}
-                                                    >
-                                                        ♡ PulseSync Project
+                                                ) : (
+                                                    <div className={themeV2.flex_container}>
+                                                        <Skeleton width={64} height={64} />
+                                                        <div className={themeV2.gap}>
+                                                            <Skeleton width={70} height={19} />
+                                                            <Skeleton width={190} height={14} />
+                                                            <Skeleton width={90} height={14} />
+                                                            <Skeleton width={240} height={15} />
+                                                        </div>
                                                     </div>
-                                                </div>
+                                                )}
+                                            </>
+
+                                            <div className={themeV2.buttonRpc}>
+                                                {activityButtons?.map((btn, idx) => (
+                                                    <div key={`${btn.label}-${idx}`} className={themeV2.button} onClick={() => window.open(btn.url)}>
+                                                        {btn.label}
+                                                    </div>
+                                                ))}
+                                                {rickRollClick && (
+                                                    <video className={themeV2.rickRoll} width="600" autoPlay loop>
+                                                        <source src="https://s3.pulsesync.dev/files/heheheha.mp4" type="video/mp4" />
+                                                    </video>
+                                                )}
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div className={themeV2.userInfoContainer}>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="143" height="20" color="#8E96B3" />
+                                            <Cubic width="158" height="20" color="#8E96B3" />
+                                        </div>
+                                        <div className={themeV2.userTag}>
+                                            <Cubic width="209" height="20" color="#8E96B3" />
+                                            <Cubic width="75" height="20" color="#8E96B3" />
                                         </div>
                                     </div>
                                 </div>
-                                {modal && (
-                                    <div className={modalAnim ? theme.modalBlur : theme.modalBlurOff}>
-                                        <div
-                                            className={theme.modalCloseZone}
-                                            onClick={() => {
-                                                setModalAnim(false)
-                                                setTimeout(() => setModal(false), 200)
-                                            }}
-                                        ></div>
-                                        <div className={theme.modal}>
-                                            <div className={theme.modalTitle}>
-                                                <div>Параметры полей</div>
-                                                <button
-                                                    className={theme.closeModal}
-                                                    onClick={() => {
-                                                        setModalAnim(false)
-                                                        setTimeout(() => setModal(false), 200)
-                                                    }}
-                                                >
-                                                    <MdClose size={20} />
-                                                </button>
-                                            </div>
-                                            <div className={theme.modalContainer}>
-                                                <button className={theme.modalContextButton}>
-                                                    <div className={theme.contextInfo}>
-                                                        <div className={theme.contextPreview}>track</div>- название трека
-                                                    </div>
-                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{track}')} />
-                                                </button>
-                                                <button className={theme.modalContextButton}>
-                                                    <div className={theme.contextInfo}>
-                                                        <div className={theme.contextPreview}>artist</div>- имя артиста
-                                                    </div>
-                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{artist}')} />
-                                                </button>
-                                                <button className={theme.modalContextButton}>
-                                                    <div className={theme.contextInfo}>
-                                                        <div className={theme.contextPreview}>album</div>- название альбома
-                                                    </div>
-                                                    <MdContentCopy cursor={'pointer'} size={18} onClick={() => copyValues('{album}')} />
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
                             </div>
-                        </div>
+                        </Scrollbar>
                     </div>
                 </div>
             </div>

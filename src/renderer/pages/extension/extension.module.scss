@@ -1,0 +1,374 @@
+:root {
+    --scrollWExtension: 300px;
+    --scrollHExtension: 100%;
+}
+.container {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0px;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    overflow-y: scroll;
+    background: #1a1c24;
+    position: relative;
+}
+.checkSelect {
+    transition: var(--transition);
+    opacity: 0.5;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0px;
+    gap: 10px;
+    position: absolute;
+    width: 34px;
+    left: -34px;
+    top: 0px;
+    bottom: 0px;
+}
+.leftSide {
+    min-width: var(--scrollWExtension);
+    height: var(--scrollHExtension);
+}
+.leftSideInner {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding: 15px 15px 15px 40px;
+    gap: 5px;
+    width: var(--scrollWExtension);
+    height: var(--scrollHExtension);
+    overflow: auto;
+    background: #232631;
+    border-right: 1px solid #3d445b;
+}
+.rightSide {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 0px;
+    isolation: isolate;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    background: #252835;
+}
+.addonCard {
+    transition: var(--transition);
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 13px;
+    gap: 10px;
+    isolation: isolate;
+    background: transparent;
+    width: -webkit-fill-available;
+    border-radius: 8px;
+    justify-content: space-between;
+    &:hover {
+        background: #464d62;
+        & > .checkSelect {
+            opacity: 1;
+            &:hover {
+                color: #b9c5e6 !important;
+            }
+        }
+        & > .addonType {
+            color: #b9c5e6;
+        }
+    }
+}
+.addonList {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+    width: -webkit-fill-available;
+    position: relative;
+    height: -webkit-fill-available;
+}
+.noFix {
+    overflow: hidden;
+    height: -webkit-fill-available;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.noResults {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: -webkit-fill-available;
+    color: #b9c5e6;
+    font-size: small;
+    transform-origin: center;
+    font-size: 1.15rem;
+}
+
+.addonCardSelected {
+    background: #464d62;
+    & > .addonType {
+        color: #b9c5e6;
+    }
+}
+.addonImage {
+    width: 21px;
+    height: 21px;
+    border-radius: 4px;
+}
+.addonName {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 19px;
+    width: -webkit-fill-available;
+    color: #f3f3f3;
+    text-overflow: ellipsis;
+    max-width: 500px;
+    overflow: hidden;
+    white-space: nowrap;
+}
+.addonType {
+    transition: var(--transition);
+    display: flex;
+    color: #67728f;
+    width: 21px;
+    height: 21px;
+}
+.checkMarkTheme {
+    color: #92ff99;
+}
+.checkMarkScript {
+    color: #ffe292;
+}
+.topContainer {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 0px;
+    gap: 5px;
+    min-width: calc(100% + 25px);
+}
+.optionsButton {
+    padding: 7px;
+    background: transparent;
+    border: none;
+    color: #f3f3f3;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    outline: 1px solid #3d445b;
+    transition: var(--transition);
+    &:hover {
+        background: #3d445b;
+    }
+}
+.searchContainer {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: -webkit-fill-available;
+    border: none;
+    border-radius: 8px;
+    overflow: hidden;
+    outline: 1px solid #3d445b;
+    .searchInput {
+        flex-grow: 1;
+        padding: 6px 12px;
+        font-size: 13px;
+        color: #f3f3f3;
+        width: 100%;
+        background: transparent;
+        border: none;
+        transition: var(--transition);
+        &:hover {
+            background: #3d445b;
+        }
+        &:focus {
+            outline: none;
+            background: #3d445b;
+            border-color: #464d62;
+        }
+        &::placeholder {
+            color: #7b86a3;
+        }
+    }
+}
+.filterButton {
+    position: absolute;
+    right: 0;
+    padding: 7px;
+    background: transparent;
+    border: none;
+    color: #f3f3f3;
+    cursor: pointer;
+    font-size: 16px;
+    border-radius: 8px;
+    transition: var(--transition);
+    &:hover {
+        background: #3d445b;
+    }
+}
+.line {
+    background: #3d445b;
+    width: -webkit-fill-available;
+    height: 1px;
+    margin: 5px 13px;
+}
+.enabledAddons,
+.disabledAddons {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 5px;
+}
+.count {
+    position: absolute;
+    display: flex;
+    height: 13px;
+    padding: 0px 4px;
+    min-width: fit-content;
+    background: #3468f2;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    border-radius: 25px;
+    left: 40%;
+    right: 13%;
+    top: 14px;
+    align-items: center;
+    justify-content: center;
+}
+.refreshButton {
+    &:hover {
+        & > svg {
+            transform: rotate(25deg);
+        }
+    }
+    &:active {
+        & > svg {
+            transform: rotate(-25deg);
+        }
+    }
+    & > svg {
+        transition: var(--transition);
+    }
+}
+.toolbarButton {
+    position: relative;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 14px;
+    gap: 10px;
+    border: none;
+    background: #353a49;
+    transition: var(--transition);
+    &:disabled {
+        cursor: not-allowed;
+        opacity: 0.5;
+        background: #474d61;
+        &:hover {
+            background: #474d61;
+        }
+    }
+    &:hover {
+        background: #474d61;
+    }
+    & > .count {
+        position: absolute;
+        display: flex;
+        height: 13px;
+        padding: 0 4px;
+        background: #3468f2;
+        color: #fff;
+        font-size: 11px;
+        font-weight: 900;
+        border-radius: 25px;
+        left: 48%;
+        right: 13%;
+        top: 10px;
+        align-items: center;
+        justify-content: center;
+    }
+}
+.containerOtional {
+    position: absolute;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: flex-start;
+    width: fit-content;
+    height: fit-content;
+    max-height: 500px;
+    z-index: 1;
+    left: 300px;
+    top: 75px;
+    padding: 7px 0;
+    background: #353a49;
+    outline: 2px solid #41485e;
+    box-shadow: 0px 0px 12.3px rgba(0, 0, 0, 0.49);
+    border-radius: 8px;
+    overflow: auto;
+    & > button {
+        width: 100%;
+        padding: 8px 20px;
+        gap: 10px;
+        font-weight: 700;
+        font-size: 14px;
+        line-height: 140%;
+        color: #ffffff;
+    }
+}
+
+.notFound {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: -webkit-fill-available;
+    width: 100%;
+    background: transparent;
+    color: #b9c5e6;
+    text-align: center;
+    font-size: 1.1rem;
+    gap: 5px;
+    padding: 40px 24px;
+
+    h2 {
+        color: #f3f3f3;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    p {
+        margin: 0 0 8px 0;
+        color: #b9c5e6;
+        font-size: 1rem;
+        line-height: 1.5;
+    }
+
+    a {
+        display: inline-block;
+        color: #7097ff;
+        background: #3468f21f;
+        padding: 10px 25px;
+        border-radius: 33px;
+        font-weight: 600;
+        text-decoration: none;
+        margin-top: 8px;
+        transition:
+            background 0.2s,
+            color 0.2s;
+        &:hover,
+        &:focus {
+            background: #3468f2;
+            color: #ffffff;
+        }
+    }
+}

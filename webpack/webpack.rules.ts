@@ -76,15 +76,35 @@ export const rules: Required<ModuleOptions>['rules'] = [
         test: /\.svg$/,
         use: ['@svgr/webpack'],
     },
+
+    {
+        test: /\.(gif)$/i,
+        use: [
+            {
+                loader: 'file-loader',
+                options: {
+                    name: 'assets/[name].[contenthash:8].[ext]',
+                    esModule: false,
+                },
+            },
+            {
+                loader: 'image-webpack-loader',
+                options: {
+                    mozjpeg: { progressive: true, quality: 75 },
+                    optipng: { optimizationLevel: 5 },
+                    pngquant: { quality: [0.65, 0.9], speed: 4 },
+                    gifsicle: { interlaced: false, optimizationLevel: 3 },
+                },
+            },
+        ],
+    },
+
     {
         test: /\.md$/,
-        use: [
-            { loader: 'html-loader' },
-            { loader: 'markdown-loader', options: {} },
-        ],
+        use: [{ loader: 'html-loader' }, { loader: 'markdown-loader', options: {} }],
     },
     {
         test: /\.css$/,
         use: [{ loader: 'style-loader' }, { loader: 'css-loader' }],
-    }
+    },
 ]

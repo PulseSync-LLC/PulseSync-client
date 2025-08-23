@@ -1,5 +1,5 @@
 import Layout from '../../components/layout'
-import Container from '../../components/container'
+import Container from '../../components/containerV2'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
 

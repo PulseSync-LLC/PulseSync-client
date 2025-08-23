@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
 
@@ -7,8 +7,7 @@ import AuthPage from './auth'
 import CallbackPage from './auth/callback'
 import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
-import ExtensionBetaPage from './extensionbeta'
-import ExtensionViewPage from './extensionbeta/route/extensionview'
+import ExtensionPage from './extension'
 import JointPage from './joint'
 
 import { Toaster } from 'react-hot-toast'
@@ -31,9 +30,8 @@ import config from '../api/config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
-import { fixStrings, replaceParams, truncateLabel } from '../utils/formatRpc'
 import { fetchSettings } from '../api/settings'
-import { checkInternetAccess, compareVersions, notifyUserRetries } from '../utils/utils'
+import { checkInternetAccess, compareVersions, notifyUserRetries, normalizeTrack, areTracksEqual } from '../utils/utils'
 import Addon from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
@@ -43,9 +41,10 @@ import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
 import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
-import { UserProfileModalProvider } from '../context/UserProfileModalContext'
 import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
+import ProfilePage from './profile/[username]'
+import { buildDiscordActivity } from '../utils/formatRpc'
 
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
@@ -62,83 +61,89 @@ function App() {
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
-    const socket = io(config.SOCKET_URL, {
-        path: '/ws',
-        autoConnect: false,
-        auth: {
-            page: window.location.pathname,
-            token: getUserToken(),
-            version: app?.info?.version,
-        },
-    })
+    const socketRef = useRef<Socket | null>(null)
+
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
-    const router = createHashRouter([
-        {
-            path: '/',
-            element: (
-                <ErrorBoundary>
-                    <AuthPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/dev',
-            element: (
-                <ErrorBoundary>
-                    <Dev />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/auth/callback',
-            element: (
-                <ErrorBoundary>
-                    <CallbackPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/trackinfo',
-            element: (
-                <ErrorBoundary>
-                    <TrackInfoPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/users',
-            element: (
-                <ErrorBoundary>
-                    <UsersPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/extensionbeta',
-            element: (
-                <ErrorBoundary>
-                    <ExtensionBetaPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/extensionbeta/:contactId',
-            element: (
-                <ErrorBoundary>
-                    <ExtensionViewPage />
-                </ErrorBoundary>
-            ),
-        },
-        {
-            path: '/joint',
-            element: (
-                <ErrorBoundary>
-                    <JointPage />
-                </ErrorBoundary>
-            ),
-        },
-    ])
+
+    const router = useMemo(
+        () =>
+            createHashRouter([
+                {
+                    path: '/',
+                    element: (
+                        <ErrorBoundary>
+                            <AuthPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/dev',
+                    element: (
+                        <ErrorBoundary>
+                            <Dev />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/auth/callback',
+                    element: (
+                        <ErrorBoundary>
+                            <CallbackPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/trackinfo',
+                    element: (
+                        <ErrorBoundary>
+                            <TrackInfoPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/users',
+                    element: (
+                        <ErrorBoundary>
+                            <UsersPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/extension',
+                    element: (
+                        <ErrorBoundary>
+                            <ExtensionPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/extension/:contactId',
+                    element: (
+                        <ErrorBoundary>
+                            <ExtensionPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/joint',
+                    element: (
+                        <ErrorBoundary>
+                            <JointPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/profile/:username',
+                    element: (
+                        <ErrorBoundary>
+                            <ProfilePage />
+                        </ErrorBoundary>
+                    ),
+                },
+            ]),
+        [],
+    )
 
     const authorize = async () => {
         let retryCount = config.MAX_RETRY_COUNT
@@ -304,22 +309,32 @@ function App() {
             if (user.id === '-1') {
                 checkAuthorization()
             }
+
             const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
+
             const handleMouseButton = (event: MouseEvent) => {
-                if (event.button === 3 || event.button === 4) {
+                const rawHash = window.location?.hash || ''
+                const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+                const allowSideButtons = path.startsWith('/users') || path.startsWith('/profile')
+
+                if (!allowSideButtons && (event.button === 3 || event.button === 4)) {
                     event.preventDefault()
                 }
             }
+
             const handleBeforeunload = (event: BeforeUnloadEvent) => {
                 window.desktopEvents?.send('discordrpc-reset-activity')
             }
+
             const handleAuthStatus = async (event: any) => {
                 await authorize()
             }
+
             window.desktopEvents?.send('WEBSOCKET_START')
             window.desktopEvents?.on('authSuccess', handleAuthStatus)
             window.addEventListener('mouseup', handleMouseButton)
             window.addEventListener('beforeunload', handleBeforeunload)
+
             return () => {
                 clearInterval(intervalId)
                 window.desktopEvents?.removeAllListeners('authSuccess')
@@ -329,53 +344,97 @@ function App() {
         }
     }, [])
 
-    socket.on('connect', () => {
-        console.log('Socket connected')
-        toast.custom('success', 'Фух', 'Соединение установлено')
-        socket.emit('connection')
-        setSocket(socket)
-        setSocketConnected(true)
-        setLoading(false)
-    })
+    useEffect(() => {
+        const page = (() => {
+            const rawHash = window.location?.hash || ''
+            return rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+        })()
+        const version = (app.info?.version || '0.0.0').split('-')[0]
+        if (!socketRef.current) {
+            const socket = io(config.SOCKET_URL, {
+                path: '/ws',
+                autoConnect: false,
+                auth: {
+                    page,
+                    token: getUserToken(),
+                    version,
+                },
+            })
+            socketRef.current = socket
+            setSocket(socket)
+        } else {
+            const socket = socketRef.current
+            if (socket) {
+                socket.auth = { page, token: getUserToken(), version }
+            }
+        }
+    }, [app.info.version])
 
-    socket.on('disconnect', (reason, description) => {
-        console.log('Socket disconnected')
-        setSocketError(1)
-        setSocket(null)
-        setSocketConnected(false)
-    })
+    useEffect(() => {
+        const socket = socketRef.current
+        if (!socket) return
 
-    socket.on('connect_error', err => {
-        console.log('Socket connect error: ' + err)
-        setSocketError(1)
-        setSocket(null)
-        setSocketConnected(false)
-    })
-    socket.on('logout', async err => {
-        await client.resetStore()
-        setUser(userInitials)
-        setSocketError(1)
-        setSocket(null)
-        setSocketConnected(false)
-        await router.navigate('/', { replace: true })
-    })
-    socket.on('feature_toggles', data => {
-        setFeatures(data)
-    })
-    socket.on('deprecated_version', () => {
-        toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.')
-        window.desktopEvents?.send('show-notification', {
-            title: 'Внимание!',
-            body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
-        })
-    })
+        const onConnect = () => {
+            toast.custom('success', 'Фух', 'Соединение установлено')
+            socket.emit('connection')
+            setSocket(socket)
+            setSocketConnected(true)
+            setSocketError(-1)
+            setLoading(false)
+        }
+        const onDisconnect = () => {
+            setSocketError(1)
+            setSocket(null)
+            setSocketConnected(false)
+        }
+        const onConnectError = (err: any) => {
+            setSocketError(1)
+            setSocket(null)
+            setSocketConnected(false)
+        }
+        const onLogout = async () => {
+            await client.resetStore()
+            setUser(userInitials)
+            setSocketError(1)
+            setSocket(null)
+            setSocketConnected(false)
+            await router.navigate('/', { replace: true })
+        }
+        const onFeatures = (data: any) => {
+            setFeatures(data)
+        }
+        const onDeprecated = () => {
+            toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.')
+            window.desktopEvents?.send('show-notification', {
+                title: 'Внимание!',
+                body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
+            })
+        }
+
+        socket.on('connect', onConnect)
+        socket.on('disconnect', onDisconnect)
+        socket.on('connect_error', onConnectError)
+        socket.on('logout', onLogout)
+        socket.on('feature_toggles', onFeatures)
+        socket.on('deprecated_version', onDeprecated)
+
+        return () => {
+            socket.off('connect', onConnect)
+            socket.off('disconnect', onDisconnect)
+            socket.off('connect_error', onConnectError)
+            socket.off('logout', onLogout)
+            socket.off('feature_toggles', onFeatures)
+            socket.off('deprecated_version', onDeprecated)
+        }
+    }, [router])
+
     useEffect(() => {
         if (socketError === 1 || socketError === 0) {
             toast.custom('error', 'Что-то не так!', 'Сервер не доступен')
-        } else if (socketConnected) {
+        } else if (socketConnected && socketError !== -1) {
             toast.custom('success', 'На связи', 'Соединение восстановлено')
         }
-    }, [socketError])
+    }, [socketError, socketConnected])
 
     const fetchModInfo = async (app: SettingsInterface) => {
         try {
@@ -393,17 +452,19 @@ function App() {
             setMod(mods)
 
             const latest = mods[0]
-
-            if (!app?.mod?.installed || !app?.mod?.version) {
+            if (!app.mod.installed || !app.mod.version) {
                 toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
                 return
             }
-
-            if (compareVersions(latest.modVersion, app?.mod?.version) > 0) {
-                window.desktopEvents?.send('show-notification', {
-                    title: 'Доступно обновление мода',
-                    body: `Версия ${latest.modVersion} доступна для установки.`,
-                })
+            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+                const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
+                if (lastNotifiedModVersion !== latest.modVersion) {
+                    window.desktopEvents?.send('show-notification', {
+                        title: 'Доступно обновление мода',
+                        body: `Версия ${latest.modVersion} доступна для установки.`,
+                    })
+                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                }
             } else {
                 toast.custom('info', 'Всё в порядке', 'У вас установлена последняя версия мода')
             }
@@ -414,36 +475,38 @@ function App() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            if (!socket.connected) {
-                socket.connect()
-            }
+            const initializeApp = async () => {
+                if (!socketRef.current?.connected) {
+                    socketRef.current?.connect()
+                }
 
-            window.desktopEvents?.send('updater-start')
-            window.desktopEvents?.send('checkMusicInstall')
-            window.desktopEvents?.invoke('getMusicStatus').then((status: any) => {
-                setMusicInstalled(status)
-            })
-            const fetchAppInfo = async () => {
+                window.desktopEvents?.send('updater-start')
+                window.desktopEvents?.send('checkMusicInstall')
+                window.desktopEvents?.send('ui-ready')
+                const [musicStatus, fetchedAddons] = await Promise.all([
+                    window.desktopEvents?.invoke('getMusicStatus'),
+                    window.desktopEvents?.invoke('getAddons'),
+                ])
+                setMusicInstalled(musicStatus)
+                setAddons(fetchedAddons)
+
                 try {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
                     const data = await res.json()
                     if (data.ok && Array.isArray(data.appInfo)) {
                         const sortedAppInfos = data.appInfo.sort((a: any, b: any) => b.id - a.id)
                         setAppInfo(sortedAppInfos)
-                    } else {
-                        console.error('Invalid response format:', data)
                     }
                 } catch (error) {
                     console.error('Failed to fetch app info:', error)
                 }
-            }
-            fetchAppInfo()
-            fetchModInfo(app)
-            const modCheckId = setInterval(fetchModInfo, 10 * 60 * 1000)
 
-            window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
-                setAddons(fetchedAddons)
-            })
+                await fetchModInfo(app)
+            }
+
+            initializeApp()
+
+            const modCheckId = setInterval(() => fetchModInfo(app), 10 * 60 * 1000)
 
             return () => {
                 clearInterval(modCheckId)
@@ -469,7 +532,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extensionbeta/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${foundAddon.name}`)
                         setNavigateState(foundAddon)
                     }
                 })
@@ -517,6 +580,7 @@ function App() {
     useEffect(() => {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
+
             window.desktopEvents?.on('discordRpcState', (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -526,14 +590,18 @@ function App() {
                     },
                 }))
             })
-            window.desktopEvents?.on('check-mod-update', async (event, data) => {
+
+            window.desktopEvents?.on('check-mod-update', async () => {
                 await fetchModInfo(app)
             })
-            window.desktopEvents.on('CLIENT_READY', async (event, data) => {
+
+            window.desktopEvents.on('CLIENT_READY', () => {
                 window.desktopEvents?.send('REFRESH_MOD_INFO')
                 window.desktopEvents?.send('GET_TRACK_INFO')
             })
+
             window.desktopEvents?.on('rpc-log', onRpcLog)
+
             window.desktopEvents?.invoke('getVersion').then((version: string) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
@@ -543,39 +611,54 @@ function App() {
                     },
                 }))
             })
+
             window.desktopEvents?.on('check-update', (event, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
-
                 if (!data.updateAvailable) {
-                    toast.custom('info', 'О как...', 'Обновление не найдено', {
-                        id: toastReference.current,
+                    toast.update(toastReference.current!, {
+                        kind: 'info',
+                        title: 'Эвана как...',
+                        msg: 'Обновление не найдено',
+                        sticky: false,
+                        duration: 5000,
                     })
                     toastReference.current = null
                 }
             })
-            const onDownloadProgress = (event: any, value: any) => {
-                toast.custom(
-                    'loading',
-                    'Загрузка.',
-                    <>
-                        <span>Загрузка обновления</span>
-                        <b style={{ marginLeft: '.5em' }}>{Math.floor(value)}%</b>
-                    </>,
-                    { id: toastReference.current },
+
+            const onDownloadProgress = (_e: any, value: number) => {
+                toast.update(toastReference.current!, {
+                    kind: 'loading',
+                    title: 'Загрузка',
+                    msg: (
+                        <>
+                            Загрузка обновления&nbsp;
+                            <b>{Math.floor(value)}%</b>
+                        </>
+                    ),
                     value,
-                )
+                })
             }
 
             const onDownloadFailed = () => {
-                toast.custom('error', 'Ошибка.', 'Ошибка загрузки обновления', { id: toastReference.current })
+                toast.update(toastReference.current!, {
+                    kind: 'error',
+                    title: 'Ошибка',
+                    msg: 'Ошибка загрузки обновления',
+                    sticky: false,
+                })
                 toastReference.current = null
             }
 
             const onDownloadFinished = () => {
-                toast.custom('success', 'Успешно.', 'Обновление загружено', {
-                    id: toastReference.current,
+                toast.update(toastReference.current!, {
+                    kind: 'success',
+                    title: 'Успешно',
+                    msg: 'Обновление загружено',
+                    sticky: false,
+                    duration: 5000,
                 })
                 toastReference.current = null
                 setUpdate(true)
@@ -584,21 +667,42 @@ function App() {
             window.desktopEvents?.on('download-update-progress', onDownloadProgress)
             window.desktopEvents?.on('download-update-failed', onDownloadFailed)
             window.desktopEvents?.on('download-update-finished', onDownloadFinished)
+
             const loadSettings = async () => {
                 await fetchSettings(setApp)
             }
             loadSettings()
-        }
-        return () => {
-            window.desktopEvents?.removeListener('rpc-log', onRpcLog)
-            window.desktopEvents?.removeAllListeners('download-update-progress')
-            window.desktopEvents?.removeAllListeners('download-update-failed')
-            window.desktopEvents?.removeAllListeners('download-update-finished')
-            window.desktopEvents?.removeAllListeners('check-update')
-            window.desktopEvents?.removeAllListeners('discordRpcState')
-            window.desktopEvents?.removeAllListeners('CLIENT_READY')
+
+            return () => {
+                window.desktopEvents?.removeListener('rpc-log', onRpcLog)
+                window.desktopEvents?.removeAllListeners('download-update-progress')
+                window.desktopEvents?.removeAllListeners('download-update-failed')
+                window.desktopEvents?.removeAllListeners('download-update-finished')
+                window.desktopEvents?.removeAllListeners('check-update')
+                window.desktopEvents?.removeAllListeners('discordRpcState')
+                window.desktopEvents?.removeAllListeners('CLIENT_READY')
+                window.desktopEvents?.removeAllListeners('check-mod-update')
+            }
         }
     }, [])
+
+    const setAppWithSocket = useCallback(
+        (updater: (prev: SettingsInterface) => SettingsInterface) => {
+            setApp(prevSettings => {
+                const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
+
+                if (socketIo && socketIo.connected) {
+                    const socketInfo = { ...updatedSettings }
+                    delete (socketInfo as any).tokens
+                    delete (socketInfo as any).info
+                    socketIo.emit('user_settings_update', socketInfo)
+                }
+
+                return updatedSettings
+            })
+        },
+        [socketIo],
+    )
 
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
         ;(window as any).setToken = async (args: any) => {
@@ -608,7 +712,7 @@ function App() {
         ;(window as any).refreshAddons = async (args: any) => {
             window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extensionbeta', { replace: true })
+                router.navigate('/extension', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
@@ -629,7 +733,7 @@ function App() {
                     socket: socketIo,
                     socketConnected,
                     app,
-                    setApp,
+                    setApp: setAppWithSocket,
                     updateAvailable,
                     setUpdate,
                     appInfo,
@@ -643,15 +747,7 @@ function App() {
             >
                 <Player>
                     <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                        <CssVarsProvider>
-                            {loading ? (
-                                <Preloader />
-                            ) : (
-                                <UserProfileModalProvider>
-                                    <RouterProvider router={router} />
-                                </UserProfileModalProvider>
-                            )}
-                        </CssVarsProvider>
+                        <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
                     </SkeletonTheme>
                 </Player>
             </UserContext.Provider>
@@ -662,422 +758,104 @@ function App() {
 const Player: React.FC<any> = ({ children }) => {
     const { user, app, socket, features } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
-    const lastSentTrack = useRef({
-        title: null,
-        status: null,
-        progressPlayed: null,
-    })
-    useEffect(() => {
-        if (user.id !== '-1') {
-            ;(async () => {
-                if (typeof window !== 'undefined') {
-                    window.desktopEvents?.on('SEND_TRACK', async (event, data) => {
-                        if (!data) return
+    const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
+    const lastSendAt = useRef(0)
 
-                        if (socket && socket.connected) {
-                            socket.emit('track_played_enough', {
-                                track: {
-                                    id: data.realId,
-                                },
-                            })
-                        }
-                    })
-                    window.desktopEvents?.on('TRACK_INFO', (event, data) => {
-                        if (!data) return
-                        console.log(data)
+    const handleSendTrackPlayedEnough = useCallback(
+        (_e: any, data: any) => {
+            if (!data) return
+            if (socket && socket.connected) {
+                socket.emit('track_played_enough', { track: { id: data.realId } })
+            }
+        },
+        [socket],
+    )
 
-                        if (data.type === 'refresh') {
-                            return setTrack(trackInitials)
-                        }
-                        let coverImg: any
-                        if (data.track?.coverUri) {
-                            coverImg = `https://${data.track.coverUri.replace('%%', '1000x1000')}`
-                        }
-                        setTrack(prev => ({
-                            ...prev,
-                            albumArt: coverImg,
-                            isPlaying: data.isPlaying ?? prev.isPlaying,
-                            canMoveBackward: data.canMoveBackward ?? prev.canMoveBackward,
-                            canMoveForward: data.canMoveForward ?? prev.canMoveForward,
-                            status: data.status ?? prev.status,
-                            sourceType: data.track?.sourceType ?? prev.sourceType,
-                            ynisonProgress: data.ynisonProgress ?? prev.ynisonProgress,
-                            progress: {
-                                duration: data.progress?.duration ?? prev.progress.duration,
-                                loaded: data.progress?.loaded ?? prev.progress.loaded,
-                                position: data.progress?.position ?? prev.progress.position,
-                                played: data.progress?.played ?? prev.progress.played,
-                            },
-                            availableActions: {
-                                moveBackward: data.availableActions?.moveBackward ?? prev.availableActions.moveBackward,
-                                moveForward: data.availableActions?.moveForward ?? prev.availableActions.moveForward,
-                                repeat: data.availableActions?.repeat ?? prev.availableActions.repeat,
-                                shuffle: data.availableActions?.shuffle ?? prev.availableActions.shuffle,
-                                speed: data.availableActions?.speed ?? prev.availableActions.speed,
-                            },
-                            actionsStore: {
-                                repeat: data.actionsStore?.repeat ?? prev.actionsStore.repeat,
-                                shuffle: data.actionsStore?.shuffle ?? prev.actionsStore.shuffle,
-                                isLiked: data.actionsStore?.isLiked ?? prev.actionsStore.isLiked,
-                                isDisliked: data.actionsStore?.isDisliked ?? prev.actionsStore.isDisliked,
-                            },
-                            currentDevice: data.currentDevice ?? prev.currentDevice,
-                            downloadInfo: data.downloadInfo ?? prev.downloadInfo,
-                            id: data.track?.id ?? prev.id,
-                            realId: data.track?.realId ?? prev.realId,
-                            title: data.track?.title ?? prev.title,
-                            major: {
-                                id: data.track?.major?.id ?? prev.major.id,
-                                name: data.track?.major?.name ?? prev.major.name,
-                            },
-                            version: data.track?.version,
-                            available: data.track?.available ?? prev.available,
-                            availableForPremiumUsers: data.track?.availableForPremiumUsers ?? prev.availableForPremiumUsers,
-                            availableFullWithoutPermission: data.track?.availableFullWithoutPermission ?? prev.availableFullWithoutPermission,
-                            availableForOptions: data.track?.availableForOptions ?? prev.availableForOptions,
-                            disclaimers: data.track?.disclaimers ?? prev.disclaimers,
-                            storageDir: data.track?.storageDir ?? prev.storageDir,
-                            durationMs: data.track?.durationMs ?? prev.durationMs,
-                            fileSize: data.track?.fileSize ?? prev.fileSize,
-                            r128: {
-                                i: data.track?.r128?.i ?? prev.r128.i,
-                                tp: data.track?.r128?.tp ?? prev.r128.tp,
-                            },
-                            fade: {
-                                inStart: data.track?.fade?.inStart ?? prev.fade.inStart,
-                                inStop: data.track?.fade?.inStop ?? prev.fade.inStop,
-                                outStart: data.track?.fade?.outStart ?? prev.fade.outStart,
-                                outStop: data.track?.fade?.outStop ?? prev.fade.outStop,
-                            },
-                            previewDurationMs: data.track?.previewDurationMs ?? prev.previewDurationMs,
-                            artists:
-                                data.track?.artists?.map(
-                                    (artist: {
-                                        id: any
-                                        name: any
-                                        various: any
-                                        composer: any
-                                        available: any
-                                        cover: { type: any; uri: any; prefix: any }
-                                        genres: any
-                                        disclaimers: any
-                                    }) => ({
-                                        id: artist.id ?? 0,
-                                        name: artist.name ?? '',
-                                        various: artist.various ?? false,
-                                        composer: artist.composer ?? false,
-                                        available: artist.available ?? false,
-                                        cover: {
-                                            type: artist.cover?.type ?? '',
-                                            uri: artist.cover?.uri ?? '',
-                                            prefix: artist.cover?.prefix ?? '',
-                                        },
-                                        genres: artist.genres ?? [],
-                                        disclaimers: artist.disclaimers ?? [],
-                                    }),
-                                ) ?? prev.artists,
-                            albums:
-                                data.track?.albums?.map(
-                                    (album: {
-                                        id: any
-                                        title: any
-                                        metaType: any
-                                        version: any
-                                        year: any
-                                        releaseDate: any
-                                        coverUri: any
-                                        ogImage: any
-                                        genre: any
-                                        trackCount: any
-                                        likesCount: any
-                                        recent: any
-                                        veryImportant: any
-                                        artists: any[]
-                                        labels: any[]
-                                        available: any
-                                        availableForPremiumUsers: any
-                                        availableForOptions: any
-                                        availableForMobile: any
-                                        availablePartially: any
-                                        bests: any
-                                        disclaimers: any
-                                        listeningFinished: any
-                                        trackPosition: { volume: any; index: any }
-                                    }) => ({
-                                        id: album.id ?? 0,
-                                        title: album.title ?? '',
-                                        metaType: album.metaType ?? '',
-                                        version: album.version ?? '',
-                                        year: album.year ?? 0,
-                                        releaseDate: album.releaseDate ?? '',
-                                        coverUri: album.coverUri ?? '',
-                                        ogImage: album.ogImage ?? '',
-                                        genre: album.genre ?? '',
-                                        trackCount: album.trackCount ?? 0,
-                                        likesCount: album.likesCount ?? 0,
-                                        recent: album.recent ?? false,
-                                        veryImportant: album.veryImportant ?? false,
-                                        artists:
-                                            album.artists?.map(a => ({
-                                                id: a.id ?? 0,
-                                                name: a.name ?? '',
-                                                various: a.various ?? false,
-                                                composer: a.composer ?? false,
-                                                available: a.available ?? false,
-                                                cover: {
-                                                    type: a.cover?.type ?? '',
-                                                    uri: a.cover?.uri ?? '',
-                                                    prefix: a.cover?.prefix ?? '',
-                                                },
-                                                genres: a.genres ?? [],
-                                                disclaimers: a.disclaimers ?? [],
-                                            })) ?? [],
-                                        labels:
-                                            album.labels?.map(label => ({
-                                                id: label.id ?? 0,
-                                                name: label.name ?? '',
-                                            })) ?? [],
-                                        available: album.available ?? false,
-                                        availableForPremiumUsers: album.availableForPremiumUsers ?? false,
-                                        availableForOptions: album.availableForOptions ?? [],
-                                        availableForMobile: album.availableForMobile ?? false,
-                                        availablePartially: album.availablePartially ?? false,
-                                        bests: album.bests ?? [],
-                                        disclaimers: album.disclaimers ?? [],
-                                        listeningFinished: album.listeningFinished ?? false,
-                                        trackPosition: {
-                                            volume: album.trackPosition?.volume ?? 0,
-                                            index: album.trackPosition?.index ?? 0,
-                                        },
-                                    }),
-                                ) ?? prev.albums,
-                            derivedColors: {
-                                average: data.track?.derivedColors?.average ?? prev.derivedColors.average,
-                                waveText: data.track?.derivedColors?.waveText ?? prev.derivedColors.waveText,
-                                miniPlayer: data.track?.derivedColors?.miniPlayer ?? prev.derivedColors.miniPlayer,
-                                accent: data.track?.derivedColors?.accent ?? prev.derivedColors.accent,
-                            },
-                            ogImage: data.track?.ogImage ?? prev.ogImage,
-                            url: data.url ?? prev.url,
-                            lyricsAvailable: data.track?.lyricsAvailable ?? prev.lyricsAvailable,
-                            type: data.track?.type ?? prev.type,
-                            rememberPosition: data.track?.rememberPosition ?? prev.rememberPosition,
-                            trackSharingFlag: data.track?.trackSharingFlag ?? prev.trackSharingFlag,
-                            lyricsInfo: {
-                                hasAvailableSyncLyrics: data.track?.lyricsInfo?.hasAvailableSyncLyrics ?? prev.lyricsInfo.hasAvailableSyncLyrics,
-                                hasAvailableTextLyrics: data.track?.lyricsInfo?.hasAvailableTextLyrics ?? prev.lyricsInfo.hasAvailableTextLyrics,
-                            },
-                            trackSource: data.track?.trackSource ?? prev.trackSource,
-                            specialAudioResources: data.track?.specialAudioResources ?? prev.specialAudioResources,
-                        }))
-                    })
-                    return () => {
-                        window.desktopEvents?.removeAllListeners('TRACK_INFO')
-                        window.desktopEvents?.removeAllListeners('SEND_TRACK')
-                        setTrack(trackInitials)
-                    }
-                }
-            })()
-        } else {
-            window.discordRpc.clearActivity()
-        }
-    }, [user.id, socket])
-
-    const getCoverImage = (track: Track): string => {
-        return track.albumArt || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
-    }
+    const handleTrackInfo = useCallback((_: any, data: any) => {
+        setTrack(prev => {
+            const next = normalizeTrack(prev, data)
+            if (areTracksEqual(prev, next)) return prev
+            return next
+        })
+    }, [])
 
     useEffect(() => {
-        if (app.discordRpc.status && user.id !== '-1') {
-            if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                window.discordRpc.clearActivity()
-                return
+        if (user.id === '-1') {
+            if ((window as any)?.discordRpc?.clearActivity) {
+                ;(window as any).discordRpc.clearActivity()
             }
-            if (track.sourceType === 'ynison') {
-                const shareTrackPath = `album/${track.albums?.[0]?.id}/track/${track.id}`
-                const deepShareTrackUrl = `yandexmusic://${shareTrackPath}`
-                let startTimestamp = Math.round(Date.now() - (track.ynisonProgress / 1000) * 1000)
-                let endTimestamp = startTimestamp + track.durationMs
-
-                const activity: any = {
-                    type: 2,
-                    details: track.title,
-                    largeImageKey: track.albumArt,
-                    buttons: [],
-                }
-                if (app.discordRpc.showSmallIcon) {
-                    activity.smallImageText = app.discordRpc.showVersionOrDevice
-                        ? app.info.version
-                        : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
-                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
-                }
-                if (track.status === 'paused' && app.discordRpc.displayPause) {
-                    activity.smallImageText = 'Paused'
-                    activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
-                    activity.details = fixStrings(track.title)
-                    delete activity.startTimestamp
-                    delete activity.endTimestamp
-                } else if (!track.id.includes('generative')) {
-                    activity.startTimestamp = startTimestamp
-                    activity.endTimestamp = endTimestamp
-                }
-
-                if (app.discordRpc.enableRpcButtonListen) {
-                    activity.buttons.push({
-                        label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
-                        url: deepShareTrackUrl,
-                    })
-                }
-                if (app.discordRpc.enableWebsiteButton) {
-                    activity.buttons.push({
-                        label: '♡ PulseSync Project',
-                        url: 'https://pulsesync.dev',
-                    })
-                }
-                if (activity.buttons.length === 0) {
-                    delete activity.buttons
-                }
-                window.discordRpc.setActivity(activity)
-                return
-            } else {
-                if (track.title === '' || (track.status === 'paused' && !app.discordRpc.displayPause)) {
-                    window.discordRpc.clearActivity()
-                    return
-                } else {
-                    let startTimestamp = Math.round(Date.now() - track.progress.position * 1000)
-                    let endTimestamp = startTimestamp + track.durationMs
-                    const artistName = track.artists.map(x => x.name).join(', ')
-                    let rawDetails: string
-
-                    if (app.discordRpc.showTrackVersion && track.version) {
-                        rawDetails = `${track.title} (${track.version})`
-                    } else if (app.discordRpc.details.length > 0) {
-                        rawDetails = replaceParams(app.discordRpc.details, track, app.discordRpc.showTrackVersion)
-                    } else {
-                        rawDetails = track.title || 'Unknown Track'
-                    }
-
-                    const activity: any = {
-                        type: 2,
-                        largeImageKey: getCoverImage(track),
-                        details: fixStrings(rawDetails),
-                        state:
-                            app.discordRpc.state.length > 0
-                                ? fixStrings(replaceParams(app.discordRpc.state, track))
-                                : fixStrings(artistName || 'Unknown Artist'),
-                    }
-                    if (app.discordRpc.showSmallIcon) {
-                        activity.smallImageText = app.discordRpc.showVersionOrDevice
-                            ? app.info.version
-                            : ' on ' + (track.currentDevice?.info?.type ?? 'DESKTOP')
-                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/1124055337234858005/1250833449380614155.png'
-                    }
-
-                    if (track.status === 'paused' && app.discordRpc.displayPause) {
-                        activity.smallImageText = 'Paused'
-                        activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
-                        activity.details = fixStrings(track.title)
-                        delete activity.startTimestamp
-                        delete activity.endTimestamp
-                    } else if (!track.id.includes('generative')) {
-                        activity.startTimestamp = startTimestamp
-                        activity.endTimestamp = endTimestamp
-                    }
-
-                    activity.buttons = []
-
-                    if (track.trackSource !== 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen) {
-                        const linkTitle = track.albums[0].id
-                        activity.buttons.push({
-                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open in Yandex Music',
-                            url: `yandexmusic://album/${encodeURIComponent(linkTitle)}/track/${track.realId}`,
-                        })
-                    } else if (track.trackSource === 'UGC' && !track.id.includes('generative') && app.discordRpc.enableRpcButtonListen && track.url) {
-                        activity.buttons.push({
-                            label: app.discordRpc.button ? truncateLabel(app.discordRpc.button) : '✌️ Open music file',
-                            url: track.url,
-                        })
-                    }
-
-                    if (app.discordRpc.enableWebsiteButton) {
-                        activity.buttons.push({
-                            label: '♡ PulseSync Project',
-                            url: `https://pulsesync.dev`,
-                        })
-                    }
-
-                    if (activity.buttons.length === 0) {
-                        delete activity.buttons
-                    }
-
-                    if ((!track.artists || track.artists.length === 0) && track.trackSource !== 'UGC') {
-                        setTrack(prevTrack => {
-                            if (prevTrack.title && prevTrack.title.endsWith(' - Нейромузыка')) {
-                                return prevTrack
-                            }
-                            return {
-                                ...prevTrack,
-                                title: `${track.title} - Нейромузыка`,
-                            }
-                        })
-
-                        if (!track.title.endsWith(' - Нейромузыка')) {
-                            activity.details = fixStrings(`${track.title} - Нейромузыка`)
-                        } else {
-                            activity.details = fixStrings(track.title)
-                        }
-
-                        if (track.albumArt.includes('%%')) {
-                            activity.largeImageKey = `https://${track.albumArt.replace('%%', 'orig')}`
-                        }
-
-                        delete activity.state
-                    }
-                    window.discordRpc.setActivity(activity)
-                }
-            }
+            return
         }
-    }, [app.settings, user, track, app.discordRpc])
+        if (typeof window === 'undefined' || !(window as any).desktopEvents) return
+
+        const de = (window as any).desktopEvents
+        de.on('SEND_TRACK', handleSendTrackPlayedEnough)
+        de.on('TRACK_INFO', handleTrackInfo)
+
+        return () => {
+            de.removeListener('SEND_TRACK', handleSendTrackPlayedEnough)
+            de.removeListener('TRACK_INFO', handleTrackInfo)
+            setTrack(trackInitials)
+        }
+    }, [user.id, handleSendTrackPlayedEnough, handleTrackInfo])
+
+    useEffect(() => {
+        if (!app.discordRpc.status || user.id === '-1') {
+            if ((window as any)?.discordRpc?.clearActivity) {
+                ;(window as any).discordRpc.clearActivity()
+            }
+            return
+        }
+
+        const activity = buildDiscordActivity(track, app)
+
+        if (!activity) {
+            if ((window as any)?.discordRpc?.clearActivity) {
+                ;(window as any).discordRpc.clearActivity()
+            }
+            return
+        }
+
+        if ((window as any)?.discordRpc?.setActivity) {
+            ;(window as any).discordRpc.setActivity(activity)
+        }
+    }, [app, user.id, track])
+
     useEffect(() => {
         if (!socket || !features.sendTrack) return
-
         const { title, status, sourceType, progress } = track
-        const progressPlayed = progress?.position
 
-        if (!title || sourceType === 'ynison' || !['playing', 'paused'].includes(status)) {
-            return
-        }
+        const progressPlayed = progress?.position
+        if (!title || sourceType === 'ynison' || !['playing', 'paused'].includes(status)) return
+
+        const now = Date.now()
+        if (now - lastSendAt.current < 1000) return
 
         const last = lastSentTrack.current
-
-        if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) {
-            return
-        }
+        if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) return
 
         socket.emit('send_track', track)
+
         lastSentTrack.current = { title, status, progressPlayed }
+        lastSendAt.current = now
     }, [socket, track, features.sendTrack])
 
     useEffect(() => {
-        if (socket) {
-            const parseExtensions = () => {
-                if (features.sendMetrics) {
-                    const enabledTheme = window.electron.store.get('addons.theme')
-                    const enabledScripts = window.electron.store.get('addons.scripts')
-                    socket.emit('send_metrics', {
-                        theme: enabledTheme || 'Default',
-                        scripts: enabledScripts || [],
-                    })
-                }
-            }
-            parseExtensions()
-            const metricCheckId = setInterval(parseExtensions, 15 * 60 * 1000)
+        if (!socket) return
 
-            return () => {
-                clearInterval(metricCheckId)
-            }
+        const send = () => {
+            if (!features.sendMetrics) return
+            const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
+            const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
+            socket.emit('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
         }
+
+        send()
+
+        const id = setInterval(send, 15 * 60 * 1000)
+        return () => clearInterval(id)
     }, [socket, features.sendMetrics])
+
     return (
         <PlayerContext.Provider
             value={{

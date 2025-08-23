@@ -1,0 +1,32 @@
+.button {
+    transition: var(--transition);
+
+    cursor: pointer;
+    display: flex;
+    background: transparent;
+    border: none;
+    border-radius: 28px;
+    padding: 10px;
+    position: relative;
+
+    & > svg {
+        transition: var(--transition);
+        fill: #eef1ff;
+    }
+
+    &:hover {
+        background: #3456c8;
+        & > svg {
+            fill: white;
+        }
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        background: transparent;
+        border: none;
+        & > svg {
+            fill: var(--NavigationIconDefaultSvgColor);
+        }
+    }
+}

@@ -8,7 +8,7 @@ import { getState } from './state'
 
 let tray: Tray
 let menu: Menu
-const State = getState();
+const State = getState()
 
 function createTray() {
     const icon = getNativeImg('App', '.ico', 'icon').resize({
@@ -28,7 +28,7 @@ function createTray() {
             label: 'Перейти в дискорд PulseSync',
             icon: dsIcon,
             click: async () => {
-                await shell.openExternal('https://discord.gg/pulsesync')
+                await shell.openExternal('https://discord.gg/qy42uGTzRy')
             },
         }),
     )

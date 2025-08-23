@@ -1,96 +1,74 @@
-export interface AddonConfig {
-    sections: Section[]
-}
-
-export interface Section {
-    title: string
-    items: Item[]
-}
-
-export type ItemType = 'button' | 'color' | 'text' | 'slider' | 'file' | 'selector'
-
-// ------------ Общая структура кнопки ------------
-export interface ButtonAction {
+export type ButtonAction = {
     id: string
     name: string
     text: string
     defaultParameter?: string
 }
 
-// ------------ Базовый интерфейс для любого Item ------------
-export interface ItemBase {
+export type ButtonItem = {
     id: string
     name: string
-    description: string
-    type: ItemType
-}
-
-// ------------ Типы Items ------------
-export interface ButtonItem extends ItemBase {
+    description?: string
     type: 'button'
     bool: boolean
-    defaultParameter?: boolean
+    defaultParameter: boolean
 }
 
-export interface ColorItem extends ItemBase {
-    type: 'color'
-    input: string
-    defaultParameter?: string
-}
-
-export interface TextItem extends ItemBase {
-    type: 'text'
-    buttons: ButtonAction[]
-}
-
-export interface SliderItem extends ItemBase {
+export type SliderItem = {
+    id: string
+    name: string
+    description?: string
     type: 'slider'
     min: number
     max: number
     step: number
     value: number
-    defaultParameter?: number
+    defaultParameter: number
 }
 
-export interface FileItem extends ItemBase {
+export type ColorItem = {
+    id: string
+    name: string
+    description?: string
+    type: 'color'
+    input: string
+    defaultParameter: string
+}
+
+export type FileItem = {
+    id: string
+    name: string
+    description?: string
     type: 'file'
     filePath: string
-    defaultParameter?: {
-        filePath: string
-    }
+    defaultParameter?: { filePath: string }
 }
 
-export interface SelectorOptionsMap {
-    [key: string]: {
-        event: string
-        name: string
-    }
-}
-
-export interface SelectorItem extends ItemBase {
+export type SelectorItem = {
+    id: string
+    name: string
+    description?: string
     type: 'selector'
-    selected: number
-    options: SelectorOptionsMap
-    defaultParameter?: number
+    selected: number | string
+    options: Record<string, { event: string; name: string }>
+    defaultParameter: number | string
 }
 
-// ------------ Union всех Item ------------
-export type Item = ButtonItem | ColorItem | TextItem | SliderItem | FileItem | SelectorItem
-
-// ------------ Помощники для определения типа ------------
-export function isTextItem(item: Item): item is TextItem {
-    return item.type === 'text'
+export type TextItem = {
+    id: string
+    name: string
+    description?: string
+    type: 'text'
+    buttons: ButtonAction[]
 }
 
-export function isSliderItem(item: Item): item is SliderItem {
-    return item.type === 'slider'
+export type Item = ButtonItem | SliderItem | ColorItem | FileItem | SelectorItem | TextItem
+
+export type Section = {
+    title: string
+    items: Item[]
 }
 
-export function isFileItem(item: Item): item is FileItem {
-    return item.type === 'file'
-}
-
-/** Для проверки, является ли Item селектором */
-export function isSelectorItem(item: Item): item is SelectorItem {
-    return item.type === 'selector'
+export type AddonConfig = {
+    sections: Section[]
 }

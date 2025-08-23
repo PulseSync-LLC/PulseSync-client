@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
-import Button from '../../../button'
+import Button from '../../../buttonV2'
 import apolloClient from '../../../../api/apolloClient'
 import toggleFollowMutation from '../../../../api/mutations/toggleFollow.query'
 import * as styles from '../../userProfileModal.module.scss'

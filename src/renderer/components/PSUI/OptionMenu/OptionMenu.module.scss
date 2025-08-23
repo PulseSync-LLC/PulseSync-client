@@ -1,0 +1,65 @@
+/* OptionMenu.module.scss */
+.filterWindow {
+    width: 320px;
+    position: absolute;
+    top: 15px;
+    left: 312px;
+    z-index: 9;
+    border-radius: 8px;
+    box-shadow: 0px 0px 8px 2px rgba(0, 0, 0, 0.4705882353);
+    background-color: #2e313d;
+    height: fit-content;
+    overflow: scroll;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: max-content;
+    gap: 5px;
+    padding: 5px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.filterTitle {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    text-transform: uppercase;
+
+    color: #98ffd6;
+}
+
+.checkboxLabel {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+    gap: 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+
+    color: #b9c5e6;
+
+    width: -webkit-fill-available;
+    transition: var(--transition);
+
+    &:hover {
+        color: #98ffd6;
+        background: #51616881;
+    }
+}

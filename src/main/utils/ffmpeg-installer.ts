@@ -11,13 +11,13 @@ import logger from '../modules/logger'
 import { getPathToYandexMusic } from './appUtils'
 
 let musicPath: string
-(async () => {
+;(async () => {
     try {
-        musicPath = await getPathToYandexMusic();
+        musicPath = await getPathToYandexMusic()
     } catch (err) {
-        logger.modManager.error('Ошибка при получении пути:', err);
+        logger.modManager.error('Ошибка при получении пути:', err)
     }
-})();
+})()
 export const FFMPEG_INSTALL: Record<
     string,
     {

@@ -9,7 +9,6 @@ import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
-import fetch from 'node-fetch'
 
 const exec = promisify(_exec)
 
@@ -108,14 +107,13 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
-async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
+function createS3Client(): S3Client {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
-
-    const client = new S3Client({
+    return new S3Client({
         region: process.env.S3_REGION,
         credentials: {
             accessKeyId: process.env.S3_ACCESS_KEY_ID!,
@@ -125,6 +123,16 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         forcePathStyle: true,
         maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
     })
+}
+
+async function publishToS3(branch: string, dir: string, version: string): Promise<void> {
+    const bucket = process.env.S3_BUCKET
+    if (!bucket) {
+        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
+        process.exit(1)
+    }
+
+    const client = createS3Client()
 
     const walk = (p: string): string[] =>
         fs.readdirSync(p).flatMap(name => {
@@ -137,27 +145,30 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
         .filter(fp => path.basename(fp).includes(version))
 
     const platform = os.platform()
-    let variantFile = 'latest.yml'
-    if (platform === 'darwin') variantFile = 'latest-mac.yml'
+    let variantFile: string | null = 'latest.yml'
+    if (platform === 'darwin') variantFile = null
     else if (platform === 'linux') variantFile = 'latest-linux.yml'
 
-    const variantPath = path.join(dir, variantFile)
-    if (fs.existsSync(variantPath)) {
-        log(LogLevel.INFO, `Processing ${variantFile}`)
-        const raw = fs.readFileSync(variantPath, 'utf-8')
-        let data: any = {}
-        try {
-            data = yaml.load(raw) as any
-        } catch (e: any) {
-            log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
+    if (variantFile) {
+        const variantPath = path.join(dir, variantFile)
+        if (fs.existsSync(variantPath)) {
+            log(LogLevel.INFO, `Processing ${variantFile}`)
+            const raw = fs.readFileSync(variantPath, 'utf-8')
+            let data: any = {}
+            try {
+                data = yaml.load(raw) as any
+            } catch (e: any) {
+                log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
+            }
+            data.updateUrgency = 'soft'
+            data.commonConfig = {
+                DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
+                UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
+            }
+            fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
+            files.push(variantPath)
+            log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
         }
-        data.commonConfig = {
-            DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-            UPDATE_URL: `${process.env.S3_URL}/builds/app/${branch}/`,
-        }
-        fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
-        files.push(variantPath)
-        log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
     }
 
     const zipFiles = fs
@@ -189,6 +200,110 @@ async function publishToS3(branch: string, dir: string, version: string): Promis
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
+}
+
+async function hashFileSha512(filePath: string): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha512')
+        const stream = fs.createReadStream(filePath)
+        stream.on('data', chunk => hash.update(chunk))
+        stream.on('error', reject)
+        stream.on('end', () => resolve(hash.digest('hex')))
+    })
+}
+
+function isDmg(name: string) {
+    return name.toLowerCase().endsWith('.dmg')
+}
+function isZip(name: string) {
+    return name.toLowerCase().endsWith('.zip')
+}
+function fileTypeOf(name: string): 'dmg' | 'zip' {
+    return isZip(name) ? 'zip' : 'dmg'
+}
+
+function parseMacArtifactArch(name: string): 'arm64' | 'x64' | null {
+    const lower = name.toLowerCase()
+    if (lower.includes('arm64')) return 'arm64'
+    if (lower.includes('x64') || lower.includes('intel')) return 'x64'
+    if (lower.includes('-mac') || lower.includes('mac')) return null
+    if (lower.includes('universal')) return null
+    return null
+}
+
+function collectMacArtifacts(releaseDir: string, version: string) {
+    const files = fs.readdirSync(releaseDir).filter(n => n.includes(version) && (isDmg(n) || isZip(n)))
+    const out: Array<{ arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }> = []
+    for (const n of files) {
+        const arch = parseMacArtifactArch(n)
+        if (!arch) continue
+        out.push({ arch, file: path.join(releaseDir, n), type: fileTypeOf(n) })
+    }
+    const uniq = new Map<string, { arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }>()
+    for (const a of out) {
+        const key = `${a.arch}:${a.type}`
+        if (!uniq.has(key)) uniq.set(key, a)
+    }
+    return Array.from(uniq.values())
+}
+
+async function generateAndPublishMacDownloadJson(branch: string, releaseDir: string, version: string): Promise<void> {
+    if (os.platform() !== 'darwin') return
+    const bucket = process.env.S3_BUCKET
+    const baseUrl = process.env.S3_URL
+    if (!bucket) {
+        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
+        process.exit(1)
+    }
+    if (!baseUrl) {
+        log(LogLevel.ERROR, 'S3_URL is not set in env')
+        process.exit(1)
+    }
+    const artifacts = collectMacArtifacts(releaseDir, version)
+    if (!artifacts.length) {
+        log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
+        process.exit(1)
+    }
+    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
+    let releaseNotes = ''
+    if (fs.existsSync(patchPath)) {
+        releaseNotes = fs.readFileSync(patchPath, 'utf-8')
+    }
+    const assets = []
+    for (const a of artifacts) {
+        const sha512 = await hashFileSha512(a.file)
+        const fileName = path.basename(a.file)
+        assets.push({
+            arch: a.arch,
+            url: `${baseUrl}/builds/app/${branch}/${fileName}`,
+            fileType: a.type,
+            sha512,
+        })
+    }
+    const preferred = assets.find(x => x.arch === 'x64') || assets.find(x => x.arch === 'arm64') || assets[0]
+    const manifest = {
+        version,
+        url: preferred.url,
+        fileType: preferred.fileType,
+        sha512: preferred.sha512,
+        releaseNotes,
+        updateUrgency: 'soft',
+        minOsVersion: '>=10.13',
+        assets,
+    }
+    const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
+    const client = createS3Client()
+    const key = `builds/app/${branch}/download.json`
+    await client.send(
+        new PutObjectCommand({
+            Bucket: bucket,
+            Key: key,
+            Body: body,
+            ACL: 'public-read',
+            ContentType: 'application/json',
+        }),
+    )
+    log(LogLevel.SUCCESS, `Uploaded macOS download.json → s3://${bucket}/${key}`)
 }
 
 async function sendChangelogToApi(version: string): Promise<void> {
@@ -281,6 +396,15 @@ function setConfigDevFalse() {
     log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in config.ts`)
 }
 
+function setConfigBranch(branch: string) {
+    const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+    let content = fs.readFileSync(configPath, 'utf-8')
+    content = content.replace(/export const branch\s*=\s*.*$/m, `export const branch = "${branch}"`)
+
+    fs.writeFileSync(configPath, content, 'utf-8')
+    log(LogLevel.SUCCESS, `Set branch=${branch} in config.ts`)
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await sendPatchNotes()
@@ -294,6 +418,10 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Build native modules: ${buildNativeModules ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
+
+    const desiredLinuxExeName = 'pulsesync'
+    const branchForConfig = publishBranch ?? 'beta'
+    setConfigBranch(branchForConfig)
 
     if (buildNativeModules) {
         const nmDir = path.resolve(__dirname, '../nativeModules')
@@ -316,8 +444,8 @@ async function main(): Promise<void> {
     }
 
     if (buildApplication) {
-        if (publishBranch) {
-            setConfigDevFalse();
+        if (publishBranch && publishBranch === 'beta' && os.platform() !== 'darwin') {
+            setConfigDevFalse()
             const appUpdateConfig = {
                 provider: 'generic',
                 url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
@@ -328,16 +456,20 @@ async function main(): Promise<void> {
             const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
             fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
             log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
+        } else if (publishBranch && publishBranch === 'beta' && os.platform() === 'darwin') {
+            setConfigDevFalse()
         }
 
-        const outDir = path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+        const baseOutDir = path.join('.', 'out')
+        const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${os.arch()}`)
         const releaseDir = path.join('.', 'release')
-
         const { version } = generateBuildInfo()
 
-        await runCommandStep('Package (electron-forge)', 'electron-forge package')
-
-        if (os.platform() === 'win32') {
+        if (os.platform() === 'darwin') {
+            await runCommandStep('Package (electron-forge:x64)', 'electron-forge package --arch x64')
+            await runCommandStep('Package (electron-forge:arm64)', 'electron-forge package --arch arm64')
+        } else {
+            await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 
             function copyNodes(srcDir: string) {
@@ -356,11 +488,43 @@ async function main(): Promise<void> {
                 })
             }
             copyNodes(nativeDir)
+
+            if (os.platform() === 'linux') {
+                const builderBaseForName = path.resolve(__dirname, '../electron-builder.yml')
+                let productNameFromYml = 'PulseSync'
+                try {
+                    const cfgRaw = fs.readFileSync(builderBaseForName, 'utf-8')
+                    const cfg = yaml.load(cfgRaw) as any
+                    if (cfg && typeof cfg.productName === 'string') productNameFromYml = cfg.productName
+                } catch {}
+
+                const currentBinUpper = path.join(outDir, productNameFromYml)
+                const targetBinLower = path.join(outDir, desiredLinuxExeName)
+                try {
+                    if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
+                        fs.renameSync(currentBinUpper, targetBinLower)
+                        log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredLinuxExeName}`)
+                    }
+                } catch (e: any) {
+                    log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
+                }
+            }
         }
+
+        const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
+        const outDirARM64 = path.join(baseOutDir, `PulseSync-${os.platform()}-arm64`)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+
+        if (!configObj.linux) configObj.linux = {}
+        configObj.linux.executableName = desiredLinuxExeName
+        if (configObj.linux.desktop && configObj.linux.desktop.entry) {
+            if (configObj.linux.desktop.entry.Icon) {
+                configObj.linux.desktop.entry.Icon = desiredLinuxExeName
+            }
+        }
 
         if (publishBranch) {
             configObj.publish = [
@@ -381,12 +545,29 @@ async function main(): Promise<void> {
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
-        const buildCmd = `electron-builder --pd "${outDir}" --config "${tmpPath}" --publish never`
-        await runCommandStep('Build (electron-builder)', buildCmd)
+        if (os.platform() === 'darwin') {
+            await runCommandStep(
+                'Build (electron-builder:x64)',
+                `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
+            )
+            await runCommandStep(
+                'Build (electron-builder:arm64)',
+                `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
+            )
+        } else {
+            await runCommandStep(
+                'Build (electron-builder)',
+                `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}" --config "${tmpPath}" --publish never`,
+            )
+        }
+
         fs.unlinkSync(tmpPath)
 
         if (publishBranch) {
             await publishToS3(publishBranch, releaseDir, version)
+            if (os.platform() === 'darwin') {
+                await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
+            }
             await sendChangelogToApi(version)
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')

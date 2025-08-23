@@ -1,0 +1,211 @@
+:root {
+    --scrollWAddonFilters: 500px;
+    --scrollHAddonFilters: 400px;
+}
+
+.filterWindow {
+    width: var(--scrollWAddonFilters);
+    height: var(--scrollHAddonFilters);
+    position: absolute;
+    top: 15px;
+    left: 312px;
+    z-index: 9;
+    overflow: hidden;
+    border-radius: 8px;
+    box-shadow: 0px 0px 8px 2px #00000078;
+    background-color: #2e313d;
+}
+
+.filterWindowInner {
+    min-width: -webkit-fill-available;
+    max-height: -webkit-fill-available;
+    height: 100%;
+    overflow: scroll;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: max-content;
+    gap: 5px;
+    padding: 5px;
+}
+
+.filterGroup {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.filterTitle {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    text-transform: uppercase;
+
+    color: #98ffd6;
+}
+
+.textGroup {
+    display: flex;
+    width: -webkit-fill-available;
+    justify-content: space-between;
+}
+
+.text {
+    display: flex;
+}
+
+.radioLabel,
+.checkboxLabel {
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 6px 13px;
+    gap: 13px;
+
+    border-radius: 8px;
+
+    font-weight: 400;
+    font-size: 14px;
+
+    color: #b9c5e6;
+
+    width: -webkit-fill-available;
+    transition: var(--transition);
+
+    &:hover {
+        color: #98ffd6;
+        background: #51616881;
+    }
+}
+
+input[type='radio'],
+input[type='checkbox'] {
+    accent-color: #b9c5e6;
+    width: 14px;
+    height: 14px;
+    cursor: pointer;
+}
+
+.radioLabel {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    user-select: none;
+    width: -webkit-fill-available;
+}
+
+.customRadio {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border-radius: 50%;
+    border: 2px solid #b9c5e6;
+    position: relative;
+    background-color: transparent;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
+}
+
+.customRadio::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #98ffd6;
+    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.customRadio.selected::before {
+    opacity: 1;
+}
+
+.selected {
+    color: #98ffd6;
+    background: #516168;
+}
+
+.radioLabel.selected .customRadio {
+    background-color: #516168;
+    border-color: #98ffd6;
+}
+
+.radioLabel:hover .customRadio {
+    border-color: #99ccb8;
+}
+
+.checkboxLabel input[type='checkbox'] {
+    display: none;
+}
+
+.checkboxLabel .customCheckbox {
+    width: 14px;
+    height: 14px;
+    min-width: 14px;
+    border: 2px solid #b9c5e6;
+    border-radius: 3px;
+    position: relative;
+    transition:
+        background-color 0.3s,
+        border-color 0.3s;
+}
+
+.checkboxLabel .customCheckbox::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    min-width: 10px;
+    background-color: transparent;
+    border-radius: 2px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    border: 5px solid #98ffd6;
+    opacity: 0;
+    transition:
+        opacity 0.3s,
+        transform 0.3s;
+}
+
+.checkboxLabel input[type='checkbox']:checked + .customCheckbox::before {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.5);
+    background-color: #98ffd6;
+}
+
+.checkboxLabel input[type='checkbox']:checked + .customCheckbox {
+    background-color: #516168;
+    border-color: #98ffd6;
+}
+
+.checkboxLabel:hover .customCheckbox {
+    border-color: #99ccb8;
+}
+
+.resetIcon {
+    margin-left: 5px;
+    cursor: pointer;
+    opacity: 0.7;
+    transition: var(--transition);
+    vertical-align: middle;
+
+    &:hover {
+        opacity: 1;
+    }
+}

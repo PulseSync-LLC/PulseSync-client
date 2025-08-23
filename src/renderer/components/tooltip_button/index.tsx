@@ -10,6 +10,7 @@ interface TooltipButtonProps {
     dataSide?: 'top' | 'right' | 'bottom' | 'left'
     as?: 'button' | 'div' | 'span'
     disabled?: boolean
+    tipEnabled?: boolean
     className?: string
     style?: React.CSSProperties
     styleComponent?: React.CSSProperties
@@ -23,11 +24,19 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
     onClick,
     as = 'button',
     disabled,
+    tipEnabled = true,
     className,
     style,
     styleComponent,
 }) => {
     const Component = as
+    if (!tipEnabled) {
+        return (
+            <Component onClick={onClick} className={className} disabled={disabled} style={style}>
+                {children}
+            </Component>
+        )
+    }
     return (
         <Tooltip.Provider delayDuration={100} skipDelayDuration={100}>
             <Tooltip.Root>

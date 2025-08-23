@@ -2,17 +2,17 @@ import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import {
     MdDownload,
-    MdExtension,
     MdHandyman,
     MdKeyboardArrowRight,
     MdOutlineInstallDesktop,
     MdOutlineWarningAmber,
     MdPeople,
+    MdPower,
     MdStoreMallDirectory,
     MdUpdate,
 } from 'react-icons/md'
 import Header from './header'
-import NavButtonPulse from '../nav_button_pulse'
+import NavButtonPulse from '../PSUI/NavButton'
 import DiscordIcon from './../../../../static/assets/icons/discord.svg'
 import Preloader from '../preloader'
 import userContext from '../../api/context/user.context'
@@ -71,12 +71,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleProgress = (_: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
-                toast.custom(
-                    'loading',
-                    `Прогресс загрузки: ${progress}%`,
-                    `Загружаю`,
-                    { id: downloadToastIdRef.current, duration: Infinity },
-                    progress,
+                toast.update(
+                    downloadToastIdRef.current,
+                    {
+                        kind: 'loading',
+                        title: `Прогресс загрузки: ${progress}%`,
+                        msg: `Загружаю`,
+                        value: progress,
+                    },
                 )
             } else {
                 const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, { duration: Infinity }, progress)
@@ -131,7 +133,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
 
             if (downloadToastIdRef.current) {
-                toast.custom('error', 'Произошла ошибка', getErrorMessage(), { id: downloadToastIdRef.current })
+                toast.update(downloadToastIdRef.current, {
+                    kind: 'error',
+                    title: 'Произошла ошибка',
+                    msg: getErrorMessage(),
+                    sticky: false,
+                    value: 0,
+                })
                 downloadToastIdRef.current = null
             } else {
                 toast.custom('error', 'Произошла ошибка', getErrorMessage())
@@ -173,7 +181,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onProgressUpdate = (_: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
-                toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { id: toastReference.current, duration: Infinity }, progress)
+                toast.update(
+                    toastReference.current,
+                    {
+                        kind: 'loading',
+                        title: `Загрузка: ${progress}%`,
+                        msg: 'Прогресс загрузки',
+                        value: progress,
+                    },
+                )
             } else {
                 const id = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
                 toastReference.current = id
@@ -182,12 +198,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onUpdateFailure = (_: any, error: any) => {
             if (toastReference.current) {
-                toast.custom(
-                    'error',
-                    `Ошибка: ${error.error}`,
-                    !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
-                    { id: toastReference.current },
-                )
+                toast.update(toastReference.current, {
+                    kind: 'error',
+                    title: `Ошибка: ${error.error}`,
+                    msg: !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                    sticky: false,
+                    value: 0,
+                })
                 toastReference.current = null
             } else {
                 toast.custom(
@@ -253,16 +270,35 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         const handleFfmpegStatus = (_: any, { message, progress, success }: { message: string; progress: number; success?: boolean }) => {
             if (ffmpegToastIdRef.current) {
                 if (success) {
-                    toast.custom('success', message, 'Готово', { id: ffmpegToastIdRef.current })
-                    ffmpegToastIdRef.current = null
+                    toast.update(ffmpegToastIdRef.current, {
+                        kind: 'success',
+                        title: 'FFmpeg установлен',
+                        msg: message,
+                        sticky: false,
+                        value: undefined,
+                    })
+                } else if (progress === 100 && !success) {
+                    toast.update(ffmpegToastIdRef.current, {
+                        kind: 'error',
+                        title: 'Ошибка установки',
+                        msg: message,
+                        sticky: false,
+                        value: undefined,
+                    })
                 } else {
-                    toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { id: ffmpegToastIdRef.current, duration: Infinity }, progress)
+                    toast.update(ffmpegToastIdRef.current, {
+                        title: `Установка FFmpeg: ${progress}%`,
+                        msg: message,
+                        value: progress,
+                    })
                 }
             } else {
                 if (success) {
-                    toast.custom('success', message, 'Готово')
+                    toast.custom('success', 'FFmpeg установлен', message)
+                } else if (progress === 100 && !success) {
+                    toast.custom('error', 'Ошибка установки', message)
                 } else {
-                    const id = toast.custom('loading', `Установка ffmpeg: ${progress}%`, message, { duration: Infinity }, progress)
+                    const id = toast.custom('loading', `Установка FFmpeg: ${progress}%`, message, { duration: Infinity }, progress)
                     ffmpegToastIdRef.current = id
                 }
             }
@@ -366,9 +402,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/trackinfo" text="Информация о треке">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensionbeta" text="Аддоны Бета" disabled={!musicInstalled}>
-                                <MdExtension size={24} />
-                                <div className={pageStyles.betatest}>beta</div>
+                            <NavButtonPulse to="/extension" text="Аддоны Бета" disabled={!musicInstalled}>
+                                <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
@@ -387,10 +422,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <TooltipButton tooltipText="Установить обновление" as={'div'}>
                                     <button
                                         onClick={() => {
-                                            if (window.electron.isMac()) {
-                                                toast.custom('error', 'Ошибка', 'Обновление внутри приложения доступно только для Windows и Linux')
-                                                return
-                                            }
                                             setUpdate(false)
                                             window.desktopEvents?.send('update-install')
                                         }}

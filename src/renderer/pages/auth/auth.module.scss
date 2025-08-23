@@ -13,9 +13,9 @@
     .img1 {
         pointer-events: none;
         position: absolute;
-        top: -130px;
-        left: -120px;
-        rotate: -21deg;
+        top: -90px;
+        left: -100px;
+        rotate: 355deg;
     }
 
     .img2 {
@@ -37,8 +37,8 @@
     .img4 {
         pointer-events: none;
         position: absolute;
-        right: -550px;
-        top: -330px;
+        right: -370px;
+        top: -190px;
         rotate: 355deg;
     }
 
@@ -49,7 +49,8 @@
         height: 100%;
         left: 0;
         top: 0;
-        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        // background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        background: linear-gradient(132.84deg, #83f57d 15.35%, #bfcf68 87.95%);
         mix-blend-mode: color-burn;
     }
 
@@ -61,7 +62,8 @@
         height: 100%;
         left: 0;
         top: 0;
-        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        // background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        background: linear-gradient(132.84deg, #ffa168 15.35%, #ff6a6a 87.95%);
         mix-blend-mode: lighten;
     }
 
@@ -79,7 +81,7 @@
         .logoName {
             pointer-events: none;
             display: flex;
-            flex-direction: row;
+            flex-direction: column;
             align-items: center;
             align-self: center;
             position: absolute;
@@ -87,7 +89,7 @@
             left: 0;
             right: 0;
             top: 0;
-            bottom: 0;
+            bottom: 50px;
             justify-content: center;
         }
 
@@ -135,12 +137,27 @@
 
             a {
                 text-decoration: underline;
-                color: #ffe72f;
+                color: #2f80ff;
                 cursor: pointer;
                 &:hover {
-                    color: rgb(255, 69, 171);
+                    color: rgb(81, 69, 255);
                 }
             }
         }
     }
+}
+
+.imgChan {
+    user-select: none;
+    -webkit-user-drag: none;
+    width: 222px;
+    cursor: pointer;
+    user-select: none;
+    transition: transform 1.2s ease;
+    touch-action: manipulation;
+    pointer-events: visible;
+}
+
+.imgLogo {
+    width: 450px;
 }

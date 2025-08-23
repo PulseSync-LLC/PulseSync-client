@@ -7,11 +7,11 @@ import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'
-import Modal from '../modal'
+import Modal from '../PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import * as modalStyles from '../modal/modal.modules.scss'
+import * as modalStyles from '../PSUI/Modal/modal.modules.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
@@ -23,7 +23,7 @@ import axios from 'axios'
 import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
-import { useUserProfileModal } from '../../context/UserProfileModalContext'
+import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 import { useDispatch, useSelector } from 'react-redux'
@@ -31,11 +31,18 @@ import { RootState } from '../../api/store/store'
 import { closeModal, openModal } from '../../api/store/modalSlice'
 import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
+import NavButtonPulse from '../PSUI/NavButton'
+import { MdSettings } from 'react-icons/md'
+import Loader from '../PSUI/Loader'
 interface p {
     goBack?: boolean
 }
 
 const Header: React.FC<p> = () => {
+    const openSettings = () => {
+        window.desktopEvents.send('open-settings-window')
+    }
+
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -56,12 +63,9 @@ const Header: React.FC<p> = () => {
 
     const dispatch = useDispatch()
     const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
-    const [modChangesInfo, setModChangesInfo] = useState([])
-    const [loading, setLoading] = useState(true)
-    const [error, setError] = useState(null)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
-    const { openUserProfile } = useUserProfileModal()
+    const nav = useNavigate()
 
     const fixedAddon = { charCount: inputStyle.charCount }
 
@@ -212,8 +216,6 @@ const Header: React.FC<p> = () => {
         })
     }
 
-    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
-
     const formatDate = (timestamp: any) => {
         const date = new Date(timestamp * 1000)
         return date.toLocaleDateString('ru-RU', {
@@ -285,13 +287,20 @@ const Header: React.FC<p> = () => {
                 toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
             }
         } catch (error) {
-            if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
-            } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
-            } else {
-                toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
-                Sentry.captureException(error)
+            switch (error.response?.data?.message) {
+                case 'FILE_TOO_LARGE':
+                    toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                    break
+                case 'FILE_NOT_ALLOWED':
+                    toast.custom('error', 'Так-так', 'Файл не является изображением')
+                    break
+                case 'UPLOAD_FORBIDDEN':
+                    toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
+                    break
+                default:
+                    toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
+                    Sentry.captureException(error)
+                    break
             }
             setAvatarProgress(-1)
         }
@@ -343,84 +352,131 @@ const Header: React.FC<p> = () => {
             console.error('Error uploading banner:', error)
         }
     }
+
+    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
+
+    const [appUpdatesInfo, setAppUpdatesInfo] = useState<typeof appInfo>([])
+    const [loadingAppUpdates, setLoadingAppUpdates] = useState(true)
+    const [appError, setAppError] = useState<string | null>(null)
+
+    useEffect(() => {
+        setLoadingAppUpdates(true)
+        setAppError(null)
+
+        Promise.resolve(memoizedAppInfo)
+            .then(data => {
+                setAppUpdatesInfo(data || [])
+            })
+            .catch(e => {
+                setAppError(e.message)
+            })
+            .finally(() => {
+                setLoadingAppUpdates(false)
+            })
+    }, [memoizedAppInfo])
+
+    const [modChangesInfoRaw, setModChangesInfoRaw] = useState<any[]>([])
+    const [loadingModChanges, setLoadingModChanges] = useState(true)
+    const [modError, setModError] = useState<string | null>(null)
+
     useEffect(() => {
         if (!app.mod.installed || !app.mod.version) return
-
-        const fetchModData = async () => {
-            try {
-                setLoading(true)
-                const { data } = await client.query({
-                    query: GetModUpdates,
-                    variables: { modVersion: app.mod.version },
-                })
-                setModChangesInfo(data.getChangelogEntries)
-            } catch (err) {
-                setError(err.message)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchModData()
+        setLoadingModChanges(true)
+        setModError(null)
+        client
+            .query({ query: GetModUpdates, variables: { modVersion: app.mod.version } })
+            .then(({ data }) => setModChangesInfoRaw(data.getChangelogEntries))
+            .catch(err => setModError(err.message))
+            .finally(() => setLoadingModChanges(false))
     }, [isModModalOpen, app.mod, modInfo])
+
+    const bannerRef = useRef<HTMLDivElement>(null)
+    const [bannerUrl, setBannerUrl] = useState(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
+
+    useEffect(() => {
+        const img = new Image()
+        img.src = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
+        img.onload = () => {
+            setBannerUrl(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
+        }
+        img.onerror = () => {
+            setBannerUrl(`${config.S3_URL}/banners/default_banner.webp`)
+        }
+    }, [user.bannerHash, user.bannerType])
 
     return (
         <>
             <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
-                    {memoizedAppInfo
-                        .filter(info => info.version <= app.info.version)
-                        .map(info => (
-                            <div key={info.id}>
-                                <div className={modalStyles.version_info}>
-                                    <h3>{info.version}</h3>
-                                    <span>{formatDate(info.createdAt)}</span>
+                    {loadingAppUpdates && <Loader text="Загрузка…" />}
+                    {appError && <p>Error: {appError}</p>}
+                    {!loadingAppUpdates &&
+                        !appError &&
+                        appUpdatesInfo
+                            .filter(info => info.version <= app.info.version)
+                            .map(info => (
+                                <div key={info.id} className={modalStyles.updateItem}>
+                                    <div className={modalStyles.version_info}>
+                                        <h3>{info.version}</h3>
+                                        <span>{formatDate(info.createdAt)}</span>
+                                    </div>
+                                    <div className={modalStyles.remerkStyle}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                            {info.changelog}
+                                        </ReactMarkdown>
+                                    </div>
                                 </div>
-                                <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
-                                    {info.changelog}
-                                </ReactMarkdown>
-                                <hr />
-                            </div>
-                        ))}
+                            ))}
+                    {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= app.info.version).length === 0 && (
+                        <p>Список изменений не найден.</p>
+                    )}
                 </div>
             </Modal>
             <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loading && <p>Loading...</p>}
-                    {error && <p>Error: {error}</p>}
-                    {!loading &&
-                        !error &&
-                        modChangesInfo.length > 0 &&
-                        modChangesInfo.map(info => (
-                            <div key={info.id}>
+                    {loadingModChanges && <Loader text="Загрузка…" />}
+                    {modError && <p>Error: {modError}</p>}
+                    {!loadingModChanges &&
+                        !modError &&
+                        modChangesInfoRaw.length > 0 &&
+                        modChangesInfoRaw.map(info => (
+                            <div key={info.id} className={modalStyles.updateItem}>
                                 <div className={modalStyles.version_info}>
                                     <h3>{info.version}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
-
-                                <ReactMarkdown
-                                    remarkPlugins={[remarkGfm, remarkBreaks]}
-                                    components={{
-                                        a: ({ href, children }) => (
-                                            <a href={href} target="_blank" rel="noopener noreferrer">
-                                                {children}
-                                            </a>
-                                        ),
-                                    }}
-                                >
-                                    {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
-                                </ReactMarkdown>
-                                <hr />
+                                <div className={modalStyles.remerkStyle}>
+                                    <ReactMarkdown
+                                        remarkPlugins={[remarkGfm, remarkBreaks]}
+                                        components={{
+                                            a: ({ href, children }) => (
+                                                <a href={href} target="_blank" rel="noopener noreferrer">
+                                                    {children}
+                                                </a>
+                                            ),
+                                        }}
+                                    >
+                                        {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
+                                    </ReactMarkdown>
+                                </div>
                             </div>
                         ))}
-                    {!loading && !error && modChangesInfo.length === 0 && <p>Список изменений не найден.</p>}
+                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>Список изменений не найден.</p>}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button className={styles.logoplace} onClick={toggleMenu} disabled={user.id === '-1'}>
+                            <button className={styles.settingsButton} onClick={openSettings} disabled>
+                                <MdSettings size={22} />
+                            </button>
+                            <div className={styles.line} />
+                            <button
+                                className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}
+                                onClick={toggleMenu}
+                                disabled={user.id === '-1'}
+                            >
                                 <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
@@ -461,12 +517,6 @@ const Header: React.FC<p> = () => {
                                                 <div className={styles.dot}></div>
                                             </div>
                                         </div>
-                                        <div className={styles.user_info}>
-                                            <div className={styles.username}>{user.username}</div>
-                                            {/*<div className={styles.status_text}>*/}
-                                            {/*    {renderPlayerStatus()}*/}
-                                            {/*</div>*/}
-                                        </div>
                                     </div>
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
@@ -491,10 +541,9 @@ const Header: React.FC<p> = () => {
                                             <div className={styles.user_info}>
                                                 <div
                                                     className={styles.user_banner}
+                                                    ref={bannerRef}
                                                     style={{
-                                                        backgroundImage: `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-                                                            ? `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType})`
-                                                            : 'linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(https://i.pinimg.com/originals/36/5e/66/365e667dfc1b90180dc16b595e8f1c88.gif)',
+                                                        backgroundImage: `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${bannerUrl})`,
                                                     }}
                                                 >
                                                     <motion.div
@@ -544,6 +593,9 @@ const Header: React.FC<p> = () => {
                                                                 : 'static/assets/images/undef.png'
                                                         }
                                                         alt="card_avatar"
+                                                        onError={e => {
+                                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                        }}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}
@@ -575,7 +627,10 @@ const Header: React.FC<p> = () => {
                                                 <div className={styles.user_details}>
                                                     <div className={styles.user_info}>
                                                         <div
-                                                            onClick={() => openUserProfile(user.username)}
+                                                            onClick={() => {
+                                                                nav(`/profile/${encodeURIComponent(user.username)}`)
+                                                                setIsUserCardOpen(false)
+                                                            }}
                                                             key={user.username}
                                                             className={styles.username}
                                                         >
@@ -595,7 +650,11 @@ const Header: React.FC<p> = () => {
                                                 </div>
                                             </div>
                                             <div className={styles.user_menu_buttons}>
-                                                <button onClick={() => openUserProfile(user.username)} key={user.id} className={styles.menu_button}>
+                                                <button
+                                                    onClick={() => nav(`/profile/${encodeURIComponent(user.username)}`)}
+                                                    key={user.id}
+                                                    className={styles.menu_button}
+                                                >
                                                     Мой профиль
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
@@ -615,17 +674,17 @@ const Header: React.FC<p> = () => {
                         </div>
                         <div className={styles.button_container}>
                             <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
-                                <Minus color="#E4E5EA" />
+                                <Minus />
                             </button>
                             <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
-                                <Minimize color="#E4E5EA" />
+                                <Minimize />
                             </button>
                             <button
                                 id="close"
                                 className={styles.button_title}
                                 onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
                             >
-                                <Close color="#E4E5EA" />
+                                <Close />
                             </button>
                         </div>
                     </div>

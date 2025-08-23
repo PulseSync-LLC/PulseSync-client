@@ -1,59 +1,134 @@
-.configContent {
-    width: -webkit-fill-available;
+:root {
+    --cfg-text: var(--text-primary, #e7ecf3);
+    --cfg-muted: var(--text-secondary, #9fb0c6);
+    --cfg-accent: var(--accent, #6ea8fe);
+    --cfg-surface: #2e3446;
+    --cfg-surface-2: #3b4052;
+    --cfg-border: #3e465f;
 }
 
-.settingsContent {
-    gap: 20px;
-    padding: 15px 30px;
-
-    width: -webkit-fill-available;
+.root {
     display: flex;
     flex-direction: column;
+    gap: 5px;
+    color: var(--cfg-text);
+    width: -webkit-fill-available;
+    padding: 15px 40px;
 }
 
-.addSectionContainer {
-    display: flex;
+.section {
+    display: grid;
+    gap: 5px;
+}
+
+.sectionHeader {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
     align-items: center;
-    gap: 12px;
-    margin: 24px 24px 0 24px;
-}
-
-.addSectionInput {
-    flex: 1;
-    padding: 7px 12px;
-    color: #ffffff;
-    background: #292c36;
-    font-size: 14px;
-    border-radius: 4px;
-    border: 1px solid #363944;
-
-    &:focus {
-        border-color: #4d7dff;
-        outline: none;
-        background: #4d7cff3d;
-    }
-}
-
-.addSectionButton {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    background-color: #3468f2;
-    border: none;
-    border-radius: 4px;
-    color: #fff;
+    gap: 10px;
+    width: -webkit-fill-available;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    border: 1px solid var(--cfg-border);
+    border-radius: 12px;
+    padding: 10px 12px;
     cursor: pointer;
+    transition: 0.16s ease;
+}
+.sectionHeader:hover {
+    border-color: #556089;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+}
+
+.badge {
+    min-width: 22px;
+    height: 22px;
+    border-radius: 999px;
+    background: #454c66;
+    color: #d7def6;
+    font-size: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.25) inset;
+}
+
+.sectionTitle {
+    font-weight: 700;
+    font-size: 15px;
+    letter-spacing: 0.2px;
+}
+
+.chev {
+    width: 16px;
+    height: 16px;
+    mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        no-repeat center/contain;
+    background: #cfd8ff;
+    transform: rotate(0deg);
+    transition: transform 0.18s ease;
+}
+.collapsed .chev {
+    transform: rotate(-90deg);
+}
+
+.list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 2px;
+}
+
+.title {
+    margin: 4px 0 6px;
+    font-weight: 700;
+    font-size: 16px;
+}
+.title.small {
     font-size: 14px;
-    transition: var(--transition);
+    opacity: 0.9;
+}
 
-    &:hover {
-        background-color: #2d56c5;
-    }
+.placeholder {
+    padding: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    display: grid;
+    gap: 6px;
+}
+.phTitle {
+    font-weight: 600;
+}
+.phHint {
+    color: var(--cfg-muted);
+    font-size: 12px;
+}
 
-    &:disabled {
-        opacity: 0.5;
-        background-color: #3a3d44;
-        cursor: not-allowed;
+.resetRow {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 6px;
+}
+.resetLink {
+    background: none;
+    border: 0;
+    color: var(--cfg-accent);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 2px 4px;
+    text-decoration: underline dotted;
+}
+.resetLink:hover {
+    text-decoration: underline;
+}
+
+.collapse[data-state='closed'] {
+    height: 0;
+    opacity: 0;
+}
+
+/* reduced motion — пусть просто щёлкает, без will-change */
+@media (prefers-reduced-motion: reduce) {
+    .collapse {
+        will-change: auto;
     }
 }

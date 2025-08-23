@@ -6,6 +6,7 @@ import FileExport from './../../../../static/assets/stratis-icons/file-export.sv
 import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
 import Addon from '../../api/interfaces/addon.interface'
 import toast from '../toast'
+import { MdDeleteForever, MdFileOpen, MdIosShare } from 'react-icons/md'
 
 export interface MenuItem {
     label?: string
@@ -45,7 +46,7 @@ export const createContextMenuActions = (
                 themeName: currentAddon.directoryName,
             }),
         show: actionVisibility.showDirectory ?? false,
-        icon: <FileDirectory />,
+        icon: <MdFileOpen size={20} />,
     },
     {
         label: `Экспорт ${currentAddon.name}`,
@@ -65,7 +66,7 @@ export const createContextMenuActions = (
                 })
         },
         show: actionVisibility.showExport ?? false,
-        icon: <FileExport />,
+        icon: <MdIosShare size={20} />,
     },
     {
         label: `Страница темы ${currentAddon.name}`,
@@ -100,6 +101,6 @@ export const createContextMenuActions = (
             }
         },
         show: actionVisibility.showDelete ?? false,
-        icon: <FileDelete />,
+        icon: <MdDeleteForever size={20} />,
     },
 ]

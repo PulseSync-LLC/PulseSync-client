@@ -6,6 +6,9 @@
 
     padding: 0px;
     background: var(--Main);
+
+    filter: drop-shadow(0px 0px 4px rgba(6, 10, 23, 0.65));
+    border-radius: 10px;
 }
 
 .container {
@@ -27,8 +30,9 @@
         width: -webkit-fill-available;
         height: -webkit-fill-available;
 
+        border-radius: 10px;
         background: var(--MainBG);
-        border-radius: 20px 20px 0px 0px;
+        border: solid 1px #3d445b;
         overflow: hidden;
 
         .container_witch_text {

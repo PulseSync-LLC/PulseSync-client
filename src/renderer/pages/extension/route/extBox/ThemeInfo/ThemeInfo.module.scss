@@ -1,0 +1,197 @@
+.themeInfo {
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    color: #fff;
+    min-height: 360px;
+    position: absolute;
+    z-index: 1;
+}
+
+.content {
+    z-index: 25;
+    display: flex;
+    flex-direction: column;
+    position: absolute;
+    top: 0;
+    bottom: 66px;
+    left: 0;
+    right: 0;
+}
+
+.topTags {
+    display: flex;
+    gap: 5px;
+    padding: 0 40px;
+    height: 28px;
+    top: 20px;
+    right: 0;
+    z-index: 2;
+    position: sticky;
+    color: #fff;
+}
+
+.tag {
+    cursor: pointer;
+    transition: var(--transition);
+    font-weight: 700;
+    font-size: 12px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 12px;
+    gap: 5px;
+    background: rgba(99, 106, 130, 0.53);
+    border-radius: 8px;
+    text-transform: uppercase;
+
+    &:hover {
+        background: rgba(99, 106, 130, 0.75);
+    }
+}
+
+.libraryLogo {
+    text-align: center;
+    line-height: 1.1;
+    margin: 0;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 10px 40px;
+}
+
+.libraryLogoImg {
+    width: 140px;
+}
+
+.libraryLogoText {
+    font-size: 50px;
+    font-weight: bold;
+    transition: var(--transition);
+}
+
+.invisible {
+    background: transparent;
+    height: 266px;
+    width: -webkit-fill-available;
+    z-index: 1;
+    position: relative;
+}
+
+/* ---------- Bottom info bar ---------- */
+.bottomBar {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    padding: 10px 40px;
+    margin: 0 auto;
+    background: linear-gradient(180deg, hsl(226deg 19% 27% / 80%) 0%, #383e52f0 100%);
+    backdrop-filter: blur(50px);
+    align-self: stretch;
+    position: sticky;
+    z-index: 11;
+    top: 0px;
+    color: #fff;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.meta {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.metaItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.label {
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 19px;
+    color: #b6bdd9;
+}
+
+.value {
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 16px;
+    color: #a3accb;
+}
+
+.actions {
+    display: flex;
+    gap: 0.5rem;
+    margin-top: 1rem;
+
+    @media (min-width: 768px) {
+        margin-top: 0;
+    }
+}
+
+.toggleButton {
+    cursor: pointer;
+    transition: var(--transition);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px 24px;
+    gap: 5px;
+    border-radius: 8px;
+    flex: none;
+    order: 3;
+    flex-grow: 0;
+    justify-content: center;
+
+    font-weight: 700;
+    font-size: 16px;
+    line-height: 140%;
+}
+
+.enabledState {
+    background: rgba(99, 106, 130, 0.53);
+    color: #fff;
+
+    &:hover {
+        background: rgba(99, 106, 130, 0.75);
+    }
+}
+
+.disabledState {
+    background: rgba(99, 106, 130, 0.53);
+    color: #fff;
+
+    &:hover {
+        background: rgba(99, 106, 130, 0.75);
+    }
+}
+
+.miniButton {
+    cursor: pointer;
+    transition: var(--transition);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 12px;
+    gap: 5px;
+    width: 46px;
+    height: 46px;
+    background: rgba(99, 106, 130, 0.53);
+    border-radius: 8px;
+    flex: none;
+    order: 3;
+    flex-grow: 0;
+    justify-content: center;
+
+    &:hover {
+        background: rgba(99, 106, 130, 0.75);
+    }
+}

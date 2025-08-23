@@ -1,16 +1,8 @@
-import {
-    app,
-    BrowserWindow,
-    dialog,
-    ipcMain,
-    Notification,
-    shell,
-    session,
-    session as electronSession,
-} from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
 import logger from '../modules/logger'
 import path from 'path'
 import fs from 'original-fs'
+import * as fsp from 'fs/promises'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
@@ -27,20 +19,54 @@ import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { inSleepMode, mainWindow } from '../modules/createWindow'
+import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import { isDevmark } from '../../renderer/api/config'
+import config, { branch, isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
+import { get_current_track } from '../modules/httpServer'
+import { getMacUpdater } from '../modules/updater/macOsUpdater'
 
 const updater = getUpdater()
 const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
+const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
+const macUpdater = isMac()
+    ? getMacUpdater({
+          manifestUrl: macManifestUrl,
+          appName: 'PulseSync',
+          attemptAutoInstall: false,
+          openFinderOnMount: true,
+          onProgress: p => {
+              try {
+                  if (mainWindow) {
+                      mainWindow.setProgressBar(p / 100)
+                      mainWindow.webContents.send('download-update-progress', p)
+                  }
+              } catch {}
+          },
+          onStatus: s => {
+              if (s === UpdateStatus.DOWNLOADING) {
+                  mainWindow?.webContents.send('check-update', { updateAvailable: true })
+                  updateAvailable = true
+              } else if (s === UpdateStatus.DOWNLOADED) {
+                  mainWindow?.webContents.send('download-update-finished')
+                  updateAvailable = true
+                  try {
+                      if (mainWindow) mainWindow.setProgressBar(-1)
+                  } catch {}
+              }
+          },
+          onLog: m => logger.updater.info(m),
+      })
+    : null
+
 export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
     return path.resolve(`${savePath}/extensions/${args}`)
 }
+
 function launchExtensionBackgroundWorkers(session = electronSession.defaultSession) {
     return Promise.all(
         session.extensions.getAllExtensions().map(async extension => {
@@ -51,10 +77,9 @@ function launchExtensionBackgroundWorkers(session = electronSession.defaultSessi
         }),
     )
 }
+
 async function registerAppReadyEvents(): Promise<void> {
-    const filter = {
-        urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'],
-    }
+    const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'] }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
         logger.http.error(`HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`)
     })
@@ -69,66 +94,79 @@ async function registerAppReadyEvents(): Promise<void> {
     }
 }
 
-const registerWindowEvents = (window: BrowserWindow): void => {
+const mimeByExt: Record<string, string> = {
+    '.png': 'image/png',
+    '.jpg': 'image/jpeg',
+    '.jpeg': 'image/jpeg',
+    '.gif': 'image/gif',
+    '.webp': 'image/webp',
+    '.bmp': 'image/bmp',
+    '.svg': 'image/svg+xml',
+}
+
+const registerWindowEvents = (): void => {
     ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
     })
-
     ipcMain.on('electron-window-exit', () => {
         logger.main.info('Exit app')
         app.quit()
     })
-
     ipcMain.on('electron-window-maximize', () => {
-        if (mainWindow.isMaximized()) mainWindow.unmaximize()
-        else mainWindow.maximize()
+        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
-
-    ipcMain.on('before-quit', async () => {
-        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        if (fs.existsSync(tempFilePath)) {
-            fs.rmSync(tempFilePath)
-        }
-        mainWindow.close()
-    })
-
     ipcMain.on('electron-window-close', (_event, val: boolean) => {
         if (!val) app.quit()
         mainWindow.hide()
     })
 }
 
+const registerSettingsEvents = (): void => {
+    ipcMain.on('electron-settings-minimize', () => {
+        settingsWindow.minimize()
+    })
+    ipcMain.on('electron-settings-exit', () => {
+        logger.main.info('Exit app')
+        app.quit()
+    })
+    ipcMain.on('electron-settings-maximize', () => {
+        settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
+    })
+    ipcMain.on('electron-settings-close', (event, val) => {
+        if (!val) settingsWindow.close()
+        else settingsWindow.hide()
+    })
+}
+
+ipcMain.on('before-quit', async () => {
+    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
+    if (fs.existsSync(tempFilePath)) fs.rmSync(tempFilePath)
+    if (mainWindow) mainWindow.close()
+})
+
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on('electron-corsanywhereport', event => {
         event.returnValue = corsAnywherePort
     })
-
     ipcMain.on('electron-isdev', event => {
         event.returnValue = isAppDev || isDevmark
     })
-
     ipcMain.on('electron-ismac', async (event, args) => {
         event.returnValue = isMac()
     })
-
-    ipcMain.handle('getVersion', async () => {
-        return app.getVersion()
-    })
+    ipcMain.handle('getVersion', async () => app.getVersion())
     ipcMain.on('getLastBranch', event => {
         event.returnValue = process.env.BRANCH
     })
     ipcMain.on('electron-store-get', (event, val) => {
         event.returnValue = State.get(val)
     })
-
     ipcMain.on('electron-store-set', (event, key, val) => {
         State.set(key, val)
     })
-
     ipcMain.on('electron-store-delete', (event, key) => {
         State.delete(key)
     })
-
     ipcMain.handle('getSystemInfo', async () => ({
         appVersion: app.getVersion(),
         osType: os.type(),
@@ -138,6 +176,58 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         freeMemory: os.freemem(),
         arch: os.arch(),
     }))
+    ipcMain.on('ui-ready', () => {
+        get_current_track()
+    })
+}
+
+const readBufResilient = async (p0: string): Promise<Buffer> => {
+    if (!p0) throw new Error('empty path')
+
+    const candidates: string[] = []
+
+    if (p0.startsWith('file://')) {
+        try {
+            const u = new URL(p0)
+            candidates.push(path.normalize(decodeURI(u.pathname)))
+        } catch {}
+    }
+
+    const norm = path.normalize(p0)
+    candidates.push(norm)
+
+    if (process.platform === 'win32') {
+        candidates.push(norm.replace(/\//g, '\\'))
+        candidates.push(norm.replace(/\\/g, '/'))
+        if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
+    }
+
+    try {
+        candidates.push(norm.normalize('NFC'))
+    } catch {}
+    try {
+        candidates.push(norm.normalize('NFD'))
+    } catch {}
+
+    candidates.push(norm.replace(/^["']|["']$/g, ''))
+
+    let lastErr: any = null
+    for (const p of candidates) {
+        try {
+            return await fsp.readFile(p)
+        } catch (e1) {
+            lastErr = e1
+            try {
+                const buf = await new Promise<Buffer>((resolve, reject) => {
+                    fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
+                })
+                return buf
+            } catch (e2) {
+                lastErr = e2
+            }
+        }
+    }
+    throw lastErr ?? new Error('Unable to read file')
 }
 
 const registerFileOperations = (window: BrowserWindow): void => {
@@ -153,24 +243,17 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 return
             }
             let command: string
-            if (process.platform === 'win32') {
-                command = `"${tempFilePath}"`
-            } else if (process.platform === 'darwin') {
-                command = `open "${tempFilePath}"`
-            } else {
-                command = `xdg-open "${tempFilePath}"`
-            }
+            if (process.platform === 'win32') command = `"${tempFilePath}"`
+            else if (process.platform === 'darwin') command = `open "${tempFilePath}"`
+            else command = `xdg-open "${tempFilePath}"`
             exec(command, error => {
                 if (error) {
                     logger.main.error('Error opening the file:', error)
                     return
                 }
                 fs.unlink(tempFilePath, unlinkErr => {
-                    if (unlinkErr) {
-                        logger.main.error('Error deleting the file:', unlinkErr)
-                    } else {
-                        logger.main.log('Temporary file successfully deleted')
-                    }
+                    if (unlinkErr) logger.main.error('Error deleting the file:', unlinkErr)
+                    else logger.main.log('Temporary file successfully deleted')
                 })
             })
         })
@@ -203,9 +286,34 @@ const registerFileOperations = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle('dialog:openFile', async () => {
+    ipcMain.handle('dialog:openFile', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
+            filters: opts?.filters,
+        })
+        if (canceled || !filePaths.length) return null
+        return path.normalize(filePaths[0])
+    })
+
+    ipcMain.handle('file:asDataUrl', async (_evt, fullPath: string) => {
+        if (!fullPath) return null
+        try {
+            const buf = await (async () => {
+                return await readBufResilient(fullPath)
+            })()
+            const ext = path.extname(fullPath).toLowerCase()
+            const mime = (mimeByExt as any)?.[ext] || 'application/octet-stream'
+            return `data:${mime};base64,${buf.toString('base64')}`
+        } catch (e) {
+            console.error('[file:asDataUrl] resilient read error:', e)
+            return null
+        }
+    })
+
+    ipcMain.handle('dialog:openFileMetadata', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: opts?.filters,
         })
         if (canceled || !filePaths.length) return null
 
@@ -213,7 +321,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
         const normalizedPath = path.normalize(fullPath)
         const searchSubstr = path.join('PulseSync', 'addons') + path.sep
 
-        return normalizedPath.includes(searchSubstr) ? path.basename(normalizedPath) : fullPath
+        return normalizedPath.includes(searchSubstr) ? path.basename(normalizedPath) : normalizedPath
     })
 }
 
@@ -257,26 +365,17 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             setTimeout(() => {
                 execFile(downloadPath, error => {
                     if (error) {
-                        event.reply('download-music-failure', {
-                            success: false,
-                            error: `Failed to execute the file: ${error.message}`,
-                        })
+                        event.reply('download-music-failure', { success: false, error: `Failed to execute the file: ${error.message}` })
                         return
                     }
-                    event.reply('download-music-execution-success', {
-                        success: true,
-                        message: 'File executed successfully.',
-                    })
+                    event.reply('download-music-execution-success', { success: true, message: 'File executed successfully.' })
                     fs.unlinkSync(downloadPath)
                 })
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
             if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath)
-            event.reply('download-music-failure', {
-                success: false,
-                error: `Error downloading file: ${error.message}`,
-            })
+            event.reply('download-music-failure', { success: false, error: `Error downloading file: ${error.message}` })
         }
     })
 }
@@ -285,24 +384,19 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     ipcMain.on('get-music-device', event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4(
-                {
-                    random: Buffer.from(data.uuid),
-                },
+                { random: Buffer.from(data.uuid) },
             )}`
         })
     })
 
     ipcMain.on('autoStartApp', (_event, enabled: boolean) => {
-        if(isAppDev) return
+        if (isAppDev) return
         app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
     })
 
     ipcMain.handle('getMusicStatus', async () => {
-        if (isLinux()) {
-            return true
-        } else {
-            return fs.existsSync(musicPath)
-        }
+        if (isLinux()) return true
+        else return fs.existsSync(musicPath)
     })
 
     ipcMain.on('checkMusicInstall', () => {
@@ -311,14 +405,36 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 }
 
 const registerUpdateEvents = (window: BrowserWindow): void => {
-    ipcMain.on('update-install', () => updater.install())
+    ipcMain.on('update-install', async () => {
+        if (isMac()) {
+            try {
+                await macUpdater?.installUpdate()
+            } catch (e: any) {
+                logger.updater.error(`macOS install error: ${e?.message || e}`)
+            }
+            return
+        }
+        updater.install()
+    })
 
     ipcMain.on('checkUpdate', async (_event, args: { hard?: boolean }) => {
         await checkOrFindUpdate(args?.hard)
     })
 
-    ipcMain.on('updater-start', () => {
-        if(isMac()) return
+    ipcMain.on('updater-start', async () => {
+        if (isMac()) {
+            try {
+                const m = await macUpdater?.checkForUpdates()
+                if (m) {
+                    mainWindow.webContents.send('update-available', m.version)
+                    mainWindow.flashFrame(true)
+                    updateAvailable = true
+                }
+            } catch (e: any) {
+                logger.updater.error(`macOS updater-start error: ${e?.message || e}`)
+            }
+            return
+        }
         updater.start()
         updater.onUpdate(version => {
             mainWindow.webContents.send('update-available', version)
@@ -342,6 +458,9 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
                 break
             case 'button':
                 State.set('discordRpc.button', data.button)
+                break
+            case 'statusDisplayType':
+                State.set('discordRpc.statusDisplayType', data.statusDisplayType)
                 break
         }
     })
@@ -373,7 +492,6 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
     ipcMain.on('show-notification', (_event, data: any) => {
         new Notification({ title: data.title, body: data.body }).show()
     })
-
     ipcMain.handle('needModalUpdate', async () => {
         if (reqModal <= 0) {
             reqModal++
@@ -406,10 +524,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
             platform: os.platform(),
             osInfo: await si.osInfo(),
             memInfo: await si.mem(),
-            userInfo: {
-                username: userInfo.username,
-                homedir: userInfo.homedir,
-            },
+            userInfo: { username: userInfo.username, homedir: userInfo.homedir },
         }
 
         const systemInfoPath = path.join(logDirPath, 'system-info.json')
@@ -446,12 +561,15 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             logger.main.error('Addons: Error loading themes:', error)
         }
     })
+    ipcMain.on('open-settings-window', () => {
+        createSettingsWindow()
+    })
     ipcMain.handle('create-new-extension', async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
                 name: 'New Extension',
-                image: 'test.png',
-                banner: 'test.png',
+                image: '',
+                banner: '',
                 author: 'Your Name',
                 version: '1.0.0',
                 description: 'Default theme.',
@@ -516,8 +634,9 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 }
 
 export const handleEvents = (window: BrowserWindow): void => {
+    registerWindowEvents()
+    registerSettingsEvents()
     registerAppReadyEvents()
-    registerWindowEvents(window)
     registerSystemEvents(window)
     registerFileOperations(window)
     registerMediaEvents(window)
@@ -532,6 +651,30 @@ export const handleEvents = (window: BrowserWindow): void => {
 
 export const checkOrFindUpdate = async (hard?: boolean) => {
     logger.updater.info('Check update')
+    if (isMac()) {
+        try {
+            const m = await macUpdater?.checkForUpdates()
+            if (m) {
+                mainWindow.webContents.send('check-update', { updateAvailable: true })
+                updateAvailable = true
+                try {
+                    await macUpdater?.downloadUpdate(m)
+                    mainWindow.webContents.send('download-update-finished')
+                    if (hard) await macUpdater?.installUpdate(m)
+                } catch (e: any) {
+                    logger.updater.error(`macOS download/install error: ${e?.message || e}`)
+                    try {
+                        if (mainWindow) mainWindow.setProgressBar(-1)
+                    } catch {}
+                }
+            } else {
+                mainWindow.webContents.send('check-update', { updateAvailable: false })
+            }
+        } catch (e: any) {
+            logger.updater.error(`macOS check error: ${e?.message || e}`)
+        }
+        return
+    }
     const status = await updater.check()
     if (status === UpdateStatus.DOWNLOADING) {
         mainWindow.webContents.send('check-update', { updateAvailable: true })

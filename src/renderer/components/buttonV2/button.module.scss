@@ -1,0 +1,30 @@
+.button {
+    cursor: pointer;
+    transition: var(--transition);
+
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 8px 25px;
+    gap: 10px;
+
+    background: #b3c5ff;
+    border-radius: 8px;
+    min-width: fit-content;
+
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #fff;
+
+    &:hover {
+        background: #d8e1ff;
+    }
+}
+
+.active {
+    background: #577eff;
+    color: #ffffff;
+}

@@ -1,6 +1,6 @@
 import React from 'react'
-import { ExtendedUser } from '../index'
 import * as styles from '../../userProfileModal/userProfileModal.module.scss'
+import { ExtendedUser } from '../../../api/interfaces/extendUser.interface'
 
 interface SettingsTabProps {
     userProfile: ExtendedUser

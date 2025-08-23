@@ -251,7 +251,7 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
         const addonPath = path.join(addonsPath, name)
         const targetPath = path.join(addonPath, fileName)
 
-        logger.http.log(`Looking for addon root file: ${targetPath}`)
+        console.info(`Looking for addon root file: ${targetPath}`)
 
         if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
             const ext = path.extname(targetPath).slice(1)
@@ -706,14 +706,19 @@ ipcMain.on('REFRESH_MOD_INFO', () => {
 ipcMain.on('REFRESH_EXTENSIONS', async () => {
     await sendExtensions()
 })
-ipcMain.on('GET_TRACK_INFO', () => {
-    logger.http.log('GET_TRACK_INFO: returning current track...')
+
+export const get_current_track = () => {
     io?.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sock.emit('GET_TRACK_INFO')
         }
     })
+}
+
+ipcMain.on('GET_TRACK_INFO', () => {
+    logger.http.log('GET_TRACK_INFO: returning current track...')
+    get_current_track()
 })
 
 const updateData = (newData: any) => {
