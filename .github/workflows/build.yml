@@ -12,7 +12,7 @@ on:
         description: "Upload release/ to S3 after build"
         required: true
         type: boolean
-        default: false
+        default: true
       s3_prefix:
         description: "S3 prefix inside the bucket (e.g. 'builds' or 'builds/tests')"
         required: true
