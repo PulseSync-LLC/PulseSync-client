@@ -19,7 +19,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.target || github.ref_name }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || '' }}
 
       - uses: actions/setup-node@v4
         with:
