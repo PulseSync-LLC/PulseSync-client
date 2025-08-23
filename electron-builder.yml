@@ -69,6 +69,7 @@ linux:
   target:
     - AppImage
     - deb
+    - rpm
   category: AudioVideo
   icon: ./icons/icon.png
   executableName: pulsesync
@@ -92,7 +93,7 @@ linux:
       Icon: PulseSync
       Terminal: false
       Type: Application
-      Categories: AudioVideo;Audio;
+      Categories: Utility;
       MimeType: application/x-pext;x-scheme-handler/pulsesync;
 
 deb:
