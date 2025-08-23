@@ -1,9 +1,6 @@
 name: Build Application
 
 on:
-  push:
-    branches: ["main"]
-  pull_request:
   workflow_dispatch:
     inputs:
       target:
@@ -20,10 +17,15 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.target || github.ref_name }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
       - run: yarn install --frozen-lockfile
+
       - run: yarn build:package
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
