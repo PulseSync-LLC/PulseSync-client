@@ -125,7 +125,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                         rehypePlugins={[rehypeRaw]}
                         components={{
                             img: MDImg,
-                            a: ({ node, ...p }) => (
+                            a: ({ ...p }) => (
                                 <a
                                     href={p.href?.startsWith('#') ? p.href : `${encodeURIComponent(addon.directoryName)}/${p.href}`}
                                     target="_blank"

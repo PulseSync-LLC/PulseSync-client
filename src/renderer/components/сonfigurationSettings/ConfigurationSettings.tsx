@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect, memo } from 'react'
 import clsx from 'clsx'
 import { AddonConfig, Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, ButtonAction } from './types'
 
@@ -115,14 +115,75 @@ const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; childr
     )
 }
 
+const SectionTextGroup: React.FC<{
+    item: TextItem
+    si: number
+    ii: number
+    updateTextButton: (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) => void
+}> = ({ item, si, ii, updateTextButton }) => {
+    return (
+        <div className={css.list}>
+            {item.buttons.map((b, bi) => {
+                const dirty = (b.text ?? '') !== (b.defaultParameter ?? '')
+                return (
+                    <div key={`${item.id}-${b.id}-${bi}`}>
+                        <TextInput
+                            name={b.id}
+                            label={item.name}
+                            value={b.text ?? ''}
+                            onChange={(val: string) => updateTextButton(si, ii, bi, { text: val })}
+                            description={item.description}
+                        />
+
+                        {dirty && (
+                            <div className={css.resetRow}>
+                                <button
+                                    type="button"
+                                    className={css.resetLink}
+                                    onClick={e => {
+                                        e.preventDefault()
+                                        e.stopPropagation()
+                                        updateTextButton(si, ii, bi, {
+                                            text: b.defaultParameter ?? '',
+                                        })
+                                    }}
+                                >
+                                    ↺ Сбросить
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                )
+            })}
+        </div>
+    )
+}
+
 const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
     const [cfg, setCfg] = useState<AddonConfig>(structuredClone(configData))
 
+    const rootRef = useRef<HTMLDivElement>(null)
     const baselineRef = useRef<AddonConfig>(structuredClone(configData))
     const lastSavedSnapRef = useRef<string>(JSON.stringify(configData))
 
     const [savedTick, setSavedTick] = useState(0)
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
+
+    const lastFocusedRef = useRef<HTMLElement | null>(null)
+    useEffect(() => {
+        const root = rootRef.current
+        if (!root) return
+        const onFocusIn = (e: FocusEvent) => {
+            if (root.contains(e.target as Node)) lastFocusedRef.current = e.target as HTMLElement
+        }
+        root.addEventListener('focusin', onFocusIn)
+        return () => root.removeEventListener('focusin', onFocusIn)
+    }, [])
+    useLayoutEffect(() => {
+        if (lastFocusedRef.current && document.activeElement !== lastFocusedRef.current) {
+            lastFocusedRef.current.focus?.()
+        }
+    })
 
     useEffect(() => {
         const incoming = JSON.stringify(configData)
@@ -222,50 +283,14 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             }),
         )
 
-    const SectionTextGroup: React.FC<{ item: TextItem; si: number; ii: number }> = ({ item, si, ii }) => (
-        <div className={css.list}>
-            <div className={clsx(css.title, 'small')}>{item.name}</div>
-            {item.buttons.map((b, bi) => {
-                const dirty = (b.text ?? '') !== (b.defaultParameter ?? '')
-                return (
-                    <div key={b.id}>
-                        <TextInput
-                            name={b.id}
-                            label={b.name}
-                            value={b.text}
-                            onChange={(val: string) => updateTextButton(si, ii, bi, { text: val })}
-                            description={item.description}
-                        />
-                        {dirty && (
-                            <div className={css.resetRow}>
-                                <button
-                                    type="button"
-                                    className={css.resetLink}
-                                    onClick={e => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        updateTextButton(si, ii, bi, { text: b.defaultParameter ?? '' })
-                                    }}
-                                >
-                                    ↺ Сбросить
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )
-            })}
-        </div>
-    )
-
     const renderItem = (si: number, ii: number, item: Item) => {
-        const key = `${si}-${ii}-${item.id}`
         const dirty = isDirtyUsage(item)
 
         switch (item.type) {
             case 'button': {
                 const it = item as ButtonItem
                 return (
-                    <div key={key}>
+                    <>
                         <ButtonInput
                             label={it.name}
                             description={it.description}
@@ -280,14 +305,14 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
             case 'color': {
                 const it = item as ColorItem
                 return (
-                    <div key={key}>
+                    <>
                         <BufferedColorInput
                             label={it.name}
                             description={it.description}
@@ -304,7 +329,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
@@ -313,7 +338,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 const opts = Object.entries(it.options).map(([k, o]) => ({ value: k, label: o.name }))
                 const toNumber = typeof it.defaultParameter === 'number'
                 return (
-                    <div key={key}>
+                    <>
                         <SelectInput
                             label={it.name}
                             description={it.description}
@@ -328,14 +353,14 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
             case 'slider': {
                 const it = item as SliderItem
                 return (
-                    <div key={key}>
+                    <>
                         <BufferedSliderInput
                             label={it.name}
                             description={it.description}
@@ -358,7 +383,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
@@ -366,7 +391,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 const it = item as FileItem
                 const current = it.filePath ?? ''
                 return (
-                    <div key={key}>
+                    <>
                         <FileInput
                             label={it.name}
                             description={it.description}
@@ -382,19 +407,19 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                                 </button>
                             </div>
                         )}
-                    </div>
+                    </>
                 )
             }
 
             case 'text': {
                 const it = item as TextItem
-                return <SectionTextGroup key={key} item={it} si={si} ii={ii} />
+                return <SectionTextGroup item={it} si={si} ii={ii} updateTextButton={updateTextButton} />
             }
 
             default: {
                 const u = item as Item
                 return (
-                    <div key={key} className={css.placeholder}>
+                    <div className={css.placeholder}>
                         <div className={css.phTitle}>{u.name}</div>
                         <div className={css.phHint}>Компонент в переработке (тип: {(u as any).type}). Скоро будет доступен.</div>
                     </div>
@@ -404,11 +429,11 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
     }
 
     return (
-        <div className={css.root}>
+        <div ref={rootRef} className={css.root}>
             {cfg.sections.map((s, si) => {
                 const isCollapsed = !!collapsed[si]
                 return (
-                    <div key={si} className={css.section}>
+                    <div key={s.title ?? si} className={css.section}>
                         <button
                             type="button"
                             className={clsx(css.sectionHeader, isCollapsed && css.collapsed)}
