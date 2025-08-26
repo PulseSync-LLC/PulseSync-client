@@ -71,15 +71,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const handleProgress = (_: any, { progress }: { progress: number }) => {
             if (downloadToastIdRef.current) {
-                toast.update(
-                    downloadToastIdRef.current,
-                    {
-                        kind: 'loading',
-                        title: `Прогресс загрузки: ${progress}%`,
-                        msg: `Загружаю`,
-                        value: progress,
-                    },
-                )
+                toast.update(downloadToastIdRef.current, {
+                    kind: 'loading',
+                    title: `Прогресс загрузки: ${progress}%`,
+                    msg: `Загружаю`,
+                    value: progress,
+                })
             } else {
                 const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, { duration: Infinity }, progress)
                 downloadToastIdRef.current = id
@@ -181,15 +178,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
         const onProgressUpdate = (_: any, { progress }: { progress: number }) => {
             if (toastReference.current) {
-                toast.update(
-                    toastReference.current,
-                    {
-                        kind: 'loading',
-                        title: `Загрузка: ${progress}%`,
-                        msg: 'Прогресс загрузки',
-                        value: progress,
-                    },
-                )
+                toast.update(toastReference.current, {
+                    kind: 'loading',
+                    title: `Загрузка: ${progress}%`,
+                    msg: 'Прогресс загрузки',
+                    value: progress,
+                })
             } else {
                 const id = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
                 toastReference.current = id

@@ -60,7 +60,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
             hash: (user as UserInterface).bannerHash,
             ext: (user as UserInterface).bannerType,
             hovered: false,
-        })
+        }),
     )
 
     useEffect(() => {
@@ -74,13 +74,11 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                     hash: (user as UserInterface).bannerHash,
                     ext: (user as UserInterface).bannerType,
                     hovered: isHovered,
-                })
+                }),
             )
         }
         img.onerror = () => {
-            setBannerUrl(
-                `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
-            )
+            setBannerUrl(`linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`)
         }
     }, [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered])
 
@@ -98,7 +96,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                 ext: (user as UserInterface).avatarType,
                 hovered: isHovered,
             }),
-        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered]
+        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered],
     )
 
     return (

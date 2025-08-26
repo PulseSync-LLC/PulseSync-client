@@ -256,7 +256,7 @@ export class MacOSUpdater extends EventEmitter {
             }
             new Notification({
                 title: 'Готово к установке',
-                body: 'Перетащите приложение из открытого окна в папку Applications.'
+                body: 'Перетащите приложение из открытого окна в папку Applications.',
             }).show()
             await dialog.showMessageBox({
                 type: 'info',

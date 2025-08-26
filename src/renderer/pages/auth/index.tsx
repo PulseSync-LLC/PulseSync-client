@@ -187,12 +187,7 @@ export default function AuthPage() {
                             <span className={pageStyles.terms}>
                                 Нажимая на “Авторизация через Discord”, вы соглашаетесь с
                                 <br />
-                                <a
-                                    onClick={async () => {
-                                    }}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                >
+                                <a onClick={async () => {}} target="_blank" rel="noopener noreferrer">
                                     Соглашением об использовании программы
                                 </a>
                             </span>

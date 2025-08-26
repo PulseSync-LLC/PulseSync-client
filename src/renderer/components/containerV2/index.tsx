@@ -20,7 +20,11 @@ const ContainerV2: React.FC<p> = ({ titleName, imageName, children, buttonName, 
                     <img src={`static/assets/container_icons/${imageName}.svg`} alt={imageName} />
                     <div className={styles.title}>{titleName}</div>
                 </div>
-                {onClick && <ButtonV2 onClick={onClick} className={classNameButton}>{buttonName}</ButtonV2>}
+                {onClick && (
+                    <ButtonV2 onClick={onClick} className={classNameButton}>
+                        {buttonName}
+                    </ButtonV2>
+                )}
                 {children}
             </div>
         </>

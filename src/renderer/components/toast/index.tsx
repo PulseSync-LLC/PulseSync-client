@@ -4,7 +4,6 @@ import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
 import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
 
-
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
 interface ToastData {
@@ -18,10 +17,8 @@ interface ToastData {
     ts: number
 }
 
-
 const STICKY_KINDS: Kind[] = ['loading', 'download', 'export', 'import']
 const STICKY_SET = new Set<Kind>(STICKY_KINDS)
-
 
 let queue: ToastData[] = []
 const subs = new Set<(s: ToastData[]) => void>()
@@ -45,7 +42,6 @@ function remove(id: string) {
     }
 }
 
-
 let stackShown = false
 function ensureStack(opts?: ToastOptions) {
     if (stackShown) return
@@ -57,7 +53,6 @@ function ensureStack(opts?: ToastOptions) {
     })
     stackShown = true
 }
-
 
 export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
@@ -103,7 +98,6 @@ export const iToast = {
         remove(id)
     },
 }
-
 
 const ToastStack: React.FC = () => {
     const [toasts, setToasts] = useState<ToastData[]>(queue)
@@ -189,7 +183,6 @@ const ToastStack: React.FC = () => {
     )
 }
 
-
 interface CardProps {
     data: ToastData
     index: number
@@ -259,7 +252,6 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     )
 })
 
-
 const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
     <div className={styles.progressContainer}>
         <div className={styles.progressText}>{Math.round(val)}%</div>
@@ -275,7 +267,6 @@ const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
         </svg>
     </div>
 )
-
 
 const palette = (k: Kind) =>
     ({
