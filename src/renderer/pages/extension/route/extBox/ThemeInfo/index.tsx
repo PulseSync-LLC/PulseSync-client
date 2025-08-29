@@ -80,10 +80,13 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     }, [showAll])
 
     const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
-    const [logoUrl, setLogoUrl] = useState<string | null>(null)
+    const [logoUrl, setLogoUrl] = useState<string | null>('static/assets/images/O^O.png')
 
     const currentBannerKeyRef = useRef<string | null>(null)
     const currentLogoKeyRef = useRef<string | null>(null)
+
+    const isMac = typeof window !== 'undefined' ? window.electron.isMac() : false
+    const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
@@ -92,6 +95,15 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         let didAcquire = false
         let cancelled = false
         const controller = new AbortController()
+
+        if (isMac && isGif(addon.banner)) {
+            if (currentBannerKeyRef.current) {
+                releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
+                currentBannerKeyRef.current = null
+            }
+            setBannerUrl('static/assets/images/no_themeBackground.png')
+            return () => controller.abort()
+        }
 
         if (!addon.banner) {
             if (currentBannerKeyRef.current) {
@@ -141,6 +153,15 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         let didAcquire = false
         let cancelled = false
         const controller = new AbortController()
+
+        if (isMac &&isGif(addon.libraryLogo)) {
+            if (currentLogoKeyRef.current) {
+                releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
+                currentLogoKeyRef.current = null
+            }
+            setLogoUrl('static/assets/images/O^O.png')
+            return () => controller.abort()
+        }
 
         if (!addon.libraryLogo) {
             if (currentLogoKeyRef.current) {
