@@ -430,7 +430,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
     return (
         <div ref={rootRef} className={css.root}>
-            {cfg.sections.map((s, si) => {
+            {(cfg.sections ?? []).map((s, si) => {
                 const isCollapsed = !!collapsed[si]
                 return (
                     <div key={s.title ?? si} className={css.section}>
@@ -448,7 +448,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
                         <Collapse open={!isCollapsed} id={`section-panel-${si}`}>
                             <div className={css.list}>
-                                {s.items.map((it, ii) => (
+                                {(s.items ?? []).map((it, ii) => (
                                     <div key={it.id}>{renderItem(si, ii, it)}</div>
                                 ))}
                             </div>

@@ -48,7 +48,184 @@ const Heading =
         )
     }
 
-const defaultTemplate = {} as AddonConfig
+const defaultTemplate: AddonConfig = {
+    sections: [
+        {
+            title: 'Интерфейс',
+            items: [
+                {
+                    id: 'primaryColor',
+                    name: 'Основной цвет',
+                    description: 'Базовый акцент интерфейса.',
+                    type: 'color',
+                    input: '#3b82f6',
+                    defaultParameter: '#3b82f6',
+                },
+                {
+                    id: 'secondaryColor',
+                    name: 'Вторичный цвет',
+                    description: 'Дополнительный акцент для кнопок/ссылок.',
+                    type: 'color',
+                    input: '#10b981',
+                    defaultParameter: '#10b981',
+                },
+                {
+                    id: 'borderRadius',
+                    name: 'Скругление углов',
+                    description: 'Насколько скруглять углы элементов.',
+                    type: 'slider',
+                    min: 0,
+                    max: 30,
+                    step: 1,
+                    value: 8,
+                    defaultParameter: 8,
+                },
+                {
+                    id: 'layoutStyle',
+                    name: 'Стиль расположения',
+                    description: 'Как располагать карточки контента.',
+                    type: 'selector',
+                    selected: 2,
+                    options: {
+                        '1': { event: 'grid', name: 'Сетка' },
+                        '2': { event: 'list', name: 'Список' },
+                        '3': { event: 'compact', name: 'Компакт' },
+                    },
+                    defaultParameter: 2,
+                },
+                {
+                    id: 'darkMode',
+                    name: 'Тёмная тема',
+                    description: 'Переключить интерфейс в тёмный режим.',
+                    type: 'button',
+                    bool: false,
+                    defaultParameter: false,
+                },
+            ],
+        },
+        {
+            title: 'Плеер',
+            items: [
+                {
+                    id: 'enableCrossfade',
+                    name: 'Кроссфейд',
+                    description: 'Плавное переключение треков.',
+                    type: 'button',
+                    bool: true,
+                    defaultParameter: true,
+                },
+                {
+                    id: 'crossfadeDuration',
+                    name: 'Длительность кроссфейда',
+                    description: 'Секунды плавного перехода.',
+                    type: 'slider',
+                    min: 0,
+                    max: 12,
+                    step: 1,
+                    value: 6,
+                    defaultParameter: 6,
+                },
+                {
+                    id: 'audioQuality',
+                    name: 'Качество звука',
+                    description: 'Выберите пресет качества.',
+                    type: 'selector',
+                    selected: 3,
+                    options: {
+                        '1': { event: 'low', name: '96 kbps' },
+                        '2': { event: 'medium', name: '192 kbps' },
+                        '3': { event: 'high', name: '320 kbps' },
+                    },
+                    defaultParameter: 3,
+                },
+                {
+                    id: 'customEqualizerPreset',
+                    name: 'Пользовательский эквалайзер',
+                    description: 'Загрузите файл пресета (.json / .eq).',
+                    type: 'file',
+                    filePath: '',
+                    defaultParameter: { filePath: '' },
+                },
+            ],
+        },
+        {
+            title: 'Уведомления',
+            items: [
+                {
+                    id: 'desktopNotifications',
+                    name: 'Desktop-уведомления',
+                    description: 'Показывать уведомления на рабочем столе.',
+                    type: 'button',
+                    bool: true,
+                    defaultParameter: true,
+                },
+                {
+                    id: 'notificationSound',
+                    name: 'Звук уведомления',
+                    description: 'Выберите звуковой сигнал.',
+                    type: 'selector',
+                    selected: 1,
+                    options: {
+                        '1': { event: 'chime', name: 'Chime' },
+                        '2': { event: 'pop', name: 'Pop' },
+                        '3': { event: 'ding', name: 'Ding' },
+                    },
+                    defaultParameter: 1,
+                },
+                {
+                    id: 'notificationVolume',
+                    name: 'Громкость уведомлений',
+                    description: 'Уровень громкости звука.',
+                    type: 'slider',
+                    min: 0,
+                    max: 100,
+                    step: 5,
+                    value: 60,
+                    defaultParameter: 60,
+                },
+            ],
+        },
+        {
+            title: 'О программе',
+            items: [
+                {
+                    id: 'aboutText',
+                    name: 'Текст «О приложении»',
+                    description: 'Название, слоган и версия.',
+                    type: 'text',
+                    buttons: [
+                        {
+                            id: 'name',
+                            name: 'Название',
+                            text: 'SuperAudio',
+                            defaultParameter: 'SuperAudio',
+                        },
+                        {
+                            id: 'tagline',
+                            name: 'Слоган',
+                            text: 'Music for everyone',
+                            defaultParameter: 'Music for everyone',
+                        },
+                        {
+                            id: 'version',
+                            name: 'Версия',
+                            text: '1.0.0',
+                            defaultParameter: '1.0.0',
+                        },
+                    ],
+                },
+                {
+                    id: 'customLogo',
+                    name: 'Логотип',
+                    description: 'Загрузите SVG/PNG логотип.',
+                    type: 'file',
+                    filePath: '',
+                    defaultParameter: { filePath: '' },
+                },
+            ],
+        },
+    ],
+}
 
 const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon }) => {
     const addonName = path.basename(addon.path)
@@ -77,8 +254,10 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
         return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
     }
 
+    const isConfigEmpty = !config || !Array.isArray(config.sections) || config.sections.length === 0
+
     if (active === 'Settings') {
-        if (!config && !creating)
+        if (isConfigEmpty && !creating)
             return (
                 <div className={styles.alertContent}>
                     <p>
@@ -99,7 +278,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                 </div>
             )
 
-        if (creating && !config) return <div className={styles.alertContent}>Перезайдите в тему!</div>
+        if (creating && isConfigEmpty) return <div className={styles.alertContent}>Перезайдите в тему!</div>
 
         if (config) {
             return editMode ? (
