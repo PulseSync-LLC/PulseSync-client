@@ -610,12 +610,17 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
 
             const zip = new AdmZip()
+
             zip.addLocalFolder(data.path, '', relativePath => {
+                if (!relativePath) return true
                 const parts = relativePath.split(path.sep)
-                return !parts.includes('.git')
+                return !parts.some(p => p.startsWith('.'))
             })
 
-            const outputFilePath = path.join(app.getPath('userData'), 'exports', data.name)
+            const exportsDir = path.join(app.getPath('userData'), 'exports')
+            if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
+
+            const outputFilePath = path.join(exportsDir, data.name)
             const outputPath = path.format({
                 dir: path.dirname(outputFilePath),
                 name: path.basename(outputFilePath, '.pext'),
@@ -625,6 +630,21 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             zip.writeZip(outputPath)
             logger.main.info(`Create theme ${outputPath}`)
             shell.showItemInFolder(outputPath)
+
+            try {
+                const zipPath = path.format({
+                    dir: path.dirname(outputFilePath),
+                    name: path.basename(outputFilePath, '.pext'),
+                    ext: '.zip',
+                })
+
+                zip.writeZip(zipPath)
+                logger.main.info(`Create zip ${zipPath}`)
+                shell.showItemInFolder(zipPath)
+            } catch (errZip: any) {
+                logger.main.error('Error while creating .zip file with AdmZip', errZip)
+            }
+
             return true
         } catch (error: any) {
             logger.main.error('Error while creating archive file', error.message)
