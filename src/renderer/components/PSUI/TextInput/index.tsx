@@ -47,14 +47,10 @@ const statusCommands = Object.keys(STATUS_DISPLAY_TYPES).map(k => {
     }
 })
 
-/**
- * Возвращает все текстовые ноды внутри root в порядке обхода.
- */
 function getTextNodes(root: Node): Text[] {
     const out: Text[] = []
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode: (node) => {
-            // Игнорируем пустые и служебные ноды
             return (node.textContent && node.textContent.length >= 0)
                 ? NodeFilter.FILTER_ACCEPT
                 : NodeFilter.FILTER_REJECT
@@ -68,14 +64,10 @@ function getTextNodes(root: Node): Text[] {
     return out
 }
 
-/**
- * Восстановление выделения по символьным оффсетам (start/end) относительно всего текста внутри root.
- */
 function restoreSelectionByOffsets(root: HTMLElement, start: number, end: number) {
     const textNodes = getTextNodes(root)
     const totalLen = textNodes.reduce((acc, t) => acc + (t.textContent?.length ?? 0), 0)
 
-    // Нормализуем границы
     const s = Math.max(0, Math.min(start, totalLen))
     const e = Math.max(0, Math.min(end, totalLen))
 
@@ -100,7 +92,6 @@ function restoreSelectionByOffsets(root: HTMLElement, start: number, end: number
         acc = next
     }
 
-    // Если текстовых нод нет (например, пусто), ставим каретку в конец root
     const range = document.createRange()
     try {
         if (textNodes.length === 0) {
@@ -114,7 +105,6 @@ function restoreSelectionByOffsets(root: HTMLElement, start: number, end: number
         sel?.removeAllRanges()
         sel?.addRange(range)
     } catch {
-        // На всякий случай откат к концу
         range.selectNodeContents(root)
         range.collapse(false)
         const sel = window.getSelection()
@@ -145,12 +135,10 @@ const TextInput: React.FC<TextInputProps> = ({
     const lastValueRef = useRef(value)
     const rafRef = useRef<number | null>(null)
 
-    // Храним символьные позиции курсора относительно всего текста внутри editorRef
     const selectionRef = useRef<{ start: number; end: number } | null>(null)
 
     const activeCommands = commandsType === 'status' ? statusCommands : musicCommands
 
-    // Сохраняем выделение (или просто позицию каретки) в selectionRef как символьные оффсеты
     const saveSelection = useCallback(() => {
         const root = editorRef.current
         const sel = window.getSelection()
@@ -158,7 +146,6 @@ const TextInput: React.FC<TextInputProps> = ({
 
         const range = sel.getRangeAt(0)
 
-        // Создаём клон, который охватит всё до начала выделения:
         const pre = range.cloneRange()
         pre.selectNodeContents(root)
         pre.setEnd(range.startContainer, range.startOffset)
@@ -167,7 +154,6 @@ const TextInput: React.FC<TextInputProps> = ({
         selectionRef.current = { start, end: start + range.toString().length }
     }, [])
 
-    // Вспомогательная: поставить каретку в конец
     const setCursorToEnd = useCallback(() => {
         const el = editorRef.current
         if (!el) return
@@ -179,25 +165,20 @@ const TextInput: React.FC<TextInputProps> = ({
         sel?.addRange(range)
     }, [])
 
-    // Синхронизация внешнего value -> DOM с восстановлением позиции курсора
-    // useLayoutEffect позволяет применить изменения до следующей отрисовки, избегая «мигания» курсора.
     useLayoutEffect(() => {
         const el = editorRef.current
         if (!el) return
 
-        // Обновляем DOM только если действительно отличается, чтобы не трогать курсор лишний раз.
         const currentDOMText = (el.textContent || '').replace(/\u200B/g, '')
         if (currentDOMText !== value) {
             if (value) {
                 el.textContent = value
             } else {
-                // Оставим <br> для корректной высоты пустого contentEditable
                 el.innerHTML = '<br>'
             }
         }
         lastValueRef.current = value
 
-        // Восстанавливаем позицию, только если элемент в фокусе (иначе можно «вклиниться» в чужой фокус)
         const hasFocus = document.activeElement === el
 
         if (hasFocus) {
@@ -205,13 +186,11 @@ const TextInput: React.FC<TextInputProps> = ({
                 const { start, end } = selectionRef.current
                 restoreSelectionByOffsets(el, start, end)
             } else {
-                // Если нет сохранённой позиции — по умолчанию в конец (поведение как раньше)
                 setCursorToEnd()
             }
         }
     }, [value, setCursorToEnd])
 
-    // Обрабатываем ввод: чистим zero-width, синхронизируем наверх, при этом сохраняем позицию
     const handleInput = () => {
         const root = editorRef.current
         if (!root) return
@@ -227,7 +206,6 @@ const TextInput: React.FC<TextInputProps> = ({
             })
         }
 
-        // Для пустого значения держим <br>, чтобы caret корректно отображался
         if (newValue === '' && root.innerHTML !== '<br>') {
             root.innerHTML = '<br>'
         }
@@ -256,7 +234,6 @@ const TextInput: React.FC<TextInputProps> = ({
         range.setEndAfter(textNode)
         sel.removeAllRanges()
         sel.addRange(range)
-        // После вставки команд обновляем value и сохраняем позицию
         handleInput()
         saveSelection()
         setCommandsVisible(false)
@@ -311,7 +288,6 @@ const TextInput: React.FC<TextInputProps> = ({
                     onInput={handleInput}
                     onFocus={() => {
                         setIsFocused(true)
-                        // На входе сразу фиксируем текущую позицию
                         saveSelection()
                     }}
                     onKeyUp={saveSelection}
