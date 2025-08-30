@@ -30,6 +30,9 @@
             align-items: flex-start;
             gap: 10px;
         }
+        .alert_fix {
+          z-index: 12223;
+        }
 
         .update_download {
             transition: var(--transition);

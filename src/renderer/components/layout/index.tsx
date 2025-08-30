@@ -25,6 +25,7 @@ import store from '../../api/store/store'
 import { openModal } from '../../api/store/modalSlice'
 import { errorTypesToShow } from '../../utils/utils'
 import * as semver from 'semver'
+import clsx from 'clsx'
 
 interface LayoutProps {
     title: string
@@ -406,7 +407,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
-                        <div className={pageStyles.navigation_buttons}>
+                        <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
                             {isDev && (
                                 <NavButtonPulse to="/dev" text="Development">
                                     <MdHandyman size={24} />
