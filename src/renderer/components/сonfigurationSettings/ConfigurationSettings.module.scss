@@ -19,6 +19,8 @@
 .section {
     display: grid;
     gap: 5px;
+    overflow: hidden;
+    padding: 1px;
 }
 
 .sectionHeader {
