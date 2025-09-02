@@ -442,9 +442,14 @@ ipcMain.on('themeChanged', async (_event, addon: Addon) => {
 
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
+    const pulseSyncMusicPath = path.join(musicDir, 'PulseSyncMusic')
 
-    if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
-        fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
+    if (!fs.existsSync(pulseSyncMusicPath)) {
+        try {
+            fs.mkdirSync(pulseSyncMusicPath, { recursive: true })
+        } catch (err) {
+            logger.main.error('Ошибка при создании директории PulseSyncMusic:', err)
+        }
     }
 
     if (isLinux() && State.get('settings.modFilename')) {

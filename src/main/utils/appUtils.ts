@@ -500,14 +500,23 @@ export function uninstallApp(packageFullName: string): Promise<void> {
 }
 
 export const getYandexMusicVersion = async (): Promise<string> => {
-    const asarPath = path.join(await getPathToYandexMusic(), 'app.asar')
     try {
+        const asarPath = path.join(await getPathToYandexMusic(), 'app.asar')
+        if (!fs.existsSync(asarPath)) {
+            logger.modManager.error('app.asar не найден')
+            return '0.0.0'
+        }
         const pkgJson = asar.extractFile(asarPath, 'package.json')
-        if (!pkgJson) throw new Error('package.json not found in app.asar')
+        if (!pkgJson) {
+            logger.modManager.error('package.json not found in app.asar')
+            return '0.0.0'
+        }
         const pkg = JSON.parse(pkgJson.toString('utf8'))
         if (pkg.version) return pkg.version
-        throw new Error('Version not found in package.json')
+        logger.modManager.error('Version not found in package.json')
+        return '0.0.0'
     } catch (e) {
-        throw new Error('Не удалось прочитать версию из app.asar: ' + (e as Error).message)
+        logger.modManager.error('Не удалось прочитать версию из app.asar: ' + (e as Error).message)
+        return '0.0.0'
     }
 }
