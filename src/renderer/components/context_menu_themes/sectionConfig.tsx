@@ -7,7 +7,6 @@ import FileDelete from './../../../../static/assets/stratis-icons/file-delete.sv
 import Addon from '../../api/interfaces/addon.interface'
 import toast from '../toast'
 import { MdDeleteForever, MdFileOpen, MdIosShare } from 'react-icons/md'
-import MainEvents from '../../../common/types/mainEvents'
 
 export interface MenuItem {
     label?: string
@@ -42,7 +41,7 @@ export const createContextMenuActions = (
     {
         label: `Директория аддона ${currentAddon.name}`,
         onClick: () =>
-            window.desktopEvents?.send(MainEvents.OPEN_PATH, {
+            window.desktopEvents?.send('openPath', {
                 action: 'theme',
                 themeName: currentAddon.directoryName,
             }),
@@ -53,7 +52,7 @@ export const createContextMenuActions = (
         label: `Экспорт ${currentAddon.name}`,
         onClick: () => {
             window.desktopEvents
-                .invoke(MainEvents.EXPORT_ADDON, {
+                .invoke('exportAddon', {
                     path: currentAddon.path,
                     name: currentAddon.name,
                 })
@@ -91,7 +90,7 @@ export const createContextMenuActions = (
             if (confirmation) {
                 const themeDirPath = currentAddon.path
                 window.desktopEvents
-                    .invoke(MainEvents.DELETE_ADDON_DIRECTORY, themeDirPath)
+                    .invoke('deleteAddonDirectory', themeDirPath)
                     .then(() => {
                         window.refreshAddons()
                         console.log(`Тема "${currentAddon.name}" и связанные файлы удалены.`)

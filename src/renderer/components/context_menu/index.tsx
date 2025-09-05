@@ -1,8 +1,6 @@
 import React, { useContext } from 'react'
 import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
-import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents from '../../../common/types/rendererEvents'
 
 import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
 import toast from '../toast'
@@ -38,7 +36,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const openAppDirectory = () => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
+        window.desktopEvents?.send('openPath', { action: 'appPath' })
     }
 
     const showLoadingToast = (event: any, message: string) => {
@@ -68,13 +66,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             })
         }
 
-        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_SUCCESS, handleSuccess)
-        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_FAILURE, handleFailure)
+        window.desktopEvents?.once('remove-mod-success', handleSuccess)
+        window.desktopEvents?.once('remove-mod-failure', handleFailure)
     }
 
     const deleteMod = (e: any) => {
         showLoadingToast(e, 'Удаление мода...')
-        window.desktopEvents?.send(MainEvents.REMOVE_MOD)
+        window.desktopEvents?.send('remove-mod')
         window.localStorage.removeItem('lastNotifiedModVersion')
     }
 
@@ -89,7 +87,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'autoStart':
                 updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
-                window.desktopEvents?.send(MainEvents.AUTO_START_APP, status)
+                window.desktopEvents?.send('autoStartApp', status)
                 toast.custom('success', `Готово`, `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`)
                 break
             case 'autoStartMusic':
@@ -126,9 +124,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
                 console.log(updatedSettings.devSocket)
-                updatedSettings.devSocket
-                    ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
-                    : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
+                updatedSettings.devSocket ? window.desktopEvents?.send('WEBSOCKET_START') : window.desktopEvents?.send('WEBSOCKET_STOP')
                 toast.custom('success', `Готово`, 'Статус вебсокета изменен')
                 break
             case 'showModModalAfterInstall':
@@ -248,12 +244,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             { label: `Версия: v${app.info.version}. Commit #${window.appInfo.getBranch()}`, onClick: openUpdateModal },
             {
                 label: 'Проверить обновления',
-                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE),
+                onClick: () => window.desktopEvents?.send('checkUpdate'),
             },
             {
                 label: 'Собрать логи в архив',
                 onClick: () => {
-                    window.desktopEvents?.send(MainEvents.GET_LOG_ARCHIVE)
+                    window.desktopEvents?.send('getLogArchive')
                     toast.custom('success', `Готово`, 'Скоро открою папку')
                 },
             },

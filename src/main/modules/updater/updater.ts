@@ -2,7 +2,6 @@ import * as semver from 'semver'
 import { app, dialog } from 'electron'
 import { autoUpdater, ProgressInfo } from 'electron-updater'
 import { state } from '../handlers/state'
-import RendererEvents from '../../../common/types/rendererEvents'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
@@ -42,10 +41,10 @@ class Updater {
         autoUpdater.on('checking-for-update', () => {
             logger.updater.log('Checking for update')
         })
-        autoUpdater.on(RendererEvents.DOWNLOAD_PROGRESS, (info: ProgressInfo) => {
+        autoUpdater.on('download-progress', (info: ProgressInfo) => {
             mainWindow.setProgressBar(info.percent / 100)
             logger.updater.log('Download progress', info.percent)
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, info.percent)
+            mainWindow.webContents.send('download-update-progress', info.percent)
         })
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
@@ -91,12 +90,12 @@ class Updater {
         }
 
         if (!downloadPromise) {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, {
+            mainWindow.webContents.send('check-update', {
                 updateAvailable: false,
             })
             return
         } else {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, {
+            mainWindow.webContents.send('check-update', {
                 updateAvailable: true,
             })
         }
@@ -109,10 +108,10 @@ class Updater {
                 if (downloadResult) {
                     this.updateStatus = UpdateStatus.DOWNLOADED
                     logger.updater.info(`Download result: ${downloadResult}`)
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+                    mainWindow.webContents.send('download-update-finished')
                     mainWindow.setProgressBar(-1)
                     mainWindow.flashFrame(true)
-                    mainWindow.webContents.send(RendererEvents.UPDATE_APP_DATA, {
+                    mainWindow.webContents.send('UPDATE_APP_DATA', {
                         update: true,
                     })
                 }
@@ -121,7 +120,7 @@ class Updater {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
                 mainWindow.setProgressBar(-1)
-                mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+                mainWindow.webContents.send('download-update-failed')
             })
     }
 
@@ -129,7 +128,7 @@ class Updater {
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
             if (this.updateStatus === UpdateStatus.DOWNLOADED) {
-                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, this.latestAvailableVersion)
+                mainWindow.webContents.send('update-available', this.latestAvailableVersion)
                 mainWindow.flashFrame(true)
             }
             return this.updateStatus

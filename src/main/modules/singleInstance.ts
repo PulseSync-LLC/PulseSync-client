@@ -10,7 +10,6 @@ import { authorized } from '../events'
 import { mainWindow } from './createWindow'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
-import RendererEvents from '../../common/types/rendererEvents'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
 const State = getState()
@@ -115,6 +114,6 @@ async function handlePextFile(filePath: string) {
         }
     }
     if (authorized) {
-        mainWindow.webContents.send(RendererEvents.OPEN_ADDON, addonName)
+        mainWindow.webContents.send('open-addon', addonName)
     }
 }

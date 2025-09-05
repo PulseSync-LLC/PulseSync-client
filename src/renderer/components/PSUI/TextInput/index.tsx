@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react'
+import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
 import * as styles from './TextInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdKeyboardCommandKey } from 'react-icons/md'
@@ -47,6 +47,72 @@ const statusCommands = Object.keys(STATUS_DISPLAY_TYPES).map(k => {
     }
 })
 
+function getTextNodes(root: Node): Text[] {
+    const out: Text[] = []
+    const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+        acceptNode: (node) => {
+            return (node.textContent && node.textContent.length >= 0)
+                ? NodeFilter.FILTER_ACCEPT
+                : NodeFilter.FILTER_REJECT
+        }
+    })
+    let n = walker.nextNode()
+    while (n) {
+        out.push(n as Text)
+        n = walker.nextNode()
+    }
+    return out
+}
+
+function restoreSelectionByOffsets(root: HTMLElement, start: number, end: number) {
+    const textNodes = getTextNodes(root)
+    const totalLen = textNodes.reduce((acc, t) => acc + (t.textContent?.length ?? 0), 0)
+
+    const s = Math.max(0, Math.min(start, totalLen))
+    const e = Math.max(0, Math.min(end, totalLen))
+
+    let rangeStartNode: Text | HTMLElement = root
+    let rangeStartOffset = 0
+    let rangeEndNode: Text | HTMLElement = root
+    let rangeEndOffset = 0
+
+    let acc = 0
+    for (const tn of textNodes) {
+        const len = tn.textContent?.length ?? 0
+        const next = acc + len
+
+        if (s >= acc && s <= next) {
+            rangeStartNode = tn
+            rangeStartOffset = s - acc
+        }
+        if (e >= acc && e <= next) {
+            rangeEndNode = tn
+            rangeEndOffset = e - acc
+        }
+        acc = next
+    }
+
+    const range = document.createRange()
+    try {
+        if (textNodes.length === 0) {
+            range.selectNodeContents(root)
+            range.collapse(false)
+        } else {
+            range.setStart(rangeStartNode, rangeStartOffset)
+            range.setEnd(rangeEndNode, rangeEndOffset)
+        }
+        const sel = window.getSelection()
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+    } catch {
+        range.selectNodeContents(root)
+        range.collapse(false)
+        const sel = window.getSelection()
+        sel?.removeAllRanges()
+        sel?.addRange(range)
+    }
+}
+
 const TextInput: React.FC<TextInputProps> = ({
     name,
     label,
@@ -68,55 +134,27 @@ const TextInput: React.FC<TextInputProps> = ({
     const containerRef = useRef<HTMLDivElement>(null)
     const lastValueRef = useRef(value)
     const rafRef = useRef<number | null>(null)
+
     const selectionRef = useRef<{ start: number; end: number } | null>(null)
 
     const activeCommands = commandsType === 'status' ? statusCommands : musicCommands
 
     const saveSelection = useCallback(() => {
+        const root = editorRef.current
         const sel = window.getSelection()
-        if (!sel?.rangeCount || !editorRef.current) return
+        if (!root || !sel || sel.rangeCount === 0) return
+
         const range = sel.getRangeAt(0)
+
         const pre = range.cloneRange()
-        pre.selectNodeContents(editorRef.current)
+        pre.selectNodeContents(root)
         pre.setEnd(range.startContainer, range.startOffset)
         const start = pre.toString().length
+
         selectionRef.current = { start, end: start + range.toString().length }
     }, [])
 
-    useEffect(() => {
-        const container = editorRef.current
-        if (!container) return
-        if (value) {
-            container.textContent = value
-        } else {
-            container.innerHTML = ''
-        }
-        lastValueRef.current = value
-        const range = document.createRange()
-        range.selectNodeContents(container)
-        range.collapse(false)
-        const sel = window.getSelection()
-        sel?.removeAllRanges()
-        sel?.addRange(range)
-    }, [value])
-
-    const handleInput = () => {
-        if (!editorRef.current) return
-        const newValue = editorRef.current.textContent?.replace(/\u200B/g, '') || ''
-        if (newValue !== lastValueRef.current) {
-            if (rafRef.current) cancelAnimationFrame(rafRef.current)
-            rafRef.current = requestAnimationFrame(() => {
-                saveSelection()
-                onChange?.(newValue)
-                lastValueRef.current = newValue
-            })
-        }
-        if (newValue === '' && editorRef.current.innerHTML !== '<br>') {
-            editorRef.current.innerHTML = '<br>'
-        }
-    }
-
-    const setCursorToEnd = () => {
+    const setCursorToEnd = useCallback(() => {
         const el = editorRef.current
         if (!el) return
         const range = document.createRange()
@@ -125,6 +163,52 @@ const TextInput: React.FC<TextInputProps> = ({
         range.collapse(false)
         sel?.removeAllRanges()
         sel?.addRange(range)
+    }, [])
+
+    useLayoutEffect(() => {
+        const el = editorRef.current
+        if (!el) return
+
+        const currentDOMText = (el.textContent || '').replace(/\u200B/g, '')
+        if (currentDOMText !== value) {
+            if (value) {
+                el.textContent = value
+            } else {
+                el.innerHTML = '<br>'
+            }
+        }
+        lastValueRef.current = value
+
+        const hasFocus = document.activeElement === el
+
+        if (hasFocus) {
+            if (selectionRef.current) {
+                const { start, end } = selectionRef.current
+                restoreSelectionByOffsets(el, start, end)
+            } else {
+                setCursorToEnd()
+            }
+        }
+    }, [value, setCursorToEnd])
+
+    const handleInput = () => {
+        const root = editorRef.current
+        if (!root) return
+        const newValue = root.textContent?.replace(/\u200B/g, '') || ''
+
+        if (newValue !== lastValueRef.current) {
+            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+            // Сначала сохраняем позицию относительно текущего DOM
+            saveSelection()
+            rafRef.current = requestAnimationFrame(() => {
+                onChange?.(newValue)
+                lastValueRef.current = newValue
+            })
+        }
+
+        if (newValue === '' && root.innerHTML !== '<br>') {
+            root.innerHTML = '<br>'
+        }
     }
 
     const handleContainerClick = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -167,6 +251,12 @@ const TextInput: React.FC<TextInputProps> = ({
         }
     }, [])
 
+    useEffect(() => {
+        return () => {
+            if (rafRef.current) cancelAnimationFrame(rafRef.current)
+        }
+    }, [])
+
     return (
         <div ref={containerRef} className={clsx(styles.inputContainer, className)} onClick={handleContainerClick}>
             <div className={styles.label}>
@@ -196,7 +286,12 @@ const TextInput: React.FC<TextInputProps> = ({
                     aria-invalid={Boolean(touched && error)}
                     aria-errormessage={touched && error ? `${name}-error` : undefined}
                     onInput={handleInput}
-                    onFocus={() => setIsFocused(true)}
+                    onFocus={() => {
+                        setIsFocused(true)
+                        saveSelection()
+                    }}
+                    onKeyUp={saveSelection}
+                    onMouseUp={saveSelection}
                     onBlur={e => {
                         setIsFocused(false)
                         onBlur?.(e)

@@ -2,7 +2,6 @@ import React from 'react'
 import * as Sentry from '@sentry/electron/renderer'
 import * as styles from './errorBoundary.module.scss'
 import toast from '../toast'
-import MainEvents from '../../../common/types/mainEvents'
 
 interface ErrorBoundaryProps {
     children: React.ReactNode
@@ -25,7 +24,7 @@ class ErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        window.desktopEvents?.send(MainEvents.LOG_ERROR, {
+        window.desktopEvents?.send('log-error', {
             type: 'react-error-boundary',
             message: error.message,
             stack: error.stack,

@@ -118,14 +118,6 @@ const SliderInput: React.FC<Props> = ({
         <div className={clsx(s.inputContainer, className)} style={disabled ? { opacity: 0.6, pointerEvents: 'none' } : {}}>
             <div className={s.label}>
                 {label}
-                {description && (
-                    <TooltipButton className={s.tip} side="right" tooltipText={<div className={s.itemName}>{description}</div>}>
-                        <MdHelp size={14} color="white" />
-                    </TooltipButton>
-                )}
-            </div>
-
-            <div className={s.row}>
                 {showNumber && (
                     <div className={s.valBox}>
                         {!editing ? (
@@ -148,7 +140,14 @@ const SliderInput: React.FC<Props> = ({
                         )}
                     </div>
                 )}
+                {description && (
+                    <TooltipButton className={s.tip} side="right" tooltipText={<div className={s.itemName}>{description}</div>}>
+                        <MdHelp size={14} color="white" />
+                    </TooltipButton>
+                )}
+            </div>
 
+            <div className={s.row}>
                 <div
                     ref={trackRef}
                     className={s.track}

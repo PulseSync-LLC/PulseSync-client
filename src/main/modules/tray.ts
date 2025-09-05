@@ -5,7 +5,6 @@ import path from 'path'
 import { setRpcStatus } from './discordRpc'
 import { mainWindow } from './createWindow'
 import { getState } from './state'
-import RendererEvents from '../../common/types/rendererEvents'
 
 let tray: Tray
 let menu: Menu
@@ -57,7 +56,7 @@ function createTray() {
             label: 'Проверить обновления',
             click: async () => {
                 await checkOrFindUpdate()
-                mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE)
+                mainWindow.webContents.send('check-mod-update')
             },
         }),
     )

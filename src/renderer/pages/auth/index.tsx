@@ -1,6 +1,5 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import MainEvents from '../../../common/types/mainEvents'
 
 import Header from '../../components/layout/header'
 import userContext from '../../api/context/user.context'
@@ -32,7 +31,7 @@ export default function AuthPage() {
         navigate('/auth/callback', { replace: true })
     }
     const checkUpdate = () => {
-        window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { hard: true })
+        window.desktopEvents?.send('checkUpdate', { hard: true })
     }
 
     useEffect(() => {

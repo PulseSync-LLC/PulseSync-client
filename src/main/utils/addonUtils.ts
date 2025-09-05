@@ -72,19 +72,8 @@ export async function loadAddons(): Promise<Addon[]> {
     const ignoredFolders = ['.DS_Store', '.git']
 
     const allFolders = await fs.promises.readdir(addonsFolderPath)
-    const folders: string[] = []
-    for (const folder of allFolders) {
-        if (ignoredFolders.includes(folder)) continue
-        const fullPath = path.join(addonsFolderPath, folder)
-        try {
-            const stat = await fs.promises.stat(fullPath)
-            if (stat.isDirectory()) {
-                folders.push(folder)
-            }
-        } catch (err) {
-            logger.main.error(`Addons: error stating ${fullPath}:`, err)
-        }
-    }
+    const folders = allFolders.filter(folder => !ignoredFolders.includes(folder))
+
     const availableAddons: Addon[] = []
 
     for (const folder of folders) {

@@ -16,7 +16,7 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac } from '../utils/appUtils'
+import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac, isWindows } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -25,8 +25,6 @@ import config, { branch, isDevmark } from '../../renderer/api/config'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
-import MainEvents from '../../common/types/mainEvents'
-import RendererEvents from '../../common/types/rendererEvents'
 
 const updater = getUpdater()
 const State = getState()
@@ -44,16 +42,16 @@ const macUpdater = isMac()
               try {
                   if (mainWindow) {
                       mainWindow.setProgressBar(p / 100)
-                      mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, p)
+                      mainWindow.webContents.send('download-update-progress', p)
                   }
               } catch {}
           },
           onStatus: s => {
               if (s === UpdateStatus.DOWNLOADING) {
-                  mainWindow?.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+                  mainWindow?.webContents.send('check-update', { updateAvailable: true })
                   updateAvailable = true
               } else if (s === UpdateStatus.DOWNLOADED) {
-                  mainWindow?.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+                  mainWindow?.webContents.send('download-update-finished')
                   updateAvailable = true
                   try {
                       if (mainWindow) mainWindow.setProgressBar(-1)
@@ -107,72 +105,72 @@ const mimeByExt: Record<string, string> = {
 }
 
 const registerWindowEvents = (): void => {
-    ipcMain.on(MainEvents.ELECTRON_WINDOW_MINIMIZE, () => {
+    ipcMain.on('electron-window-minimize', () => {
         mainWindow.minimize()
     })
-    ipcMain.on(MainEvents.ELECTRON_WINDOW_EXIT, () => {
+    ipcMain.on('electron-window-exit', () => {
         logger.main.info('Exit app')
         app.quit()
     })
-    ipcMain.on(MainEvents.ELECTRON_WINDOW_MAXIMIZE, () => {
+    ipcMain.on('electron-window-maximize', () => {
         mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
-    ipcMain.on(MainEvents.ELECTRON_WINDOW_CLOSE, (_event, val: boolean) => {
+    ipcMain.on('electron-window-close', (_event, val: boolean) => {
         if (!val) app.quit()
         mainWindow.hide()
     })
 }
 
 const registerSettingsEvents = (): void => {
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MINIMIZE, () => {
+    ipcMain.on('electron-settings-minimize', () => {
         settingsWindow.minimize()
     })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_EXIT, () => {
+    ipcMain.on('electron-settings-exit', () => {
         logger.main.info('Exit app')
         app.quit()
     })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MAXIMIZE, () => {
+    ipcMain.on('electron-settings-maximize', () => {
         settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
     })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_CLOSE, (event, val) => {
+    ipcMain.on('electron-settings-close', (event, val) => {
         if (!val) settingsWindow.close()
         else settingsWindow.hide()
     })
 }
 
-ipcMain.on(MainEvents.BEFORE_QUIT, async () => {
+ipcMain.on('before-quit', async () => {
     const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
     if (fs.existsSync(tempFilePath)) fs.rmSync(tempFilePath)
     if (mainWindow) mainWindow.close()
 })
 
 const registerSystemEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.ELECTRON_CORSANYWHEREPORT, event => {
+    ipcMain.on('electron-corsanywhereport', event => {
         event.returnValue = corsAnywherePort
     })
-    ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
+    ipcMain.on('electron-isdev', event => {
         event.returnValue = isAppDev || isDevmark
     })
-    ipcMain.on(MainEvents.ELECTRON_ISMAC, async (event, args) => {
+    ipcMain.on('electron-ismac', async (event, args) => {
         event.returnValue = isMac()
     })
-    ipcMain.on(MainEvents.ELECTRON_ISLINUX, async (event, args) => {
+    ipcMain.on('electron-islinux', async (event, args) => {
         event.returnValue = isLinux()
     })
-    ipcMain.handle(MainEvents.GET_VERSION, async () => app.getVersion())
-    ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
+    ipcMain.handle('getVersion', async () => app.getVersion())
+    ipcMain.on('getLastBranch', event => {
         event.returnValue = process.env.BRANCH
     })
-    ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
+    ipcMain.on('electron-store-get', (event, val) => {
         event.returnValue = State.get(val)
     })
-    ipcMain.on(MainEvents.ELECTRON_STORE_SET, (event, key, val) => {
+    ipcMain.on('electron-store-set', (event, key, val) => {
         State.set(key, val)
     })
-    ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (event, key) => {
+    ipcMain.on('electron-store-delete', (event, key) => {
         State.delete(key)
     })
-    ipcMain.handle(MainEvents.GET_SYSTEM_INFO, async () => ({
+    ipcMain.handle('getSystemInfo', async () => ({
         appVersion: app.getVersion(),
         osType: os.type(),
         osRelease: os.release(),
@@ -181,7 +179,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         freeMemory: os.freemem(),
         arch: os.arch(),
     }))
-    ipcMain.on(MainEvents.UI_READY, () => {
+    ipcMain.on('ui-ready', () => {
         get_current_track()
     })
 }
@@ -236,11 +234,11 @@ const readBufResilient = async (p0: string): Promise<Buffer> => {
 }
 
 const registerFileOperations = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
+    ipcMain.on('open-external', async (_event, url: string) => {
         exec(`start "" "${url}"`)
     })
 
-    ipcMain.on(MainEvents.OPEN_FILE, (_event, markdownContent: string) => {
+    ipcMain.on('open-file', (_event, markdownContent: string) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
         fs.writeFile(tempFilePath, markdownContent, err => {
             if (err) {
@@ -264,7 +262,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
         })
     })
 
-    ipcMain.on(MainEvents.OPEN_PATH, async (_event, data: any) => {
+    ipcMain.on('openPath', async (_event, data: any) => {
         switch (data.action) {
             case 'appPath': {
                 const appPath = app.getAppPath()
@@ -291,7 +289,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle(MainEvents.DIALOG_OPEN_FILE, async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
+    ipcMain.handle('dialog:openFile', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
             filters: opts?.filters,
@@ -300,7 +298,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
         return path.normalize(filePaths[0])
     })
 
-    ipcMain.handle(MainEvents.FILE_AS_DATA_URL, async (_evt, fullPath: string) => {
+    ipcMain.handle('file:asDataUrl', async (_evt, fullPath: string) => {
         if (!fullPath) return null
         try {
             const buf = await (async () => {
@@ -315,7 +313,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle(MainEvents.DIALOG_OPEN_FILE_METADATA, async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
+    ipcMain.handle('dialog:openFileMetadata', async (_evt, opts?: { filters?: Electron.FileFilter[] }) => {
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
             filters: opts?.filters,
@@ -331,7 +329,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
 }
 
 const registerMediaEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
+    ipcMain.on('download-yandex-music', async (event, downloadUrl?: string) => {
         let exeUrl = downloadUrl
         if (!exeUrl) {
             const { data } = await axios.get('https://music-desktop-application.s3.yandex.net/stable/latest.yml')
@@ -353,7 +351,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             response.data.on('data', (chunk: Buffer) => {
                 downloadedLength += chunk.length
                 const progress = downloadedLength / totalLength
-                event.reply(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(progress * 100) })
+                event.reply('download-music-progress', { progress: Math.round(progress * 100) })
                 mainWindow.setProgressBar(progress)
             })
 
@@ -370,23 +368,23 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             setTimeout(() => {
                 execFile(downloadPath, error => {
                     if (error) {
-                        event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Failed to execute the file: ${error.message}` })
+                        event.reply('download-music-failure', { success: false, error: `Failed to execute the file: ${error.message}` })
                         return
                     }
-                    event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File executed successfully.' })
+                    event.reply('download-music-execution-success', { success: true, message: 'File executed successfully.' })
                     fs.unlinkSync(downloadPath)
                 })
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
             if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath)
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Error downloading file: ${error.message}` })
+            event.reply('download-music-failure', { success: false, error: `Error downloading file: ${error.message}` })
         }
     })
 }
 
 const registerDeviceEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.GET_MUSIC_DEVICE, event => {
+    ipcMain.on('get-music-device', event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4(
                 { random: Buffer.from(data.uuid) },
@@ -394,23 +392,23 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
         })
     })
 
-    ipcMain.on(MainEvents.AUTO_START_APP, (_event, enabled: boolean) => {
+    ipcMain.on('autoStartApp', (_event, enabled: boolean) => {
         if (isAppDev) return
         app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
     })
 
-    ipcMain.handle(MainEvents.GET_MUSIC_STATUS, async () => {
+    ipcMain.handle('getMusicStatus', async () => {
         if (isLinux()) return true
         else return fs.existsSync(musicPath)
     })
 
-    ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {
+    ipcMain.on('checkMusicInstall', () => {
         checkMusic()
     })
 }
 
 const registerUpdateEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
+    ipcMain.on('update-install', async () => {
         if (isMac()) {
             try {
                 await macUpdater?.installUpdate()
@@ -422,16 +420,16 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
         updater.install()
     })
 
-    ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean }) => {
+    ipcMain.on('checkUpdate', async (_event, args: { hard?: boolean }) => {
         await checkOrFindUpdate(args?.hard)
     })
 
-    ipcMain.on(MainEvents.UPDATER_START, async () => {
+    ipcMain.on('updater-start', async () => {
         if (isMac()) {
             try {
                 const m = await macUpdater?.checkForUpdates()
                 if (m) {
-                    mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, m.version)
+                    mainWindow.webContents.send('update-available', m.version)
                     mainWindow.flashFrame(true)
                     updateAvailable = true
                 }
@@ -442,7 +440,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
         }
         updater.start()
         updater.onUpdate(version => {
-            mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
+            mainWindow.webContents.send('update-available', version)
             mainWindow.flashFrame(true)
             updateAvailable = true
         })
@@ -450,7 +448,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
 }
 
 const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.UPDATE_RPC_SETTINGS, async (_event, data: any) => {
+    ipcMain.on('update-rpcSettings', async (_event, data: any) => {
         switch (Object.keys(data)[0]) {
             case 'appId':
                 updateAppId(data.appId)
@@ -470,7 +468,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on(MainEvents.AUTH_STATUS, async (_event, data: any) => {
+    ipcMain.on('authStatus', async (_event, data: any) => {
         if (data?.status && State.get('discordRpc.status') && rpcConnected) {
             await rpc_connect()
         }
@@ -482,22 +480,22 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {
+    ipcMain.on('renderer-log', (_event, data: any) => {
         if (data.info) logger.renderer.info(data.text)
         else if (data.error) logger.renderer.error(data.text)
         else logger.renderer.log(data.text)
     })
 
-    ipcMain.on(MainEvents.LOG_ERROR, (_event, errorInfo: any) => {
+    ipcMain.on('log-error', (_event, errorInfo: any) => {
         HandleErrorsElectron.handleError('renderer-error', errorInfo.type, errorInfo.message, errorInfo.componentStack)
     })
 }
 
 const registerNotificationEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.SHOW_NOTIFICATION, (_event, data: any) => {
+    ipcMain.on('show-notification', (_event, data: any) => {
         new Notification({ title: data.title, body: data.body }).show()
     })
-    ipcMain.handle(MainEvents.NEED_MODAL_UPDATE, async () => {
+    ipcMain.handle('needModalUpdate', async () => {
         if (reqModal <= 0) {
             reqModal++
             return updated
@@ -507,7 +505,7 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
 }
 
 const registerLogArchiveEvent = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.GET_LOG_ARCHIVE, async () => {
+    ipcMain.on('getLogArchive', async () => {
         const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
         const now = new Date()
         const year = now.getFullYear()
@@ -555,21 +553,21 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
 }
 
 const registerSleepModeEvent = (window: BrowserWindow): void => {
-    ipcMain.handle(MainEvents.CHECK_SLEEP_MODE, async () => inSleepMode)
+    ipcMain.handle('checkSleepMode', async () => inSleepMode)
 }
 
 const registerExtensionEvents = (window: BrowserWindow): void => {
-    ipcMain.handle(MainEvents.GET_ADDONS, async () => {
+    ipcMain.handle('getAddons', async () => {
         try {
             return await loadAddons()
         } catch (error) {
             logger.main.error('Addons: Error loading themes:', error)
         }
     })
-    ipcMain.on(MainEvents.OPEN_SETTINGS_WINDOW, () => {
+    ipcMain.on('open-settings-window', () => {
         createSettingsWindow()
     })
-    ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
+    ipcMain.handle('create-new-extension', async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
                 name: 'New Extension',
@@ -602,13 +600,13 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent)
             return { success: true, name: newName }
         } catch (error: any) {
-            HandleErrorsElectron.handleError('event-handler', MainEvents.CREATE_NEW_EXTENSION, 'try-catch', error)
+            HandleErrorsElectron.handleError('event-handler', 'create-new-extension', 'try-catch', error)
             logger.main.error('Error creating new extension:', error)
             return { success: false, error: error.message }
         }
     })
 
-    ipcMain.handle(MainEvents.EXPORT_ADDON, async (_event, data: any) => {
+    ipcMain.handle('exportAddon', async (_event, data: any) => {
         try {
             if (!fs.existsSync(data.path)) {
                 logger.main.error('Folder not found.')
@@ -680,11 +678,11 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
         try {
             const m = await macUpdater?.checkForUpdates()
             if (m) {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+                mainWindow.webContents.send('check-update', { updateAvailable: true })
                 updateAvailable = true
                 try {
                     await macUpdater?.downloadUpdate(m)
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+                    mainWindow.webContents.send('download-update-finished')
                     if (hard) await macUpdater?.installUpdate(m)
                 } catch (e: any) {
                     logger.updater.error(`macOS download/install error: ${e?.message || e}`)
@@ -693,7 +691,7 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
                     } catch {}
                 }
             } else {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
+                mainWindow.webContents.send('check-update', { updateAvailable: false })
             }
         } catch (e: any) {
             logger.updater.error(`macOS check error: ${e?.message || e}`)
@@ -702,12 +700,12 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
     }
     const status = await updater.check()
     if (status === UpdateStatus.DOWNLOADING) {
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+        mainWindow.webContents.send('check-update', { updateAvailable: true })
         updateAvailable = true
     } else if (status === UpdateStatus.DOWNLOADED) {
         if (hard) updater.install()
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+        mainWindow.webContents.send('check-update', { updateAvailable: true })
         updateAvailable = true
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+        mainWindow.webContents.send('download-update-finished')
     }
 }

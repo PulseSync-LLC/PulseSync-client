@@ -1,5 +1,4 @@
 import Layout from '../../components/layout'
-import MainEvents from '../../../common/types/mainEvents'
 
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import * as inputStyle from './oldInput.module.scss'
@@ -88,8 +87,8 @@ export default function TrackInfoPage() {
                 if (Object.prototype.hasOwnProperty.call(changedValues, 'statusDisplayType')) {
                     changedValues.statusDisplayType = parseInt(changedValues.statusDisplayType, 10)
                 }
-                window.desktopEvents?.send(MainEvents.UPDATE_RPC_SETTINGS, changedValues)
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+                window.desktopEvents?.send('update-rpcSettings', changedValues)
+                window.desktopEvents?.send('GET_TRACK_INFO')
                 setPreviousValues(values)
                 setApp({
                     ...app,
@@ -130,7 +129,7 @@ export default function TrackInfoPage() {
                             titleName={'Discord RPC'}
                             imageName={'discord'}
                             onClick={() => {
-                                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+                                window.desktopEvents?.send('GET_TRACK_INFO')
                                 window.discordRpc.discordRpc(!app.discordRpc.status)
                                 setApp({
                                     ...app,

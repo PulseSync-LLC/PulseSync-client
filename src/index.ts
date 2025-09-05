@@ -6,8 +6,8 @@ import createTray from './main/modules/tray'
 import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { sendAddon, setAddon } from './main/modules/httpServer'
-import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
+import { setAddon } from './main/modules/httpServer'
+import { AppxPackage, checkAsar, findAppByName, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -23,8 +23,6 @@ import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/naviveModule'
 import * as fsp from 'fs/promises'
-import MainEvents from './common/types/mainEvents'
-import RendererEvents from './common/types/rendererEvents'
 
 export let corsAnywherePort: string | number
 export let updated = false
@@ -153,7 +151,7 @@ app.on('ready', async () => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        ipcMain.emit(MainEvents.DISCORDRPC_CLEARSTATE)
+        ipcMain.emit('discordrpc-clearstate')
         app.quit()
     }
 })
@@ -257,10 +255,11 @@ const mimeFromExt = (p: string) => {
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
 }
 
-ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) => {
+ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
     try {
         switch (eventType) {
-            case RendererEvents.CHECK_FILE_EXISTS: {
+            case 'exists':
+            case 'check-file-exists': {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -271,7 +270,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.READ_FILE: {
+            case 'read-file': {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -283,7 +282,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.WRITE_FILE: {
+            case 'write-file': {
                 if (!filePath) return { success: false, error: 'filePath is required' }
                 try {
                     const p = resolveInputPath(filePath)
@@ -298,7 +297,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.READ_FILE_BASE64: {
+            case 'read-file-base64': {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -310,7 +309,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.WRITE_FILE_BASE64: {
+            case 'write-file-base64': {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -326,7 +325,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.DELETE_FILE: {
+            case 'delete-file': {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -335,7 +334,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 return true
             }
 
-            case RendererEvents.COPY_FILE: {
+            case 'copy-file': {
                 const src: string = filePath
                 const dest: string = data?.dest
                 if (!src || !dest) return false
@@ -351,7 +350,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 return true
             }
 
-            case RendererEvents.AS_DATA_URL: {
+            case 'as-data-url': {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -364,7 +363,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                 }
             }
 
-            case RendererEvents.CREATE_CONFIG_FILE: {
+            case 'create-config-file': {
                 if (!filePath) return { success: false, error: 'filePath is required' }
                 try {
                     const p = resolveInputPath(filePath)
@@ -384,11 +383,12 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
     } catch (err: any) {
         logger?.main?.error?.('[file-event] Fatal:', eventType, err)
         switch (eventType) {
-            case RendererEvents.CHECK_FILE_EXISTS:
+            case 'exists':
+            case 'check-file-exists':
                 return false
-            case RendererEvents.READ_FILE:
-            case RendererEvents.READ_FILE_BASE64:
-            case RendererEvents.AS_DATA_URL:
+            case 'read-file':
+            case 'read-file-base64':
+            case 'as-data-url':
                 return null
             default:
                 return { success: false, error: err?.message || String(err) }
@@ -396,7 +396,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
     }
 })
 
-ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryPath) => {
+ipcMain.handle('deleteAddonDirectory', async (_event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {
             await fsp.rm(themeDirectoryPath, {
@@ -412,7 +412,7 @@ ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryP
     }
 })
 
-ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
+ipcMain.on('themeChanged', async (_event, addon: Addon) => {
     try {
         if (!addon) {
             logger.main.error('Addons: No addon data received')

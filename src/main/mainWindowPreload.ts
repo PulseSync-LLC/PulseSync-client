@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import packageJson from '../../package.json'
-import MainEvents from '../common/types/mainEvents'
 
 export interface DesktopEvents {
     send(channel: string, ...args: any[]): void
@@ -15,72 +14,69 @@ export interface DesktopEvents {
 contextBridge.exposeInMainWorld('electron', {
     store: {
         get(key: string) {
-            return ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, key)
+            return ipcRenderer.sendSync('electron-store-get', key)
         },
         set(property: string, val: any) {
-            ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, property, val)
+            ipcRenderer.send('electron-store-set', property, val)
         },
         delete(property: string) {
-            ipcRenderer.send(MainEvents.ELECTRON_STORE_DELETE, property)
+            ipcRenderer.send('electron-store-delete', property)
         },
     },
     window: {
         minimize() {
-            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MINIMIZE)
+            ipcRenderer.send('electron-window-minimize')
         },
         maximize() {
-            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MAXIMIZE)
+            ipcRenderer.send('electron-window-maximize')
         },
         close(val: boolean) {
-            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_CLOSE, val)
+            ipcRenderer.send('electron-window-close', val)
         },
         exit() {
-            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_EXIT)
+            ipcRenderer.send('electron-window-exit')
         },
     },
     settings: {
         minimize() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MINIMIZE)
+            ipcRenderer.send('electron-settings-minimize')
         },
         maximize() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MAXIMIZE)
+            ipcRenderer.send('electron-settings-maximize')
         },
         close(val: boolean) {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_CLOSE, val)
+            ipcRenderer.send('electron-settings-close', val)
         },
         exit() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_EXIT)
-        },
-        isMac() {
-            return ipcRenderer.sendSync(MainEvents.ELECTRON_MAC)
+            ipcRenderer.send('electron-settings-exit')
         },
     },
     corsAnywherePort() {
-        return ipcRenderer.sendSync(MainEvents.ELECTRON_CORSANYWHEREPORT)
+        return ipcRenderer.sendSync('electron-corsanywhereport')
     },
     isAppDev() {
-        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
+        return ipcRenderer.sendSync('electron-isdev')
     },
     isLinux() {
         return ipcRenderer.sendSync('electron-islinux')
     },
     isMac() {
-        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISMAC)
+        return ipcRenderer.sendSync('electron-ismac')
     },
 })
 contextBridge.exposeInMainWorld('appInfo', {
-    getBranch: () => ipcRenderer.sendSync(MainEvents.GET_LAST_BRANCH),
+    getBranch: () => ipcRenderer.sendSync('getLastBranch'),
     getVersion: () => packageJson.version,
 })
 contextBridge.exposeInMainWorld('discordRpc', {
     async setActivity(presence: SetActivity) {
-        ipcRenderer.send(MainEvents.DISCORDRPC_SETSTATE, presence)
+        ipcRenderer.send('discordrpc-setstate', presence)
     },
     async clearActivity() {
-        ipcRenderer.send(MainEvents.DISCORDRPC_CLEARSTATE)
+        ipcRenderer.send('discordrpc-clearstate')
     },
     async discordRpc(val: boolean) {
-        ipcRenderer.send(MainEvents.DISCORDRPC_DISCORDRPC, val)
+        ipcRenderer.send('discordrpc-discordRpc', val)
     },
 })
 const desktopEvents: DesktopEvents = {

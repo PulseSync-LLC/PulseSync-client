@@ -6,7 +6,6 @@ import crypto from 'crypto'
 import fs from 'original-fs'
 import { asarBackup, musicPath } from '../../index'
 import { app, BrowserWindow, dialog } from 'electron'
-import RendererEvents from '../../common/types/rendererEvents'
 import axios from 'axios'
 import { execSync } from 'child_process'
 import * as plist from 'plist'
@@ -201,7 +200,7 @@ export const downloadYandexMusic = async (type?: string) => {
     response.data.on('data', (chunk: Buffer) => {
         received += chunk.length
         const p = received / total
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(p * 100) })
+        mainWindow.webContents.send('download-music-progress', { progress: Math.round(p * 100) })
         mainWindow.setProgressBar(p)
     })
     await new Promise<void>((res, rej) => {
@@ -222,7 +221,7 @@ export const downloadYandexMusic = async (type?: string) => {
         })
 
     const sendFailure = (err: Error | string) => {
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+        mainWindow.webContents.send('download-music-failure', {
             success: false,
             error: typeof err === 'string' ? err : `Failed to execute: ${err.message}`,
         })
@@ -273,7 +272,7 @@ export const downloadYandexMusic = async (type?: string) => {
             }
 
             checkAsar()
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+            mainWindow.webContents.send('download-music-execution-success', {
                 success: true,
                 message: 'Приложение установлено и запущено.',
                 type: type || 'update',
@@ -290,7 +289,7 @@ export const downloadYandexMusic = async (type?: string) => {
     setTimeout(() => {
         execFile(downloadPath, error => {
             if (error) {
-                mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                mainWindow.webContents.send('download-music-failure', {
                     success: false,
                     error: `Failed to execute: ${error.message}`,
                 })
@@ -300,7 +299,7 @@ export const downloadYandexMusic = async (type?: string) => {
                 fs.unlinkSync(downloadPath)
             } catch {}
             checkAsar()
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+            mainWindow.webContents.send('download-music-execution-success', {
                 success: true,
                 message: 'File executed successfully.',
                 type: type || 'update',
