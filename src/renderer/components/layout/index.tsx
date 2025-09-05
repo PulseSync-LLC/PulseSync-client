@@ -317,6 +317,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     }
 
     const startUpdate = (force?: boolean) => {
+        if (window.electron.isLinux()) {
+            toast.custom('error', 'Ошибка', 'Мод не поддерживается на Linux.')
+            return
+        }
         if (isUpdating) {
             toast.custom('error', 'Ошибка', app.mod.installed ? 'Обновление уже запущено' : 'Установка уже запущена')
             return

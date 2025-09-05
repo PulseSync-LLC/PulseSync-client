@@ -16,7 +16,7 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac } from '../utils/appUtils'
+import { checkMusic, getYandexMusicAppDataPath, isLinux, isMac, isWindows } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -153,6 +153,9 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on('electron-ismac', async (event, args) => {
         event.returnValue = isMac()
+    })
+    ipcMain.on('electron-islinux', async (event, args) => {
+        event.returnValue = isLinux()
     })
     ipcMain.handle('getVersion', async () => app.getVersion())
     ipcMain.on('getLastBranch', event => {

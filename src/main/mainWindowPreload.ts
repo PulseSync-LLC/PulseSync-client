@@ -50,15 +50,15 @@ contextBridge.exposeInMainWorld('electron', {
         exit() {
             ipcRenderer.send('electron-settings-exit')
         },
-        isMac() {
-            return ipcRenderer.sendSync('electron-mac')
-        },
     },
     corsAnywherePort() {
         return ipcRenderer.sendSync('electron-corsanywhereport')
     },
     isAppDev() {
         return ipcRenderer.sendSync('electron-isdev')
+    },
+    isLinux() {
+        return ipcRenderer.sendSync('electron-islinux')
     },
     isMac() {
         return ipcRenderer.sendSync('electron-ismac')
