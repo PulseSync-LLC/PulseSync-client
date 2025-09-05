@@ -500,20 +500,50 @@ export function uninstallApp(packageFullName: string): Promise<void> {
 }
 
 export const getYandexMusicVersion = async (): Promise<string> => {
+    const safeParseJson = (text: string) => {
+        const cleaned = text.replace(/^\uFEFF/, '').trim()
+        return JSON.parse(cleaned)
+    }
+
+    const tryReadVersionFromAsar = (asarPath: string): string | null => {
+        const candidates = ['package.json', 'app/package.json']
+        for (const candidate of candidates) {
+            try {
+                const buf = asar.extractFile(asarPath, candidate)
+                if (!buf || buf.length === 0) {
+                    logger.modManager.warn(`Пустой ${candidate} в app.asar`)
+                    continue
+                }
+                const pkg = safeParseJson(buf.toString('utf8'))
+                if (pkg && pkg.version) return String(pkg.version)
+                logger.modManager.warn(`Поле version не найдено в ${candidate} внутри app.asar`)
+            } catch (e) {
+                const msg = (e as Error).message
+                if (msg && /no such file/i.test(msg)) {
+                    logger.modManager.warn(`${candidate} отсутствует в app.asar`)
+                } else if (msg && /unexpected token/i.test(msg)) {
+                    logger.modManager.warn(`Некорректный JSON в ${candidate} внутри app.asar: ${msg}`)
+                } else {
+                    logger.modManager.warn(`Не удалось прочитать ${candidate} из app.asar: ${msg}`)
+                }
+            }
+        }
+        return null
+    }
+
     try {
-        const asarPath = path.join(await getPathToYandexMusic(), 'app.asar')
+        const resourcesDir = await getPathToYandexMusic()
+        const asarPath = path.join(resourcesDir, 'app.asar')
+
         if (!fs.existsSync(asarPath)) {
-            logger.modManager.error('app.asar не найден')
+            logger.modManager.error(`app.asar не найден по пути: ${asarPath}`)
             return '0.0.0'
         }
-        const pkgJson = asar.extractFile(asarPath, 'package.json')
-        if (!pkgJson) {
-            logger.modManager.error('package.json not found in app.asar')
-            return '0.0.0'
-        }
-        const pkg = JSON.parse(pkgJson.toString('utf8'))
-        if (pkg.version) return pkg.version
-        logger.modManager.error('Version not found in package.json')
+
+        const ver = tryReadVersionFromAsar(asarPath)
+        if (ver) return ver
+
+        logger.modManager.error('Не удалось извлечь версию из app.asar ни по одному известному пути')
         return '0.0.0'
     } catch (e) {
         logger.modManager.error('Не удалось прочитать версию из app.asar: ' + (e as Error).message)

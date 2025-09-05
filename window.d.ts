@@ -37,6 +37,7 @@ declare global {
             receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
             isAppDev: () => boolean
+            isLinux: () => boolean
             isMac: () => boolean
         }
         refreshAddons: () => void
