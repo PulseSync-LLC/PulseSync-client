@@ -6,8 +6,8 @@ import createTray from './main/modules/tray'
 import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { sendAddon, setAddon } from './main/modules/httpServer'
-import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
+import { setAddon } from './main/modules/httpServer'
+import { AppxPackage, checkAsar, findAppByName, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -61,6 +61,9 @@ const initializeMusicPath = async () => {
 }
 initializeMusicPath()
 
+const sentryPrefix = 'app:///'
+const sentryRoot = app.isPackaged ? path.join(process.resourcesPath, 'app.asar') : path.resolve(__dirname, '..', '..')
+
 if (!isAppDev) {
     logger.main.info('Sentry enabled')
     Sentry.init({
@@ -71,7 +74,14 @@ if (!isAppDev) {
         attachStacktrace: true,
         enableRendererProfiling: true,
         attachScreenshot: true,
+        integrations: [
+            Sentry.rewriteFramesIntegration({
+                root: sentryRoot,
+                prefix: sentryPrefix,
+            }),
+        ],
     })
+    Sentry.setTag('process', 'main')
 } else {
     const openAtLogin = app.getLoginItemSettings().openAtLogin
     if (openAtLogin) {

@@ -7,3 +7,4 @@ Sentry.init({
     integrations: [Sentry.browserTracingIntegration(), Sentry.browserProfilingIntegration()],
     tracePropagationTargets: ['127.0.0.1', 'localhost', /^https:\/\/ru-node-1\.pulsesync\.dev/],
 })
+Sentry.setTag('process', 'renderer')

@@ -9,19 +9,22 @@ import packageJson from '../package.json'
 import path from 'path'
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const ForkTsCheckerWebpackPlugin: typeof IForkTsCheckerWebpackPlugin = require('fork-ts-checker-webpack-plugin')
+
+const ROOT = path.resolve(__dirname, '..')
+const isProd = process.env.NODE_ENV === 'production'
 const releaseVersion = packageJson.version
 
 export const plugins = [
     new ForkTsCheckerWebpackPlugin({
         logger: 'webpack-infrastructure',
         typescript: {
-            configFile: path.resolve(__dirname, '..', 'tsconfig.json'),
+            configFile: path.join(ROOT, 'tsconfig.json'),
         },
     }),
     new CopyWebpackPlugin({
         patterns: [
-            { from: '../static', to: 'static' },
-            { from: '../static', to: 'main_window/static' },
+            { from: path.join(ROOT, 'static'), to: 'static' },
+            { from: path.join(ROOT, 'static'), to: 'main_window/static' },
         ],
     }),
     new webpack.ProvidePlugin({
@@ -31,30 +34,34 @@ export const plugins = [
     new webpack.SourceMapDevToolPlugin({
         filename: '[file].map',
         moduleFilenameTemplate: (info: { absoluteResourcePath: any }) =>
-            'webpack:///' + path.relative(__dirname, info.absoluteResourcePath).replace(/\\/g, '/'),
+            'webpack:///' + path.relative(ROOT, info.absoluteResourcePath).replace(/\\/g, '/'),
         fallbackModuleFilenameTemplate: 'webpack:///[resource-path]?[hash]',
         publicPath: '/',
         append: '\n//# sourceMappingURL=[url]',
     }),
     new NodePolyfillPlugin(),
-    // sentryWebpackPlugin({
-    //     org: 'pulsesync',
-    //     project: 'electron',
-    //     authToken: config.SENTRY_KEY,
-    //     debug: true,
-    //     release: {
-    //         name: 'pulsesync@' + releaseVersion,
-    //         uploadLegacySourcemaps: {
-    //             paths: [path.resolve(__dirname, '..', '.webpack/main'), path.resolve(__dirname, '..', '.webpack/renderer')],
-    //             urlPrefix: '/',
-    //             stripPrefix: [path.resolve(__dirname, '..', '.webpack')],
-    //         },
-    //     },
-    //     sourcemaps: {
-    //         ignore: ['node_modules'],
-    //     },
-    //     errorHandler: err => {
-    //         console.warn(err)
-    //     },
-    // }),
+    ...(isProd
+        ? [
+              sentryWebpackPlugin({
+                  org: 'pulsesync',
+                  project: 'electron',
+                  authToken: (config as any).SENTRY_KEY,
+                  debug: false,
+                  silent: true,
+                  release: {
+                      name: 'pulsesync@' + releaseVersion,
+                  },
+                  sourcemaps: {
+                      ignore: ['**/node_modules/**'],
+                      filesToDeleteAfterUpload: ['**/*.map'],
+                  },
+                  reactComponentAnnotation: {
+                      enabled: true,
+                  },
+                  errorHandler: err => {
+                      console.warn(err)
+                  },
+              }),
+          ]
+        : []),
 ]
