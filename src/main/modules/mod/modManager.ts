@@ -1,4 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron'
+import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 import * as path from 'path'
 import * as https from 'https'
 import axios from 'axios'
@@ -66,7 +68,7 @@ function sendFailure(
 
 async function closeMusicIfRunning(): Promise<void> {
     if (await isYandexMusicRunning()) {
-        mainWindow.webContents.send('update-message', { message: 'Закрытие Яндекс Музыки...' })
+        mainWindow.webContents.send(RendererEvents.UPDATE_MESSAGE, { message: 'Закрытие Яндекс Музыки...' })
         await closeYandexMusic()
         await new Promise(r => setTimeout(r, 500))
     }
@@ -79,7 +81,7 @@ async function ensureBackup(): Promise<void> {
         else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
 
         if (!source) {
-            sendFailure('download-failure', {
+            sendFailure(RendererEvents.DOWNLOAD_FAILURE, {
                 error: `${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
                 type: 'file_not_found',
             })
@@ -159,7 +161,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
     const sendUnifiedProgress = () => {
         const overall = downloadFrac * phaseWeight.download + patchFrac * phaseWeight.patch
         mainWindow?.setProgressBar(overall)
-        mainWindow?.webContents.send('download-progress', { progress: Math.round(overall * 100) })
+        mainWindow?.webContents.send(RendererEvents.DOWNLOAD_PROGRESS, { progress: Math.round(overall * 100) })
     }
 
     try {
@@ -173,7 +175,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                     musicVersion: versions.yandexMusic,
                     name: versions.modName,
                 })
-                mainWindow.webContents.send('download-success', { success: true, message: 'Мод уже установлен.' })
+                mainWindow.webContents.send(RendererEvents.DOWNLOAD_SUCCESS, { success: true, message: 'Мод уже установлен.' })
                 return
             }
         }
@@ -208,7 +210,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
             logger.http.error('Download error:', err.message)
-            sendFailure('download-failure', { error: 'Ошибка при скачивании. Проверьте интернет.', type: 'download_error' })
+            sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: 'Ошибка при скачивании. Проверьте интернет.', type: 'download_error' })
         })
 
         writer.on('finish', async () => {
@@ -227,7 +229,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                     const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex')
                     if (hash !== checksum) {
                         fs.unlinkSync(tempFilePath)
-                        return sendFailure('download-failure', { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
+                        return sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
                     }
                 }
 
@@ -241,7 +243,7 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 })
                 if (!ok) {
                     if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
-                    return sendFailure('download-failure', { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
+                    return sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
                 }
 
                 State.set('mod', {
@@ -252,13 +254,13 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
                 })
                 await installFfmpeg(mainWindow)
                 mainWindow.setProgressBar(-1)
-                setTimeout(() => mainWindow.webContents.send('download-success', { success: true }), 1500)
+                setTimeout(() => mainWindow.webContents.send(RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 1500)
             } catch (e: any) {
                 fs.unlink(tempFilePath, () => {})
                 if (fs.existsSync(paths.backupAsar)) fs.renameSync(paths.backupAsar, savePath)
                 logger.modManager.error('Error processing downloaded file:', e)
                 HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
-                sendFailure('download-failure', { error: e.message, type: 'finish_error' })
+                sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: e.message, type: 'finish_error' })
             }
         })
 
@@ -266,20 +268,20 @@ const downloadAndUpdateFile = async (link: string, tempFilePath: string, savePat
             fs.unlink(tempFilePath, () => {})
             logger.modManager.error('Error writing file:', err)
             HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
-            sendFailure('download-failure', { error: err.message, type: 'writer_error' })
+            sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: err.message, type: 'writer_error' })
         })
     } catch (err: any) {
         fs.unlink(tempFilePath, () => {})
         logger.modManager.error('Error downloading file:', err)
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
-        sendFailure('download-failure', { error: err.message, type: 'download_outer_error' })
+        sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: err.message, type: 'download_outer_error' })
     }
 }
 
 export const modManager = (window: BrowserWindow): void => {
     initializePaths()
 
-    ipcMain.on('update-music-asar', async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
+    ipcMain.on(MainEvents.UPDATE_MUSIC_ASAR, async (event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
         try {
             if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                 State.set('settings', { musicReinstalled: true })
@@ -304,7 +306,7 @@ export const modManager = (window: BrowserWindow): void => {
                             filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
                         })
                         if (fileRes.canceled || !fileRes.filePath) {
-                            return sendFailure('download-failure', {
+                            return sendFailure(RendererEvents.DOWNLOAD_FAILURE, {
                                 error: 'Не указан путь для сохранения модификации ASAR.',
                                 type: 'mod_save_path_missing',
                             })
@@ -313,7 +315,7 @@ export const modManager = (window: BrowserWindow): void => {
                         State.set('settings', { modSavePath: paths.modAsar })
                         paths.backupAsar = paths.modAsar.replace(/\.asar$/, '.backup.asar')
                     } else {
-                        return sendFailure('download-failure', {
+                        return sendFailure(RendererEvents.DOWNLOAD_FAILURE, {
                             error: 'Не указан путь для сохранения модификации ASAR.',
                             type: 'mod_save_path_missing',
                         })
@@ -345,7 +347,7 @@ export const modManager = (window: BrowserWindow): void => {
                             : comp.code === 'YANDEX_VERSION_TOO_NEW'
                               ? 'version_too_new'
                               : 'unknown'
-                    return sendFailure('download-failure', {
+                    return sendFailure(RendererEvents.DOWNLOAD_FAILURE, {
                         error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
                         type,
                         url: comp.url,
@@ -362,7 +364,7 @@ export const modManager = (window: BrowserWindow): void => {
                     await copyFile(paths.modAsar, paths.modAsar)
                 } catch (e) {
                     await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
-                    return sendFailure('download-failure', {
+                    return sendFailure(RendererEvents.DOWNLOAD_FAILURE, {
                         error: 'Пожалуйста, предоставьте приложению полный доступ к диску.',
                         type: 'file_copy_error',
                     })
@@ -373,12 +375,12 @@ export const modManager = (window: BrowserWindow): void => {
             await downloadAndUpdateFile(link, tempFilePath, paths.modAsar, event, checksum)
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
-            HandleErrorsElectron.handleError('modManager', 'update-music-asar', 'handler', error)
-            sendFailure('download-failure', { error: error.message, type: 'unexpected_error' })
+            HandleErrorsElectron.handleError('modManager', MainEvents.UPDATE_MUSIC_ASAR, 'handler', error)
+            sendFailure(RendererEvents.DOWNLOAD_FAILURE, { error: error.message, type: 'unexpected_error' })
         }
     })
 
-    ipcMain.on('remove-mod', async () => {
+    ipcMain.on(MainEvents.REMOVE_MOD, async () => {
         try {
             const doRemove = async () => {
                 if (fs.existsSync(paths.backupAsar)) {
@@ -396,15 +398,15 @@ export const modManager = (window: BrowserWindow): void => {
                 State.delete('mod.name')
                 State.set('mod.installed', false)
                 await deleteFfmpeg()
-                mainWindow.webContents.send('remove-mod-success', { success: true })
+                mainWindow.webContents.send(RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
             }
 
             await closeMusicIfRunning()
             await doRemove()
         } catch (error: any) {
             logger.modManager.error('Error removing mod:', error)
-            HandleErrorsElectron.handleError('modManager', 'remove-mod', 'handler', error)
-            sendFailure('remove-mod-failure', { error: error.message, type: 'remove_mod_error' })
+            HandleErrorsElectron.handleError('modManager', MainEvents.REMOVE_MOD, 'handler', error)
+            sendFailure(RendererEvents.REMOVE_MOD_FAILURE, { error: error.message, type: 'remove_mod_error' })
         }
     })
 }

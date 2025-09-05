@@ -2,6 +2,7 @@ import React from 'react'
 import { MdOpenInNew } from 'react-icons/md'
 import { getStatus, getStatusColor } from '../../../../utils/userStatus'
 import * as styles from '../../userProfileModal.module.scss'
+import MainEvents from '../../../../../common/types/mainEvents'
 
 interface UserStatusProps {
     userProfile: any
@@ -16,7 +17,10 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
         if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && userProfile.currentTrack.trackSource !== 'UGC') {
             e.stopPropagation()
             const albumId = userProfile.currentTrack.albums[0].id
-            window.desktopEvents?.send('open-external', `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`)
+            window.desktopEvents?.send(
+                MainEvents.OPEN_EXTERNAL,
+                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
+            )
         }
     }
 

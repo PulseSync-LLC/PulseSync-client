@@ -1,4 +1,5 @@
 import { BrowserWindow, app } from 'electron'
+import RendererEvents from '../../common/types/rendererEvents'
 import path from 'path'
 import fs from 'fs'
 import os from 'os'
@@ -73,7 +74,7 @@ export function sendStatus(window: BrowserWindow, message: string, progress: num
     const fraction = Math.min(Math.max(progress / 100, 0), 1)
     window.setProgressBar(fraction)
 
-    window.webContents.send('ffmpeg-download-status', {
+    window.webContents.send(RendererEvents.FFMPEG_DOWNLOAD_STATUS, {
         message,
         progress,
         success,

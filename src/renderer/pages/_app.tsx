@@ -1,6 +1,8 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
 import UserMeQuery from '../api/queries/user/getMe.query'
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
 
 import Dev from './dev'
 import AuthPage from './auth'
@@ -160,7 +162,7 @@ function App() {
                         return false
                     } else {
                         toast.custom('error', 'Отдохни чуток:)', 'Превышено количество попыток подключения.')
-                        window.desktopEvents?.send('authStatus', {
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: false,
                         })
                         setLoading(false)
@@ -170,7 +172,7 @@ function App() {
 
                 const sendErrorAuthNotify = (message: string, title?: string) => {
                     toast.custom('error', 'Ошибка', message, null, null, 10000)
-                    window.desktopEvents?.send('show-notification', {
+                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                         title: `Ошибка авторизации 😡 ${title ? title : ''}`,
                         body: message,
                     })
@@ -188,7 +190,7 @@ function App() {
 
                         await router.navigate('/trackinfo', { replace: true })
 
-                        window.desktopEvents?.send('authStatus', {
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: true,
                             user: {
                                 id: data.getMe.id,
@@ -203,7 +205,7 @@ function App() {
                         await router.navigate('/', { replace: true })
                         setUser(userInitials)
                         sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
-                        window.desktopEvents?.send('authStatus', {
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: false,
                         })
                         return false
@@ -216,7 +218,7 @@ function App() {
                             return false
                         } else {
                             toast.custom('error', 'Пинг-понг', 'Сервер недоступен. Попробуйте позже.')
-                            window.desktopEvents?.send('authStatus', {
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                                 status: false,
                             })
                             setLoading(false)
@@ -230,7 +232,7 @@ function App() {
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send('authStatus', {
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                                 status: false,
                             })
                             return false
@@ -239,12 +241,12 @@ function App() {
                                 'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
                                 'Данная версия приложения устарела',
                             )
-                            window.desktopEvents?.send('updater-start')
+                            window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send('authStatus', {
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                                 status: false,
                             })
                             return false
@@ -252,7 +254,7 @@ function App() {
                     } else {
                         Sentry.captureException(e)
                         toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
-                        window.desktopEvents?.send('authStatus', {
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: false,
                         })
                         setLoading(false)
@@ -260,7 +262,7 @@ function App() {
                     }
                 }
             } else {
-                window.desktopEvents?.send('authStatus', {
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                     status: false,
                 })
                 setLoading(false)
@@ -276,7 +278,7 @@ function App() {
                     const token = await getUserToken()
 
                     if (!token) {
-                        window.desktopEvents?.send('authStatus', {
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: false,
                         })
                         setLoading(false)
@@ -293,7 +295,7 @@ function App() {
             }
         }
 
-        window.desktopEvents?.invoke('checkSleepMode').then(async (res: boolean) => {
+        window.desktopEvents?.invoke(MainEvents.CHECK_SLEEP_MODE).then(async (res: boolean) => {
             if (!res) {
                 await retryAuthorization()
             }
@@ -323,21 +325,21 @@ function App() {
             }
 
             const handleBeforeunload = (event: BeforeUnloadEvent) => {
-                window.desktopEvents?.send('discordrpc-reset-activity')
+                window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
             }
 
             const handleAuthStatus = async (event: any) => {
                 await authorize()
             }
 
-            window.desktopEvents?.send('WEBSOCKET_START')
-            window.desktopEvents?.on('authSuccess', handleAuthStatus)
+            window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
+            window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
             window.addEventListener('mouseup', handleMouseButton)
             window.addEventListener('beforeunload', handleBeforeunload)
 
             return () => {
                 clearInterval(intervalId)
-                window.desktopEvents?.removeAllListeners('authSuccess')
+                window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
                 window.removeEventListener('mouseup', handleMouseButton)
                 window.removeEventListener('beforeunload', handleBeforeunload)
             }
@@ -405,7 +407,7 @@ function App() {
         }
         const onDeprecated = () => {
             toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.')
-            window.desktopEvents?.send('show-notification', {
+            window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                 title: 'Внимание!',
                 body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
             })
@@ -459,7 +461,7 @@ function App() {
             if (compareVersions(latest.modVersion, app.mod.version) > 0) {
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
                 if (lastNotifiedModVersion !== latest.modVersion) {
-                    window.desktopEvents?.send('show-notification', {
+                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                         title: 'Доступно обновление мода',
                         body: `Версия ${latest.modVersion} доступна для установки.`,
                     })
@@ -480,12 +482,12 @@ function App() {
                     socketRef.current?.connect()
                 }
 
-                window.desktopEvents?.send('updater-start')
-                window.desktopEvents?.send('checkMusicInstall')
-                window.desktopEvents?.send('ui-ready')
+                window.desktopEvents?.send(MainEvents.UPDATER_START)
+                window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
+                window.desktopEvents?.send(MainEvents.UI_READY)
                 const [musicStatus, fetchedAddons] = await Promise.all([
-                    window.desktopEvents?.invoke('getMusicStatus'),
-                    window.desktopEvents?.invoke('getAddons'),
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
+                    window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
                 ])
                 setMusicInstalled(musicStatus)
                 setAddons(fetchedAddons)
@@ -517,13 +519,13 @@ function App() {
     }, [user.id])
 
     const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
-        return await window.desktopEvents?.invoke('file-event', eventType, filePath, data)
+        return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
     }
 
     useEffect(() => {
         const handleOpenAddon = (_event: any, data: string) => {
             window.desktopEvents
-                ?.invoke('getAddons')
+                ?.invoke(MainEvents.GET_ADDONS)
                 .then((fetchedAddons: Addon[]) => {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
@@ -538,20 +540,20 @@ function App() {
                 })
                 .catch(error => console.error('Error getting themes:', error))
         }
-        window.desktopEvents?.on('open-addon', handleOpenAddon)
-        window.desktopEvents?.on('check-file-exists', (_event, filePath) => invokeFileEvent('check-file-exists', filePath))
-        window.desktopEvents?.on('read-file', (_event, filePath) => invokeFileEvent('read-file', filePath))
-        window.desktopEvents?.on('create-config-file', (_event, filePath, defaultContent) =>
-            invokeFileEvent('create-config-file', filePath, defaultContent),
+        window.desktopEvents?.on(RendererEvents.OPEN_ADDON, handleOpenAddon)
+        window.desktopEvents?.on(RendererEvents.CHECK_FILE_EXISTS, (_event, filePath) => invokeFileEvent(RendererEvents.CHECK_FILE_EXISTS, filePath))
+        window.desktopEvents?.on(RendererEvents.READ_FILE, (_event, filePath) => invokeFileEvent(RendererEvents.READ_FILE, filePath))
+        window.desktopEvents?.on(RendererEvents.CREATE_CONFIG_FILE, (_event, filePath, defaultContent) =>
+            invokeFileEvent(RendererEvents.CREATE_CONFIG_FILE, filePath, defaultContent),
         )
-        window.desktopEvents?.on('write-file', (_event, filePath, data) => invokeFileEvent('write-file', filePath, data))
+        window.desktopEvents?.on(RendererEvents.WRITE_FILE, (_event, filePath, data) => invokeFileEvent(RendererEvents.WRITE_FILE, filePath, data))
 
         return () => {
-            window.desktopEvents?.removeAllListeners('create-config-file')
-            window.desktopEvents?.removeAllListeners('open-addon')
-            window.desktopEvents?.removeAllListeners('check-file-exists')
-            window.desktopEvents?.removeAllListeners('read-file')
-            window.desktopEvents?.removeAllListeners('write-file')
+            window.desktopEvents?.removeAllListeners(RendererEvents.CREATE_CONFIG_FILE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.OPEN_ADDON)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_FILE_EXISTS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.READ_FILE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.WRITE_FILE)
         }
     }, [])
 
@@ -581,7 +583,7 @@ function App() {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
 
-            window.desktopEvents?.on('discordRpcState', (event, data) => {
+            window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, (event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
                     discordRpc: {
@@ -591,18 +593,18 @@ function App() {
                 }))
             })
 
-            window.desktopEvents?.on('check-mod-update', async () => {
+            window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, async () => {
                 await fetchModInfo(app)
             })
 
-            window.desktopEvents.on('CLIENT_READY', () => {
-                window.desktopEvents?.send('REFRESH_MOD_INFO')
-                window.desktopEvents?.send('GET_TRACK_INFO')
+            window.desktopEvents.on(RendererEvents.CLIENT_READY, () => {
+                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
             })
 
-            window.desktopEvents?.on('rpc-log', onRpcLog)
+            window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
 
-            window.desktopEvents?.invoke('getVersion').then((version: string) => {
+            window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
                     info: {
@@ -612,7 +614,7 @@ function App() {
                 }))
             })
 
-            window.desktopEvents?.on('check-update', (event, data) => {
+            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, (event, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
@@ -664,9 +666,9 @@ function App() {
                 setUpdate(true)
             }
 
-            window.desktopEvents?.on('download-update-progress', onDownloadProgress)
-            window.desktopEvents?.on('download-update-failed', onDownloadFailed)
-            window.desktopEvents?.on('download-update-finished', onDownloadFinished)
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
 
             const loadSettings = async () => {
                 await fetchSettings(setApp)
@@ -674,14 +676,14 @@ function App() {
             loadSettings()
 
             return () => {
-                window.desktopEvents?.removeListener('rpc-log', onRpcLog)
-                window.desktopEvents?.removeAllListeners('download-update-progress')
-                window.desktopEvents?.removeAllListeners('download-update-failed')
-                window.desktopEvents?.removeAllListeners('download-update-finished')
-                window.desktopEvents?.removeAllListeners('check-update')
-                window.desktopEvents?.removeAllListeners('discordRpcState')
-                window.desktopEvents?.removeAllListeners('CLIENT_READY')
-                window.desktopEvents?.removeAllListeners('check-mod-update')
+                window.desktopEvents?.removeListener(RendererEvents.RPC_LOG, onRpcLog)
+                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
+                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
+                window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
+                window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
+                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
             }
         }
     }, [])
@@ -710,7 +712,7 @@ function App() {
             await authorize()
         }
         ;(window as any).refreshAddons = async (args: any) => {
-            window.desktopEvents.invoke('getAddons').then((fetchedAddons: Addon[]) => {
+            window.desktopEvents.invoke(MainEvents.GET_ADDONS).then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
                 router.navigate('/extension', { replace: true })
             })
@@ -789,12 +791,12 @@ const Player: React.FC<any> = ({ children }) => {
         if (typeof window === 'undefined' || !(window as any).desktopEvents) return
 
         const de = (window as any).desktopEvents
-        de.on('SEND_TRACK', handleSendTrackPlayedEnough)
-        de.on('TRACK_INFO', handleTrackInfo)
+        de.on(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
+        de.on(RendererEvents.TRACK_INFO, handleTrackInfo)
 
         return () => {
-            de.removeListener('SEND_TRACK', handleSendTrackPlayedEnough)
-            de.removeListener('TRACK_INFO', handleTrackInfo)
+            de.removeListener(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
+            de.removeListener(RendererEvents.TRACK_INFO, handleTrackInfo)
             setTrack(trackInitials)
         }
     }, [user.id, handleSendTrackPlayedEnough, handleTrackInfo])

@@ -2,6 +2,8 @@ import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { app, dialog, ipcMain } from 'electron'
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
 import { selectedAddon } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
@@ -358,7 +360,7 @@ const initializeServer = () => {
         socket.on('READY', () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
-                mainWindow.webContents.send('CLIENT_READY')
+                mainWindow.webContents.send(RendererEvents.CLIENT_READY)
                 ;(socket as any).hasPong = true
                 if (authorized) {
                     sendDataToMusic({ targetSocket: socket })
@@ -373,7 +375,7 @@ const initializeServer = () => {
 
         socket.on('BROWSER_BAN', (args: any) => {
             logger.http.log('BROWSER_BAN received:', args)
-            mainWindow.webContents.send('authBanned', { reason: args.reason })
+            mainWindow.webContents.send(RendererEvents.AUTH_BANNED, { reason: args.reason })
         })
 
         socket.on('UPDATE_DATA', (payload: any) => {
@@ -385,18 +387,18 @@ const initializeServer = () => {
         socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
             if (!authorized) return
             logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
-            mainWindow.webContents.send('TRACK_INFO', data)
+            mainWindow.webContents.send(RendererEvents.TRACK_INFO, data)
         })
 
-        socket.on('SEND_TRACK', (payload: any) => {
+        socket.on(RendererEvents.SEND_TRACK, (payload: any) => {
             if (!authorized) return
             logger.http.log('SEND_TRACK received:', payload)
-            mainWindow.webContents.send('SEND_TRACK', payload.data)
+            mainWindow.webContents.send(RendererEvents.SEND_TRACK, payload.data)
         })
 
         socket.on('disconnect', () => {
             logger.http.log('Client disconnected')
-            mainWindow.webContents.send('TRACK_INFO', {
+            mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
                 type: 'refresh',
             })
         })
@@ -459,7 +461,7 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
     try {
         if (isAppDev) {
             State.set('tokens.token', token)
-            mainWindow.webContents.send('authSuccess')
+            mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
             mainWindow.show()
             return
         }
@@ -470,7 +472,7 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         }
         State.set('tokens.token', token)
         logger.socketManager.info(`Access confirmed for user ${userId}.`)
-        mainWindow.webContents.send('authSuccess')
+        mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
         mainWindow.show()
     } catch (error) {
         logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)
@@ -650,7 +652,7 @@ export const sendExtensions = async (): Promise<void> => {
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            sock.emit('REFRESH_EXTENSIONS', {
+            sock.emit(MainEvents.REFRESH_EXTENSIONS, {
                 addons: found,
             })
             sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
@@ -666,7 +668,7 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sendAddon(true, true)
-            sock.emit('REFRESH_EXTENSIONS', { addons: [] })
+            sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: [] })
             logger.http.log('Data sent after READY')
         }
     }
@@ -685,25 +687,25 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
     }, 1000)
 }
 
-ipcMain.on('WEBSOCKET_START', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_START, async () => {
     if (isAppDev && !State.get('settings.devSocket')) return
     logger.http.log('WEBSOCKET_START: starting server...')
     await startSocketServer()
 })
-ipcMain.on('WEBSOCKET_STOP', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_STOP, async () => {
     logger.http.log('WEBSOCKET_STOP: stopping server...')
     await stopSocketServer()
 })
-ipcMain.on('WEBSOCKET_RESTART', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_RESTART, async () => {
     logger.http.log('WEBSOCKET_RESTART: restarting server...')
     await stopSocketServer()
     setTimeout(() => startSocketServer(), 1500)
 })
-ipcMain.on('REFRESH_MOD_INFO', () => {
+ipcMain.on(MainEvents.REFRESH_MOD_INFO, () => {
     logger.http.log('REFRESH_MOD_INFO: forcing data send...')
     sendDataToMusic()
 })
-ipcMain.on('REFRESH_EXTENSIONS', async () => {
+ipcMain.on(MainEvents.REFRESH_EXTENSIONS, async () => {
     await sendExtensions()
 })
 
@@ -711,24 +713,24 @@ export const get_current_track = () => {
     io?.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            sock.emit('GET_TRACK_INFO')
+            sock.emit(MainEvents.GET_TRACK_INFO)
         }
     })
 }
 
-ipcMain.on('GET_TRACK_INFO', () => {
+ipcMain.on(MainEvents.GET_TRACK_INFO, () => {
     logger.http.log('GET_TRACK_INFO: returning current track...')
     get_current_track()
 })
 
 const updateData = (newData: any) => {
     if (newData.type === 'refresh') {
-        return mainWindow.webContents.send('TRACK_INFO', {
+        return mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
             type: 'refresh',
         })
     }
     data = newData
-    mainWindow.webContents.send('TRACK_INFO', data)
+    mainWindow.webContents.send(RendererEvents.TRACK_INFO, data)
 }
 
 export const getTrackInfo = () => data

@@ -57,36 +57,13 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const moreBtnRef = useRef<HTMLButtonElement>(null)
 
     const authorNames =
-        typeof addon.author === 'string'
-            ? addon.author.split(', ').map(name => name.trim().toLowerCase())
-            : addon.author.map(name => name.toLowerCase())
-
-    const MAX_VISIBLE = 1
-    const visibleAuthors = authorNames.slice(0, MAX_VISIBLE)
-    const hiddenAuthors = authorNames.slice(MAX_VISIBLE)
-
-    const [showAll, setShowAll] = useState(false)
-
-    useEffect(() => {
-        if (!showAll) return
-        const handler = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            if (!target.closest(`.${s.moreBox}`)) {
-                setShowAll(false)
-            }
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [showAll])
+        typeof addon.author === 'string' ? addon.author.split(', ').map(name => name.toLowerCase()) : addon.author.map(name => name.toLowerCase())
 
     const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
-    const [logoUrl, setLogoUrl] = useState<string | null>('static/assets/images/O^O.png')
+    const [logoUrl, setLogoUrl] = useState<string | null>(null)
 
     const currentBannerKeyRef = useRef<string | null>(null)
     const currentLogoKeyRef = useRef<string | null>(null)
-
-    const isMac = typeof window !== 'undefined' ? window.electron.isMac() : false
-    const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
@@ -95,15 +72,6 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         let didAcquire = false
         let cancelled = false
         const controller = new AbortController()
-
-        if (isMac && isGif(addon.banner)) {
-            if (currentBannerKeyRef.current) {
-                releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
-                currentBannerKeyRef.current = null
-            }
-            setBannerUrl('static/assets/images/no_themeBackground.png')
-            return () => controller.abort()
-        }
 
         if (!addon.banner) {
             if (currentBannerKeyRef.current) {
@@ -117,9 +85,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         const key = `${addon.directoryName}|banner|${addon.banner}`
 
         acquireObjectUrl(bannerUrlCache, key, async () => {
-            const res = await fetch(getAssetUrl(addon.banner!), {
-                signal: controller.signal,
-            })
+            const res = await fetch(getAssetUrl(addon.banner!), { signal: controller.signal })
             if (!res.ok) throw new Error('Failed to fetch banner')
             const blob = await res.blob()
             return URL.createObjectURL(blob)
@@ -154,15 +120,6 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         let cancelled = false
         const controller = new AbortController()
 
-        if (isMac &&isGif(addon.libraryLogo)) {
-            if (currentLogoKeyRef.current) {
-                releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
-                currentLogoKeyRef.current = null
-            }
-            setLogoUrl('static/assets/images/O^O.png')
-            return () => controller.abort()
-        }
-
         if (!addon.libraryLogo) {
             if (currentLogoKeyRef.current) {
                 releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
@@ -175,9 +132,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         const key = `${addon.directoryName}|logo|${addon.libraryLogo}`
 
         acquireObjectUrl(logoUrlCache, key, async () => {
-            const res = await fetch(getAssetUrl(addon.libraryLogo!), {
-                signal: controller.signal,
-            })
+            const res = await fetch(getAssetUrl(addon.libraryLogo!), { signal: controller.signal })
             if (!res.ok) throw new Error('Failed to fetch logo')
             const blob = await res.blob()
             return URL.createObjectURL(blob)
@@ -258,36 +213,17 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     <div className={s.metaItem}>
                         <span className={s.label}>Автор</span>
                         <span className={s.value}>
-                            {visibleAuthors.map((u, i) => (
+                            {authorNames.map((u, i) => (
                                 <React.Fragment key={u}>
-                                    <span onClick={() => nav(`/profile/${encodeURIComponent(u)}`)} className={s.authorLink}>
+                                    <span
+                                        onClick={() => nav(`/profile/${encodeURIComponent(u)}`)}
+                                        style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                                    >
                                         {u}
                                     </span>
-                                    {i < visibleAuthors.length - 1 && <span>, </span>}
+                                    {i < authorNames.length - 1 && <span>, </span>}
                                 </React.Fragment>
                             ))}
-
-                            {hiddenAuthors.length > 0 && (
-                                <span className={s.moreBox} onClick={() => setShowAll(!showAll)}>
-                                    <MdMoreHoriz size={16} />
-                                    {showAll && (
-                                        <div className={s.morePopup}>
-                                            {hiddenAuthors.map(u => (
-                                                <div
-                                                    key={u}
-                                                    onClick={() => {
-                                                        nav(`/profile/${encodeURIComponent(u)}`)
-                                                        setShowAll(false)
-                                                    }}
-                                                    className={s.moreAuthor}
-                                                >
-                                                    {u}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </span>
-                            )}
                         </span>
                     </div>
 
@@ -328,12 +264,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                             items={createContextMenuActions(
                                 undefined,
                                 themeActive,
-                                {
-                                    showCheck: false,
-                                    showDirectory: true,
-                                    showExport: true,
-                                    showDelete: true,
-                                },
+                                { showCheck: false, showDirectory: true, showExport: true, showDelete: true },
                                 addon,
                             )}
                         />

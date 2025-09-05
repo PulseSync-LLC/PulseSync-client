@@ -1,5 +1,6 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
+import RendererEvents from '../../../common/types/rendererEvents'
 
 import * as pageStyles from './callback.module.scss'
 
@@ -23,7 +24,7 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            window.desktopEvents?.on('authBanned', (event, data) => {
+            window.desktopEvents?.on(RendererEvents.AUTH_BANNED, (event, data) => {
                 setBanReason(data.reason)
                 setTimeout(() => window.electron.window.exit(), 10000)
             })
