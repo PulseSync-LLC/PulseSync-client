@@ -25,8 +25,8 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.882.0",
-        "@babel/core": "^7.28.3",
+        "@aws-sdk/client-s3": "^3.883.0",
+        "@babel/core": "^7.28.4",
         "@babel/preset-env": "^7.28.3",
         "@babel/preset-react": "^7.27.1",
         "@babel/preset-typescript": "^7.27.1",
@@ -54,7 +54,7 @@
         "copy-webpack-plugin": "^13.0.1",
         "electron": "38.0.0",
         "electron-builder": "^26.0.12",
-        "eslint": "^9.34.0",
+        "eslint": "^9.35.0",
         "eslint-plugin-import": "^2.32.0",
         "file-loader": "^6.2.0",
         "fork-ts-checker-webpack-plugin": "^9.1.0",
@@ -136,7 +136,7 @@
         "remark-breaks": "^4.0.0",
         "remark-gfm": "^4.0.1",
         "resedit": "^2.0.3",
-        "sass": "^1.92.0",
+        "sass": "^1.92.1",
         "sass-loader": "^16.0.5",
         "semver": "^7.7.2",
         "socket.io": "^4.8.1",
@@ -147,7 +147,7 @@
         "systeminformation": "^5.27.8",
         "tar": "^7.4.3",
         "url": "^0.11.4",
-        "uuid": "^11.1.0",
+        "uuid": "^12.0.0",
         "webpack": "5.101.3",
         "yaml": "^2.8.1",
         "yup": "^1.7.0"
@@ -157,7 +157,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.1-beta",
-        "BRANCH": "9218d49",
-        "BUILD_TIME": "05.09.2025, 19:41:05"
+        "BRANCH": "86b7b89",
+        "BUILD_TIME": "06.09.2025, 22:58:13"
     }
 }

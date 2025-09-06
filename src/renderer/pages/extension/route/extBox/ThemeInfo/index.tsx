@@ -154,7 +154,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         let cancelled = false
         const controller = new AbortController()
 
-        if (isMac &&isGif(addon.libraryLogo)) {
+        if (isMac && isGif(addon.libraryLogo)) {
             if (currentLogoKeyRef.current) {
                 releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
                 currentLogoKeyRef.current = null

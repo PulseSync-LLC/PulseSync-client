@@ -4,6 +4,7 @@ import clsx from 'clsx'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
 import userContext from '../../../api/context/user.context'
+import MainEvents from '../../../../common/types/mainEvents'
 
 interface ButtonInputProps {
     label: string
@@ -93,51 +94,84 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
 
         switch (checkType) {
             case 'toggleRpcStatus':
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.discordRpc.discordRpc(newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, status: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: { ...app.discordRpc, status: newValue },
+                })
                 break
             case 'enableRpcButtonListen':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.enableRpcButtonListen', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, enableRpcButtonListen: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: { ...app.discordRpc, enableRpcButtonListen: newValue },
+                })
                 break
             case 'enableWebsiteButton':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.enableWebsiteButton', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, enableWebsiteButton: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: {
+                        ...app.discordRpc,
+                        enableWebsiteButton: newValue,
+                    },
+                })
                 break
             case 'enableDeepLink':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.enableDeepLink', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, enableDeepLink: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: {
+                        ...app.discordRpc,
+                        enableDeepLink: newValue,
+                    },
+                })
                 break
             case 'displayPause':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.displayPause', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, displayPause: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: { ...app.discordRpc, displayPause: newValue },
+                })
                 break
             case 'showVersionOrDevice':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.showVersionOrDevice', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, showVersionOrDevice: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: { ...app.discordRpc, showVersionOrDevice: newValue },
+                })
                 break
             case 'showSmallIcon':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.showSmallIcon', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, showSmallIcon: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: { ...app.discordRpc, showSmallIcon: newValue },
+                })
                 break
             case 'showTrackVersion':
                 window.discordRpc.clearActivity()
-                window.desktopEvents?.send('GET_TRACK_INFO')
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
                 window.electron.store.set('discordRpc.showTrackVersion', newValue)
-                setApp({ ...app, discordRpc: { ...app.discordRpc, showTrackVersion: newValue } })
+                setApp({
+                    ...app,
+                    discordRpc: {
+                        ...app.discordRpc,
+                        showTrackVersion: newValue,
+                    },
+                })
                 break
             default:
                 break

@@ -30,7 +30,7 @@
 
 .row {
     display: grid;
-    grid-template-columns: 1fr;
+    grid-template-columns: auto 1fr;
     gap: 12px;
     align-items: center;
 }
@@ -42,6 +42,7 @@
     width: -webkit-fill-available;
     border-radius: 8px;
     color: #e7ecf3;
+    padding: 7px 10px;
     text-align: left;
     transition: var(--transition);
     cursor: text;
@@ -52,16 +53,16 @@
     font-size: 12px;
 }
 .valInput {
-    width: 50px;
+    width: fit-content;
+    max-width: 30px;
     background: #353b4f;
     border: 1px solid #8d9dd6;
     box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.18);
-    border-radius: 4px;
+    border-radius: 8px;
     color: #e7ecf3;
-    padding: 0px 5px;
-    font-size: 17px;
+    padding: 6px 10px;
+    font-size: 16px;
     outline: none;
-    text-align: center;
 }
 
 .track {

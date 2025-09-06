@@ -1,10 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
+import MainEvents from '../../../../../common/types/mainEvents'
+import RendererEvents from '../../../../../common/types/rendererEvents'
 
 import TextInput from '../../../../components/PSUI/TextInput'
 import SelectInput from '../../../../components/PSUI/SelectInput'
 import FileInput from '../../../../components/PSUI/FileInput'
-import ButtonInput from '../../../../components/PSUI/ButtonInput'
 import ChangesBar from '../../../../components/PSUI/ChangesBar'
 
 import * as css from './MetadataEditor.module.scss'
@@ -65,7 +66,7 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
 
     const safeExists = async (p: string) => {
         try {
-            const res = await window.desktopEvents.invoke('file-event', 'exists', p)
+            const res = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'exists', p)
             return !!res
         } catch {
             return false
@@ -83,10 +84,10 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     }
 
     try {
-        await window.desktopEvents.invoke('file-event', 'copy-file', src, dest)
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'copy-file', src, dest)
     } catch {
-        const data: string = await window.desktopEvents.invoke('file-event', 'read-file-base64', src)
-        await window.desktopEvents.invoke('file-event', 'write-file-base64', dest, data)
+        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'read-file-base64', src)
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'write-file-base64', dest, data)
     }
     return path.basename(dest)
 }
@@ -95,9 +96,10 @@ async function getPreviewDataUrl(addonPath: string, relOrAbs: string): Promise<s
     if (!relOrAbs) return null
     const full = path.isAbsolute(relOrAbs) ? relOrAbs : path.join(addonPath, relOrAbs)
     try {
-        const url: string | null =
-            (await window.desktopEvents.invoke('file-event', 'as-data-url', full)) ?? (await window.desktopEvents.invoke('file:asDataUrl', full))
-        return url
+        return (
+            (await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, full)) ??
+            (await window.desktopEvents.invoke(MainEvents.FILE_AS_DATA_URL, full))
+        )
     } catch {
         return null
     }
@@ -128,7 +130,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
             setLoading(true)
             try {
                 const file = path.join(addonPath, 'metadata.json')
-                const raw = await window.desktopEvents.invoke('file-event', 'read-file', file)
+                const raw = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, file)
                 const parsed = JSON.parse(raw ?? '{}')
                 const meta: Metadata = {
                     ...DEFAULT_META,
@@ -229,7 +231,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
             }
 
             const file = path.join(addonPath, 'metadata.json')
-            await window.desktopEvents.invoke('file-event', 'write-file', file, JSON.stringify(next, null, 2))
+            await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(next, null, 2))
 
             baseRef.current = next
             setDraft(next)

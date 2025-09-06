@@ -1,4 +1,6 @@
 import React, { CSSProperties, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 
 import Minus from './../../../../static/assets/icons/minus.svg'
 import Minimize from './../../../../static/assets/icons/minimize.svg'
@@ -40,7 +42,7 @@ interface p {
 
 const Header: React.FC<p> = () => {
     const openSettings = () => {
-        window.desktopEvents.send('open-settings-window')
+        window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
     }
 
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
@@ -142,17 +144,17 @@ const Header: React.FC<p> = () => {
 
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke('needModalUpdate').then(value => {
+            window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
                 if (value && user.id !== '-1') {
                     openUpdateModal()
                 }
             })
-            window.desktopEvents?.on('showModModal', () => {
+            window.desktopEvents?.on(RendererEvents.SHOW_MOD_MODAL, () => {
                 openModModal()
             })
             return () => {
-                window.desktopEvents?.removeAllListeners('showModModal')
-                window.desktopEvents?.removeAllListeners('needModalUpdate')
+                window.desktopEvents?.removeAllListeners(RendererEvents.SHOW_MOD_MODAL)
+                window.desktopEvents?.removeAllListeners(MainEvents.NEED_MODAL_UPDATE)
             }
         }
     }, [])
@@ -168,7 +170,7 @@ const Header: React.FC<p> = () => {
     //     onSubmit: values => {
     //         const changedValues = getChangedValues(previousValues, values);
     //         if (Object.keys(changedValues).length > 0) {
-    //             window.desktopEvents?.send('update-rpcSettings', changedValues);
+    //             window.desktopEvents?.send(MainEvents.UPDATE_RPC_SETTINGS, changedValues);
     //             setPreviousValues(values);
     //             setApp({
     //                 ...app,

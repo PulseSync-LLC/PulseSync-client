@@ -50,11 +50,9 @@ const statusCommands = Object.keys(STATUS_DISPLAY_TYPES).map(k => {
 function getTextNodes(root: Node): Text[] {
     const out: Text[] = []
     const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
-        acceptNode: (node) => {
-            return (node.textContent && node.textContent.length >= 0)
-                ? NodeFilter.FILTER_ACCEPT
-                : NodeFilter.FILTER_REJECT
-        }
+        acceptNode: node => {
+            return node.textContent && node.textContent.length >= 0 ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT
+        },
     })
     let n = walker.nextNode()
     while (n) {

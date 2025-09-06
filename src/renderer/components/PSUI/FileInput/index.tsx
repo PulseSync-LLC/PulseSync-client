@@ -4,6 +4,8 @@ import path from 'path'
 import * as s from './FileInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdFolderOpen, MdClose } from 'react-icons/md'
+import MainEvents from '../../../../common/types/mainEvents'
+import RendererEvents from '../../../../common/types/rendererEvents'
 
 type Props = {
     label: string
@@ -45,7 +47,6 @@ function sanitizeFilename(name: string) {
         .trim()
 }
 
-/** копируем файл в аддон, возвращаем короткое имя */
 async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, preferredName?: string): Promise<string> {
     const src = path.normalize(absSourcePath)
     const root = path.normalize(addonPath) + path.sep
@@ -60,7 +61,7 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
 
     const safeExists = async (p: string) => {
         try {
-            return !!(await window.desktopEvents.invoke('file-event', 'check-file-exists', p))
+            return !!(await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.CHECK_FILE_EXISTS, p))
         } catch {
             return false
         }
@@ -73,30 +74,14 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     if (i > MAX_TRIES) dest = path.join(addonPath, `${stem}_${Date.now()}${ext}`)
 
     try {
-        await window.desktopEvents.invoke('file-event', 'copy-file', src, { dest })
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, src, { dest })
     } catch {
-        const data: string = await window.desktopEvents.invoke('file-event', 'read-file-base64', src)
-        await window.desktopEvents.invoke('file-event', 'write-file-base64', dest, data)
+        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, src)
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE_BASE64, dest, data)
     }
     return path.basename(dest)
 }
 
-/** безопасно удаляем локальный файл в аддоне (если событие поддерживается) */
-async function removeLocalIfExists(fullPath: string) {
-    try {
-        const exists = await window.desktopEvents.invoke('file-event', 'check-file-exists', fullPath)
-        if (!exists) return
-        try {
-            await window.desktopEvents.invoke('file-event', 'delete-file', fullPath)
-        } catch {
-            try {
-                await window.desktopEvents.invoke('file-event', 'write-file', fullPath, '')
-            } catch {}
-        }
-    } catch {}
-}
-
-/** SHA-256 от base64-данных */
 async function hashBase64(b64: string): Promise<string> {
     if (!b64) return ''
     const clean = b64.includes(',') ? b64.split(',').pop()! : b64
@@ -112,7 +97,7 @@ async function hashBase64(b64: string): Promise<string> {
 /** хэш файла по пути (через read-file-base64) */
 async function fileHash(fullPath: string): Promise<string> {
     try {
-        const b64: string | null = await window.desktopEvents.invoke('file-event', 'read-file-base64', fullPath)
+        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
         return b64 ? await hashBase64(b64) : ''
     } catch {
         return ''
@@ -122,11 +107,11 @@ async function fileHash(fullPath: string): Promise<string> {
 /** получить dataURL с фолбэком через read-file-base64 */
 async function getDataUrlSafe(fullPath: string): Promise<string | null> {
     try {
-        const url: string | null = await window.desktopEvents.invoke('file-event', 'as-data-url', fullPath)
+        const url: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, fullPath)
         if (url) return url
     } catch {}
     try {
-        const b64: string | null = await window.desktopEvents.invoke('file-event', 'read-file-base64', fullPath)
+        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
         if (!b64) return null
         const ext = path.extname(fullPath).toLowerCase()
         const mime =
@@ -239,8 +224,13 @@ const FileInput: React.FC<Props> = ({
     const openPicker = async () => {
         if (disabled) return
         const filters = toFilters(accept)
-        const channel = metadata ? 'dialog:openFileMetadata' : 'dialog:openFile'
-        const filePath = await window.desktopEvents?.invoke(channel, { filters })
+        const channel = metadata ? MainEvents.DIALOG_OPEN_FILE_METADATA : MainEvents.DIALOG_OPEN_FILE
+        let defaultPath: string | undefined = undefined
+
+        if ((accept.includes('.css') || accept.includes('.js')) && addonPath) {
+            defaultPath = addonPath
+        }
+        const filePath = await window.desktopEvents?.invoke(channel, { filters, defaultPath })
         if (!filePath) return
         if (metadata && addonPath) await commitPicked(String(filePath))
         else commitManual(String(filePath))
@@ -309,7 +299,7 @@ const FileInput: React.FC<Props> = ({
                     const destFull = path.join(addonPath, prevShort)
                     const [oldHash, newHash] = await Promise.all([fileHash(destFull), fileHash(absNewPath)])
                     if (oldHash !== newHash) {
-                        await window.desktopEvents.invoke('file-event', 'copy-file', absNewPath, { dest: destFull })
+                        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, absNewPath, { dest: destFull })
                         setRev(r => r + 1)
                     }
                     finalShort = prevShort
@@ -344,10 +334,6 @@ const FileInput: React.FC<Props> = ({
 
     const clearAll = async (e?: React.MouseEvent) => {
         e?.stopPropagation()
-        if (metadata && addonPath && text && !isAbsPath(text)) {
-            const full = path.join(addonPath, text)
-            await removeLocalIfExists(full)
-        }
         if (localPreview) URL.revokeObjectURL(localPreview)
         setLocalPreview(null)
         setDataPreview(null)
@@ -405,9 +391,9 @@ const FileInput: React.FC<Props> = ({
                     type="button"
                     className={s.pickBtn}
                     title="Выбрать файл"
-                    onClick={e => {
+                    onClick={async e => {
                         e.stopPropagation()
-                        openPicker()
+                        await openPicker()
                     }}
                 >
                     <MdFolderOpen size={18} />

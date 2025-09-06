@@ -1,4 +1,6 @@
 import { ipcMain } from 'electron'
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
 import { Client } from '@xhayper/discord-rpc'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import logger from './logger'
@@ -216,7 +218,7 @@ function startReconnectLoop(customDelayMs?: number) {
     attemptReconnect()
 }
 
-ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
+ipcMain.on(MainEvents.DISCORDRPC_SETSTATE, (event, activity: SetActivity) => {
     if (!State.get('discordRpc.status')) return
     if (rpcConnected && client) {
         if (compareActivities(activity)) return true
@@ -229,7 +231,7 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
             try {
                 client?.user?.setActivity(activity).catch(async e => {
                     const msg = await handleRpcError(e)
-                    mainWindow?.webContents?.send('rpc-log', {
+                    mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
                         message: msg || 'Ошибка установки активности',
                         type: 'error',
                     })
@@ -244,11 +246,11 @@ ipcMain.on('discordrpc-setstate', (event, activity: SetActivity) => {
     }
 })
 
-ipcMain.on('discordrpc-discordRpc', (event, val) => {
+ipcMain.on(MainEvents.DISCORDRPC_DISCORDRPC, (event, val) => {
     setRpcStatus(val)
 })
 
-ipcMain.on('discordrpc-reset-activity', () => {
+ipcMain.on(MainEvents.DISCORDRPC_RESET_ACTIVITY, () => {
     previousActivity = undefined
     pendingActivity = undefined
     if (sendActivityTimeoutId) {
@@ -257,7 +259,7 @@ ipcMain.on('discordrpc-reset-activity', () => {
     }
 })
 
-ipcMain.on('discordrpc-clearstate', () => {
+ipcMain.on(MainEvents.DISCORDRPC_CLEARSTATE, () => {
     pendingActivity = undefined
     if (sendActivityTimeoutId) {
         clearTimeout(sendActivityTimeoutId)
@@ -266,7 +268,7 @@ ipcMain.on('discordrpc-clearstate', () => {
     if (rpcConnected && client) {
         client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e as any)
-            mainWindow?.webContents?.send('rpc-log', {
+            mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
                 message: msg || 'Ошибка очистки активности',
                 type: 'error',
             })
@@ -324,7 +326,7 @@ async function rpc_connect() {
     const discordState = await readDiscord()
     if (discordState !== DiscordState.SUCCESS) {
         logger.discordRpc.info(`Discord state ${discordState}. Next retry`)
-        mainWindow?.webContents?.send('rpc-log', {
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
             message: `${discordState} Следующая попытка через несколько секунд.`,
             type: 'info',
         })
@@ -337,12 +339,15 @@ async function rpc_connect() {
         if (myGeneration !== connectGeneration) return
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('login error: ' + msg)
-        mainWindow?.webContents?.send('rpc-log', { message: msg || 'Ошибка подключения к Discord RPC', type: 'error' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: msg || 'Ошибка подключения к Discord RPC', type: 'error' })
         const hasCustom = (State.get('discordRpc.appId') || '').length > 0
         const reserve = config.RESERVE_CLIENT_ID
         const isTimeout = isTimeoutErrorMessage((e as any)?.message)
         if (isTimeout && !hasCustom && reserve && String(reserve).length > 0 && reserve !== clientId) {
-            mainWindow?.webContents?.send('rpc-log', { message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.', type: 'info' })
+            mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+                message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.',
+                type: 'info',
+            })
             isConnecting = false
             updateAppId(String(reserve))
             return
@@ -360,11 +365,11 @@ async function rpc_connect() {
         if (changeId) changeId = false
         stopReconnectLoop()
         logger.discordRpc.info('Connection established')
-        mainWindow?.webContents?.send('rpc-log', { message: 'Успешное подключение', type: 'success' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Успешное подключение', type: 'success' })
         if (pendingActivity) {
             client?.user?.setActivity(pendingActivity).catch(async e => {
                 const msg = await handleRpcError(e as any)
-                mainWindow?.webContents?.send('rpc-log', {
+                mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
                     message: msg || 'Ошибка установки активности',
                     type: 'error',
                 })
@@ -379,7 +384,7 @@ async function rpc_connect() {
         rpcConnected = false
         previousActivity = undefined
         logger.discordRpc.info('Disconnected')
-        mainWindow?.webContents?.send('rpc-log', { message: 'Отключение RPC', type: 'info' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Отключение RPC', type: 'info' })
         startReconnectLoop()
     })
 
@@ -391,12 +396,15 @@ async function rpc_connect() {
         previousActivity = undefined
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('Error: ' + msg)
-        mainWindow?.webContents?.send('rpc-log', { message: msg || 'Ошибка подключения', type: 'error' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: msg || 'Ошибка подключения', type: 'error' })
         const hasCustom = (State.get('discordRpc.appId') || '').length > 0
         const reserve = config.RESERVE_CLIENT_ID
         const isTimeout = isTimeoutErrorMessage((e as any)?.message)
         if (isTimeout && !hasCustom && reserve && String(reserve).length > 0 && reserve !== clientId) {
-            mainWindow?.webContents?.send('rpc-log', { message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.', type: 'info' })
+            mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+                message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.',
+                type: 'info',
+            })
             updateAppId(String(reserve))
             return
         }
@@ -408,7 +416,7 @@ async function rpc_connect() {
         rpcConnected = false
         previousActivity = undefined
         logger.discordRpc.info('Connection closed')
-        mainWindow?.webContents?.send('rpc-log', { message: 'Закрытие соединения', type: 'info' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Закрытие соединения', type: 'info' })
         startReconnectLoop()
     })
 }
@@ -441,7 +449,7 @@ function updateAppId(newAppId: string) {
 export const setRpcStatus = (status: boolean) => {
     logger.discordRpc.info('discordRpc state: ' + status)
     State.set('discordRpc.status', status)
-    mainWindow?.webContents?.send('discordRpcState', status)
+    mainWindow?.webContents?.send(RendererEvents.DISCORD_RPC_STATE, status)
     updateTray()
     if (status) {
         if (sendActivityTimeoutId) {
@@ -468,7 +476,7 @@ export const setRpcStatus = (status: boolean) => {
                     } catch {}
                     client?.destroy().catch(async e => {
                         const msg = await handleRpcError(e as any)
-                        mainWindow?.webContents?.send('rpc-log', {
+                        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
                             message: msg || 'Ошибка отключения клиента',
                             type: 'error',
                         })
@@ -481,7 +489,7 @@ export const setRpcStatus = (status: boolean) => {
                 })
                 .catch(async e => {
                     const msg = await handleRpcError(e as any)
-                    mainWindow?.webContents?.send('rpc-log', {
+                    mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
                         message: msg || 'Ошибка очистки активности',
                         type: 'error',
                     })

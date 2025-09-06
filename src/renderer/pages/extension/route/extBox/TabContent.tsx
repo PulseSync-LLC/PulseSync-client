@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
+import MainEvents from '../../../../../common/types/mainEvents'
+import RendererEvents from '../../../../../common/types/rendererEvents'
 
 import MetadataEditor from './MetadataEditor'
 
@@ -268,7 +270,12 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                         onClick={async () => {
                             setCreating(true)
                             const fp = path.join(addon.path, 'handleEvents.json')
-                            await window.desktopEvents?.invoke('file-event', 'write-file', fp, JSON.stringify(defaultTemplate, null, 4))
+                            await window.desktopEvents?.invoke(
+                                MainEvents.FILE_EVENT,
+                                RendererEvents.WRITE_FILE,
+                                fp,
+                                JSON.stringify(defaultTemplate, null, 4),
+                            )
                             await configApi?.reload?.()
                             setSettingsKey(k => k + 1)
                         }}

@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import path from 'path'
+import MainEvents from '../../../../../common/types/mainEvents'
+import RendererEvents from '../../../../../common/types/rendererEvents'
 
 import { AddonConfig, ButtonAction, TextItem } from '../../../../components/сonfigurationSettings/types'
 
@@ -28,7 +30,7 @@ export function useConfig(addonPath: string): UseConfigResult {
 
     const reload = useCallback(async () => {
         try {
-            const raw = await window.desktopEvents?.invoke('file-event', 'read-file', filePath, 'utf-8')
+            const raw = await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, filePath, 'utf-8')
             const parsed = safeParse<AddonConfig>(raw)
             setExists(!!parsed)
             setConfig(parsed)
@@ -55,7 +57,7 @@ export function useConfig(addonPath: string): UseConfigResult {
                     }),
                 })),
             }
-            await window.desktopEvents?.invoke('file-event', 'write-file', filePath, JSON.stringify(normalized, null, 4))
+            await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, filePath, JSON.stringify(normalized, null, 4))
             setConfig(normalized)
             setExists(true)
         },

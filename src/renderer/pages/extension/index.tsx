@@ -21,6 +21,7 @@ import * as styles from '../../../../static/styles/page/index.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/config'
+import MainEvents from '../../../common/types/mainEvents'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -119,7 +120,7 @@ export default function ExtensionPage() {
     const loadAddons = useCallback(
         async (force = false) => {
             try {
-                const result = await window.desktopEvents?.invoke('getAddons', { force })
+                const result = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force })
                 const fetchedAddons: Addon[] = Array.isArray(result) ? result : []
                 const filtered = fetchedAddons.filter(a => a.name !== 'Default')
                 setAddons(filtered)
@@ -139,13 +140,13 @@ export default function ExtensionPage() {
                 if (newChecked) {
                     setCurrentTheme(addon.directoryName)
                     window.electron.store.set('addons.theme', addon.directoryName)
-                    window.desktopEvents?.send('themeChanged', addonInitials[0])
-                    window.desktopEvents?.send('themeChanged', addon)
+                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
+                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
                     toast.custom('success', 'Тема активирована', `${addon.name} теперь активна`)
                 } else {
                     setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
-                    window.desktopEvents?.send('themeChanged', addonInitials[0])
+                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     toast.custom('info', 'Тема деактивирована', 'Установлена тема по умолчанию')
                 }
             } else {
@@ -156,7 +157,7 @@ export default function ExtensionPage() {
                     `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
                 )
                 window.electron.store.set('addons.scripts', updated)
-                window.desktopEvents?.send('REFRESH_EXTENSIONS')
+                window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
                 setEnabledScripts(updated)
             }
         },
@@ -391,7 +392,7 @@ export default function ExtensionPage() {
             setImageCache({})
             await loadAddons(true)
             setSelectedAddonId(null)
-            toast.custom('success', 'Готово', 'Аддоны перезагружены')
+            toast.custom('success', 'Готово', 'Аддоны перезагруж��ны')
         } catch (e) {
             console.error(e)
             toast.custom('error', 'Упс', 'Не удалось перезагрузить аддоны')

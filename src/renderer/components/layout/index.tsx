@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
+import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 import {
     MdDownload,
     MdHandyman,
@@ -111,7 +113,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     store.dispatch(openModal())
                 }
                 setForceInstallEnabled(false)
-                window.desktopEvents?.invoke('getMusicStatus').then((status: any) => {
+                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS).then((status: any) => {
                     setMusicInstalled(status)
                 })
             } else {
@@ -159,16 +161,16 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setUpdate(true)
         }
 
-        window.desktopEvents?.on('download-progress', handleProgress)
-        window.desktopEvents?.on('download-success', handleSuccess)
-        window.desktopEvents?.on('download-failure', handleFailure)
-        window.desktopEvents?.on('update-available', handleUpdateAvailable)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)
+        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('download-progress')
-            window.desktopEvents?.removeAllListeners('download-success')
-            window.desktopEvents?.removeAllListeners('download-failure')
-            window.desktopEvents?.removeAllListeners('update-available')
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_PROGRESS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_SUCCESS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.UPDATE_AVAILABLE)
             ;(window as any).__listenersAdded = false
         }
     }, [modInfo, app.mod.installed, app.settings.showModModalAfterInstall])
@@ -246,14 +248,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
         }
 
-        window.desktopEvents?.on('download-music-progress', onProgressUpdate)
-        window.desktopEvents?.on('download-music-failure', onUpdateFailure)
-        window.desktopEvents?.on('download-music-execution-success', onExecutionComplete)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, onProgressUpdate)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_FAILURE, onUpdateFailure)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, onExecutionComplete)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('download-music-progress')
-            window.desktopEvents?.removeAllListeners('download-music-failure')
-            window.desktopEvents?.removeAllListeners('download-music-execution-success')
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_PROGRESS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_FAILURE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS)
             ;(window as any).__musicEventListeners = false
         }
     }, [musicInstalled])
@@ -299,10 +301,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             }
         }
 
-        window.desktopEvents?.on('ffmpeg-download-status', handleFfmpegStatus)
+        window.desktopEvents?.on(RendererEvents.FFMPEG_DOWNLOAD_STATUS, handleFfmpegStatus)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('ffmpeg-download-status')
+            window.desktopEvents?.removeAllListeners(RendererEvents.FFMPEG_DOWNLOAD_STATUS)
             ;(window as any).__ffmpegListenersAdded = false
         }
     }, [])
@@ -312,7 +314,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             toast.custom('info', `Информация.`, 'Обновление уже запущено')
             return
         }
-        window.desktopEvents?.send('download-yandex-music', modUpdateState.updateUrl)
+        window.desktopEvents?.send(MainEvents.DOWNLOAD_YANDEX_MUSIC, modUpdateState.updateUrl)
         setIsMusicUpdating(true)
     }
 
@@ -338,7 +340,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         downloadToastIdRef.current = id
         const { modVersion, downloadUrl, checksum, spoof, name, shouldReinstall } = modInfo[0]
         console.log(modInfo[0])
-        window.desktopEvents?.send('update-music-asar', {
+        window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
             version: modVersion,
             name,
             link: downloadUrl,
@@ -422,7 +424,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                     <button
                                         onClick={() => {
                                             setUpdate(false)
-                                            window.desktopEvents?.send('update-install')
+                                            window.desktopEvents?.send(MainEvents.UPDATE_INSTALL)
                                         }}
                                         className={pageStyles.update_download}
                                     >
