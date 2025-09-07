@@ -32,6 +32,21 @@ function readPatchNotes(): string {
     return fs.readFileSync(patchPath, 'utf-8')
 }
 
+function readPatchNotesSections(): { newFeatures: string; fixes: string } {
+    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
+    if (!fs.existsSync(patchPath)) {
+        log(LogLevel.WARN, `PATCHNOTES.md not found at ${patchPath}`)
+        return { newFeatures: '', fixes: '' }
+    }
+    const content = fs.readFileSync(patchPath, 'utf-8')
+
+    const newFeaturesMatch = content.match(/## Что нового\?[\r\n]+([\s\S]*?)(?=^## |\n## |$)/m)
+    const fixesMatch = content.match(/## Исправления[\r\n]+([\s\S]*?)(?=^## |\n## |$)/m)
+    const newFeatures = newFeaturesMatch ? newFeaturesMatch[1].trim() : ''
+    const fixes = fixesMatch ? fixesMatch[1].trim() : ''
+    return { newFeatures, fixes }
+}
+
 function readPkgVersion(): string {
     const pkgPath = path.resolve(__dirname, '../package.json')
     const pkgRaw = fs.readFileSync(pkgPath, 'utf-8')
@@ -82,7 +97,7 @@ export async function publishPatchNotesToDiscord(): Promise<void> {
         log(LogLevel.ERROR, 'DISCORD_WEBHOOK is not set in env')
         process.exit(1)
     }
-    const rawPatch = readPatchNotes()
+    const { newFeatures, fixes } = readPatchNotesSections()
     const version = readPkgVersion()
 
     const embed = {
@@ -91,7 +106,8 @@ export async function publishPatchNotesToDiscord(): Promise<void> {
         color: 0x5865f2,
         fields: [
             { name: 'Версия:', value: version, inline: true },
-            { name: 'Изменения:', value: rawPatch || '—', inline: true },
+            { name: 'Что нового?', value: newFeatures || '—', inline: false },
+            { name: 'Исправления', value: fixes || '—', inline: false },
         ],
         footer: { text: 'https://pulsesync.dev', icon_url: process.env.BOT_AVATAR_URL },
         timestamp: new Date().toLocaleString(),

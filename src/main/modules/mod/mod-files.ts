@@ -1,0 +1,134 @@
+import { BrowserWindow, dialog } from 'electron'
+import * as path from 'path'
+import * as fs from 'original-fs'
+import * as zlib from 'node:zlib'
+import { promisify } from 'util'
+import crypto from 'crypto'
+import asar from '@electron/asar'
+import logger from '../logger'
+import { getState } from '../state'
+import { AsarPatcher, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
+
+const gunzipAsync = promisify(zlib.gunzip)
+const zstdDecompressAsync = promisify((zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))))
+const State = getState()
+
+export type Paths = {
+    music: string
+    defaultAsar: string
+    modAsar: string
+    backupAsar: string
+}
+
+export async function resolveBasePaths(): Promise<Paths> {
+    const music = await getPathToYandexMusic()
+    const defaultAsar = path.join(music, 'app.asar')
+    const savedModPath = (State.get('settings.modSavePath') as string) || ''
+    const modAsar = savedModPath || defaultAsar
+    const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
+    return { music, defaultAsar, modAsar, backupAsar }
+}
+
+export async function ensureLinuxModPath(window: BrowserWindow, paths: Paths): Promise<Paths> {
+    if (!isLinux()) return paths
+    const defaultExists = fs.existsSync(paths.defaultAsar)
+    const saved = State.get('settings.modSavePath') as string | undefined
+
+    if (!defaultExists && !saved) {
+        const { response } = await dialog.showMessageBox(window, {
+            type: 'info',
+            title: 'Укажите путь к модификации ASAR',
+            message: 'Куда сохранить модификацию ASAR для Яндекс Музыки?',
+            buttons: ['Указать файл', 'Отменить'],
+            noLink: true,
+            normalizeAccessKeys: true,
+        })
+        if (response !== 0) return paths
+        const fileRes = await dialog.showSaveDialog(window, {
+            title: 'Сохранить модификацию ASAR как...',
+            defaultPath: path.join(paths.music, 'app.asar'),
+            filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
+        })
+        if (fileRes.canceled || !fileRes.filePath) return paths
+        const modAsar = fileRes.filePath
+        const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
+        State.set('settings', { modSavePath: modAsar })
+        return { ...paths, modAsar, backupAsar }
+    }
+
+    if (!saved) {
+        const modAsar = paths.defaultAsar
+        const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
+        return { ...paths, modAsar, backupAsar }
+    }
+
+    const modAsar = saved
+    const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
+    return { ...paths, modAsar, backupAsar }
+}
+
+export async function ensureBackup(paths: Paths): Promise<void> {
+    if (fs.existsSync(paths.backupAsar)) {
+        logger.modManager.info(`Резервная копия уже существует: ${path.basename(paths.backupAsar)}`)
+        return
+    }
+    let source: string | null = null
+    if (fs.existsSync(paths.modAsar)) source = paths.modAsar
+    else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
+    if (!source) {
+        const err: any = new Error(`${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`)
+        err.code = 'file_not_found'
+        throw err
+    }
+    fs.copyFileSync(source, paths.backupAsar)
+    logger.modManager.info(`Создана резервная копия ${path.basename(source)} → ${path.basename(paths.backupAsar)}`)
+}
+
+export async function writePatchedAsarAndPatchBundle(
+    window: BrowserWindow,
+    savePath: string,
+    rawDownloaded: Buffer,
+    link: string,
+    backupPath: string,
+): Promise<boolean> {
+    let asarBuf: Buffer = rawDownloaded
+    const ext = path.extname(new URL(link).pathname).toLowerCase()
+    if (ext === '.gz') asarBuf = await gunzipAsync(rawDownloaded)
+    else if (ext === '.zst' || ext === '.zstd') asarBuf = (await zstdDecompressAsync(rawDownloaded as any)) as any
+    fs.writeFileSync(savePath, asarBuf)
+    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
+    let ok = false
+    try {
+        ok = await patcher.patch(() => {})
+    } catch {
+        ok = false
+    }
+    if (!ok) {
+        if (fs.existsSync(backupPath)) fs.renameSync(backupPath, savePath)
+        return false
+    }
+    return true
+}
+
+export async function restoreWindowsIntegrity(paths: Paths): Promise<void> {
+    try {
+        const exePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
+        const header = asar.getRawHeader(paths.modAsar)
+        const newHash = crypto.createHash('sha256').update(header.headerString).digest('hex')
+        await updateIntegrityHashInExe(exePath, newHash)
+        logger.modManager.info('Windows Integrity hash восстановлен.')
+    } catch (err) {
+        logger.modManager.error('Ошибка восстановления Integrity hash в exe:', err)
+    }
+}
+
+export async function restoreMacIntegrity(paths: Paths): Promise<void> {
+    try {
+        const appBundlePath = path.resolve(path.dirname(paths.modAsar), '..', '..')
+        const patcher = new AsarPatcher(appBundlePath)
+        await patcher.patch(() => {})
+        logger.modManager.info('macOS Integrity hash восстановлен.')
+    } catch (err) {
+        logger.modManager.error('Ошибка восстановления Integrity hash в Info.plist:', err)
+    }
+}

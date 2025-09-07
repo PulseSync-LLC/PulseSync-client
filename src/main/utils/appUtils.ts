@@ -1,4 +1,4 @@
-import { exec, execFile } from 'child_process'
+import { exec, execFile, spawn } from 'child_process'
 import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
@@ -18,6 +18,9 @@ import { getState } from '../modules/state'
 import config from '../../renderer/api/config'
 
 const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
+const spawnAsync = promisify(spawn)
+
 const State = getState()
 
 interface ProcessInfo {
@@ -32,36 +35,50 @@ export interface AppxPackage {
     [key: string]: any
 }
 
-async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
+export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     if (isMac()) {
         try {
             const command = `pgrep -f "Яндекс Музыка"`
-            const { stdout } = await execAsync(command, { encoding: 'utf8' })
-            return stdout
-                .split('\n')
-                .filter(line => line.trim() !== '')
-                .map(pid => ({ pid: parseInt(pid, 10) }))
-                .filter(proc => !isNaN(proc.pid))
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const processes = stdout.split('\n').filter(line => line.trim() !== '')
+            return processes.map(pid => ({ pid: parseInt(pid, 10) })).filter(proc => !isNaN(proc.pid))
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
+            return []
+        }
+    } else if (isLinux()) {
+        try {
+            const command = `pgrep -fa "yandexmusic"`
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const processes = stdout.split('\n').filter(line => line.trim() !== '')
+            return processes
+                .map(line => {
+                    const parts = line.split(' ')
+                    const pid = parseInt(parts[0], 10)
+                    return { pid }
+                })
+                .filter(proc => !isNaN(proc.pid))
+        } catch (error) {
+            logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
             return []
         }
     } else {
         try {
             const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
-            const { stdout } = await execAsync(command, { encoding: 'utf8' })
-            const procs: ProcessInfo[] = []
-            stdout
-                .split('\n')
-                .filter(line => line.trim() !== '')
-                .forEach(line => {
-                    const parts = line.split('","')
-                    if (parts.length > 1) {
-                        const pid = parseInt(parts[1].replace(/"/g, '').trim(), 10)
-                        if (!isNaN(pid)) procs.push({ pid })
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const processes = stdout.split('\n').filter(line => line.trim() !== '')
+            const yandexProcesses: ProcessInfo[] = []
+            processes.forEach(line => {
+                const parts = line.split('","')
+                if (parts.length > 1) {
+                    const pidStr = parts[1].replace(/"/g, '').trim()
+                    const pid = parseInt(pidStr, 10)
+                    if (!isNaN(pid)) {
+                        yandexProcesses.push({ pid })
                     }
-                })
-            return procs
+                }
+            })
+            return yandexProcesses
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes:', error)
             return []
@@ -87,6 +104,28 @@ export async function closeYandexMusic(): Promise<void> {
             logger.main.error(`Error terminating ${pid}:`, error)
         }
     }
+}
+
+export async function launchYandexMusic() {
+    await openExternalDetached('yandexmusic://')
+}
+
+export async function openExternalDetached(url: string) {
+    let command, args
+
+    if (process.platform === 'win32') {
+        command = 'cmd.exe'
+        args = ['/c', 'start', '', url]
+    } else if (process.platform === 'darwin') {
+        command = 'open'
+        args = [url]
+    } else {
+        command = 'xdg-open'
+        args = [url]
+    }
+
+    const child = (await spawnAsync(command, args, { detached: true, stdio: 'ignore' })) as unknown as import('child_process').ChildProcess
+    child.unref()
 }
 
 export async function checkYandexMusicLinuxInstall(): Promise<boolean> {
@@ -125,13 +164,31 @@ export function getYandexMusicAppDataPath(): string {
     }
 }
 
-export async function copyFile(target: string, dest: string) {
-    await fsp.copyFile(target, dest)
+export async function copyFile(target: string, dest: string): Promise<void> {
+    try {
+        await fs.promises.copyFile(target, dest)
+    } catch (error: any) {
+        if (process.platform === 'linux' && error && error.code === 'EACCES') {
+            await execFileAsync('pkexec', ['cp', target, dest])
+        } else {
+            logger.modManager.error('File copying failed:', error)
+            throw error
+        }
+    }
 }
 
-export async function createDirIfNotExist(target: string) {
+export async function createDirIfNotExist(target: string): Promise<void> {
     if (!fs.existsSync(target)) {
-        await fsp.mkdir(target, { recursive: true })
+        try {
+            await fsp.mkdir(target, { recursive: true })
+        } catch (error: any) {
+            if (process.platform === 'linux' && error && error.code === 'EACCES') {
+                await execFileAsync('pkexec', ['mkdir', '-p', target])
+            } else {
+                logger.modManager.error('Directory creation failed:', error)
+                throw error
+            }
+        }
     }
 }
 

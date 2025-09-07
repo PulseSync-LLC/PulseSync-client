@@ -272,6 +272,9 @@ async function cli(): Promise<void> {
 if (require.main === module) {
     cli().catch(err => {
         log(LogLevel.ERROR, `Unexpected error: ${err.message || err}`)
+        if (err && err.stack) {
+            console.error(chalk.red(err.stack))
+        }
         process.exit(1)
     })
 }

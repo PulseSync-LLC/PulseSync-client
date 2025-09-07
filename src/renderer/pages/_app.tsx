@@ -597,7 +597,7 @@ function App() {
                 await fetchModInfo(app)
             })
 
-            window.desktopEvents.on(RendererEvents.CLIENT_READY, () => {
+            window.desktopEvents?.on(RendererEvents.CLIENT_READY, () => {
                 window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
                 window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
             })

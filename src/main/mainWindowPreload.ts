@@ -59,7 +59,7 @@ contextBridge.exposeInMainWorld('electron', {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
     },
     isLinux() {
-        return ipcRenderer.sendSync('electron-islinux')
+        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISLINUX)
     },
     isMac() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISMAC)

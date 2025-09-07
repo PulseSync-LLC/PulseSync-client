@@ -22,6 +22,7 @@ import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/config'
 import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -404,7 +405,7 @@ export default function ExtensionPage() {
     }, [])
 
     const handleCreateNewAddon = useCallback(() => {
-        window.desktopEvents.invoke('create-new-extension').then(async res => {
+        window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
             if (res?.success) {
                 toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
                 setAddons([])
