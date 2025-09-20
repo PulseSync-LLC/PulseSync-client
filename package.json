@@ -11,9 +11,8 @@
         "build:package": "ts-node scripts/build.ts --application --debug",
         "build:installer": "ts-node scripts/build.ts --installer --debug",
         "build:nativeModules": "ts-node scripts/build.ts --application --nativeModules --debug",
-        "publish:changelog": "tsx scripts/changelog-publish.ts --api --discord",
-        "publish:api": "tsx scripts/changelog-publish.ts --api",
-        "publish:discord": "tsx scripts/changelog-publish.ts --discord",
+        "publish:api": "ts-node scripts/changelog-publish.ts --api",
+        "publish:discord": "ts-node scripts/changelog-publish.ts --discord",
         "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",
         "publish:alpha": "ts-node scripts/build.ts --application --publish alpha --debug",
         "publish:dev": "ts-node scripts/build.ts --application --publish dev --debug",
@@ -25,7 +24,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.892.0",
+        "@aws-sdk/client-s3": "^3.893.0",
         "@babel/core": "^7.28.4",
         "@babel/preset-env": "^7.28.3",
         "@babel/preset-react": "^7.27.1",
@@ -137,7 +136,7 @@
         "remark-gfm": "^4.0.1",
         "resedit": "^2.0.3",
         "rxjs": "^7.8.2",
-        "sass": "^1.92.1",
+        "sass": "^1.93.0",
         "sass-loader": "^16.0.5",
         "semver": "^7.7.2",
         "socket.io": "^4.8.1",
@@ -158,7 +157,7 @@
     },
     "buildInfo": {
         "VERSION": "2.9.1-beta",
-        "BRANCH": "bc47940",
-        "BUILD_TIME": "19.09.2025, 20:15:29"
+        "BRANCH": "558c839",
+        "BUILD_TIME": "20.09.2025, 17:08:01"
     }
 }

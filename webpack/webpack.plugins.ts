@@ -47,7 +47,6 @@ export const plugins = [
                   project: 'electron',
                   authToken: (config as any).SENTRY_KEY,
                   debug: false,
-                  silent: true,
                   release: {
                       name: 'pulsesync@' + releaseVersion,
                   },

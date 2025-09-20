@@ -41,9 +41,9 @@ function readPatchNotesSections(): { newFeatures: string; fixes: string } {
     const content = fs.readFileSync(patchPath, 'utf-8')
 
     const newFeaturesMatch = content.match(/## Что нового\?[\r\n]+([\s\S]*?)(?=^## |\n## |$)/m)
-    const fixesMatch = content.match(/## Исправления[\r\n]+([\s\S]*?)(?=^## |\n## |$)/m)
+    const fixesMatch = content.match(/## Исправления[\r\n]+([\s\S]*)/m)
     const newFeatures = newFeaturesMatch ? newFeaturesMatch[1].trim() : ''
-    const fixes = fixesMatch ? fixesMatch[1].trim() : ''
+    const fixes = fixesMatch ? fixesMatch[1].replace(/\n+$/, '').trim() : ''
     return { newFeatures, fixes }
 }
 
@@ -91,6 +91,21 @@ export async function publishChangelogToApi(version?: string): Promise<void> {
     }
 }
 
+function formatDiscordListBlock(block: string): string {
+    if (!block.trim()) return '—'
+    const lines = block
+        .split(/\r?\n/)
+        .map(l => l.trimEnd())
+        .filter(Boolean)
+        .map(l => (l.startsWith('-') ? l : `- ${l}`))
+    let result = ''
+    for (const line of lines) {
+        if ((result + (result ? '\n' : '') + line).length > 1024) break
+        result += (result ? '\n' : '') + line
+    }
+    return result || '—'
+}
+
 export async function publishPatchNotesToDiscord(): Promise<void> {
     const webhookUrl = process.env.DISCORD_WEBHOOK
     if (!webhookUrl) {
@@ -105,12 +120,12 @@ export async function publishPatchNotesToDiscord(): Promise<void> {
         description: 'Вышла новая версия приложения!',
         color: 0x5865f2,
         fields: [
-            { name: 'Версия:', value: version, inline: true },
-            { name: 'Что нового?', value: newFeatures || '—', inline: false },
-            { name: 'Исправления', value: fixes || '—', inline: false },
+            { name: 'Версия:', value: version || '—', inline: true },
+            { name: 'Что нового?', value: formatDiscordListBlock(newFeatures), inline: true },
+            { name: 'Исправления', value: formatDiscordListBlock(fixes), inline: true },
         ],
         footer: { text: 'https://pulsesync.dev', icon_url: process.env.BOT_AVATAR_URL },
-        timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(),
     }
 
     try {

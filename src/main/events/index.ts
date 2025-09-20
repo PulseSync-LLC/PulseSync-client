@@ -510,44 +510,43 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
 
 const registerLogArchiveEvent = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.GET_LOG_ARCHIVE, async () => {
-        const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
-        const now = new Date()
-        const year = now.getFullYear()
-        const month = String(now.getMonth() + 1).padStart(2, '0')
-        const day = String(now.getDate()).padStart(2, '0')
-        const archiveName = `logs-${year}-${month}-${day}.zip`
-        const archivePath = path.join(logDirPath, archiveName)
-        const userInfo = os.userInfo()
-        const gpuData = await si.graphics()
-
-        const systemInfo = {
-            appVersion: app.getVersion(),
-            osType: os.type(),
-            osRelease: os.release(),
-            cpu: os.cpus(),
-            gpu: gpuData.controllers,
-            freeMemory: os.freemem(),
-            arch: os.arch(),
-            platform: os.platform(),
-            osInfo: await si.osInfo(),
-            memInfo: await si.mem(),
-            userInfo: { username: userInfo.username, homedir: userInfo.homedir },
-        }
-
-        const systemInfoPath = path.join(logDirPath, 'system-info.json')
-        const configPulsePath = path.join(app.getPath('userData'), 'pulsesync_settings.json')
-        const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
         try {
+            const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
+            const now = new Date()
+            const year = now.getFullYear()
+            const month = String(now.getMonth() + 1).padStart(2, '0')
+            const day = String(now.getDate()).padStart(2, '0')
+            const archiveName = `logs-${year}-${month}-${day}.zip`
+            const archivePath = path.join(logDirPath, archiveName)
+            const userInfo = os.userInfo()
+            const gpuData = await si.graphics()
+
+            const systemInfo = {
+                appVersion: app.getVersion(),
+                osType: os.type(),
+                osRelease: os.release(),
+                cpu: os.cpus(),
+                gpu: gpuData.controllers,
+                freeMemory: os.freemem(),
+                arch: os.arch(),
+                platform: os.platform(),
+                osInfo: await si.osInfo(),
+                memInfo: await si.mem(),
+                userInfo: { username: userInfo.username, homedir: userInfo.homedir },
+            }
+
+            const systemInfoPath = path.join(logDirPath, 'system-info.json')
+            const configPulsePath = path.join(app.getPath('userData'), 'pulsesync_settings.json')
+            const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
+            const logsYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'logs')
+
             fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')
-        } catch (error: any) {
-            logger.main.error(`Error while creating system-info.json: ${error.message}`)
-        }
 
-        try {
             const zip = new AdmZip()
             zip.addLocalFolder(logDirPath, '', filePath => !filePath.endsWith('.zip') && filePath !== archiveName)
+            zip.addLocalFolder(logsYandexMusicPath, 'yandexmusic/logs')
             zip.addLocalFile(configPulsePath, '')
-            zip.addLocalFile(configYandexMusicPath, '')
+            zip.addLocalFile(configYandexMusicPath, 'yandexmusic/')
             zip.writeZip(archivePath)
             shell.showItemInFolder(archivePath)
         } catch (error: any) {

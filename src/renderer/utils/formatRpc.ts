@@ -26,6 +26,12 @@ export function fixStrings(string: string): string {
     return string
 }
 
+function stripAfterDash(str: string): string {
+    if (!str) return str
+    const idx = str.indexOf('-')
+    return idx !== -1 ? str.slice(0, idx).trim() : str
+}
+
 class ConvertableLink {
     link?: string
     constructor(link?: string) {
@@ -130,7 +136,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
         type: 2,
         statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
         largeImageKey: getCoverImage(t),
-        largeImageText: `PulseSync ${settings.info.version}`,
+        largeImageText: stripAfterDash(`PulseSync ${settings.info.version}`),
         largeImageUrl: 'https://pulsesync.dev',
     }
 
