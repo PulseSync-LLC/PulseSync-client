@@ -1,7 +1,7 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@apollo/client/react'
 
-import apolloClient from '../../api/apolloClient'
 import getUserProfileQuery from '../../api/queries/user/getUserProfile.query'
 import getMeProfileQuery from '../../api/queries/user/getMeProfile.query'
 import userInitials from '../../api/initials/user.initials'
@@ -16,7 +16,7 @@ import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
 
 import * as pageStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './profilePage.module.scss'
-import { MdPersonOutline, MdPeopleOutline, MdSettings, MdClose } from 'react-icons/md'
+import { MdPersonOutline, MdPeopleOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
 import userContext from '../../api/context/user.context'
 
@@ -27,57 +27,55 @@ const ProfilePage: React.FC = () => {
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
     const { user } = useContext(userContext)
-    const [userProfile, setUserProfile] = useState<ExtendedUser>(userInitials)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
-    useEffect(() => {
-        if (!username) return
-        setUserProfile(userInitials)
-        setLoading(true)
-        setError(null)
+    const isSelf = useMemo(() => {
+        if (!username) return false
+        const u = user?.username || ''
+        return u.toLowerCase() === username.toLowerCase()
+    }, [user?.username, username])
 
-        const isSelf = Boolean(user?.username) && user!.username!.toLowerCase() === username.toLowerCase()
+    const queryDoc = useMemo(() => (isSelf ? getMeProfileQuery : getUserProfileQuery), [isSelf])
 
-        const query = isSelf ? getMeProfileQuery : getUserProfileQuery
+    const variables = useMemo(
+        () =>
+            isSelf
+                ? { page: 1, pageSize: 50 }
+                : {
+                      name: username,
+                      page: 1,
+                      pageSize: 50,
+                      search: '',
+                      sortOptions: [] as Array<unknown>,
+                  },
+        [isSelf, username],
+    )
 
-        const baseOptions: any = {
-            query,
-            fetchPolicy: 'no-cache',
+    const { data, loading, error } = useQuery<any>(queryDoc, {
+        variables,
+        fetchPolicy: 'no-cache',
+        skip: !username,
+    })
+
+    const payload: ExtendedUser | null = useMemo(() => {
+        if (!data) return null
+        return (isSelf ? data.getMeProfile : data.findUserByName) || null
+    }, [data, isSelf])
+
+    const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
+        if (!payload) return userInitials
+        return {
+            ...payload,
+            allAchievements: data?.getAchievements?.achievements || [],
         }
+    }, [payload, data])
 
-        if (isSelf) {
-            baseOptions.variables = {
-                page: 1,
-                pageSize: 50,
-            }
-        } else {
-            baseOptions.variables = {
-                name: username,
-                page: 1,
-                pageSize: 50,
-                search: '',
-                sortOptions: [],
-            }
-        }
-
-        apolloClient
-            .query(baseOptions)
-            .then(res => {
-                const payload = isSelf ? res.data.getMeProfile : res.data.findUserByName
-                if (!payload) {
-                    setError(USER_NOT_FOUND_MSG)
-                } else {
-                    setUserProfile({
-                        ...payload,
-                        allAchievements: res.data.getAchievements?.achievements || [],
-                    })
-                }
-            })
-            .catch(err => setError((err && (err.message || String(err))) || 'Ошибка загрузки'))
-            .finally(() => setLoading(false))
-    }, [username, user?.username])
+    const normalizedError: string | null = useMemo(() => {
+        if (error) return error.message || 'Ошибка загрузки'
+        if (!loading && username && !payload) return USER_NOT_FOUND_MSG
+        return null
+    }, [error, loading, username, payload])
 
     useEffect(() => {
         const onKeyDown = (e: KeyboardEvent) => {
@@ -126,10 +124,10 @@ const ProfilePage: React.FC = () => {
 
                             <div className={styles.content}>
                                 {activeTab === 'profile' && (
-                                    <ProfileTab userProfile={userProfile} loading={loading} error={error} username={username} />
+                                    <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
                                 )}
-                                {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={error} />}
-                                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={error} />}
+                                {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
+                                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
                             </div>
                         </Scrollbar>
                     </div>

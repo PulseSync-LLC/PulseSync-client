@@ -5,7 +5,7 @@ import trackInitials from '../api/initials/track.initials'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch('https://google.com', {
+        const response = await fetch('https://www.google.com', {
             method: 'HEAD',
             mode: 'no-cors',
         })

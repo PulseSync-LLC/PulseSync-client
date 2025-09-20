@@ -6,6 +6,7 @@ export default interface UserInterface {
     banner: string
     username: string
     nickname: string
+    email: string
     createdAt: number
     status: string
     lastOnline: string

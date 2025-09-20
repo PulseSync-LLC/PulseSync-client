@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
+import { useMutation } from '@apollo/client/react'
 import Button from '../../../buttonV2'
-import apolloClient from '../../../../api/apolloClient'
 import toggleFollowMutation from '../../../../api/mutations/toggleFollow.query'
 import * as styles from '../../userProfileModal.module.scss'
 
@@ -11,29 +11,38 @@ interface FriendButtonProps {
     username: string
 }
 
+type ToggleFollowData = {
+    toggleFollow: {
+        isFollowing: boolean
+        areFriends: boolean
+    }
+}
+
+type ToggleFollowVars = {
+    targetId: string
+}
+
 const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username }) => {
     const [isHovered, setIsHovered] = useState(false)
-    const [, setFriendStatusLoading] = useState(false)
+
+    const [runToggleFollow, { loading, error }] = useMutation<ToggleFollowData, ToggleFollowVars>(toggleFollowMutation, {
+        onCompleted: data => {
+            userProfile.isFollowing = data.toggleFollow.isFollowing
+            userProfile.isFriend = data.toggleFollow.areFriends
+        },
+    })
 
     const handleToggleFollow = async () => {
         try {
-            setFriendStatusLoading(true)
-            const { data } = await apolloClient.mutate({
-                mutation: toggleFollowMutation,
-                variables: { targetId: userProfile.id },
+            await runToggleFollow({
+                variables: { targetId: userProfile.id as string },
             })
-            if (data && data.toggleFollow) {
-                userProfile.isFollowing = data.toggleFollow.isFollowing
-                userProfile.isFriend = data.toggleFollow.areFriends
-            }
-        } catch (error) {
-            console.error('Ошибка при запросе на добавление/удаление из друзей', error)
-        } finally {
-            setFriendStatusLoading(false)
+        } catch (e) {
+            console.error('Ошибка при запросе на добавление/удаление из друзей', e)
         }
     }
 
-    if (user.username === username) {
+    if ((user?.username || '').toLowerCase() === (username || '').toLowerCase()) {
         return (
             <>
                 <Button className={styles.buttonAddFriend} disabled>
@@ -73,6 +82,10 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
             onClick={handleToggleFollow}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            disabled={loading}
+            aria-busy={loading}
+            aria-disabled={loading}
+            title={error ? 'Произошла ошибка. Повторите попытку.' : undefined}
         >
             {isHovered ? hoverIcon : normalIcon} {isHovered ? buttonTextHover : buttonTextNormal}
         </Button>

@@ -33,11 +33,23 @@ import { RootState } from '../../api/store/store'
 import { closeModal, openModal } from '../../api/store/modalSlice'
 import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
-import NavButtonPulse from '../PSUI/NavButton'
 import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
+import { useQuery } from '@apollo/client/react'
+
 interface p {
     goBack?: boolean
+}
+
+type ModChangelogEntry = {
+    id: string
+    version: string
+    createdAt: number
+    description: string | string[]
+}
+
+type GetModUpdatesResponse = {
+    getChangelogEntries: ModChangelogEntry[]
 }
 
 const Header: React.FC<p> = () => {
@@ -159,48 +171,6 @@ const Header: React.FC<p> = () => {
         }
     }, [])
 
-    // const formik = useFormik({
-    //     initialValues: {
-    //         appId: app.discordRpc.appId,
-    //         details: app.discordRpc.details,
-    //         state: app.discordRpc.state,
-    //         button: app.discordRpc.button,
-    //     },
-    //     validationSchema: schema,
-    //     onSubmit: values => {
-    //         const changedValues = getChangedValues(previousValues, values);
-    //         if (Object.keys(changedValues).length > 0) {
-    //             window.desktopEvents?.send(MainEvents.UPDATE_RPC_SETTINGS, changedValues);
-    //             setPreviousValues(values);
-    //             setApp({
-    //                 ...app,
-    //                 discordRpc: {
-    //                     ...app.discordRpc,
-    //                     ...values,
-    //                 },
-    //             });
-    //         }
-    //     },
-    // });
-    //
-    // const outInputChecker = (e: any) => {
-    //     formik.handleBlur(e);
-    //     const changedValues = getChangedValues(previousValues, formik.values);
-    //     if (formik.isValid && Object.keys(changedValues).length > 0) {
-    //         formik.handleSubmit();
-    //     }
-    // };
-    //
-    // const getChangedValues = (initialValues: any, currentValues: any) => {
-    //     const changedValues: any = {};
-    //     for (const key in initialValues) {
-    //         if (initialValues[key] !== currentValues[key]) {
-    //             changedValues[key] = currentValues[key];
-    //         }
-    //     }
-    //     return changedValues;
-    // };
-
     const logout = () => {
         fetch(config.SERVER_URL + '/auth/logout', {
             method: 'PUT',
@@ -234,10 +204,6 @@ const Header: React.FC<p> = () => {
         )
     }
     useCharCount(containerRef, fixedAddon)
-
-    // if (isNaN(trackStart) || isNaN(trackEnd)) {
-    //     return <div>Error: Invalid track timecodes</div>;
-    // }
 
     const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
@@ -288,7 +254,7 @@ const Header: React.FC<p> = () => {
                 setAvatarProgress(-1)
                 toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
             }
-        } catch (error) {
+        } catch (error: any) {
             switch (error.response?.data?.message) {
                 case 'FILE_TOO_LARGE':
                     toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
@@ -341,7 +307,7 @@ const Header: React.FC<p> = () => {
                 setBannerProgress(-1)
                 toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке баннера')
             }
-        } catch (error) {
+        } catch (error: any) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
                 toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
@@ -377,20 +343,24 @@ const Header: React.FC<p> = () => {
             })
     }, [memoizedAppInfo])
 
-    const [modChangesInfoRaw, setModChangesInfoRaw] = useState<any[]>([])
-    const [loadingModChanges, setLoadingModChanges] = useState(true)
-    const [modError, setModError] = useState<string | null>(null)
+    const shouldFetchModChanges = isModModalOpen && app.mod.installed && !!app.mod.version
+
+    const {
+        data: modData,
+        loading: loadingModChanges,
+        error: modError,
+        refetch: refetchModChanges,
+    } = useQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
+        variables: { modVersion: app.mod.version || '' },
+        skip: !shouldFetchModChanges,
+        notifyOnNetworkStatusChange: true,
+    })
 
     useEffect(() => {
-        if (!app.mod.installed || !app.mod.version) return
-        setLoadingModChanges(true)
-        setModError(null)
-        client
-            .query({ query: GetModUpdates, variables: { modVersion: app.mod.version } })
-            .then(({ data }) => setModChangesInfoRaw(data.getChangelogEntries))
-            .catch(err => setModError(err.message))
-            .finally(() => setLoadingModChanges(false))
-    }, [isModModalOpen, app.mod, modInfo])
+        if (shouldFetchModChanges) {
+            refetchModChanges()
+        }
+    }, [shouldFetchModChanges, app.mod.version, refetchModChanges])
 
     const bannerRef = useRef<HTMLDivElement>(null)
     const [bannerUrl, setBannerUrl] = useState(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
@@ -405,6 +375,8 @@ const Header: React.FC<p> = () => {
             setBannerUrl(`${config.S3_URL}/banners/default_banner.webp`)
         }
     }, [user.bannerHash, user.bannerType])
+
+    const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
 
     return (
         <>
@@ -437,7 +409,7 @@ const Header: React.FC<p> = () => {
             <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
                     {loadingModChanges && <Loader text="Загрузка…" />}
-                    {modError && <p>Error: {modError}</p>}
+                    {modError && <p>Error: {modError.message}</p>}
                     {!loadingModChanges &&
                         !modError &&
                         modChangesInfoRaw.length > 0 &&
@@ -452,7 +424,7 @@ const Header: React.FC<p> = () => {
                                         remarkPlugins={[remarkGfm, remarkBreaks]}
                                         components={{
                                             a: ({ href, children }) => (
-                                                <a href={href} target="_blank" rel="noopener noreferrer">
+                                                <a href={href as string} target="_blank" rel="noopener noreferrer">
                                                     {children}
                                                 </a>
                                             ),
@@ -522,24 +494,6 @@ const Header: React.FC<p> = () => {
                                     </div>
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
-                                            {/* <div className={styles.user_alert}>
-                                                <div
-                                                    className={
-                                                        styles.alert_info
-                                                    }
-                                                >
-                                                    Предупреждение: Ваш профиль
-                                                    скрыт на 7 дней!
-                                                </div>
-                                                <div
-                                                    className={
-                                                        styles.alert_reson
-                                                    }
-                                                >
-                                                    Причина: Оскорбительный
-                                                    контент в профиле!
-                                                </div>
-                                            </div> */}
                                             <div className={styles.user_info}>
                                                 <div
                                                     className={styles.user_banner}
@@ -578,8 +532,8 @@ const Header: React.FC<p> = () => {
                                                             user.badges
                                                                 .sort((a, b) => b.level - a.level)
                                                                 .map(_badge => (
-                                                                    <TooltipButton tooltipText={_badge.name} side="bottom">
-                                                                        <div className={styles.badge} key={_badge.type}>
+                                                                    <TooltipButton tooltipText={_badge.name} side="bottom" key={_badge.type}>
+                                                                        <div className={styles.badge}>
                                                                             <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.type} />
                                                                         </div>
                                                                     </TooltipButton>
@@ -639,15 +593,6 @@ const Header: React.FC<p> = () => {
                                                             {user.nickname}
                                                         </div>
                                                         <div className={styles.usertag}>@{user.username}</div>
-                                                        {/*<div className={styles.status_text}>*/}
-                                                        {/*    {renderPlayerStatus()}*/}
-                                                        {/*    {playStatus === 'playing' && (*/}
-                                                        {/*        <>*/}
-                                                        {/*            : {currentTrack?.title || 'No Title'} -{' '}*/}
-                                                        {/*            {currentTrack.artists.map( x => x.name ).join( ', ' )}*/}
-                                                        {/*        </>*/}
-                                                        {/*    )}*/}
-                                                        {/*</div>*/}
                                                     </div>
                                                 </div>
                                             </div>

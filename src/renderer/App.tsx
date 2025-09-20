@@ -5,8 +5,8 @@ import AppPage from './pages/_app'
 import ErrorBoundary from './components/errorBoundary/errorBoundary'
 import { Provider } from 'react-redux'
 import store from './api/store/store'
-import { ApolloProvider } from '@apollo/client'
 import client from './api/apolloClient'
+import { ApolloProvider } from '@apollo/client/react'
 
 function App() {
     Modal.setAppElement('#root')

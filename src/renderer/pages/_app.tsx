@@ -1,5 +1,7 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { createHashRouter, RouterProvider } from 'react-router'
+import { useQuery } from '@apollo/client/react'
+import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
 import UserMeQuery from '../api/queries/user/getMe.query'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
@@ -48,6 +50,11 @@ import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
 
+type GetMeData = {
+    getMe: Partial<UserInterface> | null
+}
+type GetMeVars = Record<string, never>
+
 function App() {
     const [socketIo, setSocket] = useState<Socket | null>(null)
     const [socketError, setSocketError] = useState(-1)
@@ -67,6 +74,105 @@ function App() {
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
+
+    const [tokenReady, setTokenReady] = useState(false)
+    const [hasToken, setHasToken] = useState(false)
+
+    useEffect(() => {
+        let mounted = true
+        const t = getUserToken()
+        if (mounted) {
+            setHasToken(!!t)
+            setTokenReady(true)
+        }
+        return () => {
+            mounted = false
+        }
+    }, [])
+
+    const {
+        data: meData,
+        loading: meLoading,
+        error: meError,
+        refetch: refetchMe,
+    } = useQuery<GetMeData, GetMeVars>(UserMeQuery, {
+        fetchPolicy: 'no-cache',
+        skip: !tokenReady || !hasToken,
+    })
+
+    useEffect(() => {
+        if (!meData || !tokenReady) return
+        if (meData.getMe && meData.getMe.id) {
+            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
+            ;(async () => {
+                await router.navigate('/trackinfo', { replace: true })
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                    status: true,
+                    user: {
+                        id: meData.getMe!.id as string,
+                        username: meData.getMe!.username as string,
+                        email: meData.getMe!.email as string,
+                    },
+                })
+                setLoading(false)
+            })()
+        } else {
+            setLoading(false)
+            window.electron.store.delete('tokens.token')
+            ;(async () => {
+                await router.navigate('/', { replace: true })
+            })()
+            setUser(userInitials)
+            toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
+            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                status: false,
+            })
+        }
+    }, [meData, tokenReady])
+
+    useEffect(() => {
+        if (!meError) return
+        const message = meError?.message || 'Неизвестная ошибка авторизации.'
+        if (CombinedGraphQLErrors.is(meError)) {
+            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
+            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
+            if (isForbidden) {
+                toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+            if (isDeprecated) {
+                toast.custom(
+                    'error',
+                    'Данная версия приложения устарела',
+                    'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
+                    null,
+                    null,
+                    10000,
+                )
+                window.desktopEvents?.send(MainEvents.UPDATER_START)
+                dispatch(setAppDeprecatedStatus(true))
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+        }
+        Sentry.captureException(meError)
+        toast.custom('error', 'Может у тебя нет доступа?', message)
+        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+        setLoading(false)
+    }, [meError, dispatch])
 
     const router = useMemo(
         () =>
@@ -151,7 +257,7 @@ function App() {
         let retryCount = config.MAX_RETRY_COUNT
 
         const attemptAuthorization = async (): Promise<boolean> => {
-            const token = await getUserToken()
+            const token = getUserToken()
 
             if (token) {
                 const isOnline = await checkInternetAccess()
@@ -162,9 +268,7 @@ function App() {
                         return false
                     } else {
                         toast.custom('error', 'Отдохни чуток:)', 'Превышено количество попыток подключения.')
-                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                            status: false,
-                        })
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
                     }
@@ -179,23 +283,18 @@ function App() {
                 }
 
                 try {
-                    const res = await apolloClient.query({
-                        query: UserMeQuery,
-                        fetchPolicy: 'no-cache',
-                    })
+                    const res = await refetchMe()
+                    const data = res.data as GetMeData | undefined
 
-                    const { data } = res
-                    if (data.getMe && data.getMe.id) {
-                        setUser(data.getMe)
-
+                    if (data?.getMe && data.getMe.id) {
+                        setUser(prev => ({ ...prev, ...data.getMe }) as UserInterface)
                         await router.navigate('/trackinfo', { replace: true })
-
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: true,
                             user: {
-                                id: data.getMe.id,
-                                username: data.getMe.username,
-                                email: data.getMe.email,
+                                id: data.getMe.id as string,
+                                username: data.getMe.username as string,
+                                email: data.getMe.email as string,
                             },
                         })
                         return true
@@ -205,66 +304,67 @@ function App() {
                         await router.navigate('/', { replace: true })
                         setUser(userInitials)
                         sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
-                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                            status: false,
-                        })
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
-                } catch (e: any) {
-                    if (e.networkError) {
+                } catch (e: unknown) {
+                    const err = e as unknown
+
+                    if ((ServerError as any)?.is?.(err) || (err as any)?.name === 'TypeError') {
                         if (retryCount > 0) {
                             notifyUserRetries(retryCount)
                             retryCount--
                             return false
                         } else {
                             toast.custom('error', 'Пинг-понг', 'Сервер недоступен. Попробуйте позже.')
-                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                                status: false,
-                            })
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
-                    } else if (e.graphQLErrors && e.graphQLErrors.length > 0) {
-                        const isDeprecated = e.graphQLErrors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
-                        const isForbidden = e.graphQLErrors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
+                    } else if (CombinedGraphQLErrors.is(err)) {
+                        const errors = (err as InstanceType<typeof CombinedGraphQLErrors>).errors || []
+                        const isDeprecated = errors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
+                        const isForbidden = errors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
-                            sendErrorAuthNotify('Ваша сессия истекла. Пожалуйста, войдите снова.')
+                            toast.custom('error', 'Ваша сессия истекла', 'Пожалуйста, войдите снова.')
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                                status: false,
-                            })
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else if (isDeprecated) {
-                            sendErrorAuthNotify(
-                                'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
+                            toast.custom(
+                                'error',
                                 'Данная версия приложения устарела',
+                                'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
+                                null,
+                                null,
+                                10000,
                             )
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/', { replace: true })
                             setUser(userInitials)
-                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                                status: false,
-                            })
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                            return false
+                        } else {
+                            Sentry.captureException(err)
+                            toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
+                            window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                            setLoading(false)
                             return false
                         }
                     } else {
-                        Sentry.captureException(e)
+                        Sentry.captureException(err)
                         toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
-                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                            status: false,
-                        })
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
                     }
                 }
             } else {
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                    status: false,
-                })
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                 setLoading(false)
                 return false
             }
@@ -275,12 +375,10 @@ function App() {
 
             if (!isAuthorized) {
                 const retryInterval = setInterval(async () => {
-                    const token = await getUserToken()
+                    const token = getUserToken()
 
                     if (!token) {
-                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                            status: false,
-                        })
+                        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         clearInterval(retryInterval)
                         return
@@ -324,11 +422,11 @@ function App() {
                 }
             }
 
-            const handleBeforeunload = (event: BeforeUnloadEvent) => {
+            const handleBeforeunload = (_event: BeforeUnloadEvent) => {
                 window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
             }
 
-            const handleAuthStatus = async (event: any) => {
+            const handleAuthStatus = async (_event: any) => {
                 await authorize()
             }
 
@@ -389,7 +487,7 @@ function App() {
             setSocket(null)
             setSocketConnected(false)
         }
-        const onConnectError = (err: any) => {
+        const onConnectError = (_err: any) => {
             setSocketError(1)
             setSocket(null)
             setSocketConnected(false)
@@ -583,7 +681,7 @@ function App() {
         if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
             if (!window.desktopEvents) return
 
-            window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, (event, data) => {
+            window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, (_event, data) => {
                 setApp(prevSettings => ({
                     ...prevSettings,
                     discordRpc: {
@@ -614,7 +712,7 @@ function App() {
                 }))
             })
 
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, (event, data) => {
+            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, (_event, data) => {
                 if (!toastReference.current) {
                     toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
                 }
@@ -709,9 +807,11 @@ function App() {
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
+            setHasToken(true)
+            setTokenReady(true)
             await authorize()
         }
-        ;(window as any).refreshAddons = async (args: any) => {
+        ;(window as any).refreshAddons = async (_args: any) => {
             window.desktopEvents.invoke(MainEvents.GET_ADDONS).then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
                 router.navigate('/extension', { replace: true })
@@ -729,7 +829,7 @@ function App() {
                     user,
                     setUser,
                     authorize,
-                    loading,
+                    loading: loading || meLoading,
                     musicInstalled,
                     setMusicInstalled,
                     socket: socketIo,
@@ -749,7 +849,7 @@ function App() {
             >
                 <Player>
                     <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                        <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
+                        <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
                     </SkeletonTheme>
                 </Player>
             </UserContext.Provider>

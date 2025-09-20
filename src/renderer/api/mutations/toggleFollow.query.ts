@@ -1,6 +1,9 @@
-import gql from 'graphql-tag'
+import { gql, TypedDocumentNode } from '@apollo/client'
 
-export default gql`
+type ToggleFollowData = { toggleFollow: { isFollowing: boolean; areFriends: boolean } }
+type ToggleFollowVars = { targetId: string }
+
+const TOGGLE_FOLLOW: TypedDocumentNode<ToggleFollowData, ToggleFollowVars> = gql`
     mutation ToggleFollow($targetId: ID!) {
         toggleFollow(targetId: $targetId) {
             user {
@@ -12,3 +15,5 @@ export default gql`
         }
     }
 `
+
+export default TOGGLE_FOLLOW

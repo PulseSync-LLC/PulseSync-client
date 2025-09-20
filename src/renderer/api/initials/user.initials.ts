@@ -5,6 +5,7 @@ const UserInitials: UserInterface = {
     avatar: '',
     avatarHash: '',
     avatarType: '',
+    email: '',
     createdAt: 0,
     lastOnline: '',
     currentTrack: null,
