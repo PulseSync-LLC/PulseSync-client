@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import semver from 'semver'
 
 import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
 import stringSimilarity from 'string-similarity'
@@ -454,17 +455,20 @@ export default function ExtensionPage() {
 
     const getAddonModalText = (addon: Addon, musicVersion: string | undefined) => {
         const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : 'неизвестно'
+
+        const isSupported =
+            musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
         const minSupported = addon.supportedVersions?.[0]
-        if (musicVersion && minSupported && musicVersion < minSupported) {
-            return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.
-\nВаша версия Яндекс Музыки (${musicVersion}) ниже минимально поддерживаемой (${minSupported}). Возможны ошибки или некорректная работа!`
+        if (musicVersion && minSupported && !isSupported) {
+            return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.\nВаша версия Яндекс Музыки (${musicVersion}) не входит в поддерживаемый диапазон (${supported}). Возможны ошибки или некорректная работа!`
         }
         return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.`
     }
 
     const handleEnableAddon = (addon: Addon) => {
-        const minSupported = addon.supportedVersions?.[0]
-        if (musicVersion && minSupported && musicVersion < minSupported) {
+        const isSupported =
+            musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
+        if (musicVersion && addon.supportedVersions?.length && !isSupported) {
             setModalAddon(addon)
             setModalOpen(true)
             return
@@ -479,19 +483,38 @@ export default function ExtensionPage() {
                     <div className={styles.main_container}>
                         <CustomModalPS
                             isOpen={modalOpen}
-                            onClose={() => { setModalOpen(false); setModalAddon(null); }}
+                            onClose={() => {
+                                setModalOpen(false)
+                                setModalAddon(null)
+                            }}
                             title="Вы уверены?"
                             text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
                             subText={`У вас версия: ${musicVersion || 'unknown'}`}
                             buttons={[
-                                { text: 'Отмена', onClick: () => { setModalOpen(false); setModalAddon(null); }, variant: 'secondary' },
-                                { text: 'Всё равно включить', onClick: () => {
-                                    if (modalAddon) {
-                                        handleCheckboxChange(modalAddon, !(modalAddon.type === 'theme' ? modalAddon.directoryName === currentTheme : enabledScripts.includes(modalAddon.directoryName)))
-                                    }
-                                    setModalOpen(false)
-                                    setModalAddon(null)
-                                }, variant: 'danger' },
+                                {
+                                    text: 'Отмена',
+                                    onClick: () => {
+                                        setModalOpen(false)
+                                        setModalAddon(null)
+                                    },
+                                    variant: 'secondary',
+                                },
+                                {
+                                    text: 'Всё равно включить',
+                                    onClick: () => {
+                                        if (modalAddon) {
+                                            handleCheckboxChange(
+                                                modalAddon,
+                                                !(modalAddon.type === 'theme'
+                                                    ? modalAddon.directoryName === currentTheme
+                                                    : enabledScripts.includes(modalAddon.directoryName)),
+                                            )
+                                        }
+                                        setModalOpen(false)
+                                        setModalAddon(null)
+                                    },
+                                    variant: 'danger',
+                                },
                             ]}
                         />
                         <div ref={containerRef}>
@@ -579,11 +602,12 @@ export default function ExtensionPage() {
                                                     style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
                                                     onClick={e => {
                                                         e.stopPropagation()
-                                                        if (addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)) {
-                                                            handleCheckboxChange(
-                                                                addon,
-                                                                false
-                                                            )
+                                                        if (
+                                                            addon.type === 'theme'
+                                                                ? addon.directoryName === currentTheme
+                                                                : enabledScripts.includes(addon.directoryName)
+                                                        ) {
+                                                            handleCheckboxChange(addon, false)
                                                         } else {
                                                             handleEnableAddon(addon)
                                                         }

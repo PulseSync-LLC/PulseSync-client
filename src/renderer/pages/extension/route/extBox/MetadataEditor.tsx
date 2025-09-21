@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
 import MainEvents from '../../../../../common/types/mainEvents'
 import RendererEvents from '../../../../../common/types/rendererEvents'
+import semver from 'semver'
 
 import TextInput from '../../../../components/PSUI/TextInput'
 import SelectInput from '../../../../components/PSUI/SelectInput'
@@ -132,6 +133,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         if (!draft.name.trim()) return false
         if (!SEMVER.test(draft.version.trim())) return false
         if (!['theme', 'script', 'library'].includes(draft.type)) return false
+        if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(v => semver.validRange(v))) return false
         return true
     }, [draft])
 
@@ -213,7 +215,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 .split(',')
                 .map(s => s.trim())
                 .filter(Boolean)
-            setField('supportedVersions', next)
+            setField(
+                'supportedVersions',
+                next.filter(ver => semver.validRange(ver)),
+            )
         },
         [setField],
     )
@@ -376,7 +381,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     label="Supported Versions (comma-separated)"
                     value={supportedVersionsAsString}
                     onChange={setSupportedVersionsFromString}
-                    description="Например: 5.65.0, 5.66.0"
+                    description="Например: ^5.65.0, >=5.66.0, 5.67.x"
                 />
             </div>
 
