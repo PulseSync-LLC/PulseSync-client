@@ -18,6 +18,8 @@ interface p {
     loading: boolean
     musicInstalled: boolean
     setMusicInstalled: (value: boolean) => void
+    musicVersion: string | null
+    setMusicVersion: (version: string | null) => void
     socket: Socket | null
     socketConnected: boolean
     app: SettingsInterface
@@ -40,6 +42,8 @@ const UserContext = createContext<p>({
     loading: true,
     musicInstalled: false,
     setMusicInstalled: () => void 0,
+    musicVersion: null,
+    setMusicVersion: () => void 0,
     socket: null,
     socketConnected: false,
     app: settingsInitials,

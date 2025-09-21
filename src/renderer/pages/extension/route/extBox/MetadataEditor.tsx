@@ -22,6 +22,9 @@ type Metadata = {
     script: string
     type: 'theme' | 'script' | 'library' | string
     tags: string[]
+    dependencies: string[]
+    allowedUrls: string[]
+    supportedVersions: string[]
 }
 
 type Props = {
@@ -43,6 +46,9 @@ const DEFAULT_META: Metadata = {
     script: 'script.js',
     type: 'theme',
     tags: [],
+    dependencies: [],
+    allowedUrls: [],
+    supportedVersions: [],
 }
 
 function sanitizeFilename(name: string) {
@@ -92,31 +98,36 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     return path.basename(dest)
 }
 
-async function getPreviewDataUrl(addonPath: string, relOrAbs: string): Promise<string | null> {
-    if (!relOrAbs) return null
-    const full = path.isAbsolute(relOrAbs) ? relOrAbs : path.join(addonPath, relOrAbs)
-    try {
-        return (
-            (await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, full)) ??
-            (await window.desktopEvents.invoke(MainEvents.FILE_AS_DATA_URL, full))
-        )
-    } catch {
-        return null
+function deepEqual(a: any, b: any): boolean {
+    if (a === b) return true
+    if (typeof a !== typeof b) return false
+    if (a == null || b == null) return false
+    if (Array.isArray(a)) {
+        if (!Array.isArray(b) || a.length !== b.length) return false
+        for (let i = 0; i < a.length; i++) if (!deepEqual(a[i], b[i])) return false
+        return true
     }
+    if (typeof a === 'object') {
+        const ak = Object.keys(a)
+        const bk = Object.keys(b)
+        if (ak.length !== bk.length) return false
+        for (const k of ak) {
+            if (!Object.prototype.hasOwnProperty.call(b, k)) return false
+            if (!deepEqual(a[k], b[k])) return false
+        }
+        return true
+    }
+    return false
 }
 
-const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
+const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
     const baseRef = useRef<Metadata>(DEFAULT_META)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
 
-    const [imageUrl, setImageUrl] = useState<string | null>(null)
-    const [bannerUrl, setBannerUrl] = useState<string | null>(null)
-    const [logoUrl, setLogoUrl] = useState<string | null>(null)
-
-    const open = useMemo(() => JSON.stringify(draft) !== JSON.stringify(baseRef.current), [draft])
+    const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
         if (!draft.name.trim()) return false
         if (!SEMVER.test(draft.version.trim())) return false
@@ -125,6 +136,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
     }, [draft])
 
     useEffect(() => {
+        let cancelled = false
         ;(async () => {
             setError(null)
             setLoading(true)
@@ -138,63 +150,85 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
                     tags: Array.isArray(parsed?.tags) ? parsed.tags : [],
                     type: parsed?.type ?? 'theme',
                 }
-                setDraft(meta)
-                baseRef.current = meta
+                if (!cancelled) {
+                    setDraft(meta)
+                    baseRef.current = meta
+                }
             } catch (e) {
                 console.error(e)
-                setError('Не удалось загрузить metadata.json')
+                if (!cancelled) setError('Не удалось загрузить metadata.json')
             } finally {
-                setLoading(false)
+                if (!cancelled) setLoading(false)
             }
         })()
+        return () => {
+            cancelled = true
+        }
     }, [addonPath])
 
-    const setField = <K extends keyof Metadata>(key: K, value: Metadata[K]) => {
-        setDraft(prev => ({ ...prev, [key]: value }))
-    }
+    const setField = useCallback(<K extends keyof Metadata>(key: K, value: Metadata[K]) => {
+        setDraft(prev => (prev[key] === value ? prev : { ...prev, [key]: value }))
+    }, [])
 
     const tagsAsString = useMemo(() => draft.tags.join(', '), [draft.tags])
-    const setTagsFromString = (v: string) =>
-        setField(
-            'tags',
-            v
+    const setTagsFromString = useCallback(
+        (v: string) => {
+            const next = v
                 .split(',')
                 .map(s => s.trim())
-                .filter(Boolean),
-        )
+                .filter(Boolean)
+            setField('tags', next)
+        },
+        [setField],
+    )
 
-    useEffect(() => {
-        let alive = true
-        ;(async () => {
-            const url = draft.image ? (filePreviewSrc?.(draft.image) ?? (await getPreviewDataUrl(addonPath, draft.image))) : null
-            if (alive) setImageUrl(url || null)
-        })()
-        return () => {
-            alive = false
-        }
-    }, [addonPath, draft.image, filePreviewSrc])
+    const dependenciesAsString = useMemo(() => draft.dependencies.join(', '), [draft.dependencies])
+    const setDependenciesFromString = useCallback(
+        (v: string) => {
+            const next = v
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
+            setField('dependencies', next)
+        },
+        [setField],
+    )
 
-    useEffect(() => {
-        let alive = true
-        ;(async () => {
-            const url = draft.banner ? (filePreviewSrc?.(draft.banner) ?? (await getPreviewDataUrl(addonPath, draft.banner))) : null
-            if (alive) setBannerUrl(url || null)
-        })()
-        return () => {
-            alive = false
-        }
-    }, [addonPath, draft.banner, filePreviewSrc])
+    const allowedUrlsAsString = useMemo(() => draft.allowedUrls.join(', '), [draft.allowedUrls])
+    const setAllowedUrlsFromString = useCallback(
+        (v: string) => {
+            const next = v
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
+            setField('allowedUrls', next)
+        },
+        [setField],
+    )
 
-    useEffect(() => {
-        let alive = true
-        ;(async () => {
-            const url = draft.libraryLogo ? (filePreviewSrc?.(draft.libraryLogo) ?? (await getPreviewDataUrl(addonPath, draft.libraryLogo))) : null
-            if (alive) setLogoUrl(url || null)
-        })()
-        return () => {
-            alive = false
-        }
-    }, [addonPath, draft.libraryLogo, filePreviewSrc])
+    const supportedVersionsAsString = useMemo(() => draft.supportedVersions.join(', '), [draft.supportedVersions])
+    const setSupportedVersionsFromString = useCallback(
+        (v: string) => {
+            const next = v
+                .split(',')
+                .map(s => s.trim())
+                .filter(Boolean)
+            setField('supportedVersions', next)
+        },
+        [setField],
+    )
+
+    const resolveRelIfNeeded = useCallback(
+        async (value: string, fallbackBase: string, fallbackExt: string) => {
+            if (!value) return value
+            if (path.isAbsolute(value)) {
+                const rel = await ensureCopyIntoAddon(addonPath, value, fallbackBase + path.extname(value || fallbackExt))
+                return rel
+            }
+            return value
+        },
+        [addonPath],
+    )
 
     const onSave = useCallback(async () => {
         if (!open || !valid || saving) return
@@ -203,32 +237,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
         try {
             const next: Metadata = { ...draft }
 
-            if (draft.image) {
-                const rel = path.isAbsolute(draft.image)
-                    ? await ensureCopyIntoAddon(addonPath, draft.image, 'image' + path.extname(draft.image))
-                    : draft.image
-                next.image = rel
-            }
-            if (draft.banner) {
-                const rel = path.isAbsolute(draft.banner)
-                    ? await ensureCopyIntoAddon(addonPath, draft.banner, 'banner' + path.extname(draft.banner))
-                    : draft.banner
-                next.banner = rel
-            }
-            if (draft.libraryLogo) {
-                const rel = path.isAbsolute(draft.libraryLogo)
-                    ? await ensureCopyIntoAddon(addonPath, draft.libraryLogo, 'libraryLogo' + path.extname(draft.libraryLogo))
-                    : draft.libraryLogo
-                next.libraryLogo = rel
-            }
-            if (draft.css && path.isAbsolute(draft.css)) {
-                const rel = await ensureCopyIntoAddon(addonPath, draft.css, 'style' + path.extname(draft.css || '.css'))
-                next.css = rel
-            }
-            if (draft.script && path.isAbsolute(draft.script)) {
-                const rel = await ensureCopyIntoAddon(addonPath, draft.script, 'script' + path.extname(draft.script || '.js'))
-                next.script = rel
-            }
+            if (draft.image) next.image = await resolveRelIfNeeded(draft.image, 'image', '.png')
+            if (draft.banner) next.banner = await resolveRelIfNeeded(draft.banner, 'banner', '.png')
+            if (draft.libraryLogo) next.libraryLogo = await resolveRelIfNeeded(draft.libraryLogo, 'libraryLogo', '.png')
+            if (draft.css) next.css = await resolveRelIfNeeded(draft.css, 'style', '.css')
+            if (draft.script) next.script = await resolveRelIfNeeded(draft.script, 'script', '.js')
 
             const file = path.join(addonPath, 'metadata.json')
             await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(next, null, 2))
@@ -241,7 +254,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
         } finally {
             setSaving(false)
         }
-    }, [addonPath, draft, open, saving, valid])
+    }, [addonPath, draft, open, resolveRelIfNeeded, saving, valid])
 
     const onReset = useCallback(() => {
         setDraft(baseRef.current)
@@ -342,6 +355,28 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, filePreviewSrc }) => {
                     addonPath={addonPath}
                     preferredBaseName="script"
                     accept=".js"
+                />
+                <TextInput
+                    name="meta-dependencies"
+                    label="Dependencies (comma-separated)"
+                    value={dependenciesAsString}
+                    onChange={setDependenciesFromString}
+                    description="Например: AddonName"
+                />
+                <TextInput
+                    name="meta-allowedUrls"
+                    label="Allowed URLs (comma-separated)"
+                    value={allowedUrlsAsString}
+                    onChange={setAllowedUrlsFromString}
+                    description="Например: https://example.com, https://api.example.com"
+                />
+
+                <TextInput
+                    name="meta-supportedVersions"
+                    label="Supported Versions (comma-separated)"
+                    value={supportedVersionsAsString}
+                    onChange={setSupportedVersionsFromString}
+                    description="Например: 5.65.0, 5.66.0"
                 />
             </div>
 

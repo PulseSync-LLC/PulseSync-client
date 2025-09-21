@@ -69,6 +69,7 @@ function App() {
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
+    const [musicVersion, setMusicVersion] = useState(null)
     const toastReference = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
 
@@ -583,11 +584,13 @@ function App() {
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
                 window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
                 window.desktopEvents?.send(MainEvents.UI_READY)
-                const [musicStatus, fetchedAddons] = await Promise.all([
+                const [musicStatus, musicVersion, fetchedAddons] = await Promise.all([
                     window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
                     window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
                 ])
                 setMusicInstalled(musicStatus)
+                setMusicVersion(musicVersion)
                 setAddons(fetchedAddons)
 
                 try {
@@ -832,6 +835,8 @@ function App() {
                     loading: loading || meLoading,
                     musicInstalled,
                     setMusicInstalled,
+                    musicVersion,
+                    setMusicVersion,
                     socket: socketIo,
                     socketConnected,
                     app,

@@ -17,6 +17,7 @@ export interface CustomModalPSProps {
     onClose: () => void
     title?: string
     text?: string
+    subText?: string
     children?: ReactNode
     buttons?: ModalButton[]
 }
@@ -38,7 +39,7 @@ const modalVariants = {
     exit: { opacity: 0, scale: 0.95, y: -20, transition: { duration: 0.15 } },
 } as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, children, buttons = [] }) => {
+const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, buttons = [] }) => {
     if (typeof window === 'undefined') return null
 
     const renderButtons = () => {
@@ -81,6 +82,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                     >
                         {title && <h2 className={styles.title}>{title}</h2>}
                         {text && <p className={styles.text}>{text}</p>}
+                        {subText && <p className={styles.text}>{subText}</p>}
                         {children}
                         {renderButtons()}
                     </motion.div>

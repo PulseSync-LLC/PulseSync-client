@@ -22,7 +22,7 @@ import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/config'
 import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents from '../../../common/types/rendererEvents'
+import CustomModalPS from '../../components/PSUI/CustomModalPS'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -54,7 +54,7 @@ function useDebouncedValue<T>(value: T, delay: number) {
 }
 
 export default function ExtensionPage() {
-    const { addons, setAddons } = useContext(userContext)
+    const { addons, setAddons, musicVersion } = useContext(userContext)
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
     const [enabledScripts, setEnabledScripts] = useState<string[]>(() => safeStoreGet<string[]>('addons.scripts', []))
     const [searchQuery, setSearchQuery] = useState('')
@@ -62,6 +62,8 @@ export default function ExtensionPage() {
 
     const [selectedAddonId, setSelectedAddonId] = useState<string | null>(null)
     const [isLoaded, setIsLoaded] = useState(false)
+    const [modalOpen, setModalOpen] = useState(false)
+    const [modalAddon, setModalAddon] = useState<Addon | null>(null)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -450,11 +452,48 @@ export default function ExtensionPage() {
         )
     }
 
+    const getAddonModalText = (addon: Addon, musicVersion: string | undefined) => {
+        const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : 'неизвестно'
+        const minSupported = addon.supportedVersions?.[0]
+        if (musicVersion && minSupported && musicVersion < minSupported) {
+            return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.
+\nВаша версия Яндекс Музыки (${musicVersion}) ниже минимально поддерживаемой (${minSupported}). Возможны ошибки или некорректная работа!`
+        }
+        return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.`
+    }
+
+    const handleEnableAddon = (addon: Addon) => {
+        const minSupported = addon.supportedVersions?.[0]
+        if (musicVersion && minSupported && musicVersion < minSupported) {
+            setModalAddon(addon)
+            setModalOpen(true)
+            return
+        }
+        handleCheckboxChange(addon, !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)))
+    }
+
     return (
         <Layout title="Аддоны">
             <div className={styles.page}>
                 <div className={styles.container}>
                     <div className={styles.main_container}>
+                        <CustomModalPS
+                            isOpen={modalOpen}
+                            onClose={() => { setModalOpen(false); setModalAddon(null); }}
+                            title="Вы уверены?"
+                            text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
+                            subText={`У вас версия: ${musicVersion || 'unknown'}`}
+                            buttons={[
+                                { text: 'Отмена', onClick: () => { setModalOpen(false); setModalAddon(null); }, variant: 'secondary' },
+                                { text: 'Всё равно включить', onClick: () => {
+                                    if (modalAddon) {
+                                        handleCheckboxChange(modalAddon, !(modalAddon.type === 'theme' ? modalAddon.directoryName === currentTheme : enabledScripts.includes(modalAddon.directoryName)))
+                                    }
+                                    setModalOpen(false)
+                                    setModalAddon(null)
+                                }, variant: 'danger' },
+                            ]}
+                        />
                         <div ref={containerRef}>
                             {showFilters && (
                                 <AddonFilters
@@ -537,19 +576,17 @@ export default function ExtensionPage() {
                                                     className={`${extensionStylesV2.checkSelect} ${
                                                         addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
                                                     }`}
-                                                    style={{
-                                                        marginRight: '12px',
-                                                        opacity: 1,
-                                                        cursor: 'pointer',
-                                                    }}
+                                                    style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
                                                     onClick={e => {
                                                         e.stopPropagation()
-                                                        handleCheckboxChange(
-                                                            addon,
-                                                            !(addon.type === 'theme'
-                                                                ? addon.directoryName === currentTheme
-                                                                : enabledScripts.includes(addon.directoryName)),
-                                                        )
+                                                        if (addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)) {
+                                                            handleCheckboxChange(
+                                                                addon,
+                                                                false
+                                                            )
+                                                        } else {
+                                                            handleEnableAddon(addon)
+                                                        }
                                                     }}
                                                 >
                                                     <MdCheckCircle size={18} />
@@ -589,12 +626,7 @@ export default function ExtensionPage() {
                                                     style={{ color: '#565F77' }}
                                                     onClick={e => {
                                                         e.stopPropagation()
-                                                        handleCheckboxChange(
-                                                            addon,
-                                                            !(addon.type === 'theme'
-                                                                ? addon.directoryName === currentTheme
-                                                                : enabledScripts.includes(addon.directoryName)),
-                                                        )
+                                                        handleEnableAddon(addon)
                                                     }}
                                                 >
                                                     <MdCheckCircle size={18} />
@@ -625,7 +657,13 @@ export default function ExtensionPage() {
                                                 ? selectedAddon.directoryName === currentTheme
                                                 : enabledScripts.includes(selectedAddon.directoryName)
                                         }
-                                        onToggleEnabled={enabled => handleCheckboxChange(selectedAddon, enabled)}
+                                        onToggleEnabled={enabled => {
+                                            if (enabled) {
+                                                handleEnableAddon(selectedAddon)
+                                            } else {
+                                                handleCheckboxChange(selectedAddon, false)
+                                            }
+                                        }}
                                         setSelectedTags={setSelectedTags}
                                         setShowFilters={setShowFilters}
                                     />
