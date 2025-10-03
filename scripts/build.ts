@@ -19,6 +19,8 @@ const buildApplication = process.argv.includes('--application') || process.argv.
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 
+const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
+
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
 if (publishIndex !== -1) {
@@ -159,6 +161,9 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Build native modules: ${buildNativeModules ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
+    if (os.platform() === 'darwin') {
+        log(LogLevel.INFO, `Mac target arch: ${macX64Build ? 'x64' : 'arm64'}`)
+    }
 
     const desiredLinuxExeName = 'pulsesync'
     const branchForConfig = publishBranch ?? 'beta'
@@ -176,10 +181,12 @@ async function main(): Promise<void> {
     }
 
     if (!buildNativeModules && buildOnlyInstaller && !publishBranch) {
-        await runCommandStep(
-            'Build (electron-builder)',
-            `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}"`,
-        )
+        const pdPath =
+            os.platform() === 'darwin'
+                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
+                : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+
+        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}"`)
         log(LogLevel.SUCCESS, 'Done')
         return
     }
@@ -207,8 +214,8 @@ async function main(): Promise<void> {
         const { version } = generateBuildInfo()
 
         if (os.platform() === 'darwin') {
-            await runCommandStep('Package (electron-forge:x64)', 'electron-forge package --arch x64')
-            await runCommandStep('Package (electron-forge:arm64)', 'electron-forge package --arch arm64')
+            const targetArch = macX64Build ? 'x64' : 'arm64'
+            await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
         } else {
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
@@ -287,14 +294,17 @@ async function main(): Promise<void> {
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
         if (os.platform() === 'darwin') {
-            await runCommandStep(
-                'Build (electron-builder:x64)',
-                `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
-            )
-            await runCommandStep(
-                'Build (electron-builder:arm64)',
-                `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
-            )
+            if (macX64Build) {
+                await runCommandStep(
+                    'Build (electron-builder:x64)',
+                    `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
+                )
+            } else {
+                await runCommandStep(
+                    'Build (electron-builder:arm64)',
+                    `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
+                )
+            }
         } else {
             await runCommandStep(
                 'Build (electron-builder)',

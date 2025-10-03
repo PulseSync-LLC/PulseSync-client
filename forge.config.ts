@@ -5,7 +5,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 import { mainConfig } from './webpack/webpack.main.config'
 import { rendererConfig } from './webpack/webpack.renderer.config'
 import path from 'path'
-import fs from 'fs-extra'
+import fs from 'fs'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
@@ -56,6 +56,8 @@ const forgeConfig: ForgeConfig = {
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
+            [FuseV1Options.EnableNodeCliInspectArguments]: true,
+
         }),
     ],
     hooks: {
