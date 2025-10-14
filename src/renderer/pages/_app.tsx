@@ -72,6 +72,8 @@ function App() {
     const [musicVersion, setMusicVersion] = useState(null)
     const toastReference = useRef<string | null>(null)
     const socketRef = useRef<Socket | null>(null)
+    const zstdRef = useRef<any>(null)
+    const [zstdReady, setZstdReady] = useState(false)
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
@@ -88,6 +90,26 @@ function App() {
         }
         return () => {
             mounted = false
+        }
+    }, [])
+
+    useEffect(() => {
+        let cancelled = false
+        ;(async () => {
+            try {
+                const mod = await import('zstd-codec')
+                await new Promise<void>(resolve => {
+                    ;(mod as any).ZstdCodec.run((z: any) => {
+                        if (cancelled) return
+                        zstdRef.current = new z.Simple()
+                        setZstdReady(true)
+                        resolve()
+                    })
+                })
+            } catch {}
+        })()
+        return () => {
+            cancelled = true
         }
     }, [])
 
@@ -401,6 +423,23 @@ function App() {
         })
     }
 
+    const emitGw = useCallback(
+        (event: string, data: any) => {
+            const s = socketRef.current
+            if (!s) return
+            if (zstdReady && zstdRef.current && s.connected) {
+                try {
+                    const frame = new TextEncoder().encode(JSON.stringify({ e: event, d: data }))
+                    const compressed = zstdRef.current.compress(frame, 3)
+                    s.emit('gw', compressed)
+                    return
+                } catch {}
+            }
+            s.emit(event, data)
+        },
+        [zstdReady],
+    )
+
     useEffect(() => {
         if (typeof window !== 'undefined') {
             const checkAuthorization = async () => {
@@ -459,17 +498,26 @@ function App() {
                     page,
                     token: getUserToken(),
                     version,
+                    compression: zstdReady ? 'zstd' : 'none',
+                    inboundCompression: zstdReady ? 'zstd' : 'none',
                 },
+                transports: ['websocket'],
             })
             socketRef.current = socket
             setSocket(socket)
         } else {
             const socket = socketRef.current
             if (socket) {
-                socket.auth = { page, token: getUserToken(), version }
+                socket.auth = {
+                    page,
+                    token: getUserToken(),
+                    version,
+                    compression: zstdReady ? 'zstd' : 'none',
+                    inboundCompression: zstdReady ? 'zstd' : 'none',
+                }
             }
         }
-    }, [app.info.version])
+    }, [app.info.version, zstdReady])
 
     useEffect(() => {
         const socket = socketRef.current
@@ -511,6 +559,19 @@ function App() {
                 body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
             })
         }
+        const onFeaturesBin = (buf: ArrayBuffer) => {
+            if (!zstdReady || !zstdRef.current) return
+            try {
+                const u8 = new Uint8Array(buf as ArrayBuffer)
+                const out = zstdRef.current.decompress(u8)
+                const data = JSON.parse(new TextDecoder().decode(out))
+                setFeatures(data)
+            } catch {}
+        }
+        const onDeprecatedBin = (_buf: ArrayBuffer) => {
+            if (!zstdReady || !zstdRef.current) return
+            onDeprecated()
+        }
 
         socket.on('connect', onConnect)
         socket.on('disconnect', onDisconnect)
@@ -518,6 +579,8 @@ function App() {
         socket.on('logout', onLogout)
         socket.on('feature_toggles', onFeatures)
         socket.on('deprecated_version', onDeprecated)
+        socket.on('feature_toggles_bin', onFeaturesBin)
+        socket.on('deprecated_version_bin', onDeprecatedBin)
 
         return () => {
             socket.off('connect', onConnect)
@@ -526,8 +589,10 @@ function App() {
             socket.off('logout', onLogout)
             socket.off('feature_toggles', onFeatures)
             socket.off('deprecated_version', onDeprecated)
+            socket.off('feature_toggles_bin', onFeaturesBin)
+            socket.off('deprecated_version_bin', onDeprecatedBin)
         }
-    }, [router])
+    }, [router, zstdReady])
 
     useEffect(() => {
         if (socketError === 1 || socketError === 0) {
@@ -578,6 +643,14 @@ function App() {
         if (user.id !== '-1') {
             const initializeApp = async () => {
                 if (!socketRef.current?.connected) {
+                    if (socketRef.current) {
+                        const s = socketRef.current
+                        s.auth = {
+                            ...(s.auth || {}),
+                            compression: zstdReady ? 'zstd' : 'none',
+                            inboundCompression: zstdReady ? 'zstd' : 'none',
+                        }
+                    }
                     socketRef.current?.connect()
                 }
 
@@ -617,7 +690,7 @@ function App() {
         } else {
             router.navigate('/', { replace: true })
         }
-    }, [user.id])
+    }, [user.id, zstdReady])
 
     const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
         return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
@@ -794,17 +867,17 @@ function App() {
             setApp(prevSettings => {
                 const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
 
-                if (socketIo && socketIo.connected) {
+                if (socketRef.current && socketRef.current.connected) {
                     const socketInfo = { ...updatedSettings }
                     delete (socketInfo as any).tokens
                     delete (socketInfo as any).info
-                    socketIo.emit('user_settings_update', socketInfo)
+                    emitGw('user_settings_update', socketInfo)
                 }
 
                 return updatedSettings
             })
         },
-        [socketIo],
+        [emitGw],
     )
 
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -828,29 +901,32 @@ function App() {
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />
             <UserContext.Provider
-                value={{
-                    user,
-                    setUser,
-                    authorize,
-                    loading: loading || meLoading,
-                    musicInstalled,
-                    setMusicInstalled,
-                    musicVersion,
-                    setMusicVersion,
-                    socket: socketIo,
-                    socketConnected,
-                    app,
-                    setApp: setAppWithSocket,
-                    updateAvailable,
-                    setUpdate,
-                    appInfo,
-                    setAddons,
-                    addons,
-                    setMod: setMod,
-                    modInfo: modInfo,
-                    features,
-                    setFeatures,
-                }}
+                value={
+                    {
+                        user,
+                        setUser,
+                        authorize,
+                        loading: loading || meLoading,
+                        musicInstalled,
+                        setMusicInstalled,
+                        musicVersion,
+                        setMusicVersion,
+                        socket: socketIo,
+                        socketConnected,
+                        app,
+                        setApp: setAppWithSocket,
+                        updateAvailable,
+                        setUpdate,
+                        appInfo,
+                        setAddons,
+                        addons,
+                        setMod: setMod,
+                        modInfo: modInfo,
+                        features,
+                        setFeatures,
+                        emitGw,
+                    } as any
+                }
             >
                 <Player>
                     <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
@@ -863,7 +939,9 @@ function App() {
 }
 
 const Player: React.FC<any> = ({ children }) => {
-    const { user, app, socket, features } = useContext(UserContext)
+    const userCtx = useContext(UserContext) as any
+    const { user, app, socket, features } = userCtx
+    const emitGw: (e: string, d: any) => void = userCtx.emitGw
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
@@ -872,10 +950,10 @@ const Player: React.FC<any> = ({ children }) => {
         (_e: any, data: any) => {
             if (!data) return
             if (socket && socket.connected) {
-                socket.emit('track_played_enough', { track: { id: data.realId } })
+                emitGw('track_played_enough', { track: { id: data.realId } })
             }
         },
-        [socket],
+        [socket, emitGw],
     )
 
     const handleTrackInfo = useCallback((_: any, data: any) => {
@@ -941,11 +1019,11 @@ const Player: React.FC<any> = ({ children }) => {
         const last = lastSentTrack.current
         if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) return
 
-        socket.emit('send_track', track)
+        emitGw('send_track', track)
 
         lastSentTrack.current = { title, status, progressPlayed }
         lastSendAt.current = now
-    }, [socket, track, features.sendTrack])
+    }, [socket, track, features.sendTrack, emitGw])
 
     useEffect(() => {
         if (!socket) return
@@ -954,14 +1032,14 @@ const Player: React.FC<any> = ({ children }) => {
             if (!features.sendMetrics) return
             const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
             const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
-            socket.emit('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
+            emitGw('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
         }
 
         send()
 
         const id = setInterval(send, 15 * 60 * 1000)
         return () => clearInterval(id)
-    }, [socket, features.sendMetrics])
+    }, [socket, features.sendMetrics, emitGw])
 
     return (
         <PlayerContext.Provider
