@@ -56,9 +56,9 @@ type GetMeData = {
 type GetMeVars = Record<string, never>
 
 function App() {
-    const [socketIo, setSocket] = useState<Socket | null>(null)
-    const [socketError, setSocketError] = useState(-1)
-    const [socketConnected, setSocketConnected] = useState(false)
+    const [realtimeSocket, setRealtimeSocket] = useState<Socket | null>(null)
+    const [connectionErrorCode, setConnectionErrorCode] = useState(-1)
+    const [isConnected, setIsConnected] = useState(false)
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
@@ -69,9 +69,9 @@ function App() {
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
-    const [musicVersion, setMusicVersion] = useState(null)
+    const [musicVersion, setMusicVersion] = useState<any>(null)
     const toastReference = useRef<string | null>(null)
-    const socketRef = useRef<Socket | null>(null)
+    const realtimeSocketRef = useRef<Socket | null>(null)
     const zstdRef = useRef<any>(null)
     const [zstdReady, setZstdReady] = useState(false)
 
@@ -100,9 +100,8 @@ function App() {
                 const mod = await import('zstd-codec')
                 await new Promise<void>(resolve => {
                     ;(mod as any).ZstdCodec.run((z: any) => {
-                        if (cancelled) return
-                        zstdRef.current = new z.Simple()
-                        setZstdReady(true)
+                        zstdRef.current = new z.Streaming()
+                        if (!cancelled) setZstdReady(true)
                         resolve()
                     })
                 })
@@ -423,14 +422,14 @@ function App() {
         })
     }
 
-    const emitGw = useCallback(
+    const emitGateway = useCallback(
         (event: string, data: any) => {
-            const s = socketRef.current
+            const s = realtimeSocketRef.current
             if (!s) return
             if (zstdReady && zstdRef.current && s.connected) {
                 try {
                     const frame = new TextEncoder().encode(JSON.stringify({ e: event, d: data }))
-                    const compressed = zstdRef.current.compress(frame, 3)
+                    const compressed: Uint8Array = zstdRef.current.compress(frame, 3)
                     s.emit('gw', compressed)
                     return
                 } catch {}
@@ -490,7 +489,7 @@ function App() {
             return rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
         })()
         const version = (app.info?.version || '0.0.0').split('-')[0]
-        if (!socketRef.current) {
+        if (!realtimeSocketRef.current) {
             const socket = io(config.SOCKET_URL, {
                 path: '/ws',
                 autoConnect: false,
@@ -498,55 +497,55 @@ function App() {
                     page,
                     token: getUserToken(),
                     version,
-                    compression: zstdReady ? 'zstd' : 'none',
-                    inboundCompression: zstdReady ? 'zstd' : 'none',
+                    compression: zstdReady ? 'zstd-stream' : 'none',
+                    inboundCompression: zstdReady ? 'zstd-stream' : 'none',
                 },
                 transports: ['websocket'],
             })
-            socketRef.current = socket
-            setSocket(socket)
+            realtimeSocketRef.current = socket
+            setRealtimeSocket(socket)
         } else {
-            const socket = socketRef.current
+            const socket = realtimeSocketRef.current
             if (socket) {
                 socket.auth = {
                     page,
                     token: getUserToken(),
                     version,
-                    compression: zstdReady ? 'zstd' : 'none',
-                    inboundCompression: zstdReady ? 'zstd' : 'none',
+                    compression: zstdReady ? 'zstd-stream' : 'none',
+                    inboundCompression: zstdReady ? 'zstd-stream' : 'none',
                 }
             }
         }
     }, [app.info.version, zstdReady])
 
     useEffect(() => {
-        const socket = socketRef.current
+        const socket = realtimeSocketRef.current
         if (!socket) return
 
         const onConnect = () => {
             toast.custom('success', 'Фух', 'Соединение установлено')
             socket.emit('connection')
-            setSocket(socket)
-            setSocketConnected(true)
-            setSocketError(-1)
+            setRealtimeSocket(socket)
+            setIsConnected(true)
+            setConnectionErrorCode(-1)
             setLoading(false)
         }
         const onDisconnect = () => {
-            setSocketError(1)
-            setSocket(null)
-            setSocketConnected(false)
+            setConnectionErrorCode(1)
+            setRealtimeSocket(null)
+            setIsConnected(false)
         }
         const onConnectError = (_err: any) => {
-            setSocketError(1)
-            setSocket(null)
-            setSocketConnected(false)
+            setConnectionErrorCode(1)
+            setRealtimeSocket(null)
+            setIsConnected(false)
         }
         const onLogout = async () => {
             await client.resetStore()
             setUser(userInitials)
-            setSocketError(1)
-            setSocket(null)
-            setSocketConnected(false)
+            setConnectionErrorCode(1)
+            setRealtimeSocket(null)
+            setIsConnected(false)
             await router.navigate('/', { replace: true })
         }
         const onFeatures = (data: any) => {
@@ -559,18 +558,31 @@ function App() {
                 body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
             })
         }
-        const onFeaturesBin = (buf: ArrayBuffer) => {
+
+        const onGatewayMessage = (buf: ArrayBuffer | Uint8Array) => {
             if (!zstdReady || !zstdRef.current) return
             try {
-                const u8 = new Uint8Array(buf as ArrayBuffer)
-                const out = zstdRef.current.decompress(u8)
-                const data = JSON.parse(new TextDecoder().decode(out))
-                setFeatures(data)
+                const u8 = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf instanceof Uint8Array ? buf : new Uint8Array(buf as any)
+                const out: Uint8Array = zstdRef.current.decompress(u8)
+                const msg = JSON.parse(new TextDecoder().decode(out))
+                const e = msg?.e
+                const d = msg?.d
+                switch (e) {
+                    case 'feature_toggles':
+                        onFeatures(d)
+                        break
+                    case 'deprecated_version':
+                        onDeprecated()
+                        break
+                    case 'update_features_ack':
+                        break
+                    case 'error_message':
+                        if (d?.message) toast.custom('error', 'Ошибка.', d.message, null, null, 15000)
+                        break
+                    default:
+                        break
+                }
             } catch {}
-        }
-        const onDeprecatedBin = (_buf: ArrayBuffer) => {
-            if (!zstdReady || !zstdRef.current) return
-            onDeprecated()
         }
 
         socket.on('connect', onConnect)
@@ -579,8 +591,7 @@ function App() {
         socket.on('logout', onLogout)
         socket.on('feature_toggles', onFeatures)
         socket.on('deprecated_version', onDeprecated)
-        socket.on('feature_toggles_bin', onFeaturesBin)
-        socket.on('deprecated_version_bin', onDeprecatedBin)
+        socket.on('gw', onGatewayMessage)
 
         return () => {
             socket.off('connect', onConnect)
@@ -589,18 +600,17 @@ function App() {
             socket.off('logout', onLogout)
             socket.off('feature_toggles', onFeatures)
             socket.off('deprecated_version', onDeprecated)
-            socket.off('feature_toggles_bin', onFeaturesBin)
-            socket.off('deprecated_version_bin', onDeprecatedBin)
+            socket.off('gw', onGatewayMessage)
         }
     }, [router, zstdReady])
 
     useEffect(() => {
-        if (socketError === 1 || socketError === 0) {
+        if (connectionErrorCode === 1 || connectionErrorCode === 0) {
             toast.custom('error', 'Что-то не так!', 'Сервер не доступен')
-        } else if (socketConnected && socketError !== -1) {
+        } else if (isConnected && connectionErrorCode !== -1) {
             toast.custom('success', 'На связи', 'Соединение восстановлено')
         }
-    }, [socketError, socketConnected])
+    }, [connectionErrorCode, isConnected])
 
     const fetchModInfo = async (app: SettingsInterface) => {
         try {
@@ -642,16 +652,16 @@ function App() {
     useEffect(() => {
         if (user.id !== '-1') {
             const initializeApp = async () => {
-                if (!socketRef.current?.connected) {
-                    if (socketRef.current) {
-                        const s = socketRef.current
+                if (!realtimeSocketRef.current?.connected) {
+                    if (realtimeSocketRef.current) {
+                        const s = realtimeSocketRef.current
                         s.auth = {
                             ...(s.auth || {}),
-                            compression: zstdReady ? 'zstd' : 'none',
-                            inboundCompression: zstdReady ? 'zstd' : 'none',
+                            compression: zstdReady ? 'zstd-stream' : 'none',
+                            inboundCompression: zstdReady ? 'zstd-stream' : 'none',
                         }
                     }
-                    socketRef.current?.connect()
+                    realtimeSocketRef.current?.connect()
                 }
 
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
@@ -867,17 +877,17 @@ function App() {
             setApp(prevSettings => {
                 const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
 
-                if (socketRef.current && socketRef.current.connected) {
+                if (realtimeSocketRef.current && realtimeSocketRef.current.connected) {
                     const socketInfo = { ...updatedSettings }
                     delete (socketInfo as any).tokens
                     delete (socketInfo as any).info
-                    emitGw('user_settings_update', socketInfo)
+                    emitGateway('user_settings_update', socketInfo)
                 }
 
                 return updatedSettings
             })
         },
-        [emitGw],
+        [emitGateway],
     )
 
     if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
@@ -911,8 +921,8 @@ function App() {
                         setMusicInstalled,
                         musicVersion,
                         setMusicVersion,
-                        socket: socketIo,
-                        socketConnected,
+                        socket: realtimeSocket,
+                        socketConnected: isConnected,
                         app,
                         setApp: setAppWithSocket,
                         updateAvailable,
@@ -924,7 +934,8 @@ function App() {
                         modInfo: modInfo,
                         features,
                         setFeatures,
-                        emitGw,
+                        emitGateway,
+                        emitGw: emitGateway,
                     } as any
                 }
             >
@@ -941,7 +952,7 @@ function App() {
 const Player: React.FC<any> = ({ children }) => {
     const userCtx = useContext(UserContext) as any
     const { user, app, socket, features } = userCtx
-    const emitGw: (e: string, d: any) => void = userCtx.emitGw
+    const emitGateway: (e: string, d: any) => void = userCtx.emitGateway || userCtx.emitGw
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
@@ -950,10 +961,10 @@ const Player: React.FC<any> = ({ children }) => {
         (_e: any, data: any) => {
             if (!data) return
             if (socket && socket.connected) {
-                emitGw('track_played_enough', { track: { id: data.realId } })
+                emitGateway('track_played_enough', { track: { id: data.realId } })
             }
         },
-        [socket, emitGw],
+        [socket, emitGateway],
     )
 
     const handleTrackInfo = useCallback((_: any, data: any) => {
@@ -1019,11 +1030,11 @@ const Player: React.FC<any> = ({ children }) => {
         const last = lastSentTrack.current
         if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) return
 
-        emitGw('send_track', track)
+        emitGateway('send_track', track)
 
         lastSentTrack.current = { title, status, progressPlayed }
         lastSendAt.current = now
-    }, [socket, track, features.sendTrack, emitGw])
+    }, [socket, track, features.sendTrack, emitGateway])
 
     useEffect(() => {
         if (!socket) return
@@ -1032,14 +1043,14 @@ const Player: React.FC<any> = ({ children }) => {
             if (!features.sendMetrics) return
             const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
             const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
-            emitGw('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
+            emitGateway('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
         }
 
         send()
 
         const id = setInterval(send, 15 * 60 * 1000)
         return () => clearInterval(id)
-    }, [socket, features.sendMetrics, emitGw])
+    }, [socket, features.sendMetrics, emitGateway])
 
     return (
         <PlayerContext.Provider

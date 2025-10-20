@@ -2,18 +2,7 @@ import type { ModuleOptions } from 'webpack'
 
 export const rules: Required<ModuleOptions>['rules'] = [
     {
-        test: /\.(js|jsx)$/,
-        exclude: /(node_modules|\.webpack)/,
-        use: {
-            loader: 'babel-loader',
-            options: {
-                cacheDirectory: true,
-                presets: ['@babel/preset-env', '@babel/preset-react'],
-            },
-        },
-    },
-    {
-        test: /\.tsx?$/,
+        test: /\.[mc]?[jt]sx?$/i,
         exclude: /(node_modules|\.webpack)/,
         use: [
             {
