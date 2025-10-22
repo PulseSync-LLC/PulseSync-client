@@ -1,37 +1,23 @@
 import { ipcMain } from 'electron'
-import MainEvents from '../../common/types/mainEvents'
-import RendererEvents from '../../common/types/rendererEvents'
+import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 import { Client } from '@xhayper/discord-rpc'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
-import logger from './logger'
-import rawConfig from '../../config.json'
-import { updateTray } from './tray'
-import { promisify } from 'util'
-import { exec } from 'child_process'
-import { mainWindow } from './createWindow'
-import { getState } from './state'
-import { isDiscordRunning, isAnyDiscordElevated, isProcessElevated } from './naviveModule'
-import path from 'path'
-
-type AppConfig = {
-    CLIENT_ID: string
-    RESERVE_CLIENT_ID?: string
-}
-const config = rawConfig as AppConfig
-
-enum DiscordState {
-    CLOSED = 'Не удалось обнаружить запущенный Discord!',
-    ADMINISTRATOR = 'Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.',
-    SNAP = 'Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC',
-    FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
-    SUCCESS = '',
-}
+import logger from '../logger'
+import { updateTray } from '../tray'
+import { mainWindow } from '../createWindow'
+import { getState } from '../state'
+import { config } from './config'
+import { DiscordState } from './types/rpcTypes'
+import { readDiscord } from './state'
+import { isTimeoutErrorMessage, handleRpcError } from './errors'
+import { compareActivities } from './activityCompare'
+import Throttler from './throttler'
 
 const State = getState()
-const execAsync = promisify(exec)
-const SET_ACTIVITY_TIMEOUT_MS = 1500
 
-let sendActivityTimeoutId: ReturnType<typeof setTimeout> | undefined
+const ACTIVITY_THROTTLE_MS = 3000
+
 let previousActivity: SetActivity | undefined
 let pendingActivity: SetActivity | undefined
 
@@ -41,134 +27,28 @@ let reconnectAttempts = 0
 const baseBackoffMs = 5000
 const maxBackoffMs = 60000
 
-export async function readDiscord(): Promise<DiscordState> {
-    const platform = process.platform
-    if (platform === 'win32') {
-        return await checkDiscordStateWin()
-    } else if (platform === 'linux') {
-        return await checkDiscordStateLinux()
-    } else if (platform === 'darwin') {
-        return await checkDiscordStateMac()
-    } else {
-        return DiscordState.CLOSED
-    }
-}
-
-function deepClone<T>(obj: T): T {
-    return obj == null ? obj : JSON.parse(JSON.stringify(obj))
-}
-
-function sortKeys(value: any): any {
-    if (Array.isArray(value)) return value.map(sortKeys)
-    if (value && typeof value === 'object') {
-        const out: Record<string, any> = {}
-        for (const k of Object.keys(value).sort()) out[k] = sortKeys((value as any)[k])
-        return out
-    }
-    return value
-}
-
-function normalizeActivityForCompare(activity: any) {
-    const copy = deepClone(activity) || {}
-    if (copy.startTimestamp) copy.startTimestamp = 0
-    if (copy.endTimestamp) copy.endTimestamp = 0
-    return sortKeys(copy)
-}
-
-function isTimestampsDifferent(activityA: any, activityB: any) {
-    const aStart = activityA?.startTimestamp ?? 0
-    const bStart = activityB?.startTimestamp ?? 0
-    const aEnd = activityA?.endTimestamp ?? 0
-    const bEnd = activityB?.endTimestamp ?? 0
-    const diff = Math.abs(aStart - bStart) + Math.abs(aEnd - bEnd)
-    return diff >= 2000
-}
-
-function compareActivities(newActivity: any) {
-    if (!previousActivity) return false
-    const a = JSON.stringify(normalizeActivityForCompare(newActivity))
-    const b = JSON.stringify(normalizeActivityForCompare(previousActivity))
-    return a === b && !isTimestampsDifferent(newActivity, previousActivity)
-}
-
-export async function checkDiscordStateLinux(): Promise<DiscordState> {
-    try {
-        const { stdout } = await execAsync('ps xo user:30,command')
-        const lines = stdout
-            .split('\n')
-            .filter(line => line.toLowerCase().includes('/discord'))
-            .join('\n')
-        if (!lines.trim()) {
-            return DiscordState.CLOSED
-        } else if (lines.toLowerCase().includes('/snap/discord')) {
-            return DiscordState.SNAP
-        } else if (lines.toLowerCase().includes('/app/com.discordapp.discord')) {
-            return DiscordState.FLATPAK
-        } else {
-            return DiscordState.SUCCESS
-        }
-    } catch (error) {
-        logger.discordRpc.error('Error executing process command:', error)
-        return DiscordState.CLOSED
-    }
-}
-
-export async function checkDiscordStateMac(): Promise<DiscordState> {
-    const clients = ['Discord.app', 'Discord PTB.app', 'Discord Canary.app', 'Discord Development.app']
-    try {
-        const { stdout } = await execAsync('ps -A')
-        const lines = stdout.split('\n')
-        const clientNotRunning = lines.every(line => !clients.some(client => line.includes(client)))
-        if (clientNotRunning) {
-            return DiscordState.CLOSED
-        }
-        return DiscordState.SUCCESS
-    } catch {
-        return DiscordState.CLOSED
-    }
-}
-
-export async function checkDiscordStateWin(): Promise<DiscordState> {
-    const running = isDiscordRunning()
-    logger.discordRpc.info('Discord running:', running)
-    if (!running) {
-        return DiscordState.CLOSED
-    }
-    const elevated = isAnyDiscordElevated()
-    logger.discordRpc.info('Discord elevated:', elevated)
-    if (elevated) {
-        const exeName = path.basename(process.execPath)
-        const selfElevated = isProcessElevated(exeName)
-        logger.discordRpc.info('Self elevated:', selfElevated)
-        if (selfElevated) {
-            return DiscordState.SUCCESS
-        }
-        return DiscordState.ADMINISTRATOR
-    }
-    return DiscordState.SUCCESS
-}
-
-function isTimeoutErrorMessage(msg: string | undefined) {
-    if (!msg) return false
-    return /timed?\s*out|timeout|ETIMEDOUT/i.test(msg)
-}
-
-async function handleRpcError(e: Error): Promise<string> {
-    const state = await readDiscord()
-    if (state !== DiscordState.SUCCESS) {
-        return state
-    }
-    return isTimeoutErrorMessage(e?.message)
-        ? 'Тайм-аут подключения. Возможны рейт-лимиты от Discord. Если не показывается активность, то попробуйте снова через 10–15 минут.'
-        : e.message
-}
-
 let clientId: string
 let client: Client | null
 let changeId = false
 export let rpcConnected = false
 export let isConnecting = false
 let connectGeneration = 0
+
+const activityThrottler = new Throttler<SetActivity>(ACTIVITY_THROTTLE_MS, activity => {
+    try {
+        client?.user?.setActivity(activity).catch(async e => {
+            const msg = await handleRpcError(e as any)
+            mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+                message: msg || 'Ошибка установки активности',
+                type: 'error',
+            })
+        })
+    } catch (e: any) {
+        logger.discordRpc.error(e.message)
+    } finally {
+        previousActivity = activity
+    }
+})
 
 function computeBackoffDelay() {
     const exp = Math.min(maxBackoffMs, Math.floor(baseBackoffMs * Math.pow(2, reconnectAttempts)))
@@ -221,25 +101,9 @@ function startReconnectLoop(customDelayMs?: number) {
 ipcMain.on(MainEvents.DISCORDRPC_SETSTATE, (event, activity: SetActivity) => {
     if (!State.get('discordRpc.status')) return
     if (rpcConnected && client) {
-        if (compareActivities(activity)) return true
+        if (compareActivities(previousActivity, activity)) return true
         previousActivity = activity
-        if (sendActivityTimeoutId) {
-            clearTimeout(sendActivityTimeoutId)
-            sendActivityTimeoutId = undefined
-        }
-        sendActivityTimeoutId = setTimeout(() => {
-            try {
-                client?.user?.setActivity(activity).catch(async e => {
-                    const msg = await handleRpcError(e)
-                    mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                        message: msg || 'Ошибка установки активности',
-                        type: 'error',
-                    })
-                })
-            } catch (e: any) {
-                logger.discordRpc.error(e.message)
-            }
-        }, SET_ACTIVITY_TIMEOUT_MS)
+        activityThrottler.schedule(activity)
     } else {
         pendingActivity = activity
         rpc_connect()
@@ -253,18 +117,12 @@ ipcMain.on(MainEvents.DISCORDRPC_DISCORDRPC, (event, val) => {
 ipcMain.on(MainEvents.DISCORDRPC_RESET_ACTIVITY, () => {
     previousActivity = undefined
     pendingActivity = undefined
-    if (sendActivityTimeoutId) {
-        clearTimeout(sendActivityTimeoutId)
-        sendActivityTimeoutId = undefined
-    }
+    activityThrottler.clear()
 })
 
 ipcMain.on(MainEvents.DISCORDRPC_CLEARSTATE, () => {
     pendingActivity = undefined
-    if (sendActivityTimeoutId) {
-        clearTimeout(sendActivityTimeoutId)
-        sendActivityTimeoutId = undefined
-    }
+    activityThrottler.clear()
     if (rpcConnected && client) {
         client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e as any)
@@ -375,6 +233,7 @@ async function rpc_connect() {
                 })
             })
             previousActivity = pendingActivity
+            activityThrottler.markJustSent()
             pendingActivity = undefined
         }
     })
@@ -452,21 +311,14 @@ export const setRpcStatus = (status: boolean) => {
     mainWindow?.webContents?.send(RendererEvents.DISCORD_RPC_STATE, status)
     updateTray()
     if (status) {
-        if (sendActivityTimeoutId) {
-            clearTimeout(sendActivityTimeoutId)
-            sendActivityTimeoutId = undefined
-        }
+        activityThrottler.clear()
         previousActivity = undefined
         stopReconnectLoop()
         if (!rpcConnected) {
             rpc_connect()
         }
     } else {
-        if (sendActivityTimeoutId) {
-            clearTimeout(sendActivityTimeoutId)
-            sendActivityTimeoutId = undefined
-        }
-        stopReconnectLoop()
+        activityThrottler.clear()
         if (rpcConnected && client) {
             client.user
                 ?.clearActivity()
