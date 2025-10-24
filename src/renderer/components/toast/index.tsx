@@ -54,6 +54,14 @@ function ensureStack(opts?: ToastOptions) {
     stackShown = true
 }
 
+function clearAll() {
+    if (!queue.length) return
+    queue = []
+    emit()
+    toast.dismiss('android-stack')
+    stackShown = false
+}
+
 export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
@@ -96,6 +104,10 @@ export const iToast = {
 
     dismiss(id: string) {
         remove(id)
+    },
+
+    dismissAll() {
+        clearAll()
     },
 }
 
@@ -146,6 +158,13 @@ const ToastStack: React.FC = () => {
     return (
         <div
             className={`${styles.stack} ${open || list.length === 1 ? styles.expanded : styles.collapsed}`}
+            onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    clearAll()
+                }
+            }}
             onClick={() => list.length > 1 && setOpen(o => !o)}
         >
             <TransitionGroup component={null}>
