@@ -1,5 +1,5 @@
 import toast from '../components/toast'
-import config from '../api/config'
+import config from '../api/web_config'
 import { Track } from '../api/interfaces/track.interface'
 import trackInitials from '../api/initials/track.initials'
 

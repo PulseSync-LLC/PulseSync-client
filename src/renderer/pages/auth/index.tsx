@@ -4,7 +4,7 @@ import MainEvents from '../../../common/types/mainEvents'
 
 import Header from '../../components/layout/header'
 import userContext from '../../api/context/user.context'
-import config from '../../api/config'
+import config from '../../api/web_config'
 
 import * as pageStyles from './auth.module.scss'
 import { RootState } from '../../api/store/store'

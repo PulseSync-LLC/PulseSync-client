@@ -30,7 +30,7 @@ import apolloClient from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import settingsInitials from '../api/initials/settings.initials'
 import getUserToken from '../api/getUserToken'
-import config from '../api/config'
+import config from '../api/web_config'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
@@ -426,15 +426,13 @@ function App() {
         (event: string, data: any) => {
             const s = realtimeSocketRef.current
             if (!s) return
-            if (zstdReady && zstdRef.current && s.connected) {
-                try {
-                    const frame = new TextEncoder().encode(JSON.stringify({ e: event, d: data }))
-                    const compressed: Uint8Array = zstdRef.current.compress(frame, 3)
-                    s.emit('gw', compressed)
-                    return
-                } catch {}
-            }
-            s.emit(event, data)
+            if (!zstdReady || !zstdRef.current || !s.connected) return
+            try {
+                const frame = new TextEncoder().encode(JSON.stringify({ e: event, d: data }))
+                const compressed: Uint8Array = zstdRef.current.compress(frame, 3)
+                s.emit('gw', compressed)
+                return
+            } catch {}
         },
         [zstdReady],
     )
@@ -484,6 +482,7 @@ function App() {
     }, [])
 
     useEffect(() => {
+        if (!zstdReady) return
         const page = (() => {
             const rawHash = window.location?.hash || ''
             return rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
@@ -497,8 +496,8 @@ function App() {
                     page,
                     token: getUserToken(),
                     version,
-                    compression: zstdReady ? 'zstd-stream' : 'none',
-                    inboundCompression: zstdReady ? 'zstd-stream' : 'none',
+                    compression: 'zstd-stream',
+                    inboundCompression: 'zstd-stream',
                 },
                 transports: ['websocket'],
             })
@@ -511,8 +510,8 @@ function App() {
                     page,
                     token: getUserToken(),
                     version,
-                    compression: zstdReady ? 'zstd-stream' : 'none',
-                    inboundCompression: zstdReady ? 'zstd-stream' : 'none',
+                    compression: 'zstd-stream',
+                    inboundCompression: 'zstd-stream',
                 }
             }
         }
@@ -524,7 +523,6 @@ function App() {
 
         const onConnect = () => {
             toast.custom('success', 'Фух', 'Соединение установлено')
-            socket.emit('connection')
             setRealtimeSocket(socket)
             setIsConnected(true)
             setConnectionErrorCode(-1)
@@ -540,6 +538,7 @@ function App() {
             setRealtimeSocket(null)
             setIsConnected(false)
         }
+
         const onLogout = async () => {
             await client.resetStore()
             setUser(userInitials)
@@ -579,6 +578,9 @@ function App() {
                     case 'error_message':
                         if (d?.message) toast.custom('error', 'Ошибка.', d.message, null, null, 15000)
                         break
+                    case 'logout':
+                        onLogout()
+                        break
                     default:
                         break
                 }
@@ -588,18 +590,12 @@ function App() {
         socket.on('connect', onConnect)
         socket.on('disconnect', onDisconnect)
         socket.on('connect_error', onConnectError)
-        socket.on('logout', onLogout)
-        socket.on('feature_toggles', onFeatures)
-        socket.on('deprecated_version', onDeprecated)
         socket.on('gw', onGatewayMessage)
 
         return () => {
             socket.off('connect', onConnect)
             socket.off('disconnect', onDisconnect)
             socket.off('connect_error', onConnectError)
-            socket.off('logout', onLogout)
-            socket.off('feature_toggles', onFeatures)
-            socket.off('deprecated_version', onDeprecated)
             socket.off('gw', onGatewayMessage)
         }
     }, [router, zstdReady])
@@ -652,13 +648,13 @@ function App() {
     useEffect(() => {
         if (user.id !== '-1') {
             const initializeApp = async () => {
-                if (!realtimeSocketRef.current?.connected) {
+                if (!realtimeSocketRef.current?.connected && zstdReady) {
                     if (realtimeSocketRef.current) {
                         const s = realtimeSocketRef.current
                         s.auth = {
                             ...(s.auth || {}),
-                            compression: zstdReady ? 'zstd-stream' : 'none',
-                            inboundCompression: zstdReady ? 'zstd-stream' : 'none',
+                            compression: 'zstd-stream',
+                            inboundCompression: 'zstd-stream',
                         }
                     }
                     realtimeSocketRef.current?.connect()

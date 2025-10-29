@@ -21,7 +21,7 @@ import * as extensionStylesV2 from './extension.module.scss'
 import * as styles from '../../../../static/styles/page/index.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
 
-import config from '../../api/config'
+import config from '../../api/web_config'
 import MainEvents from '../../../common/types/mainEvents'
 import CustomModalPS from '../../components/PSUI/CustomModalPS'
 

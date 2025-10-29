@@ -15,7 +15,7 @@ import { AddonConfig } from '../../../../components/сonfigurationSettings/types
 
 import { ActiveTab, DocTab } from './types'
 import * as styles from './../extensionview.module.scss'
-import appConfig from '../../../../api/config'
+import appConfig from '../../../../api/web_config'
 import Addon from '../../../../api/interfaces/addon.interface'
 
 interface Props {

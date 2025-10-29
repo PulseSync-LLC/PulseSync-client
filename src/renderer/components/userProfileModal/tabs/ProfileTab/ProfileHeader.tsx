@@ -2,7 +2,7 @@ import React from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
-import config from '../../../../api/config'
+import config from '../../../../api/web_config'
 
 interface ProfileHeaderProps {
     userProfile: any

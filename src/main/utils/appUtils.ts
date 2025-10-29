@@ -15,7 +15,7 @@ import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
-import config from '../../renderer/api/config'
+import config from '../../renderer/api/web_config'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)

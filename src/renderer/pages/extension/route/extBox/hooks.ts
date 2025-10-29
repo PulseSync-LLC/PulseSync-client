@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import path from 'path'
 
-import appConfig from '../../../../api/config'
+import appConfig from '../../../../api/web_config'
 import { DocTab } from './types'
 import AddonInterface from '../../../../api/interfaces/addon.interface'
 import { AddonConfig } from '../../../../components/сonfigurationSettings/types'

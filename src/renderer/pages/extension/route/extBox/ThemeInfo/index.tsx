@@ -6,7 +6,7 @@ import Button from '../../../../../components/buttonV2'
 import ViewModal from '../../../../../components/context_menu_themes/viewModal'
 import { createContextMenuActions } from '../../../../../components/context_menu_themes/sectionConfig'
 import * as s from './ThemeInfo.module.scss'
-import config from '../../../../../api/config'
+import config from '../../../../../api/web_config'
 
 interface Props {
     addon: AddonInterface
