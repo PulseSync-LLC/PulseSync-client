@@ -121,28 +121,28 @@ function applyConfigFromEnv() {
     }
 
     if (rendererConfig) {
-        const rendererConfigPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+        const rendererConfigPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
         fs.writeFileSync(rendererConfigPath, rendererConfig, 'utf-8')
         log(LogLevel.SUCCESS, `Wrote ${rendererConfigPath}`)
     }
 }
 
 function setConfigDevFalse() {
-    const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+    const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
     content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
     fs.writeFileSync(configPath, content, 'utf-8')
-    log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in config.ts`)
+    log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in web_config.ts`)
 }
 
 function setConfigBranch(branch: string) {
-    const configPath = path.resolve(__dirname, '../src/renderer/api/config.ts')
+    const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const branch\s*=\s*.*$/m, `export const branch = "${branch}"`)
 
     fs.writeFileSync(configPath, content, 'utf-8')
-    log(LogLevel.SUCCESS, `Set branch=${branch} in config.ts`)
+    log(LogLevel.SUCCESS, `Set branch=${branch} in web_config.ts`)
 }
 
 async function main(): Promise<void> {
