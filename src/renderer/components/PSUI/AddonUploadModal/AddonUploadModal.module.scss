@@ -1,0 +1,85 @@
+.rulesLine {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #7CFF6B;
+  font-weight: 700;
+}
+.rulesFlag { filter: saturate(0) brightness(1.2); }
+.rulesLink { color: #7CFF6B; text-decoration: underline; }
+
+.list {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 12px;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  align-items: start;
+  gap: 12px;
+}
+
+.rowIcon {
+  width: 22px;
+  text-align: center;
+  line-height: 22px;
+  font-weight: 800;
+  color: #dbe0ef;
+}
+
+.rowTextWrap { display: grid; gap: 8px; }
+.rowLabel {
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.progress {
+  width: 100%;
+  height: 8px;
+  border-radius: 9999px;
+  overflow: hidden;
+  background: #2f364b;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,0.04);
+}
+.progressFill {
+  height: 100%;
+  width: 0%;
+  background: #ffd84a;
+  transition: width .15s linear;
+}
+
+.note {
+  margin-top: -2px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #ff6b7a;
+}
+
+.st_done .rowIcon  { color: #7CFF6B; }
+.st_done .rowLabel { color: #7CFF6B; }
+
+.st_error .rowIcon  { color: #ff4d4d; }
+.st_error .rowLabel { color: #ff4d4d; }
+
+.st_running .rowIcon  { color: #ffd84a; }
+.st_running .rowLabel { color: #ffd84a; }
+
+.st_idle .rowIcon  { color: #c8cfdf; }
+.st_idle .rowLabel { color: #e8ebf6; }
+
+.errorInline {
+  width: 100%;
+  margin-top: 6px;
+  color: #ff6b7a;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.resetBtn { height: 36px; border-radius: 10px; }

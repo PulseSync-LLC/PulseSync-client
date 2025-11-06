@@ -1,4 +1,4 @@
-import React, { ReactNode } from 'react'
+import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Formik, Form, Field } from 'formik'
@@ -18,6 +18,7 @@ export interface CustomFormikModalPSProps {
     onClose: () => void
     title?: string
     text?: string
+    subText?: string
     children?: ReactNode
     buttons?: ModalButton[]
     initialInputValue?: string
@@ -32,14 +33,14 @@ const backdropVariants = {
 } as const
 
 const modalVariants = {
-    hidden: { opacity: 0, scale: 0.95, y: -20 },
+    hidden: { opacity: 0, scale: 0.96, y: -12 },
     visible: {
         opacity: 1,
         scale: 1,
         y: 0,
-        transition: { duration: 0.2, type: 'spring', stiffness: 260, damping: 20 },
+        transition: { duration: 0.22, type: 'spring', stiffness: 300, damping: 24 },
     },
-    exit: { opacity: 0, scale: 0.95, y: -20, transition: { duration: 0.15 } },
+    exit: { opacity: 0, scale: 0.96, y: -12, transition: { duration: 0.15 } },
 } as const
 
 const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
@@ -47,6 +48,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
     onClose,
     title,
     text,
+    subText,
     children,
     buttons = [],
     initialInputValue = '',
@@ -55,19 +57,51 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
 }) => {
     if (typeof window === 'undefined') return null
 
+    const isVertical = buttons.length > 2
+
+    const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
+    const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
+    const firstBtnRef = useRef<HTMLButtonElement | null>(null)
+    const inputRef = useRef<HTMLInputElement | null>(null)
+
+    useEffect(() => {
+        if (!isOpen) return
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') onClose()
+        }
+        document.addEventListener('keydown', onKey)
+        return () => document.removeEventListener('keydown', onKey)
+    }, [isOpen, onClose])
+
+    useEffect(() => {
+        if (!isOpen) return
+        const t = setTimeout(() => {
+            if (!inputRef.current) {
+                firstBtnRef.current?.focus()
+            } else {
+                inputRef.current.focus()
+            }
+        }, 0)
+        return () => clearTimeout(t)
+    }, [isOpen])
+
     const renderButtons = (values: { input: string }) => {
         if (!buttons.length) return null
+
+        const wrapperClass = [styles.buttonsWrapper, isVertical ? styles.buttonsVertical : styles.buttonsHorizontal].join(' ')
+
         return (
-            <div className={styles.buttonsWrapper}>
+            <div className={wrapperClass}>
                 {buttons.map(({ text, onClick, variant = 'primary', disabled, className }, idx) => {
                     const variantClass = styles[`btn_${variant}` as keyof typeof styles] || styles.btn_primary
-
+                    const refProp = idx === 0 ? { ref: firstBtnRef } : {}
                     return (
                         <ButtonV2
-                            key={idx}
+                            key={`${text}-${idx}`}
                             onClick={() => onClick(values)}
                             disabled={disabled}
-                            className={`${variantClass}${className ? ` ${className}` : ''}`}
+                            className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            {...refProp}
                         >
                             {text}
                         </ButtonV2>
@@ -88,6 +122,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                     animate="visible"
                     exit="exit"
                     onClick={onClose}
+                    aria-hidden="true"
                 >
                     <motion.div
                         key="modal"
@@ -97,14 +132,42 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                         animate="visible"
                         exit="exit"
                         onClick={e => e.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={title ? titleId : undefined}
+                        aria-describedby={text || subText ? descId : undefined}
                     >
                         <Formik initialValues={{ input: initialInputValue }} onSubmit={onSubmit}>
                             {({ values }) => (
                                 <Form>
-                                    {title && <h2 className={styles.title}>{title}</h2>}
-                                    {text && <p className={styles.text}>{text}</p>}
-                                    <Field name="input" type="text" placeholder={inputPlaceholder} className={styles.input} />
+                                    {title && (
+                                        <div id={titleId} className={styles.title}>
+                                            {title}
+                                        </div>
+                                    )}
+
+                                    {(text || subText) && (
+                                        <div id={descId} className={styles.textBlock}>
+                                            {text && <p className={styles.description}>{text}</p>}
+                                            <Field name="input">
+                                                {({ field }) => (
+                                                    <input
+                                                        {...field}
+                                                        ref={inputRef}
+                                                        type="text"
+                                                        placeholder={inputPlaceholder}
+                                                        className={styles.input}
+                                                    />
+                                                )}
+                                            </Field>
+                                            {subText && <p className={styles.subText}>{subText}</p>}
+                                        </div>
+                                    )}
+
                                     {children}
+
+                                    <button type="submit" className={styles.hiddenSubmit} aria-hidden="true" tabIndex={-1} />
+
                                     {renderButtons(values)}
                                 </Form>
                             )}

@@ -492,14 +492,6 @@ export default function ExtensionPage() {
                             subText={`У вас версия: ${musicVersion || 'unknown'}`}
                             buttons={[
                                 {
-                                    text: 'Отмена',
-                                    onClick: () => {
-                                        setModalOpen(false)
-                                        setModalAddon(null)
-                                    },
-                                    variant: 'secondary',
-                                },
-                                {
                                     text: 'Всё равно включить',
                                     onClick: () => {
                                         if (modalAddon) {
@@ -514,6 +506,14 @@ export default function ExtensionPage() {
                                         setModalAddon(null)
                                     },
                                     variant: 'danger',
+                                },
+                                {
+                                    text: 'Отмена',
+                                    onClick: () => {
+                                        setModalOpen(false)
+                                        setModalAddon(null)
+                                    },
+                                    variant: 'secondary',
                                 },
                             ]}
                         />

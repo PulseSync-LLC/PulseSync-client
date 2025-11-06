@@ -11,106 +11,155 @@
 }
 
 .modal {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-width: 600px;
+    max-width: 600px;
+    padding: 20px 35px;
+    gap: 20px;
     position: relative;
-    width: 100%;
-    max-width: 500px;
-    padding: 32px 24px;
+    background: #3b435c;
     border-radius: 16px;
-    color: #fff;
+    box-shadow:
+        0 10px 30px rgba(0, 0, 0, 0.35),
+        0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.textBlock {
+    width: 100%;
 }
 
 .title {
-    margin: 0 0 16px 0;
-    font-size: 1.25rem;
-    font-weight: 700;
-    line-height: 1.3;
+    font-family: 'Nunito';
+    font-style: normal;
+    font-weight: 800;
+    font-size: 24px;
+    line-height: 140%;
+    color: #ffffff;
 }
 
-.text {
-    margin: 0 0 24px 0;
-    font-size: 0.875rem;
-    line-height: 1.4;
-    white-space: pre-line;
-    color: #c5c5c5;
+.description {
+    margin: 0 0 8px 0;
+    color: #ffffff;
+    align-self: stretch;
 }
 
-.buttonsWrapper {
-    margin-top: 24px;
-    display: flex;
-    flex-direction: row-reverse;
-    gap: 12px;
+.subText {
+    margin: 0;
+    color: #ffffff;
+    align-self: stretch;
 }
 
 .input {
     width: 100%;
-    padding: 8px 12px;
-    margin-bottom: 16px;
-    border: 1px solid #c5c5c5;
-    border-radius: 6px;
+    padding: 12px 14px;
+    margin: 4px 0 12px 0;
+
+    border: 1px solid #3f4863;
+    border-radius: 10px;
     background-color: #2a2f3d;
     color: #fff;
-    font-size: 0.875rem;
+    font-size: 16px;
     outline: none;
-    transition: border-color 0.15s ease;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+
+    &::placeholder {
+        color: #9aa3bd;
+    }
 
     &:focus {
-        border-color: #577eff;
+        border-color: #6a8dff;
+        box-shadow: 0 0 0 3px rgba(106, 141, 255, 0.25);
     }
 }
-
-%btn-base {
-    padding: 8px 20px;
-    border: none;
-    border-radius: 6px;
-    font-size: 0.875rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition:
-        background-color 0.15s ease,
-        opacity 0.15s ease;
+.hiddenSubmit {
+    display: none;
 }
 
-.btn_primary {
-    @extend %btn-base;
-    background-color: #ffffff;
-    color: #1e222f;
+.buttonsWrapper {
+    display: grid;
+    gap: 14px;
+}
 
-    &:hover:not(:disabled) {
-        background-color: #b2bdee;
+.buttonsHorizontal {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    direction: rtl;
+    width: -webkit-fill-available;
+}
+
+.buttonsHorizontal > * {
+    direction: ltr;
+}
+
+.buttonsVertical {
+    grid-template-columns: 1fr;
+    width: -webkit-fill-available;
+}
+
+.btnBase {
+    border: 0;
+    border-radius: 9999px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        transform 0.08s ease,
+        background-color 0.15s ease,
+        opacity 0.15s ease,
+        box-shadow 0.15s ease;
+
+    &:active {
+        transform: translateY(1px);
     }
 
     &:disabled {
         opacity: 0.6;
         cursor: not-allowed;
+    }
+
+    &:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(106, 141, 255, 0.65);
+    }
+}
+
+.btn_primary {
+    background: #ffffff;
+    color: #1e2230;
+    box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
+
+    &:hover:not(:disabled) {
+        background: #cfdaff;
     }
 }
 
 .btn_secondary {
-    @extend %btn-base;
-    background-color: #577eff;
-    color: #fff;
+    background: #1f2535;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
     &:hover:not(:disabled) {
-        background-color: #3657c2;
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        background: #303546;
     }
 }
 
 .btn_danger {
-    @extend %btn-base;
-    background-color: #d33;
-    color: #fff;
+    background: #ff4d4d;
+    color: #ffffff;
+    box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
     &:hover:not(:disabled) {
-        background-color: #d84848;
-    }
-
-    &:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
+        background: #d93939;
     }
 }
