@@ -381,7 +381,7 @@ export default function ExtensionPage() {
 
     const handleReloadAddons = useCallback(async () => {
         try {
-            window.desktopEvents?.send('REFRESH_EXTENSIONS')
+            window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
             Object.values(imageCache).forEach(url => {
                 if (typeof url === 'string' && url.startsWith('blob:')) {
                     URL.revokeObjectURL(url)

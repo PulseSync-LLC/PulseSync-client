@@ -62,6 +62,11 @@ function clearAll() {
     stackShown = false
 }
 
+const closeAllSubs = new Set<() => void>()
+function requestCloseAll() {
+    closeAllSubs.forEach(fn => fn())
+}
+
 export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
@@ -107,13 +112,14 @@ export const iToast = {
     },
 
     dismissAll() {
-        clearAll()
+        requestCloseAll()
     },
 }
 
 const ToastStack: React.FC = () => {
     const [toasts, setToasts] = useState<ToastData[]>(queue)
     const [open, setOpen] = useState(false)
+    const [closingAll, setClosingAll] = useState(false)
 
     useEffect(() => {
         const sub = (s: ToastData[]) => setToasts([...s])
@@ -121,6 +127,25 @@ const ToastStack: React.FC = () => {
         return () => {
             subs.delete(sub)
         }
+    }, [])
+
+    useEffect(() => {
+        const onReq = () => {
+            setClosingAll(true)
+            setTimeout(() => setClosingAll(false), 0)
+        }
+        closeAllSubs.add(onReq)
+        return () => {
+            closeAllSubs.delete(onReq)
+        }
+    }, [])
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') requestCloseAll()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
     }, [])
 
     const list = [...toasts].slice(-7).reverse()
@@ -162,7 +187,7 @@ const ToastStack: React.FC = () => {
                 if (e.button === 1) {
                     e.preventDefault()
                     e.stopPropagation()
-                    clearAll()
+                    requestCloseAll()
                 }
             }}
             onClick={() => list.length > 1 && setOpen(o => !o)}
@@ -186,6 +211,7 @@ const ToastStack: React.FC = () => {
                             stackSize={renderList.length}
                             open={open || list.length === 1}
                             offset={open ? offsets[idx] : 0}
+                            closingAll={closingAll}
                             ref={el => {
                                 cardRefs.current[idx] = el
                                 getNodeRef(td.id).current = el
@@ -208,10 +234,11 @@ interface CardProps {
     stackSize: number
     open: boolean
     offset: number
+    closingAll: boolean
     onDismiss: () => void
 }
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, onDismiss }, ref) => {
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, closingAll, onDismiss }, ref) => {
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
@@ -238,6 +265,14 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         }
     }, [sticky, value, onDismiss, data.id])
 
+    useEffect(() => {
+        if (closingAll) {
+            setShow(false)
+            const t = setTimeout(onDismiss, 220)
+            return () => clearTimeout(t)
+        }
+    }, [closingAll, onDismiss])
+
     const zIndex = stackSize - index
 
     return (
@@ -251,6 +286,13 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                     color: palette(kind),
                 } as React.CSSProperties
             }
+            onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
         >
             <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>

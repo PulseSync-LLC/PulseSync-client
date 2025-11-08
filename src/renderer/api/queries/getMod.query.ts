@@ -8,6 +8,7 @@ export default gql`
             name
             modVersion
             downloadUrl
+            downloadUnpackedUrl
             createdAt
             showModal
             shouldReinstall

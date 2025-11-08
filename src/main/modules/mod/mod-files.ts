@@ -69,19 +69,19 @@ export async function ensureLinuxModPath(window: BrowserWindow, paths: Paths): P
 
 export async function ensureBackup(paths: Paths): Promise<void> {
     if (fs.existsSync(paths.backupAsar)) {
-        logger.modManager.info(`Резервная копия уже существует: ${path.basename(paths.backupAsar)}`)
+        logger.modManager.info(`Backup already exists: ${path.basename(paths.backupAsar)}`)
         return
     }
     let source: string | null = null
     if (fs.existsSync(paths.modAsar)) source = paths.modAsar
     else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
     if (!source) {
-        const err: any = new Error(`${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`)
+        const err: any = new Error(`${path.basename(paths.modAsar)} not found. Please reinstall Yandex Music.`)
         err.code = 'file_not_found'
         throw err
     }
     fs.copyFileSync(source, paths.backupAsar)
-    logger.modManager.info(`Создана резервная копия ${path.basename(source)} → ${path.basename(paths.backupAsar)}`)
+    logger.modManager.info(`Backup created ${path.basename(source)} → ${path.basename(paths.backupAsar)}`)
 }
 
 export async function writePatchedAsarAndPatchBundle(
@@ -116,9 +116,9 @@ export async function restoreWindowsIntegrity(paths: Paths): Promise<void> {
         const header = asar.getRawHeader(paths.modAsar)
         const newHash = crypto.createHash('sha256').update(header.headerString).digest('hex')
         await updateIntegrityHashInExe(exePath, newHash)
-        logger.modManager.info('Windows Integrity hash восстановлен.')
+        logger.modManager.info('Windows Integrity hash restored.')
     } catch (err) {
-        logger.modManager.error('Ошибка восстановления Integrity hash в exe:', err)
+        logger.modManager.error('Error restoring Integrity hash in exe:', err)
     }
 }
 
@@ -127,8 +127,8 @@ export async function restoreMacIntegrity(paths: Paths): Promise<void> {
         const appBundlePath = path.resolve(path.dirname(paths.modAsar), '..', '..')
         const patcher = new AsarPatcher(appBundlePath)
         await patcher.patch(() => {})
-        logger.modManager.info('macOS Integrity hash восстановлен.')
+        logger.modManager.info('macOS Integrity hash restored.')
     } catch (err) {
-        logger.modManager.error('Ошибка восстановления Integrity hash в Info.plist:', err)
+        logger.modManager.error('Error restoring Integrity hash in Info.plist:', err)
     }
 }

@@ -1,34 +1,21 @@
-import { BrowserWindow } from 'electron'
-import * as https from 'https'
+import { app, BrowserWindow } from 'electron'
 import axios from 'axios'
 import * as fs from 'original-fs'
-import * as path from 'path'
 import crypto from 'crypto'
 import logger from '../logger'
 import config from '../../../renderer/api/web_config'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { writePatchedAsarAndPatchBundle } from './mod-files'
-
-function sendToRenderer(window: BrowserWindow | null | undefined, channel: any, payload: any) {
-    window?.webContents.send(channel, payload)
-}
-
-function setProgress(window: BrowserWindow | null | undefined, frac: number) {
-    window?.setProgressBar(frac)
-}
-
-function resetProgress(window: BrowserWindow | null | undefined) {
-    window?.setProgressBar(-1)
-}
-
-function sendFailure(
-    window: BrowserWindow,
-    params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string },
-) {
-    sendToRenderer(window, RendererEvents.DOWNLOAD_FAILURE, { success: false, ...params })
-    resetProgress(window)
-}
+import {
+    sendToRenderer,
+    resetProgress,
+    sendFailure,
+    unlinkIfExists,
+    restoreBackupIfExists,
+    downloadToTempWithProgress,
+    DownloadError,
+} from './download.helpers'
 
 export async function checkModCompatibility(
     modVersion: string,
@@ -69,9 +56,6 @@ export async function downloadAndUpdateFile(
     backupPath: string,
     checksum?: string,
 ): Promise<boolean> {
-    let isFinished = false
-    let isError = false
-
     try {
         if (checksum && fs.existsSync(savePath)) {
             const buf = fs.readFileSync(savePath)
@@ -84,83 +68,40 @@ export async function downloadAndUpdateFile(
             }
         }
 
-        const httpsAgent = new https.Agent({ rejectUnauthorized: false })
-        const response = await axios.get(link, { httpsAgent, responseType: 'stream' })
-        const total = parseInt(response.headers['content-length'] || '0', 10)
-        let downloaded = 0
-        const writer = fs.createWriteStream(tempFilePath)
+        const ua = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
 
-        response.data.on('data', (chunk: Buffer) => {
-            if (isFinished) return
-            downloaded += chunk.length
-            const frac = total > 0 ? downloaded / total : 0
-            setProgress(window, Math.min(frac * 0.6, 0.6))
-            sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, { progress: Math.round(Math.min(frac, 1) * 100) })
-            writer.write(chunk)
+        await downloadToTempWithProgress({
+            window,
+            url: link,
+            tempFilePath,
+            expectedChecksum: checksum,
+            userAgent: ua,
+            progressScale: 0.6,
+            rejectUnauthorized: false,
         })
 
-        response.data.on('end', () => {
-            if (!isFinished) {
-                isFinished = true
-                writer.end()
-            }
-        })
+        const fileBuffer = fs.readFileSync(tempFilePath)
+        const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath)
+        unlinkIfExists(tempFilePath)
 
-        response.data.on('error', (err: Error) => {
-            if (isFinished) return
-            isFinished = true
-            isError = true
-            writer.end()
-            fs.unlink(tempFilePath, () => {})
-            if (fs.existsSync(backupPath)) fs.renameSync(backupPath, savePath)
-            HandleErrorsElectron.handleError('downloadAndUpdateFile', 'responseData', 'on error', err)
-            logger.http.error('Download error:', (err as any).message)
-            sendFailure(window, { error: 'Ошибка при скачивании. Проверьте интернет.', type: 'download_error' })
-        })
+        if (!ok) {
+            sendFailure(window, { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
+            return false
+        }
 
-        return await new Promise<boolean>(resolve => {
-            writer.on('finish', async () => {
-                if (!isFinished || isError) return resolve(false)
-                try {
-                    const fileBuffer = fs.readFileSync(tempFilePath)
-                    if (checksum) {
-                        const hash = crypto.createHash('sha256').update(fileBuffer).digest('hex')
-                        if (hash !== checksum) {
-                            fs.unlinkSync(tempFilePath)
-                            sendFailure(window, { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
-                            return resolve(false)
-                        }
-                    }
-                    const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath)
-                    fs.unlinkSync(tempFilePath)
-                    if (!ok) {
-                        sendFailure(window, { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
-                        return resolve(false)
-                    }
-                    resetProgress(window)
-                    resolve(true)
-                } catch (e: any) {
-                    fs.unlink(tempFilePath, () => {})
-                    if (fs.existsSync(backupPath)) fs.renameSync(backupPath, savePath)
-                    logger.modManager.error('Error processing downloaded file:', e)
-                    HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.finish', 'try-catch', e)
-                    sendFailure(window, { error: e.message, type: 'finish_error' })
-                    resolve(false)
-                }
-            })
-            writer.on('error', (err: Error) => {
-                fs.unlink(tempFilePath, () => {})
-                logger.modManager.error('Error writing file:', err)
-                HandleErrorsElectron.handleError('downloadAndUpdateFile', 'writer.error', 'on error', err)
-                sendFailure(window, { error: (err as any).message, type: 'writer_error' })
-                resolve(false)
-            })
-        })
+        resetProgress(window)
+        return true
     } catch (err: any) {
-        fs.unlink(tempFilePath, () => {})
-        logger.modManager.error('Error downloading file:', err)
-        HandleErrorsElectron.handleError('downloadAndUpdateFile', 'axios.get', 'outer catch', err)
-        sendFailure(window, { error: err.message, type: 'download_outer_error' })
+        unlinkIfExists(tempFilePath)
+        restoreBackupIfExists(savePath, backupPath)
+        logger.modManager.error('Ошибка во время загрузки/установки файла:', err)
+        HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
+
+        if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
+            sendFailure(window, { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
+        } else {
+            sendFailure(window, { error: err?.message || 'Ошибка сети', type: 'download_error' })
+        }
         return false
     }
 }

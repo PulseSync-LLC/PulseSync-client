@@ -35,7 +35,6 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
     const [errText, setErrText] = useState<string | null>(null)
     const abortRef = useRef<AbortController | null>(null)
 
-    // Инициализация
     useEffect(() => {
         const s: Record<string, StepStatus> = {}
         const p: Record<string, number> = {}

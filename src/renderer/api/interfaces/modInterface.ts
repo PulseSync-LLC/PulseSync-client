@@ -5,6 +5,7 @@ export interface ModInterface {
     name: string
     checksum: string
     downloadUrl: string
+    downloadUnpackedUrl: string
     showModal: string
     createdAt: string
     changelog: string

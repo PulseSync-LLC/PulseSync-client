@@ -9,7 +9,7 @@ import logger from '../logger'
 import {
     copyFile,
     downloadYandexMusic,
-    getYandexMusicVersion,
+    getInstalledYmMetadata,
     isMac,
     isWindows,
     closeYandexMusic,
@@ -69,9 +69,9 @@ export const modManager = (window: BrowserWindow): void => {
 
             const wasClosed = await closeMusicIfRunning(window)
 
-            const ymVersion = await getYandexMusicVersion()
+            const ymMetadata = await getInstalledYmMetadata()
             if (!force && !spoof) {
-                const comp = await checkModCompatibility(version, ymVersion)
+                const comp = await checkModCompatibility(version, ymMetadata?.buildInfo?.VERSION)
                 if (!comp.success) {
                     return sendFailure(window, {
                         error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
@@ -112,7 +112,7 @@ export const modManager = (window: BrowserWindow): void => {
 
             State.set('mod', {
                 version,
-                musicVersion: ymVersion,
+                musicVersion: ymMetadata?.buildInfo?.VERSION,
                 name,
                 installed: true,
             })

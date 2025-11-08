@@ -158,7 +158,6 @@ const FileInput: React.FC<Props> = ({
     const [imgLoading, setImgLoading] = useState(false)
     const [imgOk, setImgOk] = useState(false)
 
-    // ревизия превью: увеличиваем, когда реально сменилось содержимое файла
     const [rev, setRev] = useState(0)
 
     useEffect(() => {

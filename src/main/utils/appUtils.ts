@@ -15,7 +15,8 @@ import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
-import config from '../../renderer/api/web_config'
+import * as yaml from 'yaml'
+import { YM_RELEASE_METADATA_URL } from '../constants/urls'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
@@ -126,15 +127,6 @@ export async function openExternalDetached(url: string) {
 
     const child = (await spawnAsync(command, args, { detached: true, stdio: 'ignore' })) as unknown as import('child_process').ChildProcess
     child.unref()
-}
-
-export async function checkYandexMusicLinuxInstall(): Promise<boolean> {
-    const version = await getYandexMusicVersion()
-    if (!version) {
-        logger.main.error('Yandex Music version not found')
-        return false
-    }
-    return true
 }
 
 export async function getPathToYandexMusic(): Promise<string> {
@@ -557,54 +549,33 @@ export function uninstallApp(packageFullName: string): Promise<void> {
     })
 }
 
-export const getYandexMusicVersion = async (): Promise<string> => {
-    const safeParseJson = (text: string) => {
-        const cleaned = text.replace(/^\uFEFF/, '').trim()
-        return JSON.parse(cleaned)
-    }
+export async function getYandexMusicMetadata() {
+    return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
+}
 
-    const tryReadVersionFromAsar = (asarPath: string): string | null => {
-        const candidates = ['package.json', 'app/package.json']
-        for (const candidate of candidates) {
+export async function getInstalledYmMetadata(): Promise<any | null> {
+    try {
+        const base = await getPathToYandexMusic()
+        if (!base) return null
+
+        const asarCandidates = [path.join(base, 'app.asar'), path.join(base, 'resources', 'app.asar')]
+
+        for (const archive of asarCandidates) {
             try {
-                const buf = asar.extractFile(asarPath, candidate)
-                if (!buf || buf.length === 0) {
-                    logger.modManager.warn(`Пустой ${candidate} в app.asar`)
-                    continue
+                if (fs.existsSync(archive)) {
+                    const buf = asar.extractFile(archive, 'package.json')
+                    if (buf && buf.length) {
+                        const json = Buffer.isBuffer(buf) ? buf.toString('utf-8') : String(buf)
+                        return JSON.parse(json)
+                    }
                 }
-                const pkg = safeParseJson(buf.toString('utf8'))
-                if (pkg && pkg.version) return String(pkg.version)
-                logger.modManager.warn(`Поле version не найдено в ${candidate} внутри app.asar`)
             } catch (e) {
-                const msg = (e as Error).message
-                if (msg && /no such file/i.test(msg)) {
-                    logger.modManager.warn(`${candidate} отсутствует в app.asar`)
-                } else if (msg && /unexpected token/i.test(msg)) {
-                    logger.modManager.warn(`Некорректный JSON в ${candidate} внутри app.asar: ${msg}`)
-                } else {
-                    logger.modManager.warn(`Не удалось прочитать ${candidate} из app.asar: ${msg}`)
-                }
+                logger.modManager.error('Ошибка чтения package.json из ASAR:', e)
             }
         }
         return null
-    }
-
-    try {
-        const resourcesDir = await getPathToYandexMusic()
-        const asarPath = path.join(resourcesDir, 'app.asar')
-
-        if (!fs.existsSync(asarPath)) {
-            logger.modManager.error(`app.asar не найден по пути: ${asarPath}`)
-            return '0.0.0'
-        }
-
-        const ver = tryReadVersionFromAsar(asarPath)
-        if (ver) return ver
-
-        logger.modManager.error('Не удалось извлечь версию из app.asar ни по одному известному пути')
-        return '0.0.0'
-    } catch (e) {
-        logger.modManager.error('Не удалось прочитать версию из app.asar: ' + (e as Error).message)
-        return '0.0.0'
+    } catch (error) {
+        logger.modManager.error('Error reading YM metadata:', error)
+        return null
     }
 }

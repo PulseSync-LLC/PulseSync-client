@@ -16,7 +16,7 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getYandexMusicAppDataPath, getYandexMusicVersion, isLinux, isMac, isWindows } from '../utils/appUtils'
+import { checkMusic, getInstalledYmMetadata, getYandexMusicAppDataPath, getYandexMusicMetadata, isLinux, isMac, isWindows } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -407,7 +407,9 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
-        return getYandexMusicVersion()
+        const metadata = await getInstalledYmMetadata()
+        console.log(metadata)
+        return metadata?.buildInfo?.VERSION
     })
 
     ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {

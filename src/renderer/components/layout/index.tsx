@@ -338,12 +338,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsUpdating(true)
         const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
         downloadToastIdRef.current = id
-        const { modVersion, downloadUrl, checksum, spoof, name, shouldReinstall } = modInfo[0]
+        const { modVersion, downloadUrl, checksum, spoof, name, shouldReinstall, downloadUnpackedUrl } = modInfo[0]
         console.log(modInfo[0])
         window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
             version: modVersion,
             name,
             link: downloadUrl,
+            unpackLink: downloadUnpackedUrl,
             checksum,
             shouldReinstall,
             force: force || false,

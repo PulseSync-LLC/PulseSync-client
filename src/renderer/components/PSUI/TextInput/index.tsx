@@ -196,7 +196,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
         if (newValue !== lastValueRef.current) {
             if (rafRef.current) cancelAnimationFrame(rafRef.current)
-            // Сначала сохраняем позицию относительно текущего DOM
+
             saveSelection()
             rafRef.current = requestAnimationFrame(() => {
                 onChange?.(newValue)
