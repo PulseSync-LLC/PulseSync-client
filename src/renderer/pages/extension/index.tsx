@@ -404,7 +404,9 @@ export default function ExtensionPage() {
     }, [imageCache, loadAddons])
 
     const handleOpenAddonsDirectory = useCallback(() => {
-        window.desktopEvents?.send('openPath', { action: 'themePath' })
+        window.desktopEvents?.send(MainEvents.OPEN_PATH, {
+            action: 'addonsPath',
+        })
     }, [])
 
     const handleCreateNewAddon = useCallback(() => {

@@ -70,7 +70,7 @@ export async function loadAddons(): Promise<Addon[]> {
 
     createDefaultAddonIfNotExists(addonsFolderPath)
 
-    const ignoredFolders = ['.DS_Store', '.git']
+    const ignoredFolders = ['.DS_Store', '.git', '.idea', 'node_modules', '__MACOSX']
 
     const allFolders = await fs.promises.readdir(addonsFolderPath)
     const folders: string[] = []

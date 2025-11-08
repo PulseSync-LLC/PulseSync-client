@@ -278,7 +278,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 await shell.openPath(downloadDir)
                 break
             }
-            case 'themePath': {
+            case 'addonsPath': {
                 const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
                 await shell.openPath(themesFolderPath)
                 break
