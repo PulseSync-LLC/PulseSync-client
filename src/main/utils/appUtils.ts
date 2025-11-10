@@ -3,20 +3,21 @@ import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
-import fs from 'original-fs'
+import fs from 'node:fs'
+import fso from 'original-fs'
 import { asarBackup, musicPath } from '../../index'
 import { app, BrowserWindow, dialog } from 'electron'
 import RendererEvents from '../../common/types/rendererEvents'
 import axios from 'axios'
 import { execSync } from 'child_process'
 import * as plist from 'plist'
-import asar from '@electron/asar'
 import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL } from '../constants/urls'
+import asar from '@electron/asar'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
@@ -158,7 +159,7 @@ export function getYandexMusicAppDataPath(): string {
 
 export async function copyFile(target: string, dest: string): Promise<void> {
     try {
-        await fs.promises.copyFile(target, dest)
+        await fsp.copyFile(target, dest)
     } catch (error: any) {
         if (process.platform === 'linux' && error && error.code === 'EACCES') {
             await execFileAsync('pkexec', ['cp', target, dest])
@@ -170,7 +171,7 @@ export async function copyFile(target: string, dest: string): Promise<void> {
 }
 
 export async function createDirIfNotExist(target: string): Promise<void> {
-    if (!fs.existsSync(target)) {
+    if (!fso.existsSync(target)) {
         try {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
@@ -197,9 +198,9 @@ export const formatSizeUnits = (bytes: number) => {
 
 export const getFolderSize = async (folderPath: string): Promise<number> => {
     let total = 0
-    for (const file of await fs.promises.readdir(folderPath)) {
+    for (const file of await fso.promises.readdir(folderPath)) {
         const full = path.join(folderPath, file)
-        const stat = await fs.promises.stat(full)
+        const stat = await fso.promises.stat(full)
         total += stat.isDirectory() ? await getFolderSize(full) : stat.size
     }
     return total
@@ -208,15 +209,15 @@ export const getFolderSize = async (folderPath: string): Promise<number> => {
 export const formatJson = (data: any) => JSON.stringify(data, null, 4)
 
 export const checkAsar = () => {
-    if ((State.get('mod.installed') || State.get('mod.version')) && !fs.existsSync(asarBackup)) {
+    if ((State.get('mod.installed') || State.get('mod.version')) && !fso.existsSync(asarBackup)) {
         State.delete('mod')
-    } else if (fs.existsSync(asarBackup)) {
+    } else if (fso.existsSync(asarBackup)) {
         State.set('mod.installed', true)
     }
 }
 
 export const checkMusic = () => {
-    if (!fs.existsSync(musicPath) && !isLinux()) {
+    if (!fso.existsSync(musicPath) && !isLinux()) {
         dialog
             .showMessageBox(mainWindow, {
                 type: 'info',
@@ -242,11 +243,11 @@ export const downloadYandexMusic = async (type?: string) => {
     const downloadUrl = `https://music-desktop-application.s3.yandex.net/stable/${fileName}`
     const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
 
-    await fs.promises.mkdir(path.dirname(downloadPath), { recursive: true })
+    await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })
     const response = await axios.get(downloadUrl, { responseType: 'stream' })
     const total = parseInt(response.headers['content-length'], 10)
     let received = 0
-    const writer = fs.createWriteStream(downloadPath)
+    const writer = fso.createWriteStream(downloadPath)
     response.data.on('data', (chunk: Buffer) => {
         received += chunk.length
         const p = received / total
@@ -260,7 +261,7 @@ export const downloadYandexMusic = async (type?: string) => {
     })
     writer.close()
     mainWindow.setProgressBar(-1)
-    fs.chmodSync(downloadPath, 0o755)
+    fso.chmodSync(downloadPath, 0o755)
 
     const execFileAsync = (file: string, args: string[] = []) =>
         new Promise<void>((resolve, reject) => {
@@ -281,7 +282,7 @@ export const downloadYandexMusic = async (type?: string) => {
         const mountPoint = `/Volumes/YandexMusic-${Date.now()}`
         try {
             await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
-            const entries = await fs.promises.readdir(mountPoint)
+            const entries = await fso.promises.readdir(mountPoint)
             const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
             if (!appName) throw new Error('В DMG не найден .app пакет')
             const appBundlePath = path.join(mountPoint, appName)
@@ -293,7 +294,7 @@ export const downloadYandexMusic = async (type?: string) => {
                 await execFileAsync('cp', ['-R', appBundlePath, targetDir])
             } catch {
                 targetDir = path.join(app.getPath('home'), 'Applications')
-                await fs.promises.mkdir(targetDir, { recursive: true })
+                await fsp.mkdir(targetDir, { recursive: true })
                 targetAppPath = path.join(targetDir, appName)
                 await execFileAsync('cp', ['-R', appBundlePath, targetDir])
             }
@@ -311,7 +312,7 @@ export const downloadYandexMusic = async (type?: string) => {
 
             await detach()
             try {
-                fs.unlinkSync(downloadPath)
+                fso.unlinkSync(downloadPath)
             } catch {}
 
             try {
@@ -346,7 +347,7 @@ export const downloadYandexMusic = async (type?: string) => {
                 return
             }
             try {
-                fs.unlinkSync(downloadPath)
+                fso.unlinkSync(downloadPath)
             } catch {}
             checkAsar()
             mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
@@ -440,7 +441,7 @@ export class AsarPatcher {
         }
 
         try {
-            await fsp.access(this.asarPath, fs.constants.W_OK)
+            await fsp.access(this.asarPath, fso.constants.W_OK)
         } catch (err) {
             logger.main.error('Нет прав на запись app.asar', err)
             await dialog.showMessageBox(mainWindow, {
@@ -553,29 +554,43 @@ export async function getYandexMusicMetadata() {
     return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
 }
 
-export async function getInstalledYmMetadata(): Promise<any | null> {
+function stripBomAndControls(s: string): string {
+    return s
+        .replace(/^\uFEFF/, '')
+        .replace(/\u0000/g, '')
+        .trim()
+}
+
+function tryParseJsonLoose(s: string): any {
+    const cleaned = stripBomAndControls(s)
     try {
-        const base = await getPathToYandexMusic()
-        if (!base) return null
+        return JSON.parse(cleaned)
+    } catch {}
+    const noLineComments = cleaned.replace(/^\s*\/\/.*$/gm, '')
+    const noBlockComments = noLineComments.replace(/\/\*[^]*?\*\//g, '')
+    const noTrailingCommas = noBlockComments.replace(/,\s*([}\]])/g, '$1')
+    return JSON.parse(noTrailingCommas)
+}
 
-        const asarCandidates = [path.join(base, 'app.asar'), path.join(base, 'resources', 'app.asar')]
-
-        for (const archive of asarCandidates) {
-            try {
-                if (fs.existsSync(archive)) {
-                    const buf = asar.extractFile(archive, 'package.json')
-                    if (buf && buf.length) {
-                        const json = Buffer.isBuffer(buf) ? buf.toString('utf-8') : String(buf)
-                        return JSON.parse(json)
-                    }
-                }
-            } catch (e) {
-                logger.modManager.error('Ошибка чтения package.json из ASAR:', e)
-            }
-        }
-        return null
+export async function getInstalledYmMetadata() {
+    const ymDir = await getPathToYandexMusic()
+    const asarPath = path.join(ymDir, 'app.asar')
+    const jsonPath = path.join(ymDir, 'package.json')
+    try {
+        const buff = asar.extractFile(asarPath, 'package.json')
+        const tmpPath = jsonPath + '.tmp'
+        await fs.promises.writeFile(tmpPath, buff)
+        await fs.promises.rename(tmpPath, jsonPath)
+        const data = await fs.promises.readFile(jsonPath, 'utf-8')
+        return tryParseJsonLoose(data)
     } catch (error) {
-        logger.modManager.error('Error reading YM metadata:', error)
-        return null
+        logger.modManager.error('Error extracting/writing/reading package.json from app.asar:', error)
+        try {
+            const data = await fs.promises.readFile(jsonPath, 'utf-8')
+            return tryParseJsonLoose(data)
+        } catch (fallbackError) {
+            logger.modManager.error('Fallback read of package.json failed:', fallbackError)
+            return null
+        }
     }
 }
