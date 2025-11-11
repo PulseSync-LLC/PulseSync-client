@@ -553,12 +553,12 @@ export function uninstallApp(packageFullName: string): Promise<void> {
 export async function getYandexMusicMetadata() {
     return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
 }
+function sleep(ms: number) {
+    return new Promise((r) => setTimeout(r, ms))
+}
 
 function stripBomAndControls(s: string): string {
-    return s
-        .replace(/^\uFEFF/, '')
-        .replace(/\u0000/g, '')
-        .trim()
+    return s.replace(/^\uFEFF/, '').replace(/\u0000/g, '').trim()
 }
 
 function tryParseJsonLoose(s: string): any {
@@ -572,17 +572,72 @@ function tryParseJsonLoose(s: string): any {
     return JSON.parse(noTrailingCommas)
 }
 
+async function waitForStableFile(filePath: string, opts?: { retries?: number; intervalMs?: number }) {
+    const retries = opts?.retries ?? 30
+    const intervalMs = opts?.intervalMs ?? 120
+    let lastSize = -1
+    for (let i = 0; i < retries; i++) {
+        try {
+            const st = await fs.promises.stat(filePath)
+            if (st.size === lastSize && st.size > 0) return true
+            lastSize = st.size
+        } catch {}
+        await sleep(intervalMs)
+    }
+    return false
+}
+
+async function writeAtomic(filePath: string, data: Buffer | string) {
+    const dir = path.dirname(filePath)
+    const base = path.basename(filePath)
+    const tmp = path.join(dir, `.tmp-${base}-${Date.now()}-${Math.random().toString(16).slice(2)}`)
+    const fh = await fs.promises.open(tmp, 'w')
+    try {
+        if (typeof data === 'string') {
+            await fh.writeFile(data, 'utf-8')
+        } else {
+            await fh.write(data, 0, data.length, 0)
+        }
+        await fh.sync()
+    } finally {
+        await fh.close()
+    }
+    try {
+        await fs.promises.unlink(filePath)
+    } catch {}
+    await fs.promises.rename(tmp, filePath)
+}
+
+async function extractJsonFromAsarWithRetry(asarPath: string, innerPath: string, opts?: { attempts?: number; delayMs?: number }) {
+    const attempts = opts?.attempts ?? 40
+    const delayMs = opts?.delayMs ?? 120
+    let lastErr: any = null
+    for (let i = 0; i < attempts; i++) {
+        try {
+            const buff = asar.extractFile(asarPath, innerPath)
+            if (!buff || buff.length === 0) throw new Error('empty buffer')
+            const rawText = stripBomAndControls(buff.toString('utf-8'))
+            const obj = tryParseJsonLoose(rawText)
+            return { obj, text: rawText }
+        } catch (e) {
+            lastErr = e
+            await sleep(delayMs)
+        }
+    }
+    throw lastErr ?? new Error('failed to extract json from asar')
+}
+
 export async function getInstalledYmMetadata() {
     const ymDir = await getPathToYandexMusic()
     const asarPath = path.join(ymDir, 'app.asar')
     const jsonPath = path.join(ymDir, 'package.json')
     try {
-        const buff = asar.extractFile(asarPath, 'package.json')
-        const tmpPath = jsonPath + '.tmp'
-        await fs.promises.writeFile(tmpPath, buff)
-        await fs.promises.rename(tmpPath, jsonPath)
-        const data = await fs.promises.readFile(jsonPath, 'utf-8')
-        return tryParseJsonLoose(data)
+        await waitForStableFile(asarPath, { retries: 40, intervalMs: 100 })
+        const { obj, text } = await extractJsonFromAsarWithRetry(asarPath, 'package.json', { attempts: 50, delayMs: 80 })
+        await writeAtomic(jsonPath, text)
+        const onDisk = await fs.promises.readFile(jsonPath, 'utf-8')
+        const parsed = tryParseJsonLoose(onDisk)
+        return parsed
     } catch (error) {
         logger.modManager.error('Error extracting/writing/reading package.json from app.asar:', error)
         try {
