@@ -19,9 +19,18 @@ interface FileWatcherAddon {
     watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
 }
 
+interface FileOperationsAddon {
+    readFile(target: string): Buffer
+    deleteFile(target: string): void
+    renameFile(oldPath: string, newPath: string): void
+    moveFile(src: string, dest: string): void
+    fileExists(target: string): boolean
+}
+
 interface NativeModules {
     checkAccess?: CheckAccessAddon
     fileWatcher?: FileWatcherAddon
+    fileOperations?: FileOperationsAddon
     [addonName: string]: any
 }
 
@@ -156,6 +165,79 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)
         }
     })
+}
+
+export const nativeReadFile = (filePath: string): Buffer | null => {
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
+    if (!addon) {
+        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeReadFile will return null.')
+        return null
+    }
+    try {
+        return addon.readFile(filePath)
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeReadFile for '${filePath}': ${err}`)
+        return null
+    }
+}
+
+export const nativeDeleteFile = (filePath: string): boolean => {
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
+    if (!addon) {
+        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeDeleteFile will be a no-op.')
+        return false
+    }
+    try {
+        addon.deleteFile(filePath)
+        return true
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeDeleteFile for '${filePath}': ${err}`)
+        return false
+    }
+}
+
+export const nativeRenameFile = (oldPath: string, newPath: string): boolean => {
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
+    if (!addon) {
+        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeRenameFile will be a no-op.')
+        return false
+    }
+    try {
+        addon.renameFile(oldPath, newPath)
+        return true
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeRenameFile from '${oldPath}' to '${newPath}': ${err}`)
+        return false
+    }
+}
+
+export const nativeMoveFile = (src: string, dest: string): boolean => {
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
+    if (!addon) {
+        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeMoveFile will be a no-op.')
+        return false
+    }
+    try {
+        addon.moveFile(src, dest)
+        return true
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeMoveFile from '${src}' to '${dest}': ${err}`)
+        return false
+    }
+}
+
+export const nativeFileExists = (filePath: string): boolean => {
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
+    if (!addon) {
+        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeFileExists will return false.')
+        return false
+    }
+    try {
+        return addon.fileExists(filePath)
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeFileExists for '${filePath}': ${err}`)
+        return false
+    }
 }
 
 export default nativeModules as NativeModules

@@ -18,15 +18,17 @@ export type Paths = {
     defaultAsar: string
     modAsar: string
     backupAsar: string
+    infoPlist: string
 }
 
 export async function resolveBasePaths(): Promise<Paths> {
-    const music = await getPathToYandexMusic()
-    const defaultAsar = path.join(music, 'app.asar')
+    const musicPath = await getPathToYandexMusic()
+    const defaultAsar = path.join(musicPath, 'app.asar')
     const savedModPath = (State.get('settings.modSavePath') as string) || ''
     const modAsar = savedModPath || defaultAsar
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
-    return { music, defaultAsar, modAsar, backupAsar }
+    const INFO_PLIST_PATH = path.join(musicPath, 'Contents', 'Info.plist');
+    return { music: musicPath, defaultAsar, modAsar, backupAsar, infoPlist: INFO_PLIST_PATH  }
 }
 
 export async function ensureLinuxModPath(window: BrowserWindow, paths: Paths): Promise<Paths> {

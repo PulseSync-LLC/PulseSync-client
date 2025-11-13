@@ -3,7 +3,7 @@ import { promisify } from 'util'
 import { exec } from 'child_process'
 import logger from '../logger'
 import path from 'path'
-import { isDiscordRunning, isAnyDiscordElevated, isProcessElevated } from '../naviveModule'
+import { isDiscordRunning, isAnyDiscordElevated, isProcessElevated } from '../nativeModules'
 
 const execAsync = promisify(exec)
 

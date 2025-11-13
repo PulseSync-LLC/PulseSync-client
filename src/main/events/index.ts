@@ -409,7 +409,7 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
         const metadata = await getInstalledYmMetadata()
         console.log(metadata)
-        return metadata?.buildInfo?.VERSION
+        return metadata?.version
     })
 
     ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {

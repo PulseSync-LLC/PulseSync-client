@@ -1,27 +1,24 @@
-import { exec, execFile, spawn } from 'child_process'
+import { exec, execFile, spawn, execSync } from 'child_process'
 import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
-import fs from 'node:fs'
-import fso from 'original-fs'
+import fso, { promises as fsp } from 'original-fs'
 import { asarBackup, musicPath } from '../../index'
-import { app, BrowserWindow, dialog } from 'electron'
+import { app, dialog } from 'electron'
 import RendererEvents from '../../common/types/rendererEvents'
 import axios from 'axios'
-import { execSync } from 'child_process'
 import * as plist from 'plist'
-import { promises as fsp } from 'original-fs'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL } from '../constants/urls'
 import asar from '@electron/asar'
+import { nativeFileExists } from '../modules/nativeModules'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
-const spawnAsync = promisify(spawn)
 
 const State = getState()
 
@@ -113,7 +110,8 @@ export async function launchYandexMusic() {
 }
 
 export async function openExternalDetached(url: string) {
-    let command, args
+    let command: string
+    let args: string[]
 
     if (process.platform === 'win32') {
         command = 'cmd.exe'
@@ -126,7 +124,7 @@ export async function openExternalDetached(url: string) {
         args = [url]
     }
 
-    const child = (await spawnAsync(command, args, { detached: true, stdio: 'ignore' })) as unknown as import('child_process').ChildProcess
+    const child = spawn(command, args, { detached: true, stdio: 'ignore' })
     child.unref()
 }
 
@@ -140,6 +138,7 @@ export async function getPathToYandexMusic(): Promise<string> {
     } else if (platform === 'linux') {
         return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath)
     }
+    return ''
 }
 
 export function getYandexMusicAppDataPath(): string {
@@ -149,9 +148,10 @@ export function getYandexMusicAppDataPath(): string {
             return path.join(home, 'Library', 'Application Support', 'YandexMusic')
         case 'win32':
             return path.join(process.env.APPDATA || '', 'YandexMusic')
-        case 'linux':
+        case 'linux': {
             const xdg = process.env.XDG_CONFIG_HOME || path.join(home, '.config')
             return path.join(xdg, 'YandexMusic')
+        }
         default:
             return ''
     }
@@ -263,14 +263,6 @@ export const downloadYandexMusic = async (type?: string) => {
     mainWindow.setProgressBar(-1)
     fso.chmodSync(downloadPath, 0o755)
 
-    const execFileAsync = (file: string, args: string[] = []) =>
-        new Promise<void>((resolve, reject) => {
-            execFile(file, args, error => {
-                if (error) return reject(error)
-                resolve()
-            })
-        })
-
     const sendFailure = (err: Error | string) => {
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
             success: false,
@@ -363,7 +355,8 @@ export type PatchCallback = (progress: number, message: string) => void
 
 export async function updateIntegrityHashInExe(exePath: string, newHash: string): Promise<void> {
     try {
-        const buf = await fsp.readFile(exePath)
+        const rawBuf = await fsp.readFile(exePath)
+        const buf = rawBuf as Buffer
         const marker = Buffer.from('"file":"resources\\\\app.asar"', 'utf8')
         const markerIdx = buf.indexOf(marker)
         if (markerIdx < 0) throw new Error('RCDATA JSON запись не найдена')
@@ -553,12 +546,16 @@ export function uninstallApp(packageFullName: string): Promise<void> {
 export async function getYandexMusicMetadata() {
     return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
 }
+
 function sleep(ms: number) {
-    return new Promise((r) => setTimeout(r, ms))
+    return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 function stripBomAndControls(s: string): string {
-    return s.replace(/^\uFEFF/, '').replace(/\u0000/g, '').trim()
+    return s
+        .replace(/^\uFEFF/, '')
+        .replace(/\u0000/g, '')
+        .trim()
 }
 
 function tryParseJsonLoose(s: string): any {
@@ -572,42 +569,6 @@ function tryParseJsonLoose(s: string): any {
     return JSON.parse(noTrailingCommas)
 }
 
-async function waitForStableFile(filePath: string, opts?: { retries?: number; intervalMs?: number }) {
-    const retries = opts?.retries ?? 30
-    const intervalMs = opts?.intervalMs ?? 120
-    let lastSize = -1
-    for (let i = 0; i < retries; i++) {
-        try {
-            const st = await fs.promises.stat(filePath)
-            if (st.size === lastSize && st.size > 0) return true
-            lastSize = st.size
-        } catch {}
-        await sleep(intervalMs)
-    }
-    return false
-}
-
-async function writeAtomic(filePath: string, data: Buffer | string) {
-    const dir = path.dirname(filePath)
-    const base = path.basename(filePath)
-    const tmp = path.join(dir, `.tmp-${base}-${Date.now()}-${Math.random().toString(16).slice(2)}`)
-    const fh = await fs.promises.open(tmp, 'w')
-    try {
-        if (typeof data === 'string') {
-            await fh.writeFile(data, 'utf-8')
-        } else {
-            await fh.write(data, 0, data.length, 0)
-        }
-        await fh.sync()
-    } finally {
-        await fh.close()
-    }
-    try {
-        await fs.promises.unlink(filePath)
-    } catch {}
-    await fs.promises.rename(tmp, filePath)
-}
-
 async function extractJsonFromAsarWithRetry(asarPath: string, innerPath: string, opts?: { attempts?: number; delayMs?: number }) {
     const attempts = opts?.attempts ?? 40
     const delayMs = opts?.delayMs ?? 120
@@ -616,9 +577,9 @@ async function extractJsonFromAsarWithRetry(asarPath: string, innerPath: string,
         try {
             const buff = asar.extractFile(asarPath, innerPath)
             if (!buff || buff.length === 0) throw new Error('empty buffer')
-            const rawText = stripBomAndControls(buff.toString('utf-8'))
+            const rawText = buff.toString('utf-8')
             const obj = tryParseJsonLoose(rawText)
-            return { obj, text: rawText }
+            return obj
         } catch (e) {
             lastErr = e
             await sleep(delayMs)
@@ -628,24 +589,21 @@ async function extractJsonFromAsarWithRetry(asarPath: string, innerPath: string,
 }
 
 export async function getInstalledYmMetadata() {
-    const ymDir = await getPathToYandexMusic()
-    const asarPath = path.join(ymDir, 'app.asar')
-    const jsonPath = path.join(ymDir, 'package.json')
     try {
-        await waitForStableFile(asarPath, { retries: 40, intervalMs: 100 })
-        const { obj, text } = await extractJsonFromAsarWithRetry(asarPath, 'package.json', { attempts: 50, delayMs: 80 })
-        await writeAtomic(jsonPath, text)
-        const onDisk = await fs.promises.readFile(jsonPath, 'utf-8')
-        const parsed = tryParseJsonLoose(onDisk)
-        return parsed
-    } catch (error) {
-        logger.modManager.error('Error extracting/writing/reading package.json from app.asar:', error)
-        try {
-            const data = await fs.promises.readFile(jsonPath, 'utf-8')
-            return tryParseJsonLoose(data)
-        } catch (fallbackError) {
-            logger.modManager.error('Fallback read of package.json failed:', fallbackError)
+        const ymDir = await getPathToYandexMusic()
+        if (!ymDir) {
+            logger.modManager.warn('getPathToYandexMusic returned empty path')
             return null
         }
+        const versionFilePath = path.join(ymDir, 'version')
+        if (!nativeFileExists(versionFilePath)) {
+            logger.modManager.warn('version file not found in Yandex Music directory')
+            return null
+        }
+        const version = (await fso.promises.readFile(versionFilePath, 'utf8')).trim()
+        return { version }
+    } catch (error) {
+        logger.modManager.error('Error reading version file:', error)
+        return null
     }
 }

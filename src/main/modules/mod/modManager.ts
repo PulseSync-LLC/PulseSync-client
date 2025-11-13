@@ -18,6 +18,7 @@ import {
 } from '../../utils/appUtils'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity, Paths } from './mod-files'
 import { checkModCompatibility, downloadAndUpdateFile } from './mod-network'
+import { nativeFileExists, nativeRenameFile } from '../nativeModules'
 
 const State = getState()
 const TEMP_DIR = app.getPath('temp')
@@ -71,7 +72,7 @@ export const modManager = (window: BrowserWindow): void => {
 
             const ymMetadata = await getInstalledYmMetadata()
             if (!force && !spoof) {
-                const comp = await checkModCompatibility(version, ymMetadata?.buildInfo?.VERSION)
+                const comp = await checkModCompatibility(version, ymMetadata?.version)
                 if (!comp.success) {
                     return sendFailure(window, {
                         error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
@@ -99,7 +100,8 @@ export const modManager = (window: BrowserWindow): void => {
 
             if (isMac()) {
                 try {
-                    await copyFile(paths.modAsar, paths.modAsar)
+                    await fs.promises.copyFile(paths.modAsar, paths.modAsar)
+                    await fs.promises.copyFile(paths.infoPlist, paths.infoPlist);
                 } catch {
                     await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
                     return sendFailure(window, { error: 'Пожалуйста, предоставьте приложению полный доступ к диску.', type: 'file_copy_error' })
@@ -112,7 +114,7 @@ export const modManager = (window: BrowserWindow): void => {
 
             State.set('mod', {
                 version,
-                musicVersion: ymMetadata?.buildInfo?.VERSION,
+                musicVersion: ymMetadata?.version,
                 name,
                 installed: true,
             })
@@ -134,8 +136,13 @@ export const modManager = (window: BrowserWindow): void => {
             const paths = await resolveBasePaths()
             const wasClosed = await closeMusicIfRunning(window)
 
-            if (fs.existsSync(paths.backupAsar)) {
-                fs.renameSync(paths.backupAsar, paths.modAsar)
+            const backupExists = nativeFileExists(paths.backupAsar) || fs.existsSync(paths.backupAsar)
+
+            if (backupExists) {
+                const renamed = nativeRenameFile(paths.backupAsar, paths.modAsar)
+                if (!renamed) {
+                    fs.renameSync(paths.backupAsar, paths.modAsar)
+                }
             } else {
                 await downloadYandexMusic('reinstall')
                 return
