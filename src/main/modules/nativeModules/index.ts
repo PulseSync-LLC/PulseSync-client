@@ -35,11 +35,7 @@ interface NativeModules {
 }
 
 const loadNativeModules = (): NativeModules => {
-    if (!isWindows()) {
-        logger.nativeModuleManager.info('Skipping native modules on non-Windows.')
-        return {}
-    }
-
+    const loadCheckAccess = isWindows();
     const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
 
     logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
@@ -57,10 +53,14 @@ const loadNativeModules = (): NativeModules => {
                 const parts = relative.split(path.sep)
                 const addonName = parts[0]
 
+                if (addonName === 'checkAccess' && !loadCheckAccess) {
+                    logger.nativeModuleManager.info(`Skipping native module '${addonName}' on non-Windows.`)
+                    return
+                }
+
                 logger.nativeModuleManager.info(`Native module found: ${relative}`)
                 try {
-                    const loaded = __non_webpack_require__(fullPath)
-                    modules[addonName] = loaded
+                    modules[addonName] = __non_webpack_require__(fullPath)
                     logger.nativeModuleManager.info(`Loaded native module '${addonName}' from ${fullPath}`)
                 } catch (err) {
                     logger.nativeModuleManager.error(`Failed to load native module '${addonName}': ${err}`)
@@ -75,7 +75,7 @@ const loadNativeModules = (): NativeModules => {
         logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
     }
 
-    if (isWindows() && Object.keys(modules).length === 0) {
+    if (loadCheckAccess && Object.keys(modules).length === 0) {
         logger.nativeModuleManager.warn('No native modules available.')
     }
 
