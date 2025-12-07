@@ -17,27 +17,12 @@ import {
     launchYandexMusic,
 } from '../../utils/appUtils'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity, Paths } from './mod-files'
-import { checkModCompatibility, downloadAndUpdateFile } from './mod-network'
+import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
 import { nativeFileExists, nativeRenameFile } from '../nativeModules'
+import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
 
 const State = getState()
 const TEMP_DIR = app.getPath('temp')
-
-function sendToRenderer(window: BrowserWindow | null | undefined, channel: any, payload: any) {
-    window?.webContents.send(channel, payload)
-}
-
-function resetProgress(window: BrowserWindow | null | undefined) {
-    window?.setProgressBar(-1)
-}
-
-function sendFailure(
-    window: BrowserWindow,
-    params: { error: string; type?: string; url?: string; requiredVersion?: string; recommendedVersion?: string },
-) {
-    sendToRenderer(window, RendererEvents.DOWNLOAD_FAILURE, { success: false, ...params })
-    resetProgress(window)
-}
 
 async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
     const procs = await isYandexMusicRunning()
@@ -57,7 +42,7 @@ function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'versio
 }
 
 export const modManager = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.UPDATE_MUSIC_ASAR, async (_event, { version, name, link, checksum, shouldReinstall, force, spoof }) => {
+    ipcMain.on(MainEvents.UPDATE_MUSIC_ASAR, async (_event, { version, name, link, unpackLink, checksum, shouldReinstall, force, spoof }) => {
         try {
             if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                 State.set('settings', { musicReinstalled: true })
@@ -111,6 +96,22 @@ export const modManager = (window: BrowserWindow): void => {
             const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
             const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum)
             if (!ok) return
+
+            if (unpackLink) {
+                const unpackName = path.basename(new URL(unpackLink).pathname)
+                const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
+                const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
+                const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
+
+                const unpackedOk = await downloadAndExtractUnpacked(
+                    window,
+                    unpackLink,
+                    tempUnpackedArchive,
+                    tempUnpackedDir,
+                    targetUnpackedDir,
+                )
+                if (!unpackedOk) return
+            }
 
             State.set('mod', {
                 version,

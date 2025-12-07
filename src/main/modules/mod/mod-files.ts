@@ -9,8 +9,10 @@ import logger from '../logger'
 import { getState } from '../state'
 import { AsarPatcher, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
 
-const gunzipAsync = promisify(zlib.gunzip)
-const zstdDecompressAsync = promisify((zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))))
+export const gunzipAsync = promisify(zlib.gunzip)
+export const zstdDecompressAsync = promisify(
+    (zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))),
+)
 const State = getState()
 
 export type Paths = {
