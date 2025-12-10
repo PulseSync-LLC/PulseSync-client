@@ -31,7 +31,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp } = useContext(userContext)
+    const { app, setApp, widgetInstalled } = useContext(userContext)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
@@ -76,6 +76,60 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         showLoadingToast(e, 'Удаление мода...')
         window.desktopEvents?.send(MainEvents.REMOVE_MOD)
         window.localStorage.removeItem('lastNotifiedModVersion')
+    }
+
+    const downloadObsWidget = () => {
+        const toastId = toast.custom('info', 'Ожидайте', 'Загрузка виджета OBS...')
+
+        const handleSuccess = () => {
+            toast.custom('success', 'Готово', 'Виджет OBS успешно установлен', { id: toastId })
+            setApp((prevApp: SettingsInterface) => ({
+                ...prevApp,
+                widgetInstalled: true,
+            }))
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            toast.custom('error', 'Ошибка', `Не удалось загрузить виджет: ${args.error}`, { id: toastId })
+        }
+
+        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.DOWNLOAD_OBS_WIDGET)
+    }
+
+    const removeObsWidget = () => {
+        const toastId = toast.custom('info', 'Ожидайте', 'Удаление виджета OBS...')
+
+        const handleSuccess = () => {
+            toast.custom('success', 'Готово', 'Виджет OBS успешно удален', { id: toastId })
+            setApp((prevApp: SettingsInterface) => ({
+                ...prevApp,
+                widgetInstalled: false,
+            }))
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            toast.custom('error', 'Ошибка', `Не удалось удалить виджет: ${args.error}`, { id: toastId })
+        }
+
+        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.REMOVE_OBS_WIDGET)
+    }
+
+    const copyWidgetPath = async () => {
+        try {
+            const widgetPath = await window.desktopEvents?.invoke(MainEvents.GET_OBS_WIDGET_PATH)
+            if (widgetPath) {
+                await navigator.clipboard.writeText(widgetPath)
+                toast.custom('success', 'Готово', 'Путь скопирован в буфер обмена')
+            } else {
+                toast.custom('error', 'Ошибка', 'Не удалось получить путь до виджета')
+            }
+        } catch (error) {
+            toast.custom('error', 'Ошибка', 'Не удалось скопировать путь')
+        }
     }
 
     const toggleSetting = (type: string, status: boolean) => {
@@ -222,6 +276,28 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
+        ]),
+        createButtonSection('Виджет OBS', [
+            {
+                label: 'Скачать виджет OBS' + (widgetInstalled ? '(установлен)' : '(не установлен)'),
+                onClick: downloadObsWidget,
+                disabled: widgetInstalled,
+            },
+            {
+                label: 'Открыть папку с виджетом OBS',
+                onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' }),
+                disabled: !widgetInstalled,
+            },
+            {
+                label: 'Скопировать путь до виджета',
+                onClick: copyWidgetPath,
+                disabled: !widgetInstalled,
+            },
+            {
+                label: 'Удалить виджет OBS',
+                onClick: removeObsWidget,
+                disabled: !widgetInstalled,
+            },
         ]),
         createButtonSection('Настройки приложения', [
             createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () => toggleSetting('autoStart', !app.settings.autoStartApp)),

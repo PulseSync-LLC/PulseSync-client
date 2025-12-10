@@ -27,6 +27,7 @@ import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
+import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 
 const updater = getUpdater()
 const State = getState()
@@ -279,6 +280,11 @@ const registerFileOperations = (window: BrowserWindow): void => {
             case 'theme': {
                 const themeFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons', data.themeName)
                 await shell.openPath(themeFolder)
+                break
+            }
+            case 'obsWidgetPath': {
+                const widgetPath = path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
+                await shell.openPath(widgetPath)
                 break
             }
         }
@@ -672,6 +678,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
+    obsWidgetManager(window, app)
 }
 
 export const checkOrFindUpdate = async (hard?: boolean) => {

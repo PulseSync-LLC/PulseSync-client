@@ -70,6 +70,7 @@ function App() {
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const [musicVersion, setMusicVersion] = useState<any>(null)
+    const [widgetInstalled, setWidgetInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
     const realtimeSocketRef = useRef<Socket | null>(null)
     const zstdRef = useRef<any>(null)
@@ -518,6 +519,22 @@ function App() {
     }, [app.info.version, zstdReady])
 
     useEffect(() => {
+        if (user.id !== '-1' && realtimeSocketRef.current) {
+            const newToken = getUserToken()
+            if (realtimeSocketRef.current.auth && newToken) {
+                realtimeSocketRef.current.auth = {
+                    ...realtimeSocketRef.current.auth,
+                    token: newToken,
+                }
+                if (realtimeSocketRef.current.connected) {
+                    realtimeSocketRef.current.disconnect()
+                    realtimeSocketRef.current.connect()
+                }
+            }
+        }
+    }, [user.id])
+
+    useEffect(() => {
         const socket = realtimeSocketRef.current
         if (!socket) return
 
@@ -653,6 +670,7 @@ function App() {
                         const s = realtimeSocketRef.current
                         s.auth = {
                             ...(s.auth || {}),
+                            token: getUserToken(),
                             compression: 'zstd-stream',
                             inboundCompression: 'zstd-stream',
                         }
@@ -671,6 +689,14 @@ function App() {
                 setMusicInstalled(musicStatus)
                 setMusicVersion(musicVersion)
                 setAddons(fetchedAddons)
+
+                try {
+                    const widgetExists = await window.desktopEvents?.invoke(MainEvents.CHECK_OBS_WIDGET_INSTALLED)
+                    setWidgetInstalled(widgetExists || false)
+                } catch (error) {
+                    console.error('Failed to check widget installation:', error)
+                    setWidgetInstalled(false)
+                }
 
                 try {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
@@ -917,6 +943,8 @@ function App() {
                         setMusicInstalled,
                         musicVersion,
                         setMusicVersion,
+                        widgetInstalled,
+                        setWidgetInstalled,
                         socket: realtimeSocket,
                         socketConnected: isConnected,
                         app,
