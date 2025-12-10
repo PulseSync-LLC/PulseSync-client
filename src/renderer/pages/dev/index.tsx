@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './dev.module.scss'
@@ -35,6 +36,7 @@ const API = {
 const RANGES = [12, 24, 48, 0] as const
 
 function Dev() {
+    const navigate = useNavigate()
     const [stats, setStats] = useState<StatPoint[]>([])
     const [count, setCount] = useState<{ users: number; online: number } | null>(null)
     const [loading, setLoading] = useState(true)
@@ -356,6 +358,30 @@ function Dev() {
                     </div>
                 </section>
 
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>Навигация</h2>
+                    <p className={styles.cardHint} style={{ marginBottom: '16px' }}>
+                        Быстрая навигация на все роуты приложения
+                    </p>
+                    <div className={styles.navigationGrid}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                            TrackInfo
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
+                            Users
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extension')}>
+                            Extension
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
+                            Joint
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
+                            Auth
+                        </ButtonV2>
+                    </div>
+                </section>
+
                 <AddonUploadModal
                     isOpen={uploadOpen}
                     onClose={() => setUploadOpen(false)}
@@ -401,7 +427,7 @@ function Dev() {
                         setFormikModalOpen(false)
                     }}
                     buttons={[
-                        { text: 'Cancel', onClick: () => setFormikModalOpen(false), variant: 'secondary' },
+                        { text: 'Cancel', onClick: () => setFormikModalOpen(false), variant: 'secondary', type: 'button' },
                         {
                             text: 'Submit',
                             onClick: values => {
@@ -409,6 +435,7 @@ function Dev() {
                                 setFormikModalOpen(false)
                             },
                             variant: 'primary',
+                            type: 'submit',
                         },
                     ]}
                 />
