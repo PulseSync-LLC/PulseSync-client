@@ -1,8 +1,10 @@
+import { useMemo } from 'react'
 import AuthSummer from './summer/AuthSummer'
 import AuthWinter from './winter/AuthWinter'
-
-const AUTH_THEME: 'summer' | 'winter' = 'winter' // 'summer' | 'winter'
+import { getSeasonByMSK } from '../../utils/seasonDetector'
 
 export default function AuthPage() {
+    const AUTH_THEME = useMemo(() => getSeasonByMSK(), [])
+
     return AUTH_THEME === 'winter' ? <AuthWinter /> : <AuthSummer />
 }
