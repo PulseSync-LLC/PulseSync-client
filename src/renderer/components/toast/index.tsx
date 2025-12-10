@@ -132,7 +132,7 @@ const ToastStack: React.FC = () => {
     useEffect(() => {
         const onReq = () => {
             setClosingAll(true)
-            setTimeout(() => setClosingAll(false), 0)
+            setTimeout(() => setClosingAll(false), 260)
         }
         closeAllSubs.add(onReq)
         return () => {
@@ -190,7 +190,17 @@ const ToastStack: React.FC = () => {
                     requestCloseAll()
                 }
             }}
-            onClick={() => list.length > 1 && setOpen(o => !o)}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (typeof e.button === 'number' && e.button !== 0) return
+                if (list.length > 1) setOpen(o => !o)
+            }}
+            onAuxClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
         >
             <TransitionGroup component={null}>
                 {renderList.map((td, idx) => (
@@ -287,6 +297,13 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                 } as React.CSSProperties
             }
             onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onAuxClick={e => {
                 if (e.button === 1) {
                     e.preventDefault()
                     e.stopPropagation()

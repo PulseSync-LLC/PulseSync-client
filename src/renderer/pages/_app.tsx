@@ -127,7 +127,7 @@ function App() {
         if (meData.getMe && meData.getMe.id) {
             setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
             ;(async () => {
-                await router.navigate('/trackinfo', { replace: true })
+                await router.navigate('/', { replace: true })
                 window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                     status: true,
                     user: {
@@ -142,7 +142,7 @@ function App() {
             setLoading(false)
             window.electron.store.delete('tokens.token')
             ;(async () => {
-                await router.navigate('/', { replace: true })
+                await router.navigate('/auth', { replace: true })
             })()
             setUser(userInitials)
             toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
@@ -162,7 +162,7 @@ function App() {
                 toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
-                    await router.navigate('/', { replace: true })
+                    await router.navigate('/auth', { replace: true })
                 })()
                 setUser(userInitials)
                 window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
@@ -182,7 +182,7 @@ function App() {
                 dispatch(setAppDeprecatedStatus(true))
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
-                    await router.navigate('/', { replace: true })
+                    await router.navigate('/auth', { replace: true })
                 })()
                 setUser(userInitials)
                 window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
@@ -203,6 +203,14 @@ function App() {
                     path: '/',
                     element: (
                         <ErrorBoundary>
+                            <TrackInfoPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/auth',
+                    element: (
+                        <ErrorBoundary>
                             <AuthPage />
                         </ErrorBoundary>
                     ),
@@ -220,14 +228,6 @@ function App() {
                     element: (
                         <ErrorBoundary>
                             <CallbackPage />
-                        </ErrorBoundary>
-                    ),
-                },
-                {
-                    path: '/trackinfo',
-                    element: (
-                        <ErrorBoundary>
-                            <TrackInfoPage />
                         </ErrorBoundary>
                     ),
                 },
@@ -310,7 +310,7 @@ function App() {
 
                     if (data?.getMe && data.getMe.id) {
                         setUser(prev => ({ ...prev, ...data.getMe }) as UserInterface)
-                        await router.navigate('/trackinfo', { replace: true })
+                        await router.navigate('/', { replace: true })
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: true,
                             user: {
@@ -323,7 +323,7 @@ function App() {
                     } else {
                         setLoading(false)
                         window.electron.store.delete('tokens.token')
-                        await router.navigate('/', { replace: true })
+                        await router.navigate('/auth', { replace: true })
                         setUser(userInitials)
                         sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
@@ -350,7 +350,7 @@ function App() {
                         if (isForbidden) {
                             toast.custom('error', 'Ваша сессия истекла', 'Пожалуйста, войдите снова.')
                             window.electron.store.delete('tokens.token')
-                            await router.navigate('/', { replace: true })
+                            await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
@@ -366,7 +366,7 @@ function App() {
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
-                            await router.navigate('/', { replace: true })
+                            await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
@@ -545,7 +545,7 @@ function App() {
             setConnectionErrorCode(1)
             setRealtimeSocket(null)
             setIsConnected(false)
-            await router.navigate('/', { replace: true })
+            await router.navigate('/auth', { replace: true })
         }
         const onFeatures = (data: any) => {
             setFeatures(data)
@@ -694,7 +694,7 @@ function App() {
                 clearInterval(modCheckId)
             }
         } else {
-            router.navigate('/', { replace: true })
+            router.navigate('/auth', { replace: true })
         }
     }, [user.id, zstdReady])
 
