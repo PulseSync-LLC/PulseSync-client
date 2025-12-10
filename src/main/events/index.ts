@@ -139,13 +139,6 @@ const registerSettingsEvents = (): void => {
         else settingsWindow.hide()
     })
 }
-
-ipcMain.on(MainEvents.BEFORE_QUIT, async () => {
-    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-    if (fs.existsSync(tempFilePath)) fs.rmSync(tempFilePath)
-    if (mainWindow) mainWindow.close()
-})
-
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_CORSANYWHEREPORT, event => {
         event.returnValue = corsAnywherePort
