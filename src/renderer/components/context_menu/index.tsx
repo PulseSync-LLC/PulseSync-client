@@ -257,26 +257,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 Директория приложения
             </button>,
         ),
-        createButtonSection('Мод', [
-            {
-                label: app.mod.installed && app.mod.version ? `${app.mod.name || 'Eclipse'} v${app.mod.version}` : 'Не установлен',
-                onClick: () => store.dispatch(openModal()),
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            {
-                label: 'Удалить мод',
-                onClick: deleteMod,
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            {
-                label: 'Проверить обновления мода',
-                onClick: () => window.getModInfo(app),
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
-                toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
-            ),
-        ]),
         createButtonSection('Виджет OBS', [
             {
                 label: 'Скачать виджет OBS' + (widgetInstalled ? '(установлен)' : '(не установлен)'),
@@ -298,6 +278,26 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 onClick: removeObsWidget,
                 disabled: !widgetInstalled,
             },
+        ]),
+        createButtonSection('Мод', [
+            {
+                label: app.mod.installed && app.mod.version ? `${app.mod.name || 'Eclipse'} v${app.mod.version}` : 'Не установлен',
+                onClick: () => store.dispatch(openModal()),
+                disabled: !app.mod.installed || !app.mod.version,
+            },
+            {
+                label: 'Удалить мод',
+                onClick: deleteMod,
+                disabled: !app.mod.installed || !app.mod.version,
+            },
+            {
+                label: 'Проверить обновления мода',
+                onClick: () => window.getModInfo(app),
+                disabled: !app.mod.installed || !app.mod.version,
+            },
+            createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
+                toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
+            ),
         ]),
         createButtonSection('Настройки приложения', [
             createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () => toggleSetting('autoStart', !app.settings.autoStartApp)),
