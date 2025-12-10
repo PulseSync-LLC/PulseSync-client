@@ -11,6 +11,7 @@ export interface ModalButton {
     variant?: 'primary' | 'secondary' | 'danger'
     disabled?: boolean
     className?: string
+    type?: 'button' | 'submit'
 }
 
 export interface CustomFormikModalPSProps {
@@ -92,7 +93,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
 
         return (
             <div className={wrapperClass}>
-                {buttons.map(({ text, onClick, variant = 'primary', disabled, className }, idx) => {
+                {buttons.map(({ text, onClick, variant = 'primary', disabled, className, type = 'button' }, idx) => {
                     const variantClass = styles[`btn_${variant}` as keyof typeof styles] || styles.btn_primary
                     const refProp = idx === 0 ? { ref: firstBtnRef } : {}
                     return (
@@ -101,6 +102,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                             onClick={() => onClick(values)}
                             disabled={disabled}
                             className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            type={type}
                             {...refProp}
                         >
                             {text}
@@ -150,7 +152,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                                         <div id={descId} className={styles.textBlock}>
                                             {text && <p className={styles.description}>{text}</p>}
                                             <Field name="input">
-                                                {({ field }) => (
+                                                {({ field }: { field: any }) => (
                                                     <input
                                                         {...field}
                                                         ref={inputRef}

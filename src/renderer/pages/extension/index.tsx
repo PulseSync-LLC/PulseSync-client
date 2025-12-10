@@ -139,27 +139,33 @@ export default function ExtensionPage() {
     )
 
     const handleCheckboxChange = useCallback(
-        (addon: Addon, newChecked: boolean) => {
+        (addon: Addon, newChecked: boolean, showToast: boolean = true) => {
             if (addon.type === 'theme') {
                 if (newChecked) {
                     setCurrentTheme(addon.directoryName)
                     window.electron.store.set('addons.theme', addon.directoryName)
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
-                    toast.custom('success', 'Тема активирована', `${addon.name} теперь активна`)
+                    if (showToast) {
+                        toast.custom('success', 'Тема активирована', `${addon.name} теперь активна`)
+                    }
                 } else {
                     setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
-                    toast.custom('info', 'Тема деактивирована', 'Установлена тема по умолчанию')
+                    if (showToast) {
+                        toast.custom('info', 'Тема деактивирована', 'Установлена тема по умолчанию')
+                    }
                 }
             } else {
                 const updated = newChecked ? [...enabledScripts, addon.directoryName] : enabledScripts.filter(name => name !== addon.directoryName)
-                toast.custom(
-                    newChecked ? 'success' : 'info',
-                    newChecked ? 'Скрипт включен' : 'Скрипт выключен',
-                    `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
-                )
+                if (showToast) {
+                    toast.custom(
+                        newChecked ? 'success' : 'info',
+                        newChecked ? 'Скрипт включен' : 'Скрипт выключен',
+                        `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
+                    )
+                }
                 window.electron.store.set('addons.scripts', updated)
                 window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
                 setEnabledScripts(updated)
@@ -396,7 +402,7 @@ export default function ExtensionPage() {
             setImageCache({})
             await loadAddons(true)
             setSelectedAddonId(null)
-            toast.custom('success', 'Готово', 'Аддоны перезагруж��ны')
+            toast.custom('success', 'Готово', 'Аддоны перезагружены')
         } catch (e) {
             console.error(e)
             toast.custom('error', 'Упс', 'Не удалось перезагрузить аддоны')
@@ -475,7 +481,11 @@ export default function ExtensionPage() {
             setModalOpen(true)
             return
         }
-        handleCheckboxChange(addon, !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)))
+        handleCheckboxChange(
+            addon,
+            !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
+            true,
+        )
     }
 
     return (
@@ -502,6 +512,7 @@ export default function ExtensionPage() {
                                                 !(modalAddon.type === 'theme'
                                                     ? modalAddon.directoryName === currentTheme
                                                     : enabledScripts.includes(modalAddon.directoryName)),
+                                                true,
                                             )
                                         }
                                         setModalOpen(false)
@@ -609,7 +620,7 @@ export default function ExtensionPage() {
                                                                 ? addon.directoryName === currentTheme
                                                                 : enabledScripts.includes(addon.directoryName)
                                                         ) {
-                                                            handleCheckboxChange(addon, false)
+                                                            handleCheckboxChange(addon, false, true)
                                                         } else {
                                                             handleEnableAddon(addon)
                                                         }
@@ -687,7 +698,7 @@ export default function ExtensionPage() {
                                             if (enabled) {
                                                 handleEnableAddon(selectedAddon)
                                             } else {
-                                                handleCheckboxChange(selectedAddon, false)
+                                                handleCheckboxChange(selectedAddon, false, true)
                                             }
                                         }}
                                         setSelectedTags={setSelectedTags}

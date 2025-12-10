@@ -9,7 +9,6 @@ import { useAddonFiles } from './extBox/hooks'
 import { useConfig } from './extBox/useConfig'
 import { ExtensionViewProps, ActiveTab } from './extBox/types'
 
-import toast from '../../../components/toast'
 import * as s from './extensionview.module.scss'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
@@ -29,11 +28,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
 
     const toggleWithToast = (enabled: boolean) => {
         onToggleEnabled(enabled)
-        toast.custom(
-            enabled ? 'success' : 'info',
-            addon.type === 'theme' ? (enabled ? 'Тема активирована' : 'Тема деактивирована') : enabled ? 'Скрипт включён' : 'Скрипт выключен',
-            addon.name,
-        )
     }
 
     return (
