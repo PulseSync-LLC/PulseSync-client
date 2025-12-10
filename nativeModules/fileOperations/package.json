@@ -9,7 +9,7 @@
     "keywords": [],
     "author": "",
     "license": "ISC",
-    "description": "A native Electron module for file watching",
+    "description": "Native Electron module for file operations and watching",
     "gypfile": true,
     "dependencies": {
         "bindings": "^1.5.0",

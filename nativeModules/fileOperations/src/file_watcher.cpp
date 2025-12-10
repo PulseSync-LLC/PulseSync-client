@@ -1,24 +1,21 @@
-#include "filewatcher.h"
-#include <napi.h>
-#include <thread>
+#include "file_watcher.h"
+
+#include <cctype>
 #include <chrono>
 #include <filesystem>
-#include <unordered_map>
 #include <string>
 #include <system_error>
-
-#ifdef _WIN32
-#  include <windows.h>
-#endif
+#include <thread>
+#include <unordered_map>
 
 namespace {
+
 inline std::string ToLower(std::string s) {
     for (auto& ch : s) ch = static_cast<char>(::tolower(static_cast<unsigned char>(ch)));
     return s;
 }
 
-static std::unordered_map<std::string, std::filesystem::file_time_type>
-SnapshotDir(const std::filesystem::path& root) {
+std::unordered_map<std::string, std::filesystem::file_time_type> SnapshotDir(const std::filesystem::path& root) {
     namespace fs = std::filesystem;
     std::unordered_map<std::string, fs::file_time_type> out;
     std::error_code ec;
@@ -57,7 +54,6 @@ SnapshotDir(const std::filesystem::path& root) {
         }
     }
     return out;
-}
 }
 
 void Watcher(const Napi::CallbackInfo& info) {
@@ -142,9 +138,9 @@ void Watcher(const Napi::CallbackInfo& info) {
     }).detach();
 }
 
-Napi::Object Init(Napi::Env env, Napi::Object exports) {
+}  // namespace
+
+void RegisterFileWatcher(Napi::Env env, Napi::Object exports) {
     exports.Set("watch", Napi::Function::New(env, Watcher));
-    return exports;
 }
 
-NODE_API_MODULE(filewatcher, Init)

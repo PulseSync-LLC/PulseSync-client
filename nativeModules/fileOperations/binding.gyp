@@ -3,7 +3,9 @@
     {
       "target_name": "fileOperations",
       "sources": [
-        "src/addon.cc"
+        "src/addon.cc",
+        "src/file_ops.cpp",
+        "src/file_watcher.cpp"
       ],
       "include_dirs": [
         "<!@(node -p \"require('node-addon-api').include\")",

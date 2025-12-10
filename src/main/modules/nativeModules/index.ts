@@ -15,11 +15,8 @@ interface CheckAccessAddon {
     isProcessElevated(target: string): boolean
 }
 
-interface FileWatcherAddon {
-    watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
-}
-
 interface FileOperationsAddon {
+    watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
     readFile(target: string): Buffer
     deleteFile(target: string): void
     renameFile(oldPath: string, newPath: string): void
@@ -29,13 +26,12 @@ interface FileOperationsAddon {
 
 interface NativeModules {
     checkAccess?: CheckAccessAddon
-    fileWatcher?: FileWatcherAddon
     fileOperations?: FileOperationsAddon
     [addonName: string]: any
 }
 
 const loadNativeModules = (): NativeModules => {
-    const loadCheckAccess = isWindows();
+    const loadCheckAccess = isWindows()
     const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
 
     logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
@@ -141,9 +137,9 @@ export const isProcessRunning = (name: string): boolean => {
 }
 
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
-    const addon = nativeModules['fileWatcher'] as FileWatcherAddon | undefined
+    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
     if (!addon) {
-        logger.main.warn('fileWatcher addon not loaded. startThemeWatcher will not watch files.')
+        logger.main.warn('fileOperations addon not loaded. startThemeWatcher will not watch files.')
         return
     }
     logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
