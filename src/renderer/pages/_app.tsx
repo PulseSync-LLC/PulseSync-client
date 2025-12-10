@@ -13,6 +13,7 @@ import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
 import ExtensionPage from './extension'
 import JointPage from './joint'
+import StorePage from './store'
 
 import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
@@ -253,6 +254,14 @@ function App() {
                     element: (
                         <ErrorBoundary>
                             <ExtensionPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/store',
+                    element: (
+                        <ErrorBoundary>
+                            <StorePage />
                         </ErrorBoundary>
                     ),
                 },
