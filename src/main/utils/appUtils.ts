@@ -234,13 +234,13 @@ export const checkMusic = () => {
 }
 
 export const downloadYandexMusic = async (type?: string) => {
-    const yml = await axios.get('https://music-desktop-application.s3.yandex.net/stable/latest.yml')
+    const yml = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
     const match = yml.data.match(/version:\s*([\d.]+)/)
     if (!match) throw new Error('Версия не найдена в latest.yml')
     const version = match[1]
 
     const fileName = isMac() ? `Yandex_Music_universal_${version}.dmg` : `Yandex_Music_x64_${version}.exe`
-    const downloadUrl = `https://music-desktop-application.s3.yandex.net/stable/${fileName}`
+    const downloadUrl = `https://desktop.app.music.yandex.net/stable/${fileName}`
     const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
 
     await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })

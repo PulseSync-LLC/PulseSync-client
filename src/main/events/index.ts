@@ -336,10 +336,10 @@ const registerMediaEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
         let exeUrl = downloadUrl
         if (!exeUrl) {
-            const { data } = await axios.get('https://music-desktop-application.s3.yandex.net/stable/latest.yml')
+            const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
             const match = data.match(/version:\s*([\d.]+)/)
             if (!match) throw new Error('Версия не найдена в latest.yml')
-            exeUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
+            exeUrl = `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
         }
 
         const fileName = path.basename(exeUrl)
