@@ -42,95 +42,96 @@ function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'versio
 }
 
 export const modManager = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.UPDATE_MUSIC_ASAR, async (_event, { version, name, link, unpackLink, checksum, shouldReinstall, force, spoof }) => {
-        try {
-            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
-                State.set('settings', { musicReinstalled: true })
-                await downloadYandexMusic('reinstall')
-                return
-            }
-
-            let paths: Paths = await resolveBasePaths()
-            paths = await ensureLinuxModPath(window, paths)
-
-            const wasClosed = await closeMusicIfRunning(window)
-
-            const ymMetadata = await getInstalledYmMetadata()
-            if (!force && !spoof) {
-                const comp = await checkModCompatibility(version, ymMetadata?.version)
-                if (!comp.success) {
-                    return sendFailure(window, {
-                        error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
-                        type: mapCompatibilityCodeToType(comp.code),
-                        url: comp.url,
-                        requiredVersion: comp.requiredVersion,
-                        recommendedVersion: comp.recommendedVersion,
-                    })
-                }
-            }
-
+    ipcMain.on(
+        MainEvents.UPDATE_MUSIC_ASAR,
+        async (_event, { version, musicVersion, name, link, unpackLink, checksum, shouldReinstall, force, spoof }) => {
             try {
-                await ensureBackup(paths)
-            } catch (e: any) {
-                if (e && e.code === 'file_not_found') {
-                    sendFailure(window, {
-                        error: `${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
-                        type: 'file_not_found',
-                    })
+                if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
+                    State.set('settings', { musicReinstalled: true })
                     await downloadYandexMusic('reinstall')
                     return
                 }
-                throw e
-            }
 
-            if (isMac()) {
-                try {
-                    await fs.promises.copyFile(paths.modAsar, paths.modAsar)
-                    await fs.promises.copyFile(paths.infoPlist, paths.infoPlist);
-                } catch {
-                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
-                    return sendFailure(window, { error: 'Пожалуйста, предоставьте приложению полный доступ к диску.', type: 'file_copy_error' })
+                let paths: Paths = await resolveBasePaths()
+                paths = await ensureLinuxModPath(window, paths)
+
+                const wasClosed = await closeMusicIfRunning(window)
+
+                const ymMetadata = await getInstalledYmMetadata()
+                if (!force && !spoof) {
+                    const comp = await checkModCompatibility(version, ymMetadata?.version)
+                    if (!comp.success) {
+                        return sendFailure(window, {
+                            error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
+                            type: mapCompatibilityCodeToType(comp.code),
+                            url: comp.url,
+                            requiredVersion: comp.requiredVersion,
+                            recommendedVersion: comp.recommendedVersion,
+                        })
+                    }
                 }
+
+                try {
+                    await ensureBackup(paths)
+                } catch (e: any) {
+                    if (e && e.code === 'file_not_found') {
+                        sendFailure(window, {
+                            error: `${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                            type: 'file_not_found',
+                        })
+                        await downloadYandexMusic('reinstall')
+                        return
+                    }
+                    throw e
+                }
+
+                if (isMac()) {
+                    try {
+                        await fs.promises.copyFile(paths.modAsar, paths.modAsar)
+                        await fs.promises.copyFile(paths.infoPlist, paths.infoPlist)
+                    } catch {
+                        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
+                        return sendFailure(window, { error: 'Пожалуйста, предоставьте приложению полный доступ к диску.', type: 'file_copy_error' })
+                    }
+                }
+
+                const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
+                const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum)
+                if (!ok) return
+
+                if (unpackLink) {
+                    const unpackName = path.basename(new URL(unpackLink).pathname)
+                    const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
+                    const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
+                    const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
+
+                    const unpackedOk = await downloadAndExtractUnpacked(window, unpackLink, tempUnpackedArchive, tempUnpackedDir, targetUnpackedDir)
+                    if (!unpackedOk) return
+                }
+
+                State.set('mod', {
+                    version,
+                    musicVersion: ymMetadata?.version,
+                    realMusicVersion: musicVersion,
+                    name,
+                    installed: true,
+                })
+
+                const versionFilePath = path.join(paths.music, 'version')
+                await fs.promises.writeFile(versionFilePath, musicVersion)
+
+                await installFfmpeg(window)
+                if (!(await isYandexMusicRunning()) && wasClosed) {
+                    await launchYandexMusic()
+                    return setTimeout(() => sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 1500)
+                }
+                sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
+            } catch (error: any) {
+                logger.modManager.error('Unexpected error:', error)
+                sendFailure(window, { error: error.message, type: 'unexpected_error' })
             }
-
-            const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
-            const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum)
-            if (!ok) return
-
-            if (unpackLink) {
-                const unpackName = path.basename(new URL(unpackLink).pathname)
-                const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
-                const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
-                const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
-
-                const unpackedOk = await downloadAndExtractUnpacked(
-                    window,
-                    unpackLink,
-                    tempUnpackedArchive,
-                    tempUnpackedDir,
-                    targetUnpackedDir,
-                )
-                if (!unpackedOk) return
-            }
-
-            State.set('mod', {
-                version,
-                musicVersion: ymMetadata?.version,
-                name,
-                installed: true,
-            })
-
-            await installFfmpeg(window)
-            if (!(await isYandexMusicRunning()) && wasClosed) {
-                launchYandexMusic()
-                return setTimeout(() => sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 500)
-            }
-            sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
-        } catch (error: any) {
-            logger.modManager.error('Unexpected error:', error)
-            sendFailure(window, { error: error.message, type: 'unexpected_error' })
-        }
-    })
+        },
+    )
 
     ipcMain.on(MainEvents.REMOVE_MOD, async () => {
         try {
@@ -157,11 +158,20 @@ export const modManager = (window: BrowserWindow): void => {
             State.delete('mod.name')
             State.set('mod.installed', false)
 
+            const versionFilePath = path.join(paths.music, 'version')
+            try {
+                if (fs.existsSync(versionFilePath)) {
+                    await fs.promises.unlink(versionFilePath)
+                }
+            } catch (e) {
+                logger.modManager.warn('Failed to delete version file:', e)
+            }
+
             await deleteFfmpeg()
 
             if (!(await isYandexMusicRunning()) && wasClosed) {
-                launchYandexMusic()
-                return setTimeout(() => sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true }), 500)
+                await launchYandexMusic()
+                return setTimeout(() => sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true }), 1500)
             }
             sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {

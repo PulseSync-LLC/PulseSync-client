@@ -338,10 +338,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsUpdating(true)
         const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
         downloadToastIdRef.current = id
-        const { modVersion, downloadUrl, checksum, spoof, name, shouldReinstall, downloadUnpackedUrl } = modInfo[0]
+        const { modVersion, realMusicVersion, downloadUrl, checksum, spoof, name, shouldReinstall, downloadUnpackedUrl } = modInfo[0]
         console.log(modInfo[0])
         window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
             version: modVersion,
+            musicVersion: realMusicVersion,
             name,
             link: downloadUrl,
             unpackLink: downloadUnpackedUrl,
@@ -401,7 +402,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/trackinfo" text="Информация о треке">
+                            <NavButtonPulse to="/" text="Информация о треке">
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/extension" text="Аддоны Бета" disabled={!musicInstalled}>

@@ -262,6 +262,11 @@ const schema = {
                 description: 'Версия мода',
                 default: '',
             },
+            realMusicVersion: {
+                type: 'string',
+                description: 'Реальная версия музыки',
+                default: '',
+            },
             installed: {
                 type: 'boolean',
                 description: 'Флаг, указывающий, установлен ли мод',
@@ -273,10 +278,11 @@ const schema = {
                 default: false,
             },
         },
-        required: ['musicVersion', 'name', 'version', 'installed', 'updated'],
+        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated'],
         additionalProperties: false,
         default: {
             musicVersion: '',
+            realMusicVersion: '',
             name: '',
             version: '',
             installed: false,
