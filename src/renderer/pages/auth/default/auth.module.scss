@@ -13,29 +13,33 @@
     .img1 {
         pointer-events: none;
         position: absolute;
-        top: -290px;
-        right: -176px;
-        rotate: 32deg;
-        min-width: 820px;
-        min-height: 780px;
+        top: -130px;
+        left: -120px;
+        rotate: -21deg;
     }
 
     .img2 {
         pointer-events: none;
         position: absolute;
-        bottom: -80px;
-        right: -108px;
-        rotate: 4deg;
-        min-width: 520px;
+        bottom: -640px;
+        left: -540px;
+        rotate: -21deg;
     }
 
     .img3 {
         pointer-events: none;
         position: absolute;
-        left: -180px;
-        bottom: -200px;
-        min-width: 660px;
-        rotate: 6deg;
+        right: -150px;
+        bottom: -180px;
+        rotate: 48deg;
+    }
+
+    .img4 {
+        pointer-events: none;
+        position: absolute;
+        right: -550px;
+        top: -330px;
+        rotate: 355deg;
     }
 
     .filter {
@@ -49,26 +53,16 @@
         mix-blend-mode: color-burn;
     }
 
-    .hat {
-        pointer-events: none;
-        position: absolute;
-        right: 0px;
-        top: 0px;
-        rotate: 355deg;
-        align-self: anchor-center;
-        justify-self: anchor-center;
-        transform: translate(-160px, -40px);
-    }
-
     .background {
         pointer-events: none;
+
         position: absolute;
         width: 100%;
         height: 100%;
         left: 0;
         top: 0;
-        background: radial-gradient(77.12% 94.8% at 50.03% 47.75%, #10ff00 0%, #6809ff 100%);
-        mix-blend-mode: color;
+        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        mix-blend-mode: lighten;
     }
 
     .container {
@@ -106,7 +100,7 @@
             align-items: flex-start;
             padding: 16px 22px;
             gap: 10px;
-            background: #ff4040;
+            background: rgba(22, 24, 30, 0.7);
             border-radius: 8px;
             width: 360px;
             font-weight: 900;
@@ -125,7 +119,7 @@
             }
 
             &:hover {
-                background: rgb(255 58 58 / 77%);
+                background: rgba(36, 46, 75, 0.7);
             }
         }
 
@@ -149,14 +143,4 @@
             }
         }
     }
-}
-
-.snowfall-canvas {
-    pointer-events: none;
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    opacity: 0.8;
 }

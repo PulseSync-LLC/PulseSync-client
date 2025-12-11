@@ -7,7 +7,6 @@ import config from '../../../api/web_config'
 
 import AppNameLogo from './../../../../../static/assets/icon/AppName.svg'
 
-import Snowfall from "./Snowfall"  
 import * as pageStyles from './winter_auth.module.scss'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../../api/store/store'
@@ -20,6 +19,7 @@ export default function AuthPage() {
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)
+    const img4Ref = useRef(null)
     const imgLogo = useRef(null)
 
     const startAuthProcess = () => {
@@ -63,8 +63,9 @@ export default function AuthPage() {
 
             const movementIntensity = [
                 { ref: img1Ref, factor: 20, rotation: 5 },
-                { ref: img2Ref, factor: 20, rotation: -5 },
-                { ref: img3Ref, factor: 20, rotation: 5 },
+                { ref: img2Ref, factor: 40, rotation: -5 },
+                { ref: img3Ref, factor: 60, rotation: 7 },
+                { ref: img4Ref, factor: 80, rotation: -7 },
                 { ref: imgLogo, factor: -10, rotation: 0 },
             ]
 
@@ -96,17 +97,16 @@ export default function AuthPage() {
     return (
         <>
             <Header />
-            <Snowfall />
             <div className={pageStyles.main_window}>
-                <img ref={img1Ref} className={pageStyles.img1} src="./static/assets/images/winter/balls.png" alt="Flat Cylinder" />
-                <img ref={img2Ref} className={pageStyles.img2} src="./static/assets/images/winter/charactertree.png" alt="Thorus Knot" />
-                <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/winter/snowman.png" alt="Pyramid" />
+                <img ref={img1Ref} className={pageStyles.img1} src="./static/assets/images/normalAuth/FlatCylinder.png" alt="Flat Cylinder" />
+                <img ref={img2Ref} className={pageStyles.img2} src="./static/assets/images/normalAuth/ThorusKnot.png" alt="Thorus Knot" />
+                <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/normalAuth/Pyramid.png" alt="Pyramid" />
+                <img ref={img4Ref} className={pageStyles.img4} src="./static/assets/images/normalAuth/Icosahedron.png" alt="Icosahedron" />
                 <div className={pageStyles.filter}></div>
                 <div className={pageStyles.background}></div>
                 <div className={pageStyles.container} ref={imgLogo}>
                     <div className={pageStyles.logoName}>
                         <AppNameLogo />
-                        <img className={pageStyles.hat} src="./static/assets/images/winter/hat.png" />
                     </div>
                     {isDeprecated ? (
                         <>
