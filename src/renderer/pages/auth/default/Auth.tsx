@@ -7,7 +7,7 @@ import config from '../../../api/web_config'
 
 import AppNameLogo from './../../../../../static/assets/icon/AppName.svg'
 
-import * as pageStyles from './winter_auth.module.scss'
+import * as pageStyles from './auth.module.scss'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../../api/store/store'
 import MainEvents from '../../../../common/types/mainEvents'
