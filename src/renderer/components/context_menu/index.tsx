@@ -31,7 +31,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp, widgetInstalled } = useContext(userContext)
+    const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
@@ -83,10 +83,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
         const handleSuccess = () => {
             toast.custom('success', 'Готово', 'Виджет OBS успешно установлен', { id: toastId })
-            setApp((prevApp: SettingsInterface) => ({
-                ...prevApp,
-                widgetInstalled: true,
-            }))
+            setWidgetInstalled(true)
         }
 
         const handleFailure = (event: any, args: any) => {
@@ -103,10 +100,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
         const handleSuccess = () => {
             toast.custom('success', 'Готово', 'Виджет OBS успешно удален', { id: toastId })
-            setApp((prevApp: SettingsInterface) => ({
-                ...prevApp,
-                widgetInstalled: false,
-            }))
+            setWidgetInstalled(false)
         }
 
         const handleFailure = (event: any, args: any) => {
