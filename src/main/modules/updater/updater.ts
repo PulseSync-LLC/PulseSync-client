@@ -1,25 +1,21 @@
 import * as semver from 'semver'
 import { app, dialog } from 'electron'
-import { autoUpdater, ProgressInfo } from 'electron-updater'
+import { autoUpdater, ProgressInfo, UpdateCheckResult, UpdateInfo as ElectronUpdateInfo } from 'electron-updater'
 import { state } from '../handlers/state'
-import RendererEvents from '../../../common/types/rendererEvents'
+import Events from '../../../common/types/rendererEvents'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
 import isAppDev from 'electron-is-dev'
 import { mainWindow } from '../createWindow'
 
-type UpdateInfo = {
-    version: string
+type ExtendedUpdateInfo = ElectronUpdateInfo & {
     updateUrgency?: UpdateUrgency
-    commonConfig?: any
+    commonConfig?: Record<string, any>
 }
 
-type DownloadResult = any
-
-type UpdateResult = {
-    downloadPromise?: Promise<DownloadResult>
-    updateInfo: UpdateInfo
+type ExtendedUpdateCheckResult = Omit<UpdateCheckResult, 'updateInfo'> & {
+    updateInfo: ExtendedUpdateInfo
 }
 
 class Updater {
@@ -27,14 +23,16 @@ class Updater {
     private updateStatus: UpdateStatus = UpdateStatus.IDLE
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
-    private commonConfig: any
+    private commonConfig: Record<string, any> = {}
+    private isChecking = false
+    private isDisposed = false
 
     constructor() {
-        this.commonConfig = this.commonConfig || {}
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.autoDownload = true
         autoUpdater.disableWebInstaller = true
+
         autoUpdater.on('error', error => {
             logger.updater.error('Updater error', error)
         })
@@ -42,138 +40,226 @@ class Updater {
         autoUpdater.on('checking-for-update', () => {
             logger.updater.log('Checking for update')
         })
-        autoUpdater.on(RendererEvents.DOWNLOAD_PROGRESS, (info: ProgressInfo) => {
-            mainWindow.setProgressBar(info.percent / 100)
+
+        autoUpdater.on(Events.DOWNLOAD_PROGRESS, (info: ProgressInfo) => {
+            this.safeSetProgressBar(info.percent / 100)
             logger.updater.log('Download progress', info.percent)
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, info.percent)
+            this.safeSend(Events.DOWNLOAD_UPDATE_PROGRESS, info.percent)
         })
-        autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
+
+        autoUpdater.on('update-not-available', () => {
+            logger.updater.log('No updates available')
+            this.safeSend(Events.CHECK_UPDATE, { updateAvailable: false })
+        })
+
+        autoUpdater.on('update-available', (info: ElectronUpdateInfo) => {
+            logger.updater.log('Update available', info?.version)
+            if (info?.version) {
+                this.latestAvailableVersion = info.version
+            }
+            this.safeSend(Events.CHECK_UPDATE, { updateAvailable: true })
+        })
+
+        autoUpdater.on('update-downloaded', (rawInfo: ElectronUpdateInfo) => {
+            const updateInfo = rawInfo as ExtendedUpdateInfo
+
             logger.updater.log('Update downloaded', updateInfo.version)
-            mainWindow.setProgressBar(-1)
+
+            this.latestAvailableVersion = updateInfo.version
+            this.updateStatus = UpdateStatus.DOWNLOADED
+
+            this.safeSetProgressBar(-1)
+
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
-                logger.updater.log('This update should be installed now')
+                logger.updater.log('This update should be installed now (HARD)')
                 this.install()
                 return
             }
 
-            if (this.commonConfig && this.commonConfig.DEPRECATED_VERSIONS) {
-                const isDeprecatedVersion = semver.satisfies(app.getVersion(), this.commonConfig.DEPRECATED_VERSIONS)
+            if (updateInfo.commonConfig !== undefined) {
+                this.applyCommonConfig(updateInfo.commonConfig)
+            }
+
+            if (this.commonConfig?.DEPRECATED_VERSIONS) {
+                const deprecatedRange = this.commonConfig.DEPRECATED_VERSIONS
+                const currentVersion = app.getVersion()
+
+                let isDeprecatedVersion = false
+                try {
+                    if (semver.valid(currentVersion)) {
+                        isDeprecatedVersion = semver.satisfies(currentVersion, deprecatedRange)
+                    } else {
+                        const coerced = semver.coerce(currentVersion)
+                        isDeprecatedVersion = semver.satisfies(coerced?.version || '0.0.0', deprecatedRange)
+                    }
+                } catch (e) {
+                    logger.updater.error('Failed to evaluate DEPRECATED_VERSIONS range', e)
+                }
+
                 if (isDeprecatedVersion) {
-                    logger.updater.log('This version is deprecated', app.getVersion(), this.commonConfig.DEPRECATED_VERSIONS)
+                    logger.updater.log('This version is deprecated', currentVersion, deprecatedRange)
                     this.install()
                     return
                 }
             }
 
-            this.latestAvailableVersion = updateInfo.version
+            this.safeSend(Events.DOWNLOAD_UPDATE_FINISHED)
+            this.safeFlashFrame(true)
+            this.safeSend(Events.UPDATE_APP_DATA, { update: true })
+            this.safeSend(Events.UPDATE_AVAILABLE, this.latestAvailableVersion)
+
             this.onUpdateListeners.forEach(listener => listener(updateInfo.version))
         })
     }
 
-    private updateApplier(updateResult: UpdateResult) {
+    private safeSend(channel: string, payload?: any) {
+        try {
+            if (!mainWindow || mainWindow.isDestroyed()) return
+            mainWindow.webContents.send(channel as any, payload)
+        } catch (e) {
+            logger.updater.error('safeSend error', e)
+        }
+    }
+
+    private safeSetProgressBar(value: number) {
+        try {
+            if (!mainWindow || mainWindow.isDestroyed()) return
+            mainWindow.setProgressBar(value)
+        } catch (e) {
+            logger.updater.error('safeSetProgressBar error', e)
+        }
+    }
+
+    private safeFlashFrame(flag: boolean) {
+        try {
+            if (!mainWindow || mainWindow.isDestroyed()) return
+            mainWindow.flashFrame(flag)
+        } catch (e) {
+            logger.updater.error('safeFlashFrame error', e)
+        }
+    }
+
+    private applyCommonConfig(commonConfig: Record<string, any>) {
+        logger.updater.info('Common config', commonConfig)
+        for (const key in commonConfig) {
+            if (Object.prototype.hasOwnProperty.call(commonConfig, key)) {
+                this.commonConfig[key] = commonConfig[key]
+                logger.updater.info(`Updated commonConfig: ${key} = ${commonConfig[key]}`)
+            }
+        }
+    }
+
+    private updateApplier(updateResult: ExtendedUpdateCheckResult | null) {
+        if (!updateResult) {
+            this.safeSend(Events.CHECK_UPDATE, { updateAvailable: false })
+            return
+        }
+
         const { downloadPromise, updateInfo } = updateResult
 
-        if (updateInfo.updateUrgency !== undefined) {
+        if (updateInfo?.updateUrgency !== undefined) {
             logger.updater.info('Urgency', updateInfo.updateUrgency)
         }
 
-        if (updateInfo.commonConfig !== undefined) {
-            logger.updater.info('Common config', updateInfo.commonConfig)
-            for (const key in updateInfo.commonConfig) {
-                if (updateInfo.commonConfig.hasOwnProperty(key)) {
-                    if (!this.commonConfig) {
-                        this.commonConfig = {}
-                    }
-                    this.commonConfig[key] = updateInfo.commonConfig[key]
-                    logger.updater.info(`Updated commonConfig: ${key} = ${updateInfo.commonConfig[key]}`)
-                }
-            }
+        if (updateInfo?.commonConfig !== undefined) {
+            this.applyCommonConfig(updateInfo.commonConfig)
         }
 
-        if (!downloadPromise) {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, {
-                updateAvailable: false,
-            })
-            return
-        } else {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, {
-                updateAvailable: true,
-            })
-        }
+        this.latestAvailableVersion = updateInfo?.version || this.latestAvailableVersion
+        this.safeSend(Events.CHECK_UPDATE, { updateAvailable: true })
 
         logger.updater.info('New version available', app.getVersion(), '->', updateInfo.version)
+
         this.updateStatus = UpdateStatus.DOWNLOADING
 
-        downloadPromise
-            .then(downloadResult => {
-                if (downloadResult) {
-                    this.updateStatus = UpdateStatus.DOWNLOADED
-                    logger.updater.info(`Download result: ${downloadResult}`)
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                    mainWindow.setProgressBar(-1)
-                    mainWindow.flashFrame(true)
-                    mainWindow.webContents.send(RendererEvents.UPDATE_APP_DATA, {
-                        update: true,
-                    })
-                }
-            })
-            .catch(error => {
+        if (downloadPromise) {
+            downloadPromise.catch(error => {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
-                mainWindow.setProgressBar(-1)
-                mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+                this.safeSetProgressBar(-1)
+                this.safeSend(Events.DOWNLOAD_UPDATE_FAILED)
             })
+            return
+        }
+
+        autoUpdater.downloadUpdate().catch(error => {
+            this.updateStatus = UpdateStatus.IDLE
+            logger.updater.error('downloadUpdate error', error)
+            this.safeSetProgressBar(-1)
+            this.safeSend(Events.DOWNLOAD_UPDATE_FAILED)
+        })
     }
 
-    async check(): Promise<UpdateStatus> {
+    async check(): Promise<UpdateStatus | null> {
+        if (this.isDisposed) return this.updateStatus
+
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
             if (this.updateStatus === UpdateStatus.DOWNLOADED) {
-                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, this.latestAvailableVersion)
-                mainWindow.flashFrame(true)
+                this.safeSend(Events.UPDATE_AVAILABLE, this.latestAvailableVersion)
+                this.safeFlashFrame(true)
             }
             return this.updateStatus
         }
 
+        if (this.isChecking) {
+            logger.updater.log('Check is already running, skipping')
+            return this.updateStatus
+        }
+
+        this.isChecking = true
         try {
-            const updateResult = await autoUpdater.checkForUpdatesAndNotify({
+            const updateResult = (await autoUpdater.checkForUpdatesAndNotify({
                 title: 'Новое обновление готово к установке',
                 body: `PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения`,
-            })
+            })) as ExtendedUpdateCheckResult | null
+
             if (!updateResult) {
                 logger.updater.log('Обновлений не найдено')
+                this.safeSend(Events.CHECK_UPDATE, { updateAvailable: false })
                 return null
             }
+
             this.updateApplier(updateResult)
-        } catch (error) {
-            if (error.code === 'ENOENT' && error.path && error.path.endsWith('app-update.yml')) {
+        } catch (err: any) {
+            const error = err as any
+
+            if (error?.code === 'ENOENT' && typeof error?.path === 'string' && error.path.endsWith('app-update.yml')) {
                 if (!isAppDev) {
-                    logger.updater.error(`File app-update.yml not found.`, error)
+                    logger.updater.error('File app-update.yml not found.', error)
                     dialog.showErrorBox('Ошибка', 'Файлы приложения повреждены. Переустановите приложение.')
                     app.quit()
                 }
             } else {
                 logger.updater.error('Error: checking for updates', error)
             }
+        } finally {
+            this.isChecking = false
         }
+
         return this.updateStatus
     }
 
-    start() {
+    start(intervalMs: number = 900000) {
+        this.stop()
         this.check()
         this.updaterId = setInterval(() => {
             this.check()
-        }, 900000)
+        }, intervalMs)
     }
 
     stop() {
         if (this.updaterId) {
             clearInterval(this.updaterId)
+            this.updaterId = null
         }
     }
 
     onUpdate(listener: (version: string) => void) {
         this.onUpdateListeners.push(listener)
+        return () => {
+            this.onUpdateListeners = this.onUpdateListeners.filter(l => l !== listener)
+        }
     }
 
     install() {
@@ -181,8 +267,25 @@ class Updater {
         state.willQuit = true
         autoUpdater.quitAndInstall(true, true)
     }
+
+    dispose() {
+        this.isDisposed = true
+        this.stop()
+        try {
+            autoUpdater.removeAllListeners('error')
+            autoUpdater.removeAllListeners('checking-for-update')
+            autoUpdater.removeAllListeners(Events.DOWNLOAD_PROGRESS)
+            autoUpdater.removeAllListeners('update-not-available')
+            autoUpdater.removeAllListeners('update-available')
+            autoUpdater.removeAllListeners('update-downloaded')
+        } catch (e) {
+            logger.updater.error('dispose error', e)
+        }
+    }
 }
+
 exports.Updater = Updater
+
 export const getUpdater = (() => {
     let updater: Updater | undefined
     return () => {
