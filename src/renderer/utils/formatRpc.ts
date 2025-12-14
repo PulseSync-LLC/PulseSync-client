@@ -2,6 +2,7 @@ import { Track, Album } from '../api/interfaces/track.interface'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { getCoverImage } from './utils'
+import UserInterface from '../api/interfaces/user.interface'
 
 export function truncateLabel(label: string, maxLength = 30) {
     return label.length > maxLength ? label.slice(0, maxLength) : label
@@ -70,7 +71,7 @@ export const STATUS_DISPLAY_TYPES: Record<number, number> = {
     2: 2,
 }
 
-export function buildActivityButtons(t: Track, settings: SettingsInterface) {
+export function buildActivityButtons(t: Track, settings: SettingsInterface, user?: UserInterface) {
     const buttons: { label: string; url: string }[] = []
     const { shareTrackPathYnison, shareTrackPathRegular } = buildShareLinks(t)
     const shareTrackPath = t.sourceType === 'ynison' ? shareTrackPathYnison : shareTrackPathRegular
@@ -123,7 +124,7 @@ export function buildActivityButtons(t: Track, settings: SettingsInterface) {
     return buttons.length > 2 ? buttons.slice(0, 2) : buttons.length ? buttons : undefined
 }
 
-export function buildDiscordActivity(t: Track, settings: SettingsInterface): SetActivity | null {
+export function buildDiscordActivity(t: Track, settings: SettingsInterface, user?: UserInterface): SetActivity | null {
     if (!t.title) return null
     if (t.status === 'paused' && !settings.discordRpc.displayPause) return null
 
@@ -131,13 +132,14 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
     const album: Album | undefined = Array.isArray(t.albums) && t.albums.length > 0 ? t.albums[0] : undefined
     const isGenerative = typeof t.id === 'string' && t.id.includes('generative')
     const withSmall = settings.discordRpc.showSmallIcon
+    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
 
     const base: SetActivity = {
         type: 2,
         statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
         largeImageKey: getCoverImage(t),
-        largeImageText: stripAfterDash(`PulseSync ${settings.info.version}`),
-        largeImageUrl: 'https://pulsesync.dev',
+        largeImageText: hasSupporter ? '' : stripAfterDash(`PulseSync ${settings.info.version}`),
+        largeImageUrl: hasSupporter ? undefined : 'https://pulsesync.dev',
     }
 
     if (album?.title && album.title !== t.title) {
@@ -163,7 +165,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
             activity.endTimestamp = Math.floor(start + (t.durationMs ?? 0))
         }
 
-        const buttons = buildActivityButtons(t, settings)
+        const buttons = buildActivityButtons(t, settings, user)
         if (buttons) activity.buttons = buttons
         return activity
     } else {
@@ -212,7 +214,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
             delete activity.state
         }
 
-        const buttons = buildActivityButtons(t, settings)
+        const buttons = buildActivityButtons(t, settings, user)
         if (buttons) activity.buttons = buttons
         return activity
     }

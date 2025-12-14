@@ -530,12 +530,15 @@ function App() {
     useEffect(() => {
         if (user.id !== '-1' && realtimeSocketRef.current) {
             const newToken = getUserToken()
-            if (realtimeSocketRef.current.auth && newToken) {
+            if (newToken && realtimeSocketRef.current.auth) {
+                const wasConnected = realtimeSocketRef.current.connected
+
                 realtimeSocketRef.current.auth = {
                     ...realtimeSocketRef.current.auth,
                     token: newToken,
                 }
-                if (realtimeSocketRef.current.connected) {
+
+                if (wasConnected) {
                     realtimeSocketRef.current.disconnect()
                     realtimeSocketRef.current.connect()
                 }
@@ -1036,7 +1039,7 @@ const Player: React.FC<any> = ({ children }) => {
             return
         }
 
-        const activity = buildDiscordActivity(track, app)
+        const activity = buildDiscordActivity(track, app, user)
 
         if (!activity) {
             if ((window as any)?.discordRpc?.clearActivity) {
@@ -1048,7 +1051,7 @@ const Player: React.FC<any> = ({ children }) => {
         if ((window as any)?.discordRpc?.setActivity) {
             ;(window as any).discordRpc.setActivity(activity)
         }
-    }, [app, user.id, track])
+    }, [app, user.id, track, user])
 
     useEffect(() => {
         if (!socket || !features.sendTrack) return
