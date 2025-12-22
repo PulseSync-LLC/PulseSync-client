@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
+import RendererEvents from '../common/types/rendererEvents'
 
 export interface DesktopEvents {
     send(channel: string, ...args: any[]): void
@@ -105,3 +106,10 @@ const desktopEvents: DesktopEvents = {
     },
 }
 contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)
+
+let pendingPulseSyncData: any = null
+ipcRenderer.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, (event, data) => {
+    pendingPulseSyncData = data
+    ;(window as any).__pendingPulseSyncData = data
+})
+

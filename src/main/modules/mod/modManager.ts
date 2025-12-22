@@ -114,6 +114,7 @@ export const modManager = (window: BrowserWindow): void => {
                     musicVersion: ymMetadata?.version,
                     realMusicVersion: musicVersion,
                     name,
+                    checksum,
                     installed: true,
                 })
 

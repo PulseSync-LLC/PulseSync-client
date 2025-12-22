@@ -7,6 +7,7 @@ import { Provider } from 'react-redux'
 import store from './api/store/store'
 import client from './api/apolloClient'
 import { ApolloProvider } from '@apollo/client/react'
+import ModalContainer from './components/layout/ModalContainer'
 
 function App() {
     Modal.setAppElement('#root')
@@ -14,6 +15,7 @@ function App() {
         <Provider store={store}>
             <ErrorBoundary>
                 <ApolloProvider client={client}>
+                    <ModalContainer />
                     <AppPage />
                 </ApolloProvider>
             </ErrorBoundary>

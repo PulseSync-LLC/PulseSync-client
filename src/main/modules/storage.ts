@@ -277,8 +277,13 @@ const schema = {
                 description: 'Флаг, указывающий, обновлен ли мод до последней версии',
                 default: false,
             },
+            checksum: {
+                type: 'string',
+                description: 'Контрольная сумма мода',
+                default: '',
+            },
         },
-        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated'],
+        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum'],
         additionalProperties: false,
         default: {
             musicVersion: '',
@@ -287,6 +292,7 @@ const schema = {
             version: '',
             installed: false,
             updated: false,
+            checksum: '',
         },
     },
 

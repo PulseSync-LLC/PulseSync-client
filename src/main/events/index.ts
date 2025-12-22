@@ -6,7 +6,7 @@ import * as fsp from 'fs/promises'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, musicPath, updated } from '../../index'
+import { corsAnywherePort, musicPath, readBufResilient, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
@@ -16,7 +16,7 @@ import { exec, execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getInstalledYmMetadata, getYandexMusicAppDataPath, getYandexMusicMetadata, isLinux, isMac, isWindows } from '../utils/appUtils'
+import { checkMusic, getInstalledYmMetadata, getYandexMusicAppDataPath, isLinux, isMac, findAppByName, uninstallApp } from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -178,55 +178,6 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UI_READY, () => {
         get_current_track()
     })
-}
-
-const readBufResilient = async (p0: string): Promise<Buffer> => {
-    if (!p0) throw new Error('empty path')
-
-    const candidates: string[] = []
-
-    if (p0.startsWith('file://')) {
-        try {
-            const u = new URL(p0)
-            candidates.push(path.normalize(decodeURI(u.pathname)))
-        } catch {}
-    }
-
-    const norm = path.normalize(p0)
-    candidates.push(norm)
-
-    if (process.platform === 'win32') {
-        candidates.push(norm.replace(/\//g, '\\'))
-        candidates.push(norm.replace(/\\/g, '/'))
-        if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
-    }
-
-    try {
-        candidates.push(norm.normalize('NFC'))
-    } catch {}
-    try {
-        candidates.push(norm.normalize('NFD'))
-    } catch {}
-
-    candidates.push(norm.replace(/^["']|["']$/g, ''))
-
-    let lastErr: any = null
-    for (const p of candidates) {
-        try {
-            return await fsp.readFile(p)
-        } catch (e1) {
-            lastErr = e1
-            try {
-                const buf = await new Promise<Buffer>((resolve, reject) => {
-                    fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
-                })
-                return buf
-            } catch (e2) {
-                lastErr = e2
-            }
-        }
-    }
-    throw lastErr ?? new Error('Unable to read file')
 }
 
 const registerFileOperations = (window: BrowserWindow): void => {
@@ -664,6 +615,49 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     })
 }
 
+const registerYandexMusicEvents = (window: BrowserWindow): void => {
+    ipcMain.on('DELETE_YANDEX_MUSIC_APP', async _event => {
+        try {
+            logger.main.info('Starting Yandex Music uninstallation...')
+
+            const namePart = 'Yandex.Music'
+            const pkg = await findAppByName(namePart)
+
+            if (!pkg) {
+                logger.main.warn('Yandex Music app not found')
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: false,
+                    message: 'Приложение Яндекс Музыка не найдено',
+                })
+                return
+            }
+
+            try {
+                logger.main.info(`Uninstalling Yandex Music: ${pkg.PackageFullName}`)
+                await uninstallApp(pkg.PackageFullName)
+
+                logger.main.info('Yandex Music uninstalled successfully')
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: true,
+                    message: 'Яндекс Музыка удалена',
+                })
+            } catch (uninstallErr) {
+                logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: false,
+                    message: `Не удалось удалить приложение: ${(uninstallErr as Error).message}`,
+                })
+            }
+        } catch (error: any) {
+            logger.main.error(`Uninstall exception: ${error.message}`)
+            window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                success: false,
+                message: 'Ошибка при удалении приложения',
+            })
+        }
+    })
+}
+
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerSettingsEvents()
@@ -678,6 +672,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
+    registerYandexMusicEvents(window)
     obsWidgetManager(window, app)
 }
 

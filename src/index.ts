@@ -7,7 +7,7 @@ import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
+import { checkAsar, formatJson, getPathToYandexMusic, isLinux, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -17,6 +17,7 @@ import * as dns from 'node:dns'
 import { checkCLIArguments } from './main/utils/processUtils'
 import { initializeCorsAnywhere, registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
+import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import Addon from './renderer/api/interfaces/addon.interface'
@@ -51,6 +52,20 @@ const mimeByExt: Record<string, string> = {
     '.webp': 'image/webp',
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
+}
+const checkOldYandexMusic = async () => {
+    try {
+        const { findAppByName } = await import('./main/utils/appUtils')
+        const namePart = 'Yandex.Music'
+        const pkg = await findAppByName(namePart)
+
+        if (pkg && mainWindow && !mainWindow.isDestroyed()) {
+            logger.main.info('Old Yandex Music found, sending dialog event to renderer')
+            mainWindow.webContents.send('SHOW_YANDEX_MUSIC_UPDATE_DIALOG')
+        }
+    } catch (err) {
+        HandleErrorsElectron.handleError('prestartCheck', 'checkOldYandexMusic', 'app_startup', err)
+    }
 }
 
 const initializeMusicPath = async () => {
@@ -94,41 +109,6 @@ if (!isAppDev) {
     }
 }
 
-const checkOldYandexMusic = async () => {
-    try {
-        const namePart = 'Yandex.Music'
-        const pkg: AppxPackage | null = await findAppByName(namePart)
-
-        if (pkg) {
-            const info = `Найдена старая версия Яндекс.Музыки, ` + `её наличие будет мешать работе мода. ` + `Приложение необходимо удалить.`
-
-            const { response } = await dialog.showMessageBox({
-                type: 'warning',
-                buttons: ['Удалить', 'Отмена'],
-                defaultId: 0,
-                cancelId: 1,
-                title: 'Старая версия Яндекс.Музыки обнаружена',
-                message: info,
-            })
-
-            if (response === 0) {
-                try {
-                    await uninstallApp(pkg.PackageFullName)
-                    app.relaunch()
-                    app.exit(0)
-                } catch (err) {
-                    await dialog.showMessageBox({
-                        type: 'error',
-                        title: 'Ошибка удаления',
-                        message: `Не удалось удалить приложение:\n${(err as Error).message}`,
-                    })
-                }
-            }
-        }
-    } catch (err) {
-        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', err)
-    }
-}
 
 app.on('ready', async () => {
     try {
@@ -137,12 +117,18 @@ app.on('ready', async () => {
 
         corsAnywherePort = await initializeCorsAnywhere()
         updated = checkCLIArguments(isAppDev)
-        if (isWindows()) {
-            await checkOldYandexMusic()
-        }
         await createWindow()
         await checkForSingleInstance()
         handleEvents(mainWindow)
+        if (isWindows()) {
+            await checkOldYandexMusic()
+        }
+        setupPulseSyncDialogHandler()
+        if (isWindows()) {
+            checkAndAddPulseSyncOnStartup(mainWindow).catch(err => {
+                logger.main.warn('Failed to check pulsesync on startup:', err)
+            })
+        }
         modManager(mainWindow)
         createTray()
     } catch (e) {
@@ -211,7 +197,7 @@ const resolveInputPath = (p0: string): string => {
     }
     return norm
 }
-const readBufResilient = async (p0: string): Promise<Buffer> => {
+export const readBufResilient = async (p0: string): Promise<Buffer> => {
     if (!p0) throw new Error('empty path')
     const candidates: string[] = []
     if (p0.startsWith('file://')) {
