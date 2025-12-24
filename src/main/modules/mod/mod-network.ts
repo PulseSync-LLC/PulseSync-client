@@ -57,11 +57,7 @@ async function extractArchiveBuffer(archive: Buffer, destination: string, archiv
     fs.rmSync(destination, { recursive: true, force: true })
     fs.mkdirSync(destination, { recursive: true })
 
-    const archiveType: 'zip' | 'tar' | 'unknown' = archiveName.endsWith('.zip')
-        ? 'zip'
-        : archiveName.endsWith('.tar')
-          ? 'tar'
-          : 'unknown'
+    const archiveType: 'zip' | 'tar' | 'unknown' = archiveName.endsWith('.zip') ? 'zip' : archiveName.endsWith('.tar') ? 'tar' : 'unknown'
 
     if (archiveType === 'zip') {
         const zip = new AdmZip(archive)
@@ -84,6 +80,7 @@ export async function downloadAndUpdateFile(
     savePath: string,
     backupPath: string,
     checksum?: string,
+    cacheDir?: string,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath)) {
@@ -111,6 +108,32 @@ export async function downloadAndUpdateFile(
 
         const fileBuffer = fs.readFileSync(tempFilePath)
         const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath)
+        if (checksum && cacheDir) {
+            try {
+                const cacheFile = path.join(cacheDir, `${checksum}.asar`)
+                await fs.promises.mkdir(cacheDir, { recursive: true })
+                await fs.promises.copyFile(tempFilePath, cacheFile)
+
+                try {
+                    const files = await fs.promises.readdir(cacheDir)
+                    for (const f of files) {
+                        if (f === path.basename(cacheFile)) continue
+                        if (f.toLowerCase().endsWith('.asar')) {
+                            try {
+                                await fs.promises.unlink(path.join(cacheDir, f))
+                            } catch (e) {
+                                logger.modManager.warn('Failed to remove old asar cache file:', f, e)
+                            }
+                        }
+                    }
+                } catch (e: any) {
+                    logger.modManager.warn('Failed to cleanup old asar cache files:', e)
+                }
+            } catch (e: any) {
+                logger.modManager.warn('Failed to cache downloaded mod (inside downloadAndUpdateFile):', e)
+            }
+        }
+
         unlinkIfExists(tempFilePath)
 
         if (!ok) {
@@ -141,6 +164,8 @@ export async function downloadAndExtractUnpacked(
     tempArchivePath: string,
     tempExtractPath: string,
     targetPath: string,
+    checksum?: string,
+    cacheDir?: string,
 ): Promise<boolean> {
     try {
         const ua = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
@@ -148,17 +173,65 @@ export async function downloadAndExtractUnpacked(
         unlinkIfExists(tempArchivePath)
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
 
-        await downloadToTempWithProgress({
-            window,
-            url: link,
-            tempFilePath: tempArchivePath,
-            userAgent: ua,
-            progressScale: 0.4,
-            rejectUnauthorized: false,
-        })
-
-        const rawArchive = fs.readFileSync(tempArchivePath)
         const pathname = new URL(link).pathname
+        const ext = path.extname(pathname) || ''
+        let rawArchive: Buffer | null = null
+
+        if (checksum && cacheDir) {
+            try {
+                await fs.promises.mkdir(cacheDir, { recursive: true })
+            } catch (err) {
+                logger.modManager.warn('Failed to create cache dir for unpacked:', err)
+            }
+            const cacheFile = path.join(cacheDir, `${checksum}${ext}`)
+            if (fs.existsSync(cacheFile)) {
+                logger.modManager.info('Found cached unpacked archive, using it')
+                rawArchive = fs.readFileSync(cacheFile)
+            }
+        }
+
+        if (!rawArchive) {
+            await downloadToTempWithProgress({
+                window,
+                url: link,
+                tempFilePath: tempArchivePath,
+                userAgent: ua,
+                progressScale: 0.4,
+                rejectUnauthorized: false,
+                expectedChecksum: checksum,
+            })
+
+            rawArchive = fs.readFileSync(tempArchivePath)
+
+            if (checksum && cacheDir) {
+                try {
+                    const cacheFile = path.join(cacheDir, `${checksum}${ext}`)
+                    await fs.promises.mkdir(cacheDir, { recursive: true })
+                    await fs.promises.copyFile(tempArchivePath, cacheFile)
+
+                    // Очистим старые кеш-файлы с тем же расширением (оставим только текущий)
+                    try {
+                        const files = await fs.promises.readdir(cacheDir)
+                        for (const f of files) {
+                            if (f === path.basename(cacheFile)) continue
+                            if (f.toLowerCase().endsWith(ext.toLowerCase())) {
+                                try {
+                                    await fs.promises.unlink(path.join(cacheDir, f))
+                                } catch (e) {
+                                    logger.modManager.warn('Failed to remove old unpacked cache file:', f, e)
+                                }
+                            }
+                        }
+                    } catch (e: any) {
+                        logger.modManager.warn('Failed to cleanup old unpacked cache files:', e)
+                    }
+
+                } catch (e: any) {
+                    logger.modManager.warn('Failed to cache unpacked archive:', e)
+                }
+            }
+        }
+
         const lowerPath = pathname.toLowerCase()
         let decompressedArchive: Buffer
         if (lowerPath.endsWith('.zst') || lowerPath.endsWith('.zstd')) {
@@ -166,7 +239,9 @@ export async function downloadAndExtractUnpacked(
         } else if (lowerPath.endsWith('.gz')) {
             decompressedArchive = await gunzipAsync(rawArchive)
         } else {
-            throw new Error('Неизвестное расширение архива app.asar.unpacked')
+            logger.modManager.error('Неизвестное расширение архива app.asar.unpacked:', pathname)
+            sendFailure(window, { error: 'Неизвестное расширение архива app.asar.unpacked', type: 'download_unpacked_error' })
+            return false
         }
 
         const archiveName = pathname.replace(/\.(zst|zstd|gz)$/i, '')
@@ -178,10 +253,20 @@ export async function downloadAndExtractUnpacked(
         try {
             fs.renameSync(tempExtractPath, targetPath)
         } catch (err: any) {
-            if (err?.code !== 'EXDEV') throw err
+            if (err?.code !== 'EXDEV') {
+                logger.modManager.error('Ошибка при перемещении распакованной папки:', err)
+                sendFailure(window, { error: err?.message || 'Ошибка перемещения unpacked', type: 'download_unpacked_error' })
+                return false
+            }
 
-            fs.cpSync(tempExtractPath, targetPath, { recursive: true })
-            fs.rmSync(tempExtractPath, { recursive: true, force: true })
+            try {
+                fs.cpSync(tempExtractPath, targetPath, { recursive: true })
+                fs.rmSync(tempExtractPath, { recursive: true, force: true })
+            } catch (copyErr: any) {
+                logger.modManager.error('Ошибка при копировании распакованной папки:', copyErr)
+                sendFailure(window, { error: copyErr?.message || 'Ошибка копирования unpacked', type: 'download_unpacked_error' })
+                return false
+            }
         }
 
         resetProgress(window)

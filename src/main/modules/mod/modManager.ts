@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { BrowserWindow, ipcMain, shell, app } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
 import MainEvents from '../../../common/types/mainEvents'
@@ -7,7 +7,6 @@ import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 import { getState } from '../state'
 import logger from '../logger'
 import {
-    copyFile,
     downloadYandexMusic,
     getInstalledYmMetadata,
     isMac,
@@ -20,9 +19,27 @@ import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
 import { nativeFileExists, nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
+import { TEMP_DIR, CACHE_DIR } from '../../constants/paths'
 
 const State = getState()
-const TEMP_DIR = app.getPath('temp')
+
+try {
+    const currentVersion = app.getVersion()
+    const savedVersion = State.get('app.version')
+    if (savedVersion !== currentVersion) {
+        try {
+            if (fs.existsSync(CACHE_DIR)) {
+                logger.modManager.info(`App version changed (${savedVersion} -> ${currentVersion}), clearing mod cache at ${CACHE_DIR}`)
+                fs.rmSync(CACHE_DIR, { recursive: true, force: true })
+            }
+        } catch (err: any) {
+            logger.modManager.warn('Failed to clear mod cache on version change:', err)
+        }
+        State.set('app.version', currentVersion)
+    }
+} catch (err: any) {
+    logger.modManager.warn('Failed to check/clear mod cache on startup:', err)
+}
 
 async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
     const procs = await isYandexMusicRunning()
@@ -44,7 +61,7 @@ function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'versio
 export const modManager = (window: BrowserWindow): void => {
     ipcMain.on(
         MainEvents.UPDATE_MUSIC_ASAR,
-        async (_event, { version, musicVersion, name, link, unpackLink, checksum, shouldReinstall, force, spoof }) => {
+        async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, force, spoof }) => {
             try {
                 if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                     State.set('settings', { musicReinstalled: true })
@@ -82,7 +99,8 @@ export const modManager = (window: BrowserWindow): void => {
                         await downloadYandexMusic('reinstall')
                         return
                     }
-                    throw e
+                    sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
+                    return
                 }
 
                 if (isMac()) {
@@ -96,7 +114,49 @@ export const modManager = (window: BrowserWindow): void => {
                 }
 
                 const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
-                const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum)
+
+                if (checksum) {
+                    const cacheFile = path.join(CACHE_DIR, `${checksum}.asar`)
+                    try {
+                        await fs.promises.mkdir(CACHE_DIR, { recursive: true })
+                    } catch (err) {
+                        logger.modManager.warn('Failed to create cache dir:', err)
+                    }
+
+                    if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
+                        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Использование кеша мода...' })
+                        try {
+                            await fs.promises.copyFile(cacheFile, tempFilePath)
+                            await fs.promises.copyFile(tempFilePath, paths.modAsar)
+
+                            State.set('mod', {
+                                version,
+                                musicVersion: ymMetadata?.version,
+                                realMusicVersion: musicVersion,
+                                name,
+                                checksum,
+                                installed: true,
+                            })
+
+                            const versionFilePath = path.join(paths.music, 'version')
+                            await fs.promises.writeFile(versionFilePath, musicVersion)
+
+                            await installFfmpeg(window)
+                            if (!(await isYandexMusicRunning()) && wasClosed) {
+                                await launchYandexMusic()
+                                return setTimeout(() => sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 1500)
+                            }
+
+                            sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
+                            return
+                        } catch (e: any) {
+                            logger.modManager.warn('Failed to use cache, falling back to download:', e)
+                            resetProgress(window)
+                        }
+                    }
+                }
+
+                const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
                 if (!ok) return
 
                 if (unpackLink) {
@@ -105,7 +165,15 @@ export const modManager = (window: BrowserWindow): void => {
                     const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
                     const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
 
-                    const unpackedOk = await downloadAndExtractUnpacked(window, unpackLink, tempUnpackedArchive, tempUnpackedDir, targetUnpackedDir)
+                    const unpackedOk = await downloadAndExtractUnpacked(
+                        window,
+                        unpackLink,
+                        tempUnpackedArchive,
+                        tempUnpackedDir,
+                        targetUnpackedDir,
+                        unpackedChecksum,
+                        CACHE_DIR,
+                    )
                     if (!unpackedOk) return
                 }
 

@@ -85,7 +85,7 @@ export async function ensureBackup(paths: Paths): Promise<void> {
         throw err
     }
     fs.copyFileSync(source, paths.backupAsar)
-    logger.modManager.info(`Backup created ${path.basename(source)} → ${path.basename(paths.backupAsar)}`)
+    logger.modManager.info(`Backup created ${path.basename(source)} -> ${path.basename(paths.backupAsar)}`)
 }
 
 export async function writePatchedAsarAndPatchBundle(

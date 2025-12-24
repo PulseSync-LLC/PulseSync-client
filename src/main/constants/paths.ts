@@ -23,3 +23,6 @@ export const ONLY_IF_FORCED_CACHE = [
     ASAR_UNPACKED_ZIP_TMP_PATH,
 ]
 export const DEFAULT_CACHE = [ASAR_TMP_BACKUP_PATH, YM_EXE_TMP_BACKUP_PATH, EXTRACTED_ENTITLEMENTS_PATH]
+
+export const TEMP_DIR = electron.app.getPath('temp')
+export const CACHE_DIR = path.join(electron.app.getPath('userData'), 'mod-cache')

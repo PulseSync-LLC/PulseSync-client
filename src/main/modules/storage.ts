@@ -296,6 +296,23 @@ const schema = {
         },
     },
 
+    app: {
+        type: 'object',
+        description: 'Информация о приложении (версия и пр.)',
+        properties: {
+            version: {
+                type: 'string',
+                description: 'Текущая версия приложения',
+                default: '',
+            },
+        },
+        required: ['version'],
+        additionalProperties: false,
+        default: {
+            version: '',
+        },
+    },
+
     tokens: {
         type: 'object',
         description: 'Токены для аутентификации',
