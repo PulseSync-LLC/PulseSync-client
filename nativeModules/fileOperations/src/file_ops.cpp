@@ -13,6 +13,7 @@
 #else
 #include <cerrno>
 #include <cstring>
+#include <dirent.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <unistd.h>
@@ -117,6 +118,89 @@ std::wstring Utf8ToWide(const std::string& s) {
         size
     );
     return result;
+}
+
+bool RemoveDirectoryRecursiveW(const std::wstring& path) {
+    WIN32_FIND_DATAW findData;
+    HANDLE findHandle = FindFirstFileW((path + L"\\*").c_str(), &findData);
+
+    if (findHandle == INVALID_HANDLE_VALUE) {
+        return false;
+    }
+
+    bool success = true;
+    do {
+        std::wstring fileName = findData.cFileName;
+        if (fileName == L"." || fileName == L"..") {
+            continue;
+        }
+
+        std::wstring fullPath = path + L"\\" + fileName;
+
+        if (findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+            if (!RemoveDirectoryRecursiveW(fullPath)) {
+                success = false;
+                break;
+            }
+        } else {
+            if (!DeleteFileW(fullPath.c_str())) {
+                success = false;
+                break;
+            }
+        }
+    } while (FindNextFileW(findHandle, &findData));
+
+    FindClose(findHandle);
+
+    if (success && !RemoveDirectoryW(path.c_str())) {
+        return false;
+    }
+
+    return success;
+}
+#else
+bool RemoveDirectoryRecursive(const std::string& path) {
+    DIR* dir = opendir(path.c_str());
+    if (!dir) {
+        return false;
+    }
+
+    bool success = true;
+    struct dirent* entry;
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string fileName = entry->d_name;
+        if (fileName == "." || fileName == "..") {
+            continue;
+        }
+
+        std::string fullPath = path + "/" + fileName;
+        struct stat st;
+
+        if (stat(fullPath.c_str(), &st) != 0) {
+            success = false;
+            break;
+        }
+
+        if (S_ISDIR(st.st_mode)) {
+            if (!RemoveDirectoryRecursive(fullPath)) {
+                success = false;
+                break;
+            }
+        } else {
+            if (unlink(fullPath.c_str()) != 0) {
+                success = false;
+                break;
+            }
+        }
+    }
+
+    closedir(dir);
+
+    if (success && rmdir(path.c_str()) != 0) {
+        return false;
+    }
+
+    return success;
 }
 #endif
 
@@ -290,15 +374,40 @@ Napi::Value DeleteFileWrapped(const Napi::CallbackInfo& info) {
         return env.Null();
     }
 
-    BOOL ok = DeleteFileW(wpath.c_str());
-    if (!ok) {
-        ThrowFsError(env, "Failed to delete file");
+    DWORD attrs = GetFileAttributesW(wpath.c_str());
+    if (attrs == INVALID_FILE_ATTRIBUTES) {
+        ThrowFsError(env, "Path does not exist");
         return env.Null();
     }
+
+    if (attrs & FILE_ATTRIBUTE_DIRECTORY) {
+        if (!RemoveDirectoryRecursiveW(wpath)) {
+            ThrowFsError(env, "Failed to delete directory");
+            return env.Null();
+        }
+    } else {
+        if (!DeleteFileW(wpath.c_str())) {
+            ThrowFsError(env, "Failed to delete file");
+            return env.Null();
+        }
+    }
 #else
-    if (unlink(path.c_str()) != 0) {
-        ThrowFsError(env, "Failed to delete file");
+    struct stat st;
+    if (stat(path.c_str(), &st) != 0) {
+        ThrowFsError(env, "Path does not exist");
         return env.Null();
+    }
+
+    if (S_ISDIR(st.st_mode)) {
+        if (!RemoveDirectoryRecursive(path)) {
+            ThrowFsError(env, "Failed to delete directory");
+            return env.Null();
+        }
+    } else {
+        if (unlink(path.c_str()) != 0) {
+            ThrowFsError(env, "Failed to delete file");
+            return env.Null();
+        }
     }
 #endif
 

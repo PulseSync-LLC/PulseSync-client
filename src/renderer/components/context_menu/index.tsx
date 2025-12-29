@@ -112,6 +112,22 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.desktopEvents?.send(MainEvents.REMOVE_OBS_WIDGET)
     }
 
+    const clearModCache = () => {
+        const toastId = toast.custom('info', 'Ожидайте', 'Очистка кеша мода...')
+
+        const handleSuccess = () => {
+            toast.custom('success', 'Готово', 'Кеш мода успешно очищен', { id: toastId })
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            toast.custom('error', 'Ошибка', `Не удалось очистить кеш: ${args.error}`, { id: toastId })
+        }
+
+        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.CLEAR_MOD_CACHE)
+    }
+
     const copyWidgetPath = async () => {
         try {
             const widgetPath = await window.desktopEvents?.invoke(MainEvents.GET_OBS_WIDGET_PATH)
@@ -288,6 +304,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 label: 'Проверить обновления мода',
                 onClick: () => window.getModInfo(app),
                 disabled: !app.mod.installed || !app.mod.version,
+            },
+            {
+                label: 'Очистить кеш мода',
+                onClick: clearModCache
             },
             createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),

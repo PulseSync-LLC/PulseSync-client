@@ -18,6 +18,8 @@ import config from '../../renderer/api/web_config'
 import { getState } from './state'
 import { sanitizeScript } from '../utils/addonUtils'
 import axios from 'axios'
+import { resolveBasePaths } from './mod/mod-files'
+import crypto from 'node:crypto'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -357,9 +359,14 @@ const initializeServer = () => {
 
         socket.emit('PING', { message: 'Connected to server' })
 
-        socket.on('READY', () => {
+        socket.on('READY', async () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
+                if (!await checkAsarChecksum()) {
+                    logger.http.warn('Client mod checksum mismatch, disconnecting client.')
+                    socket.disconnect(true)
+                    return;
+                }
                 mainWindow.webContents.send(RendererEvents.CLIENT_READY)
                 ;(socket as any).hasPong = true
                 if (authorized) {
@@ -420,6 +427,14 @@ const initializeServer = () => {
             logger.http.error('HTTP server error:', error)
         }
     })
+}
+const checkAsarChecksum = async (): Promise<boolean> => {
+    const basePaths = await resolveBasePaths()
+    const asarPath = basePaths.modAsar
+    const buf = fs.readFileSync(asarPath)
+    const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
+    const savedChecksum = State.get('mod.checksum')
+    return currentHash === savedChecksum
 }
 const getFilesInDirectory = (dir: string): Record<string, string> =>
     fs.readdirSync(dir).reduce(

@@ -282,8 +282,13 @@ const schema = {
                 description: 'Контрольная сумма мода',
                 default: '',
             },
+            unpackedChecksum: {
+                type: 'string',
+                description: 'Контрольная сумма зависимостей мода',
+                default: '',
+            },
         },
-        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum'],
+        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum', 'unpackedChecksum'],
         additionalProperties: false,
         default: {
             musicVersion: '',
@@ -293,6 +298,7 @@ const schema = {
             installed: false,
             updated: false,
             checksum: '',
+            unpackedChecksum: '',
         },
     },
 

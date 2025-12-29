@@ -24,7 +24,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.957.0",
+        "@aws-sdk/client-s3": "^3.958.0",
         "@babel/core": "^7.28.5",
         "@babel/preset-env": "^7.28.5",
         "@babel/preset-react": "^7.28.5",
@@ -46,8 +46,8 @@
         "@types/react-transition-group": "^4.4.12",
         "@types/systeminformation": "^3.54.1",
         "@types/uuid": "^11.0.0",
-        "@typescript-eslint/eslint-plugin": "^8.50.1",
-        "@typescript-eslint/parser": "^8.50.1",
+        "@typescript-eslint/eslint-plugin": "^8.51.0",
+        "@typescript-eslint/parser": "^8.51.0",
         "@vercel/webpack-asset-relocator-loader": "1.7.3",
         "babel-loader": "^10.0.0",
         "copy-webpack-plugin": "^13.0.1",
@@ -139,12 +139,12 @@
         "sass": "^1.97.1",
         "sass-loader": "^16.0.6",
         "semver": "^7.7.3",
-        "socket.io": "^4.8.2",
-        "socket.io-client": "^4.8.2",
+        "socket.io": "^4.8.3",
+        "socket.io-client": "^4.8.3",
         "source-map-support": "^0.5.21",
         "stream-browserify": "^3.0.0",
         "string-similarity": "^4.0.4",
-        "systeminformation": "^5.27.15",
+        "systeminformation": "^5.28.3",
         "tar": "^7.5.2",
         "url": "^0.11.4",
         "uuid": "^13.0.0",
@@ -162,7 +162,7 @@
     },
     "buildInfo": {
         "VERSION": "2.10.0-beta",
-        "BRANCH": "4e66026",
-        "BUILD_TIME": "21.12.2025, 03:45:19"
+        "BRANCH": "30c3a18",
+        "BUILD_TIME": "30.12.2025, 00:13:37"
     }
 }

@@ -10,6 +10,7 @@ export default gql`
             modVersion
             downloadUrl
             downloadUnpackedUrl
+            unpackedChecksum
             createdAt
             showModal
             shouldReinstall

@@ -1,25 +1,34 @@
-import { BrowserWindow, ipcMain, shell, app } from 'electron'
+import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
+import crypto from 'crypto'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 import { getState } from '../state'
 import logger from '../logger'
 import {
+    closeYandexMusic,
     downloadYandexMusic,
     getInstalledYmMetadata,
     isMac,
     isWindows,
-    closeYandexMusic,
     isYandexMusicRunning,
     launchYandexMusic,
 } from '../../utils/appUtils'
-import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity, Paths } from './mod-files'
+import {
+    ensureBackup,
+    ensureLinuxModPath,
+    Paths,
+    resolveBasePaths,
+    restoreMacIntegrity,
+    restoreWindowsIntegrity,
+    writePatchedAsarAndPatchBundle,
+} from './mod-files'
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
-import { nativeFileExists, nativeRenameFile } from '../nativeModules'
+import { nativeDeleteFile, nativeFileExists, nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
-import { TEMP_DIR, CACHE_DIR } from '../../constants/paths'
+import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 
 const State = getState()
 
@@ -29,7 +38,7 @@ try {
     if (savedVersion !== currentVersion) {
         try {
             if (fs.existsSync(CACHE_DIR)) {
-                logger.modManager.info(`App version changed (${savedVersion} -> ${currentVersion}), clearing mod cache at ${CACHE_DIR}`)
+                logger.modManager.info(`App version changed (${savedVersion} -> ${currentVersion}), clearing mod cache`)
                 fs.rmSync(CACHE_DIR, { recursive: true, force: true })
             }
         } catch (err: any) {
@@ -50,6 +59,36 @@ async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
         return true
     }
     return false
+}
+
+async function tryUseCacheOrDownload(
+    window: BrowserWindow,
+    cacheFile: string,
+    tempFilePath: string,
+    link: string,
+    paths: Paths,
+    checksum: string,
+    cacheDir: string,
+): Promise<boolean> {
+    if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
+        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Using mod cache...' })
+        try {
+            logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
+            await fs.promises.copyFile(cacheFile, tempFilePath)
+            const fileBuffer = fs.readFileSync(tempFilePath)
+            const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar)
+            if (ok) {
+                logger.modManager.info('Successfully restored app.asar from cache')
+                return true
+            } else {
+                logger.modManager.warn('Failed to apply cached file, redownloading')
+            }
+        } catch (e: any) {
+            logger.modManager.warn('Failed to use cache, redownloading:', e)
+            resetProgress(window)
+        }
+    }
+    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir)
 }
 
 function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'version_too_new' | 'unknown' {
@@ -123,41 +162,31 @@ export const modManager = (window: BrowserWindow): void => {
                         logger.modManager.warn('Failed to create cache dir:', err)
                     }
 
-                    if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
-                        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Использование кеша мода...' })
+                    if (nativeFileExists(paths.modAsar) || fs.existsSync(paths.modAsar)) {
                         try {
-                            await fs.promises.copyFile(cacheFile, tempFilePath)
-                            await fs.promises.copyFile(tempFilePath, paths.modAsar)
-
-                            State.set('mod', {
-                                version,
-                                musicVersion: ymMetadata?.version,
-                                realMusicVersion: musicVersion,
-                                name,
-                                checksum,
-                                installed: true,
-                            })
-
-                            const versionFilePath = path.join(paths.music, 'version')
-                            await fs.promises.writeFile(versionFilePath, musicVersion)
-
-                            await installFfmpeg(window)
-                            if (!(await isYandexMusicRunning()) && wasClosed) {
-                                await launchYandexMusic()
-                                return setTimeout(() => sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 1500)
+                            const buf = fs.readFileSync(paths.modAsar)
+                            const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
+                            if (currentHash === checksum) {
+                                logger.modManager.info('app.asar hash matches, skipping download')
+                                sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Мод уже установлен.' })
+                                resetProgress(window)
+                            } else {
+                                const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR)
+                                if (!ok) return
                             }
-
-                            sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
-                            return
                         } catch (e: any) {
-                            logger.modManager.warn('Failed to use cache, falling back to download:', e)
-                            resetProgress(window)
+                            logger.modManager.warn('Failed to verify existing file:', e)
+                            const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
+                            if (!ok) return
                         }
+                    } else {
+                        const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR)
+                        if (!ok) return
                     }
+                } else {
+                    const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
+                    if (!ok) return
                 }
-
-                const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
-                if (!ok) return
 
                 if (unpackLink) {
                     const unpackName = path.basename(new URL(unpackLink).pathname)
@@ -177,12 +206,22 @@ export const modManager = (window: BrowserWindow): void => {
                     if (!unpackedOk) return
                 }
 
+                let actualAsarChecksum = checksum
+                try {
+                    const buf = fs.readFileSync(paths.modAsar)
+                    actualAsarChecksum = crypto.createHash('sha256').update(buf).digest('hex')
+                    logger.modManager.info('Calculated actual asar checksum:', actualAsarChecksum)
+                } catch (e: any) {
+                    logger.modManager.warn('Failed to calculate asar checksum, using provided checksum:', e)
+                }
+
                 State.set('mod', {
                     version,
                     musicVersion: ymMetadata?.version,
                     realMusicVersion: musicVersion,
                     name,
-                    checksum,
+                    checksum: actualAsarChecksum,
+                    unpackedChecksum: unpackedChecksum,
                     installed: true,
                 })
 
@@ -225,6 +264,8 @@ export const modManager = (window: BrowserWindow): void => {
             State.delete('mod.version')
             State.delete('mod.musicVersion')
             State.delete('mod.name')
+            State.delete('mod.checksum')
+            State.delete('mod.unpackedChecksum')
             State.set('mod.installed', false)
 
             const versionFilePath = path.join(paths.music, 'version')
@@ -236,6 +277,15 @@ export const modManager = (window: BrowserWindow): void => {
                 logger.modManager.warn('Failed to delete version file:', e)
             }
 
+            const unpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
+            try {
+                if (fs.existsSync(unpackedDir)) {
+                    nativeDeleteFile(unpackedDir)
+                }
+            } catch (e) {
+                logger.modManager.warn('Failed to delete unpacked dir:', e)
+            }
+
             await deleteFfmpeg()
 
             if (!(await isYandexMusicRunning()) && wasClosed) {
@@ -244,7 +294,7 @@ export const modManager = (window: BrowserWindow): void => {
             }
             sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {
-            logger.modManager.error('Error removing mod:', error)
+            logger.modManager.error('Failed to remove mod:', error)
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })
         }
     })
