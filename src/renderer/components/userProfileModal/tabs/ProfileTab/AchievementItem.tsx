@@ -2,6 +2,9 @@ import React from 'react'
 import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
 import TooltipButton from '../../../tooltip_button'
 import * as achv from '../../achievements.module.scss'
+import { staticAsset } from '../../../../utils/staticAssets'
+
+const fallbackAchievement = staticAsset('assets/images/O^O.png')
 
 interface AchievementItemProps {
     ach: any
@@ -50,9 +53,9 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                         </div>
                         <img
                             className={achv.image}
-                            src={ach.imageUrl || 'static/assets/images/O^O.png'}
+                            src={ach.imageUrl || fallbackAchievement}
                             onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = 'static/assets/images/O^O.png'
+                                ;(e.currentTarget as HTMLImageElement).src = fallbackAchievement
                             }}
                             alt={ach.title}
                         />

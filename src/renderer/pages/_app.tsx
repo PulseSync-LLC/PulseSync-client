@@ -82,6 +82,11 @@ function App() {
 
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
+    const appRef = useRef(app)
+
+    useEffect(() => {
+        appRef.current = app
+    }, [app])
 
     useEffect(() => {
         let mounted = true
@@ -123,80 +128,6 @@ function App() {
         fetchPolicy: 'no-cache',
         skip: !tokenReady || !hasToken,
     })
-
-    useEffect(() => {
-        if (!meData || !tokenReady) return
-        if (meData.getMe && meData.getMe.id) {
-            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
-            ;(async () => {
-                await router.navigate('/', { replace: true })
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                    status: true,
-                    user: {
-                        id: meData.getMe!.id as string,
-                        username: meData.getMe!.username as string,
-                        email: meData.getMe!.email as string,
-                    },
-                })
-                setLoading(false)
-            })()
-        } else {
-            setLoading(false)
-            window.electron.store.delete('tokens.token')
-            ;(async () => {
-                await router.navigate('/auth', { replace: true })
-            })()
-            setUser(userInitials)
-            toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
-            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                status: false,
-            })
-        }
-    }, [meData, tokenReady])
-
-    useEffect(() => {
-        if (!meError) return
-        const message = meError?.message || 'Неизвестная ошибка авторизации.'
-        if (CombinedGraphQLErrors.is(meError)) {
-            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
-            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
-            if (isForbidden) {
-                toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
-                window.electron.store.delete('tokens.token')
-                ;(async () => {
-                    await router.navigate('/auth', { replace: true })
-                })()
-                setUser(userInitials)
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-                setLoading(false)
-                return
-            }
-            if (isDeprecated) {
-                toast.custom(
-                    'error',
-                    'Данная версия приложения устарела',
-                    'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
-                    null,
-                    null,
-                    10000,
-                )
-                window.desktopEvents?.send(MainEvents.UPDATER_START)
-                dispatch(setAppDeprecatedStatus(true))
-                window.electron.store.delete('tokens.token')
-                ;(async () => {
-                    await router.navigate('/auth', { replace: true })
-                })()
-                setUser(userInitials)
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-                setLoading(false)
-                return
-            }
-        }
-        Sentry.captureException(meError)
-        toast.custom('error', 'Может у тебя нет доступа?', message)
-        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-        setLoading(false)
-    }, [meError, dispatch])
 
     const router = useMemo(
         () =>
@@ -285,7 +216,81 @@ function App() {
         [],
     )
 
-    const authorize = async () => {
+    useEffect(() => {
+        if (!meData || !tokenReady) return
+        if (meData.getMe && meData.getMe.id) {
+            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
+            ;(async () => {
+                await router.navigate('/', { replace: true })
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                    status: true,
+                    user: {
+                        id: meData.getMe!.id as string,
+                        username: meData.getMe!.username as string,
+                        email: meData.getMe!.email as string,
+                    },
+                })
+                setLoading(false)
+            })()
+        } else {
+            setLoading(false)
+            window.electron.store.delete('tokens.token')
+            ;(async () => {
+                await router.navigate('/auth', { replace: true })
+            })()
+            setUser(userInitials)
+            toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
+            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                status: false,
+            })
+        }
+    }, [meData, tokenReady, router])
+
+    useEffect(() => {
+        if (!meError) return
+        const message = meError?.message || 'Неизвестная ошибка авторизации.'
+        if (CombinedGraphQLErrors.is(meError)) {
+            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
+            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
+            if (isForbidden) {
+                toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/auth', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+            if (isDeprecated) {
+                toast.custom(
+                    'error',
+                    'Данная версия приложения устарела',
+                    'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
+                    null,
+                    null,
+                    10000,
+                )
+                window.desktopEvents?.send(MainEvents.UPDATER_START)
+                dispatch(setAppDeprecatedStatus(true))
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/auth', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+        }
+        Sentry.captureException(meError)
+        toast.custom('error', 'Может у тебя нет доступа?', message)
+        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+        setLoading(false)
+    }, [meError, dispatch])
+
+    const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
 
         const attemptAuthorization = async (): Promise<boolean> => {
@@ -430,7 +435,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }
+    }, [dispatch, refetchMe, router])
 
     const emitGateway = useCallback(
         (event: string, data: any) => {
@@ -448,48 +453,47 @@ function App() {
     )
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const checkAuthorization = async () => {
-                await authorize()
-            }
+        if (typeof window === 'undefined') return
+        const checkAuthorization = async () => {
+            await authorize()
+        }
 
-            if (user.id === '-1') {
-                checkAuthorization()
-            }
+        if (user.id === '-1') {
+            checkAuthorization()
+        }
 
-            const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
+        const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
 
-            const handleMouseButton = (event: MouseEvent) => {
-                const rawHash = window.location?.hash || ''
-                const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
-                const allowSideButtons = path.startsWith('/users') || path.startsWith('/profile')
+        const handleMouseButton = (event: MouseEvent) => {
+            const rawHash = window.location?.hash || ''
+            const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+            const allowSideButtons = path.startsWith('/users') || path.startsWith('/profile')
 
-                if (!allowSideButtons && (event.button === 3 || event.button === 4)) {
-                    event.preventDefault()
-                }
-            }
-
-            const handleBeforeunload = (_event: BeforeUnloadEvent) => {
-                window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
-            }
-
-            const handleAuthStatus = async (_event: any) => {
-                await authorize()
-            }
-
-            window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
-            window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
-            window.addEventListener('mouseup', handleMouseButton)
-            window.addEventListener('beforeunload', handleBeforeunload)
-
-            return () => {
-                clearInterval(intervalId)
-                window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
-                window.removeEventListener('mouseup', handleMouseButton)
-                window.removeEventListener('beforeunload', handleBeforeunload)
+            if (!allowSideButtons && (event.button === 3 || event.button === 4)) {
+                event.preventDefault()
             }
         }
-    }, [])
+
+        const handleBeforeunload = (_event: BeforeUnloadEvent) => {
+            window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
+        }
+
+        const handleAuthStatus = async () => {
+            await authorize()
+        }
+
+        window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
+        window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
+        window.addEventListener('mouseup', handleMouseButton)
+        window.addEventListener('beforeunload', handleBeforeunload)
+
+        return () => {
+            clearInterval(intervalId)
+            window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
+            window.removeEventListener('mouseup', handleMouseButton)
+            window.removeEventListener('beforeunload', handleBeforeunload)
+        }
+    }, [authorize, user.id])
 
     useEffect(() => {
         if (!zstdReady) return
@@ -637,7 +641,7 @@ function App() {
         }
     }, [connectionErrorCode, isConnected])
 
-    const fetchModInfo = async (app: SettingsInterface) => {
+    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
         try {
             const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
@@ -672,7 +676,7 @@ function App() {
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
         }
-    }
+    }, [])
 
     useEffect(() => {
         if (user.id !== '-1') {
@@ -734,14 +738,14 @@ function App() {
         } else {
             router.navigate('/auth', { replace: true })
         }
-    }, [user.id, zstdReady])
+    }, [fetchModInfo, router, user.id, zstdReady])
 
-    const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
+    const invokeFileEvent = useCallback(async (eventType: string, filePath: string, data?: any) => {
         return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
-    }
+    }, [])
 
-    useEffect(() => {
-        const handleOpenAddon = (_event: any, data: string) => {
+    const handleOpenAddon = useCallback(
+        (_event: any, data: string) => {
             window.desktopEvents
                 ?.invoke(MainEvents.GET_ADDONS)
                 .then((fetchedAddons: Addon[]) => {
@@ -757,7 +761,11 @@ function App() {
                     }
                 })
                 .catch(error => console.error('Error getting themes:', error))
-        }
+        },
+        [setAddons],
+    )
+
+    useEffect(() => {
         window.desktopEvents?.on(RendererEvents.OPEN_ADDON, handleOpenAddon)
         window.desktopEvents?.on(RendererEvents.CHECK_FILE_EXISTS, (_event, filePath) => invokeFileEvent(RendererEvents.CHECK_FILE_EXISTS, filePath))
         window.desktopEvents?.on(RendererEvents.READ_FILE, (_event, filePath) => invokeFileEvent(RendererEvents.READ_FILE, filePath))
@@ -773,13 +781,13 @@ function App() {
             window.desktopEvents?.removeAllListeners(RendererEvents.READ_FILE)
             window.desktopEvents?.removeAllListeners(RendererEvents.WRITE_FILE)
         }
-    }, [])
+    }, [handleOpenAddon, invokeFileEvent])
 
     useEffect(() => {
         if (navigateTo && navigateState) {
             router.navigate(navigateTo, { state: { theme: navigateState } })
         }
-    }, [navigateTo, navigateState])
+    }, [navigateTo, navigateState, router])
 
     const onRpcLog = useCallback((_: any, data: any) => {
         switch (data.type) {
@@ -798,113 +806,116 @@ function App() {
         }
     }, [])
     useEffect(() => {
-        if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-            if (!window.desktopEvents) return
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return
+        if (!window.desktopEvents) return
 
-            window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, (_event, data) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    discordRpc: {
-                        ...prevSettings.discordRpc,
-                        status: data,
-                    },
-                }))
-            })
+        const handleRpcState = (_event: any, data: any) => {
+            setApp(prevSettings => ({
+                ...prevSettings,
+                discordRpc: {
+                    ...prevSettings.discordRpc,
+                    status: data,
+                },
+            }))
+        }
 
-            window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, async () => {
-                await fetchModInfo(app)
-            })
+        const handleModUpdateCheck = async () => {
+            await fetchModInfo(appRef.current)
+        }
 
-            window.desktopEvents?.on(RendererEvents.CLIENT_READY, () => {
-                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-            })
+        const handleClientReady = () => {
+            window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
+            window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+        }
 
-            window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
-
-            window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    info: {
-                        ...prevSettings.info,
-                        version: version,
-                    },
-                }))
-            })
-
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, (_event, data) => {
-                if (!toastReference.current) {
-                    toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
-                }
-                if (!data.updateAvailable) {
-                    toast.update(toastReference.current!, {
-                        kind: 'info',
-                        title: 'Эвана как...',
-                        msg: 'Обновление не найдено',
-                        sticky: false,
-                        duration: 5000,
-                    })
-                    toastReference.current = null
-                }
-            })
-
-            const onDownloadProgress = (_e: any, value: number) => {
-                toast.update(toastReference.current!, {
-                    kind: 'loading',
-                    title: 'Загрузка',
-                    msg: (
-                        <>
-                            Загрузка обновления&nbsp;
-                            <b>{Math.floor(value)}%</b>
-                        </>
-                    ),
-                    value,
-                })
+        const handleCheckUpdate = (_event: any, data: any) => {
+            if (!toastReference.current) {
+                toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
             }
-
-            const onDownloadFailed = () => {
+            if (!data.updateAvailable) {
                 toast.update(toastReference.current!, {
-                    kind: 'error',
-                    title: 'Ошибка',
-                    msg: 'Ошибка загрузки обновления',
-                    sticky: false,
-                })
-                toastReference.current = null
-            }
-
-            const onDownloadFinished = () => {
-                toast.update(toastReference.current!, {
-                    kind: 'success',
-                    title: 'Успешно',
-                    msg: 'Обновление загружено',
+                    kind: 'info',
+                    title: 'Эвана как...',
+                    msg: 'Обновление не найдено',
                     sticky: false,
                     duration: 5000,
                 })
                 toastReference.current = null
-                setUpdate(true)
-            }
-
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
-
-            const loadSettings = async () => {
-                await fetchSettings(setApp)
-            }
-            loadSettings()
-
-            return () => {
-                window.desktopEvents?.removeListener(RendererEvents.RPC_LOG, onRpcLog)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
             }
         }
-    }, [])
+
+        const onDownloadProgress = (_e: any, value: number) => {
+            toast.update(toastReference.current!, {
+                kind: 'loading',
+                title: 'Загрузка',
+                msg: (
+                    <>
+                        Загрузка обновления&nbsp;
+                        <b>{Math.floor(value)}%</b>
+                    </>
+                ),
+                value,
+            })
+        }
+
+        const onDownloadFailed = () => {
+            toast.update(toastReference.current!, {
+                kind: 'error',
+                title: 'Ошибка',
+                msg: 'Ошибка загрузки обновления',
+                sticky: false,
+            })
+            toastReference.current = null
+        }
+
+        const onDownloadFinished = () => {
+            toast.update(toastReference.current!, {
+                kind: 'success',
+                title: 'Успешно',
+                msg: 'Обновление загружено',
+                sticky: false,
+                duration: 5000,
+            })
+            toastReference.current = null
+            setUpdate(true)
+        }
+
+        window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, handleRpcState)
+        window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
+        window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
+        window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
+
+        window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
+            setApp(prevSettings => ({
+                ...prevSettings,
+                info: {
+                    ...prevSettings.info,
+                    version: version,
+                },
+            }))
+        })
+
+        window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
+
+        const loadSettings = async () => {
+            await fetchSettings(setApp)
+        }
+        loadSettings()
+
+        return () => {
+            window.desktopEvents?.removeAllListeners(RendererEvents.RPC_LOG)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
+        }
+    }, [fetchModInfo, onRpcLog])
 
     const setAppWithSocket = useCallback(
         (updater: (prev: SettingsInterface) => SettingsInterface) => {
@@ -924,7 +935,8 @@ function App() {
         [emitGateway],
     )
 
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
             setHasToken(true)
@@ -940,7 +952,7 @@ function App() {
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
             await fetchModInfo(currentApp)
         }
-    }
+    }, [authorize, fetchModInfo, router])
     return (
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />

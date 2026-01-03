@@ -178,6 +178,11 @@ class Updater {
     }
 
     async check(): Promise<UpdateStatus | null> {
+        if (process.platform === 'linux' && !process.env.APPIMAGE) {
+            logger.updater.info('Auto-update is disabled on Linux without AppImage packaging')
+            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
+            return null
+        }
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
 

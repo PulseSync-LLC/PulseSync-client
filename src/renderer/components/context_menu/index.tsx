@@ -307,7 +307,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             {
                 label: 'Очистить кеш мода',
-                onClick: clearModCache
+                onClick: clearModCache,
             },
             createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),

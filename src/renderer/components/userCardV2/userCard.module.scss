@@ -100,7 +100,7 @@
     font-size: 12px;
     line-height: 110%;
     color: var(--statusColorProfile);
-    width: 100%; /* Вместо -webkit-fill-available */
+    width: 100%;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;

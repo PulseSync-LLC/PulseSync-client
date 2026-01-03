@@ -7,6 +7,7 @@ import ViewModal from '../../../../../components/context_menu_themes/viewModal'
 import { createContextMenuActions } from '../../../../../components/context_menu_themes/sectionConfig'
 import * as s from './ThemeInfo.module.scss'
 import config from '../../../../../api/web_config'
+import { staticAsset } from '../../../../../utils/staticAssets'
 
 interface Props {
     addon: AddonInterface
@@ -55,6 +56,8 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
+    const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
+    const fallbackLogo = staticAsset('assets/images/O^O.png')
 
     const authorNames =
         typeof addon.author === 'string'
@@ -79,8 +82,8 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         return () => document.removeEventListener('mousedown', handler)
     }, [showAll])
 
-    const [bannerUrl, setBannerUrl] = useState('static/assets/images/no_themeBackground.png')
-    const [logoUrl, setLogoUrl] = useState<string | null>('static/assets/images/O^O.png')
+    const [bannerUrl, setBannerUrl] = useState(fallbackBanner)
+    const [logoUrl, setLogoUrl] = useState<string | null>(fallbackLogo)
 
     const currentBannerKeyRef = useRef<string | null>(null)
     const currentLogoKeyRef = useRef<string | null>(null)
@@ -101,7 +104,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
                 currentBannerKeyRef.current = null
             }
-            setBannerUrl('static/assets/images/no_themeBackground.png')
+            setBannerUrl(fallbackBanner)
             return () => controller.abort()
         }
 
@@ -110,7 +113,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
                 currentBannerKeyRef.current = null
             }
-            setBannerUrl('static/assets/images/no_themeBackground.png')
+            setBannerUrl(fallbackBanner)
             return () => controller.abort()
         }
 
@@ -136,7 +139,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             .catch(err => {
                 if (cancelled) return
                 if (err?.name === 'AbortError') return
-                setBannerUrl('static/assets/images/no_themeBackground.png')
+                setBannerUrl(fallbackBanner)
             })
 
         return () => {
@@ -147,7 +150,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 if (currentBannerKeyRef.current === key) currentBannerKeyRef.current = null
             }
         }
-    }, [addon.banner, addon.directoryName, addon.name])
+    }, [addon.banner, addon.directoryName, addon.name, fallbackBanner])
 
     useEffect(() => {
         let didAcquire = false
@@ -159,7 +162,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
                 currentLogoKeyRef.current = null
             }
-            setLogoUrl('static/assets/images/O^O.png')
+            setLogoUrl(fallbackLogo)
             return () => controller.abort()
         }
 
@@ -205,7 +208,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 if (currentLogoKeyRef.current === key) currentLogoKeyRef.current = null
             }
         }
-    }, [addon.libraryLogo, addon.directoryName, addon.name])
+    }, [addon.libraryLogo, addon.directoryName, addon.name, fallbackLogo])
 
     useEffect(() => {
         if (!menuOpen) return

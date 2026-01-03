@@ -2,12 +2,12 @@ import React from 'react'
 import Container from '../../components/containerV2'
 import OpitonLayout from '../../components/optionLayout/optionLayout'
 
-import * as styles from '../../../../static/styles/page/index.module.scss'
+import pageStyles from '../pageStyles'
 
 function SettingsPage() {
     return (
         <OpitonLayout title="Настройки">
-            <div className={styles.page}>
+            <div className={pageStyles.page}>
                 <Container titleName={'Настройки'} imageName={'settings'}>
                     Скоро
                 </Container>

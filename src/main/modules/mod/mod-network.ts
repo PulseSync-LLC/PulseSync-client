@@ -8,7 +8,7 @@ import logger from '../logger'
 import config from '../../../renderer/api/web_config'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
-import { gunzipAsync, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
+import { gunzipAsync, isCompressedArchiveLink, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
 import {
     sendToRenderer,
     resetProgress,
@@ -103,8 +103,7 @@ function resolveExtractedRoot(extractDir: string, targetPath: string): string {
         const n = e.name
         if (!n) return false
         if (n === '__MACOSX') return false
-        if (n === '.DS_Store') return false
-        return true
+        return n !== '.DS_Store'
     })
 
     if (meaningful.length !== 1) return extractDir
@@ -163,14 +162,21 @@ export async function downloadAndUpdateFile(
             window,
             url: link,
             tempFilePath,
-            expectedChecksum: checksum,
+            expectedChecksum: isCompressedArchiveLink(link) ? undefined : checksum,
             userAgent: ua,
             progressScale: 0.6,
             rejectUnauthorized: false,
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)
-        const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath)
+        const ok = await writePatchedAsarAndPatchBundle(
+            window,
+            savePath,
+            fileBuffer,
+            link,
+            backupPath,
+            checksum,
+        )
         if (checksum && cacheDir) {
             try {
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
@@ -210,10 +216,18 @@ export async function downloadAndUpdateFile(
         unlinkIfExists(tempFilePath)
         restoreBackupIfExists(savePath, backupPath)
         logger.modManager.error('File download/install error:', err)
+        logger.modManager.error('Error details:', {
+            code: err?.code,
+            message: err?.message,
+            stack: err?.stack
+        })
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
 
         if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
-            sendFailure(window, { error: 'Ошибка целостности файла.', type: 'checksum_mismatch' })
+            sendFailure(window, {
+                error: 'Ошибка целостности файла. Пожалуйста, попробуйте снова или проверьте интернет-соединение.',
+                type: 'checksum_mismatch'
+            })
         } else {
             sendFailure(window, { error: err?.message || 'Ошибка сети', type: 'download_error' })
         }

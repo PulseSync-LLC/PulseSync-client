@@ -362,11 +362,11 @@ const initializeServer = () => {
         socket.on('READY', async () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
-                if (!await checkAsarChecksum()) {
-                    logger.http.warn('Client mod checksum mismatch, disconnecting client.')
-                    socket.disconnect(true)
-                    return;
-                }
+                // if (!(await checkAsarChecksum()) && !isAppDev) {
+                //     logger.http.warn('Client mod checksum mismatch, disconnecting client.')
+                //     socket.disconnect(true)
+                //     return
+                // }
                 mainWindow.webContents.send(RendererEvents.CLIENT_READY)
                 ;(socket as any).hasPong = true
                 if (authorized) {

@@ -34,7 +34,6 @@
         box-shadow 0.2s;
 }
 
-/* ——— карточка ——— */
 .card {
     position: absolute;
     left: 0;
@@ -60,7 +59,6 @@
     opacity: 0;
 }
 
-/* ——— содержимое ——— */
 .icon {
     flex-shrink: 0;
     display: flex;
@@ -97,7 +95,6 @@
     }
 }
 
-/* ——— прогресс-спиннер ——— */
 .progressContainer {
     position: relative;
     width: 36px;
@@ -162,7 +159,6 @@
         transform 0.25s cubic-bezier(0.55, 0, 0.1, 1);
 }
 
-/* ——— kind-модификаторы (цвет + левый бордер) ——— */
 .success,
 .download,
 .default {
@@ -187,7 +183,6 @@
     --clr: #77f1ff;
 }
 
-/* небольшой визуальный акцент слева */
 .success,
 .error,
 .warning,

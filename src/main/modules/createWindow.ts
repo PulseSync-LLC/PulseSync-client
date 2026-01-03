@@ -3,6 +3,7 @@ import { getNativeImg } from '../utils/electronNative'
 import isAppDev from 'electron-is-dev'
 import { getUpdater } from './updater/updater'
 import { updateAvailable } from '../events'
+import { isWindows } from '../utils/appUtils'
 import { isDevmark } from '../../renderer/api/web_config'
 import path from 'path'
 import fs from 'original-fs'
@@ -73,7 +74,8 @@ export async function createWindow(): Promise<void> {
         y: Math.floor(workArea.y + (workArea.height - preloaderSize.height) / 2),
     }
 
-    const icon = getNativeImg('appicon', '.ico', 'icon').resize({ width: 40, height: 40 })
+    const iconExt = isWindows() ? '.ico' : '.png'
+    const icon = getNativeImg('App', iconExt, 'icon').resize({ width: 40, height: 40 })
     const preloaderWindow = new BrowserWindow({
         x: prePos.x,
         y: prePos.y,

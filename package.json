@@ -24,7 +24,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.958.0",
+        "@aws-sdk/client-s3": "^3.962.0",
         "@babel/core": "^7.28.5",
         "@babel/preset-env": "^7.28.5",
         "@babel/preset-react": "^7.28.5",
@@ -144,7 +144,7 @@
         "source-map-support": "^0.5.21",
         "stream-browserify": "^3.0.0",
         "string-similarity": "^4.0.4",
-        "systeminformation": "^5.28.3",
+        "systeminformation": "^5.28.9",
         "tar": "^7.5.2",
         "url": "^0.11.4",
         "uuid": "^13.0.0",
@@ -162,7 +162,7 @@
     },
     "buildInfo": {
         "VERSION": "2.10.0-beta",
-        "BRANCH": "30c3a18",
-        "BUILD_TIME": "30.12.2025, 00:13:37"
+        "BRANCH": "d627a9b",
+        "BUILD_TIME": "03.01.2026, 04:56:02"
     }
 }

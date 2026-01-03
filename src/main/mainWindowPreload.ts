@@ -107,9 +107,6 @@ const desktopEvents: DesktopEvents = {
 }
 contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)
 
-let pendingPulseSyncData: any = null
 ipcRenderer.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, (event, data) => {
-    pendingPulseSyncData = data
     ;(window as any).__pendingPulseSyncData = data
 })
-

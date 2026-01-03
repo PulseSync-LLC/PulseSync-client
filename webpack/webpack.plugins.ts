@@ -24,7 +24,6 @@ export const plugins = [
     new CopyWebpackPlugin({
         patterns: [
             { from: path.join(ROOT, 'static'), to: 'static' },
-            { from: path.join(ROOT, 'static'), to: 'main_window/static' },
         ],
     }),
     new webpack.ProvidePlugin({

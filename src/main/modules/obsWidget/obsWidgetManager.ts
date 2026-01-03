@@ -5,12 +5,26 @@ import * as fsp from 'fs/promises'
 import axios from 'axios'
 import AdmZip from 'adm-zip'
 import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents from '../../../common/types/rendererEvents'
+import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import logger from '../logger'
 import { OBS_WIDGET_RELEASE_URL } from '../../constants/urls'
-import { sendToRenderer } from '../mod/download.helpers'
+import { sendProgress, sendToRenderer } from '../mod/download.helpers'
 
 const WIDGET_INSTALL_DIR = (app: any) => path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
+
+const cleanupTempZip = async (tempZipPath: string | null) => {
+    if (!tempZipPath || !fs.existsSync(tempZipPath)) return
+    try {
+        await fsp.unlink(tempZipPath)
+    } catch (unlinkError) {
+        logger.main.warn('Failed to delete temp file:', unlinkError)
+    }
+}
+
+const sendWidgetFailure = (window: BrowserWindow, channel: RendererEvent, error: any, fallback: string) => {
+    const message = error?.message || fallback
+    sendToRenderer(window, channel, { error: message })
+}
 
 const fetchLatestReleaseUrl = async (): Promise<string> => {
     try {
@@ -51,7 +65,7 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
         response.data.on('data', (chunk: Buffer) => {
             downloadedLength += chunk.length
             const progress = Math.round((downloadedLength / totalLength) * 100)
-            sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, { progress })
+            sendProgress(window, progress)
         })
 
         await new Promise<void>((resolve, reject) => {
@@ -66,7 +80,7 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
         const zip = new AdmZip(tempZipPath)
         zip.extractAllTo(installDir, true)
 
-        await fsp.unlink(tempZipPath)
+        await cleanupTempZip(tempZipPath)
         tempZipPath = null
 
         logger.main.info('Widget downloaded and extracted successfully')
@@ -74,15 +88,8 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
     } catch (error: any) {
         logger.main.error('Error downloading widget:', error)
 
-        if (tempZipPath && fs.existsSync(tempZipPath)) {
-            try {
-                await fsp.unlink(tempZipPath)
-            } catch (unlinkError) {
-                logger.main.warn('Failed to delete temp file:', unlinkError)
-            }
-        }
-
-        sendToRenderer(window, RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, { error: `Error downloading widget: ${error.message}` })
+        await cleanupTempZip(tempZipPath)
+        sendWidgetFailure(window, RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, error, 'Error downloading widget')
         return false
     }
 }
@@ -102,7 +109,7 @@ const removeWidget = async (window: BrowserWindow, installDir: string): Promise<
         return true
     } catch (error: any) {
         logger.main.error('Error removing widget:', error)
-        sendToRenderer(window, RendererEvents.REMOVE_OBS_WIDGET_FAILURE, { error: `Error removing widget: ${error.message}` })
+        sendWidgetFailure(window, RendererEvents.REMOVE_OBS_WIDGET_FAILURE, error, 'Error removing widget')
         return false
     }
 }
@@ -121,7 +128,7 @@ export const obsWidgetManager = (window: BrowserWindow, app: any): void => {
             }
         } catch (error: any) {
             logger.main.error('OBS Widget download failed:', error)
-            sendToRenderer(window, RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, { error: error.message || 'Неизвестная ошибка при скачивании виджета' })
+            sendWidgetFailure(window, RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, error, 'Неизвестная ошибка при скачивании виджета')
         }
     })
 
@@ -135,7 +142,7 @@ export const obsWidgetManager = (window: BrowserWindow, app: any): void => {
             }
         } catch (error: any) {
             logger.main.error('OBS Widget removal failed:', error)
-            sendToRenderer(window, RendererEvents.REMOVE_OBS_WIDGET_FAILURE, { error: error.message || 'Неизвестная ошибка при удалении виджета' })
+            sendWidgetFailure(window, RendererEvents.REMOVE_OBS_WIDGET_FAILURE, error, 'Неизвестная ошибка при удалении виджета')
         }
     })
 
@@ -160,4 +167,3 @@ export const obsWidgetManager = (window: BrowserWindow, app: any): void => {
         }
     })
 }
-

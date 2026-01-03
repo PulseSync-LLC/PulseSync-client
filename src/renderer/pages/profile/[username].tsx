@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@apollo/client/react'
 
@@ -7,16 +7,15 @@ import getMeProfileQuery from '../../api/queries/user/getMeProfile.query'
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
 
-import Layout from '../../components/layout'
+import PageLayout from '../PageLayout'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 
 import ProfileTab from '../../components/userProfileModal/tabs/ProfileTab'
 import FriendsTab from '../../components/userProfileModal/tabs/FriendsTab'
 import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
 
-import * as pageStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './profilePage.module.scss'
-import { MdPersonOutline, MdPeopleOutline, MdSettings } from 'react-icons/md'
+import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
 import userContext from '../../api/context/user.context'
 
@@ -77,15 +76,19 @@ const ProfilePage: React.FC = () => {
         return null
     }, [error, loading, username, payload])
 
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
+    const onEscPress = useCallback(
+        (e: KeyboardEvent) => {
             if (e.key === 'Escape') navigate(-1)
-        }
-        document.addEventListener('keydown', onKeyDown, true)
-        return () => document.removeEventListener('keydown', onKeyDown, true)
-    }, [navigate])
+        },
+        [navigate],
+    )
 
-    const renderTabTitle = () => {
+    useEffect(() => {
+        document.addEventListener('keydown', onEscPress, true)
+        return () => document.removeEventListener('keydown', onEscPress, true)
+    }, [onEscPress])
+
+    const renderTabTitle = useCallback(() => {
         if (activeTab === 'profile')
             return (
                 <>
@@ -108,32 +111,27 @@ const ProfilePage: React.FC = () => {
                 </>
             )
         return null
-    }
+    }, [activeTab, username])
 
     return (
-        <Layout title={`Профиль`}>
-            <div className={pageStyles.page}>
-                <div className={pageStyles.container}>
-                    <div className={pageStyles.main_container}>
-                        <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
-                            {/* <div className={styles.tabs}>
+        <PageLayout title="Профиль">
+            <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
+                {/*<div className={styles.tabs}>{renderTabTitle()}</div>*/}
+                {/* <div className={styles.tabs}>
                 <button onClick={() => setActiveTab('profile')}  className={activeTab === 'profile'  ? styles.activeTab : ''}>Профиль</button>
                 <button onClick={() => setActiveTab('friends')}  className={activeTab === 'friends'  ? styles.activeTab : ''}>Друзья</button>
                 <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? styles.activeTab : ''}>Настройки</button>
               </div> */}
 
-                            <div className={styles.content}>
-                                {activeTab === 'profile' && (
-                                    <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
-                                )}
-                                {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
-                                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
-                            </div>
-                        </Scrollbar>
-                    </div>
+                <div className={styles.content}>
+                    {activeTab === 'profile' && (
+                        <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
+                    )}
+                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
+                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
                 </div>
-            </div>
-        </Layout>
+            </Scrollbar>
+        </PageLayout>
     )
 }
 

@@ -3,52 +3,36 @@ import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
 import userContext from '../../../api/context/user.context'
-import config from '../../../api/web_config'
+import { staticAsset } from '../../../utils/staticAssets'
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import AppNameLogo from './../../../../../static/assets/icon/AppName.svg'
 
-import Snowfall from "./Snowfall"  
+import Snowfall from './Snowfall'
 import * as pageStyles from './winter_auth.module.scss'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../../api/store/store'
-import MainEvents from '../../../../common/types/mainEvents'
 
 export default function AuthPage() {
     const navigate = useNavigate()
-    const { user, app } = useContext(userContext)
+    const { user } = useContext(userContext)
     const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)
     const imgLogo = useRef(null)
 
-    const startAuthProcess = () => {
-        window.open(config.WEBSITE_URL + '/callback')
-        navigate('/auth/callback', { replace: true })
-    }
-    const checkUpdate = () => {
-        window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { hard: true })
-    }
-
-    useEffect(() => {
-        const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-        const isDevMode = searchParams.get('dev') === 'true'
-
-        if (user.id !== '-1' && !isDevMode) {
-            navigate('/', { replace: true })
-        }
-    }, [user.id, navigate])
-
+    const startAuthProcess = () => openAuthCallback(navigate)
+    const checkUpdate = () => checkUpdateHard()
     const readAndSendFile = async () => {
         try {
-            const response = await fetch('./static/assets/policy/terms.ru.md')
-            const fileContent = await response.text()
-
-            window.desktopEvents?.send(MainEvents.OPEN_FILE, fileContent)
+            await readAndSendTerms()
         } catch (error) {
             console.error('Ошибка чтения файла:', error)
         }
     }
+
+    useAuthRedirect(user.id, navigate)
     useEffect(() => {
         const handleMouseMove = (e: { clientX: any; clientY: any }) => {
             const { innerWidth, innerHeight } = window
@@ -98,15 +82,15 @@ export default function AuthPage() {
             <Header />
             <Snowfall />
             <div className={pageStyles.main_window}>
-                <img ref={img1Ref} className={pageStyles.img1} src="./static/assets/images/winter/balls.png" alt="Flat Cylinder" />
-                <img ref={img2Ref} className={pageStyles.img2} src="./static/assets/images/winter/charactertree.png" alt="Thorus Knot" />
-                <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/winter/snowman.png" alt="Pyramid" />
+                <img ref={img1Ref} className={pageStyles.img1} src={staticAsset('assets/images/winter/balls.png')} alt="Flat Cylinder" />
+                <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/winter/charactertree.png')} alt="Thorus Knot" />
+                <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/winter/snowman.png')} alt="Pyramid" />
                 <div className={pageStyles.filter}></div>
                 <div className={pageStyles.background}></div>
                 <div className={pageStyles.container} ref={imgLogo}>
                     <div className={pageStyles.logoName}>
                         <AppNameLogo />
-                        <img className={pageStyles.hat} src="./static/assets/images/winter/hat.png" />
+                        <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} />
                     </div>
                     {isDeprecated ? (
                         <>

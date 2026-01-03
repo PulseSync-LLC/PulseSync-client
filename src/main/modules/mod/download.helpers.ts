@@ -5,11 +5,11 @@ import * as https from 'https'
 import crypto from 'crypto'
 import { Transform, pipeline as nodePipeline } from 'stream'
 import { promisify } from 'util'
-import RendererEvents from '../../../common/types/rendererEvents'
+import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 
 const pipeline = promisify(nodePipeline)
 
-export function sendToRenderer(window: BrowserWindow | null | undefined, channel: string, payload: any) {
+export function sendToRenderer(window: BrowserWindow | null | undefined, channel: RendererEvent, payload: any) {
     window?.webContents.send(channel, payload)
 }
 
@@ -19,6 +19,10 @@ export function setProgress(window: BrowserWindow | null | undefined, frac: numb
 
 export function resetProgress(window: BrowserWindow | null | undefined) {
     window?.setProgressBar(-1)
+}
+
+export function sendProgress(window: BrowserWindow | null | undefined, progress: number) {
+    sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, { progress })
 }
 
 export function sendFailure(
@@ -79,9 +83,7 @@ export async function downloadToTempWithProgress(args: {
             if (total > 0) {
                 const frac = downloaded / total
                 setProgress(window, Math.min(frac * progressScale, progressScale))
-                sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, {
-                    progress: Math.round(Math.min(frac, 1) * 100),
-                })
+                sendProgress(window, Math.round(Math.min(frac, 1) * 100))
             }
             if (hasher) hasher.update(chunk)
             this.push(chunk)
@@ -101,8 +103,9 @@ export async function downloadToTempWithProgress(args: {
     if (expectedChecksum && hasher) {
         digest = hasher.digest('hex')
         if (digest !== expectedChecksum) {
+            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${digest}, Size: ${downloaded} bytes, URL: ${url}`)
             unlinkIfExists(tempFilePath)
-            throw new DownloadError('checksum mismatch', 'checksum_mismatch')
+            throw new DownloadError(`checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${digest?.substring(0, 8)}...)`, 'checksum_mismatch')
         }
     }
 

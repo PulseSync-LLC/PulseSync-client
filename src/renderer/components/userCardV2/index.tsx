@@ -6,6 +6,9 @@ import { getStatusColor, getStatus } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
 import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
+import { staticAsset } from '../../utils/staticAssets'
+
+const fallbackAvatar = staticAsset('assets/images/undef.png')
 
 interface UserCardProps {
     user: Partial<UserInterface>
@@ -29,7 +32,7 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
 const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; hash?: string; ext?: string; hovered: boolean }) => {
     if (!hash) {
         return type === 'avatar'
-            ? './static/assets/images/undef.png'
+            ? fallbackAvatar
             : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
     }
     const base = `${config.S3_URL}/${type}s/${hash}`
@@ -130,7 +133,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                             src={avatarUrl}
                             alt={user.username}
                             onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                             }}
                         />
                         <div className={styles.userInfo}>
@@ -141,7 +144,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                                 {sortedBadges.map(b => (
                                     <TooltipButton key={`${b.type}-${b.level}`} tooltipText={b.name} side="bottom">
                                         <div className={styles.badge}>
-                                            <img src={`static/assets/badges/${b.type}.svg`} alt={b.name} className={styles.badgeIcon} />
+                                            <img src={staticAsset(`assets/badges/${b.type}.svg`)} alt={b.name} className={styles.badgeIcon} />
                                         </div>
                                     </TooltipButton>
                                 ))}

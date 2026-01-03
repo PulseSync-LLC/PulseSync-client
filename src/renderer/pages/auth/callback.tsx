@@ -23,11 +23,14 @@ export default function CallbackPage() {
     }, [user.id, navigate])
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            window.desktopEvents?.on(RendererEvents.AUTH_BANNED, (event, data) => {
-                setBanReason(data.reason)
-                setTimeout(() => window.electron.window.exit(), 10000)
-            })
+        if (typeof window === 'undefined') return
+        const handleBanned = (_event: any, data: any) => {
+            setBanReason(data.reason)
+            setTimeout(() => window.electron.window.exit(), 10000)
+        }
+        window.desktopEvents?.on(RendererEvents.AUTH_BANNED, handleBanned)
+        return () => {
+            window.desktopEvents?.removeListener(RendererEvents.AUTH_BANNED, handleBanned)
         }
     }, [])
 

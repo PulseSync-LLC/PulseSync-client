@@ -1,4 +1,4 @@
-import React, { useState, useContext } from 'react'
+import React, { useCallback, useContext, useMemo, useState } from 'react'
 import LevelProgress from '../../../LevelProgress'
 import AchievementList from './AchievementList'
 import * as styles from '../../userProfileModal.module.scss'
@@ -9,32 +9,69 @@ interface AchievementsSectionProps {
     username: string
 }
 
+type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
+
+const difficultyPriority: Record<Difficulty, number> = {
+    EASY: 1,
+    NORMAL: 2,
+    HARD: 3,
+    EXTREME: 4,
+}
+
 const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, username }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const { user, features } = useContext(userContext)
-    const canViewDetails = user.username === username
+    const canViewDetails = useMemo(() => user.username === username, [user.username, username])
 
-    const toggleExpand = (id: number) => {
+    const toggleExpand = useCallback((id: number) => {
         setExpandedIndexes(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]))
-    }
+    }, [])
 
-    const completedAchievements = userProfile.allAchievements.filter((ach: any) => {
-        const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
-        return userAch?.status?.toLowerCase() === 'completed'
-    })
+    const completedAchievements = useMemo(
+        () =>
+            userProfile.allAchievements.filter((ach: any) => {
+                const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
+                return userAch?.status?.toLowerCase() === 'completed'
+            }),
+        [userProfile.allAchievements, userProfile.userAchievements],
+    )
 
-    const notReceivedAchievements = userProfile.allAchievements.filter((ach: any) => {
-        const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
-        return !userAch || userAch?.status?.toLowerCase() === 'not_started' || userAch?.status?.toLowerCase() === 'in_progress'
-    })
+    const notReceivedAchievements = useMemo(
+        () =>
+            userProfile.allAchievements.filter((ach: any) => {
+                const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
+                return !userAch || userAch?.status?.toLowerCase() === 'not_started' || userAch?.status?.toLowerCase() === 'in_progress'
+            }),
+        [userProfile.allAchievements, userProfile.userAchievements],
+    )
 
-    type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
-    const difficultyPriority: Record<Difficulty, number> = {
-        EASY: 1,
-        NORMAL: 2,
-        HARD: 3,
-        EXTREME: 4,
-    }
+    const sortedCompletedAchievements = useMemo(
+        () =>
+            [...completedAchievements].sort((a: any, b: any) => {
+                const keyA = (a.difficulty as string).toUpperCase() as Difficulty
+                const keyB = (b.difficulty as string).toUpperCase() as Difficulty
+                return difficultyPriority[keyA] - difficultyPriority[keyB]
+            }),
+        [completedAchievements],
+    )
+
+    const sortedNotReceivedAchievements = useMemo(
+        () =>
+            [...notReceivedAchievements].sort((a: any, b: any) => {
+                const userAchA = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === a.id)
+                const userAchB = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === b.id)
+                const keyA = (a.difficulty as string).toUpperCase() as Difficulty
+                const keyB = (b.difficulty as string).toUpperCase() as Difficulty
+                if (userAchA?.status?.toLowerCase() === 'in_progress' && userAchB?.status?.toLowerCase() !== 'in_progress') {
+                    return -1
+                }
+                if (userAchB?.status?.toLowerCase() === 'in_progress' && userAchA?.status?.toLowerCase() !== 'in_progress') {
+                    return 1
+                }
+                return difficultyPriority[keyA] - difficultyPriority[keyB]
+            }),
+        [notReceivedAchievements, userProfile.userAchievements],
+    )
 
     return (
         <div className={styles.userPageDown}>
@@ -67,11 +104,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                         <div className={styles.achievementsListContainer}>
                             <div className={styles.achievementsListTitle}>Выполненные</div>
                             <AchievementList
-                                achievements={completedAchievements.sort((a: any, b: any) => {
-                                    const keyA = (a.difficulty as string).toUpperCase() as Difficulty
-                                    const keyB = (b.difficulty as string).toUpperCase() as Difficulty
-                                    return difficultyPriority[keyA] - difficultyPriority[keyB]
-                                })}
+                                achievements={sortedCompletedAchievements}
                                 userAchievements={userProfile.userAchievements}
                                 toggleExpand={toggleExpand}
                                 expandedIndexes={expandedIndexes}
@@ -84,19 +117,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                         <div className={styles.achievementsListContainer}>
                             <div className={styles.achievementsListTitle}>Неполученные достижения</div>
                             <AchievementList
-                                achievements={notReceivedAchievements.sort((a: any, b: any) => {
-                                    const userAchA = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === a.id)
-                                    const userAchB = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === b.id)
-                                    const keyA = (a.difficulty as string).toUpperCase() as Difficulty
-                                    const keyB = (b.difficulty as string).toUpperCase() as Difficulty
-                                    if (userAchA?.status?.toLowerCase() === 'in_progress' && userAchB?.status?.toLowerCase() !== 'in_progress') {
-                                        return -1
-                                    }
-                                    if (userAchB?.status?.toLowerCase() === 'in_progress' && userAchA?.status?.toLowerCase() !== 'in_progress') {
-                                        return 1
-                                    }
-                                    return difficultyPriority[keyA] - difficultyPriority[keyB]
-                                })}
+                                achievements={sortedNotReceivedAchievements}
                                 userAchievements={userProfile.userAchievements}
                                 toggleExpand={toggleExpand}
                                 expandedIndexes={expandedIndexes}

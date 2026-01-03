@@ -9,7 +9,7 @@ import fs from 'fs'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
-        icon: './icons/icon',
+        icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
         name: 'PulseSync',
         executableName: 'PulseSync',
         appCopyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»',

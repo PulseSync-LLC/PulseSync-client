@@ -1,10 +1,7 @@
-/* modal.modules.scss – inner layout for the update modal (rev.2: revert colors, vertical badge/date alignment on the left) */
-
 .updateModal {
     display: flex;
     flex-direction: column;
 
-    /* generic typographic tweaks */
     h1,
     h2,
     h3,

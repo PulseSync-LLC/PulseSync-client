@@ -1,4 +1,4 @@
-import React, { CSSProperties, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
@@ -27,6 +27,7 @@ import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
 import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
+import { staticAsset } from '../../utils/staticAssets'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../api/store/store'
@@ -52,10 +53,12 @@ type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
+const fallbackAvatar = staticAsset('assets/images/undef.png')
+
 const Header: React.FC<p> = () => {
-    const openSettings = () => {
+    const openSettings = useCallback(() => {
         window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
-    }
+    }, [])
 
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
@@ -85,30 +88,30 @@ const Header: React.FC<p> = () => {
 
     const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
 
-    const openUpdateModal = () => setModal(true)
-    const closeUpdateModal = () => setModal(false)
+    const openUpdateModal = useCallback(() => setModal(true), [])
+    const closeUpdateModal = useCallback(() => setModal(false), [])
 
-    const openModModal = () => dispatch(openModal())
-    const closeModModal = () => dispatch(closeModal())
+    const openModModal = useCallback(() => dispatch(openModal()), [dispatch])
+    const closeModModal = useCallback(() => dispatch(closeModal()), [dispatch])
 
     modModalRef.current = {
         openModal: openModModal,
         closeModal: closeModModal,
     }
     updateModalRef.current = { openUpdateModal, closeUpdateModal }
-    const toggleMenu = () => {
+    const toggleMenu = useCallback(() => {
         if (isUserCardOpen) {
             setIsUserCardOpen(false)
         }
         setIsMenuOpen(!isMenuOpen)
-    }
+    }, [isMenuOpen, isUserCardOpen])
 
-    const toggleUserContainer = () => {
+    const toggleUserContainer = useCallback(() => {
         if (isMenuOpen) {
             setIsMenuOpen(false)
         }
         setIsUserCardOpen(!isUserCardOpen)
-    }
+    }, [isMenuOpen, isUserCardOpen])
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -188,38 +191,51 @@ const Header: React.FC<p> = () => {
         })
     }
 
-    const formatDate = (timestamp: any) => {
+    const formatDate = useCallback((timestamp: any) => {
         const date = new Date(timestamp * 1000)
         return date.toLocaleDateString('ru-RU', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
         })
-    }
-    function LinkRenderer(props: any) {
+    }, [])
+
+    const LinkRenderer = useCallback((props: any) => {
         return (
             <a href={props.href} target="_blank" rel="noreferrer">
                 {props.children}
             </a>
         )
-    }
+    }, [])
+
+    const markdownComponents = useMemo(() => ({ a: LinkRenderer }), [LinkRenderer])
+    const updateMarkdownComponents = useMemo(
+        () => ({
+            a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
+                <a href={href as string} target="_blank" rel="noopener noreferrer">
+                    {children}
+                </a>
+            ),
+        }),
+        [],
+    )
     useCharCount(containerRef, fixedAddon)
 
-    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const selectedFile = event.target.files[0]
             setAvatarProgress(-1)
             handleAvatarUpload(selectedFile)
         }
-    }
+    }, [])
 
-    const handleBannerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleBannerChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const selectedFile = event.target.files[0]
             setBannerProgress(-1)
             handleBannerUpload(selectedFile)
         }
-    }
+    }, [])
 
     const handleAvatarUpload = async (file: File) => {
         if (!file) return
@@ -395,7 +411,7 @@ const Header: React.FC<p> = () => {
                                         <span>{formatDate(info.createdAt)}</span>
                                     </div>
                                     <div className={modalStyles.remerkStyle}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
                                             {info.changelog}
                                         </ReactMarkdown>
                                     </div>
@@ -420,16 +436,7 @@ const Header: React.FC<p> = () => {
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
                                 <div className={modalStyles.remerkStyle}>
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkGfm, remarkBreaks]}
-                                        components={{
-                                            a: ({ href, children }) => (
-                                                <a href={href as string} target="_blank" rel="noopener noreferrer">
-                                                    {children}
-                                                </a>
-                                            ),
-                                        }}
-                                    >
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={updateMarkdownComponents}>
                                         {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
                                     </ReactMarkdown>
                                 </div>
@@ -451,7 +458,7 @@ const Header: React.FC<p> = () => {
                                 onClick={toggleMenu}
                                 disabled={user.id === '-1'}
                             >
-                                <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
+                                <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
                             </button>
@@ -484,7 +491,7 @@ const Header: React.FC<p> = () => {
                                                 src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                 alt=""
                                                 onError={e => {
-                                                    ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                    ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                                                 }}
                                             />
                                             <div className={styles.status}>
@@ -534,7 +541,10 @@ const Header: React.FC<p> = () => {
                                                                 .map(_badge => (
                                                                     <TooltipButton tooltipText={_badge.name} side="bottom" key={_badge.type}>
                                                                         <div className={styles.badge}>
-                                                                            <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.type} />
+                                                                            <img
+                                                                                src={staticAsset(`assets/badges/${_badge.type}.svg`)}
+                                                                                alt={_badge.type}
+                                                                            />
                                                                         </div>
                                                                     </TooltipButton>
                                                                 ))}
@@ -546,11 +556,11 @@ const Header: React.FC<p> = () => {
                                                         src={
                                                             `${user.avatarType}`
                                                                 ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
-                                                                : 'static/assets/images/undef.png'
+                                                                : fallbackAvatar
                                                         }
                                                         alt="card_avatar"
                                                         onError={e => {
-                                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                            ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                                                         }}
                                                     />
                                                     <motion.div

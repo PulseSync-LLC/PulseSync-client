@@ -12,11 +12,20 @@ import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
 import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
-import { exec, execFile } from 'child_process'
+import { execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getInstalledYmMetadata, getYandexMusicAppDataPath, isLinux, isMac, findAppByName, uninstallApp } from '../utils/appUtils'
+import {
+    checkMusic,
+    findAppByName,
+    getInstalledYmMetadata,
+    getLinuxInstallerUrl,
+    getYandexMusicAppDataPath,
+    isLinux,
+    isMac,
+    uninstallApp,
+} from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -28,6 +37,7 @@ import { getMacUpdater } from '../modules/updater/macOsUpdater'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
+import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 
 const updater = getUpdater()
 const State = getState()
@@ -107,6 +117,40 @@ const mimeByExt: Record<string, string> = {
     '.svg': 'image/svg+xml',
 }
 
+const allowedExternalProtocols = new Set(['http:', 'https:', 'yandexmusic:'])
+const allowedMusicHosts = new Set(['desktop.app.music.yandex.net'])
+
+const isSafeExternalUrl = (rawUrl: string): boolean => {
+    try {
+        const url = new URL(rawUrl)
+        return allowedExternalProtocols.has(url.protocol)
+    } catch {
+        return false
+    }
+}
+
+const isAllowedMusicDownloadUrl = (rawUrl: string): boolean => {
+    try {
+        const url = new URL(rawUrl)
+        if (url.protocol !== 'https:') return false
+        if (!allowedMusicHosts.has(url.hostname)) return false
+        return (
+            /^\/stable\/Yandex_Music_x64_[\d.]+\.exe$/i.test(url.pathname) ||
+            /^\/stable\/Yandex_Music_universal_[\d.]+\.dmg$/i.test(url.pathname) ||
+            /^\/stable\/Yandex_Music_amd64_[\d.]+\.deb$/i.test(url.pathname)
+        )
+    } catch {
+        return false
+    }
+}
+
+const resolveWithinBase = (baseDir: string, target: string): string | null => {
+    const resolved = path.resolve(baseDir, target)
+    const normalizedBase = path.resolve(baseDir)
+    if (resolved === normalizedBase) return resolved
+    return resolved.startsWith(normalizedBase + path.sep) ? resolved : null
+}
+
 const registerWindowEvents = (): void => {
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MINIMIZE, () => {
         mainWindow.minimize()
@@ -182,31 +226,39 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
 const registerFileOperations = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
-        exec(`start "" "${url}"`)
+        try {
+            if (!isSafeExternalUrl(url)) {
+                logger.main.warn(`Blocked opening external URL: ${url}`)
+                return
+            }
+            await shell.openExternal(url)
+        } catch (error) {
+            logger.main.error('Error opening external URL:', error)
+        }
     })
 
     ipcMain.on(MainEvents.OPEN_FILE, (_event, markdownContent: string) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        fs.writeFile(tempFilePath, markdownContent, err => {
-            if (err) {
-                logger.main.error('Error writing to file:', err)
-                return
-            }
-            let command: string
-            if (process.platform === 'win32') command = `"${tempFilePath}"`
-            else if (process.platform === 'darwin') command = `open "${tempFilePath}"`
-            else command = `xdg-open "${tempFilePath}"`
-            exec(command, error => {
-                if (error) {
-                    logger.main.error('Error opening the file:', error)
-                    return
+        fsp.writeFile(tempFilePath, markdownContent)
+            .then(async () => {
+                const openError = await shell.openPath(tempFilePath)
+                if (openError) {
+                    logger.main.error(`Error opening the file: ${openError}`)
                 }
-                fs.unlink(tempFilePath, unlinkErr => {
-                    if (unlinkErr) logger.main.error('Error deleting the file:', unlinkErr)
-                    else logger.main.log('Temporary file successfully deleted')
-                })
+                setTimeout(async () => {
+                    try {
+                        await fsp.unlink(tempFilePath)
+                        logger.main.log('Temporary file successfully deleted')
+                    } catch (unlinkErr: any) {
+                        if (unlinkErr?.code !== 'ENOENT') {
+                            logger.main.error('Error deleting the file:', unlinkErr)
+                        }
+                    }
+                }, 10000)
             })
-        })
+            .catch(err => {
+                logger.main.error('Error writing to file:', err)
+            })
     })
 
     ipcMain.on(MainEvents.OPEN_PATH, async (_event, data: any) => {
@@ -229,8 +281,13 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 break
             }
             case 'theme': {
-                const themeFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons', data.themeName)
-                await shell.openPath(themeFolder)
+                const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+                const safeThemePath = resolveWithinBase(addonsRoot, data.themeName || '')
+                if (!safeThemePath) {
+                    logger.main.warn(`Blocked opening theme path: ${data.themeName}`)
+                    break
+                }
+                await shell.openPath(safeThemePath)
                 break
             }
             case 'obsWidgetPath': {
@@ -289,7 +346,14 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
             const match = data.match(/version:\s*([\d.]+)/)
             if (!match) throw new Error('Версия не найдена в latest.yml')
-            exeUrl = `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
+            exeUrl = isMac()
+                ? `https://desktop.app.music.yandex.net/stable/Yandex_Music_universal_${match[1]}.dmg`
+                : isLinux()
+                  ? await getLinuxInstallerUrl()
+                  : `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
+        } else if (!isAllowedMusicDownloadUrl(exeUrl)) {
+            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: 'Недопустимая ссылка для загрузки' })
+            return
         }
 
         const fileName = path.basename(exeUrl)
@@ -319,15 +383,32 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             mainWindow.setProgressBar(-1)
             fs.chmodSync(downloadPath, 0o755)
 
-            setTimeout(() => {
-                execFile(downloadPath, error => {
-                    if (error) {
-                        event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Failed to execute the file: ${error.message}` })
-                        return
-                    }
-                    event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File executed successfully.' })
-                    fs.unlinkSync(downloadPath)
-                })
+            setTimeout(async () => {
+                if (process.platform === 'win32') {
+                    execFile(downloadPath, error => {
+                        if (error) {
+                            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                                success: false,
+                                error: `Failed to execute the file: ${error.message}`,
+                            })
+                            return
+                        }
+                        event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File executed successfully.' })
+                        fs.unlinkSync(downloadPath)
+                    })
+                    return
+                }
+
+                const openError = await shell.openPath(downloadPath)
+                if (openError) {
+                    event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                        success: false,
+                        error: `Failed to open the file: ${openError}`,
+                    })
+                    return
+                }
+                event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File opened successfully.' })
+                fs.unlinkSync(downloadPath)
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
@@ -348,6 +429,7 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 
     ipcMain.on(MainEvents.AUTO_START_APP, (_event, enabled: boolean) => {
         if (isAppDev) return
+        if (isLinux()) return
         app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
     })
 

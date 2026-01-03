@@ -186,9 +186,8 @@
     color: #ffffff;
 }
 
-
 .download_button {
-    position: relative; 
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -207,7 +206,7 @@
     font-size: 12px;
     line-height: 110%;
     white-space: nowrap;
-    overflow: hidden; 
+    overflow: hidden;
 
     transition:
         background 0.15s ease,
@@ -240,7 +239,7 @@
 }
 
 .download_content {
-    position: relative; 
+    position: relative;
     z-index: 3;
     display: flex;
     flex-direction: column;
@@ -250,13 +249,12 @@
     transition: color 0.15s ease;
 }
 
-
 .button_downloading {
     background: #ffd166;
     color: #000000;
     cursor: default;
     box-shadow: none;
-    pointer-events: none; 
+    pointer-events: none;
 }
 
 .download_progress_bar {
@@ -264,13 +262,13 @@
     top: 0;
     left: 0;
     height: 100%;
-    background-color: rgb(255 194 102 / 16%); 
+    background-color: rgb(255 194 102 / 16%);
     transition: width 0.3s linear;
     z-index: 2;
 }
 
 .button_installing {
-    background: #7657ff; 
+    background: #7657ff;
     color: #ffffff;
     cursor: default;
     pointer-events: none;
@@ -322,7 +320,6 @@
     }
 }
 
-
 .card_header_badges {
     position: absolute;
     top: 15px;
@@ -350,18 +347,18 @@
 }
 
 .badge_deprecated {
-    background-color: #ef4444; 
+    background-color: #ef4444;
 }
 
 .badge_css {
-    background-color: #1d4ed8; 
+    background-color: #1d4ed8;
 }
 
 .badge_js {
-    background-color: #f0db4f; 
+    background-color: #f0db4f;
     color: black;
 }
 
 .badge_both {
-    background-color: #9333ea; 
+    background-color: #9333ea;
 }

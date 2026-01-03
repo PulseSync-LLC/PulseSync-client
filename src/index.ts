@@ -7,7 +7,7 @@ import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, formatJson, getPathToYandexMusic, isLinux, isWindows } from './main/utils/appUtils'
+import { checkAsar, formatJson, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -40,7 +40,9 @@ registerSchemes()
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
 app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
-app.setAppUserModelId('pulsesync.app')
+if (isWindows()) {
+    app.setAppUserModelId('pulsesync.app')
+}
 
 const State = getState()
 
@@ -99,7 +101,7 @@ if (!isAppDev) {
         ],
     })
     Sentry.setTag('process', 'main')
-} else {
+} else if (isWindows() || isMac()) {
     const openAtLogin = app.getLoginItemSettings().openAtLogin
     if (openAtLogin) {
         app.setLoginItemSettings({
@@ -108,7 +110,6 @@ if (!isAppDev) {
         })
     }
 }
-
 
 app.on('ready', async () => {
     try {

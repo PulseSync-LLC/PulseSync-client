@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
@@ -26,6 +26,7 @@ import TooltipButton from '../tooltip_button'
 import store from '../../api/store/store'
 import { openModal } from '../../api/store/modalSlice'
 import { errorTypesToShow } from '../../utils/utils'
+import { staticAsset } from '../../utils/staticAssets'
 import * as semver from 'semver'
 import clsx from 'clsx'
 
@@ -52,7 +53,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const toastReference = useRef<string | null>(null)
     const ffmpegToastIdRef = useRef<string | null>(null)
 
-    const clean = (version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0'
+    const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
     useEffect(() => {
         setLoadingModInfo(modInfo.length === 0)
@@ -66,7 +67,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         const localVer = clean(app.mod?.version)
 
         setIsModUpdateAvailable(musicInstalled && (!app.mod.installed || semver.gt(serverVer, localVer)))
-    }, [app.mod.installed, app.mod.version, modInfo, musicInstalled])
+    }, [app.mod.installed, app.mod.version, clean, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return
@@ -309,50 +310,54 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [])
 
-    const updateYandexMusic = () => {
+    const updateYandexMusic = useCallback(() => {
         if (isMusicUpdating) {
             toast.custom('info', `Информация.`, 'Обновление уже запущено')
             return
         }
         window.desktopEvents?.send(MainEvents.DOWNLOAD_YANDEX_MUSIC, modUpdateState.updateUrl)
         setIsMusicUpdating(true)
-    }
+    }, [isMusicUpdating, modUpdateState.updateUrl])
 
-    const startUpdate = (force?: boolean) => {
-        if (window.electron.isLinux()) {
-            toast.custom('error', 'Ошибка', 'Мод не поддерживается на Linux.')
-            return
-        }
-        if (isUpdating) {
-            toast.custom('error', 'Ошибка', app.mod.installed ? 'Обновление уже запущено' : 'Установка уже запущена')
-            return
-        }
-        if (modInfo.length === 0) {
-            toast.custom(
-                'error',
-                app.mod.installed ? 'Нет доступных обновлений для установки.' : 'Нет доступных модификаций для установки.',
-                app.mod.installed ? 'Ошибка загрузки обновления' : 'Ошибка установки мода',
-            )
-            return
-        }
-        setIsUpdating(true)
-        const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
-        downloadToastIdRef.current = id
-        const { modVersion, realMusicVersion, downloadUrl, checksum, spoof, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum } = modInfo[0]
+    const startUpdate = useCallback(
+        (force?: boolean) => {
+            if (window.electron.isLinux()) {
+                toast.custom('error', 'Ошибка', 'Мод не поддерживается на Linux.')
+                return
+            }
+            if (isUpdating) {
+                toast.custom('error', 'Ошибка', app.mod.installed ? 'Обновление уже запущено' : 'Установка уже запущена')
+                return
+            }
+            if (modInfo.length === 0) {
+                toast.custom(
+                    'error',
+                    app.mod.installed ? 'Нет доступных обновлений для установки.' : 'Нет доступных модификаций для установки.',
+                    app.mod.installed ? 'Ошибка загрузки обновления' : 'Ошибка установки мода',
+                )
+                return
+            }
+            setIsUpdating(true)
+            const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
+            downloadToastIdRef.current = id
+            const { modVersion, realMusicVersion, downloadUrl, checksum, spoof, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum } =
+                modInfo[0]
 
-        window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
-            version: modVersion,
-            musicVersion: realMusicVersion,
-            name,
-            link: downloadUrl,
-            unpackLink: downloadUnpackedUrl,
-            unpackedChecksum,
-            checksum,
-            shouldReinstall,
-            force: force || false,
-            spoof: spoof || false,
-        })
-    }
+            window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
+                version: modVersion,
+                musicVersion: realMusicVersion,
+                name,
+                link: downloadUrl,
+                unpackLink: downloadUnpackedUrl,
+                unpackedChecksum,
+                checksum,
+                shouldReinstall,
+                force: force || false,
+                spoof: spoof || false,
+            })
+        },
+        [app.mod.installed, isUpdating, modInfo],
+    )
 
     useEffect(() => {
         if (!loadingModInfo && !isUpdating && app.mod.installed && app.mod.version) {
@@ -373,7 +378,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 }
             }
         }
-    }, [loadingModInfo, modInfo, app.mod.version, isUpdating])
+    }, [app.mod.version, isUpdating, loadingModInfo, modInfo, startUpdate])
 
     useEffect(() => {
         if (isDevmark) {
@@ -473,7 +478,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         )}
                                     </div>
                                 </div>
-                                <img className={pageStyles.alert_patch_image} src="static/assets/images/imageAlertPatch.png" alt="Patch Update" />
+                                <img
+                                    className={pageStyles.alert_patch_image}
+                                    src={staticAsset('assets/images/imageAlertPatch.png')}
+                                    alt="Patch Update"
+                                />
                             </div>
                         </div>
                     )}

@@ -242,178 +242,178 @@ function Dev() {
                     </div>
                 </motion.section>
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Метрики</h2>
-                    <div className={styles.statsGrid}>
-                        {statsCards.map(({ icon, label, value }) => (
-                            <div key={label} className={styles.statCard}>
-                                <div className={styles.statIcon}>{icon}</div>
-                                <div className={styles.statContent}>
-                                    <div className={styles.statLabel}>{label}</div>
-                                    <div className={styles.statValue}>{value !== null ? value.toLocaleString('ru-RU') : '—'}</div>
-                                </div>
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Метрики</h2>
+                <div className={styles.statsGrid}>
+                    {statsCards.map(({ icon, label, value }) => (
+                        <div key={label} className={styles.statCard}>
+                            <div className={styles.statIcon}>{icon}</div>
+                            <div className={styles.statContent}>
+                                <div className={styles.statLabel}>{label}</div>
+                                <div className={styles.statValue}>{value !== null ? value.toLocaleString('ru-RU') : '—'}</div>
                             </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
+            <section className={styles.section}>
+                <div className={styles.blockHeader}>
+                    <h2 className={styles.sectionTitle}>Аналитика</h2>
+                    <div className={styles.segmented} role="tablist" aria-label="Диапазон">
+                        {RANGES.map(r => (
+                            <button
+                                key={r}
+                                role="tab"
+                                aria-selected={rangeHours === r}
+                                className={`${styles.segBtn} ${rangeHours === r ? styles.segActive : ''}`}
+                                onClick={() => setRangeHours(r)}
+                                title={r === 0 ? 'Все' : `${r}ч`}
+                            >
+                                {r === 0 ? 'Все' : `${r}ч`}
+                            </button>
                         ))}
                     </div>
-                </section>
+                </div>
 
-                <section className={styles.section}>
-                    <div className={styles.blockHeader}>
-                        <h2 className={styles.sectionTitle}>Аналитика</h2>
-                        <div className={styles.segmented} role="tablist" aria-label="Диапазон">
-                            {RANGES.map(r => (
-                                <button
-                                    key={r}
-                                    role="tab"
-                                    aria-selected={rangeHours === r}
-                                    className={`${styles.segBtn} ${rangeHours === r ? styles.segActive : ''}`}
-                                    onClick={() => setRangeHours(r)}
-                                    title={r === 0 ? 'Все' : `${r}ч`}
-                                >
-                                    {r === 0 ? 'Все' : `${r}ч`}
-                                </button>
-                            ))}
+                <div className={styles.chartCard}>
+                    {loading ? (
+                        <div className={styles.loadingState}>
+                            <div className={styles.loadingSpinner} />
+                            <p>Загружаем аналитику…</p>
                         </div>
-                    </div>
-
-                    <div className={styles.chartCard}>
-                        {loading ? (
-                            <div className={styles.loadingState}>
-                                <div className={styles.loadingSpinner} />
-                                <p>Загружаем аналитику…</p>
-                            </div>
-                        ) : formatted.length ? (
-                            <div className={styles.chartWrapper}>
-                                <Line data={chartData as any} options={chartOptions as any} />
-                            </div>
-                        ) : (
-                            <div className={styles.emptyState}>Нет данных за выбранный период</div>
-                        )}
-                    </div>
-                </section>
-
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Компоненты</h2>
-
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3>Модальные окна</h3>
-                            <p className={styles.cardHint}>Проверь горизонтальную и вертикальную раскладки кнопок</p>
+                    ) : formatted.length ? (
+                        <div className={styles.chartWrapper}>
+                            <Line data={chartData as any} options={chartOptions as any} />
                         </div>
-                        <div className={styles.actionsRow}>
-                            <ButtonV2 className={styles.actionBtn} onClick={() => setModal2Open(true)}>
-                                Открыть модалку (2 кнопки)
+                    ) : (
+                        <div className={styles.emptyState}>Нет данных за выбранный период</div>
+                    )}
+                </div>
+            </section>
+
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Компоненты</h2>
+
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Модальные окна</h3>
+                        <p className={styles.cardHint}>Проверь горизонтальную и вертикальную раскладки кнопок</p>
+                    </div>
+                    <div className={styles.actionsRow}>
+                        <ButtonV2 className={styles.actionBtn} onClick={() => setModal2Open(true)}>
+                            Открыть модалку (2 кнопки)
+                        </ButtonV2>
+                        <ButtonV2 className={styles.actionBtn} onClick={() => setModal3Open(true)}>
+                            Открыть модалку (3 кнопки)
+                        </ButtonV2>
+                    </div>
+                </div>
+
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Форма (Formik)</h3>
+                        <p className={styles.cardHint}>Интерактивный ввод с подтверждением</p>
+                    </div>
+                    <div className={styles.actionsRow}>
+                        <ButtonV2 className={styles.actionBtn} onClick={() => setFormikModalOpen(true)}>
+                            Открыть форму
+                        </ButtonV2>
+                    </div>
+                </div>
+
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Выгрузка аддона</h3>
+                        <p className={styles.cardHint}>Интерактивная выгрузка аддона</p>
+                    </div>
+                    <div className={styles.actionsRow}>
+                        <ButtonV2 className={styles.actionBtn} onClick={() => setUploadOpen(true)}>
+                            Выгрузка аддона (модалка)
+                        </ButtonV2>
+                    </div>
+                </div>
+
+                <div className={styles.card}>
+                    <div className={styles.cardHeader}>
+                        <h3>Toast-уведомления</h3>
+                        <p className={styles.cardHint}>Быстрые проверки разных типов</p>
+                    </div>
+                    <div className={styles.toastGrid}>
+                        {[
+                            { type: 'success', title: 'Success', message: 'Готово', text: 'Success' },
+                            { type: 'error', title: 'Error', message: 'Ошибка', text: 'Error' },
+                            { type: 'warning', title: 'Warning', message: 'Осторожно', text: 'Warning' },
+                            { type: 'info', title: 'Info', message: 'Инфо', text: 'Info' },
+                            { type: 'loading', title: 'Loading', message: 'Загрузка…', text: 'Loading' },
+                            { type: 'download', title: 'Download', message: 'Скачиваем…', text: 'Download' },
+                            { type: 'import', title: 'Import', message: 'Импорт…', text: 'Import' },
+                            { type: 'export', title: 'Export', message: 'Экспорт готов', text: 'Export' },
+                        ].map(({ type, title, message, text }) => (
+                            <ButtonV2 key={type} className={styles.toastBtn} onClick={() => toast.custom(type as any, title, message)}>
+                                {text}
                             </ButtonV2>
-                            <ButtonV2 className={styles.actionBtn} onClick={() => setModal3Open(true)}>
-                                Открыть модалку (3 кнопки)
-                            </ButtonV2>
-                        </div>
+                        ))}
                     </div>
+                </div>
+            </section>
 
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3>Форма (Formik)</h3>
-                            <p className={styles.cardHint}>Интерактивный ввод с подтверждением</p>
-                        </div>
-                        <div className={styles.actionsRow}>
-                            <ButtonV2 className={styles.actionBtn} onClick={() => setFormikModalOpen(true)}>
-                                Открыть форму
-                            </ButtonV2>
-                        </div>
-                    </div>
+            <section className={styles.section}>
+                <h2 className={styles.sectionTitle}>Навигация</h2>
+                <p className={styles.cardHint} style={{ marginBottom: '16px' }}>
+                    Быстрая навигация на все роуты приложения
+                </p>
+                <div className={styles.navigationGrid}>
+                    <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                        TrackInfo
+                    </ButtonV2>
+                    <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
+                        Users
+                    </ButtonV2>
+                    <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extension')}>
+                        Extension
+                    </ButtonV2>
+                    <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
+                        Joint
+                    </ButtonV2>
+                    <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
+                        Auth
+                    </ButtonV2>
+                </div>
+            </section>
 
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3>Выгрузка аддона</h3>
-                            <p className={styles.cardHint}>Интерактивная выгрузка аддона</p>
-                        </div>
-                        <div className={styles.actionsRow}>
-                            <ButtonV2 className={styles.actionBtn} onClick={() => setUploadOpen(true)}>
-                                Выгрузка аддона (модалка)
-                            </ButtonV2>
-                        </div>
-                    </div>
+            <AddonUploadModal
+                isOpen={uploadOpen}
+                onClose={() => setUploadOpen(false)}
+                addonName="НАЗВАНИЕ"
+                steps={uploadSteps}
+                rulesHref="https://example.com/rules"
+            />
 
-                    <div className={styles.card}>
-                        <div className={styles.cardHeader}>
-                            <h3>Toast-уведомления</h3>
-                            <p className={styles.cardHint}>Быстрые проверки разных типов</p>
-                        </div>
-                        <div className={styles.toastGrid}>
-                            {[
-                                { type: 'success', title: 'Success', message: 'Готово', text: 'Success' },
-                                { type: 'error', title: 'Error', message: 'Ошибка', text: 'Error' },
-                                { type: 'warning', title: 'Warning', message: 'Осторожно', text: 'Warning' },
-                                { type: 'info', title: 'Info', message: 'Инфо', text: 'Info' },
-                                { type: 'loading', title: 'Loading', message: 'Загрузка…', text: 'Loading' },
-                                { type: 'download', title: 'Download', message: 'Скачиваем…', text: 'Download' },
-                                { type: 'import', title: 'Import', message: 'Импорт…', text: 'Import' },
-                                { type: 'export', title: 'Export', message: 'Экспорт готов', text: 'Export' },
-                            ].map(({ type, title, message, text }) => (
-                                <ButtonV2 key={type} className={styles.toastBtn} onClick={() => toast.custom(type as any, title, message)}>
-                                    {text}
-                                </ButtonV2>
-                            ))}
-                        </div>
-                    </div>
-                </section>
+            <CustomModalPS
+                isOpen={modal2Open}
+                onClose={() => setModal2Open(false)}
+                title="Подтверждение действия"
+                text="Это модалка с двумя кнопками. Кнопки расположены горизонтально."
+                subText={`Обновлено: ${lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}`}
+                buttons={[
+                    { text: 'Продолжить', onClick: () => setModal2Open(false), variant: 'primary' },
+                    { text: 'Отмена', onClick: () => setModal2Open(false), variant: 'danger' },
+                ]}
+            />
 
-                <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Навигация</h2>
-                    <p className={styles.cardHint} style={{ marginBottom: '16px' }}>
-                        Быстрая навигация на все роуты приложения
-                    </p>
-                    <div className={styles.navigationGrid}>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
-                            TrackInfo
-                        </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
-                            Users
-                        </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extension')}>
-                            Extension
-                        </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
-                            Joint
-                        </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
-                            Auth
-                        </ButtonV2>
-                    </div>
-                </section>
-
-                <AddonUploadModal
-                    isOpen={uploadOpen}
-                    onClose={() => setUploadOpen(false)}
-                    addonName="НАЗВАНИЕ"
-                    steps={uploadSteps}
-                    rulesHref="https://example.com/rules"
-                />
-
-                <CustomModalPS
-                    isOpen={modal2Open}
-                    onClose={() => setModal2Open(false)}
-                    title="Подтверждение действия"
-                    text="Это модалка с двумя кнопками. Кнопки расположены горизонтально."
-                    subText={`Обновлено: ${lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}`}
-                    buttons={[
-                        { text: 'Продолжить', onClick: () => setModal2Open(false), variant: 'primary' },
-                        { text: 'Отмена', onClick: () => setModal2Open(false), variant: 'danger' },
-                    ]}
-                />
-
-                <CustomModalPS
-                    isOpen={modal3Open}
-                    onClose={() => setModal3Open(false)}
-                    title="Несколько вариантов"
-                    text="Три кнопки — раскладка по вертикали, как в дизайне."
-                    subText="Проверь поведение по Tab/ESC и клику на фон."
-                    buttons={[
-                        { text: 'Сделать', onClick: () => setModal3Open(false), variant: 'primary' },
-                        { text: 'Подумать позже', onClick: () => setModal3Open(false), variant: 'secondary' },
-                        { text: 'Отмена', onClick: () => setModal3Open(false), variant: 'danger' },
-                    ]}
-                />
+            <CustomModalPS
+                isOpen={modal3Open}
+                onClose={() => setModal3Open(false)}
+                title="Несколько вариантов"
+                text="Три кнопки — раскладка по вертикали, как в дизайне."
+                subText="Проверь поведение по Tab/ESC и клику на фон."
+                buttons={[
+                    { text: 'Сделать', onClick: () => setModal3Open(false), variant: 'primary' },
+                    { text: 'Подумать позже', onClick: () => setModal3Open(false), variant: 'secondary' },
+                    { text: 'Отмена', onClick: () => setModal3Open(false), variant: 'danger' },
+                ]}
+            />
 
                 <CustomFormikModalPS
                     isOpen={formikModalOpen}

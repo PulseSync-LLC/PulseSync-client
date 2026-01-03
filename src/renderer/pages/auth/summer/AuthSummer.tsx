@@ -1,10 +1,10 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
-import MainEvents from '../../../../common/types/mainEvents'
 
 import Header from '../../../components/layout/header'
 import userContext from '../../../api/context/user.context'
-import config from '../../../api/web_config'
+import { staticAsset } from '../../../utils/staticAssets'
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import * as pageStyles from './summer_auth.module.scss'
 import { RootState } from '../../../api/store/store'
@@ -27,34 +27,17 @@ export default function AuthSummer() {
     const dragOffsetRef = useRef({ x: 0, y: 0 })
     const initPosRef = useRef({ pos: '', left: '', top: '' })
 
-    const startAuthProcess = () => {
-        window.open(config.WEBSITE_URL + '/callback')
-        navigate('/auth/callback', { replace: true })
-    }
-
+    const startAuthProcess = () => openAuthCallback(navigate)
+    const checkUpdate = () => checkUpdateHard()
     const readAndSendFile = async () => {
         try {
-            const response = await fetch('./static/assets/policy/terms.ru.md')
-            const fileContent = await response.text()
-
-            window.desktopEvents?.send(MainEvents.OPEN_FILE, fileContent)
+            await readAndSendTerms()
         } catch (error) {
             console.error('Ошибка чтения файла:', error)
         }
     }
 
-    const checkUpdate = () => {
-        window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { hard: true })
-    }
-
-    useEffect(() => {
-        const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
-        const isDevMode = searchParams.get('dev') === 'true'
-
-        if (user.id !== '-1' && !isDevMode) {
-            navigate('/', { replace: true })
-        }
-    }, [user.id, navigate])
+    useAuthRedirect(user.id, navigate)
 
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
@@ -162,10 +145,10 @@ export default function AuthSummer() {
         <>
             <Header />
             <div className={pageStyles.main_window}>
-                <img ref={img1Ref} className={pageStyles.img1} src="./static/assets/images/FlatCylinder.png" alt="FlatCylinder" />
-                <img ref={img2Ref} className={pageStyles.img2} src="./static/assets/images/ThorusKnot.png" alt="ThorusKnot" />
-                <img ref={img3Ref} className={pageStyles.img3} src="./static/assets/images/Pyramid.png" alt="Pyramid" />
-                <img ref={img4Ref} className={pageStyles.img4} src="./static/assets/images/Icosahedron.png" alt="Icosahedron" />
+                <img ref={img1Ref} className={pageStyles.img1} src={staticAsset('assets/images/FlatCylinder.png')} alt="FlatCylinder" />
+                <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/ThorusKnot.png')} alt="ThorusKnot" />
+                <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/Pyramid.png')} alt="Pyramid" />
+                <img ref={img4Ref} className={pageStyles.img4} src={staticAsset('assets/images/Icosahedron.png')} alt="Icosahedron" />
 
                 <div className={pageStyles.filter} />
                 <div className={pageStyles.background} />
@@ -175,7 +158,7 @@ export default function AuthSummer() {
                         <img
                             ref={pulseChanRef}
                             className={pageStyles.imgChan}
-                            src="./static/assets/images/PulseChan3D.png"
+                            src={staticAsset('assets/images/PulseChan3D.png')}
                             alt="PulseChan"
                             draggable={false}
                             onDragStart={e => e.preventDefault()}
@@ -185,7 +168,7 @@ export default function AuthSummer() {
                                 handleMouseDown(e as any)
                             }}
                         />
-                        <img className={pageStyles.imgLogo} src="./static/assets/images/LogoName3D.png" alt="LogoName" />
+                        <img className={pageStyles.imgLogo} src={staticAsset('assets/images/LogoName3D.png')} alt="LogoName" />
                     </div>
 
                     {isDeprecated ? (

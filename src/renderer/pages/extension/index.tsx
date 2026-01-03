@@ -9,7 +9,7 @@ import Addon from '../../api/interfaces/addon.interface'
 
 import toast from '../../components/toast'
 
-import Layout from '../../components/layout'
+import PageLayout from '../PageLayout'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import AddonFilters from '../../components/PSUI/AddonFilters'
 import OptionMenu from '../../components/PSUI/OptionMenu'
@@ -18,12 +18,12 @@ import Loader from '../../components/PSUI/Loader'
 import ExtensionView from './route/extensionview'
 
 import * as extensionStylesV2 from './extension.module.scss'
-import * as styles from '../../../../static/styles/page/index.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
 
 import config from '../../api/web_config'
 import MainEvents from '../../../common/types/mainEvents'
 import CustomModalPS from '../../components/PSUI/CustomModalPS'
+import { staticAsset } from '../../utils/staticAssets'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -34,6 +34,14 @@ const defaultOrder = {
 } as const
 
 type SortKey = keyof typeof defaultOrder
+
+const revokeBlobUrls = (urls: Iterable<string>) => {
+    for (const url of urls) {
+        if (typeof url === 'string' && url.startsWith('blob:')) {
+            URL.revokeObjectURL(url)
+        }
+    }
+}
 
 function safeStoreGet<T>(path: string, fallback: T): T {
     try {
@@ -77,6 +85,7 @@ export default function ExtensionPage() {
     const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
+    const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
 
     const [imageCache, setImageCache] = useState<Record<string, string>>({})
 
@@ -319,8 +328,8 @@ export default function ExtensionPage() {
                         updates[addon.directoryName] = blobUrl
                     } catch {
                         if (stopped) return
-                        previewCacheRef.current.set(addon.directoryName, 'static/assets/images/no_themeImage.png')
-                        updates[addon.directoryName] = 'static/assets/images/no_themeImage.png'
+                        previewCacheRef.current.set(addon.directoryName, fallbackAddonImage)
+                        updates[addon.directoryName] = fallbackAddonImage
                     }
                 }),
             )
@@ -333,7 +342,7 @@ export default function ExtensionPage() {
             stopped = true
             controller.abort()
         }
-    }, [mergedAddons])
+    }, [fallbackAddonImage, mergedAddons])
 
     useEffect(() => {
         if (!selectedAddonId) {
@@ -352,19 +361,11 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         return () => {
-            Object.values(imageCache).forEach(url => {
-                if (typeof url === 'string' && url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url)
-                }
-            })
-            previewCacheRef.current.forEach(url => {
-                if (typeof url === 'string' && url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url)
-                }
-            })
+            revokeBlobUrls(Object.values(imageCache))
+            revokeBlobUrls(previewCacheRef.current.values())
             previewCacheRef.current.clear()
         }
-    }, [])
+    }, [fallbackAddonImage])
 
     const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
 
@@ -378,26 +379,21 @@ export default function ExtensionPage() {
         setShowFilters(false)
     }, [])
 
-    const getImagePath = useCallback((addon: Addon, cache: Record<string, string>) => {
-        if (!addon.image) return 'static/assets/images/no_themeImage.png'
-        if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
-        if (cache[addon.directoryName]) return cache[addon.directoryName]
-        return 'static/assets/images/no_themeImage.png'
-    }, [])
+    const getImagePath = useCallback(
+        (addon: Addon, cache: Record<string, string>) => {
+            if (!addon.image) return fallbackAddonImage
+            if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
+            if (cache[addon.directoryName]) return cache[addon.directoryName]
+            return fallbackAddonImage
+        },
+        [fallbackAddonImage],
+    )
 
     const handleReloadAddons = useCallback(async () => {
         try {
             window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
-            Object.values(imageCache).forEach(url => {
-                if (typeof url === 'string' && url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url)
-                }
-            })
-            previewCacheRef.current.forEach(url => {
-                if (typeof url === 'string' && url.startsWith('blob:')) {
-                    URL.revokeObjectURL(url)
-                }
-            })
+            revokeBlobUrls(Object.values(imageCache))
+            revokeBlobUrls(previewCacheRef.current.values())
             previewCacheRef.current.clear()
             setImageCache({})
             await loadAddons(true)
@@ -461,7 +457,7 @@ export default function ExtensionPage() {
         )
     }
 
-    const getAddonModalText = (addon: Addon, musicVersion: string | undefined) => {
+    const getAddonModalText = useCallback((addon: Addon, musicVersion: string | undefined) => {
         const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : 'неизвестно'
 
         const isSupported =
@@ -471,247 +467,242 @@ export default function ExtensionPage() {
             return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.\nВаша версия Яндекс Музыки (${musicVersion}) не входит в поддерживаемый диапазон (${supported}). Возможны ошибки или некорректная работа!`
         }
         return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.`
-    }
+    }, [])
 
-    const handleEnableAddon = (addon: Addon) => {
-        const isSupported =
-            musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
-        if (musicVersion && addon.supportedVersions?.length && !isSupported) {
-            setModalAddon(addon)
-            setModalOpen(true)
-            return
-        }
-        handleCheckboxChange(
-            addon,
-            !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
-            true,
-        )
-    }
+    const handleEnableAddon = useCallback(
+        (addon: Addon) => {
+            const isSupported =
+                musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
+            if (musicVersion && addon.supportedVersions?.length && !isSupported) {
+                setModalAddon(addon)
+                setModalOpen(true)
+                return
+            }
+            handleCheckboxChange(
+                addon,
+                !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
+                true,
+            )
+        },
+        [currentTheme, enabledScripts, handleCheckboxChange, musicVersion],
+    )
 
     return (
-        <Layout title="Аддоны">
-            <div className={styles.page}>
-                <div className={styles.container}>
-                    <div className={styles.main_container}>
-                        <CustomModalPS
-                            isOpen={modalOpen}
-                            onClose={() => {
-                                setModalOpen(false)
-                                setModalAddon(null)
-                            }}
-                            title="Вы уверены?"
-                            text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
-                            subText={`У вас версия: ${musicVersion || 'unknown'}`}
-                            buttons={[
-                                {
-                                    text: 'Всё равно включить',
-                                    onClick: () => {
-                                        if (modalAddon) {
-                                            handleCheckboxChange(
-                                                modalAddon,
-                                                !(modalAddon.type === 'theme'
-                                                    ? modalAddon.directoryName === currentTheme
-                                                    : enabledScripts.includes(modalAddon.directoryName)),
-                                                true,
-                                            )
-                                        }
-                                        setModalOpen(false)
-                                        setModalAddon(null)
-                                    },
-                                    variant: 'danger',
-                                },
-                                {
-                                    text: 'Отмена',
-                                    onClick: () => {
-                                        setModalOpen(false)
-                                        setModalAddon(null)
-                                    },
-                                    variant: 'secondary',
-                                },
-                            ]}
-                        />
-                        <div ref={containerRef}>
-                            {showFilters && (
-                                <AddonFilters
-                                    tags={uniqueTags}
-                                    creators={uniqueCreators}
-                                    sort={sort}
-                                    sortOrder={sortOrder}
-                                    type={type}
-                                    selectedTags={selectedTags}
-                                    selectedCreators={selectedCreators}
-                                    onSortChange={handleSortChange}
-                                    onTypeChange={handleTypeChange}
-                                    onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
-                                    onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
-                                    setType={setType}
-                                    setSelectedTags={setSelectedTags}
-                                    setSelectedCreators={setSelectedCreators}
-                                    onSortOrderChange={setSortOrder}
-                                />
-                            )}
-                            {optionMenu && (
-                                <OptionMenu
-                                    onReloadAddons={handleReloadAddons}
-                                    onOpenAddonsDirectory={handleOpenAddonsDirectory}
-                                    onCreateNewAddon={handleCreateNewAddon}
-                                />
-                            )}
+        <PageLayout title="Аддоны">
+            <CustomModalPS
+                isOpen={modalOpen}
+                onClose={() => {
+                    setModalOpen(false)
+                    setModalAddon(null)
+                }}
+                title="Вы уверены?"
+                text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
+                subText={`У вас версия: ${musicVersion || 'unknown'}`}
+                buttons={[
+                    {
+                        text: 'Всё равно включить',
+                        onClick: () => {
+                            if (modalAddon) {
+                                handleCheckboxChange(
+                                    modalAddon,
+                                    !(modalAddon.type === 'theme'
+                                        ? modalAddon.directoryName === currentTheme
+                                        : enabledScripts.includes(modalAddon.directoryName)),
+                                    true,
+                                )
+                            }
+                            setModalOpen(false)
+                            setModalAddon(null)
+                        },
+                        variant: 'danger',
+                    },
+                    {
+                        text: 'Отмена',
+                        onClick: () => {
+                            setModalOpen(false)
+                            setModalAddon(null)
+                        },
+                        variant: 'secondary',
+                    },
+                ]}
+            />
+            <div ref={containerRef}>
+                {showFilters && (
+                    <AddonFilters
+                        tags={uniqueTags}
+                        creators={uniqueCreators}
+                        sort={sort}
+                        sortOrder={sortOrder}
+                        type={type}
+                        selectedTags={selectedTags}
+                        selectedCreators={selectedCreators}
+                        onSortChange={handleSortChange}
+                        onTypeChange={handleTypeChange}
+                        onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
+                        onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
+                        setType={setType}
+                        setSelectedTags={setSelectedTags}
+                        setSelectedCreators={setSelectedCreators}
+                        onSortOrderChange={setSortOrder}
+                    />
+                )}
+                {optionMenu && (
+                    <OptionMenu
+                        onReloadAddons={handleReloadAddons}
+                        onOpenAddonsDirectory={handleOpenAddonsDirectory}
+                        onCreateNewAddon={handleCreateNewAddon}
+                    />
+                )}
+            </div>
+            <div className={extensionStylesV2.container}>
+                <Scrollbar className={extensionStylesV2.leftSide} classNameInner={extensionStylesV2.leftSideInner}>
+                    <div className={extensionStylesV2.topContainer}>
+                        <div className={extensionStylesV2.searchContainer}>
+                            <input
+                                type="text"
+                                placeholder="Поиск..."
+                                value={searchQuery}
+                                onChange={handleSearchChange}
+                                className={extensionStylesV2.searchInput}
+                            />
+                            <button
+                                ref={filterButtonRef}
+                                className={extensionStylesV2.filterButton}
+                                style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
+                                onClick={toggleFilterPanel}
+                                aria-label="Фильтры"
+                            >
+                                <MdFilterList />
+                                {(() => {
+                                    const activeFiltersCount =
+                                        (type !== 'all' ? 1 : 0) + (sort !== 'type' ? 1 : 0) + selectedTags.size + selectedCreators.size
+                                    return activeFiltersCount > 0 ? (
+                                        <div className={extensionStylesV2.count}>{activeFiltersCount > 9 ? '9+' : activeFiltersCount}</div>
+                                    ) : null
+                                })()}
+                            </button>
                         </div>
-                        <div className={extensionStylesV2.container}>
-                            <Scrollbar className={extensionStylesV2.leftSide} classNameInner={extensionStylesV2.leftSideInner}>
-                                <div className={extensionStylesV2.topContainer}>
-                                    <div className={extensionStylesV2.searchContainer}>
-                                        <input
-                                            type="text"
-                                            placeholder="Поиск..."
-                                            value={searchQuery}
-                                            onChange={handleSearchChange}
-                                            className={extensionStylesV2.searchInput}
-                                        />
-                                        <button
-                                            ref={filterButtonRef}
-                                            className={extensionStylesV2.filterButton}
-                                            style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
-                                            onClick={toggleFilterPanel}
-                                            aria-label="Фильтры"
-                                        >
-                                            <MdFilterList />
-                                            {(() => {
-                                                const activeFiltersCount =
-                                                    (type !== 'all' ? 1 : 0) + (sort !== 'type' ? 1 : 0) + selectedTags.size + selectedCreators.size
-                                                return activeFiltersCount > 0 ? (
-                                                    <div className={extensionStylesV2.count}>
-                                                        {activeFiltersCount > 9 ? '9+' : activeFiltersCount}
-                                                    </div>
-                                                ) : null
-                                            })()}
-                                        </button>
-                                    </div>
-                                    <button
-                                        ref={optionButtonRef}
-                                        className={`${extensionStylesV2.optionsButton} ${optionMenu ? extensionStylesV2.optionsButtonActive : ''}`}
-                                        style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
-                                        onClick={toggleOptionMenu}
-                                        aria-label="Опции"
-                                    >
-                                        <MdMoreHoriz />
-                                    </button>
-                                </div>
-                                <div className={extensionStylesV2.addonList}>
-                                    <div className={extensionStylesV2.enabledAddons}>
-                                        {enabledAddons.map(addon => (
-                                            <div
-                                                key={addon.directoryName}
-                                                className={`${extensionStylesV2.addonCard} ${
-                                                    selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
-                                                }`}
-                                                onClick={() => handleAddonClick(addon)}
-                                            >
-                                                <div
-                                                    className={`${extensionStylesV2.checkSelect} ${
-                                                        addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
-                                                    }`}
-                                                    style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
-                                                    onClick={e => {
-                                                        e.stopPropagation()
-                                                        if (
-                                                            addon.type === 'theme'
-                                                                ? addon.directoryName === currentTheme
-                                                                : enabledScripts.includes(addon.directoryName)
-                                                        ) {
-                                                            handleCheckboxChange(addon, false, true)
-                                                        } else {
-                                                            handleEnableAddon(addon)
-                                                        }
-                                                    }}
-                                                >
-                                                    <MdCheckCircle size={18} />
-                                                </div>
-                                                <img
-                                                    src={getImagePath(addon, imageCache)}
-                                                    alt={addon.name}
-                                                    className={extensionStylesV2.addonImage}
-                                                    loading="lazy"
-                                                />
-                                                <div className={extensionStylesV2.addonName}>{addon.name}</div>
-                                                <div className={extensionStylesV2.addonType}>
-                                                    {addon.type === 'theme' ? <MdInvertColors size={24} /> : <MdIntegrationInstructions size={24} />}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                    {enabledAddons.length > 0 && disabledAddons.length > 0 && <div className={extensionStylesV2.line}></div>}
-                                    {enabledAddons.length === 0 && disabledAddons.length === 0 && (
-                                        <div className={extensionStylesV2.noFix}>
-                                            <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
-                                        </div>
-                                    )}
-                                    <div className={extensionStylesV2.disabledAddons}>
-                                        {disabledAddons.map(addon => (
-                                            <div
-                                                key={addon.directoryName}
-                                                className={`${extensionStylesV2.addonCard} ${
-                                                    selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
-                                                }`}
-                                                onClick={() => handleAddonClick(addon)}
-                                            >
-                                                <div
-                                                    className={`${extensionStylesV2.checkSelect} ${
-                                                        addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
-                                                    }`}
-                                                    style={{ color: '#565F77' }}
-                                                    onClick={e => {
-                                                        e.stopPropagation()
-                                                        handleEnableAddon(addon)
-                                                    }}
-                                                >
-                                                    <MdCheckCircle size={18} />
-                                                </div>
-                                                <img
-                                                    src={getImagePath(addon, imageCache)}
-                                                    alt={addon.name}
-                                                    className={extensionStylesV2.addonImage}
-                                                    loading="lazy"
-                                                />
-                                                <div className={extensionStylesV2.addonName}>{addon.name}</div>
-                                                <div className={extensionStylesV2.addonType}>
-                                                    {addon.type === 'theme' ? <MdInvertColors size={21} /> : <MdIntegrationInstructions size={21} />}
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </Scrollbar>
-                            <div className={extensionStylesV2.rightSide}>
-                                {!isLoaded ? (
-                                    <Loader text="Анализирую аддоны…" />
-                                ) : selectedAddon ? (
-                                    <ExtensionView
-                                        addon={selectedAddon}
-                                        isEnabled={
-                                            selectedAddon.type === 'theme'
-                                                ? selectedAddon.directoryName === currentTheme
-                                                : enabledScripts.includes(selectedAddon.directoryName)
-                                        }
-                                        onToggleEnabled={enabled => {
-                                            if (enabled) {
-                                                handleEnableAddon(selectedAddon)
+                        <button
+                            ref={optionButtonRef}
+                            className={`${extensionStylesV2.optionsButton} ${optionMenu ? extensionStylesV2.optionsButtonActive : ''}`}
+                            style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
+                            onClick={toggleOptionMenu}
+                            aria-label="Опции"
+                        >
+                            <MdMoreHoriz />
+                        </button>
+                    </div>
+                    <div className={extensionStylesV2.addonList}>
+                        <div className={extensionStylesV2.enabledAddons}>
+                            {enabledAddons.map(addon => (
+                                <div
+                                    key={addon.directoryName}
+                                    className={`${extensionStylesV2.addonCard} ${
+                                        selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
+                                    }`}
+                                    onClick={() => handleAddonClick(addon)}
+                                >
+                                    <div
+                                        className={`${extensionStylesV2.checkSelect} ${
+                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
+                                        }`}
+                                        style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
+                                        onClick={e => {
+                                            e.stopPropagation()
+                                            if (
+                                                addon.type === 'theme'
+                                                    ? addon.directoryName === currentTheme
+                                                    : enabledScripts.includes(addon.directoryName)
+                                            ) {
+                                                handleCheckboxChange(addon, false, true)
                                             } else {
-                                                handleCheckboxChange(selectedAddon, false, true)
+                                                handleEnableAddon(addon)
                                             }
                                         }}
-                                        setSelectedTags={setSelectedTags}
-                                        setShowFilters={setShowFilters}
+                                    >
+                                        <MdCheckCircle size={18} />
+                                    </div>
+                                    <img
+                                        src={getImagePath(addon, imageCache)}
+                                        alt={addon.name}
+                                        className={extensionStylesV2.addonImage}
+                                        loading="lazy"
                                     />
-                                ) : (
-                                    <ThemeNotFound hasAnyAddons={hasAnyInstalled} />
-                                )}
+                                    <div className={extensionStylesV2.addonName}>{addon.name}</div>
+                                    <div className={extensionStylesV2.addonType}>
+                                        {addon.type === 'theme' ? <MdInvertColors size={24} /> : <MdIntegrationInstructions size={24} />}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                        {enabledAddons.length > 0 && disabledAddons.length > 0 && <div className={extensionStylesV2.line}></div>}
+                        {enabledAddons.length === 0 && disabledAddons.length === 0 && (
+                            <div className={extensionStylesV2.noFix}>
+                                <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
                             </div>
+                        )}
+                        <div className={extensionStylesV2.disabledAddons}>
+                            {disabledAddons.map(addon => (
+                                <div
+                                    key={addon.directoryName}
+                                    className={`${extensionStylesV2.addonCard} ${
+                                        selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
+                                    }`}
+                                    onClick={() => handleAddonClick(addon)}
+                                >
+                                    <div
+                                        className={`${extensionStylesV2.checkSelect} ${
+                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
+                                        }`}
+                                        style={{ color: '#565F77' }}
+                                        onClick={e => {
+                                            e.stopPropagation()
+                                            handleEnableAddon(addon)
+                                        }}
+                                    >
+                                        <MdCheckCircle size={18} />
+                                    </div>
+                                    <img
+                                        src={getImagePath(addon, imageCache)}
+                                        alt={addon.name}
+                                        className={extensionStylesV2.addonImage}
+                                        loading="lazy"
+                                    />
+                                    <div className={extensionStylesV2.addonName}>{addon.name}</div>
+                                    <div className={extensionStylesV2.addonType}>
+                                        {addon.type === 'theme' ? <MdInvertColors size={21} /> : <MdIntegrationInstructions size={21} />}
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
+                </Scrollbar>
+                <div className={extensionStylesV2.rightSide}>
+                    {!isLoaded ? (
+                        <Loader text="Анализирую аддоны…" />
+                    ) : selectedAddon ? (
+                        <ExtensionView
+                            addon={selectedAddon}
+                            isEnabled={
+                                selectedAddon.type === 'theme'
+                                    ? selectedAddon.directoryName === currentTheme
+                                    : enabledScripts.includes(selectedAddon.directoryName)
+                            }
+                            onToggleEnabled={enabled => {
+                                if (enabled) {
+                                    handleEnableAddon(selectedAddon)
+                                } else {
+                                    handleCheckboxChange(selectedAddon, false, true)
+                                }
+                            }}
+                            setSelectedTags={setSelectedTags}
+                            setShowFilters={setShowFilters}
+                        />
+                    ) : (
+                        <ThemeNotFound hasAnyAddons={hasAnyInstalled} />
+                    )}
                 </div>
             </div>
-        </Layout>
+        </PageLayout>
     )
 }

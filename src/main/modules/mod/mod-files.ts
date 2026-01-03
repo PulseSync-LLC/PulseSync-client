@@ -8,11 +8,10 @@ import asar from '@electron/asar'
 import logger from '../logger'
 import { getState } from '../state'
 import { AsarPatcher, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
+import { DownloadError } from './download.helpers'
 
 export const gunzipAsync = promisify(zlib.gunzip)
-export const zstdDecompressAsync = promisify(
-    (zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))),
-)
+export const zstdDecompressAsync = promisify((zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))))
 const State = getState()
 
 export type Paths = {
@@ -29,8 +28,13 @@ export async function resolveBasePaths(): Promise<Paths> {
     const savedModPath = (State.get('settings.modSavePath') as string) || ''
     const modAsar = savedModPath || defaultAsar
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
-    const INFO_PLIST_PATH = path.join(musicPath, 'Contents', 'Info.plist');
-    return { music: musicPath, defaultAsar, modAsar, backupAsar, infoPlist: INFO_PLIST_PATH  }
+    const infoPlistPath = path.join(musicPath, 'Contents', 'Info.plist')
+    return { music: musicPath, defaultAsar, modAsar, backupAsar, infoPlist: infoPlistPath }
+}
+
+export function isCompressedArchiveLink(link: string): boolean {
+    const ext = path.extname(new URL(link).pathname).toLowerCase()
+    return ext === '.gz' || ext === '.zst' || ext === '.zstd'
 }
 
 export async function ensureLinuxModPath(window: BrowserWindow, paths: Paths): Promise<Paths> {
@@ -94,11 +98,24 @@ export async function writePatchedAsarAndPatchBundle(
     rawDownloaded: Buffer,
     link: string,
     backupPath: string,
+    expectedChecksum?: string,
 ): Promise<boolean> {
     let asarBuf: Buffer = rawDownloaded
     const ext = path.extname(new URL(link).pathname).toLowerCase()
     if (ext === '.gz') asarBuf = await gunzipAsync(rawDownloaded)
     else if (ext === '.zst' || ext === '.zstd') asarBuf = (await zstdDecompressAsync(rawDownloaded as any)) as any
+    if (expectedChecksum) {
+        const actualHash = crypto.createHash('sha256').update(asarBuf).digest('hex')
+        if (actualHash !== expectedChecksum) {
+            console.error(
+                `[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${asarBuf.length} bytes, URL: ${link}`,
+            )
+            throw new DownloadError(
+                `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${actualHash.substring(0, 8)}...)`,
+                'checksum_mismatch',
+            )
+        }
+    }
     fs.writeFileSync(savePath, asarBuf)
     const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
     let ok = false

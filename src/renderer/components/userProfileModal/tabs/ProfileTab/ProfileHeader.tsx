@@ -3,6 +3,9 @@ import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
 import config from '../../../../api/web_config'
+import { staticAsset } from '../../../../utils/staticAssets'
+
+const fallbackAvatar = staticAsset('assets/images/undef.png')
 
 interface ProfileHeaderProps {
     userProfile: any
@@ -28,7 +31,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                     src={avatarUrl}
                     alt="Avatar"
                     onError={e => {
-                        ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                        ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                     }}
                     width="84"
                     height="84"
@@ -98,7 +101,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     .sort((a: any, b: any) => b.level - a.level)
                                     .map((badge: any) => (
                                         <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid}>
-                                            <img src={`static/assets/badges/${badge.type}.svg`} alt={badge.type} />
+                                            <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
                                         </TooltipButton>
                                     ))}
                         </div>

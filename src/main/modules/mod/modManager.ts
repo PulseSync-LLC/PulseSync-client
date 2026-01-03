@@ -3,7 +3,7 @@ import * as path from 'path'
 import * as fs from 'original-fs'
 import crypto from 'crypto'
 import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents from '../../../common/types/rendererEvents'
+import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 import { getState } from '../state'
 import logger from '../logger'
@@ -76,7 +76,14 @@ async function tryUseCacheOrDownload(
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
             await fs.promises.copyFile(cacheFile, tempFilePath)
             const fileBuffer = fs.readFileSync(tempFilePath)
-            const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar)
+            const ok = await writePatchedAsarAndPatchBundle(
+                window,
+                paths.modAsar,
+                fileBuffer,
+                link,
+                paths.backupAsar,
+                checksum,
+            )
             if (ok) {
                 logger.modManager.info('Successfully restored app.asar from cache')
                 return true
@@ -95,6 +102,50 @@ function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'versio
     if (code === 'YANDEX_VERSION_OUTDATED') return 'version_outdated'
     if (code === 'YANDEX_VERSION_TOO_NEW') return 'version_too_new'
     return 'unknown'
+}
+
+function clearModState(): void {
+    State.delete('mod.version')
+    State.delete('mod.musicVersion')
+    State.delete('mod.name')
+    State.delete('mod.checksum')
+    State.delete('mod.unpackedChecksum')
+    State.set('mod.installed', false)
+}
+
+async function removeVersionFile(versionFilePath: string): Promise<void> {
+    try {
+        if (fs.existsSync(versionFilePath)) {
+            await fs.promises.unlink(versionFilePath)
+        }
+    } catch (e) {
+        logger.modManager.warn('Failed to delete version file:', e)
+    }
+}
+
+function removeUnpackedDir(unpackedDir: string): void {
+    try {
+        if (fs.existsSync(unpackedDir)) {
+            nativeDeleteFile(unpackedDir)
+        }
+    } catch (e) {
+        logger.modManager.warn('Failed to delete unpacked dir:', e)
+    }
+}
+
+async function sendSuccessAfterLaunch(
+    window: BrowserWindow,
+    wasClosed: boolean,
+    channel: RendererEvent,
+    payload: { success: true },
+): Promise<boolean> {
+    if (!(await isYandexMusicRunning()) && wasClosed) {
+        await launchYandexMusic()
+        setTimeout(() => sendToRenderer(window, channel, payload), 1500)
+        return true
+    }
+    sendToRenderer(window, channel, payload)
+    return false
 }
 
 export const modManager = (window: BrowserWindow): void => {
@@ -229,11 +280,7 @@ export const modManager = (window: BrowserWindow): void => {
                 await fs.promises.writeFile(versionFilePath, musicVersion)
 
                 await installFfmpeg(window)
-                if (!(await isYandexMusicRunning()) && wasClosed) {
-                    await launchYandexMusic()
-                    return setTimeout(() => sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true }), 1500)
-                }
-                sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
+                if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
             } catch (error: any) {
                 logger.modManager.error('Unexpected error:', error)
                 sendFailure(window, { error: error.message, type: 'unexpected_error' })
@@ -261,38 +308,16 @@ export const modManager = (window: BrowserWindow): void => {
             if (isWindows()) await restoreWindowsIntegrity(paths)
             else if (isMac()) await restoreMacIntegrity(paths)
 
-            State.delete('mod.version')
-            State.delete('mod.musicVersion')
-            State.delete('mod.name')
-            State.delete('mod.checksum')
-            State.delete('mod.unpackedChecksum')
-            State.set('mod.installed', false)
+            clearModState()
 
             const versionFilePath = path.join(paths.music, 'version')
-            try {
-                if (fs.existsSync(versionFilePath)) {
-                    await fs.promises.unlink(versionFilePath)
-                }
-            } catch (e) {
-                logger.modManager.warn('Failed to delete version file:', e)
-            }
-
+            await removeVersionFile(versionFilePath)
             const unpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
-            try {
-                if (fs.existsSync(unpackedDir)) {
-                    nativeDeleteFile(unpackedDir)
-                }
-            } catch (e) {
-                logger.modManager.warn('Failed to delete unpacked dir:', e)
-            }
+            removeUnpackedDir(unpackedDir)
 
             await deleteFfmpeg()
 
-            if (!(await isYandexMusicRunning()) && wasClosed) {
-                await launchYandexMusic()
-                return setTimeout(() => sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true }), 1500)
-            }
-            sendToRenderer(window, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
+            await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {
             logger.modManager.error('Failed to remove mod:', error)
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })

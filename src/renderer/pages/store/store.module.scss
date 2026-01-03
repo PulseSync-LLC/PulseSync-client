@@ -24,7 +24,6 @@
     color: #ffffff;
 }
 
-
 .store_grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 0.47fr));
@@ -36,7 +35,6 @@
     max-width: 1200px;
     margin: auto;
 }
-
 
 @media (max-width: 1024px) {
     .store {

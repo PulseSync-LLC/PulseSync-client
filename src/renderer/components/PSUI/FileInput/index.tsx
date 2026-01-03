@@ -29,6 +29,9 @@ type Props = {
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'])
 const isImageName = (name: string) => IMAGE_EXTS.has(path.extname(name || '').toLowerCase())
 const isAbsPath = (p: string) => /^([a-zA-Z]:[\\/]|\\\\|\/)/.test(p || '')
+const revokeIfBlob = (url?: string | null) => {
+    if (url) URL.revokeObjectURL(url)
+}
 
 const toFilters = (accept?: string): Electron.FileFilter[] | undefined => {
     if (!accept) return undefined
@@ -94,7 +97,6 @@ async function hashBase64(b64: string): Promise<string> {
         .join('')
 }
 
-/** хэш файла по пути (через read-file-base64) */
 async function fileHash(fullPath: string): Promise<string> {
     try {
         const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
@@ -104,7 +106,6 @@ async function fileHash(fullPath: string): Promise<string> {
     }
 }
 
-/** получить dataURL с фолбэком через read-file-base64 */
 async function getDataUrlSafe(fullPath: string): Promise<string | null> {
     try {
         const url: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, fullPath)
@@ -160,15 +161,21 @@ const FileInput: React.FC<Props> = ({
 
     const [rev, setRev] = useState(0)
 
+    const resetPreviewState = () => {
+        setLocalPreview(prev => {
+            revokeIfBlob(prev)
+            return null
+        })
+        setDataPreview(null)
+        setImgOk(false)
+        setImgLoading(false)
+    }
+
     useEffect(() => {
         if (!isTyping) setText(value ?? '')
 
         if (!value || !isImageName(value)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
             return
         }
 
@@ -205,7 +212,7 @@ const FileInput: React.FC<Props> = ({
 
     useEffect(
         () => () => {
-            if (localPreview) URL.revokeObjectURL(localPreview)
+            revokeIfBlob(localPreview)
         },
         [localPreview],
     )
@@ -242,16 +249,13 @@ const FileInput: React.FC<Props> = ({
         if (isImageName(f.name)) {
             const url = URL.createObjectURL(f)
             setLocalPreview(prev => {
-                if (prev) URL.revokeObjectURL(prev)
+                revokeIfBlob(prev)
                 return url
             })
             setImgOk(false)
             setImgLoading(true)
         } else {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         }
 
         const anyFile = f as any
@@ -267,22 +271,13 @@ const FileInput: React.FC<Props> = ({
         setText(v)
         onChange?.(v)
         if (!v || !isImageName(v)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         } else {
             if (!isAbsPath(v)) setImgLoading(false)
             else setImgLoading(true)
         }
     }
 
-    /**
-     * metadata-режим: если уже есть короткое имя в значении — перезаписываем старый файл новым.
-     * если содержимое не поменялось (по хэшу) — не бампим rev.
-     * иначе — копируем в аддон и возвращаем новое короткое имя.
-     */
     const commitPicked = async (absNewPath: string) => {
         if (!metadata || !addonPath) {
             commitManual(absNewPath)
@@ -321,11 +316,7 @@ const FileInput: React.FC<Props> = ({
         onChange?.(finalShort)
 
         if (!finalShort || !isImageName(finalShort)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         } else {
             setImgLoading(true)
         }
@@ -333,11 +324,7 @@ const FileInput: React.FC<Props> = ({
 
     const clearAll = async (e?: React.MouseEvent) => {
         e?.stopPropagation()
-        if (localPreview) URL.revokeObjectURL(localPreview)
-        setLocalPreview(null)
-        setDataPreview(null)
-        setImgOk(false)
-        setImgLoading(false)
+        resetPreviewState()
         setText('')
         onChange?.('')
         setRev(r => r + 1)

@@ -1,6 +1,7 @@
 import { app, Menu, MenuItem, shell, Tray } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import { checkOrFindUpdate } from '../events'
+import { isMac, isWindows } from '../utils/appUtils'
 import path from 'path'
 import { setRpcStatus } from './discordRpc'
 import { mainWindow } from './createWindow'
@@ -12,7 +13,8 @@ let menu: Menu
 const State = getState()
 
 function createTray() {
-    const icon = getNativeImg('App', '.ico', 'icon').resize({
+    const iconExt = isWindows() ? '.ico' : '.png'
+    const icon = getNativeImg('App', iconExt, 'icon').resize({
         width: 16,
         height: 16,
     })
@@ -20,6 +22,10 @@ function createTray() {
         width: 16,
         height: 12,
     })
+    if (isMac()) {
+        icon.setTemplateImage(true)
+        dsIcon.setTemplateImage(true)
+    }
 
     tray = new Tray(icon)
     menu = new Menu()
@@ -69,7 +75,7 @@ function createTray() {
     menu.append(
         new MenuItem({
             label: 'Закрыть',
-            accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Alt+F4',
+            accelerator: isMac() ? 'Cmd+Q' : isWindows() ? 'Alt+F4' : 'Ctrl+Q',
             click: app.quit,
         }),
     )

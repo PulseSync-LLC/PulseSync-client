@@ -12,4 +12,3 @@ const ModalContainer: React.FC = () => {
 }
 
 export default ModalContainer
-
