@@ -247,6 +247,5 @@ export function areTracksEqual(a: Track, b: Track): boolean {
     if (a.sourceType !== b.sourceType) return false
     const aArtist = (a.artists || []).map(x => x.name).join(',')
     const bArtist = (b.artists || []).map(x => x.name).join(',')
-    if (aArtist !== bArtist) return false
-    return true
+    return aArtist === bArtist
 }

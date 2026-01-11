@@ -490,6 +490,17 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
 }
 
 const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
+    const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
+        const text = payload?.text ?? payload?.message ?? ''
+        const details: string[] = []
+        const type = payload?.type ? `type=${payload.type}` : null
+        if (type) details.push(type)
+        if (payload?.stack) details.push(`stack:\n${payload.stack}`)
+        if (payload?.componentStack) details.push(`componentStack:\n${payload.componentStack}`)
+        const detailText = details.length ? `\n${details.join('\n')}` : ''
+        return `[${prefix}] ${text}${detailText}`.trim()
+    }
+
     ipcMain.on(MainEvents.UPDATE_RPC_SETTINGS, async (_event, data: any) => {
         switch (Object.keys(data)[0]) {
             case 'appId':
@@ -523,13 +534,21 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {
-        if (data.info) logger.renderer.info(data.text)
-        else if (data.error) logger.renderer.error(data.text)
-        else logger.renderer.log(data.text)
+        const message = formatRendererLogMessage('RENDERER_LOG', data)
+        const level = data?.error ? 'error' : data?.info ? 'info' : 'log'
+        logger.renderer[level](message)
     })
 
     ipcMain.on(MainEvents.LOG_ERROR, (_event, errorInfo: any) => {
-        HandleErrorsElectron.handleError('renderer-error', errorInfo.type, errorInfo.message, errorInfo.componentStack)
+        const message = formatRendererLogMessage('LOG_ERROR', errorInfo)
+        logger.renderer.error(message)
+        const errorMessage = errorInfo?.message ?? 'Renderer error'
+        const error = new Error(errorMessage)
+        if (errorInfo?.stack) {
+            const componentStack = errorInfo?.componentStack ? `\nComponentStack:\n${errorInfo.componentStack}` : ''
+            error.stack = `${errorInfo.stack}${componentStack}`
+        }
+        HandleErrorsElectron.handleError('renderer-error', errorInfo?.type ?? 'unknown', 'error-boundary', error)
     })
 }
 

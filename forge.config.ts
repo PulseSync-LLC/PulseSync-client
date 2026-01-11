@@ -13,11 +13,13 @@ const forgeConfig: ForgeConfig = {
         name: 'PulseSync',
         executableName: 'PulseSync',
         appCopyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»',
-        asar: true,
+        asar: {
+            unpack: '**/.webpack/renderer/static/assets/icon/**',
+        },
         win32metadata: {
             CompanyName: 'ИП «Деднев Григорий Дмитриевич»',
         },
-        appBundleId: "pulsesync.app",
+        appBundleId: 'pulsesync.app',
         extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
@@ -57,7 +59,6 @@ const forgeConfig: ForgeConfig = {
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
             [FuseV1Options.EnableNodeCliInspectArguments]: true,
-
         }),
     ],
     hooks: {

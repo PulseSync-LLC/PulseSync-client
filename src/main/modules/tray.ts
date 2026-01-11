@@ -54,7 +54,7 @@ function createTray() {
         checked: State.get('discordRpc.status'),
         id: 'rpc-status',
         click: async () => {
-            await setRpcStatus(!State.get('discordRpc.status'))
+            setRpcStatus(!State.get('discordRpc.status'))
         },
     })
     menu.append(menuItem)

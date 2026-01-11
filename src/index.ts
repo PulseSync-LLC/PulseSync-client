@@ -7,7 +7,7 @@ import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
 import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, formatJson, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
+import { checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -57,7 +57,6 @@ const mimeByExt: Record<string, string> = {
 }
 const checkOldYandexMusic = async () => {
     try {
-        const { findAppByName } = await import('./main/utils/appUtils')
         const namePart = 'Yandex.Music'
         const pkg = await findAppByName(namePart)
 
