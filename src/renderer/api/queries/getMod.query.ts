@@ -15,6 +15,7 @@ export default gql`
             showModal
             shouldReinstall
             checksum
+            checksum_v2
             spoof
             deprecated
         }

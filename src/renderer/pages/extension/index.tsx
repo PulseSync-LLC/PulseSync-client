@@ -6,6 +6,7 @@ import stringSimilarity from 'string-similarity'
 
 import userContext from '../../api/context/user.context'
 import Addon from '../../api/interfaces/addon.interface'
+import { AddonWhitelistItem } from '../../api/interfaces/addonWhitelist.interface'
 
 import toast from '../../components/toast'
 
@@ -24,6 +25,8 @@ import config from '../../api/web_config'
 import MainEvents from '../../../common/types/mainEvents'
 import CustomModalPS from '../../components/PSUI/CustomModalPS'
 import { staticAsset } from '../../utils/staticAssets'
+import apolloClient from '../../api/apolloClient'
+import GetAddonWhitelistQuery from '../../api/queries/getAddonWhitelist.query'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -73,6 +76,7 @@ export default function ExtensionPage() {
     const [isLoaded, setIsLoaded] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
+    const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -107,6 +111,24 @@ export default function ExtensionPage() {
         if (!loadedRef.current) {
             init()
         }
+    }, [])
+
+    useEffect(() => {
+        const fetchAddonWhitelist = async () => {
+            try {
+                const res = await apolloClient.query<{ getAddonWhitelist: AddonWhitelistItem[] }>({
+                    query: GetAddonWhitelistQuery,
+                    fetchPolicy: 'no-cache',
+                })
+                if (Array.isArray(res.data?.getAddonWhitelist)) {
+                    setAddonWhitelist(res.data.getAddonWhitelist)
+                }
+            } catch (error) {
+                console.error('Ошибка при загрузке белого списка аддонов:', error)
+            }
+        }
+
+        fetchAddonWhitelist()
     }, [])
 
     useEffect(() => {
@@ -441,6 +463,32 @@ export default function ExtensionPage() {
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 
+    const whitelistedAddonNames = useMemo(() => {
+        return new Set(addonWhitelist.map(addon => addon.name.toLowerCase()))
+    }, [addonWhitelist])
+
+    const isAddonWhitelisted = useCallback(
+        (addon: Addon) => {
+            const name = addon.name.toLowerCase()
+            const directoryName = addon.directoryName.toLowerCase()
+            return whitelistedAddonNames.has(name) || whitelistedAddonNames.has(directoryName)
+        },
+        [whitelistedAddonNames],
+    )
+
+    const isAddonVersionSupported = useCallback(
+        (addon: Addon, version: string | undefined | null) => {
+            if (isAddonWhitelisted(addon)) {
+                return true
+            }
+            if (!version) {
+                return false
+            }
+            return addon.supportedVersions?.some(range => semver.valid(version) && semver.satisfies(version, range)) ?? false
+        },
+        [isAddonWhitelisted],
+    )
+
     function ThemeNotFound({ hasAnyAddons }: { hasAnyAddons: boolean }) {
         return (
             <div className={extensionStylesV2.notFound}>
@@ -460,19 +508,17 @@ export default function ExtensionPage() {
     const getAddonModalText = useCallback((addon: Addon, musicVersion: string | undefined) => {
         const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : 'неизвестно'
 
-        const isSupported =
-            musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
+        const isSupported = isAddonVersionSupported(addon, musicVersion)
         const minSupported = addon.supportedVersions?.[0]
         if (musicVersion && minSupported && !isSupported) {
             return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.\nВаша версия Яндекс Музыки (${musicVersion}) не входит в поддерживаемый диапазон (${supported}). Возможны ошибки или некорректная работа!`
         }
         return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.`
-    }, [])
+    }, [isAddonVersionSupported])
 
     const handleEnableAddon = useCallback(
         (addon: Addon) => {
-            const isSupported =
-                musicVersion && addon.supportedVersions?.some(range => semver.valid(musicVersion) && semver.satisfies(musicVersion, range))
+            const isSupported = isAddonVersionSupported(addon, musicVersion)
             if (musicVersion && addon.supportedVersions?.length && !isSupported) {
                 setModalAddon(addon)
                 setModalOpen(true)
@@ -484,7 +530,7 @@ export default function ExtensionPage() {
                 true,
             )
         },
-        [currentTheme, enabledScripts, handleCheckboxChange, musicVersion],
+        [currentTheme, enabledScripts, handleCheckboxChange, isAddonVersionSupported, musicVersion],
     )
 
     return (
