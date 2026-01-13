@@ -10,6 +10,7 @@ import FileInput from '../../../../components/PSUI/FileInput'
 import ChangesBar from '../../../../components/PSUI/ChangesBar'
 
 import * as css from './MetadataEditor.module.scss'
+import { useTranslation } from 'react-i18next'
 
 type Metadata = {
     name: string
@@ -122,6 +123,7 @@ function deepEqual(a: any, b: any): boolean {
 }
 
 const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
+    const { t } = useTranslation()
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
     const baseRef = useRef<Metadata>(DEFAULT_META)
     const [loading, setLoading] = useState(true)
@@ -158,7 +160,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 }
             } catch (e) {
                 console.error(e)
-                if (!cancelled) setError('Не удалось загрузить metadata.json')
+                if (!cancelled) setError(t('metadata.loadError'))
             } finally {
                 if (!cancelled) setLoading(false)
             }
@@ -255,7 +257,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
             setDraft(next)
         } catch (e) {
             console.error(e)
-            setError('Не удалось сохранить metadata.json')
+            setError(t('metadata.saveError'))
         } finally {
             setSaving(false)
         }
@@ -265,26 +267,31 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setDraft(baseRef.current)
     }, [])
 
-    if (loading) return <div className={css.alert}>Загрузка…</div>
+    if (loading) return <div className={css.alert}>{t('common.loading')}</div>
     if (error) return <div className={css.alert}>{error}</div>
 
     return (
         <div className={css.root}>
             <div className={css.metaGrid}>
-                <TextInput name="meta-name" label="Name" value={draft.name} onChange={v => setField('name', v)} />
-                <TextInput name="meta-author" label="Author" value={draft.author} onChange={v => setField('author', v)} />
+                <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={v => setField('name', v)} />
+                <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={v => setField('author', v)} />
 
-                <TextInput name="meta-description" label="Description" value={draft.description} onChange={v => setField('description', v)} />
+                <TextInput
+                    name="meta-description"
+                    label={t('metadata.labels.description')}
+                    value={draft.description}
+                    onChange={v => setField('description', v)}
+                />
                 <TextInput
                     name="meta-version"
-                    label="Version"
+                    label={t('metadata.labels.version')}
                     value={draft.version}
                     onChange={v => setField('version', v)}
-                    description={!SEMVER.test(draft.version) ? 'Формат: x.y.z' : undefined}
+                    description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
                 />
 
                 <SelectInput
-                    label="Type"
+                    label={t('metadata.labels.type')}
                     value={draft.type}
                     options={[
                         { value: 'theme', label: 'theme' },
@@ -296,18 +303,18 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
                 <TextInput
                     name="meta-tags"
-                    label="Tags (comma-separated)"
+                    label={t('metadata.labels.tags')}
                     value={tagsAsString}
                     onChange={setTagsFromString}
-                    description="Например: Customization, UI"
+                    description={t('metadata.examples.tags')}
                 />
 
                 <div className={css.fileCol}>
                     <FileInput
-                        label="Image"
+                        label={t('metadata.labels.image')}
                         value={draft.image}
                         onChange={p => setField('image', p)}
-                        placeholder="Выберите или укажите путь"
+                        placeholder={t('metadata.placeholders.selectOrEnterPath')}
                         metadata
                         addonPath={addonPath}
                         preferredBaseName="image"
@@ -317,10 +324,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
                 <div className={css.fileCol}>
                     <FileInput
-                        label="Banner"
+                        label={t('metadata.labels.banner')}
                         value={draft.banner}
                         onChange={p => setField('banner', p)}
-                        placeholder="Выберите или укажите путь"
+                        placeholder={t('metadata.placeholders.selectOrEnterPath')}
                         metadata
                         addonPath={addonPath}
                         preferredBaseName="banner"
@@ -330,10 +337,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
                 <div className={css.fileCol}>
                     <FileInput
-                        label="Library logo"
+                        label={t('metadata.labels.libraryLogo')}
                         value={draft.libraryLogo ?? ''}
                         onChange={p => setField('libraryLogo', p)}
-                        placeholder="Выберите файл логотипа"
+                        placeholder={t('metadata.placeholders.logoFile')}
                         metadata
                         addonPath={addonPath}
                         preferredBaseName="libraryLogo"
@@ -342,20 +349,20 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 </div>
 
                 <FileInput
-                    label="CSS"
+                    label={t('metadata.labels.css')}
                     value={draft.css}
                     onChange={p => setField('css', p)}
-                    placeholder="style.css или абсолютный путь"
+                    placeholder={t('metadata.placeholders.cssPath')}
                     metadata
                     addonPath={addonPath}
                     preferredBaseName="style"
                     accept=".css"
                 />
                 <FileInput
-                    label="Script"
+                    label={t('metadata.labels.script')}
                     value={draft.script}
                     onChange={p => setField('script', p)}
-                    placeholder="script.js или абсолютный путь"
+                    placeholder={t('metadata.placeholders.scriptPath')}
                     metadata
                     addonPath={addonPath}
                     preferredBaseName="script"
@@ -363,32 +370,32 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 />
                 <TextInput
                     name="meta-dependencies"
-                    label="Dependencies (comma-separated)"
+                    label={t('metadata.labels.dependencies')}
                     value={dependenciesAsString}
                     onChange={setDependenciesFromString}
-                    description="Например: AddonName"
+                    description={t('metadata.examples.addonName')}
                 />
                 <TextInput
                     name="meta-allowedUrls"
-                    label="Allowed URLs (comma-separated)"
+                    label={t('metadata.labels.allowedUrls')}
                     value={allowedUrlsAsString}
                     onChange={setAllowedUrlsFromString}
-                    description="Например: https://example.com, https://api.example.com"
+                    description={t('metadata.examples.allowedUrls')}
                 />
 
                 <TextInput
                     name="meta-supportedVersions"
-                    label="Supported Versions (comma-separated)"
+                    label={t('metadata.labels.supportedVersions')}
                     value={supportedVersionsAsString}
                     onChange={setSupportedVersionsFromString}
-                    description="Например: ^5.65.0, >=5.66.0, 5.67.x"
+                    description={t('metadata.examples.supportedVersions')}
                 />
             </div>
 
             <ChangesBar
                 open={open}
                 saving={saving}
-                text={valid ? 'Аккуратнее, вы не сохранили изменения!' : 'Исправьте ошибки перед сохранением'}
+                text={valid ? t('changes.unsavedWarning') : t('metadata.fixErrors')}
                 onSave={onSave}
                 onReset={onReset}
                 disabledSave={!valid}

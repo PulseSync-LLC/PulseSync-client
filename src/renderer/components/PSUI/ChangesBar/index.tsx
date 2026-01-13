@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import clsx from 'clsx'
 import * as css from './ChangesBar.module.scss'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     open: boolean
@@ -12,15 +13,9 @@ type Props = {
     disabledSave?: boolean
 }
 
-const ChangesBar: React.FC<Props> = ({
-    open,
-    text = 'Аккуратнее, вы не сохранили изменения!',
-    onReset,
-    onSave,
-    saving: savingProp,
-    durationMs = 220,
-    disabledSave = false,
-}) => {
+const ChangesBar: React.FC<Props> = ({ open, text, onReset, onSave, saving: savingProp, durationMs = 220, disabledSave = false }) => {
+    const { t } = useTranslation()
+    const displayText = text ?? t('changes.unsavedWarning')
     const [mounted, setMounted] = useState(open)
     const [phase, setPhase] = useState<'enter' | 'show' | 'hide'>('hide')
     const [savingInt, setSavingInt] = useState(false)
@@ -67,17 +62,17 @@ const ChangesBar: React.FC<Props> = ({
             role="status"
             aria-live="polite"
         >
-            <div className={css.changesText}>{text}</div>
+            <div className={css.changesText}>{displayText}</div>
 
             {onReset && (
                 <button className={css.linkBtn} type="button" onClick={onReset} disabled={saving}>
-                    Сброс
+                    {t('common.reset')}
                 </button>
             )}
 
             {onSave && (
                 <button className={css.saveBtn} type="button" onClick={doSave} disabled={saving || disabledSave}>
-                    {saving ? 'Сохранение…' : 'Сохранить изменения'}
+                    {saving ? t('changes.saving') : t('changes.saveChanges')}
                 </button>
             )}
         </div>

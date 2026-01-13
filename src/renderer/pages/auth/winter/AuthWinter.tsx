@@ -12,29 +12,47 @@ import Snowfall from './Snowfall'
 import * as pageStyles from './winter_auth.module.scss'
 import { useSelector } from 'react-redux'
 import { RootState } from '../../../api/store/store'
+import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { user } = useContext(userContext)
     const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
-    const img1Ref = useRef(null)
-    const img2Ref = useRef(null)
-    const img3Ref = useRef(null)
-    const imgLogo = useRef(null)
+
+    const img1Ref = useRef<HTMLImageElement | null>(null)
+    const img2Ref = useRef<HTMLImageElement | null>(null)
+    const img3Ref = useRef<HTMLImageElement | null>(null)
+    const imgLogo = useRef<HTMLDivElement | null>(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
     const checkUpdate = () => checkUpdateHard()
+
     const readAndSendFile = async () => {
         try {
             await readAndSendTerms()
         } catch (error) {
-            console.error('Ошибка чтения файла:', error)
+            console.error(t('auth.readTermsError'), error)
         }
     }
 
     useAuthRedirect(user.id, navigate)
+
     useEffect(() => {
-        const handleMouseMove = (e: { clientX: any; clientY: any }) => {
+        const prevHtmlOverflow = document.documentElement.style.overflow
+        const prevBodyOverflow = document.body.style.overflow
+
+        document.documentElement.style.overflow = 'hidden'
+        document.body.style.overflow = 'hidden'
+
+        return () => {
+            document.documentElement.style.overflow = prevHtmlOverflow
+            document.body.style.overflow = prevBodyOverflow
+        }
+    }, [])
+
+    useEffect(() => {
+        const handleMouseMove = (e: MouseEvent) => {
             const { innerWidth, innerHeight } = window
             const mouseX = e.clientX
             const mouseY = e.clientY
@@ -85,27 +103,30 @@ export default function AuthPage() {
                 <img ref={img1Ref} className={pageStyles.img1} src={staticAsset('assets/images/winter/balls.png')} alt="Flat Cylinder" />
                 <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/winter/charactertree.png')} alt="Thorus Knot" />
                 <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/winter/snowman.png')} alt="Pyramid" />
+
                 <div className={pageStyles.filter}></div>
                 <div className={pageStyles.background}></div>
+
                 <div className={pageStyles.container} ref={imgLogo}>
                     <div className={pageStyles.logoName}>
                         <AppNameLogo />
-                        <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} />
+                        <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} alt="hat" />
                     </div>
+
                     {isDeprecated ? (
                         <>
                             <button className={pageStyles.discordAuth} onClick={checkUpdate}>
-                                Проверить обновления
+                                {t('auth.checkUpdates')}
                             </button>
-                            <span className={pageStyles.terms}>Приложение устарело и требует обновления 😡😡😡</span>
+                            <span className={pageStyles.terms}>{t('auth.deprecatedRequiresUpdate')}</span>
                         </>
                     ) : (
                         <>
                             <button className={pageStyles.discordAuth} onClick={startAuthProcess}>
-                                Авторизация через Discord
+                                {t('auth.discordAuth')}
                             </button>
                             <span className={pageStyles.terms}>
-                                Нажимая на “Авторизация через Discord”, вы соглашаетесь с <br />
+                                {t('auth.consentPrefix')} <br />
                                 <a
                                     onClick={async () => {
                                         await readAndSendFile()
@@ -113,7 +134,7 @@ export default function AuthPage() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    Соглашением об использовании программы
+                                    {t('auth.termsLink')}
                                 </a>
                             </span>
                         </>

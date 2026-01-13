@@ -50,6 +50,7 @@ import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
+import { useTranslation } from 'react-i18next'
 
 type GetMeData = {
     getMe: Partial<UserInterface> | null
@@ -57,6 +58,7 @@ type GetMeData = {
 type GetMeVars = Record<string, never>
 
 function App() {
+    const { t } = useTranslation()
     const [realtimeSocket, setRealtimeSocket] = useState<Socket | null>(null)
     const [connectionErrorCode, setConnectionErrorCode] = useState(-1)
     const [isConnected, setIsConnected] = useState(false)
@@ -109,6 +111,10 @@ function App() {
 
         const formatLogArgs = (args: any[]) => args.map(formatLogValue).join(' ')
 
+        const isIgnoredFetchUrl = (url: string) => {
+            return url.startsWith('sentry-ipc://')
+        }
+
         const originalConsoleError = console.error.bind(console)
         console.error = (...args: any[]) => {
             sendRendererError(formatLogArgs(args))
@@ -120,13 +126,12 @@ function App() {
             window.fetch = (async (...args: Parameters<typeof fetch>) => {
                 const [input] = args
                 const url =
-                    typeof input === 'string'
-                        ? input
-                        : input instanceof URL
-                          ? input.toString()
-                          : input instanceof Request
-                            ? input.url
-                            : 'unknown'
+                    typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : 'unknown'
+
+                if (typeof url === 'string' && isIgnoredFetchUrl(url)) {
+                    return originalFetch(...args)
+                }
+
                 try {
                     const response = await originalFetch(...args)
                     if (!response.ok) {
@@ -144,6 +149,7 @@ function App() {
             const detail = event.error ? ` - ${formatLogValue(event.error)}` : ''
             sendRendererError(`Unhandled error: ${event.message}${detail}`)
         }
+
         const onUnhandledRejection = (event: PromiseRejectionEvent) => {
             sendRendererError(`Unhandled rejection: ${formatLogValue(event.reason)}`)
         }
@@ -316,7 +322,7 @@ function App() {
                 await router.navigate('/auth', { replace: true })
             })()
             setUser(userInitials)
-            toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
+            toast.custom('error', t('common.errorTitle'), t('auth.failedToFetchUser'), null, null, 10000)
             window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                 status: false,
             })
@@ -325,12 +331,12 @@ function App() {
 
     useEffect(() => {
         if (!meError) return
-        const message = meError?.message || 'Неизвестная ошибка авторизации.'
+        const message = meError?.message || t('auth.unknownAuthError')
         if (CombinedGraphQLErrors.is(meError)) {
             const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
             const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
             if (isForbidden) {
-                toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
+                toast.custom('error', t('common.errorTitle'), t('auth.sessionExpired'), null, null, 10000)
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
                     await router.navigate('/auth', { replace: true })
@@ -341,14 +347,7 @@ function App() {
                 return
             }
             if (isDeprecated) {
-                toast.custom(
-                    'error',
-                    'Данная версия приложения устарела',
-                    'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
-                    null,
-                    null,
-                    10000,
-                )
+                toast.custom('error', t('auth.appVersionDeprecatedTitle'), t('auth.appVersionDeprecatedMessage'), null, null, 10000)
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
                 dispatch(setAppDeprecatedStatus(true))
                 window.electron.store.delete('tokens.token')
@@ -362,10 +361,10 @@ function App() {
             }
         }
         Sentry.captureException(meError)
-        toast.custom('error', 'Может у тебя нет доступа?', message)
+        toast.custom('error', t('auth.accessQuestionTitle'), message)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
         setLoading(false)
-    }, [meError, dispatch])
+    }, [meError, dispatch, t])
 
     const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
@@ -381,7 +380,7 @@ function App() {
                         retryCount--
                         return false
                     } else {
-                        toast.custom('error', 'Отдохни чуток:)', 'Превышено количество попыток подключения.')
+                        toast.custom('error', t('common.takeBreakTitle'), t('common.tooManyAttempts'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -389,9 +388,9 @@ function App() {
                 }
 
                 const sendErrorAuthNotify = (message: string, title?: string) => {
-                    toast.custom('error', 'Ошибка', message, null, null, 10000)
+                    toast.custom('error', t('common.errorTitle'), message, null, null, 10000)
                     window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                        title: `Ошибка авторизации 😡 ${title ? title : ''}`,
+                        title: t('auth.authErrorTitle', { title }),
                         body: message,
                     })
                 }
@@ -417,7 +416,7 @@ function App() {
                         window.electron.store.delete('tokens.token')
                         await router.navigate('/auth', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
+                        sendErrorAuthNotify(t('auth.failedToFetchUser'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
@@ -430,7 +429,7 @@ function App() {
                             retryCount--
                             return false
                         } else {
-                            toast.custom('error', 'Пинг-понг', 'Сервер недоступен. Попробуйте позже.')
+                            toast.custom('error', t('common.pingPongTitle'), t('common.serverUnavailable'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
@@ -440,21 +439,14 @@ function App() {
                         const isDeprecated = errors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
                         const isForbidden = errors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
-                            toast.custom('error', 'Ваша сессия истекла', 'Пожалуйста, войдите снова.')
+                            toast.custom('error', t('auth.sessionExpiredTitle'), t('auth.pleaseLoginAgain'))
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else if (isDeprecated) {
-                            toast.custom(
-                                'error',
-                                'Данная версия приложения устарела',
-                                'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
-                                null,
-                                null,
-                                10000,
-                            )
+                            toast.custom('error', t('auth.appVersionDeprecatedTitle'), t('auth.appVersionDeprecatedMessage'), null, null, 10000)
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
@@ -464,14 +456,14 @@ function App() {
                             return false
                         } else {
                             Sentry.captureException(err)
-                            toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
+                            toast.custom('error', t('auth.accessQuestionTitle'), t('auth.unknownAuthError'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
                     } else {
                         Sentry.captureException(err)
-                        toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
+                        toast.custom('error', t('auth.accessQuestionTitle'), t('auth.unknownAuthError'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -512,7 +504,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }, [dispatch, refetchMe, router])
+    }, [dispatch, refetchMe, router, t])
 
     const emitGateway = useCallback(
         (event: string, data: any) => {
@@ -632,7 +624,7 @@ function App() {
         if (!socket) return
 
         const onConnect = () => {
-            toast.custom('success', 'Фух', 'Соединение установлено')
+            toast.custom('success', t('common.phewTitle'), t('common.connectionEstablished'))
             setRealtimeSocket(socket)
             setIsConnected(true)
             setConnectionErrorCode(-1)
@@ -661,10 +653,10 @@ function App() {
             setFeatures(data)
         }
         const onDeprecated = () => {
-            toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.')
+            toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
             window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                title: 'Внимание!',
-                body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
+                title: t('common.attentionTitle'),
+                body: t('auth.deprecatedSoon'),
             })
         }
 
@@ -686,7 +678,7 @@ function App() {
                     case 'update_features_ack':
                         break
                     case 'error_message':
-                        if (d?.message) toast.custom('error', 'Ошибка.', d.message, null, null, 15000)
+                        if (d?.message) toast.custom('error', t('common.errorTitleShort'), d.message, null, null, 15000)
                         break
                     case 'logout':
                         onLogout()
@@ -712,48 +704,51 @@ function App() {
 
     useEffect(() => {
         if (connectionErrorCode === 1 || connectionErrorCode === 0) {
-            toast.custom('error', 'Что-то не так!', 'Сервер не доступен')
+            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailable'))
         } else if (isConnected && connectionErrorCode !== -1) {
-            toast.custom('success', 'На связи', 'Соединение восстановлено')
+            toast.custom('success', t('common.connectedTitle'), t('common.connectionRestored'))
         }
     }, [connectionErrorCode, isConnected])
 
-    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
-        try {
-            const res = await apolloClient.query<{ getMod: ModInterface[] }>({
-                query: GetModQuery,
-                fetchPolicy: 'no-cache',
-            })
+    const fetchModInfo = useCallback(
+        async (app: SettingsInterface) => {
+            try {
+                const res = await apolloClient.query<{ getMod: ModInterface[] }>({
+                    query: GetModQuery,
+                    fetchPolicy: 'no-cache',
+                })
 
-            const mods = res.data?.getMod
-            if (!mods || mods.length === 0) {
-                console.error('Invalid response format for getMod:', res.data)
-                return
-            }
-
-            setMod(mods)
-
-            const latest = mods[0]
-            if (!app.mod.installed || !app.mod.version) {
-                toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
-                return
-            }
-            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
-                const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
-                if (lastNotifiedModVersion !== latest.modVersion) {
-                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                        title: 'Доступно обновление мода',
-                        body: `Версия ${latest.modVersion} доступна для установки.`,
-                    })
-                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                const mods = res.data?.getMod
+                if (!mods || mods.length === 0) {
+                    console.error('Invalid response format for getMod:', res.data)
+                    return
                 }
-            } else {
-                toast.custom('info', 'Всё в порядке', 'У вас установлена последняя версия мода')
+
+                setMod(mods)
+
+                const latest = mods[0]
+                if (!app.mod.installed || !app.mod.version) {
+                    toast.custom('info', t('mod.notInstalledTitle'), t('mod.availableVersion', { version: latest.modVersion }))
+                    return
+                }
+                if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+                    const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
+                    if (lastNotifiedModVersion !== latest.modVersion) {
+                        window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                            title: t('mod.updateAvailableTitle'),
+                            body: t('mod.updateAvailableBody', { version: latest.modVersion }),
+                        })
+                        localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                    }
+                } else {
+                    toast.custom('info', t('common.allGoodTitle'), t('mod.latestInstalled'))
+                }
+            } catch (e) {
+                console.error('Failed to fetch mod info:', e)
             }
-        } catch (e) {
-            console.error('Failed to fetch mod info:', e)
-        }
-    }, [])
+        },
+        [t],
+    )
 
     useEffect(() => {
         if (user.id !== '-1') {
@@ -817,9 +812,12 @@ function App() {
         }
     }, [fetchModInfo, router, user.id, zstdReady])
 
-    const invokeFileEvent = useCallback(async (eventType: string, filePath: string, data?: any) => {
-        return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
-    }, [])
+    const invokeFileEvent = useCallback(
+        async (eventType: string, filePath: string, data?: any) => {
+            return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
+        },
+        [t],
+    )
 
     const handleOpenAddon = useCallback(
         (_event: any, data: string) => {
@@ -829,7 +827,7 @@ function App() {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                            toast.custom('error', 'Ошибка.', 'У аддона отсутствует поле type или оно некорректно', null, null, 15000)
+                            toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), null, null, 15000)
                             return
                         }
                         setAddons(fetchedAddons)
@@ -839,7 +837,7 @@ function App() {
                 })
                 .catch(error => console.error('Error getting themes:', error))
         },
-        [setAddons],
+        [setAddons, t],
     )
 
     useEffect(() => {
@@ -866,22 +864,25 @@ function App() {
         }
     }, [navigateTo, navigateState, router])
 
-    const onRpcLog = useCallback((_: any, data: any) => {
-        switch (data.type) {
-            case 'error':
-                toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
-                break
-            case 'success':
-                toast.custom('success', 'Успешно.', 'RPC: ' + data.message, null, null, 15000)
-                break
-            case 'info':
-                toast.custom('info', 'Информация.', 'RPC: ' + data.message)
-                break
-            case 'warn':
-                toast.custom('warning', 'Предупреждение.', 'RPC: ' + data.message)
-                break
-        }
-    }, [])
+    const onRpcLog = useCallback(
+        (_: any, data: any) => {
+            switch (data.type) {
+                case 'error':
+                    toast.custom('error', t('common.errorTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    break
+                case 'success':
+                    toast.custom('success', t('common.successTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    break
+                case 'info':
+                    toast.custom('info', t('common.infoTitleShort'), t('rpc.message', { message: data.message }))
+                    break
+                case 'warn':
+                    toast.custom('warning', t('common.warningTitleShort'), t('rpc.message', { message: data.message }))
+                    break
+            }
+        },
+        [t],
+    )
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         if (!window.desktopEvents) return
@@ -907,13 +908,13 @@ function App() {
 
         const handleCheckUpdate = (_event: any, data: any) => {
             if (!toastReference.current) {
-                toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
+                toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
             if (!data.updateAvailable) {
                 toast.update(toastReference.current!, {
                     kind: 'info',
-                    title: 'Эвана как...',
-                    msg: 'Обновление не найдено',
+                    title: t('updates.notFoundTitle'),
+                    msg: t('updates.notFoundMessage'),
                     sticky: false,
                     duration: 5000,
                 })
@@ -924,10 +925,10 @@ function App() {
         const onDownloadProgress = (_e: any, value: number) => {
             toast.update(toastReference.current!, {
                 kind: 'loading',
-                title: 'Загрузка',
+                title: t('updates.downloadingTitle'),
                 msg: (
                     <>
-                        Загрузка обновления&nbsp;
+                        {t('updates.downloadingLabel')}&nbsp;
                         <b>{Math.floor(value)}%</b>
                     </>
                 ),
@@ -938,8 +939,8 @@ function App() {
         const onDownloadFailed = () => {
             toast.update(toastReference.current!, {
                 kind: 'error',
-                title: 'Ошибка',
-                msg: 'Ошибка загрузки обновления',
+                title: t('common.errorTitle'),
+                msg: t('updates.downloadError'),
                 sticky: false,
             })
             toastReference.current = null
@@ -948,8 +949,8 @@ function App() {
         const onDownloadFinished = () => {
             toast.update(toastReference.current!, {
                 kind: 'success',
-                title: 'Успешно',
-                msg: 'Обновление загружено',
+                title: t('common.successTitle'),
+                msg: t('updates.downloaded'),
                 sticky: false,
                 duration: 5000,
             })

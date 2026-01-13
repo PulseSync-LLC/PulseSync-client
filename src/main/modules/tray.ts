@@ -7,6 +7,7 @@ import { setRpcStatus } from './discordRpc'
 import { mainWindow } from './createWindow'
 import { getState } from './state'
 import RendererEvents from '../../common/types/rendererEvents'
+import { t } from '../i18n'
 
 let tray: Tray
 let menu: Menu
@@ -32,7 +33,7 @@ function createTray() {
 
     menu.append(
         new MenuItem({
-            label: 'Перейти в дискорд PulseSync',
+            label: t('main.tray.openDiscord'),
             icon: dsIcon,
             click: async () => {
                 await shell.openExternal('https://discord.gg/qy42uGTzRy')
@@ -41,7 +42,7 @@ function createTray() {
     )
     menu.append(
         new MenuItem({
-            label: 'Директория аддонов',
+            label: t('main.tray.addonsDirectory'),
             click: async () => {
                 const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
                 await shell.openPath(themesFolderPath)
@@ -50,7 +51,7 @@ function createTray() {
     )
     const menuItem = new MenuItem({
         type: 'checkbox',
-        label: 'Discord RPC',
+        label: t('main.tray.discordRpc'),
         checked: State.get('discordRpc.status'),
         id: 'rpc-status',
         click: async () => {
@@ -60,7 +61,7 @@ function createTray() {
     menu.append(menuItem)
     menu.append(
         new MenuItem({
-            label: 'Проверить обновления',
+            label: t('main.tray.checkUpdates'),
             click: async () => {
                 await checkOrFindUpdate()
                 mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE)
@@ -74,7 +75,7 @@ function createTray() {
     )
     menu.append(
         new MenuItem({
-            label: 'Закрыть',
+            label: t('main.tray.close'),
             accelerator: isMac() ? 'Cmd+Q' : isWindows() ? 'Alt+F4' : 'Ctrl+Q',
             click: app.quit,
         }),

@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import { Transform, pipeline as nodePipeline } from 'stream'
 import { promisify } from 'util'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
+import { t } from '../../i18n'
 
 const pipeline = promisify(nodePipeline)
 
@@ -96,16 +97,18 @@ export async function downloadToTempWithProgress(args: {
     try {
         await pipeline(response.data, progressTap, writer)
     } catch (e: any) {
-        throw new DownloadError(e?.message || 'Ошибка сети', 'network')
+        throw new DownloadError(e?.message || t('main.modDownload.networkError'), 'network')
     }
 
     let digest: string | undefined
     if (expectedChecksum && hasher) {
         digest = hasher.digest('hex')
         if (digest !== expectedChecksum) {
-            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${digest}, Size: ${downloaded} bytes, URL: ${url}`)
             unlinkIfExists(tempFilePath)
-            throw new DownloadError(`checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${digest?.substring(0, 8)}...)`, 'checksum_mismatch')
+            throw new DownloadError(
+                `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${digest?.substring(0, 8)}...)`,
+                'checksum_mismatch',
+            )
         }
     }
 

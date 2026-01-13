@@ -38,6 +38,7 @@ import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
+import { t } from '../i18n'
 
 const updater = getUpdater()
 const State = getState()
@@ -156,7 +157,7 @@ const registerWindowEvents = (): void => {
         mainWindow.minimize()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_EXIT, () => {
-        logger.main.info('Exit app')
+        logger.main.info(t('main.events.exitApp'))
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MAXIMIZE, () => {
@@ -173,7 +174,7 @@ const registerSettingsEvents = (): void => {
         settingsWindow.minimize()
     })
     ipcMain.on(MainEvents.ELECTRON_SETTINGS_EXIT, () => {
-        logger.main.info('Exit app')
+        logger.main.info(t('main.events.exitApp'))
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_SETTINGS_MAXIMIZE, () => {
@@ -345,14 +346,14 @@ const registerMediaEvents = (window: BrowserWindow): void => {
         if (!exeUrl) {
             const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
             const match = data.match(/version:\s*([\d.]+)/)
-            if (!match) throw new Error('Версия не найдена в latest.yml')
+            if (!match) throw new Error(t('main.events.latestYmlVersionNotFound'))
             exeUrl = isMac()
                 ? `https://desktop.app.music.yandex.net/stable/Yandex_Music_universal_${match[1]}.dmg`
                 : isLinux()
                   ? await getLinuxInstallerUrl()
                   : `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
         } else if (!isAllowedMusicDownloadUrl(exeUrl)) {
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: 'Недопустимая ссылка для загрузки' })
+            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: t('main.events.invalidDownloadUrl') })
             return
         }
 
@@ -389,11 +390,14 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                         if (error) {
                             event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
                                 success: false,
-                                error: `Failed to execute the file: ${error.message}`,
+                                error: t('main.events.fileExecuteFailed', { message: error.message }),
                             })
                             return
                         }
-                        event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File executed successfully.' })
+                        event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                            success: true,
+                            message: t('main.events.fileExecutedSuccessfully'),
+                        })
                         fs.unlinkSync(downloadPath)
                     })
                     return
@@ -403,17 +407,23 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                 if (openError) {
                     event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
                         success: false,
-                        error: `Failed to open the file: ${openError}`,
+                        error: t('main.events.fileOpenFailed', { message: openError }),
                     })
                     return
                 }
-                event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File opened successfully.' })
+                event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                    success: true,
+                    message: t('main.events.fileOpenedSuccessfully'),
+                })
                 fs.unlinkSync(downloadPath)
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
             if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath)
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Error downloading file: ${error.message}` })
+            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                success: false,
+                error: t('main.events.fileDownloadError', { message: error.message }),
+            })
         }
     })
 }
@@ -440,7 +450,6 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
         const metadata = await getInstalledYmMetadata()
-        console.log(metadata)
         return metadata?.version
     })
 
@@ -542,7 +551,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.LOG_ERROR, (_event, errorInfo: any) => {
         const message = formatRendererLogMessage('LOG_ERROR', errorInfo)
         logger.renderer.error(message)
-        const errorMessage = errorInfo?.message ?? 'Renderer error'
+        const errorMessage = errorInfo?.message ?? t('main.events.rendererError')
         const error = new Error(errorMessage)
         if (errorInfo?.stack) {
             const componentStack = errorInfo?.componentStack ? `\nComponentStack:\n${errorInfo.componentStack}` : ''
@@ -621,7 +630,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         try {
             return await loadAddons()
         } catch (error) {
-            logger.main.error('Addons: Error loading themes:', error)
+            logger.main.error(t('main.events.addonsLoadError'), error)
         }
     })
     ipcMain.on(MainEvents.OPEN_SETTINGS_WINDOW, () => {
@@ -630,12 +639,12 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
-                name: 'New Extension',
+                name: t('main.events.newExtensionName'),
                 image: '',
                 banner: '',
-                author: 'Your Name',
+                author: t('main.events.newExtensionAuthor'),
                 version: '1.0.0',
-                description: 'Default theme.',
+                description: t('main.events.newExtensionDescription'),
                 css: 'style.css',
                 script: 'script.js',
                 type: 'theme',
@@ -646,11 +655,11 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             const defaultScriptContent = ``
             const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
             if (!fs.existsSync(extensionsPath)) fs.mkdirSync(extensionsPath)
-            let newName = 'New Extension'
+            let newName = t('main.events.newExtensionName')
             let counter = 1
             while (fs.readdirSync(extensionsPath).includes(newName)) {
                 counter++
-                newName = `New Extension ${counter}`
+                newName = t('main.events.newExtensionNameWithIndex', { index: counter })
                 defaultAdd.name = newName
             }
             const extensionPath = path.join(extensionsPath, newName)
@@ -661,7 +670,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             return { success: true, name: newName }
         } catch (error: any) {
             HandleErrorsElectron.handleError('event-handler', MainEvents.CREATE_NEW_EXTENSION, 'try-catch', error)
-            logger.main.error('Error creating new extension:', error)
+            logger.main.error(t('main.events.createExtensionError'), error)
             return { success: false, error: error.message }
         }
     })
@@ -669,7 +678,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.EXPORT_ADDON, async (_event, data: any) => {
         try {
             if (!fs.existsSync(data.path)) {
-                logger.main.error('Folder not found.')
+                logger.main.error(t('main.events.folderNotFound'))
             }
 
             const zip = new AdmZip()
@@ -705,12 +714,12 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
                 logger.main.info(`Create zip ${zipPath}`)
                 shell.showItemInFolder(zipPath)
             } catch (errZip: any) {
-                logger.main.error('Error while creating .zip file with AdmZip', errZip)
+                logger.main.error(t('main.events.createZipError'), errZip)
             }
 
             return true
         } catch (error: any) {
-            logger.main.error('Error while creating archive file', error.message)
+            logger.main.error(t('main.events.createArchiveError'), error.message)
             return false
         }
     })
@@ -719,16 +728,16 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 const registerYandexMusicEvents = (window: BrowserWindow): void => {
     ipcMain.on('DELETE_YANDEX_MUSIC_APP', async _event => {
         try {
-            logger.main.info('Starting Yandex Music uninstallation...')
+            logger.main.info(t('main.events.yandexUninstallStart'))
 
             const namePart = 'Yandex.Music'
             const pkg = await findAppByName(namePart)
 
             if (!pkg) {
-                logger.main.warn('Yandex Music app not found')
+                logger.main.warn(t('main.events.yandexNotFound'))
                 window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
                     success: false,
-                    message: 'Приложение Яндекс Музыка не найдено',
+                    message: t('main.events.yandexNotFoundMessage'),
                 })
                 return
             }
@@ -737,23 +746,23 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
                 logger.main.info(`Uninstalling Yandex Music: ${pkg.PackageFullName}`)
                 await uninstallApp(pkg.PackageFullName)
 
-                logger.main.info('Yandex Music uninstalled successfully')
+                logger.main.info(t('main.events.yandexUninstallSuccess'))
                 window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
                     success: true,
-                    message: 'Яндекс Музыка удалена',
+                    message: t('main.events.yandexUninstallSuccessMessage'),
                 })
             } catch (uninstallErr) {
                 logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
                 window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
                     success: false,
-                    message: `Не удалось удалить приложение: ${(uninstallErr as Error).message}`,
+                    message: t('main.events.yandexUninstallFailedWithReason', { message: (uninstallErr as Error).message }),
                 })
             }
         } catch (error: any) {
             logger.main.error(`Uninstall exception: ${error.message}`)
             window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
                 success: false,
-                message: 'Ошибка при удалении приложения',
+                message: t('main.events.yandexUninstallError'),
             })
         }
     })

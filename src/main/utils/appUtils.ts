@@ -12,6 +12,7 @@ import * as plist from 'plist'
 import { mainWindow } from '../modules/createWindow'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
+import { t } from '../i18n'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL, YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import asar from '@electron/asar'
@@ -249,9 +250,9 @@ export const checkMusic = () => {
         dialog
             .showMessageBox(mainWindow, {
                 type: 'info',
-                title: 'Яндекс Музыка не установлена',
-                message: 'Приложение Яндекс Музыка не найдено. Начать установку?',
-                buttons: ['Начать', 'Отменить'],
+                title: t('main.appUtils.yandexNotInstalledTitle'),
+                message: t('main.appUtils.yandexNotInstalledMessage'),
+                buttons: [t('main.common.start'), t('main.common.cancel')],
                 cancelId: 1,
             })
             .then(async result => {
@@ -265,7 +266,7 @@ export const downloadYandexMusic = async (type?: string) => {
     const sendDownloadFailure = (err: Error | string) => {
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
             success: false,
-            error: typeof err === 'string' ? err : `Failed to execute: ${err.message}`,
+            error: typeof err === 'string' ? err : t('main.appUtils.executeFailed', { message: err.message }),
         })
     }
 
@@ -275,7 +276,7 @@ export const downloadYandexMusic = async (type?: string) => {
         }
         const yml = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
         const match = yml.data.match(/version:\s*([\d.]+)/)
-        if (!match) throw new Error('Версия не найдена в latest.yml')
+        if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
         const version = match[1]
         const fileName = isMac() ? `Yandex_Music_universal_${version}.dmg` : `Yandex_Music_x64_${version}.exe`
         return `https://desktop.app.music.yandex.net/stable/${fileName}`
@@ -314,7 +315,7 @@ export const downloadYandexMusic = async (type?: string) => {
         } catch {}
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
             success: true,
-            message: 'File opened successfully.',
+            message: t('main.appUtils.fileOpenedSuccessfully'),
             type: type || 'update',
         })
         return
@@ -336,7 +337,7 @@ export const downloadYandexMusic = async (type?: string) => {
             await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
             const entries = await fso.promises.readdir(mountPoint)
             const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
-            if (!appName) throw new Error('В DMG не найден .app пакет')
+            if (!appName) throw new Error(t('main.appUtils.dmgAppNotFound'))
             const appBundlePath = path.join(mountPoint, appName)
 
             let targetDir = '/Applications'
@@ -366,7 +367,7 @@ export const downloadYandexMusic = async (type?: string) => {
             checkAsar()
             mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
                 success: true,
-                message: 'Приложение установлено и запущено.',
+                message: t('main.appUtils.appInstalledAndLaunched'),
                 type: type || 'update',
             })
         } catch (error) {
@@ -390,7 +391,7 @@ export const downloadYandexMusic = async (type?: string) => {
             checkAsar()
             mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
                 success: true,
-                message: 'File executed successfully.',
+                message: t('main.appUtils.fileExecutedSuccessfully'),
                 type: type || 'update',
             })
         })
@@ -405,24 +406,24 @@ export async function updateIntegrityHashInExe(exePath: string, newHash: string)
         const buf = rawBuf as Buffer
         const marker = Buffer.from('"file":"resources\\\\app.asar"', 'utf8')
         const markerIdx = buf.indexOf(marker)
-        if (markerIdx < 0) throw new Error('RCDATA JSON запись не найдена')
+        if (markerIdx < 0) throw new Error(t('main.appUtils.rcdataJsonNotFound'))
         const startIdx = buf.lastIndexOf(Buffer.from('[', 'utf8'), markerIdx)
-        if (startIdx < 0) throw new Error('Не найдено начало JSON-массива')
+        if (startIdx < 0) throw new Error(t('main.appUtils.jsonArrayStartNotFound'))
         const endIdx = buf.indexOf(Buffer.from(']', 'utf8'), markerIdx + marker.length)
-        if (endIdx < 0) throw new Error('Не найден конец JSON-массива')
+        if (endIdx < 0) throw new Error(t('main.appUtils.jsonArrayEndNotFound'))
         const jsonBuf = buf.subarray(startIdx, endIdx + 1)
         const arr = JSON.parse(jsonBuf.toString('utf8')) as Array<{ file: string; alg: string; value: string }>
         const entry = arr.find(e => e.file.replace(/\\\\/g, '\\').toLowerCase() === 'resources\\app.asar')
-        if (!entry) throw new Error('Запись resources\\app.asar не найдена')
+        if (!entry) throw new Error(t('main.appUtils.resourcesAsarNotFound'))
         entry.value = newHash
         const newJson = JSON.stringify(arr)
         if (Buffer.byteLength(newJson, 'utf8') !== jsonBuf.length) {
-            throw new Error('Новая JSON длина не совпадает со старой')
+            throw new Error(t('main.appUtils.jsonLengthMismatch'))
         }
         Buffer.from(newJson, 'utf8').copy(buf, startIdx)
         await fsp.writeFile(exePath, buf)
     } catch (err) {
-        logger.main.error('Ошибка в updateIntegrityHashInExe:', err)
+        logger.main.error(t('main.appUtils.updateIntegrityError'), err)
         await downloadYandexMusic('reinstall')
         throw err
     }
@@ -457,37 +458,37 @@ export class AsarPatcher {
         if (isWindows()) {
             const localAppData = process.env.LOCALAPPDATA
             if (!localAppData) {
-                callback?.(-1, 'LOCALAPPDATA не задан')
+                callback?.(-1, t('main.appUtils.localAppDataMissing'))
                 return false
             }
             const exePath = path.join(localAppData, 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
             try {
-                callback?.(0, 'Чтение EXE...')
+                callback?.(0, t('main.appUtils.readingExe'))
                 const asarPathFull = path.join(localAppData, 'Programs', 'YandexMusic', 'resources', 'app.asar')
                 const newHash = this.calcAsarHeaderHash(asarPathFull)
                 await updateIntegrityHashInExe(exePath, newHash)
-                callback?.(1, 'Патч Windows выполнен успешно')
+                callback?.(1, t('main.appUtils.windowsPatchSuccess'))
                 return true
             } catch (err) {
-                callback?.(0, `Ошибка Windows-патча: ${(err as Error).message}`)
+                callback?.(0, t('main.appUtils.windowsPatchError', { message: (err as Error).message }))
                 return false
             }
         }
 
         if (!this.isMacPlatform) {
-            callback?.(0, 'Патч доступен только на Windows и macOS')
+            callback?.(0, t('main.appUtils.patchSupportedPlatforms'))
             return false
         }
 
         try {
             await fsp.access(this.asarPath, fso.constants.W_OK)
         } catch (err) {
-            logger.main.error('Нет прав на запись app.asar', err)
+            logger.main.error(t('main.appUtils.noWriteAccess'), err)
             await dialog.showMessageBox(mainWindow, {
                 type: 'warning',
-                title: 'Требуются права',
-                message: 'Предоставьте доступ к записи для патча ASAR и повторите.',
-                buttons: ['Открыть настройки', 'Отмена'],
+                title: t('main.appUtils.permissionsRequiredTitle'),
+                message: t('main.appUtils.permissionsRequiredMessage'),
+                buttons: [t('main.common.openSettings'), t('main.common.cancel')],
                 cancelId: 1,
             })
             execSync('open "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"')
@@ -504,7 +505,7 @@ export class AsarPatcher {
         })()
 
         if (sipEnabled) {
-            callback?.(0, 'SIP включён — отключите его и повторите')
+            callback?.(0, t('main.appUtils.sipEnabled'))
             return false
         }
 
@@ -513,26 +514,26 @@ export class AsarPatcher {
             const data = plist.parse(raw) as any
 
             if (data.ElectronAsarIntegrity && data.ElectronAsarIntegrity['Resources/app.asar']) {
-                callback?.(0.2, 'Обновляем хеш в Info.plist...')
+                callback?.(0.2, t('main.appUtils.updatingInfoPlistHash'))
                 data.ElectronAsarIntegrity['Resources/app.asar'].hash = this.calcAsarHeaderHash(this.asarPath)
                 await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8')
-                callback?.(0.5, 'Хеш обновлён')
+                callback?.(0.5, t('main.appUtils.hashUpdated'))
             }
 
-            callback?.(0.6, 'Дампим entitlements…')
+            callback?.(0.6, t('main.appUtils.dumpingEntitlements'))
             execSync(`codesign -d --entitlements :- '${this.appBundlePath}' > '${this.tmpEntitlements}'`, { stdio: 'ignore' })
 
-            callback?.(0.7, 'Переподписываем приложение…')
+            callback?.(0.7, t('main.appUtils.reSigningApp'))
             execSync(`codesign --force --entitlements '${this.tmpEntitlements}' --sign - '${this.appBundlePath}'`, { stdio: 'ignore' })
             await fsp.unlink(this.tmpEntitlements)
 
-            callback?.(1, 'Патч macOS выполнен успешно')
+            callback?.(1, t('main.appUtils.macPatchSuccess'))
             return true
         } catch (err) {
             try {
                 await fsp.unlink(this.tmpEntitlements)
             } catch {}
-            callback?.(0, `Ошибка macOS-патча: ${(err as Error).message}`)
+            callback?.(0, t('main.appUtils.macPatchError', { message: (err as Error).message }))
             return false
         }
     }

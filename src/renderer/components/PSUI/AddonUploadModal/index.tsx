@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import CustomModalPS from '../CustomModalPS'
 import * as st from './AddonUploadModal.module.scss'
 import ButtonV2 from '../../buttonV2'
+import { useTranslation } from 'react-i18next'
 
 export type StepApi = {
     report: (progress: number, note?: string) => void
@@ -28,6 +29,7 @@ const clamp = (n: number) => Math.max(0, Math.min(100, Math.round(n)))
 const icon = (s: StepStatus) => (s === 'done' ? '✔' : s === 'error' ? '✖' : '🕘')
 
 const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, addonName, steps, rulesHref }) => {
+    const { t } = useTranslation()
     const [statuses, setStatuses] = useState<Record<string, StepStatus>>({})
     const [progress, setProgress] = useState<Record<string, number>>({})
     const [notes, setNotes] = useState<Record<string, string | undefined>>({})
@@ -59,7 +61,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
 
         try {
             for (const step of steps) {
-                if (abortRef.current.signal.aborted) throw new Error('Операция отменена')
+                if (abortRef.current.signal.aborted) throw new Error(t('common.operationCancelled'))
                 setStatuses(prev => ({ ...prev, [step.key]: 'running' }))
                 setProgress(prev => ({ ...prev, [step.key]: 0 }))
 
@@ -74,7 +76,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
                     setProgress(prev => ({ ...prev, [step.key]: 100 }))
                 } catch (e: any) {
                     setStatuses(prev => ({ ...prev, [step.key]: 'error' }))
-                    setErrText(e?.message || 'Ошибка')
+                    setErrText(e?.message || t('common.errorTitle'))
                     break
                 }
             }
@@ -102,19 +104,19 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
     }
 
     const buttons = useMemo(() => {
-        if (running) return [{ text: 'Отмена', onClick: cancel, variant: 'danger' as const }]
+        if (running) return [{ text: t('common.cancel'), onClick: cancel, variant: 'danger' as const }]
         if (hasError) {
             return [
-                { text: 'Отправить', onClick: start, variant: 'primary' as const },
-                { text: 'Отмена', onClick: onClose, variant: 'secondary' as const },
+                { text: t('common.submit'), onClick: start, variant: 'primary' as const },
+                { text: t('common.cancel'), onClick: onClose, variant: 'secondary' as const },
             ]
         }
-        if (allDone) return [{ text: 'Готово', onClick: onClose, variant: 'primary' as const }]
+        if (allDone) return [{ text: t('common.doneTitle'), onClick: onClose, variant: 'primary' as const }]
         return [
-            { text: 'Отправить', onClick: start, variant: 'primary' as const },
-            { text: 'Отмена', onClick: onClose, variant: 'secondary' as const },
+            { text: t('common.submit'), onClick: start, variant: 'primary' as const },
+            { text: t('common.cancel'), onClick: onClose, variant: 'secondary' as const },
         ]
-    }, [running, hasError, allDone, onClose])
+    }, [running, hasError, allDone, onClose, t])
 
     return (
         <CustomModalPS
@@ -122,7 +124,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
             onClose={() => {
                 if (!running) onClose()
             }}
-            title={`Выгрузка аддона (${addonName})`}
+            title={t('addons.uploadTitle', { name: addonName })}
             text={undefined}
             subText={undefined}
             buttons={buttons}
@@ -131,9 +133,9 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
                 <div className={st.rulesLine}>
                     <span className={st.rulesFlag}>⚑</span>
                     <span>
-                        Вы ознакомились с правилами выгрузки аддонов{' '}
+                        {t('addons.uploadRules')}{' '}
                         <a href={rulesHref} target="_blank" rel="noreferrer" className={st.rulesLink}>
-                            (ссылка)
+                            {t('common.linkLabel')}
                         </a>
                     </span>
                 </div>
@@ -170,7 +172,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
                 <div className={st.errorInline}>
                     {errText}
                     <ButtonV2 className={st.resetBtn} onClick={reset}>
-                        Сбросить
+                        {t('common.reset')}
                     </ButtonV2>
                 </div>
             )}

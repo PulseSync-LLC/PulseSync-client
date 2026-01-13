@@ -9,8 +9,10 @@ import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } 
 import * as pageStyles from './summer_auth.module.scss'
 import { RootState } from '../../../api/store/store'
 import { useSelector } from 'react-redux'
+import { useTranslation } from 'react-i18next'
 
 export default function AuthSummer() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { user } = useContext(userContext)
     const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
@@ -33,7 +35,7 @@ export default function AuthSummer() {
         try {
             await readAndSendTerms()
         } catch (error) {
-            console.error('Ошибка чтения файла:', error)
+            console.error(t('auth.readTermsError'), error)
         }
     }
 
@@ -145,10 +147,20 @@ export default function AuthSummer() {
         <>
             <Header />
             <div className={pageStyles.main_window}>
-                <img ref={img1Ref} className={pageStyles.img1} src={staticAsset('assets/images/FlatCylinder.png')} alt="FlatCylinder" />
-                <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/ThorusKnot.png')} alt="ThorusKnot" />
-                <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/Pyramid.png')} alt="Pyramid" />
-                <img ref={img4Ref} className={pageStyles.img4} src={staticAsset('assets/images/Icosahedron.png')} alt="Icosahedron" />
+                <img
+                    ref={img1Ref}
+                    className={pageStyles.img1}
+                    src={staticAsset('assets/images/FlatCylinder.png')}
+                    alt={t('auth.images.flatCylinder')}
+                />
+                <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/ThorusKnot.png')} alt={t('auth.images.thorusKnot')} />
+                <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/Pyramid.png')} alt={t('auth.images.pyramid')} />
+                <img
+                    ref={img4Ref}
+                    className={pageStyles.img4}
+                    src={staticAsset('assets/images/Icosahedron.png')}
+                    alt={t('auth.images.icosahedron')}
+                />
 
                 <div className={pageStyles.filter} />
                 <div className={pageStyles.background} />
@@ -174,17 +186,17 @@ export default function AuthSummer() {
                     {isDeprecated ? (
                         <>
                             <button className={pageStyles.discordAuth} onClick={checkUpdate}>
-                                Проверить обновления
+                                {t('auth.checkUpdates')}
                             </button>
-                            <span className={pageStyles.terms}>Приложение устарело и требует обновления 😡</span>
+                            <span className={pageStyles.terms}>{t('auth.deprecatedRequiresUpdateShort')}</span>
                         </>
                     ) : (
                         <>
                             <button className={pageStyles.discordAuth} onClick={startAuthProcess}>
-                                Авторизация через Discord
+                                {t('auth.discordAuth')}
                             </button>
                             <span className={pageStyles.terms}>
-                                Нажимая на "Авторизация через Discord", вы соглашаетесь с
+                                {t('auth.consentPrefixQuotes')}
                                 <br />
                                 <a
                                     onClick={async () => {
@@ -193,7 +205,7 @@ export default function AuthSummer() {
                                     target="_blank"
                                     rel="noopener noreferrer"
                                 >
-                                    Соглашением об использовании программы
+                                    {t('auth.termsLink')}
                                 </a>
                             </span>
                         </>

@@ -7,6 +7,7 @@ import { BrowserWindow, ipcMain } from 'electron'
 import logger from '../modules/logger'
 import RendererEvents from '../../common/types/rendererEvents'
 import MainEvents from '../../common/types/mainEvents'
+import { t } from '../i18n'
 
 const execAsync = promisify(exec)
 
@@ -365,24 +366,22 @@ export function setupPulseSyncDialogHandler(): void {
                 const pendingPath = pendingListGeneralByWebContentsId.get(senderId)
 
                 if (!pendingPath) {
-                    return { ok: false, message: 'Нет ожидающего пути list-general.txt для этого окна' }
+                    return { ok: false, message: t('main.hostFile.noPendingListGeneralPath') }
                 }
 
                 const validated = normalizeAndValidateListGeneralPath(pendingPath)
                 if (!validated) {
                     pendingListGeneralByWebContentsId.delete(senderId)
-                    return { ok: false, message: 'Некорректный путь list-general.txt' }
+                    return { ok: false, message: t('main.hostFile.invalidListGeneralPath') }
                 }
 
                 const success = await addPulseSyncEntry(validated)
                 pendingListGeneralByWebContentsId.delete(senderId)
 
-                return success
-                    ? { ok: true, message: 'pulsesync.dev и ru-node-1.pulsesync.dev успешно добавлены в список' }
-                    : { ok: false, message: 'Не удалось добавить записи в список' }
+                return success ? { ok: true, message: t('main.hostFile.entriesAdded') } : { ok: false, message: t('main.hostFile.entriesAddFailed') }
             } catch (error) {
                 logger.main.error('Error in pulsesync invoke handler:', error)
-                return { ok: false, message: 'Произошла ошибка при добавлении записей' }
+                return { ok: false, message: t('main.hostFile.entriesAddError') }
             }
         })
 

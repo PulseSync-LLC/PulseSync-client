@@ -1,0 +1,253 @@
+{
+  "main": {
+    "appUtils": {
+      "appInstalledAndLaunched": "App installed and launched.",
+      "dmgAppNotFound": "No .app bundle found in DMG",
+      "dumpingEntitlements": "Dumping entitlements…",
+      "executeFailed": "Failed to execute: {{message}}",
+      "fileExecutedSuccessfully": "File executed successfully.",
+      "fileOpenedSuccessfully": "File opened successfully.",
+      "hashUpdated": "Hash updated",
+      "jsonArrayEndNotFound": "JSON array end not found",
+      "jsonArrayStartNotFound": "JSON array start not found",
+      "jsonLengthMismatch": "New JSON length does not match the old one",
+      "latestYmlVersionNotFound": "Version not found in latest.yml",
+      "localAppDataMissing": "LOCALAPPDATA is not set",
+      "macPatchError": "macOS patch error: {{message}}",
+      "macPatchSuccess": "macOS patch completed successfully",
+      "noWriteAccess": "No write access to app.asar",
+      "patchSupportedPlatforms": "Patch is supported only on Windows and macOS",
+      "permissionsRequiredMessage": "Grant write access to patch ASAR and try again.",
+      "permissionsRequiredTitle": "Permissions required",
+      "rcdataJsonNotFound": "RCDATA JSON entry not found",
+      "reSigningApp": "Re-signing the app…",
+      "readingExe": "Reading EXE...",
+      "resourcesAsarNotFound": "resources\\app.asar entry not found",
+      "sipEnabled": "SIP is enabled — disable it and try again",
+      "updateIntegrityError": "Error in updateIntegrityHashInExe:",
+      "updatingInfoPlistHash": "Updating Info.plist hash...",
+      "windowsPatchError": "Windows patch error: {{message}}",
+      "windowsPatchSuccess": "Windows patch completed successfully",
+      "yandexNotInstalledMessage": "Yandex Music app not found. Start installation?",
+      "yandexNotInstalledTitle": "Yandex Music is not installed"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "download": "Download",
+      "error": "Error",
+      "later": "Later",
+      "ok": "OK",
+      "openSettings": "Open settings",
+      "selectFile": "Select file",
+      "start": "Start"
+    },
+    "createWindow": {
+      "fileNotFound": "File not found: {{path}}"
+    },
+    "discordRpc": {
+      "activityClearError": "Failed to clear activity",
+      "activitySetError": "Failed to set activity",
+      "connectError": "Failed to connect to Discord RPC",
+      "connected": "Connected successfully",
+      "connectionClosed": "Connection closed",
+      "disconnectError": "Failed to disconnect client",
+      "disconnected": "RPC disconnected",
+      "genericConnectError": "Connection error",
+      "stateRetry": "{{state}} Next retry in a few seconds.",
+      "states": {
+        "administrator": "Discord appears to be running as administrator. Please run PulseSync as administrator.",
+        "closed": "Could not detect a running Discord instance!",
+        "flatpak": "Discord appears to be running from the Flatpak package. This likely prevents RPC connection.",
+        "snap": "Discord appears to be running from the Snap package. This likely prevents RPC connection.",
+        "success": ""
+      },
+      "timeoutFallback": "Connection timed out. Switching to a fallback App ID.",
+      "timeoutRateLimit": "Connection timed out. Discord may be rate limiting. If activity is missing, try again in 10–15 minutes."
+    },
+    "events": {
+      "addonsLoadError": "Addons: Error loading themes:",
+      "createArchiveError": "Error while creating archive file",
+      "createExtensionError": "Error creating new extension:",
+      "createZipError": "Error while creating .zip file with AdmZip",
+      "exitApp": "Exit app",
+      "fileDownloadError": "Error downloading file: {{message}}",
+      "fileExecuteFailed": "Failed to execute file: {{message}}",
+      "fileExecutedSuccessfully": "File executed successfully.",
+      "fileOpenFailed": "Failed to open file: {{message}}",
+      "fileOpenedSuccessfully": "File opened successfully.",
+      "folderNotFound": "Folder not found.",
+      "invalidDownloadUrl": "Invalid download URL",
+      "latestYmlVersionNotFound": "Version not found in latest.yml",
+      "newExtensionAuthor": "Your Name",
+      "newExtensionDescription": "Default theme.",
+      "newExtensionName": "New Extension",
+      "newExtensionNameWithIndex": "New Extension {{index}}",
+      "rendererError": "Renderer error",
+      "yandexNotFound": "Yandex Music app not found",
+      "yandexNotFoundMessage": "Yandex Music app not found",
+      "yandexUninstallError": "Error removing application",
+      "yandexUninstallFailedWithReason": "Failed to remove app: {{message}}",
+      "yandexUninstallStart": "Starting Yandex Music uninstallation...",
+      "yandexUninstallSuccess": "Yandex Music removed",
+      "yandexUninstallSuccessMessage": "Yandex Music removed"
+    },
+    "ffmpeg": {
+      "downloading": "Downloading FFmpeg...",
+      "extractComplete": "Extraction complete",
+      "extracting": "Extracting archive...",
+      "foundInStorage": "FFmpeg found in storage, installing...",
+      "installError": "Install error: {{message}}",
+      "installSuccess": "FFmpeg installed successfully",
+      "installing": "Installing FFmpeg...",
+      "pathError": "Error getting path:",
+      "platformNotSupported": "Platform not supported"
+    },
+    "handleErrors": {
+      "internalError": "Error inside ErrorService.handleError:",
+      "writeCrashLogError": "Error writing crash.log:"
+    },
+    "hostFile": {
+      "entriesAddError": "An error occurred while adding entries",
+      "entriesAddFailed": "Failed to add entries to the list",
+      "entriesAdded": "pulsesync.dev and ru-node-1.pulsesync.dev were successfully added to the list",
+      "invalidListGeneralPath": "Invalid list-general.txt path",
+      "noPendingListGeneralPath": "No pending list-general.txt path for this window"
+    },
+    "index": {
+      "appStartupError": "Error starting the app:",
+      "musicPathError": "Error getting path:"
+    },
+    "macUpdater": {
+      "commandFailed": "{{cmd}} {{args}} exited with code {{code}}: {{stderr}}",
+      "currentVersionAvailable": "Current version {{current}}, available {{version}}",
+      "dmgVolumeNotFound": "DMG volume not found",
+      "fileDownloaded": "File downloaded: {{path}}",
+      "firstCallRequiresOptions": "The first call to getMacUpdater requires options",
+      "invalidManifest": "Invalid update manifest",
+      "manifestMissingAssets": "Manifest missing url/assets",
+      "manifestNotFound": "Update manifest not found",
+      "openMountedImageDetail": "We opened a Finder window. Drag the app to Applications.",
+      "openMountedImageTitle": "Open mounted image",
+      "readyToInstallBody": "Drag the app from the opened window to Applications.",
+      "readyToInstallDetail": "Drag the app from the opened window to Applications. After replacing, launch the new app.",
+      "readyToInstallTitle": "Ready to install",
+      "sha256Mismatch": "sha256 checksum mismatch",
+      "sha512Mismatch": "sha512 checksum mismatch",
+      "skipNonMac": "MacOSUpdater: skipped, not macOS",
+      "unzippedDetail": "We opened the folder with the unzipped app. Drag it to Applications.",
+      "unzippedTitle": "Unzipped",
+      "updateAvailableDetail": "Version {{version}} is available.",
+      "updateAvailableMessage": "New version: {{version}}",
+      "updateAvailableTitle": "Update available",
+      "updateFileNotDownloaded": "Update file not downloaded"
+    },
+    "modDownload": {
+      "networkError": "Network error"
+    },
+    "modFiles": {
+      "asarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
+      "pickAsarMessage": "Where should the ASAR modification for Yandex Music be saved?",
+      "pickAsarTitle": "Select ASAR mod path",
+      "saveAsTitle": "Save ASAR modification as..."
+    },
+    "modManager": {
+      "closingMusic": "Closing Yandex Music...",
+      "fullDiskAccessRequired": "Please grant full disk access to the app.",
+      "incompatibleMod": "The mod is not compatible with the current Yandex Music version.",
+      "modAlreadyInstalled": "Mod is already installed.",
+      "modAsarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
+      "usingCache": "Using mod cache..."
+    },
+    "modNetwork": {
+      "compatibilityCheckError": "An error occurred while checking mod compatibility.",
+      "integrityError": "File integrity error. Please try again or check your internet connection.",
+      "patchError": "Error while patching ASAR",
+      "unpackedCopyError": "Error copying mod dependencies",
+      "unpackedDownloadError": "Error downloading mod dependencies",
+      "unpackedMoveError": "Error moving mod dependencies"
+    },
+    "obsWidget": {
+      "downloadError": "Error downloading widget",
+      "downloadUnknownError": "Unknown error while downloading widget",
+      "downloading": "Downloading OBS widget...",
+      "extracting": "Extracting archive...",
+      "installSuccess": "OBS widget installed successfully",
+      "removeError": "Error removing widget",
+      "removeSuccess": "OBS widget removed successfully",
+      "removeUnknownError": "Unknown error while removing widget",
+      "removing": "Removing OBS widget..."
+    },
+    "process": {
+      "updateCompleteBody": "You can view the changelog in the app",
+      "updateCompleteTitle": "Update complete"
+    },
+    "storage": {
+      "app": {
+        "description": "Application info (version, etc.)",
+        "version": "Current app version"
+      },
+      "discordRpc": {
+        "appId": "Discord application ID for Rich Presence",
+        "button": "Button text in Rich Presence (e.g. URL or action)",
+        "description": "Discord Rich Presence settings",
+        "details": "Details text displayed in Rich Presence",
+        "displayPause": "Show pause status when playback is paused",
+        "enableRpcButtonListen": "Enable listening for Rich Presence button clicks",
+        "enableWebsiteButton": "Show Website button in Rich Presence",
+        "showSmallIcon": "Use small icon for Rich Presence",
+        "showTrackVersion": "Show track version in RPC",
+        "showVersionOrDevice": "Show app version or device info in status",
+        "state": "Current Rich Presence state",
+        "status": "Whether Rich Presence is enabled"
+      },
+      "mod": {
+        "checksum": "Mod checksum",
+        "description": "Mod information and state",
+        "installed": "Whether the mod is installed",
+        "musicVersion": "Mod version",
+        "name": "Mod name",
+        "realMusicVersion": "Actual music version",
+        "unpackedChecksum": "Mod dependencies checksum",
+        "updated": "Whether the mod is updated to the latest version",
+        "version": "Mod version"
+      },
+      "settings": {
+        "askSavePath": "Ask for a save path when exporting",
+        "autoStartApp": "Automatically start the app on system login",
+        "autoStartInTray": "Start the app minimized to tray on system startup",
+        "autoStartMusic": "Automatically start music playback when the app starts",
+        "closeAppInTray": "Minimize to tray instead of quitting when closing",
+        "deletePextAfterImport": "Delete temporary Pext files after import",
+        "description": "Main application behavior flags and settings",
+        "devSocket": "Enable developer mode: open debug socket",
+        "hardwareAcceleration": "Enable or disable GPU hardware acceleration",
+        "lastDisplayId": "ID of the last display that hosted the app window",
+        "modSavePath": "Mod path",
+        "musicReinstalled": "Flag indicating whether music was reinstalled",
+        "saveAsMp3": "Save tracks/results as MP3 by default",
+        "saveWindowDimensionsOnRestart": "Save window size on close and restore on next launch",
+        "saveWindowPositionOnRestart": "Save window position on close and restore on next launch",
+        "showModModalAfterInstall": "Show mod info modal after installation",
+        "windowDimensions": "Last saved window size",
+        "windowPosition": "Last saved window position"
+      },
+      "tokens": {
+        "description": "Authentication tokens",
+        "token": "Primary session token"
+      }
+    },
+    "tray": {
+      "addonsDirectory": "Addons directory",
+      "checkUpdates": "Check updates",
+      "close": "Close",
+      "discordRpc": "Discord RPC",
+      "openDiscord": "Open PulseSync Discord"
+    },
+    "updater": {
+      "appFilesCorrupted": "App files are corrupted. Please reinstall the app.",
+      "noUpdatesFound": "No updates found",
+      "updateReadyBody": "PulseSync {version} was downloaded and will be installed automatically when you exit the app",
+      "updateReadyTitle": "A new update is ready to install"
+    }
+  }
+}

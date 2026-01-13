@@ -1,4 +1,5 @@
 import React, { useContext } from 'react'
+import { useTranslation } from 'react-i18next'
 import userContext from '../../api/context/user.context'
 
 import Minus from './../../../../static/assets/icons/minus.svg'
@@ -13,6 +14,7 @@ interface p {
 
 const OptionHeader: React.FC<p> = () => {
     const { app } = useContext(userContext)
+    const { t } = useTranslation()
 
     return (
         <>
@@ -20,7 +22,7 @@ const OptionHeader: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
                         <div className={styles.logoplace}>
-                            <span>Settings</span>
+                            <span>{t('optionHeader.settings')}</span>
                         </div>
                     </div>
                     <div className={styles.event_container}>

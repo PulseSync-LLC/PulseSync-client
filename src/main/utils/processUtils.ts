@@ -1,5 +1,6 @@
 import { app, Notification } from 'electron'
 import process from 'process'
+import { t } from '../i18n'
 
 export function checkCLIArguments(isAppDev: boolean): boolean {
     const args = process.argv.slice(1)
@@ -9,8 +10,8 @@ export function checkCLIArguments(isAppDev: boolean): boolean {
         }
         if (args.includes('--updated')) {
             new Notification({
-                title: 'Обновление завершено',
-                body: 'Посмотреть список изменений можно в приложении',
+                title: t('main.process.updateCompleteTitle'),
+                body: t('main.process.updateCompleteBody'),
             }).show()
             return true
         }

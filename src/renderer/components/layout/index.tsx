@@ -29,6 +29,7 @@ import { errorTypesToShow } from '../../utils/utils'
 import { staticAsset } from '../../utils/staticAssets'
 import * as semver from 'semver'
 import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 interface LayoutProps {
     title: string
@@ -38,6 +39,7 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { app, setApp, updateAvailable, setUpdate, modInfo, features, musicInstalled, setMusicInstalled } = useContext(userContext)
+    const { t } = useTranslation()
 
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
@@ -77,24 +79,37 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'loading',
-                    title: `Прогресс загрузки: ${progress}%`,
-                    msg: `Загружаю`,
+                    title: t('layout.downloadProgress', { progress }),
+                    msg: t('layout.downloading'),
                     value: progress,
                 })
             } else {
-                const id = toast.custom('loading', `Прогресс загрузки: ${progress}%`, `Загружаю`, { duration: Infinity }, progress)
+                const id = toast.custom(
+                    'loading',
+                    t('layout.downloadProgress', { progress }),
+                    t('layout.downloading'),
+                    { duration: Infinity },
+                    progress,
+                )
                 downloadToastIdRef.current = id
             }
         }
 
         const handleSuccess = (_: any, data: any) => {
             if (downloadToastIdRef.current) {
-                toast.custom('success', data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'), `Готово`, {
-                    id: downloadToastIdRef.current,
-                })
+                toast.custom(
+                    'success',
+                    data.message || (app.mod.installed ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
+                    t('common.doneTitle'),
+                    { id: downloadToastIdRef.current },
+                )
                 downloadToastIdRef.current = null
             } else {
-                toast.custom('success', data.message || (app.mod.installed ? 'Обновление прошло успешно!' : 'Установка прошла успешно!'), `Готово`)
+                toast.custom(
+                    'success',
+                    data.message || (app.mod.installed ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
+                    t('common.doneTitle'),
+                )
             }
             if (modInfo.length > 0) {
                 setApp((prevApp: SettingsInterface) => ({
@@ -118,7 +133,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     setMusicInstalled(status)
                 })
             } else {
-                toast.custom('error', 'Что-то не так', 'Ошибка установки/обновления')
+                toast.custom('error', t('common.somethingWrongTitle'), t('layout.modInstallUpdateError'))
             }
             setIsUpdating(false)
         }
@@ -126,24 +141,22 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         const handleFailure = (_: any, error: any) => {
             const getErrorMessage = () => {
                 if (errorTypesToShow.has(error.type)) {
-                    return `Ошибка: ${error.error || 'Неизвестная ошибка.'}`
+                    return t('layout.errorWithMessage', { message: error.error || t('layout.unknownError') })
                 }
-                return app.mod.installed
-                    ? `Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.`
-                    : `Установка мода не удалась. Попробуйте ещё раз.`
+                return app.mod.installed ? t('layout.modUpdateFailed') : t('layout.modInstallFailed')
             }
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'error',
-                    title: 'Произошла ошибка',
+                    title: t('layout.errorOccurred'),
                     msg: getErrorMessage(),
                     sticky: false,
                     value: 0,
                 })
                 downloadToastIdRef.current = null
             } else {
-                toast.custom('error', 'Произошла ошибка', getErrorMessage())
+                toast.custom('error', t('layout.errorOccurred'), getErrorMessage())
             }
 
             if (error.type === 'version_too_new') {
@@ -174,7 +187,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.UPDATE_AVAILABLE)
             ;(window as any).__listenersAdded = false
         }
-    }, [modInfo, app.mod.installed, app.settings.showModModalAfterInstall])
+    }, [app.mod.installed, app.settings.showModModalAfterInstall, modInfo, setApp, setMusicInstalled, setUpdate, t])
 
     useEffect(() => {
         if ((window as any).__musicEventListeners) return
@@ -184,12 +197,18 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'loading',
-                    title: `Загрузка: ${progress}%`,
-                    msg: 'Прогресс загрузки',
+                    title: t('layout.musicDownloadProgress', { progress }),
+                    msg: t('layout.downloadProgressLabel'),
                     value: progress,
                 })
             } else {
-                const id = toast.custom('loading', `Загрузка: ${progress}%`, 'Прогресс загрузки', { duration: Infinity }, progress)
+                const id = toast.custom(
+                    'loading',
+                    t('layout.musicDownloadProgress', { progress }),
+                    t('layout.downloadProgressLabel'),
+                    { duration: Infinity },
+                    progress,
+                )
                 toastReference.current = id
             }
         }
@@ -198,8 +217,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'error',
-                    title: `Ошибка: ${error.error}`,
-                    msg: !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                    title: t('layout.errorWithMessage', { message: error.error }),
+                    msg: !musicInstalled ? t('layout.musicInstallFailed') : t('layout.musicUpdateFailed'),
                     sticky: false,
                     value: 0,
                 })
@@ -207,8 +226,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             } else {
                 toast.custom(
                     'error',
-                    `Ошибка: ${error.error}`,
-                    !musicInstalled ? 'Не удалось выполнить установку Я.Музыки' : 'Не удалось выполнить обновление Я.Музыки',
+                    t('layout.errorWithMessage', { message: error.error }),
+                    !musicInstalled ? t('layout.musicInstallFailed') : t('layout.musicUpdateFailed'),
                 )
             }
             setIsMusicUpdating(false)
@@ -218,8 +237,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (toastReference.current) {
                 toast.custom(
                     'success',
-                    'Успешно!',
-                    !musicInstalled || !data?.installed ? 'Установка Я.Музыки прошла успешно.' : 'Обновление Я.Музыки прошло успешно.',
+                    t('common.successTitle'),
+                    !musicInstalled || !data?.installed ? t('layout.musicInstallSuccess') : t('layout.musicUpdateSuccess'),
                     { id: toastReference.current },
                 )
                 toastReference.current = null
@@ -259,7 +278,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS)
             ;(window as any).__musicEventListeners = false
         }
-    }, [musicInstalled])
+    }, [musicInstalled, setApp, setMusicInstalled, t])
 
     useEffect(() => {
         if ((window as any).__ffmpegListenersAdded) return
@@ -270,7 +289,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 if (success) {
                     toast.update(ffmpegToastIdRef.current, {
                         kind: 'success',
-                        title: 'FFmpeg установлен',
+                        title: t('layout.ffmpegInstalledTitle'),
                         msg: message,
                         sticky: false,
                         value: undefined,
@@ -278,25 +297,25 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 } else if (progress === 100 && !success) {
                     toast.update(ffmpegToastIdRef.current, {
                         kind: 'error',
-                        title: 'Ошибка установки',
+                        title: t('layout.installErrorTitle'),
                         msg: message,
                         sticky: false,
                         value: undefined,
                     })
                 } else {
                     toast.update(ffmpegToastIdRef.current, {
-                        title: `Установка FFmpeg: ${progress}%`,
+                        title: t('layout.ffmpegInstallProgress', { progress }),
                         msg: message,
                         value: progress,
                     })
                 }
             } else {
                 if (success) {
-                    toast.custom('success', 'FFmpeg установлен', message)
+                    toast.custom('success', t('layout.ffmpegInstalledTitle'), message)
                 } else if (progress === 100 && !success) {
-                    toast.custom('error', 'Ошибка установки', message)
+                    toast.custom('error', t('layout.installErrorTitle'), message)
                 } else {
-                    const id = toast.custom('loading', `Установка FFmpeg: ${progress}%`, message, { duration: Infinity }, progress)
+                    const id = toast.custom('loading', t('layout.ffmpegInstallProgress', { progress }), message, { duration: Infinity }, progress)
                     ffmpegToastIdRef.current = id
                 }
             }
@@ -308,37 +327,41 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.FFMPEG_DOWNLOAD_STATUS)
             ;(window as any).__ffmpegListenersAdded = false
         }
-    }, [])
+    }, [t])
 
     const updateYandexMusic = useCallback(() => {
         if (isMusicUpdating) {
-            toast.custom('info', `Информация.`, 'Обновление уже запущено')
+            toast.custom('info', t('layout.infoTitle'), t('layout.updateAlreadyRunning'))
             return
         }
         window.desktopEvents?.send(MainEvents.DOWNLOAD_YANDEX_MUSIC, modUpdateState.updateUrl)
         setIsMusicUpdating(true)
-    }, [isMusicUpdating, modUpdateState.updateUrl])
+    }, [isMusicUpdating, modUpdateState.updateUrl, t])
 
     const startUpdate = useCallback(
         (force?: boolean) => {
             if (window.electron.isLinux()) {
-                toast.custom('error', 'Ошибка', 'Мод не поддерживается на Linux.')
+                toast.custom('error', t('common.errorTitle'), t('layout.modNotSupportedOnLinux'))
                 return
             }
             if (isUpdating) {
-                toast.custom('error', 'Ошибка', app.mod.installed ? 'Обновление уже запущено' : 'Установка уже запущена')
+                toast.custom(
+                    'error',
+                    t('common.errorTitle'),
+                    app.mod.installed ? t('layout.modUpdateAlreadyRunning') : t('layout.modInstallAlreadyRunning'),
+                )
                 return
             }
             if (modInfo.length === 0) {
                 toast.custom(
                     'error',
-                    app.mod.installed ? 'Нет доступных обновлений для установки.' : 'Нет доступных модификаций для установки.',
-                    app.mod.installed ? 'Ошибка загрузки обновления' : 'Ошибка установки мода',
+                    app.mod.installed ? t('layout.noModUpdatesAvailable') : t('layout.noModInstallsAvailable'),
+                    app.mod.installed ? t('layout.modUpdateLoadError') : t('layout.modInstallErrorTitle'),
                 )
                 return
             }
             setIsUpdating(true)
-            const id = toast.custom('loading', app.mod.installed ? 'Начало загрузки обновления...' : 'Начало установки мода...', 'Ожидайте...')
+            const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'))
             downloadToastIdRef.current = id
             const { modVersion, realMusicVersion, downloadUrl, checksum_v2, spoof, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum } =
                 modInfo[0]
@@ -356,7 +379,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 spoof: spoof || false,
             })
         },
-        [app.mod.installed, isUpdating, modInfo],
+        [app.mod.installed, isUpdating, modInfo, t],
     )
 
     useEffect(() => {
@@ -369,8 +392,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 if (semver.gt(latestVersion, app.mod.version)) {
                     toast.custom(
                         'info',
-                        `Установленная версия (${app.mod.version}) устарела`,
-                        `Найдена новая версия ${latestVersion}. Выполняю автообновление...`,
+                        t('layout.installedVersionOutdated', { version: app.mod.version }),
+                        t('layout.newVersionFound', { version: latestVersion }),
                         null,
                         15000,
                     )
@@ -378,7 +401,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 }
             }
         }
-    }, [app.mod.version, isUpdating, loadingModInfo, modInfo, startUpdate])
+    }, [app.mod.version, isUpdating, loadingModInfo, modInfo, startUpdate, t])
 
     useEffect(() => {
         if (isDevmark) {
@@ -408,27 +431,27 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/" text="Информация о треке">
+                            <NavButtonPulse to="/" text={t('layout.nav.trackInfo')}>
                                 <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extension" text="Аддоны Бета" disabled={!musicInstalled}>
+                            <NavButtonPulse to="/extension" text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text="Пользователи" disabled={!features?.usersPage || !musicInstalled}>
+                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text="Магазин расширений" disabled={!features?.storePage || !musicInstalled}>
+                            <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!features?.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
                             {isDev && (
-                                <NavButtonPulse to="/dev" text="Development">
+                                <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
                                     <MdHandyman size={24} />
                                 </NavButtonPulse>
                             )}
                             {updateAvailable && (
-                                <TooltipButton tooltipText="Установить обновление" as={'div'}>
+                                <TooltipButton tooltipText={t('layout.installUpdateTooltip')} as={'div'}>
                                     <button
                                         onClick={() => {
                                             setUpdate(false)
@@ -449,31 +472,31 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                     <div className={pageStyles.alert_info}>
                                         <div className={pageStyles.alert_version_update}>
                                             <div className={pageStyles.version_old}>
-                                                {app.mod.version && app.mod.installed ? app.mod.version : 'Не установлен'}
+                                                {app.mod.version && app.mod.installed ? app.mod.version : t('layout.modNotInstalled')}
                                             </div>
                                             <MdKeyboardArrowRight size={14} />
                                             <div className={pageStyles.version_new}>{modInfo[0]?.modVersion}</div>
                                         </div>
                                         <div className={pageStyles.alert_title}>
-                                            {app.mod.installed && app.mod.version ? 'Обновление мода' : 'Установка мода'}
+                                            {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
                                         </div>
-                                        <div className={pageStyles.alert_warn}>Убедитесь, что Яндекс Музыка закрыта!</div>
+                                        <div className={pageStyles.alert_warn}>{t('layout.closeMusicWarning')}</div>
                                     </div>
                                     <div className={pageStyles.button_container}>
                                         <button className={pageStyles.patch_button} onClick={() => startUpdate()}>
                                             <MdUpdate size={20} />
-                                            {app.mod.installed && app.mod.version ? 'Обновить' : 'Установить'}
+                                            {app.mod.installed && app.mod.version ? t('layout.updateAction') : t('layout.installAction')}
                                         </button>
                                         {isForceInstallEnabled && !modUpdateState.isVersionOutdated && (
                                             <button className={pageStyles.patch_button} onClick={() => startUpdate(true)}>
                                                 <MdOutlineWarningAmber size={20} />
-                                                {app.mod.installed ? 'Все равно обновить' : 'Все равно установить'}
+                                                {app.mod.installed ? t('layout.forceUpdateAction') : t('layout.forceInstallAction')}
                                             </button>
                                         )}
                                         {modUpdateState.isVersionOutdated && (
                                             <button className={pageStyles.patch_button} onClick={() => updateYandexMusic()}>
                                                 <MdOutlineInstallDesktop size={20} />
-                                                Обновить Яндекс.Музыку
+                                                {t('layout.updateMusicAction')}
                                             </button>
                                         )}
                                     </div>
@@ -481,7 +504,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 <img
                                     className={pageStyles.alert_patch_image}
                                     src={staticAsset('assets/images/imageAlertPatch.png')}
-                                    alt="Patch Update"
+                                    alt={t('layout.patchUpdateAlt')}
                                 />
                             </div>
                         </div>

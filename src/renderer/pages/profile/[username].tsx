@@ -18,14 +18,14 @@ import * as styles from './profilePage.module.scss'
 import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
 import userContext from '../../api/context/user.context'
-
-const USER_NOT_FOUND_MSG = 'Пользователь не найден'
+import { useTranslation } from 'react-i18next'
 
 const ProfilePage: React.FC = () => {
     const { username: raw } = useParams()
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
     const { user } = useContext(userContext)
+    const { t } = useTranslation()
 
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
@@ -71,10 +71,10 @@ const ProfilePage: React.FC = () => {
     }, [payload, data])
 
     const normalizedError: string | null = useMemo(() => {
-        if (error) return error.message || 'Ошибка загрузки'
-        if (!loading && username && !payload) return USER_NOT_FOUND_MSG
+        if (error) return error.message || t('profile.errors.loadFailed')
+        if (!loading && username && !payload) return t('profile.errors.userNotFound')
         return null
-    }, [error, loading, username, payload])
+    }, [error, loading, payload, t, username])
 
     const onEscPress = useCallback(
         (e: KeyboardEvent) => {
@@ -93,28 +93,28 @@ const ProfilePage: React.FC = () => {
             return (
                 <>
                     <MdPersonOutline size={34} />
-                    <span>Профиль {username}</span>
+                    <span>{t('profile.tabs.profileWithName', { username })}</span>
                 </>
             )
         if (activeTab === 'friends')
             return (
                 <>
                     <MdPeopleOutline size={34} />
-                    <span>Друзья {username}</span>
+                    <span>{t('profile.tabs.friendsWithName', { username })}</span>
                 </>
             )
         if (activeTab === 'settings')
             return (
                 <>
                     <MdSettings size={34} />
-                    <span>Настройки профиля</span>
+                    <span>{t('profile.tabs.settings')}</span>
                 </>
             )
         return null
     }, [activeTab, username])
 
     return (
-        <PageLayout title="Профиль">
+        <PageLayout title={t('profile.pageTitle')}>
             <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
                 {/*<div className={styles.tabs}>{renderTabTitle()}</div>*/}
                 {/* <div className={styles.tabs}>

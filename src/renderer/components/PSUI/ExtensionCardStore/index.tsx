@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react'
 import * as st from './card.module.scss'
+import { t } from '../../../i18n'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
@@ -60,7 +61,7 @@ const SpinnerIcon = () => (
 )
 
 const StatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
-    const text = status === 'active' ? 'Актуально' : 'Устарело'
+    const text = status === 'active' ? t('store.status.active') : t('store.status.deprecated')
     const className = status === 'active' ? st.badge_active : st.badge_deprecated
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
@@ -70,15 +71,15 @@ const TypeBadge: React.FC<{ type: ExtensionType }> = ({ type }) => {
     let typeClass = ''
     switch (type) {
         case 'css':
-            text = 'Скрипт CSS'
+            text = t('store.type.css')
             typeClass = st.badge_css
             break
         case 'js':
-            text = 'Скрипт JS'
+            text = t('store.type.js')
             typeClass = st.badge_js
             break
         case 'both':
-            text = 'CSS + JS'
+            text = t('store.type.both')
             typeClass = st.badge_both
             break
         default:
@@ -117,7 +118,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
     const handleDownloadClick = useCallback(() => {
         if (buttonState !== 'initial') return
 
-        console.log(`[Store] Начинаем скачивание ${title}`)
+        console.log(t('store.logs.downloadStart', { title }))
 
         setButtonState('downloading')
         setProgress(0)
@@ -135,11 +136,11 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
         setTimeout(() => {
             clearInterval(downloadInterval)
             setButtonState('installing')
-            console.log(`[Store] Завершено скачивание. Начинаем установку.`)
+            console.log(t('store.logs.downloadComplete'))
 
             setTimeout(() => {
                 setButtonState('installed')
-                console.log(`[Store] Установлено ${title}!`)
+                console.log(t('store.logs.installComplete', { title }))
 
                 if (props.onDownloadClick) {
                     props.onDownloadClick()
@@ -154,7 +155,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
 
     switch (buttonState) {
         case 'initial':
-            buttonText = 'Скачать'
+            buttonText = t('store.download')
             buttonIcon = <DownloadIcon />
             break
         case 'downloading':
@@ -226,7 +227,9 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
                 {}
                 <span className={st.download_content}>
                     {buttonIcon}
-                    <span className={st.download_count}>{buttonText === 'Скачать' ? downloads || 'N/A' : buttonText}</span>
+                    <span className={st.download_count}>
+                        {buttonText === t('store.download') ? downloads || t('common.notAvailable') : buttonText}
+                    </span>
                 </span>
             </button>
         </article>

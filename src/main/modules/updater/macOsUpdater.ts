@@ -9,6 +9,7 @@ import * as semver from 'semver'
 import { EventEmitter } from 'events'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
+import { t } from '../../i18n'
 
 export type MacUpdateAsset = {
     arch: 'arm64' | 'x64'
@@ -78,17 +79,17 @@ export class MacOSUpdater extends EventEmitter {
 
     async checkForUpdates(): Promise<MacUpdateManifest | null> {
         if (process.platform !== 'darwin') {
-            this.log('MacOSUpdater: пропуск, не macOS')
+            this.log(t('main.macUpdater.skipNonMac'))
             return null
         }
         const { manifestUrl } = this.options
         const res = await axios.get<MacUpdateManifest>(manifestUrl, { timeout: 15000 })
         const manifest = res.data
         if (!manifest?.version || (!manifest?.url && !(manifest as any)?.assets?.length)) {
-            throw new Error('Некорректный манифест обновления')
+            throw new Error(t('main.macUpdater.invalidManifest'))
         }
         const current = app.getVersion()
-        this.log(`Текущая версия ${current}, доступна ${manifest.version}`)
+        this.log(t('main.macUpdater.currentVersionAvailable', { current, version: manifest.version }))
         if (semver.valid(manifest.version) && semver.valid(current)) {
             if (semver.lte(manifest.version, current)) return null
         } else {
@@ -106,15 +107,15 @@ export class MacOSUpdater extends EventEmitter {
         const m = manifest ?? (await this.checkForUpdates())
         if (!m) return
         const urgency = m.updateUrgency ?? UpdateUrgency.SOFT
-        const buttons = ['Скачать', 'Позже']
-        const detail = `Доступна версия ${m.version}.` + (m.releaseNotes ? '\n\n' + m.releaseNotes : '')
+        const buttons = [t('main.common.download'), t('main.common.later')]
+        const detail = `${t('main.macUpdater.updateAvailableDetail', { version: m.version })}${m.releaseNotes ? `\n\n${m.releaseNotes}` : ''}`
         const res = await dialog.showMessageBox({
             type: urgency === UpdateUrgency.HARD ? 'warning' : 'info',
             buttons,
             defaultId: 0,
             cancelId: 1,
-            title: 'Доступно обновление',
-            message: `Новая версия: ${m.version}`,
+            title: t('main.macUpdater.updateAvailableTitle'),
+            message: t('main.macUpdater.updateAvailableMessage', { version: m.version }),
             detail,
         })
         if (res.response === 0) {
@@ -125,7 +126,7 @@ export class MacOSUpdater extends EventEmitter {
 
     async downloadUpdate(manifest?: MacUpdateManifest) {
         const m = manifest ?? this.currentManifest
-        if (!m) throw new Error('Манифест обновления не найден')
+        if (!m) throw new Error(t('main.macUpdater.manifestNotFound'))
         const hwArch = await this.detectHardwareArch()
         const asset = this.pickAsset(m, hwArch)
         const downloadsDir = this.options.downloadsDir || path.join(app.getPath('userData'), 'updates')
@@ -158,15 +159,15 @@ export class MacOSUpdater extends EventEmitter {
         const digest512 = hash512.digest('hex')
         const digest256 = hash256.digest('hex')
         if (asset.sha512 && !this.matchDigest(asset.sha512, digest512)) {
-            throw new Error('Контрольная сумма sha512 не совпала')
+            throw new Error(t('main.macUpdater.sha512Mismatch'))
         }
         if (asset.sha256 && !this.matchDigest(asset.sha256, digest256)) {
-            throw new Error('Контрольная сумма sha256 не совпала')
+            throw new Error(t('main.macUpdater.sha256Mismatch'))
         }
         this.downloadedFile = dest
         this.pickedAsset = asset
         this.setStatus(UpdateStatus.DOWNLOADED)
-        this.log(`Файл загружен: ${dest}`)
+        this.log(t('main.macUpdater.fileDownloaded', { path: dest }))
         return dest
     }
 
@@ -202,7 +203,7 @@ export class MacOSUpdater extends EventEmitter {
             if (exact) return this.normalizeAsset(exact)
             if (onlyValid.length) return this.normalizeAsset(onlyValid[0])
         }
-        if (!m.url) throw new Error('В манифесте нет url/assets')
+        if (!m.url) throw new Error(t('main.macUpdater.manifestMissingAssets'))
         return {
             arch: hwArch,
             url: m.url,
@@ -219,9 +220,9 @@ export class MacOSUpdater extends EventEmitter {
 
     async installUpdate(manifest?: MacUpdateManifest) {
         const m = manifest ?? this.currentManifest
-        if (!m) throw new Error('Манифест обновления не найден')
+        if (!m) throw new Error(t('main.macUpdater.manifestNotFound'))
         const filePath = this.downloadedFile
-        if (!filePath) throw new Error('Файл обновления не загружен')
+        if (!filePath) throw new Error(t('main.macUpdater.updateFileNotDownloaded'))
         const fileType: 'dmg' | 'zip' = filePath.toLowerCase().endsWith('.zip') ? 'zip' : 'dmg'
         if (fileType === 'dmg') {
             await this.installFromDMG(filePath, m)
@@ -234,7 +235,7 @@ export class MacOSUpdater extends EventEmitter {
         const { stdout } = await this.runWithOutput('hdiutil', ['attach', dmgPath, '-nobrowse'])
         const mountPoint = this.extractVolume(stdout)
         if (!mountPoint) {
-            throw new Error('Том DMG не найден')
+            throw new Error(t('main.macUpdater.dmgVolumeNotFound'))
         }
         const appBundle = await this.findAppBundle(mountPoint)
         if (!appBundle) {
@@ -243,8 +244,8 @@ export class MacOSUpdater extends EventEmitter {
             }
             await dialog.showMessageBox({
                 type: 'info',
-                message: 'Откройте установленный образ',
-                detail: 'Мы открыли окно Finder. Перетащите приложение в папку Applications.',
+                message: t('main.macUpdater.openMountedImageTitle'),
+                detail: t('main.macUpdater.openMountedImageDetail'),
             })
             return
         }
@@ -255,14 +256,14 @@ export class MacOSUpdater extends EventEmitter {
                 await shell.openPath(mountPoint)
             }
             new Notification({
-                title: 'Готово к установке',
-                body: 'Перетащите приложение из открытого окна в папку Applications.',
+                title: t('main.macUpdater.readyToInstallTitle'),
+                body: t('main.macUpdater.readyToInstallBody'),
             }).show()
             await dialog.showMessageBox({
                 type: 'info',
-                buttons: ['Ок'],
-                message: 'Готово к установке',
-                detail: 'Перетащите приложение из открытого окна в папку Applications. После замены запустите новое приложение.',
+                buttons: [t('main.common.ok')],
+                message: t('main.macUpdater.readyToInstallTitle'),
+                detail: t('main.macUpdater.readyToInstallDetail'),
             })
         }
     }
@@ -276,8 +277,8 @@ export class MacOSUpdater extends EventEmitter {
             await shell.openPath(unzipDir)
             await dialog.showMessageBox({
                 type: 'info',
-                message: 'Распаковано',
-                detail: 'Мы открыли папку с распакованным приложением. Перетащите его в папку Applications.',
+                message: t('main.macUpdater.unzippedTitle'),
+                detail: t('main.macUpdater.unzippedDetail'),
             })
             return
         }
@@ -287,8 +288,8 @@ export class MacOSUpdater extends EventEmitter {
             await shell.openPath(unzipDir)
             await dialog.showMessageBox({
                 type: 'info',
-                message: 'Готово к установке',
-                detail: 'Перетащите приложение в папку Applications. После замены запустите новое приложение.',
+                message: t('main.macUpdater.readyToInstallTitle'),
+                detail: t('main.macUpdater.readyToInstallDetail'),
             })
         }
     }
@@ -355,7 +356,7 @@ export class MacOSUpdater extends EventEmitter {
             child.on('close', code => resolve({ stdout, stderr, code: Number(code) }))
         })
         if (res.code !== 0) {
-            throw new Error(`${cmd} ${args.join(' ')} завершилась с кодом ${res.code}: ${res.stderr}`)
+            throw new Error(t('main.macUpdater.commandFailed', { cmd, args: args.join(' '), code: res.code, stderr: res.stderr }))
         }
         return res
     }
@@ -376,7 +377,7 @@ export const getMacUpdater = (() => {
     let updater: MacOSUpdater | undefined
     return (options?: MacUpdaterOptions) => {
         if (!updater) {
-            if (!options) throw new Error('Первый вызов getMacUpdater требует options')
+            if (!options) throw new Error(t('main.macUpdater.firstCallRequiresOptions'))
             updater = new MacOSUpdater(options)
         }
         return updater

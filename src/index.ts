@@ -20,6 +20,7 @@ import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
+import { initMainI18n, t } from './main/i18n'
 import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/nativeModules'
@@ -36,6 +37,7 @@ export let asarBackup: string
 export let selectedAddon: string
 
 registerSchemes()
+initMainI18n()
 
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
 app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
@@ -74,7 +76,7 @@ const initializeMusicPath = async () => {
         musicPath = await getPathToYandexMusic()
         asarBackup = path.join(musicPath, asarFilename)
     } catch (err) {
-        logger.main.error('Ошибка при получении пути:', err)
+        logger.main.error(t('main.index.musicPathError'), err)
     }
 }
 initializeMusicPath()
@@ -133,7 +135,7 @@ app.on('ready', async () => {
         createTray()
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
-        logger.main.error('Ошибка при запуске приложения:', e)
+        logger.main.error(t('main.index.appStartupError'), e)
     }
 })
 

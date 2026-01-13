@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react'
 import CustomModalPS from '../PSUI/CustomModalPS'
 import toast from '../toast'
+import { useTranslation } from 'react-i18next'
 
 const YandexMusicUpdateDialog: React.FC = () => {
+    const { t } = useTranslation()
     const [showDialog, setShowDialog] = useState(false)
     const [isDismissed, setIsDismissed] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -22,9 +24,9 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
         const handleDeleteResult = (event: any, data: any) => {
             if (data.success) {
-                toast.custom('success', 'Готово', 'Яндекс Музыка успешно удалена', { duration: 3000 })
+                toast.custom('success', t('common.doneTitle'), t('yandexMusicDialog.deleteSuccess'), { duration: 3000 })
             } else {
-                toast.custom('error', 'Ошибка', data.message || 'Не удалось удалить приложение', { duration: 3000 })
+                toast.custom('error', t('common.errorTitle'), data.message || t('yandexMusicDialog.deleteFailed'), { duration: 3000 })
             }
             setIsDeleting(false)
         }
@@ -44,7 +46,7 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
     const handleDelete = async () => {
         setIsDeleting(true)
-        const toastId = toast.custom('loading', 'Удаление...', 'Удаляю Яндекс Музыку из Microsoft Store', { duration: 3000 })
+        const toastId = toast.custom('loading', t('yandexMusicDialog.deletingTitle'), t('yandexMusicDialog.deletingDescription'), { duration: 3000 })
 
         try {
             window.desktopEvents?.send('DELETE_YANDEX_MUSIC_APP')
@@ -52,8 +54,8 @@ const YandexMusicUpdateDialog: React.FC = () => {
             setIsDeleting(false)
             toast.update(toastId, {
                 kind: 'error',
-                title: 'Ошибка',
-                msg: 'Не удалось запустить удаление приложения',
+                title: t('common.errorTitle'),
+                msg: t('yandexMusicDialog.deleteStartFailed'),
                 sticky: false,
                 value: undefined,
             })
@@ -65,18 +67,18 @@ const YandexMusicUpdateDialog: React.FC = () => {
         <CustomModalPS
             isOpen={showDialog}
             onClose={handleClose}
-            title="Удаление Яндекс Музыки"
-            text="У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалено для корректной работы со всеми функциями."
-            subText="Если вы согласны, приложение будет удалено. После этого вы сможете установить актуальную версию."
+            title={t('yandexMusicDialog.title')}
+            text={t('yandexMusicDialog.description')}
+            subText={t('yandexMusicDialog.subText')}
             buttons={[
                 {
-                    text: 'Удалить',
+                    text: t('yandexMusicDialog.deleteButton'),
                     onClick: handleDelete,
                     variant: 'danger',
                     disabled: isDeleting,
                 },
                 {
-                    text: 'Отмена',
+                    text: t('common.cancel'),
                     onClick: handleClose,
                     variant: 'secondary',
                     disabled: isDeleting,

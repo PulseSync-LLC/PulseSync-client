@@ -1,0 +1,762 @@
+{
+  "main": {
+    "appUtils": {
+      "appInstalledAndLaunched": "App installed and launched.",
+      "dmgAppNotFound": "No .app bundle found in DMG",
+      "dumpingEntitlements": "Dumping entitlements…",
+      "executeFailed": "Failed to execute: {{message}}",
+      "fileExecutedSuccessfully": "File executed successfully.",
+      "fileOpenedSuccessfully": "File opened successfully.",
+      "hashUpdated": "Hash updated",
+      "jsonArrayEndNotFound": "JSON array end not found",
+      "jsonArrayStartNotFound": "JSON array start not found",
+      "jsonLengthMismatch": "New JSON length does not match the old one",
+      "latestYmlVersionNotFound": "Version not found in latest.yml",
+      "localAppDataMissing": "LOCALAPPDATA is not set",
+      "macPatchError": "macOS patch error: {{message}}",
+      "macPatchSuccess": "macOS patch completed successfully",
+      "noWriteAccess": "No write access to app.asar",
+      "patchSupportedPlatforms": "Patch is supported only on Windows and macOS",
+      "permissionsRequiredMessage": "Grant write access to patch ASAR and try again.",
+      "permissionsRequiredTitle": "Permissions required",
+      "rcdataJsonNotFound": "RCDATA JSON entry not found",
+      "reSigningApp": "Re-signing the app…",
+      "readingExe": "Reading EXE...",
+      "resourcesAsarNotFound": "resources\\app.asar entry not found",
+      "sipEnabled": "SIP is enabled — disable it and try again",
+      "updateIntegrityError": "Error in updateIntegrityHashInExe:",
+      "updatingInfoPlistHash": "Updating Info.plist hash...",
+      "windowsPatchError": "Windows patch error: {{message}}",
+      "windowsPatchSuccess": "Windows patch completed successfully",
+      "yandexNotInstalledMessage": "Yandex Music app not found. Start installation?",
+      "yandexNotInstalledTitle": "Yandex Music is not installed"
+    },
+    "common": {
+      "cancel": "Cancel",
+      "download": "Download",
+      "error": "Error",
+      "later": "Later",
+      "ok": "OK",
+      "openSettings": "Open settings",
+      "selectFile": "Select file",
+      "start": "Start"
+    },
+    "createWindow": {
+      "fileNotFound": "File not found: {{path}}"
+    },
+    "discordRpc": {
+      "activityClearError": "Failed to clear activity",
+      "activitySetError": "Failed to set activity",
+      "connectError": "Failed to connect to Discord RPC",
+      "connected": "Connected successfully",
+      "connectionClosed": "Connection closed",
+      "disconnectError": "Failed to disconnect client",
+      "disconnected": "RPC disconnected",
+      "genericConnectError": "Connection error",
+      "stateRetry": "{{state}} Next retry in a few seconds.",
+      "states": {
+        "administrator": "Discord appears to be running as administrator. Please run PulseSync as administrator.",
+        "closed": "Could not detect a running Discord instance!",
+        "flatpak": "Discord appears to be running from the Flatpak package. This likely prevents RPC connection.",
+        "snap": "Discord appears to be running from the Snap package. This likely prevents RPC connection.",
+        "success": ""
+      },
+      "timeoutFallback": "Connection timed out. Switching to a fallback App ID.",
+      "timeoutRateLimit": "Connection timed out. Discord may be rate limiting. If activity is missing, try again in 10–15 minutes."
+    },
+    "events": {
+      "addonsLoadError": "Addons: Error loading themes:",
+      "createArchiveError": "Error while creating archive file",
+      "createExtensionError": "Error creating new extension:",
+      "createZipError": "Error while creating .zip file with AdmZip",
+      "exitApp": "Exit app",
+      "fileDownloadError": "Error downloading file: {{message}}",
+      "fileExecuteFailed": "Failed to execute file: {{message}}",
+      "fileExecutedSuccessfully": "File executed successfully.",
+      "fileOpenFailed": "Failed to open file: {{message}}",
+      "fileOpenedSuccessfully": "File opened successfully.",
+      "folderNotFound": "Folder not found.",
+      "invalidDownloadUrl": "Invalid download URL",
+      "latestYmlVersionNotFound": "Version not found in latest.yml",
+      "newExtensionAuthor": "Your Name",
+      "newExtensionDescription": "Default theme.",
+      "newExtensionName": "New Extension",
+      "newExtensionNameWithIndex": "New Extension {{index}}",
+      "rendererError": "Renderer error",
+      "yandexNotFound": "Yandex Music app not found",
+      "yandexNotFoundMessage": "Yandex Music app not found",
+      "yandexUninstallError": "Error removing application",
+      "yandexUninstallFailedWithReason": "Failed to remove app: {{message}}",
+      "yandexUninstallStart": "Starting Yandex Music uninstallation...",
+      "yandexUninstallSuccess": "Yandex Music removed",
+      "yandexUninstallSuccessMessage": "Yandex Music removed"
+    },
+    "ffmpeg": {
+      "downloading": "Downloading FFmpeg...",
+      "extractComplete": "Extraction complete",
+      "extracting": "Extracting archive...",
+      "foundInStorage": "FFmpeg found in storage, installing...",
+      "installError": "Install error: {{message}}",
+      "installSuccess": "FFmpeg installed successfully",
+      "installing": "Installing FFmpeg...",
+      "pathError": "Error getting path:",
+      "platformNotSupported": "Platform not supported"
+    },
+    "handleErrors": {
+      "internalError": "Error inside ErrorService.handleError:",
+      "writeCrashLogError": "Error writing crash.log:"
+    },
+    "hostFile": {
+      "entriesAddError": "An error occurred while adding entries",
+      "entriesAddFailed": "Failed to add entries to the list",
+      "entriesAdded": "pulsesync.dev and ru-node-1.pulsesync.dev were successfully added to the list",
+      "invalidListGeneralPath": "Invalid list-general.txt path",
+      "noPendingListGeneralPath": "No pending list-general.txt path for this window"
+    },
+    "index": {
+      "appStartupError": "Error starting the app:",
+      "musicPathError": "Error getting path:"
+    },
+    "macUpdater": {
+      "commandFailed": "{{cmd}} {{args}} exited with code {{code}}: {{stderr}}",
+      "currentVersionAvailable": "Current version {{current}}, available {{version}}",
+      "dmgVolumeNotFound": "DMG volume not found",
+      "fileDownloaded": "File downloaded: {{path}}",
+      "firstCallRequiresOptions": "The first call to getMacUpdater requires options",
+      "invalidManifest": "Invalid update manifest",
+      "manifestMissingAssets": "Manifest missing url/assets",
+      "manifestNotFound": "Update manifest not found",
+      "openMountedImageDetail": "We opened a Finder window. Drag the app to Applications.",
+      "openMountedImageTitle": "Open mounted image",
+      "readyToInstallBody": "Drag the app from the opened window to Applications.",
+      "readyToInstallDetail": "Drag the app from the opened window to Applications. After replacing, launch the new app.",
+      "readyToInstallTitle": "Ready to install",
+      "sha256Mismatch": "sha256 checksum mismatch",
+      "sha512Mismatch": "sha512 checksum mismatch",
+      "skipNonMac": "MacOSUpdater: skipped, not macOS",
+      "unzippedDetail": "We opened the folder with the unzipped app. Drag it to Applications.",
+      "unzippedTitle": "Unzipped",
+      "updateAvailableDetail": "Version {{version}} is available.",
+      "updateAvailableMessage": "New version: {{version}}",
+      "updateAvailableTitle": "Update available",
+      "updateFileNotDownloaded": "Update file not downloaded"
+    },
+    "modDownload": {
+      "networkError": "Network error"
+    },
+    "modFiles": {
+      "asarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
+      "pickAsarMessage": "Where should the ASAR modification for Yandex Music be saved?",
+      "pickAsarTitle": "Select ASAR mod path",
+      "saveAsTitle": "Save ASAR modification as..."
+    },
+    "modManager": {
+      "closingMusic": "Closing Yandex Music...",
+      "fullDiskAccessRequired": "Please grant full disk access to the app.",
+      "incompatibleMod": "The mod is not compatible with the current Yandex Music version.",
+      "modAlreadyInstalled": "Mod is already installed.",
+      "modAsarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
+      "usingCache": "Using mod cache..."
+    },
+    "modNetwork": {
+      "compatibilityCheckError": "An error occurred while checking mod compatibility.",
+      "integrityError": "File integrity error. Please try again or check your internet connection.",
+      "patchError": "Error while patching ASAR",
+      "unpackedCopyError": "Error copying mod dependencies",
+      "unpackedDownloadError": "Error downloading mod dependencies",
+      "unpackedMoveError": "Error moving mod dependencies"
+    },
+    "obsWidget": {
+      "downloadError": "Error downloading widget",
+      "downloadUnknownError": "Unknown error while downloading widget",
+      "downloading": "Downloading OBS widget...",
+      "extracting": "Extracting archive...",
+      "installSuccess": "OBS widget installed successfully",
+      "removeError": "Error removing widget",
+      "removeSuccess": "OBS widget removed successfully",
+      "removeUnknownError": "Unknown error while removing widget",
+      "removing": "Removing OBS widget..."
+    },
+    "process": {
+      "updateCompleteBody": "You can view the changelog in the app",
+      "updateCompleteTitle": "Update complete"
+    },
+    "storage": {
+      "app": {
+        "description": "Application info (version, etc.)",
+        "version": "Current app version"
+      },
+      "discordRpc": {
+        "appId": "Discord application ID for Rich Presence",
+        "button": "Button text in Rich Presence (e.g. URL or action)",
+        "description": "Discord Rich Presence settings",
+        "details": "Details text displayed in Rich Presence",
+        "displayPause": "Show pause status when playback is paused",
+        "enableRpcButtonListen": "Enable listening for Rich Presence button clicks",
+        "enableWebsiteButton": "Show Website button in Rich Presence",
+        "showSmallIcon": "Use small icon for Rich Presence",
+        "showTrackVersion": "Show track version in RPC",
+        "showVersionOrDevice": "Show app version or device info in status",
+        "state": "Current Rich Presence state",
+        "status": "Whether Rich Presence is enabled"
+      },
+      "mod": {
+        "checksum": "Mod checksum",
+        "description": "Mod information and state",
+        "installed": "Whether the mod is installed",
+        "musicVersion": "Mod version",
+        "name": "Mod name",
+        "realMusicVersion": "Actual music version",
+        "unpackedChecksum": "Mod dependencies checksum",
+        "updated": "Whether the mod is updated to the latest version",
+        "version": "Mod version"
+      },
+      "settings": {
+        "askSavePath": "Ask for a save path when exporting",
+        "autoStartApp": "Automatically start the app on system login",
+        "autoStartInTray": "Start the app minimized to tray on system startup",
+        "autoStartMusic": "Automatically start music playback when the app starts",
+        "closeAppInTray": "Minimize to tray instead of quitting when closing",
+        "deletePextAfterImport": "Delete temporary Pext files after import",
+        "description": "Main application behavior flags and settings",
+        "devSocket": "Enable developer mode: open debug socket",
+        "hardwareAcceleration": "Enable or disable GPU hardware acceleration",
+        "lastDisplayId": "ID of the last display that hosted the app window",
+        "modSavePath": "Mod path",
+        "musicReinstalled": "Flag indicating whether music was reinstalled",
+        "saveAsMp3": "Save tracks/results as MP3 by default",
+        "saveWindowDimensionsOnRestart": "Save window size on close and restore on next launch",
+        "saveWindowPositionOnRestart": "Save window position on close and restore on next launch",
+        "showModModalAfterInstall": "Show mod info modal after installation",
+        "windowDimensions": "Last saved window size",
+        "windowPosition": "Last saved window position"
+      },
+      "tokens": {
+        "description": "Authentication tokens",
+        "token": "Primary session token"
+      }
+    },
+    "tray": {
+      "addonsDirectory": "Addons directory",
+      "checkUpdates": "Check updates",
+      "close": "Close",
+      "discordRpc": "Discord RPC",
+      "openDiscord": "Open PulseSync Discord"
+    },
+    "updater": {
+      "appFilesCorrupted": "App files are corrupted. Please reinstall the app.",
+      "noUpdatesFound": "No updates found",
+      "updateReadyBody": "PulseSync {version} was downloaded and will be installed automatically when you exit the app",
+      "updateReadyTitle": "A new update is ready to install"
+    }
+  },
+  "common": {
+    "all": "All",
+    "allGoodTitle": "All good",
+    "attentionTitle": "Attention",
+    "cancel": "Cancel",
+    "cancelled": "Cancelled",
+    "caution": "Caution",
+    "clear": "Clear",
+    "clickToEdit": "Click to edit",
+    "connectedTitle": "Connected",
+    "connectionEstablished": "Connection established",
+    "connectionRestored": "Connection restored",
+    "continue": "Continue",
+    "delete": "Delete",
+    "disable": "Disable",
+    "disabled": "Disabled",
+    "do": "Do",
+    "done": "Done",
+    "doneTitle": "Done",
+    "downloadTitle": "Download",
+    "downloading": "Downloading...",
+    "emDash": "—",
+    "enable": "Enable",
+    "enabled": "Enabled",
+    "errorTitle": "Error",
+    "errorTitleShort": "Error",
+    "exportDone": "Export complete",
+    "exportTitle": "Export",
+    "fetchFailed": "Failed to fetch",
+    "fileNotFound": "File not found",
+    "importTitle": "Import",
+    "importing": "Importing...",
+    "infoTitleShort": "Info",
+    "linkLabel": "link",
+    "loading": "Loading...",
+    "loadingThemes": "Loading themes...",
+    "loadingTitle": "Loading",
+    "more": "More",
+    "networkTitle": "Network",
+    "notAvailable": "Not available",
+    "oopsTitle": "Oops",
+    "operationCancelled": "Operation cancelled",
+    "phewTitle": "Phew",
+    "pingPongTitle": "Ping-pong",
+    "pleaseWait": "Please wait",
+    "refresh": "Refresh",
+    "reset": "Reset",
+    "selectFile": "Select file",
+    "selectPlaceholder": "Select",
+    "serverUnavailable": "Server unavailable",
+    "serverUnavailableShort": "Unavailable",
+    "somethingWrongTitle": "Something went wrong",
+    "submit": "Submit",
+    "successTitle": "Success",
+    "successTitleShort": "Success",
+    "takeBreakTitle": "Take a break",
+    "thinkLater": "Think later",
+    "tooManyAttempts": "Too many connection attempts.",
+    "waitTitle": "Wait",
+    "warningTitleShort": "Warning"
+  },
+  "auth": {
+    "accessQuestionTitle": "Maybe you don't have access?",
+    "appVersionDeprecatedMessage": "Authorization error. This app version is deprecated. Downloading the new version will start automatically.",
+    "appVersionDeprecatedTitle": "This app version is deprecated",
+    "authErrorTitle": "Authorization error 😡 {{title}}",
+    "bannedMessage": "You are banned. Reason: {{reason}}.",
+    "checkUpdates": "Check for updates",
+    "closeAfterSeconds": "The app will close in 10 seconds",
+    "consentPrefix": "By clicking \"Authorize via Discord\", you agree to",
+    "consentPrefixQuotes": "By clicking \"Authorize via Discord\", you agree to",
+    "deprecatedRequiresUpdate": "The app is outdated and requires an update 😡😡😡",
+    "deprecatedRequiresUpdateShort": "The app is outdated and requires an update",
+    "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
+    "discordAuth": "Authorize via Discord",
+    "failedToFetchUser": "Failed to fetch user data. Please log in again.",
+    "images": {
+      "flatCylinder": "Flat Cylinder",
+      "icosahedron": "Icosahedron",
+      "pyramid": "Pyramid",
+      "thorusKnot": "Torus Knot"
+    },
+    "pendingAuth": "Waiting for authorization",
+    "pleaseLoginAgain": "Please log in again.",
+    "readTermsError": "Failed to read file:",
+    "sessionExpired": "Your session has expired. Please log in again.",
+    "sessionExpiredTitle": "Error",
+    "termsLink": "the Terms of Use",
+    "unknownAuthError": "Unknown authorization error."
+  },
+  "addons": {
+    "invalidType": "Addon is missing the type field or it is invalid",
+    "uploadRules": "You have read the addon upload rules",
+    "uploadTitle": "Addon upload ({{name}})"
+  },
+  "changes": {
+    "saveChanges": "Save changes",
+    "saving": "Saving...",
+    "unsavedWarning": "You have unsaved changes"
+  },
+  "colorInput": {
+    "inputFormat": "Input format"
+  },
+  "configEditor": {
+    "addItem": "Add item",
+    "addItemAfter": "Add item after",
+    "addOption": "Add option",
+    "addRow": "Add row",
+    "addSection": "Add section",
+    "collapse": "Collapse",
+    "collapseAll": "Collapse all",
+    "defaults": {
+      "line": "Line",
+      "newButton": "New button",
+      "newColor": "New color",
+      "newFile": "New file",
+      "newRow": "New row",
+      "newSection": "New section",
+      "newSelector": "New selector",
+      "newSlider": "New slider",
+      "newTextBlock": "New text block",
+      "option": "Option {{index}}"
+    },
+    "deleteSection": "Delete section",
+    "drag": "Drag",
+    "dragSection": "Drag section",
+    "duplicate": "Duplicate",
+    "duplicateSection": "Duplicate section",
+    "expand": "Expand",
+    "expandAll": "Expand all",
+    "labels": {
+      "description": "Description",
+      "name": "Name",
+      "sectionTitle": "Section title"
+    },
+    "optionsTitle": "Options",
+    "pathPlaceholder": "Enter path",
+    "placeholderHint": "Coming soon.",
+    "placeholderTitle": "Component in progress",
+    "placeholderWithType": "{{type}} component in progress",
+    "removeOption": "Remove option",
+    "removeRow": "Remove row",
+    "resetToDefault": "Reset to default"
+  },
+  "contextMenu": {
+    "appDirectory": "App directory",
+    "appSettings": {
+      "autoStartApp": "Auto-start app",
+      "deletePextAfterImport": "Delete .pext after theme import",
+      "hardwareAcceleration": "Hardware acceleration",
+      "title": "App settings"
+    },
+    "misc": {
+      "checkUpdates": "Check for updates",
+      "collectLogs": "Collect logs archive",
+      "logsReady": "Opening the folder soon",
+      "title": "Misc",
+      "version": "Version: v{{version}}. Commit #{{branch}}",
+      "websocketStatus": "Websocket status"
+    },
+    "mod": {
+      "checkUpdates": "Check mod updates",
+      "clearCache": "Clear mod cache",
+      "defaultName": "Eclipse",
+      "notInstalled": "Not installed",
+      "remove": "Remove mod",
+      "showChangelog": "Show changelog after install",
+      "title": "Mod"
+    },
+    "obsWidget": {
+      "copyPath": "Copy widget path",
+      "download": "Download OBS widget ({{status}})",
+      "openFolder": "Open OBS widget folder",
+      "remove": "Remove OBS widget",
+      "title": "OBS widget"
+    },
+    "status": {
+      "installed": "installed",
+      "notInstalled": "not installed"
+    },
+    "windowSettings": {
+      "autoTray": "Auto tray",
+      "hideOnClose": "Hide window on close",
+      "saveWindowDimensions": "Save window size",
+      "saveWindowPosition": "Save window position",
+      "title": "Window settings"
+    }
+  },
+  "contextMenuThemes": {
+    "delete": "Delete {{name}}",
+    "deleteConfirm": "Are you sure you want to delete the theme \"{{name}}\"? This action cannot be undone.",
+    "deleteError": "Error deleting theme \"{{name}}\"",
+    "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
+    "directory": "Addon directory {{name}}",
+    "disable": "Disable {{name}}",
+    "enable": "Enable {{name}}",
+    "export": "Export {{name}}",
+    "exportSuccess": "Export successful",
+    "page": "Theme page {{name}}",
+    "pageLog": "Theme page",
+    "publish": "Publish {{name}}",
+    "publishLog": "Publish",
+    "rollback": "Rollback to server version",
+    "rollbackLog": "Rollback",
+    "title": "Manage"
+  },
+  "dev": {
+    "addonPlaceholder": "NAME",
+    "badge": "DEV",
+    "cards": {
+      "form": {
+        "open": "Open form",
+        "subtitle": "Create a form and confirm input",
+        "title": "Form"
+      },
+      "modals": {
+        "subtitle": "Custom modals",
+        "threeButtons": "Three buttons",
+        "title": "Modals",
+        "twoButtons": "Two buttons"
+      },
+      "toasts": {
+        "subtitle": "Custom notifications",
+        "title": "Toasts"
+      },
+      "upload": {
+        "open": "Open upload",
+        "subtitle": "Addon upload modal",
+        "title": "Upload"
+      }
+    },
+    "chart": {
+      "datasetLabel": "Online Users",
+      "timeLabel": "Time: {{time}}",
+      "usersOnline": "{{count}} users online"
+    },
+    "errors": {
+      "onlineLoad": "Failed to load online",
+      "statsLoad": "Failed to load stats"
+    },
+    "formik": {
+      "placeholder": "Enter text",
+      "submittedMessage": "Submitted: {{value}}",
+      "submittedTitle": "Submitted",
+      "text": "This modal uses Formik.",
+      "title": "Formik form"
+    },
+    "loadingAnalytics": "Loading analytics",
+    "metrics": {
+      "averageOnline": "Average online",
+      "onlineNow": "Online now",
+      "peak": "Peak for period",
+      "totalUsers": "Total users"
+    },
+    "modalThree": {
+      "subText": "Here we test three buttons.",
+      "text": "Modal text",
+      "title": "Modal"
+    },
+    "modalTwo": {
+      "text": "Modal text",
+      "title": "Modal"
+    },
+    "navigation": {
+      "auth": "Auth",
+      "extension": "Extensions",
+      "joint": "Joint",
+      "trackInfo": "TrackInfo",
+      "users": "Users"
+    },
+    "navigationHint": "Navigation example",
+    "noData": "No data",
+    "pageTitle": "Dev Gallery",
+    "rangeHours": "{{hours}}h",
+    "rangeLabel": "Range",
+    "sections": {
+      "analytics": "Analytics",
+      "components": "Components",
+      "metrics": "Metrics",
+      "navigation": "Navigation"
+    },
+    "subtitle": "Scroll down and try components live.",
+    "title": "Developer Gallery",
+    "updatedLabel": "Updated",
+    "updatedLabelWithTime": "Updated: {{time}}",
+    "upload": {
+      "scanning": "Scanning...",
+      "steps": {
+        "manifests": "Generating .manifests",
+        "review": "Sent for review",
+        "upload": "Uploading to server",
+        "validate": "Validation"
+      }
+    }
+  },
+  "errors": {
+    "copiedToClipboard": "Error contents copied to clipboard",
+    "copyFailed": "Failed to write to clipboard",
+    "copyStackFailed": "Failed to copy stack trace:",
+    "noStackTrace": "No stack trace available",
+    "title": "Hold on... Something went wrong...",
+    "unknownError": "An unknown error occurred"
+  },
+  "extensions": {
+    "actions": {
+      "store": "Store"
+    },
+    "addonCreatedMessage": "Addon {{name}} created successfully",
+    "addonCreatedTitle": "Addon created",
+    "createHandleEvents": "Create handleEvents.js",
+    "defaultThemeSet": "Default theme set",
+    "editModeEnter": "Edit mode enabled",
+    "editModeExit": "Edit mode disabled",
+    "handleEventsMissing": "handleEvents.js not found",
+    "initError": "Initialization error",
+    "loadError": "Theme load error",
+    "loadFailed": "Load failed",
+    "meta": {
+      "author": "Author",
+      "size": "Size",
+      "updated": "Updated",
+      "version": "Version"
+    },
+    "reloadFailed": "Reload failed",
+    "reloadSuccess": "Reloaded successfully",
+    "reopenTheme": "Reopen theme",
+    "scriptDisabled": "Script disabled",
+    "scriptEnabled": "Script enabled",
+    "scriptStatusMessage": "Script {{name}} {{status}}",
+    "themeActivated": "Theme activated",
+    "themeActivatedMessage": "Theme {{name}} activated",
+    "themeDeactivated": "Theme deactivated",
+    "whitelistLoadError": "Whitelist load error"
+  },
+  "filters": {
+    "authors": {
+      "title": "AUTHORS"
+    },
+    "sort": {
+      "az": "(A-Z)",
+      "byAlphabet": "By alphabet{{order}}",
+      "byAuthors": "By authors",
+      "byDate": "By date",
+      "bySize": "By size",
+      "byType": "By type",
+      "title": "SORT",
+      "za": "(Z-A)"
+    },
+    "tags": {
+      "title": "TAGS"
+    },
+    "type": {
+      "all": "All",
+      "scripts": "Scripts",
+      "themes": "Themes",
+      "title": "TYPE"
+    }
+  },
+  "metadata": {
+    "examples": {
+      "addonName": "My Awesome Addon",
+      "allowedUrls": "https://music.yandex.ru/*",
+      "supportedVersions": "2024.06.01",
+      "tags": "theme, dark, minimal"
+    },
+    "fixErrors": "Fix errors",
+    "loadError": "Failed to load metadata",
+    "placeholders": {
+      "logoFile": "logo.png",
+      "selectOrEnterPath": "Select or enter a path"
+    },
+    "saveError": "Failed to save",
+    "versionFormat": "Version must be in X.Y.Z format"
+  },
+  "mod": {
+    "availableVersion": "Version {{version}} available",
+    "cacheClearError": "Failed to clear cache: {{message}}",
+    "cacheCleared": "Mod cache cleared",
+    "cacheClearing": "Clearing mod cache...",
+    "latestInstalled": "Latest version installed",
+    "notInstalledTitle": "Mod not installed",
+    "removeError": "Error removing mod: {{message}}",
+    "removedSuccess": "Mod removed successfully",
+    "removing": "Removing mod...",
+    "updateAvailableBody": "New version available: {{version}}",
+    "updateAvailableTitle": "Update available"
+  },
+  "obsWidget": {
+    "downloadError": "Failed to download widget: {{message}}",
+    "downloading": "Downloading OBS widget...",
+    "installSuccess": "OBS widget installed successfully",
+    "pathCopied": "Path copied to clipboard",
+    "pathCopyError": "Failed to copy path",
+    "pathFetchError": "Failed to get widget path",
+    "removeError": "Failed to remove widget: {{message}}",
+    "removeSuccess": "OBS widget removed successfully",
+    "removing": "Removing OBS widget..."
+  },
+  "options": {
+    "addonsDirectory": "Addons directory",
+    "createAddon": "Create addon",
+    "reloadAddons": "Reload addons",
+    "title": "Options"
+  },
+  "pages": {
+    "joint": {
+      "comingSoon": "Coming soon",
+      "title": "Joint"
+    },
+    "settings": {
+      "comingSoon": "Coming soon",
+      "title": "Settings"
+    },
+    "store": {
+      "cards": {
+        "betterPlayer": "Better player",
+        "colorize": "Colorize interface",
+        "customUi": "Custom UI",
+        "reachtext": "ReachText",
+        "themeGenerator": "Theme generator",
+        "volumeControl": "Volume control"
+      },
+      "headerSubtitle": "Refresh the interface and unlock new features",
+      "headerTitle": "Extension store",
+      "title": "Store"
+    }
+  },
+  "profile": {
+    "level": "Level {{level}}",
+    "noNickname": "No nickname",
+    "registrationDate": "Registration date",
+    "sinceBeginning": "Since the beginning"
+  },
+  "rpc": {
+    "message": "{{message}}"
+  },
+  "settings": {
+    "restartRequired": "Changes will take effect after restarting the app",
+    "toggles": {
+      "askSavePath": "Option \"Ask where to save track\" {{status}}",
+      "autoStartApp": "Option \"Auto-start app\" {{status}}",
+      "autoStartMusic": "Option \"Auto-start music\" {{status}}",
+      "autoTray": "Option \"Auto-start in tray\" {{status}}",
+      "closeAppInTray": "Option \"Close app to tray\" {{status}}",
+      "deletePextAfterImport": "Enabled deletion of .pext after theme import",
+      "saveAsMp3": "Option \"Save as mp3\" {{status}}",
+      "saveWindowDimensions": "Option \"Save window size\" {{status}}",
+      "saveWindowPosition": "Option \"Save window position\" {{status}}",
+      "showModChangelog": "Option \"Show changelog after install\" {{status}}"
+    },
+    "websocketStatusChanged": "Websocket status changed"
+  },
+  "store": {
+    "download": "Download",
+    "status": {
+      "active": "Active",
+      "deprecated": "Deprecated"
+    },
+    "type": {
+      "both": "CSS + JS",
+      "css": "CSS",
+      "js": "JS"
+    }
+  },
+  "textInput": {
+    "commands": {
+      "trackAlbum": "album title",
+      "trackArtist": "artist name",
+      "trackTitle": "track title"
+    },
+    "statusDisplay": {
+      "appName": "App name",
+      "trackArtist": "Track artist",
+      "trackTitle": "Track title"
+    }
+  },
+  "updates": {
+    "checkingTitle": "Checking for updates",
+    "downloadError": "Download error",
+    "downloaded": "Update downloaded",
+    "downloadingLabel": "Downloading",
+    "downloadingTitle": "Downloading update",
+    "notFoundMessage": "No updates found",
+    "notFoundTitle": "No updates"
+  },
+  "userStatus": {
+    "inactive": "Inactive",
+    "listening": "Listening",
+    "offline": "Offline",
+    "online": "Online"
+  },
+  "utils": {
+    "charCount": {
+      "withMax": "{{currentLength}} / {{maxLength}}",
+      "withoutMax": "{{currentLength}}"
+    },
+    "connectionAttemptMessage": "Connection attempt. Retries left: {{retriesLeft}}. Next in {{retryIntervalInSeconds}}s.",
+    "connectionAttemptTitle": "Ping-pong",
+    "internetCheckError": "Failed to check internet connection",
+    "timeAgo": {
+      "days": "{{count}}d",
+      "hours": "{{count}}h",
+      "minutes": "{{count}}m",
+      "months": "{{count}}mo",
+      "seconds": "{{count}}s",
+      "weeks": "{{count}}w",
+      "years": "{{count}}y"
+    }
+  }
+}

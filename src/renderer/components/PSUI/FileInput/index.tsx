@@ -6,6 +6,7 @@ import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdFolderOpen, MdClose } from 'react-icons/md'
 import MainEvents from '../../../../common/types/mainEvents'
 import RendererEvents from '../../../../common/types/rendererEvents'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     label: string
@@ -144,12 +145,14 @@ const FileInput: React.FC<Props> = ({
     accept = '',
     previewSrc,
     disabled = false,
-    placeholder = 'Выберите файл',
+    placeholder,
     metadata = false,
     addonPath,
     preferredBaseName,
 }) => {
+    const { t } = useTranslation()
     const inputRef = useRef<HTMLInputElement>(null)
+    const placeholderText = placeholder ?? t('common.selectFile')
 
     const [text, setText] = useState<string>(value ?? '')
     const [isTyping, setIsTyping] = useState(false)
@@ -362,21 +365,21 @@ const FileInput: React.FC<Props> = ({
                 <input
                     className={s.text}
                     value={text}
-                    placeholder={placeholder}
+                    placeholder={placeholderText}
                     onFocus={() => setIsTyping(true)}
                     onBlur={() => setIsTyping(false)}
                     onClick={e => e.stopPropagation()}
                     onChange={e => commitManual(e.target.value)}
                 />
                 {text && (
-                    <button type="button" className={s.clearBtn} title="Очистить" onClick={clearAll}>
+                    <button type="button" className={s.clearBtn} title={t('common.clear')} onClick={clearAll}>
                         <MdClose size={16} />
                     </button>
                 )}
                 <button
                     type="button"
                     className={s.pickBtn}
-                    title="Выбрать файл"
+                    title={t('common.selectFile')}
                     onClick={async e => {
                         e.stopPropagation()
                         await openPicker()

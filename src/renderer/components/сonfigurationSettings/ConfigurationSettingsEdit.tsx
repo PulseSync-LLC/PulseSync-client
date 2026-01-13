@@ -12,6 +12,7 @@ import FileInput from '../PSUI/FileInput'
 import { MdDragIndicator, MdContentCopy, MdDelete, MdAdd, MdUnfoldMore, MdUnfoldLess, MdAddCircleOutline, MdRestartAlt } from 'react-icons/md'
 import * as css from './ConfigurationSettingsEdit.module.scss'
 import ChangesBar from '../PSUI/ChangesBar'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     configData: AddonConfig
@@ -50,13 +51,13 @@ const stripInternal = (c: AddonConfig): AddonConfig =>
         })
     })
 
-const blankItem = (type: Item['type']): Item => {
+const blankItem = (type: Item['type'], t: (key: string, options?: Record<string, any>) => string): Item => {
     switch (type) {
         case 'button':
             return {
                 __k: uid('k_') as any,
                 id: uid('btn_'),
-                name: 'Новая кнопка',
+                name: t('configEditor.defaults.newButton'),
                 description: '',
                 type: 'button',
                 bool: false,
@@ -66,7 +67,7 @@ const blankItem = (type: Item['type']): Item => {
             return {
                 __k: uid('k_') as any,
                 id: uid('sld_'),
-                name: 'Новый слайдер',
+                name: t('configEditor.defaults.newSlider'),
                 description: '',
                 type: 'slider',
                 min: 0,
@@ -79,7 +80,7 @@ const blankItem = (type: Item['type']): Item => {
             return {
                 __k: uid('k_') as any,
                 id: uid('col_'),
-                name: 'Новый цвет',
+                name: t('configEditor.defaults.newColor'),
                 description: '',
                 type: 'color',
                 input: '#FFFFFFFF',
@@ -89,7 +90,7 @@ const blankItem = (type: Item['type']): Item => {
             return {
                 __k: uid('k_') as any,
                 id: uid('file_'),
-                name: 'Новый файл',
+                name: t('configEditor.defaults.newFile'),
                 description: '',
                 type: 'file',
                 filePath: '',
@@ -99,11 +100,11 @@ const blankItem = (type: Item['type']): Item => {
             return {
                 __k: uid('k_') as any,
                 id: uid('sel_'),
-                name: 'Новый селектор',
+                name: t('configEditor.defaults.newSelector'),
                 description: '',
                 type: 'selector',
                 selected: 1,
-                options: { '1': { event: 'opt_1', name: 'Опция 1' } },
+                options: { '1': { event: 'opt_1', name: t('configEditor.defaults.option', { index: 1 }) } },
                 defaultParameter: 1,
             } as any
         case 'text':
@@ -111,10 +112,10 @@ const blankItem = (type: Item['type']): Item => {
             return {
                 __k: uid('k_') as any,
                 id: uid('txt_'),
-                name: 'Новый текстовый блок',
+                name: t('configEditor.defaults.newTextBlock'),
                 description: '',
                 type: 'text',
-                buttons: [{ __k: uid('kb_') as any, id: uid('t1_'), name: 'Строка', text: '', defaultParameter: '' }] as any,
+                buttons: [{ __k: uid('kb_') as any, id: uid('t1_'), name: t('configEditor.defaults.line'), text: '', defaultParameter: '' }] as any,
             } as any
     }
 }
@@ -124,6 +125,7 @@ type AddMenuState = { open: false } | { open: true; x: number; y: number; dir: '
 const typeList: Item['type'][] = ['button', 'slider', 'color', 'file', 'selector', 'text']
 
 const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
+    const { t } = useTranslation()
     const [cfg, setCfg] = useState<AddonConfig>(ensureStableKeys(structuredClone(configData)))
 
     const baselineRef = useRef<AddonConfig>(ensureStableKeys(structuredClone(configData)))
@@ -325,7 +327,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
     const addSection = (index?: number) =>
         setConfig(
             produce(cfg, d => {
-                const s: Section = { title: 'Новая секция', items: [blankItem('text')] }
+                const s: Section = { title: t('configEditor.defaults.newSection'), items: [blankItem('text', t)] }
                 if (typeof index === 'number') d.sections.splice(index, 0, s)
                 else d.sections.push(s)
             }),
@@ -363,7 +365,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
     const addItemAt = (si: number, index: number, type: Item['type']) =>
         setConfig(
             produce(cfg, d => {
-                d.sections[si].items.splice(index, 0, blankItem(type))
+                d.sections[si].items.splice(index, 0, blankItem(type, t))
             }),
         )
 
@@ -406,7 +408,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                 ;(d.sections[si].items[ii] as any as TextItem).buttons.push({
                     __k: uid('kb_') as any,
                     id: uid('tb_'),
-                    name: 'Новая строка',
+                    name: t('configEditor.defaults.newRow'),
                     text: '',
                     defaultParameter: '',
                 } as any)
@@ -429,7 +431,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                     .map(k => parseInt(k, 10))
                     .filter(x => !isNaN(x))
                 if (nums.length) nextKey = String(Math.max(...nums) + 1)
-                it.options[nextKey] = { event: `opt_${nextKey}`, name: `Опция ${nextKey}` }
+                it.options[nextKey] = { event: `opt_${nextKey}`, name: t('configEditor.defaults.option', { index: nextKey }) }
             }),
         )
 
@@ -478,7 +480,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                             options={opts}
                             onChange={val => updateItem(si, ii, { defaultParameter: toNumber ? Number(val) : (String(val) as any) })}
                         />
-                        <div className={css.smallTitle}>Опции</div>
+                        <div className={css.smallTitle}>{t('configEditor.optionsTitle')}</div>
                         <div className={css.table}>
                             {Object.entries(it.options).map(([k, o]) => (
                                 <div key={k} className={css.tableRow}>
@@ -521,14 +523,18 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                                             )
                                         }
                                     />
-                                    <button className={css.iconBtn} title="Удалить опцию" onClick={() => removeSelectorOption(si, ii, k)}>
+                                    <button
+                                        className={css.iconBtn}
+                                        title={t('configEditor.removeOption')}
+                                        onClick={() => removeSelectorOption(si, ii, k)}
+                                    >
                                         <MdDelete size={18} />
                                     </button>
                                 </div>
                             ))}
                             <div className={css.rowEnd}>
                                 <button className={css.addBtn} onClick={() => addSelectorOption(si, ii)}>
-                                    <MdAdd /> Добавить опцию
+                                    <MdAdd /> {t('configEditor.addOption')}
                                 </button>
                             </div>
                         </div>
@@ -589,7 +595,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                         value={def}
                         onChange={p => updateItem(si, ii, { defaultParameter: { filePath: p } as any })}
                         previewSrc={filePreviewSrc}
-                        placeholder="Укажите путь"
+                        placeholder={t('configEditor.pathPlaceholder')}
                     />
                 )
             }
@@ -603,7 +609,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                                 <div className={css.inlineGrid}>
                                     <TextInput
                                         name={`btn_name_${b.id}`}
-                                        label="Название"
+                                        label={t('configEditor.labels.name')}
                                         value={b.name}
                                         onChange={v => updateTextButton(si, ii, bi, { name: v })}
                                     />
@@ -623,7 +629,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                                     />
                                     <button
                                         className={clsx(css.iconBtn, css.dangerBtn)}
-                                        title="Удалить строку"
+                                        title={t('configEditor.removeRow')}
                                         onClick={() => removeTextButton(si, ii, bi)}
                                     >
                                         <MdDelete />
@@ -633,7 +639,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                         ))}
                         <div className={css.rowEnd}>
                             <button className={css.addBtn} onClick={() => addTextButton(si, ii)}>
-                                <MdAdd /> Добавить строку
+                                <MdAdd /> {t('configEditor.addRow')}
                             </button>
                         </div>
                     </>
@@ -642,8 +648,8 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
             default:
                 return (
                     <div className={css.placeholder}>
-                        <div className={css.phTitle}>Компонент в переработке</div>
-                        <div className={css.phHint}>Скоро будет доступен.</div>
+                        <div className={css.phTitle}>{t('configEditor.placeholderTitle')}</div>
+                        <div className={css.phHint}>{t('configEditor.placeholderHint')}</div>
                     </div>
                 )
         }
@@ -663,14 +669,14 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                 onDrop={onItemDrop(si, ii)}
             >
                 <div className={css.itemHeader}>
-                    <span className={css.handle} title="Перетащить" draggable onDragStart={onItemDragStart(si, ii)} onDragEnd={onDragEnd}>
+                    <span className={css.handle} title={t('configEditor.drag')} draggable onDragStart={onItemDragStart(si, ii)} onDragEnd={onDragEnd}>
                         <MdDragIndicator />
                     </span>
 
                     <div className={css.metaGrid}>
                         <TextInput
                             name={`item_name_${item.id}`}
-                            label="Название"
+                            label={t('configEditor.labels.name')}
                             value={item.name}
                             onChange={v => updateItem(si, ii, { name: v } as Partial<Item>)}
                         />
@@ -685,7 +691,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                     <div className={css.tools}>
                         <button
                             className={css.iconBtn}
-                            title="Добавить элемент после"
+                            title={t('configEditor.addItemAfter')}
                             onClick={e =>
                                 openAddMenu(e, (t: Item['type']) => {
                                     setAddMenu({ open: false })
@@ -696,15 +702,19 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                             <MdAddCircleOutline size={18} />
                         </button>
 
-                        <button className={css.iconBtn} title="Дублировать" onClick={() => duplicateItem(si, ii)}>
+                        <button className={css.iconBtn} title={t('configEditor.duplicate')} onClick={() => duplicateItem(si, ii)}>
                             <MdContentCopy size={18} />
                         </button>
                         {base && dirty && (
-                            <button className={clsx(css.iconBtn, css.warnBtn)} title="Сбросить к эталону" onClick={() => resetEditor(si, ii)}>
+                            <button
+                                className={clsx(css.iconBtn, css.warnBtn)}
+                                title={t('configEditor.resetToDefault')}
+                                onClick={() => resetEditor(si, ii)}
+                            >
                                 <MdRestartAlt size={18} />
                             </button>
                         )}
-                        <button className={clsx(css.iconBtn, css.dangerBtn)} title="Удалить" onClick={() => deleteItem(si, ii)}>
+                        <button className={clsx(css.iconBtn, css.dangerBtn)} title={t('common.delete')} onClick={() => deleteItem(si, ii)}>
                             <MdDelete size={18} />
                         </button>
                     </div>
@@ -712,7 +722,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
 
                 <TextInput
                     name={`item_desc_${item.id}`}
-                    label="Описание"
+                    label={t('configEditor.labels.description')}
                     value={item.description ?? ''}
                     onChange={v => updateItem(si, ii, { description: v } as Partial<Item>)}
                 />
@@ -726,10 +736,10 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
         <div ref={rootRef} className={css.root}>
             <div className={css.topBar}>
                 <button className={css.addBtn} onClick={() => addSection()}>
-                    <MdAdd /> Добавить секцию
+                    <MdAdd /> {t('configEditor.addSection')}
                 </button>
                 <div className={css.rightBtns}>
-                    <button className={css.iconBtn} onClick={() => setCollapsed({})} title="Развернуть все">
+                    <button className={css.iconBtn} onClick={() => setCollapsed({})} title={t('configEditor.expandAll')}>
                         <MdUnfoldMore />
                     </button>
                     <button
@@ -739,7 +749,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                             cfg.sections.forEach((_, i) => (map[i] = true))
                             setCollapsed(map)
                         }}
-                        title="Свернуть все"
+                        title={t('configEditor.collapseAll')}
                     >
                         <MdUnfoldLess />
                     </button>
@@ -760,7 +770,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                         <div className={css.sectionHeader}>
                             <span
                                 className={css.handle}
-                                title="Перетащить секцию"
+                                title={t('configEditor.dragSection')}
                                 draggable
                                 onDragStart={onSectionDragStart(si)}
                                 onDragEnd={onDragEnd}
@@ -769,7 +779,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                             </span>
                             <TextInput
                                 name={`sec_title_${si}`}
-                                label="Заголовок секции"
+                                label={t('configEditor.labels.sectionTitle')}
                                 value={s.title}
                                 onChange={v =>
                                     setConfig(
@@ -782,7 +792,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                             <div className={css.sectionTools}>
                                 <button
                                     className={css.iconBtn}
-                                    title="Добавить элемент"
+                                    title={t('configEditor.addItem')}
                                     onClick={e =>
                                         openAddMenu(e, (t: Item['type']) => {
                                             setAddMenu({ open: false })
@@ -792,17 +802,21 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                                 >
                                     <MdAdd />
                                 </button>
-                                <button className={css.iconBtn} title="Дублировать секцию" onClick={() => duplicateSection(si)}>
+                                <button className={css.iconBtn} title={t('configEditor.duplicateSection')} onClick={() => duplicateSection(si)}>
                                     <MdContentCopy />
                                 </button>
                                 <button
                                     className={css.iconBtn}
-                                    title={isCollapsed ? 'Развернуть' : 'Свернуть'}
+                                    title={isCollapsed ? t('configEditor.expand') : t('configEditor.collapse')}
                                     onClick={() => setCollapsed(c => ({ ...c, [si]: !c[si] }))}
                                 >
                                     {isCollapsed ? <MdUnfoldMore /> : <MdUnfoldLess />}
                                 </button>
-                                <button className={clsx(css.iconBtn, css.dangerBtn)} title="Удалить секцию" onClick={() => deleteSection(si)}>
+                                <button
+                                    className={clsx(css.iconBtn, css.dangerBtn)}
+                                    title={t('configEditor.deleteSection')}
+                                    onClick={() => deleteSection(si)}
+                                >
                                     <MdDelete />
                                 </button>
                             </div>
@@ -821,7 +835,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
                                             })
                                         }
                                     >
-                                        <MdAdd /> Добавить элемент
+                                        <MdAdd /> {t('configEditor.addItem')}
                                     </button>
                                 </div>
                             </>
@@ -848,7 +862,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
 
             <ChangesBar
                 open={isDirty}
-                text="Аккуратнее, вы не сохранили изменения!"
+                text={t('changes.unsavedWarning')}
                 onReset={() => setCfg(ensureStableKeys(structuredClone(baselineRef.current)))}
                 onSave={async () => {
                     const clean = stripInternal(cfg)

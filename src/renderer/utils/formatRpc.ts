@@ -3,6 +3,7 @@ import SettingsInterface from '../api/interfaces/settings.interface'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { getCoverImage } from './utils'
 import UserInterface from '../api/interfaces/user.interface'
+import { t as i18nT } from '../i18n'
 
 export function truncateLabel(label: string, maxLength = 30) {
     return label.length > maxLength ? label.slice(0, maxLength) : label
@@ -11,8 +12,8 @@ export function truncateLabel(label: string, maxLength = 30) {
 export const replaceParams = (str: any, track: Track, showVersion: boolean = false) => {
     return str
         .replace('{track}', showVersion && track.version ? `${track.title} (${track.version})` : track.title || '')
-        .replace('{artist}', track.artists.map(a => a.name).join(', ') || 'Unknown Artist')
-        .replace('{album}', track.albums.map(a => a.title).join(', ') || 'Unknown Album')
+        .replace('{artist}', track.artists.map(a => a.name).join(', ') || i18nT('rpc.unknownArtist'))
+        .replace('{album}', track.albums.map(a => a.title).join(', ') || i18nT('rpc.unknownAlbum'))
 }
 
 export function fixStrings(string: string): string {
@@ -158,7 +159,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
         const activity: SetActivity = { ...base, details: fixStrings(t.title) }
 
         if (t.status === 'paused' && settings.discordRpc.displayPause) {
-            activity.smallImageText = 'Paused'
+            activity.smallImageText = i18nT('rpc.paused')
             activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
         } else if (!isGenerative) {
             activity.startTimestamp = Math.floor(start)
@@ -178,13 +179,13 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
         } else if (settings.discordRpc.details && settings.discordRpc.details.length > 0) {
             rawDetails = replaceParams(settings.discordRpc.details, t, settings.discordRpc.showTrackVersion)
         } else {
-            rawDetails = t.title || 'Unknown Track'
+            rawDetails = t.title || i18nT('rpc.unknownTrack')
         }
 
         const stateText =
             settings.discordRpc.state && settings.discordRpc.state.length > 0
                 ? fixStrings(replaceParams(settings.discordRpc.state, t))
-                : fixStrings(artistName || 'Unknown Artist')
+                : fixStrings(artistName || i18nT('rpc.unknownArtist'))
 
         const activity: SetActivity = {
             ...base,
@@ -195,7 +196,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
         }
 
         if (t.status === 'paused' && settings.discordRpc.displayPause) {
-            activity.smallImageText = 'Paused'
+            activity.smallImageText = i18nT('rpc.paused')
             activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
             activity.details = fixStrings(t.title)
             delete activity.startTimestamp
@@ -206,7 +207,8 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
         }
 
         if ((!t.artists || t.artists.length === 0) && t.trackSource !== 'UGC') {
-            const newDetails = t.title.endsWith(' - Нейромузыка') ? t.title : `${t.title} - Нейромузыка`
+            const neuroSuffix = ` - ${i18nT('rpc.neuroMusic')}`
+            const newDetails = t.title.endsWith(neuroSuffix) ? t.title : `${t.title}${neuroSuffix}`
             activity.details = fixStrings(newDetails)
             if (t.albumArt && t.albumArt.includes('%%')) {
                 activity.largeImageKey = `https://${t.albumArt.replace('%%', 'orig')}`

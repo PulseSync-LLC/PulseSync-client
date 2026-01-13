@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import * as s from './ColorInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
 
 type HSVA = { h: number; s: number; v: number; a: number }
 type Mode = 'hex' | 'rgb' | 'hsl' | 'hsb'
@@ -175,6 +176,7 @@ const ColorInput: React.FC<Props> = ({
     inputModes = ['hex'],
     defaultMode = 'hex',
 }) => {
+    const { t } = useTranslation()
     const modes: Mode[] = Array.from(new Set(inputModes))
     const startMode: Mode = modes.includes(defaultMode) ? defaultMode : modes[0]
 
@@ -395,7 +397,7 @@ const ColorInput: React.FC<Props> = ({
 
                     <div className={s.inputsRow}>
                         {modes.length > 1 && (
-                            <div className={s.selectWrap} title="Формат ввода">
+                            <div className={s.selectWrap} title={t('colorInput.inputFormat')}>
                                 <select
                                     className={s.select}
                                     value={mode}

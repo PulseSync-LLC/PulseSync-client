@@ -2,8 +2,10 @@ import PageLayout from '../PageLayout'
 import * as st from './store.module.scss'
 
 import ExtensionCardStore from '../../components/PSUI/ExtensionCardStore'
+import { useTranslation } from 'react-i18next'
 
 export default function StorePage() {
+    const { t } = useTranslation()
     const iconMusicPlayer = 'https://i.ibb.co/L5Q2Zf8/betterplayer-icon.png'
     const bgAbstractPurple = 'https://i.ibb.co/X3S2nJj/abstract-purple-bg.jpg'
     const iconLyrics = 'https://i.ibb.co/6P6XyRj/lyrics-icon.png'
@@ -14,11 +16,11 @@ export default function StorePage() {
     const iconVolume = 'https://i.ibb.co/h5P0L0R/volume-icon.png'
 
     return (
-        <PageLayout title="Аддоны">
+        <PageLayout title={t('pages.store.title')}>
             <section className={st.store}>
                 <header className={st.store_header}>
-                    <div className={st.store_title}>Магазин расширений</div>
-                    <div className={st.store_subtitle}>PulseSync меняют внешний вид и добавляют полезные функции в Яндекс Музыку</div>
+                    <div className={st.store_title}>{t('pages.store.headerTitle')}</div>
+                    <div className={st.store_subtitle}>{t('pages.store.headerSubtitle')}</div>
                 </header>
 
                 <div className={st.store_grid}>
@@ -26,7 +28,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="purple"
                         title="BetterPlayer"
-                        subtitle="Кастомизируемый плеер с расширенными настройками"
+                        subtitle={t('pages.store.cards.betterPlayer')}
                         version="v1.4.0"
                         authors={['WolfySoCute']}
                         downloads="1.2K"
@@ -46,7 +48,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="red"
                         title="Reachtext"
-                        subtitle="Получает тексты песен, у которых они не доступны стандартными средствами"
+                        subtitle={t('pages.store.cards.reachtext')}
                         version="v2.2.2"
                         authors={['Hazzz895']}
                         downloads="3.5K"
@@ -66,7 +68,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="wave"
                         title="Colorize 2"
-                        subtitle="Улучшенный скрипт для адаптивной смены фона интерфейса"
+                        subtitle={t('pages.store.cards.colorize')}
                         version="v1.1.3"
                         authors={['maks1mio', 'imperiadicks']}
                         downloads="1.2K"
@@ -86,7 +88,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="purple"
                         title="Custom UI"
-                        subtitle="Полностью кастомизируй интерфейс Яндекс Музыки с помощью JSON-конфига"
+                        subtitle={t('pages.store.cards.customUi')}
                         version="v1.0.0"
                         authors={['WolfySoCute']}
                         downloads="800"
@@ -106,7 +108,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="wave"
                         title="Theme Generator"
-                        subtitle="Создавай свои цветовые схемы для Colorize 2 в реальном времени"
+                        subtitle={t('pages.store.cards.themeGenerator')}
                         version="v0.9.0"
                         authors={['maks1mio']}
                         downloads="300"
@@ -126,7 +128,7 @@ export default function StorePage() {
                     <ExtensionCardStore
                         theme="red"
                         title="Volume Control"
-                        subtitle="Более точный контроль громкости в проигрывателе (УСТАРЕЛО)"
+                        subtitle={t('pages.store.cards.volumeControl')}
                         version="v1.0.5"
                         authors={['imperiadicks']}
                         downloads="500"

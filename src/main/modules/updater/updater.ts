@@ -8,6 +8,7 @@ import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
 import isAppDev from 'electron-is-dev'
 import { mainWindow } from '../createWindow'
+import { t } from '../../i18n'
 
 type CommonConfig = Record<string, unknown>
 
@@ -196,12 +197,12 @@ class Updater {
 
         try {
             const updateResult = (await autoUpdater.checkForUpdatesAndNotify({
-                title: 'Новое обновление готово к установке',
-                body: `PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения`,
+                title: t('main.updater.updateReadyTitle'),
+                body: t('main.updater.updateReadyBody'),
             })) as UpdateResult | null
 
             if (!updateResult) {
-                logger.updater.log('Обновлений не найдено')
+                logger.updater.log(t('main.updater.noUpdatesFound'))
                 return null
             }
 
@@ -211,7 +212,7 @@ class Updater {
             if (e?.code === 'ENOENT' && typeof e?.path === 'string' && e.path.endsWith('app-update.yml')) {
                 if (!isAppDev) {
                     logger.updater.error(`File app-update.yml not found.`, error)
-                    dialog.showErrorBox('Ошибка', 'Файлы приложения повреждены. Переустановите приложение.')
+                    dialog.showErrorBox(t('main.common.error'), t('main.updater.appFilesCorrupted'))
                     app.quit()
                 }
             } else {

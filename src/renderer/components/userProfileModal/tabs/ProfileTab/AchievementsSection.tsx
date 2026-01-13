@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import LevelProgress from '../../../LevelProgress'
 import AchievementList from './AchievementList'
 import * as styles from '../../userProfileModal.module.scss'
@@ -22,6 +23,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const { user, features } = useContext(userContext)
     const canViewDetails = useMemo(() => user.username === username, [user.username, username])
+    const { t } = useTranslation()
 
     const toggleExpand = useCallback((id: number) => {
         setExpandedIndexes(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]))
@@ -80,18 +82,15 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                     <span className={styles.title}>
                         <span className={styles.warnDot}></span>
                         <span className={styles.pulsingDot}></span>
-                        Внимание! Система достижений временно не работает
+                        {t('profile.achievements.warningTitle')}
                     </span>
-                    <span className={styles.description}>
-                        Мы перерабатываем систему достижений, чтобы сделать её лучше! Сейчас достижения не засчитываются при прослушивании, но мы
-                        скоро всё исправим. Спасибо за ваше терпение! 😊
-                    </span>
+                    <span className={styles.description}>{t('profile.achievements.warningDescription')}</span>
                 </div>
             )}
             <div className={styles.achievementsSection}>
                 <div>
-                    <div className={styles.titleHeader}>Достижения</div>
-                    <div className={styles.descriptionHeader}>Достигайте самого высокого уровня.</div>
+                    <div className={styles.titleHeader}>{t('profile.achievements.title')}</div>
+                    <div className={styles.descriptionHeader}>{t('profile.achievements.subtitle')}</div>
                 </div>
                 <LevelProgress
                     totalPoints={userProfile.levelInfo.totalPoints}
@@ -102,7 +101,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                 {userProfile.allAchievements && userProfile.allAchievements.length > 0 ? (
                     <>
                         <div className={styles.achievementsListContainer}>
-                            <div className={styles.achievementsListTitle}>Выполненные</div>
+                            <div className={styles.achievementsListTitle}>{t('profile.achievements.completed')}</div>
                             <AchievementList
                                 achievements={sortedCompletedAchievements}
                                 userAchievements={userProfile.userAchievements}
@@ -111,11 +110,11 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                                 canViewDetails={canViewDetails}
                             />
                             {completedAchievements.length === 0 && (
-                                <div className={styles.noAchievementsMessage}>🎯 Пока нет выполненных достижений</div>
+                                <div className={styles.noAchievementsMessage}>{t('profile.achievements.noCompleted')}</div>
                             )}
                         </div>
                         <div className={styles.achievementsListContainer}>
-                            <div className={styles.achievementsListTitle}>Неполученные достижения</div>
+                            <div className={styles.achievementsListTitle}>{t('profile.achievements.notReceived')}</div>
                             <AchievementList
                                 achievements={sortedNotReceivedAchievements}
                                 userAchievements={userProfile.userAchievements}
@@ -126,7 +125,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                         </div>
                     </>
                 ) : (
-                    <p>Нет достижений</p>
+                    <p>{t('profile.achievements.none')}</p>
                 )}
             </div>
         </div>

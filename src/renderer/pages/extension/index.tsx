@@ -27,6 +27,7 @@ import CustomModalPS from '../../components/PSUI/CustomModalPS'
 import { staticAsset } from '../../utils/staticAssets'
 import apolloClient from '../../api/apolloClient'
 import GetAddonWhitelistQuery from '../../api/queries/getAddonWhitelist.query'
+import { useTranslation } from 'react-i18next'
 
 const defaultOrder = {
     alphabet: 'asc',
@@ -66,6 +67,7 @@ function useDebouncedValue<T>(value: T, delay: number) {
 }
 
 export default function ExtensionPage() {
+    const { t } = useTranslation()
     const { addons, setAddons, musicVersion } = useContext(userContext)
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
     const [enabledScripts, setEnabledScripts] = useState<string[]>(() => safeStoreGet<string[]>('addons.scripts', []))
@@ -103,8 +105,8 @@ export default function ExtensionPage() {
                 loadedRef.current = true
                 setIsLoaded(true)
             } catch (e) {
-                console.error('Ошибка при инициализации аддонов:', e)
-                toast.custom('error', 'Упс', 'Не удалось загрузить аддоны')
+                console.error(t('extensions.initError'), e)
+                toast.custom('error', t('common.oopsTitle'), t('extensions.loadFailed'))
                 setIsLoaded(true)
             }
         }
@@ -124,7 +126,7 @@ export default function ExtensionPage() {
                     setAddonWhitelist(res.data.getAddonWhitelist)
                 }
             } catch (error) {
-                console.error('Ошибка при загрузке белого списка аддонов:', error)
+                console.error(t('extensions.whitelistLoadError'), error)
             }
         }
 
@@ -162,11 +164,11 @@ export default function ExtensionPage() {
                 const themeFromStore = safeStoreGet<string>('addons.theme', 'Default')
                 setCurrentTheme(themeFromStore)
             } catch (error) {
-                console.error('Ошибка при загрузке аддонов:', error)
+                console.error(t('extensions.loadError'), error)
                 throw error
             }
         },
-        [setAddons],
+        [setAddons, t],
     )
 
     const handleCheckboxChange = useCallback(
@@ -178,14 +180,14 @@ export default function ExtensionPage() {
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
                     if (showToast) {
-                        toast.custom('success', 'Тема активирована', `${addon.name} теперь активна`)
+                        toast.custom('success', t('extensions.themeActivated'), t('extensions.themeActivatedMessage', { name: addon.name }))
                     }
                 } else {
                     setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     if (showToast) {
-                        toast.custom('info', 'Тема деактивирована', 'Установлена тема по умолчанию')
+                        toast.custom('info', t('extensions.themeDeactivated'), t('extensions.defaultThemeSet'))
                     }
                 }
             } else {
@@ -193,8 +195,8 @@ export default function ExtensionPage() {
                 if (showToast) {
                     toast.custom(
                         newChecked ? 'success' : 'info',
-                        newChecked ? 'Скрипт включен' : 'Скрипт выключен',
-                        `${addon.name} ${newChecked ? 'теперь активен' : 'деактивирован'}`,
+                        newChecked ? t('extensions.scriptEnabled') : t('extensions.scriptDisabled'),
+                        t('extensions.scriptStatusMessage', { name: addon.name, status: newChecked ? t('common.enabled') : t('common.disabled') }),
                     )
                 }
                 window.electron.store.set('addons.scripts', updated)
@@ -420,12 +422,12 @@ export default function ExtensionPage() {
             setImageCache({})
             await loadAddons(true)
             setSelectedAddonId(null)
-            toast.custom('success', 'Готово', 'Аддоны перезагружены')
+            toast.custom('success', t('common.doneTitle'), t('extensions.reloadSuccess'))
         } catch (e) {
             console.error(e)
-            toast.custom('error', 'Упс', 'Не удалось перезагрузить аддоны')
+            toast.custom('error', t('common.oopsTitle'), t('extensions.reloadFailed'))
         }
-    }, [imageCache, loadAddons])
+    }, [imageCache, loadAddons, t])
 
     const handleOpenAddonsDirectory = useCallback(() => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, {
@@ -436,12 +438,12 @@ export default function ExtensionPage() {
     const handleCreateNewAddon = useCallback(() => {
         window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
             if (res?.success) {
-                toast.custom('success', 'Вжух!', 'Новое расширение создано: ' + res.name)
+                toast.custom('success', t('extensions.addonCreatedTitle'), t('extensions.addonCreatedMessage', { name: res.name }))
                 setAddons([])
                 await loadAddons(true)
             }
         })
-    }, [loadAddons, setAddons])
+    }, [loadAddons, setAddons, t])
 
     const enabledAddons = useMemo(
         () =>
@@ -492,29 +494,28 @@ export default function ExtensionPage() {
     function ThemeNotFound({ hasAnyAddons }: { hasAnyAddons: boolean }) {
         return (
             <div className={extensionStylesV2.notFound}>
-                <h2>{hasAnyAddons ? 'Расширение не найдено' : 'Аддоны не найдены'}</h2>
-                <p>
-                    {hasAnyAddons
-                        ? 'Возможно, расширение было удалено, отфильтровано или ещё не установлено.'
-                        : 'Похоже, у вас ещё нет установленных аддонов.'}
-                </p>
+                <h2>{hasAnyAddons ? t('extensions.notFound.titleFiltered') : t('extensions.notFound.titleEmpty')}</h2>
+                <p>{hasAnyAddons ? t('extensions.notFound.filteredDescription') : t('extensions.notFound.emptyDescription')}</p>
                 <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
-                    Перейдите в официальный Discord сервер для скачивания аддонов
+                    {t('extensions.notFound.discordLink')}
                 </a>
             </div>
         )
     }
 
-    const getAddonModalText = useCallback((addon: Addon, musicVersion: string | undefined) => {
-        const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : 'неизвестно'
+    const getAddonModalText = useCallback(
+        (addon: Addon, musicVersion: string | undefined) => {
+            const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : t('extensions.supportedVersionsUnknown')
 
-        const isSupported = isAddonVersionSupported(addon, musicVersion)
-        const minSupported = addon.supportedVersions?.[0]
-        if (musicVersion && minSupported && !isSupported) {
-            return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.\nВаша версия Яндекс Музыки (${musicVersion}) не входит в поддерживаемый диапазон (${supported}). Возможны ошибки или некорректная работа!`
-        }
-        return `Этот аддон работает на версиях Яндекс Музыки: ${supported}.`
-    }, [isAddonVersionSupported])
+            const isSupported = isAddonVersionSupported(addon, musicVersion)
+            const minSupported = addon.supportedVersions?.[0]
+            if (musicVersion && minSupported && !isSupported) {
+                return t('extensions.supportedVersionsWarning', { supported, musicVersion })
+            }
+            return t('extensions.supportedVersionsInfo', { supported })
+        },
+        [isAddonVersionSupported, t],
+    )
 
     const handleEnableAddon = useCallback(
         (addon: Addon) => {
@@ -534,19 +535,19 @@ export default function ExtensionPage() {
     )
 
     return (
-        <PageLayout title="Аддоны">
+        <PageLayout title={t('extensions.pageTitle')}>
             <CustomModalPS
                 isOpen={modalOpen}
                 onClose={() => {
                     setModalOpen(false)
                     setModalAddon(null)
                 }}
-                title="Вы уверены?"
+                title={t('extensions.confirmTitle')}
                 text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
-                subText={`У вас версия: ${musicVersion || 'unknown'}`}
+                subText={t('extensions.versionLabel', { version: musicVersion || t('common.notAvailable') })}
                 buttons={[
                     {
-                        text: 'Всё равно включить',
+                        text: t('extensions.enableAnyway'),
                         onClick: () => {
                             if (modalAddon) {
                                 handleCheckboxChange(
@@ -563,7 +564,7 @@ export default function ExtensionPage() {
                         variant: 'danger',
                     },
                     {
-                        text: 'Отмена',
+                        text: t('common.cancel'),
                         onClick: () => {
                             setModalOpen(false)
                             setModalAddon(null)
@@ -606,7 +607,7 @@ export default function ExtensionPage() {
                         <div className={extensionStylesV2.searchContainer}>
                             <input
                                 type="text"
-                                placeholder="Поиск..."
+                                placeholder={t('extensions.searchPlaceholder')}
                                 value={searchQuery}
                                 onChange={handleSearchChange}
                                 className={extensionStylesV2.searchInput}
@@ -616,7 +617,7 @@ export default function ExtensionPage() {
                                 className={extensionStylesV2.filterButton}
                                 style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
                                 onClick={toggleFilterPanel}
-                                aria-label="Фильтры"
+                                aria-label={t('extensions.filtersLabel')}
                             >
                                 <MdFilterList />
                                 {(() => {
@@ -633,7 +634,7 @@ export default function ExtensionPage() {
                             className={`${extensionStylesV2.optionsButton} ${optionMenu ? extensionStylesV2.optionsButtonActive : ''}`}
                             style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
                             onClick={toggleOptionMenu}
-                            aria-label="Опции"
+                            aria-label={t('extensions.optionsLabel')}
                         >
                             <MdMoreHoriz />
                         </button>
@@ -684,7 +685,7 @@ export default function ExtensionPage() {
                         {enabledAddons.length > 0 && disabledAddons.length > 0 && <div className={extensionStylesV2.line}></div>}
                         {enabledAddons.length === 0 && disabledAddons.length === 0 && (
                             <div className={extensionStylesV2.noFix}>
-                                <div className={extensionStylesV2.noResults}>Ничего не найдено</div>
+                                <div className={extensionStylesV2.noResults}>{t('extensions.noResults')}</div>
                             </div>
                         )}
                         <div className={extensionStylesV2.disabledAddons}>
@@ -725,7 +726,7 @@ export default function ExtensionPage() {
                 </Scrollbar>
                 <div className={extensionStylesV2.rightSide}>
                     {!isLoaded ? (
-                        <Loader text="Анализирую аддоны…" />
+                        <Loader text={t('extensions.analyzingAddons')} />
                     ) : selectedAddon ? (
                         <ExtensionView
                             addon={selectedAddon}

@@ -3,10 +3,12 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import toast from '../toast'
 import CustomModalPS from '../PSUI/CustomModalPS'
+import { useTranslation } from 'react-i18next'
 
 type PulseSyncAddResult = { ok: true; message: string } | { ok: false; message: string }
 
 const PulseSyncDialog: React.FC = () => {
+    const { t } = useTranslation()
     const [showDialog, setShowDialog] = useState(false)
     const [dialogPath, setDialogPath] = useState<string | null>(null)
     const [isAdding, setIsAdding] = useState(false)
@@ -44,17 +46,17 @@ const PulseSyncDialog: React.FC = () => {
         if (isAdding) return
 
         setIsAdding(true)
-        const toastId = toast.custom('loading', 'Добавляю записи...', 'Ожидайте...', { duration: Infinity })
+        const toastId = toast.custom('loading', t('pulseSyncDialog.addingTitle'), t('common.pleaseWait'), { duration: Infinity })
 
         try {
             const res = (await window.desktopEvents?.invoke(MainEvents.PULSESYNC_ADD_ENTRY as any)) as PulseSyncAddResult | undefined
 
             const ok = Boolean(res && (res as any).ok)
-            const message = (res as any)?.message ?? (ok ? 'Готово' : 'Не удалось добавить записи')
+            const message = (res as any)?.message ?? (ok ? t('common.doneTitle') : t('pulseSyncDialog.addFailed'))
 
             toast.update(toastId, {
                 kind: ok ? 'success' : 'error',
-                title: ok ? 'Готово' : 'Не получилось',
+                title: ok ? t('common.doneTitle') : t('pulseSyncDialog.addFailedTitle'),
                 msg: message,
                 sticky: false,
                 value: undefined,
@@ -62,8 +64,8 @@ const PulseSyncDialog: React.FC = () => {
         } catch (e: any) {
             toast.update(toastId, {
                 kind: 'error',
-                title: 'Ошибка',
-                msg: e?.message ? String(e.message) : 'Не удалось добавить записи',
+                title: t('common.errorTitle'),
+                msg: e?.message ? String(e.message) : t('pulseSyncDialog.addFailed'),
                 sticky: false,
                 value: undefined,
             })
@@ -74,29 +76,26 @@ const PulseSyncDialog: React.FC = () => {
         }
     }
 
-    const text =
-        'Если вы испытываете трудности с доступностью PulseSync (приложение не подключается, долго загружается или работает нестабильно), можно добавить домены в конфиг zapret.'
+    const text = t('pulseSyncDialog.description')
 
-    const subText = dialogPath
-        ? `Файл конфигурации: ${dialogPath}. Записи pulsesync.dev там сейчас нет. Добавить автоматически?`
-        : 'Записи pulsesync.dev сейчас нет. Добавить автоматически?'
+    const subText = dialogPath ? t('pulseSyncDialog.subTextWithPath', { path: dialogPath }) : t('pulseSyncDialog.subText')
 
     return (
         <CustomModalPS
             isOpen={showDialog}
             onClose={handleClose}
-            title="Обнаружен запущенный zapret"
+            title={t('pulseSyncDialog.title')}
             text={text}
             subText={subText}
             buttons={[
                 {
-                    text: isAdding ? 'Добавляю…' : 'Да, добавить',
+                    text: isAdding ? t('pulseSyncDialog.addingButton') : t('pulseSyncDialog.confirmButton'),
                     onClick: handleConfirm,
                     variant: 'primary',
                     disabled: isAdding,
                 },
                 {
-                    text: 'Нет',
+                    text: t('pulseSyncDialog.cancelButton'),
                     onClick: handleClose,
                     variant: 'secondary',
                     disabled: isAdding,

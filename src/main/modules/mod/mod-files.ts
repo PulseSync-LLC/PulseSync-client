@@ -9,6 +9,7 @@ import logger from '../logger'
 import { getState } from '../state'
 import { AsarPatcher, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
 import { DownloadError } from './download.helpers'
+import { t } from '../../i18n'
 
 export const gunzipAsync = promisify(zlib.gunzip)
 export const zstdDecompressAsync = promisify((zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))))
@@ -45,15 +46,15 @@ export async function ensureLinuxModPath(window: BrowserWindow, paths: Paths): P
     if (!defaultExists && !saved) {
         const { response } = await dialog.showMessageBox(window, {
             type: 'info',
-            title: 'Укажите путь к модификации ASAR',
-            message: 'Куда сохранить модификацию ASAR для Яндекс Музыки?',
-            buttons: ['Указать файл', 'Отменить'],
+            title: t('main.modFiles.pickAsarTitle'),
+            message: t('main.modFiles.pickAsarMessage'),
+            buttons: [t('main.common.selectFile'), t('main.common.cancel')],
             noLink: true,
             normalizeAccessKeys: true,
         })
         if (response !== 0) return paths
         const fileRes = await dialog.showSaveDialog(window, {
-            title: 'Сохранить модификацию ASAR как...',
+            title: t('main.modFiles.saveAsTitle'),
             defaultPath: path.join(paths.music, 'app.asar'),
             filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
         })
@@ -84,7 +85,7 @@ export async function ensureBackup(paths: Paths): Promise<void> {
     if (fs.existsSync(paths.modAsar)) source = paths.modAsar
     else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
     if (!source) {
-        const err: any = new Error(`${path.basename(paths.modAsar)} not found. Please reinstall Yandex Music.`)
+        const err: any = new Error(t('main.modFiles.asarNotFound', { name: path.basename(paths.modAsar) }))
         err.code = 'file_not_found'
         throw err
     }
@@ -107,9 +108,6 @@ export async function writePatchedAsarAndPatchBundle(
     if (expectedChecksum) {
         const actualHash = crypto.createHash('sha256').update(asarBuf).digest('hex')
         if (actualHash !== expectedChecksum) {
-            console.error(
-                `[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${asarBuf.length} bytes, URL: ${link}`,
-            )
             throw new DownloadError(
                 `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${actualHash.substring(0, 8)}...)`,
                 'checksum_mismatch',

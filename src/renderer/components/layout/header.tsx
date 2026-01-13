@@ -37,6 +37,7 @@ import playerContext from '../../api/context/player.context'
 import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
+import { useTranslation } from 'react-i18next'
 
 interface p {
     goBack?: boolean
@@ -68,6 +69,7 @@ const Header: React.FC<p> = () => {
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, appInfo, app, setUser, modInfo } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const { t } = useTranslation()
     const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
@@ -183,7 +185,7 @@ const Header: React.FC<p> = () => {
         }).then(async r => {
             const res = await r.json()
             if (res.ok) {
-                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
+                toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
                 await client.resetStore()
@@ -265,24 +267,24 @@ const Header: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Аватар успешно загружен!')
+                toast.custom('success', t('common.doneTitle'), t('header.avatarUploadSuccess'))
             } else {
                 setAvatarProgress(-1)
-                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
+                toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadUnknownError'))
             }
         } catch (error: any) {
             switch (error.response?.data?.message) {
                 case 'FILE_TOO_LARGE':
-                    toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
                     break
                 case 'FILE_NOT_ALLOWED':
-                    toast.custom('error', 'Так-так', 'Файл не является изображением')
+                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileNotImage'))
                     break
                 case 'UPLOAD_FORBIDDEN':
-                    toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
+                    toast.custom('error', t('header.accessDeniedTitle'), t('header.avatarUploadForbidden'))
                     break
                 default:
-                    toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
+                    toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadRetry'))
                     Sentry.captureException(error)
                     break
             }
@@ -318,18 +320,18 @@ const Header: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Баннер успешно загружен!')
+                toast.custom('success', t('common.doneTitle'), t('header.bannerUploadSuccess'))
             } else {
                 setBannerProgress(-1)
-                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке баннера')
+                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadUnknownError'))
             }
         } catch (error: any) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка баннера запрещена')
+                toast.custom('error', t('header.accessDeniedTitle'), t('header.bannerUploadForbidden'))
             } else {
-                toast.custom('error', 'Ой...', 'Ошибка при загрузке баннера, попробуй ещё раз')
+                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadRetry'))
                 Sentry.captureException(error)
             }
             setBannerProgress(-1)
@@ -396,10 +398,10 @@ const Header: React.FC<p> = () => {
 
     return (
         <>
-            <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
+            <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingAppUpdates && <Loader text="Загрузка…" />}
-                    {appError && <p>Error: {appError}</p>}
+                    {loadingAppUpdates && <Loader text={t('common.loading')} />}
+                    {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
                         appUpdatesInfo
@@ -418,14 +420,14 @@ const Header: React.FC<p> = () => {
                                 </div>
                             ))}
                     {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= app.info.version).length === 0 && (
-                        <p>Список изменений не найден.</p>
+                        <p>{t('header.noChangelogFound')}</p>
                     )}
                 </div>
             </Modal>
-            <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
+            <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Loader text="Загрузка…" />}
-                    {modError && <p>Error: {modError.message}</p>}
+                    {loadingModChanges && <Loader text={t('common.loading')} />}
+                    {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&
                         modChangesInfoRaw.length > 0 &&
@@ -442,7 +444,7 @@ const Header: React.FC<p> = () => {
                                 </div>
                             </div>
                         ))}
-                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>Список изменений не найден.</p>}
+                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>{t('header.noChangelogFound')}</p>}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
@@ -466,7 +468,11 @@ const Header: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
-                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD #{window.appInfo.getBranch() ?? 'unknown'}</div>}
+                        {isDevmark && (
+                            <div className={styles.dev}>
+                                {t('header.developmentBuild', { branch: window.appInfo.getBranch() ?? t('header.unknownBranch') })}
+                            </div>
+                        )}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
@@ -532,7 +538,7 @@ const Header: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div className={styles.hoverUpload} onClick={() => bannerInputRef.current!.showPicker()}>
-                                                        Загрузить баннер
+                                                        {t('header.uploadBanner')}
                                                     </div>
                                                     <div className={styles.badges_container}>
                                                         {user.badges.length > 0 &&
@@ -584,7 +590,7 @@ const Header: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div className={styles.hoverUpload} onClick={() => avatarInputRef.current!.showPicker()}>
-                                                        Загрузить аватар
+                                                        {t('header.uploadAvatar')}
                                                     </div>
                                                     <div className={styles.status}>
                                                         <div className={styles.dot}></div>
@@ -612,16 +618,16 @@ const Header: React.FC<p> = () => {
                                                     key={user.id}
                                                     className={styles.menu_button}
                                                 >
-                                                    Мой профиль
+                                                    {t('header.myProfile')}
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
-                                                    Друзья
+                                                    {t('header.friends')}
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
-                                                    Настройки
+                                                    {t('header.settings')}
                                                 </button>
                                                 <button className={styles.menu_button} onClick={logout}>
-                                                    Выйти
+                                                    {t('header.logout')}
                                                 </button>
                                             </div>
                                         </div>

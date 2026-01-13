@@ -17,6 +17,8 @@ import { ActiveTab, DocTab } from './types'
 import * as styles from './../extensionview.module.scss'
 import appConfig from '../../../../api/web_config'
 import Addon from '../../../../api/interfaces/addon.interface'
+import { t as i18nT } from '../../../../i18n'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
     active: ActiveTab
@@ -53,28 +55,28 @@ const Heading =
 const defaultTemplate: AddonConfig = {
     sections: [
         {
-            title: 'Интерфейс',
+            title: i18nT('extensions.defaults.interface.title'),
             items: [
                 {
                     id: 'primaryColor',
-                    name: 'Основной цвет',
-                    description: 'Базовый акцент интерфейса.',
+                    name: i18nT('extensions.defaults.interface.primaryColor'),
+                    description: i18nT('extensions.defaults.interface.primaryColorDescription'),
                     type: 'color',
                     input: '#3b82f6',
                     defaultParameter: '#3b82f6',
                 },
                 {
                     id: 'secondaryColor',
-                    name: 'Вторичный цвет',
-                    description: 'Дополнительный акцент для кнопок/ссылок.',
+                    name: i18nT('extensions.defaults.interface.secondaryColor'),
+                    description: i18nT('extensions.defaults.interface.secondaryColorDescription'),
                     type: 'color',
                     input: '#10b981',
                     defaultParameter: '#10b981',
                 },
                 {
                     id: 'borderRadius',
-                    name: 'Скругление углов',
-                    description: 'Насколько скруглять углы элементов.',
+                    name: i18nT('extensions.defaults.interface.borderRadius'),
+                    description: i18nT('extensions.defaults.interface.borderRadiusDescription'),
                     type: 'slider',
                     min: 0,
                     max: 30,
@@ -84,21 +86,21 @@ const defaultTemplate: AddonConfig = {
                 },
                 {
                     id: 'layoutStyle',
-                    name: 'Стиль расположения',
-                    description: 'Как располагать карточки контента.',
+                    name: i18nT('extensions.defaults.interface.layoutStyle'),
+                    description: i18nT('extensions.defaults.interface.layoutStyleDescription'),
                     type: 'selector',
                     selected: 2,
                     options: {
-                        '1': { event: 'grid', name: 'Сетка' },
-                        '2': { event: 'list', name: 'Список' },
-                        '3': { event: 'compact', name: 'Компакт' },
+                        '1': { event: 'grid', name: i18nT('extensions.defaults.interface.layoutGrid') },
+                        '2': { event: 'list', name: i18nT('extensions.defaults.interface.layoutList') },
+                        '3': { event: 'compact', name: i18nT('extensions.defaults.interface.layoutCompact') },
                     },
                     defaultParameter: 2,
                 },
                 {
                     id: 'darkMode',
-                    name: 'Тёмная тема',
-                    description: 'Переключить интерфейс в тёмный режим.',
+                    name: i18nT('extensions.defaults.interface.darkMode'),
+                    description: i18nT('extensions.defaults.interface.darkModeDescription'),
                     type: 'button',
                     bool: false,
                     defaultParameter: false,
@@ -106,20 +108,20 @@ const defaultTemplate: AddonConfig = {
             ],
         },
         {
-            title: 'Плеер',
+            title: i18nT('extensions.defaults.player.title'),
             items: [
                 {
                     id: 'enableCrossfade',
-                    name: 'Кроссфейд',
-                    description: 'Плавное переключение треков.',
+                    name: i18nT('extensions.defaults.player.crossfade'),
+                    description: i18nT('extensions.defaults.player.crossfadeDescription'),
                     type: 'button',
                     bool: true,
                     defaultParameter: true,
                 },
                 {
                     id: 'crossfadeDuration',
-                    name: 'Длительность кроссфейда',
-                    description: 'Секунды плавного перехода.',
+                    name: i18nT('extensions.defaults.player.crossfadeDuration'),
+                    description: i18nT('extensions.defaults.player.crossfadeDurationDescription'),
                     type: 'slider',
                     min: 0,
                     max: 12,
@@ -129,21 +131,21 @@ const defaultTemplate: AddonConfig = {
                 },
                 {
                     id: 'audioQuality',
-                    name: 'Качество звука',
-                    description: 'Выберите пресет качества.',
+                    name: i18nT('extensions.defaults.player.audioQuality'),
+                    description: i18nT('extensions.defaults.player.audioQualityDescription'),
                     type: 'selector',
                     selected: 3,
                     options: {
-                        '1': { event: 'low', name: '96 kbps' },
-                        '2': { event: 'medium', name: '192 kbps' },
-                        '3': { event: 'high', name: '320 kbps' },
+                        '1': { event: 'low', name: i18nT('extensions.defaults.player.qualityLow') },
+                        '2': { event: 'medium', name: i18nT('extensions.defaults.player.qualityMedium') },
+                        '3': { event: 'high', name: i18nT('extensions.defaults.player.qualityHigh') },
                     },
                     defaultParameter: 3,
                 },
                 {
                     id: 'customEqualizerPreset',
-                    name: 'Пользовательский эквалайзер',
-                    description: 'Загрузите файл пресета (.json / .eq).',
+                    name: i18nT('extensions.defaults.player.customEq'),
+                    description: i18nT('extensions.defaults.player.customEqDescription'),
                     type: 'file',
                     filePath: '',
                     defaultParameter: { filePath: '' },
@@ -151,33 +153,33 @@ const defaultTemplate: AddonConfig = {
             ],
         },
         {
-            title: 'Уведомления',
+            title: i18nT('extensions.defaults.notifications.title'),
             items: [
                 {
                     id: 'desktopNotifications',
-                    name: 'Desktop-уведомления',
-                    description: 'Показывать уведомления на рабочем столе.',
+                    name: i18nT('extensions.defaults.notifications.desktop'),
+                    description: i18nT('extensions.defaults.notifications.desktopDescription'),
                     type: 'button',
                     bool: true,
                     defaultParameter: true,
                 },
                 {
                     id: 'notificationSound',
-                    name: 'Звук уведомления',
-                    description: 'Выберите звуковой сигнал.',
+                    name: i18nT('extensions.defaults.notifications.sound'),
+                    description: i18nT('extensions.defaults.notifications.soundDescription'),
                     type: 'selector',
                     selected: 1,
                     options: {
-                        '1': { event: 'chime', name: 'Chime' },
-                        '2': { event: 'pop', name: 'Pop' },
-                        '3': { event: 'ding', name: 'Ding' },
+                        '1': { event: 'chime', name: i18nT('extensions.defaults.notifications.soundChime') },
+                        '2': { event: 'pop', name: i18nT('extensions.defaults.notifications.soundPop') },
+                        '3': { event: 'ding', name: i18nT('extensions.defaults.notifications.soundDing') },
                     },
                     defaultParameter: 1,
                 },
                 {
                     id: 'notificationVolume',
-                    name: 'Громкость уведомлений',
-                    description: 'Уровень громкости звука.',
+                    name: i18nT('extensions.defaults.notifications.volume'),
+                    description: i18nT('extensions.defaults.notifications.volumeDescription'),
                     type: 'slider',
                     min: 0,
                     max: 100,
@@ -188,38 +190,38 @@ const defaultTemplate: AddonConfig = {
             ],
         },
         {
-            title: 'О программе',
+            title: i18nT('extensions.defaults.about.title'),
             items: [
                 {
                     id: 'aboutText',
-                    name: 'Текст «О приложении»',
-                    description: 'Название, слоган и версия.',
+                    name: i18nT('extensions.defaults.about.text'),
+                    description: i18nT('extensions.defaults.about.textDescription'),
                     type: 'text',
                     buttons: [
                         {
                             id: 'name',
-                            name: 'Название',
-                            text: 'SuperAudio',
-                            defaultParameter: 'SuperAudio',
+                            name: i18nT('extensions.defaults.about.appName'),
+                            text: i18nT('extensions.defaults.about.sampleName'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleName'),
                         },
                         {
                             id: 'tagline',
-                            name: 'Слоган',
-                            text: 'Music for everyone',
-                            defaultParameter: 'Music for everyone',
+                            name: i18nT('extensions.defaults.about.tagline'),
+                            text: i18nT('extensions.defaults.about.sampleTagline'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleTagline'),
                         },
                         {
                             id: 'version',
-                            name: 'Версия',
-                            text: '1.0.0',
-                            defaultParameter: '1.0.0',
+                            name: i18nT('extensions.defaults.about.version'),
+                            text: i18nT('extensions.defaults.about.sampleVersion'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleVersion'),
                         },
                     ],
                 },
                 {
                     id: 'customLogo',
-                    name: 'Логотип',
-                    description: 'Загрузите SVG/PNG логотип.',
+                    name: i18nT('extensions.defaults.about.logo'),
+                    description: i18nT('extensions.defaults.about.logoDescription'),
                     type: 'file',
                     filePath: '',
                     defaultParameter: { filePath: '' },
@@ -230,6 +232,7 @@ const defaultTemplate: AddonConfig = {
 }
 
 const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon }) => {
+    const { t } = useTranslation()
     const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
@@ -262,9 +265,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
         if (isConfigEmpty && !creating)
             return (
                 <div className={styles.alertContent}>
-                    <p>
-                        Файл <code>handleEvents.json</code> не найден.
-                    </p>
+                    <p>{t('extensions.handleEventsMissing')}</p>
                     <button
                         className={styles.primaryButton}
                         onClick={async () => {
@@ -280,12 +281,12 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                             setSettingsKey(k => k + 1)
                         }}
                     >
-                        Создать handleEvents.json
+                        {t('extensions.createHandleEvents')}
                     </button>
                 </div>
             )
 
-        if (creating && isConfigEmpty) return <div className={styles.alertContent}>Перезайдите в тему!</div>
+        if (creating && isConfigEmpty) return <div className={styles.alertContent}>{t('extensions.reopenTheme')}</div>
 
         if (config) {
             return editMode ? (
@@ -299,7 +300,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
 
     const doc = docs.find(d => d.title === active)
-    if (!doc) return <div className={styles.alertContent}>Файл не найден</div>
+    if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
 
     return (
         <div className={styles.galleryContainer}>

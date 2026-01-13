@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { MdOpenInNew } from 'react-icons/md'
 import { getStatus, getStatusColor } from '../../../../utils/userStatus'
 import * as styles from '../../userProfileModal.module.scss'
@@ -9,6 +10,7 @@ interface UserStatusProps {
 }
 
 const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
+    const { t } = useTranslation()
     const statusColor = useMemo(() => getStatusColor(userProfile), [userProfile])
     const statusColorDark = useMemo(() => getStatusColor(userProfile, true), [userProfile])
     const statusUser = useMemo(() => getStatus(userProfile), [userProfile])
@@ -33,7 +35,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
     const statusText = useMemo(() => {
         if (userProfile.currentTrack && userProfile.currentTrack.status === 'playing') {
             if (typeof statusUser === 'string') {
-                return `Слушает: ${statusUser}`
+                return t('profile.status.listeningWithTrack', { track: statusUser })
             }
             if (statusUser && typeof statusUser === 'object' && 'text' in statusUser && 'detail' in statusUser) {
                 return (

@@ -7,6 +7,7 @@ import UserInterface from '../../api/interfaces/user.interface'
 import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
 import { staticAsset } from '../../utils/staticAssets'
+import { useTranslation } from 'react-i18next'
 
 const fallbackAvatar = staticAsset('assets/images/undef.png')
 
@@ -54,6 +55,7 @@ const isInactive = (lastOnline?: number) => {
 }
 
 const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
+    const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
     const [isHovered, setIsHovered] = useState(false)
@@ -138,7 +140,10 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>
-                                <TooltipButton tooltipText={`Уровень ${(user as UserInterface).levelInfo.currentLevel}`} side="bottom">
+                                <TooltipButton
+                                    tooltipText={t('profile.level', { level: (user as UserInterface).levelInfo.currentLevel })}
+                                    side="bottom"
+                                >
                                     <LevelBadge level={(user as UserInterface).levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(b => (
@@ -159,7 +164,11 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                                 color: isInactive(Number(user.lastOnline)) ? '#9885A9' : 'var(--statusColorProfile)',
                             }}
                         >
-                            {isInactive(Number(user.lastOnline)) ? 'Потеряшка' : (user as UserInterface).status === 'online' ? 'В сети' : 'Не в сети'}
+                            {isInactive(Number(user.lastOnline))
+                                ? t('userStatus.inactive')
+                                : (user as UserInterface).status === 'online'
+                                  ? t('userStatus.online')
+                                  : t('userStatus.offline')}
                         </div>
                         {isInactive(Number(user.lastOnline)) ? (
                             <MdNightsStay className={styles.statusIcon} style={{ color: '#9885A9' }} />

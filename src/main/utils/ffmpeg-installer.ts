@@ -10,13 +10,14 @@ import { pipeline } from 'stream/promises'
 import AdmZip from 'adm-zip'
 import logger from '../modules/logger'
 import { getPathToYandexMusic } from './appUtils'
+import { t } from '../i18n'
 
 let musicPath: string
 ;(async () => {
     try {
         musicPath = await getPathToYandexMusic()
     } catch (err) {
-        logger.modManager.error('Ошибка при получении пути:', err)
+        logger.modManager.error(t('main.ffmpeg.pathError'), err)
     }
 })()
 export const FFMPEG_INSTALL: Record<
@@ -111,7 +112,7 @@ export async function installFfmpeg(window: BrowserWindow) {
     const plat = process.platform
     const cfg = FFMPEG_INSTALL[plat]
     if (!cfg) {
-        sendStatus(window, 'Платформа не поддерживается', 100, false)
+        sendStatus(window, t('main.ffmpeg.platformNotSupported'), 100, false)
         return
     }
 
@@ -119,9 +120,9 @@ export async function installFfmpeg(window: BrowserWindow) {
 
     try {
         if (fs.existsSync(storageExecPath)) {
-            sendStatus(window, 'FFmpeg найден в хранилище, устанавливаю...', 10)
+            sendStatus(window, t('main.ffmpeg.foundInStorage'), 10)
             await copyExecutable(storageExecPath, execDestPath, plat)
-            sendStatus(window, 'FFmpeg успешно установлен', 100, true)
+            sendStatus(window, t('main.ffmpeg.installSuccess'), 100, true)
             return
         }
 
@@ -130,16 +131,16 @@ export async function installFfmpeg(window: BrowserWindow) {
         const archivePath = path.join(storageDir, cfg.archiveName)
         await downloadFile(cfg.url, archivePath, p => {
             const prog = Math.round(p * 0.7)
-            sendStatus(window, 'Загрузка FFmpeg...', prog)
+            sendStatus(window, t('main.ffmpeg.downloading'), prog)
         })
 
-        sendStatus(window, 'Распаковка архива...', 70)
+        sendStatus(window, t('main.ffmpeg.extracting'), 70)
         if (cfg.extractType === 'zip') {
             await extractZip(archivePath, storageDir)
         } else {
             await extractTarXZ(archivePath, storageDir)
         }
-        sendStatus(window, 'Распаковка завершена', 90)
+        sendStatus(window, t('main.ffmpeg.extractComplete'), 90)
 
         const relPattern = cfg.execRelPath.replace(/\\/g, '/')
         const storagePosix = storageDir.split(path.sep).join('/')
@@ -159,12 +160,12 @@ export async function installFfmpeg(window: BrowserWindow) {
             await fs.promises.rm(p, { recursive: true, force: true })
         }
 
-        sendStatus(window, 'Установка FFmpeg...', 95)
+        sendStatus(window, t('main.ffmpeg.installing'), 95)
         await copyExecutable(storageExecPath, execDestPath, plat)
-        sendStatus(window, 'FFmpeg успешно установлен', 100, true)
+        sendStatus(window, t('main.ffmpeg.installSuccess'), 100, true)
     } catch (err: any) {
         logger.modManager.error('installFfmpeg error:', err)
-        sendStatus(window, `Ошибка установки: ${err.message}`, 100, false)
+        sendStatus(window, t('main.ffmpeg.installError', { message: err.message }), 100, false)
     }
 }
 

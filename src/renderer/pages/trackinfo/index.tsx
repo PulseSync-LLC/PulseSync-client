@@ -21,6 +21,7 @@ import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
 import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
+import { useTranslation } from 'react-i18next'
 
 import statusDisplayTip from './../../../../static/assets/tips/statusDisplayType.gif'
 
@@ -35,6 +36,7 @@ type FormValues = {
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const { t } = useTranslation()
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
@@ -51,18 +53,18 @@ export default function TrackInfoPage() {
         appId: string()
             .nullable()
             .notRequired()
-            .test('len', 'Минимальная длина 18 символов', val => !val || val.length >= 18)
-            .test('len', 'Максимальная длина 20 символов', val => !val || val.length <= 20),
+            .test('len', t('trackInfo.validation.minLength', { count: 18 }), val => !val || val.length >= 18)
+            .test('len', t('trackInfo.validation.maxLength', { count: 20 }), val => !val || val.length <= 20),
         details: string()
-            .test('len', 'Минимальная длина 2 символа', val => !val || val.length >= 2)
-            .test('len', 'Максимальная длина 128 символов', val => !val || val.length <= 128),
+            .test('len', t('trackInfo.validation.minLength', { count: 2 }), val => !val || val.length >= 2)
+            .test('len', t('trackInfo.validation.maxLength', { count: 128 }), val => !val || val.length <= 128),
         state: string()
-            .test('len', 'Минимальная длина 2 символа', val => !val || val.length >= 2)
-            .test('len', 'Максимальная длина 128 символов', val => !val || val.length <= 128),
-        button: string().test('len', 'Максимальная длина 30 символов', val => !val || val.length <= 30),
+            .test('len', t('trackInfo.validation.minLength', { count: 2 }), val => !val || val.length >= 2)
+            .test('len', t('trackInfo.validation.maxLength', { count: 128 }), val => !val || val.length <= 128),
+        button: string().test('len', t('trackInfo.validation.maxLength', { count: 30 }), val => !val || val.length <= 30),
         statusDisplayType: string()
-            .matches(/^[012]$/, 'Введите 0 (Name), 1 (State) или 2 (Details)')
-            .required('Введите 0, 1 или 2'),
+            .matches(/^[012]$/, t('trackInfo.validation.statusDisplayTypeFormat'))
+            .required(t('trackInfo.validation.statusDisplayTypeRequired')),
     })
 
     const getChangedValues = useCallback((initialValues: any, currentValues: any) => {
@@ -139,68 +141,67 @@ export default function TrackInfoPage() {
     const activityButtons = useMemo(() => buildActivityButtonsRpc(currentTrack, app), [currentTrack, app])
 
     return (
-        <PageLayout title="Discord RPC" containerRef={containerRef}>
+        <PageLayout title={t('trackInfo.pageTitle')} containerRef={containerRef}>
             <ContainerV2
-                titleName={'Discord RPC'}
+                titleName={t('trackInfo.pageTitle')}
                 imageName={'discord'}
                 onClick={toggleRpcStatus}
                 classNameButton={themeV2.buttonRpcStatus}
-                buttonName={app.discordRpc.status ? 'Выключить' : 'Включить'}
+                buttonName={app.discordRpc.status ? t('common.disable') : t('common.enable')}
             ></ContainerV2>
             <Scrollbar className={themeV2.container} classNameInner={themeV2.containerInner}>
                 <div className={themeV2.form}>
                     <div className={themeV2.discordRpcSettings}>
                         <div className={themeV2.optionalContainer}>
-                            <div className={themeV2.optionalTitle}>Статус</div>
+                            <div className={themeV2.optionalTitle}>{t('trackInfo.sections.status')}</div>
                             <TextInput
                                 name="appId"
-                                label="App ID"
+                                label={t('trackInfo.fields.appIdLabel')}
                                 placeholder="1270726237605855395"
-                                ariaLabel="App ID"
+                                ariaLabel={t('trackInfo.fields.appIdLabel')}
                                 value={formik.values.appId}
                                 onChange={val => formik.setFieldValue('appId', val)}
                                 onBlur={handleBlur}
                                 error={formik.errors.appId as any}
                                 touched={formik.touched.appId}
-                                description="Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence."
+                                description={t('trackInfo.fields.appIdDescription')}
                             />
                             <TextInput
                                 name="details"
-                                label="Details"
-                                placeholder="enter text"
-                                ariaLabel="Details"
+                                label={t('trackInfo.fields.detailsLabel')}
+                                placeholder={t('trackInfo.fields.textPlaceholder')}
+                                ariaLabel={t('trackInfo.fields.detailsLabel')}
                                 value={formik.values.details}
                                 onChange={val => formik.setFieldValue('details', val)}
                                 onBlur={handleBlur}
                                 error={formik.errors.details as any}
                                 touched={formik.touched.details}
-                                description="Описание Details"
+                                description={t('trackInfo.fields.detailsDescription')}
                                 showCommandsButton={true}
                             />
                             <TextInput
                                 name="state"
-                                label="State"
-                                placeholder="enter text"
-                                ariaLabel="State"
+                                label={t('trackInfo.fields.stateLabel')}
+                                placeholder={t('trackInfo.fields.textPlaceholder')}
+                                ariaLabel={t('trackInfo.fields.stateLabel')}
                                 value={formik.values.state}
                                 onChange={val => formik.setFieldValue('state', val)}
                                 onBlur={handleBlur}
                                 error={formik.errors.state as any}
                                 touched={formik.touched.state}
-                                description="Описание State"
+                                description={t('trackInfo.fields.stateDescription')}
                                 showCommandsButton={true}
                             />
                             <TextInput
                                 name="statusDisplayType"
-                                label="Поменять тип отображения статуса активности"
+                                label={t('trackInfo.fields.statusDisplayTypeLabel')}
                                 description={
                                     <>
-                                        <img src={statusDisplayTip} alt="" srcSet="" /> В статусе меняет, как будет отображаться активность после
-                                        «Слушать»
+                                        <img src={statusDisplayTip} alt="" srcSet="" /> {t('trackInfo.fields.statusDisplayTypeDescription')}
                                     </>
                                 }
                                 placeholder="0"
-                                ariaLabel="DisplayType"
+                                ariaLabel={t('trackInfo.fields.statusDisplayTypeAria')}
                                 value={formik.values.statusDisplayType}
                                 onChange={val => {
                                     formik.setFieldValue('statusDisplayType', String(val))
@@ -213,57 +214,57 @@ export default function TrackInfoPage() {
                             />
                         </div>
                         <div className={themeV2.optionalContainer}>
-                            <div className={themeV2.optionalTitle}>Кнопки</div>
+                            <div className={themeV2.optionalTitle}>{t('trackInfo.sections.buttons')}</div>
                             <ButtonInput
-                                label="Включить кнопку (Слушать)"
+                                label={t('trackInfo.buttons.enableListenLabel')}
                                 checkType="enableRpcButtonListen"
-                                description="Показывает кнопку «Слушать» в статусе."
+                                description={t('trackInfo.buttons.enableListenDescription')}
                             />
                             <TextInput
                                 name="button"
-                                label="Слушать трек на Яндекс Музыке"
-                                placeholder="enter text"
-                                ariaLabel="Button"
+                                label={t('trackInfo.fields.listenButtonLabel')}
+                                placeholder={t('trackInfo.fields.textPlaceholder')}
+                                ariaLabel={t('trackInfo.fields.listenButtonLabel')}
                                 value={formik.values.button}
                                 onChange={val => formik.setFieldValue('button', val)}
                                 onBlur={handleBlur}
                                 error={formik.errors.button as any}
                                 touched={formik.touched.button}
-                                description="Текст отображаемой кнопки"
+                                description={t('trackInfo.fields.listenButtonDescription')}
                             />
                             <ButtonInput
-                                label="Включить кнопку (PulseSync Project)"
+                                label={t('trackInfo.buttons.enableWebsiteLabel')}
                                 checkType="enableWebsiteButton"
-                                description="Добавляет кнопку на сайт проекта."
+                                description={t('trackInfo.buttons.enableWebsiteDescription')}
                             />
                             <ButtonInput
-                                label="Включить DeepLink"
+                                label={t('trackInfo.buttons.enableDeepLinkLabel')}
                                 checkType="enableDeepLink"
-                                description="Добавляет кнопки «Открыть в вебе/приложении Яндекс Музыки»."
+                                description={t('trackInfo.buttons.enableDeepLinkDescription')}
                             />
                         </div>
                         <div className={themeV2.optionalContainer}>
-                            <div className={themeV2.optionalTitle}>Особое</div>
+                            <div className={themeV2.optionalTitle}>{t('trackInfo.sections.special')}</div>
                             <ButtonInput
-                                label="Включить показ версии трека"
+                                label={t('trackInfo.special.showTrackVersionLabel')}
                                 checkType="showTrackVersion"
-                                description="Добавляет версию трека к названию."
+                                description={t('trackInfo.special.showTrackVersionDescription')}
                             />
                             <ButtonInput
-                                label="Включить иконоку статуса прослушивания"
+                                label={t('trackInfo.special.showSmallIconLabel')}
                                 checkType="showSmallIcon"
-                                description="Показывает маленькую иконку со статусом прослушивания."
+                                description={t('trackInfo.special.showSmallIconDescription')}
                             />
                             <ButtonInput
-                                label="Показывать версию приложения вместо устройства, где играет трек."
+                                label={t('trackInfo.special.showVersionOrDeviceLabel')}
                                 disabled={!app.discordRpc.showSmallIcon}
                                 checkType="showVersionOrDevice"
-                                description="В подсказке к иконке показывает версию приложения вместо устройства."
+                                description={t('trackInfo.special.showVersionOrDeviceDescription')}
                             />
                             <ButtonInput
-                                label="Показывать трек на паузе"
+                                label={t('trackInfo.special.showPausedLabel')}
                                 checkType="displayPause"
-                                description="Показывает трек в статусе, даже когда он на паузе."
+                                description={t('trackInfo.special.showPausedDescription')}
                             />
                         </div>
                     </div>
@@ -318,7 +319,7 @@ export default function TrackInfoPage() {
                         </div>
                         <Cubic width="72" color="#8E96B3" />
                         <div className={themeV2.userRPC}>
-                            <div className={themeV2.status}>Слушает PulseSync</div>
+                            <div className={themeV2.status}>{t('trackInfo.listeningStatus')}</div>
 
                             <div className={themeV2.statusRPC}>
                                 <>
@@ -330,7 +331,7 @@ export default function TrackInfoPage() {
                                                 onClick={() => {
                                                     setRickRoll(!rickRollClick)
                                                 }}
-                                                alt="Обложка альбома"
+                                                alt={t('trackInfo.albumCoverAlt')}
                                             />
 
                                             <div className={themeV2.gap}>
@@ -351,7 +352,7 @@ export default function TrackInfoPage() {
                                                 <div className={themeV2.album}>
                                                     {currentTrack.albums?.[0]?.title
                                                         ? fixStrings(currentTrack.albums?.[0]?.title)
-                                                        : `PulseSync ${app.info.version}`}
+                                                        : t('trackInfo.fallbackAlbumTitle', { version: app.info.version })}
                                                 </div>
 
                                                 <PlayerTimeline />

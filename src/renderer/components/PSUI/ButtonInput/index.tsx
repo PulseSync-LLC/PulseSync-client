@@ -5,6 +5,7 @@ import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
 import userContext from '../../../api/context/user.context'
 import MainEvents from '../../../../common/types/mainEvents'
+import { useTranslation } from 'react-i18next'
 
 interface ButtonInputProps {
     label: string
@@ -31,6 +32,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     onChange,
     onClick,
 }) => {
+    const { t } = useTranslation()
     const { app, setApp } = useContext(userContext)
     const [isActive, setIsActive] = useState<boolean>(defaultValue ?? false)
 
@@ -203,7 +205,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                         aria-invalid={Boolean(touched && error)}
                         aria-errormessage={touched && error ? `${checkType}-error` : undefined}
                     >
-                        {isActive ? 'Включено' : 'Выключено'}
+                        {isActive ? t('common.enabled') : t('common.disabled')}
                     </div>
 
                     <button

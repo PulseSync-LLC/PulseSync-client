@@ -11,6 +11,7 @@ import config from '../../api/web_config'
 import toast from '../../components/toast'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
+import { useTranslation } from 'react-i18next'
 
 const PER_PAGE = 51
 const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
@@ -46,6 +47,7 @@ export default function UsersPage() {
     const containerRef = useRef<HTMLDivElement>(null)
     const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
     const nav = useNavigate()
+    const { t } = useTranslation()
 
     const openProfile = useCallback(
         (u: any) => {
@@ -142,11 +144,11 @@ export default function UsersPage() {
                 })
                 .catch(e => {
                     console.error(e)
-                    toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
+                    toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
                     setLoading(false)
                 })
         },
-        [processUsers],
+        [processUsers, t],
     )
 
     const debouncedFetchUsers = useMemo(() => debounce(fetchUsers, 300), [fetchUsers])
@@ -300,16 +302,16 @@ export default function UsersPage() {
     }, [handlePageChange, maxPages, page])
 
     return (
-        <PageLayout title="Пользователи">
+        <PageLayout title={t('users.pageTitle')}>
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
                 <div style={backgroundStyle} className={s.headerSection}>
                     <div className={s.topSection}>
-                        <h1 className={s.title}>Пользователи</h1>
+                        <h1 className={s.title}>{t('users.title')}</h1>
                         <div className={s.searchContainer} onClick={() => inputRef.current?.focus()}>
                             <input
                                 ref={inputRef}
                                 type="text"
-                                placeholder="найти..."
+                                placeholder={t('users.searchPlaceholder')}
                                 value={search}
                                 onChange={e => {
                                     setSearch(e.target.value)
@@ -332,10 +334,10 @@ export default function UsersPage() {
                             >
                                 {
                                     {
-                                        lastOnline: 'Последняя активность',
-                                        createdAt: 'Дата регистрации',
-                                        username: 'Имя пользователя',
-                                        level: 'Уровень',
+                                        lastOnline: t('users.sort.lastOnline'),
+                                        createdAt: t('users.sort.createdAt'),
+                                        username: t('users.sort.username'),
+                                        level: t('users.sort.level'),
                                     }[field]
                                 }{' '}
                                 {getSortIcon(field)}
@@ -352,7 +354,7 @@ export default function UsersPage() {
                             ))}
                         </div>
                     ) : (
-                        !loading && <div className={s.noResults}>Нет результатов</div>
+                        !loading && <div className={s.noResults}>{t('users.noResults')}</div>
                     )}
                 </div>
                 {pagination}

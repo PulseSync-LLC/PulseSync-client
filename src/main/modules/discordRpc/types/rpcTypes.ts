@@ -1,9 +1,9 @@
 export enum DiscordState {
-    CLOSED = 'Не удалось обнаружить запущенный Discord!',
-    ADMINISTRATOR = 'Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.',
-    SNAP = 'Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC',
-    FLATPAK = 'Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключится к RPC',
-    SUCCESS = '',
+    CLOSED = 'closed',
+    ADMINISTRATOR = 'administrator',
+    SNAP = 'snap',
+    FLATPAK = 'flatpak',
+    SUCCESS = 'success',
 }
 
 export type AppConfig = {

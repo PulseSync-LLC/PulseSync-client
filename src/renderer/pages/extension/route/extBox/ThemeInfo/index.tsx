@@ -8,6 +8,7 @@ import { createContextMenuActions } from '../../../../../components/context_menu
 import * as s from './ThemeInfo.module.scss'
 import config from '../../../../../api/web_config'
 import { staticAsset } from '../../../../../utils/staticAssets'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
     addon: AddonInterface
@@ -52,6 +53,7 @@ function releaseObjectUrl(cache: Map<string, UrlEntry>, key: string) {
 }
 
 const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
+    const { t } = useTranslation()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -259,7 +261,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             <div className={s.bottomBar}>
                 <div className={s.meta}>
                     <div className={s.metaItem}>
-                        <span className={s.label}>Автор</span>
+                        <span className={s.label}>{t('extensions.meta.author')}</span>
                         <span className={s.value}>
                             {visibleAuthors.map((u, i) => (
                                 <React.Fragment key={u}>
@@ -295,18 +297,18 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                     </div>
 
                     <div className={s.metaItem}>
-                        <span className={s.label}>Размер</span>
-                        <span className={s.value}>{addon.size ?? '—'}</span>
+                        <span className={s.label}>{t('extensions.meta.size')}</span>
+                        <span className={s.value}>{addon.size ?? t('common.emDash')}</span>
                     </div>
 
                     <div className={s.metaItem}>
-                        <span className={s.label}>Версия</span>
-                        <span className={s.value}>{addon.version ?? '—'}</span>
+                        <span className={s.label}>{t('extensions.meta.version')}</span>
+                        <span className={s.value}>{addon.version ?? t('common.emDash')}</span>
                     </div>
 
                     <div className={s.metaItem}>
-                        <span className={s.label}>Обновлялось</span>
-                        <span className={s.value}>{addon.lastModified ?? '—'}</span>
+                        <span className={s.label}>{t('extensions.meta.updated')}</span>
+                        <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
                     </div>
                 </div>
 
@@ -315,14 +317,14 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         className={`${s.toggleButton} ${isEnabled ? s.enabledState : s.disabledState}`}
                         onClick={() => onToggleEnabled(!isEnabled)}
                     >
-                        {isEnabled ? 'Выключить' : 'Включить'}
+                        {isEnabled ? t('common.disable') : t('common.enable')}
                     </Button>
 
-                    <Button className={s.miniButton} title="Магазин" disabled>
+                    <Button className={s.miniButton} title={t('extensions.actions.store')} disabled>
                         <MdStoreMallDirectory size={20} />
                     </Button>
 
-                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title="Ещё" ref={moreBtnRef}>
+                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
                         <MdMoreHoriz size={20} />
                     </Button>
 

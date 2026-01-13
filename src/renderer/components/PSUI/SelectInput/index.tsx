@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import * as s from './SelectInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdKeyboardArrowDown, MdCheck } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
 
 type Option = { value: string | number; label: string }
 
@@ -17,7 +18,9 @@ type Props = {
     placeholder?: string
 }
 
-const SelectInput: React.FC<Props> = ({ label, description, className, value, options, onChange, disabled = false, placeholder = 'Выберите…' }) => {
+const SelectInput: React.FC<Props> = ({ label, description, className, value, options, onChange, disabled = false, placeholder }) => {
+    const { t } = useTranslation()
+    const placeholderText = placeholder ?? t('common.selectPlaceholder')
     const [open, setOpen] = useState(false)
     const [alignRight, setAlignRight] = useState(false)
     const [panelW, setPanelW] = useState<number | undefined>(undefined)
@@ -119,7 +122,7 @@ const SelectInput: React.FC<Props> = ({ label, description, className, value, op
                 )}
             </div>
             <div className={clsx(s.valueLine)}>
-                <span className={clsx(s.value, !selected && s.placeholder)}>{selected ? selected.label : placeholder}</span>
+                <span className={clsx(s.value, !selected && s.placeholder)}>{selected ? selected.label : placeholderText}</span>
                 <MdKeyboardArrowDown className={clsx(s.arrow, open && s.arrowOpen)} size={18} />
             </div>
 

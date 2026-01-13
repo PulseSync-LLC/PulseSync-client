@@ -9,6 +9,7 @@ import config from '../../../renderer/api/web_config'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { gunzipAsync, isCompressedArchiveLink, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
+import { t } from '../../i18n'
 import {
     sendToRenderer,
     resetProgress,
@@ -52,7 +53,7 @@ export async function checkModCompatibility(
         }
     } catch (err) {
         logger.modManager.error('Mod compatibility check failed:', err)
-        return { success: false, message: 'Произошла ошибка при проверке совместимости мода.' }
+        return { success: false, message: t('main.modNetwork.compatibilityCheckError') }
     }
 }
 
@@ -150,7 +151,10 @@ export async function downloadAndUpdateFile(
             const currentHash = sha256Hex(buf)
             if (currentHash === checksum) {
                 logger.modManager.info('app.asar hash matches, skipping download')
-                sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, { success: true, message: 'Мод уже установлен.' })
+                sendToRenderer(window, RendererEvents.DOWNLOAD_SUCCESS, {
+                    success: true,
+                    message: t('main.modManager.modAlreadyInstalled'),
+                })
                 resetProgress(window)
                 return true
             }
@@ -169,14 +173,7 @@ export async function downloadAndUpdateFile(
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)
-        const ok = await writePatchedAsarAndPatchBundle(
-            window,
-            savePath,
-            fileBuffer,
-            link,
-            backupPath,
-            checksum,
-        )
+        const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath, checksum)
         if (checksum && cacheDir) {
             try {
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
@@ -206,7 +203,7 @@ export async function downloadAndUpdateFile(
         unlinkIfExists(tempFilePath)
 
         if (!ok) {
-            sendFailure(window, { error: 'Ошибка при патчинге ASAR', type: 'patch_error' })
+            sendFailure(window, { error: t('main.modNetwork.patchError'), type: 'patch_error' })
             return false
         }
 
@@ -219,17 +216,17 @@ export async function downloadAndUpdateFile(
         logger.modManager.error('Error details:', {
             code: err?.code,
             message: err?.message,
-            stack: err?.stack
+            stack: err?.stack,
         })
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
 
         if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
             sendFailure(window, {
-                error: 'Ошибка целостности файла. Пожалуйста, попробуйте снова или проверьте интернет-соединение.',
-                type: 'checksum_mismatch'
+                error: t('main.modNetwork.integrityError'),
+                type: 'checksum_mismatch',
             })
         } else {
-            sendFailure(window, { error: err?.message || 'Ошибка сети', type: 'download_error' })
+            sendFailure(window, { error: err?.message || t('main.modDownload.networkError'), type: 'download_error' })
         }
         return false
     }
@@ -372,7 +369,7 @@ export async function downloadAndExtractUnpacked(
         } catch (err: any) {
             if (err?.code !== 'EXDEV') {
                 logger.modManager.error('Failed to move unpacked dir:', err)
-                sendFailure(window, { error: err?.message || 'Ошибка при перемещении зависимостей мода', type: 'download_unpacked_error' })
+                sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedMoveError'), type: 'download_unpacked_error' })
                 return false
             }
 
@@ -381,7 +378,7 @@ export async function downloadAndExtractUnpacked(
                 fs.rmSync(tempExtractPath, { recursive: true, force: true })
             } catch (copyErr: any) {
                 logger.modManager.error('Failed to copy unpacked dir:', copyErr)
-                sendFailure(window, { error: copyErr?.message || 'Ошибка при копировании зависимостей мода', type: 'download_unpacked_error' })
+                sendFailure(window, { error: copyErr?.message || t('main.modNetwork.unpackedCopyError'), type: 'download_unpacked_error' })
                 return false
             }
         }
@@ -394,7 +391,7 @@ export async function downloadAndExtractUnpacked(
         return true
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)
-        sendFailure(window, { error: err?.message || 'Ошибка при загрузке зависимостей мода', type: 'download_unpacked_error' })
+        sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedDownloadError'), type: 'download_unpacked_error' })
         return false
     } finally {
         unlinkIfExists(tempArchivePath)

@@ -9,6 +9,7 @@ import path from 'path'
 import fs from 'original-fs'
 import logger from './logger'
 import { getState } from './state'
+import { t } from '../i18n'
 
 declare const MAIN_WINDOW_WEBPACK_ENTRY: string
 declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
@@ -149,7 +150,7 @@ export async function createWindow(): Promise<void> {
             if (fs.existsSync(full)) {
                 shell.openExternal(`file://${full}`)
             } else {
-                logger.renderer.error(`Файл не найден: ${full}`)
+                logger.renderer.error(t('main.createWindow.fileNotFound', { path: full }))
             }
             return { action: 'deny' }
         }

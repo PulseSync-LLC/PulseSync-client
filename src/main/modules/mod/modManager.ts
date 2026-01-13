@@ -29,6 +29,7 @@ import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFil
 import { nativeDeleteFile, nativeFileExists, nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
+import { t } from '../../i18n'
 
 const State = getState()
 
@@ -53,7 +54,7 @@ try {
 async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
     const procs = await isYandexMusicRunning()
     if (procs && procs.length > 0) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Закрытие Яндекс Музыки...' })
+        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
         await closeYandexMusic()
         await new Promise(r => setTimeout(r, 500))
         return true
@@ -71,19 +72,12 @@ async function tryUseCacheOrDownload(
     cacheDir: string,
 ): Promise<boolean> {
     if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Using mod cache...' })
+        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
         try {
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
             await fs.promises.copyFile(cacheFile, tempFilePath)
             const fileBuffer = fs.readFileSync(tempFilePath)
-            const ok = await writePatchedAsarAndPatchBundle(
-                window,
-                paths.modAsar,
-                fileBuffer,
-                link,
-                paths.backupAsar,
-                checksum,
-            )
+            const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
             if (ok) {
                 logger.modManager.info('Successfully restored app.asar from cache')
                 return true
@@ -169,7 +163,7 @@ export const modManager = (window: BrowserWindow): void => {
                     const comp = await checkModCompatibility(version, ymMetadata?.version)
                     if (!comp.success) {
                         return sendFailure(window, {
-                            error: comp.message || 'Мод не совместим с текущей версией Яндекс Музыки.',
+                            error: comp.message || t('main.modManager.incompatibleMod'),
                             type: mapCompatibilityCodeToType(comp.code),
                             url: comp.url,
                             requiredVersion: comp.requiredVersion,
@@ -183,7 +177,7 @@ export const modManager = (window: BrowserWindow): void => {
                 } catch (e: any) {
                     if (e && e.code === 'file_not_found') {
                         sendFailure(window, {
-                            error: `${path.basename(paths.modAsar)} не найден. Пожалуйста, переустановите Яндекс Музыку.`,
+                            error: t('main.modManager.modAsarNotFound', { name: path.basename(paths.modAsar) }),
                             type: 'file_not_found',
                         })
                         await downloadYandexMusic('reinstall')
@@ -199,7 +193,7 @@ export const modManager = (window: BrowserWindow): void => {
                         await fs.promises.copyFile(paths.infoPlist, paths.infoPlist)
                     } catch {
                         await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
-                        return sendFailure(window, { error: 'Пожалуйста, предоставьте приложению полный доступ к диску.', type: 'file_copy_error' })
+                        return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
                     }
                 }
 
@@ -219,7 +213,7 @@ export const modManager = (window: BrowserWindow): void => {
                             const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
                             if (currentHash === checksum) {
                                 logger.modManager.info('app.asar hash matches, skipping download')
-                                sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: 'Мод уже установлен.' })
+                                sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
                                 resetProgress(window)
                             } else {
                                 const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR)

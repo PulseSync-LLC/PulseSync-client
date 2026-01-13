@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import * as style from './levelProgress.module.scss'
 
 interface LevelProgressProps {
@@ -10,12 +11,13 @@ interface LevelProgressProps {
 
 const LevelProgress: React.FC<LevelProgressProps> = ({ totalPoints, currentLevel, progressInCurrentLevel, currentLevelThreshold }) => {
     const progressPercentage = (progressInCurrentLevel / currentLevelThreshold) * 100
+    const { t } = useTranslation()
 
     return (
         <div className={style.level_progress}>
             <div className={style.level_header}>
-                <span>Уровень {currentLevel}</span>
-                <span>Всего очков за все уровни: {totalPoints}</span>
+                <span>{t('levelProgress.level', { level: currentLevel })}</span>
+                <span>{t('levelProgress.totalPoints', { totalPoints })}</span>
             </div>
             <div className={style.progress_bar}>
                 <div className={style.progress_fill} style={{ width: `${progressPercentage}%` }}></div>

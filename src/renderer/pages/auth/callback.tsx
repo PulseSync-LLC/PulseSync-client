@@ -10,8 +10,10 @@ import UserBlockIcon from './../../../../static/assets/icons/userBlock.svg'
 
 import userContext from '../../api/context/user.context'
 import Header from '../../components/layout/header'
+import { useTranslation } from 'react-i18next'
 
 export default function CallbackPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, authorize } = useContext(userContext)
     const [banReason, setBanReason] = useState('')
@@ -48,10 +50,10 @@ export default function CallbackPage() {
                             </div>
                         )}
                         {!banReason ? (
-                            'Ожидание авторизации'
+                            t('auth.pendingAuth')
                         ) : (
                             <p>
-                                Вы забанены. По причине: {banReason}. <br /> Приложение закроется через 10 секунд
+                                {t('auth.bannedMessage', { reason: banReason })} <br /> {t('auth.closeAfterSeconds')}
                             </p>
                         )}
                     </div>
