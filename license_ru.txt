@@ -1,4 +1,4 @@
-Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич». <https://pulsesync.dev/>
+Copyright (C) 2026 ИП «Деднев Григорий Дмитриевич». <https://pulsesync.dev/>
 Everyone is permitted to copy and distribute verbatim copies
 of this license document, but changing it is not allowed.
 
