@@ -6,7 +6,7 @@ import userContext from '../../../api/context/user.context'
 import { staticAsset } from '../../../utils/staticAssets'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
-import AppNameLogo from './../../../../../static/assets/icon/AppName.svg'
+import AppNameLogo from '../../../assets/icon/AppName.svg'
 
 import Snowfall from './Snowfall'
 import * as pageStyles from './winter_auth.module.scss'
@@ -19,15 +19,13 @@ export default function AuthPage() {
     const navigate = useNavigate()
     const { user } = useContext(userContext)
     const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
-
-    const img1Ref = useRef<HTMLImageElement | null>(null)
-    const img2Ref = useRef<HTMLImageElement | null>(null)
-    const img3Ref = useRef<HTMLImageElement | null>(null)
-    const imgLogo = useRef<HTMLDivElement | null>(null)
+    const img1Ref = useRef(null)
+    const img2Ref = useRef(null)
+    const img3Ref = useRef(null)
+    const imgLogo = useRef(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
     const checkUpdate = () => checkUpdateHard()
-
     const readAndSendFile = async () => {
         try {
             await readAndSendTerms()
@@ -37,22 +35,8 @@ export default function AuthPage() {
     }
 
     useAuthRedirect(user.id, navigate)
-
     useEffect(() => {
-        const prevHtmlOverflow = document.documentElement.style.overflow
-        const prevBodyOverflow = document.body.style.overflow
-
-        document.documentElement.style.overflow = 'hidden'
-        document.body.style.overflow = 'hidden'
-
-        return () => {
-            document.documentElement.style.overflow = prevHtmlOverflow
-            document.body.style.overflow = prevBodyOverflow
-        }
-    }, [])
-
-    useEffect(() => {
-        const handleMouseMove = (e: MouseEvent) => {
+        const handleMouseMove = (e: { clientX: any; clientY: any }) => {
             const { innerWidth, innerHeight } = window
             const mouseX = e.clientX
             const mouseY = e.clientY
@@ -103,16 +87,13 @@ export default function AuthPage() {
                 <img ref={img1Ref} className={pageStyles.img1} src={staticAsset('assets/images/winter/balls.png')} alt="Flat Cylinder" />
                 <img ref={img2Ref} className={pageStyles.img2} src={staticAsset('assets/images/winter/charactertree.png')} alt="Thorus Knot" />
                 <img ref={img3Ref} className={pageStyles.img3} src={staticAsset('assets/images/winter/snowman.png')} alt="Pyramid" />
-
                 <div className={pageStyles.filter}></div>
                 <div className={pageStyles.background}></div>
-
                 <div className={pageStyles.container} ref={imgLogo}>
                     <div className={pageStyles.logoName}>
                         <AppNameLogo />
-                        <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} alt="hat" />
+                        <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} />
                     </div>
-
                     {isDeprecated ? (
                         <>
                             <button className={pageStyles.discordAuth} onClick={checkUpdate}>

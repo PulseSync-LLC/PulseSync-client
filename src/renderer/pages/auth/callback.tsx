@@ -4,9 +4,9 @@ import RendererEvents from '../../../common/types/rendererEvents'
 
 import * as pageStyles from './callback.module.scss'
 
-import DiscordAuthIcon from './../../../../static/assets/icons/discordAuth.svg'
-import HandBlockIcon from './../../../../static/assets/icons/handBlock.svg'
-import UserBlockIcon from './../../../../static/assets/icons/userBlock.svg'
+import DiscordAuthIcon from '../../assets/icons/discordAuth.svg'
+import HandBlockIcon from '../../assets/icons/handBlock.svg'
+import UserBlockIcon from '../../assets/icons/userBlock.svg'
 
 import userContext from '../../api/context/user.context'
 import Header from '../../components/layout/header'

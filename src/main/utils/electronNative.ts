@@ -10,13 +10,13 @@ const getNativeImgFromUrl = async (url: string): Promise<NativeImage> => {
 const getNativeImg = (name: string, ext: string, useFor?: string) => {
     const basePath = app.isPackaged
         ? (() => {
-              const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', '.webpack', 'renderer', 'static', 'assets')
+              const unpackedPath = path.join(process.resourcesPath, 'app.asar.unpacked', '.vite', 'renderer', 'main_window', 'static', 'assets')
               if (fs.existsSync(unpackedPath)) {
                   return unpackedPath
               }
-              return path.join(process.resourcesPath, 'app.asar', '.webpack', 'renderer', 'static', 'assets')
+              return path.join(process.resourcesPath, 'app.asar', '.vite', 'renderer', 'main_window', 'static', 'assets')
           })()
-        : path.join(__dirname, '..', '..', 'static', 'assets')
+        : path.join(app.getAppPath(), 'static', 'assets')
 
     const filePath = path.join(basePath, useFor ? useFor + '/' : '', `${name}${ext}`)
     return nativeImage.createFromPath(filePath)

@@ -32,6 +32,10 @@
         "styles.d.ts",
         "window.d.ts",
         "cors-anywhere.d.ts",
-        "declarations.d.ts"
+        "declarations.d.ts",
+        "vite-env.d.ts"
+    ],
+    "references": [
+        { "path": "./tsconfig.node.json" }
     ]
 }

@@ -104,6 +104,7 @@ export async function downloadToTempWithProgress(args: {
     if (expectedChecksum && hasher) {
         digest = hasher.digest('hex')
         if (digest !== expectedChecksum) {
+            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${digest}, Size: ${downloaded} bytes, URL: ${url}`)
             unlinkIfExists(tempFilePath)
             throw new DownloadError(
                 `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${digest?.substring(0, 8)}...)`,

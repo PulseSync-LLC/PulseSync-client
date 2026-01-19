@@ -4,7 +4,7 @@ import userContext from '../../api/context/user.context'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
-import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
+import ArrowContext from '../../assets/icons/arrowContext.svg'
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import store from '../../api/store/store'
@@ -192,7 +192,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'devSocket':
                 updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
-
+                console.log(updatedSettings.devSocket)
                 updatedSettings.devSocket
                     ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
                     : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)

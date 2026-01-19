@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "composite": true,
+    "skipLibCheck": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true
+  },
+  "include": [
+    "vite.main.config.ts",
+    "vite.preload.config.ts",
+    "vite.renderer.config.ts",
+    "forge.config.ts",
+    "scripts/build.ts",
+    "scripts/changelog-publish.ts",
+    "scripts/s3-upload.ts"
+  ]
+}

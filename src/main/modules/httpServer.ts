@@ -255,6 +255,8 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
         const addonPath = path.join(addonsPath, name)
         const targetPath = path.join(addonPath, fileName)
 
+        console.info(`Looking for addon root file: ${targetPath}`)
+
         if (fs.existsSync(targetPath) && fs.statSync(targetPath).isFile()) {
             const ext = path.extname(targetPath).slice(1)
             const mimes: Record<string, string> = {

@@ -6,7 +6,7 @@ import logger from '../logger'
 import { app } from 'electron'
 import { sendAddon } from '../httpServer'
 
-declare const __non_webpack_require__: (moduleId: string) => any
+declare const __non_vite_require__: (moduleId: string) => any
 
 interface CheckAccessAddon {
     isDiscordRunning(): boolean
@@ -56,7 +56,7 @@ const loadNativeModules = (): NativeModules => {
 
                 logger.nativeModuleManager.info(`Native module found: ${relative}`)
                 try {
-                    modules[addonName] = __non_webpack_require__(fullPath)
+                    modules[addonName] = __non_vite_require__(fullPath)
                     logger.nativeModuleManager.info(`Loaded native module '${addonName}' from ${fullPath}`)
                 } catch (err) {
                     logger.nativeModuleManager.error(`Failed to load native module '${addonName}': ${err}`)

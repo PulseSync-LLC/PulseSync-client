@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect, memo } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import clsx from 'clsx'
 import { AddonConfig, Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, ButtonAction } from './types'
 

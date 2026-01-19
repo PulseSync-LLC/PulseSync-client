@@ -48,6 +48,26 @@ if (isWindows()) {
 
 const State = getState()
 
+const setupMainHotReload = () => {
+    if (!isAppDev) {
+        return
+    }
+
+    const mainEntry = __filename
+    let restartTimer: NodeJS.Timeout | null = null
+    fs.watch(mainEntry, () => {
+        if (restartTimer) {
+            return
+        }
+        restartTimer = setTimeout(() => {
+            app.relaunch()
+            app.exit(0)
+        }, 200)
+    })
+}
+
+setupMainHotReload()
+
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
