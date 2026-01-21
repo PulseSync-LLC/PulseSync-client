@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useLayoutEffect, JSX } from 'react'
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, JSX } from 'react'
 import toast, { Renderable, ToastOptions } from 'react-hot-toast'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
@@ -203,36 +203,39 @@ const ToastStack: React.FC = () => {
             }}
         >
             <TransitionGroup component={null}>
-                {renderList.map((td, idx) => (
-                    <CSSTransition
-                        key={td.id}
-                        timeout={320}
-                        nodeRef={getNodeRef(td.id)}
-                        classNames={{
-                            enter: styles.fadeEnter,
-                            enterActive: styles.fadeEnterActive,
-                            exit: styles.fadeExit,
-                            exitActive: styles.fadeExitActive,
-                        }}
-                    >
-                        <Card
-                            data={td}
-                            index={idx}
-                            stackSize={renderList.length}
-                            open={open || list.length === 1}
-                            offset={open ? offsets[idx] : 0}
-                            closingAll={closingAll}
-                            ref={el => {
-                                cardRefs.current[idx] = el
-                                getNodeRef(td.id).current = el
+                {renderList.map((td, idx) => {
+                    const handleDismiss = () => {
+                        nodeRefs.current.delete(td.id)
+                        remove(td.id)
+                    }
+                    return (
+                        <CSSTransition
+                            key={td.id}
+                            timeout={320}
+                            nodeRef={getNodeRef(td.id)}
+                            classNames={{
+                                enter: styles.fadeEnter,
+                                enterActive: styles.fadeEnterActive,
+                                exit: styles.fadeExit,
+                                exitActive: styles.fadeExitActive,
                             }}
-                            onDismiss={() => {
-                                nodeRefs.current.delete(td.id)
-                                remove(td.id)
-                            }}
-                        />
-                    </CSSTransition>
-                ))}
+                        >
+                            <Card
+                                data={td}
+                                index={idx}
+                                stackSize={renderList.length}
+                                open={open || list.length === 1}
+                                offset={open ? offsets[idx] : 0}
+                                closingAll={closingAll}
+                                ref={el => {
+                                    cardRefs.current[idx] = el
+                                    getNodeRef(td.id).current = el
+                                }}
+                                onDismiss={handleDismiss}
+                            />
+                        </CSSTransition>
+                    )
+                })}
             </TransitionGroup>
         </div>
     )
@@ -252,6 +255,8 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
+    const memoizedOnDismiss = useCallback(onDismiss, [data.id])
+
     useEffect(() => {
         const t = setTimeout(() => setShow(true), 60)
         return () => clearTimeout(t)
@@ -261,11 +266,11 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         if (!sticky && show) {
             const t = setTimeout(() => {
                 setShow(false)
-                setTimeout(onDismiss, 280)
+                setTimeout(memoizedOnDismiss, 280)
             }, duration)
             return () => clearTimeout(t)
         }
-    }, [show, sticky, duration, onDismiss])
+    }, [show, sticky, duration, memoizedOnDismiss])
 
     useEffect(() => {
         if (sticky && (value ?? 0) >= 100) {
@@ -273,15 +278,15 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             toast.dismiss(data.id)
             setTimeout(onDismiss, 220)
         }
-    }, [sticky, value, onDismiss, data.id])
+    }, [sticky, value, data.id])
 
     useEffect(() => {
         if (closingAll) {
             setShow(false)
-            const t = setTimeout(onDismiss, 220)
+            const t = setTimeout(memoizedOnDismiss, 220)
             return () => clearTimeout(t)
         }
-    }, [closingAll, onDismiss])
+    }, [closingAll, memoizedOnDismiss])
 
     const zIndex = stackSize - index
 

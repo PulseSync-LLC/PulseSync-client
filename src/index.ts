@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
@@ -6,8 +6,8 @@ import createTray from './main/modules/tray'
 import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
+import { setAddon } from './main/modules/httpServer'
+import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -47,26 +47,6 @@ if (isWindows()) {
 }
 
 const State = getState()
-
-const setupMainHotReload = () => {
-    if (!isAppDev) {
-        return
-    }
-
-    const mainEntry = __filename
-    let restartTimer: NodeJS.Timeout | null = null
-    fs.watch(mainEntry, () => {
-        if (restartTimer) {
-            return
-        }
-        restartTimer = setTimeout(() => {
-            app.relaunch()
-            app.exit(0)
-        }, 200)
-    })
-}
-
-setupMainHotReload()
 
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',

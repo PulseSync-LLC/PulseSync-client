@@ -64,24 +64,24 @@ const forgeConfig: ForgeConfig = {
         }),
     ],
     hooks: {
-        packageAfterPrune: async (_forgeConfig, buildPath) => {
-            const packageJsonPath = path.resolve(buildPath, 'package.json')
-            const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
-            Object.keys(pkg).forEach(key => {
-                switch (key) {
-                    case 'name':
-                    case 'version':
-                    case 'main':
-                    case 'author':
-                    case 'devDependencies':
-                    case 'homepage':
-                        break
-                    default:
-                        delete pkg[key]
-                }
-            })
-            fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
-        },
+        // packageAfterPrune: async (_forgeConfig, buildPath) => {
+        //     const packageJsonPath = path.resolve(buildPath, 'package.json')
+        //     const pkg = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'))
+        //     Object.keys(pkg).forEach(key => {
+        //         switch (key) {
+        //             case 'name':
+        //             case 'version':
+        //             case 'main':
+        //             case 'author':
+        //             case 'devDependencies':
+        //             case 'homepage':
+        //                 break
+        //             default:
+        //                 delete pkg[key]
+        //         }
+        //     })
+        //     fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
+        // },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },

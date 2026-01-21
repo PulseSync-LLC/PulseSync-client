@@ -23,7 +23,7 @@ import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 
-import statusDisplayTip from './../../../../static/assets/tips/statusDisplayType.gif'
+import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
 type FormValues = {
     appId: string

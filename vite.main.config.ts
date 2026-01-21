@@ -3,26 +3,21 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import packageJson from './package.json'
 import config from './config.json'
+import { builtinModules } from 'node:module'
+import pkg from './package.json'
 
 export default defineConfig(({ mode }) => {
     const isDevMode = process.env.NODE_ENV === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
+    const builtins = ['electron', ...builtinModules.map(m => [m, `node:${m}`]).flat()]
 
+    const external = [...builtins, 'original-fs', ...Object.keys(pkg.dependencies ?? {})]
     return {
         build: {
-            sourcemap: !isDevMode,
+            sourcemap: isDevMode,
             rollupOptions: {
-                external: [
-                    'original-fs',
-                    'bufferutil',
-                    'utf-8-validate',
-                    'cors-anywhere',
-                    'electron',
-                    'electron-store',
-                    'electron-updater',
-                    'log4js',
-                ],
+                external,
                 output: {
                     format: 'cjs',
                     preserveModules: false,

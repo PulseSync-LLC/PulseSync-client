@@ -4,6 +4,7 @@ import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
+import fs from 'fs'
 import packageJson from './package.json'
 import config from './config.json'
 
@@ -20,14 +21,17 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         throw new Error(`Unknown renderer entry: ${name}`)
     }
 
-    const isDevMode = process.env.NODE_ENV === 'development'
+    const isDevMode = mode === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
+    const sharedAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
+    const staticAssetsDir = path.resolve(__dirname, 'static/assets')
+    const publicDir: string | false = isDevMode ? path.resolve(__dirname, 'static') : false
 
     return {
         root: __dirname,
-        base: isDevMode ? '/' : './',
-        publicDir: path.resolve(__dirname, 'static'),
+        base: isDevMode ? '/' : '../',
+        publicDir,
         server: {
             fs: {
                 allow: [__dirname],
@@ -37,8 +41,9 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             cors: true,
         },
         build: {
-            sourcemap: !isDevMode,
+            sourcemap: isDevMode,
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
+            assetsDir: 'dist',
             rollupOptions: {
                 input: path.resolve(__dirname, htmlEntry),
             },
@@ -49,6 +54,24 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             }),
             react(),
             nodePolyfills({ protocolImports: true }),
+            ...(!isDevMode
+                ? [
+                      {
+                          name: 'copy-shared-static-assets',
+                          writeBundle() {
+                              if (!fs.existsSync(staticAssetsDir)) {
+                                  return
+                              }
+                              fs.mkdirSync(sharedAssetsDir, { recursive: true })
+                              for (const entry of fs.readdirSync(staticAssetsDir)) {
+                                  const source = path.join(staticAssetsDir, entry)
+                                  const destination = path.join(sharedAssetsDir, entry)
+                                  fs.cpSync(source, destination, { force: true, recursive: true })
+                              }
+                          },
+                      },
+                  ]
+                : []),
             ...(isProd
                 ? [
                       sentryVitePlugin({
@@ -75,6 +98,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, 'static'),
+                '/assets': path.resolve(__dirname, 'static/assets'),
             },
         },
     }

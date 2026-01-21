@@ -201,7 +201,6 @@ form {
         animate-svg-fill-3 0.7s cubic-bezier(0.39, 0.575, 0.565, 1) 0.9s both;
 }
 
-
 [class*='markdownText'] {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #e5e7eb;

@@ -1,5 +1,5 @@
 import '../renderer/Settings'
-import '../../static/styles/globals.css'
+import '../styles/globals.css'
 import * as Sentry from '@sentry/electron/renderer'
 
 Sentry.init({

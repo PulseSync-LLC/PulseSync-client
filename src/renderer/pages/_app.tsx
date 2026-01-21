@@ -116,8 +116,18 @@ function App() {
         }
 
         const originalConsoleError = console.error.bind(console)
+        let isLoggingConsoleError = false
         console.error = (...args: any[]) => {
-            sendRendererError(formatLogArgs(args))
+            if (!isLoggingConsoleError) {
+                isLoggingConsoleError = true
+                try {
+                    sendRendererError(formatLogArgs(args))
+                } catch (err) {
+                    originalConsoleError('[Logger Error]', err)
+                } finally {
+                    isLoggingConsoleError = false
+                }
+            }
             originalConsoleError(...args)
         }
 
