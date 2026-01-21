@@ -15,7 +15,7 @@ import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectr
 import * as dns from 'node:dns'
 
 import { checkCLIArguments } from './main/utils/processUtils'
-import { initializeCorsAnywhere, registerSchemes } from './main/utils/serverUtils'
+import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
@@ -28,7 +28,6 @@ import * as fsp from 'fs/promises'
 import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
 
-export let corsAnywherePort: string | number
 export let updated = false
 export let hardwareAcceleration = false
 export let musicPath: string
@@ -117,7 +116,6 @@ app.on('ready', async () => {
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
-        corsAnywherePort = await initializeCorsAnywhere()
         updated = checkCLIArguments(isAppDev)
         await createWindow()
         await checkForSingleInstance()

@@ -7,6 +7,7 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 import packageJson from './package.json'
 import config from './config.json'
+import nodeExternals from 'rollup-plugin-node-externals'
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -22,6 +23,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     }
 
     const isDevMode = mode === 'development'
+    const isDevSourceMapMode = process.env.NODE_ENV === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
     const sharedAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
@@ -41,19 +43,35 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             cors: true,
         },
         build: {
-            sourcemap: isDevMode,
+            sourcemap: isDevSourceMapMode,
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: 'dist',
+            emptyOutDir: true,
             rollupOptions: {
                 input: path.resolve(__dirname, htmlEntry),
+                output: {
+                    entryFileNames: '[name].js',
+                    chunkFileNames: '[name].js',
+                    assetFileNames: '[name].[ext]',
+                },
             },
         },
         plugins: [
+            {
+                name: 'html-preprocess',
+                enforce: 'pre',
+                resolveId(id) {
+                    if (id.startsWith('/src/main/')) {
+                        return path.resolve(__dirname, id.slice(1))
+                    }
+                },
+            },
+            nodeExternals(),
+            nodePolyfills(),
             svgr({
                 include: 'src/**/*.svg',
             }),
             react(),
-            nodePolyfills({ protocolImports: true }),
             ...(!isDevMode
                 ? [
                       {

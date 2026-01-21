@@ -37,7 +37,8 @@ const loadRendererWindow = (
     if (devServerUrl) {
         return window.loadURL(`${devServerUrl}/${devHtmlFile}`)
     }
-    return window.loadFile(path.join(__dirname, '..', 'renderer', rendererName, prodHtmlFile))
+    const filePath = path.join(app.getAppPath(), 'renderer', rendererName, prodHtmlFile)
+    return window.loadFile(filePath)
 }
 
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
@@ -106,8 +107,7 @@ export async function createWindow(): Promise<void> {
         webPreferences: {
             preload: path.join(__dirname, 'preloaderPreload.js'),
             contextIsolation: true,
-            nodeIntegration: true,
-            webSecurity: false,
+            nodeIntegration: false,
         },
     })
     loadRendererWindow(preloaderWindow, PRELOADER_VITE_DEV_SERVER_URL, PRELOADER_VITE_NAME, 'src/renderer/preloader.html', 'preloader.html')
@@ -126,7 +126,8 @@ export async function createWindow(): Promise<void> {
         icon,
         webPreferences: {
             preload: path.join(__dirname, 'mainWindowPreload.js'),
-            nodeIntegration: true,
+            contextIsolation: true,
+            nodeIntegration: false,
             devTools: isAppDev || isDevmark,
             webgl: State.get('settings.hardwareAcceleration'),
             enableBlinkFeatures: State.get('settings.hardwareAcceleration') ? 'WebGL2' : '',

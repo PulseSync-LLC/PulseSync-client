@@ -53,9 +53,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_EXIT)
         },
     },
-    corsAnywherePort() {
-        return ipcRenderer.sendSync(MainEvents.ELECTRON_CORSANYWHEREPORT)
-    },
     isAppDev() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
     },
