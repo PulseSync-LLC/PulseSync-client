@@ -11,14 +11,14 @@ import logger from './logger'
 import { getState } from './state'
 import { t } from '../i18n'
 
-declare const MAIN_WINDOW_WEBPACK_ENTRY: string
-declare const MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY: string
-declare const PRELOADER_PRELOAD_WEBPACK_ENTRY: string
-declare const PRELOADER_WEBPACK_ENTRY: string
+declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string
+declare const MAIN_WINDOW_VITE_NAME: string
+declare const PRELOADER_VITE_DEV_SERVER_URL: string
+declare const PRELOADER_VITE_NAME: string
 
 const State = getState()
-declare const SETTINGS_WINDOW_WEBPACK_ENTRY: string
-declare const SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY: string
+declare const SETTINGS_WINDOW_VITE_DEV_SERVER_URL: string
+declare const SETTINGS_WINDOW_VITE_NAME: string
 
 export let mainWindow: BrowserWindow
 export let settingsWindow: BrowserWindow
@@ -26,6 +26,31 @@ export let inSleepMode = false
 
 const minMain = { width: 1157, height: 750 }
 const preloaderSize = { width: 250, height: 271 }
+
+const loadRendererWindow = (
+    window: BrowserWindow,
+    devServerUrl: string | undefined,
+    rendererName: string,
+    devHtmlFile: string,
+    prodHtmlFile: string,
+): Promise<void> => {
+    if (devServerUrl) {
+        return window.loadURL(`${devServerUrl}/${devHtmlFile}`)
+    }
+    const basePath = path.join(app.getAppPath(), '.vite', 'renderer', rendererName)
+    const normalizedProdHtmlFile = prodHtmlFile.replace(/\\/g, '/')
+    const candidates = [path.join(basePath, prodHtmlFile)]
+
+    if (normalizedProdHtmlFile.startsWith('src/renderer/')) {
+        const trimmedHtmlFile = normalizedProdHtmlFile.replace(/^src\/renderer\//, '')
+        candidates.push(path.join(basePath, trimmedHtmlFile))
+    } else {
+        candidates.push(path.join(basePath, 'src', 'renderer', prodHtmlFile))
+    }
+
+    const existingPath = candidates.find(candidate => fs.existsSync(candidate)) ?? candidates[0]
+    return window.loadFile(existingPath)
+}
 
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
     const area = display.workArea
@@ -91,13 +116,18 @@ export async function createWindow(): Promise<void> {
         transparent: false,
         roundedCorners: true,
         webPreferences: {
-            preload: PRELOADER_PRELOAD_WEBPACK_ENTRY,
+            preload: path.join(__dirname, 'preloaderPreload.js'),
             contextIsolation: true,
-            nodeIntegration: true,
-            webSecurity: false,
+            nodeIntegration: false,
         },
     })
-    preloaderWindow.loadURL(PRELOADER_WEBPACK_ENTRY)
+    loadRendererWindow(
+        preloaderWindow,
+        PRELOADER_VITE_DEV_SERVER_URL,
+        PRELOADER_VITE_NAME,
+        'src/renderer/preloader.html',
+        'src/renderer/preloader.html',
+    )
     preloaderWindow.once('ready-to-show', () => preloaderWindow.show())
 
     mainWindow = new BrowserWindow({
@@ -112,15 +142,22 @@ export async function createWindow(): Promise<void> {
         trafficLightPosition: { x: 16, y: 10 },
         icon,
         webPreferences: {
-            preload: MAIN_WINDOW_PRELOAD_WEBPACK_ENTRY,
-            nodeIntegration: true,
+            preload: path.join(__dirname, 'mainWindowPreload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
             devTools: isAppDev || isDevmark,
             webgl: State.get('settings.hardwareAcceleration'),
             enableBlinkFeatures: State.get('settings.hardwareAcceleration') ? 'WebGL2' : '',
         },
     })
 
-    mainWindow.loadURL(MAIN_WINDOW_WEBPACK_ENTRY).catch(console.error)
+    loadRendererWindow(
+        mainWindow,
+        MAIN_WINDOW_VITE_DEV_SERVER_URL,
+        MAIN_WINDOW_VITE_NAME,
+        'src/renderer/index.html',
+        'src/renderer/index.html',
+    ).catch(console.error)
     mainWindow.once('ready-to-show', () => {
         preloaderWindow.close()
         preloaderWindow.destroy()
@@ -208,13 +245,19 @@ export function createSettingsWindow() {
         frame: false,
         backgroundColor: '#16181E',
         webPreferences: {
-            preload: SETTINGS_WINDOW_PRELOAD_WEBPACK_ENTRY,
+            preload: path.join(__dirname, 'mainWindowPreload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         },
     })
 
-    settingsWindow.loadURL(SETTINGS_WINDOW_WEBPACK_ENTRY)
+    loadRendererWindow(
+        settingsWindow,
+        SETTINGS_WINDOW_VITE_DEV_SERVER_URL,
+        SETTINGS_WINDOW_VITE_NAME,
+        'src/renderer/settings.html',
+        'src/renderer/settings.html',
+    )
     settingsWindow.on('closed', () => {
         settingsWindow = null
     })

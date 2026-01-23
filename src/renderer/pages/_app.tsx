@@ -116,8 +116,18 @@ function App() {
         }
 
         const originalConsoleError = console.error.bind(console)
+        let isLoggingConsoleError = false
         console.error = (...args: any[]) => {
-            sendRendererError(formatLogArgs(args))
+            if (!isLoggingConsoleError) {
+                isLoggingConsoleError = true
+                try {
+                    sendRendererError(formatLogArgs(args))
+                } catch (err) {
+                    originalConsoleError('[Logger Error]', err)
+                } finally {
+                    isLoggingConsoleError = false
+                }
+            }
             originalConsoleError(...args)
         }
 
@@ -149,7 +159,6 @@ function App() {
             const detail = event.error ? ` - ${formatLogValue(event.error)}` : ''
             sendRendererError(`Unhandled error: ${event.message}${detail}`)
         }
-
         const onUnhandledRejection = (event: PromiseRejectionEvent) => {
             sendRendererError(`Unhandled rejection: ${formatLogValue(event.reason)}`)
         }
@@ -704,7 +713,7 @@ function App() {
 
     useEffect(() => {
         if (connectionErrorCode === 1 || connectionErrorCode === 0) {
-            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailable'))
+            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
         } else if (isConnected && connectionErrorCode !== -1) {
             toast.custom('success', t('common.connectedTitle'), t('common.connectionRestored'))
         }

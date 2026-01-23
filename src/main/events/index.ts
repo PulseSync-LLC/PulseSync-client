@@ -6,7 +6,7 @@ import * as fsp from 'fs/promises'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, musicPath, readBufResilient, updated } from '../../index'
+import { musicPath, readBufResilient, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
@@ -186,9 +186,6 @@ const registerSettingsEvents = (): void => {
     })
 }
 const registerSystemEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.ELECTRON_CORSANYWHEREPORT, event => {
-        event.returnValue = corsAnywherePort
-    })
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
     })

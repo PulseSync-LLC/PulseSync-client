@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
@@ -6,8 +6,8 @@ import createTray from './main/modules/tray'
 import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { sendAddon, setAddon } from './main/modules/httpServer'
-import { checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
+import { setAddon } from './main/modules/httpServer'
+import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -15,7 +15,7 @@ import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectr
 import * as dns from 'node:dns'
 
 import { checkCLIArguments } from './main/utils/processUtils'
-import { initializeCorsAnywhere, registerSchemes } from './main/utils/serverUtils'
+import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
 import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
@@ -28,7 +28,6 @@ import * as fsp from 'fs/promises'
 import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
 
-export let corsAnywherePort: string | number
 export let updated = false
 export let hardwareAcceleration = false
 export let musicPath: string
@@ -117,7 +116,6 @@ app.on('ready', async () => {
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
-        corsAnywherePort = await initializeCorsAnywhere()
         updated = checkCLIArguments(isAppDev)
         await createWindow()
         await checkForSingleInstance()

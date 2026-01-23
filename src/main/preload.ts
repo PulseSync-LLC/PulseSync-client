@@ -1,2 +1,2 @@
-import '../../static/styles/globals.css'
-import '../../static/styles/preloader.css'
+import '../styles/globals.css'
+import '../styles/preloader.css'

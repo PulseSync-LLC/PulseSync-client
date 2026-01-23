@@ -108,6 +108,7 @@ export async function writePatchedAsarAndPatchBundle(
     if (expectedChecksum) {
         const actualHash = crypto.createHash('sha256').update(asarBuf).digest('hex')
         if (actualHash !== expectedChecksum) {
+            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${asarBuf.length} bytes, URL: ${link}`)
             throw new DownloadError(
                 `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${actualHash.substring(0, 8)}...)`,
                 'checksum_mismatch',

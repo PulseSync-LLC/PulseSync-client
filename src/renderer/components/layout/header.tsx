@@ -2,10 +2,10 @@ import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useR
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
-import Minus from './../../../../static/assets/icons/minus.svg'
-import Minimize from './../../../../static/assets/icons/minimize.svg'
-import Close from './../../../../static/assets/icons/close.svg'
-import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
+import Minus from '../../assets/icons/minus.svg'
+import Minimize from '../../assets/icons/minimize.svg'
+import Close from '../../assets/icons/close.svg'
+import ArrowDown from '../../assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'

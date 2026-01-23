@@ -89,7 +89,7 @@
             align-items: center;
             align-self: center;
             position: absolute;
-            height: 100%;
+            height: -webkit-fill-available;
             left: 0;
             right: 0;
             top: 0;
@@ -131,17 +131,18 @@
 
         .terms {
             width: 360px;
+
             font-weight: 600;
             font-size: 12px;
             line-height: 140%;
             text-align: center;
+
             color: #ffffff;
 
             a {
                 text-decoration: underline;
                 color: #ffe72f;
                 cursor: pointer;
-
                 &:hover {
                     color: rgb(255, 69, 171);
                 }
@@ -154,9 +155,8 @@
     pointer-events: none;
     position: fixed;
     inset: 0;
-    width: 100vw;
-    height: 100vh;
+    width: 100%;
+    height: 100%;
     z-index: 1;
     opacity: 0.8;
-    display: block;
 }

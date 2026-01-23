@@ -15,7 +15,7 @@ import {
 } from 'react-icons/md'
 import Header from './header'
 import NavButtonPulse from '../PSUI/NavButton'
-import DiscordIcon from './../../../../static/assets/icons/discord.svg'
+import DiscordIcon from '../../assets/icons/discord.svg'
 import Preloader from '../preloader'
 import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'

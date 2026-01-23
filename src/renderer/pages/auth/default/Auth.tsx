@@ -6,7 +6,7 @@ import userContext from '../../../api/context/user.context'
 import { staticAsset } from '../../../utils/staticAssets'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
-import AppNameLogo from './../../../../../static/assets/icon/AppName.svg'
+import AppNameLogo from '../../../assets/icon/AppName.svg'
 
 import * as pageStyles from './auth.module.scss'
 import { useSelector } from 'react-redux'
