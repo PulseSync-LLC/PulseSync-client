@@ -32,7 +32,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
 
     return {
         root: __dirname,
-        base: isDevMode ? '/' : '../',
+        base: isDevMode ? '/' : './',
         publicDir,
         server: {
             fs: {
@@ -45,27 +45,18 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         build: {
             sourcemap: isDevSourceMapMode,
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
-            assetsDir: 'dist',
+            assetsDir: '',
             emptyOutDir: true,
             rollupOptions: {
                 input: path.resolve(__dirname, htmlEntry),
                 output: {
-                    entryFileNames: '[name].js',
+                    entryFileNames: 'renderer.js',
                     chunkFileNames: '[name].js',
                     assetFileNames: '[name].[ext]',
                 },
             },
         },
         plugins: [
-            {
-                name: 'html-preprocess',
-                enforce: 'pre',
-                resolveId(id) {
-                    if (id.startsWith('/src/main/')) {
-                        return path.resolve(__dirname, id.slice(1))
-                    }
-                },
-            },
             nodeExternals(),
             nodePolyfills(),
             svgr({

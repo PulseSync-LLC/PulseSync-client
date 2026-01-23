@@ -37,8 +37,19 @@ const loadRendererWindow = (
     if (devServerUrl) {
         return window.loadURL(`${devServerUrl}/${devHtmlFile}`)
     }
-    const filePath = path.join(app.getAppPath(), 'renderer', rendererName, prodHtmlFile)
-    return window.loadFile(filePath)
+    const basePath = path.join(app.getAppPath(), '.vite', 'renderer', rendererName)
+    const normalizedProdHtmlFile = prodHtmlFile.replace(/\\/g, '/')
+    const candidates = [path.join(basePath, prodHtmlFile)]
+
+    if (normalizedProdHtmlFile.startsWith('src/renderer/')) {
+        const trimmedHtmlFile = normalizedProdHtmlFile.replace(/^src\/renderer\//, '')
+        candidates.push(path.join(basePath, trimmedHtmlFile))
+    } else {
+        candidates.push(path.join(basePath, 'src', 'renderer', prodHtmlFile))
+    }
+
+    const existingPath = candidates.find(candidate => fs.existsSync(candidate)) ?? candidates[0]
+    return window.loadFile(existingPath)
 }
 
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
@@ -110,7 +121,13 @@ export async function createWindow(): Promise<void> {
             nodeIntegration: false,
         },
     })
-    loadRendererWindow(preloaderWindow, PRELOADER_VITE_DEV_SERVER_URL, PRELOADER_VITE_NAME, 'src/renderer/preloader.html', 'preloader.html')
+    loadRendererWindow(
+        preloaderWindow,
+        PRELOADER_VITE_DEV_SERVER_URL,
+        PRELOADER_VITE_NAME,
+        'src/renderer/preloader.html',
+        'src/renderer/preloader.html',
+    )
     preloaderWindow.once('ready-to-show', () => preloaderWindow.show())
 
     mainWindow = new BrowserWindow({
@@ -134,9 +151,13 @@ export async function createWindow(): Promise<void> {
         },
     })
 
-    loadRendererWindow(mainWindow, MAIN_WINDOW_VITE_DEV_SERVER_URL, MAIN_WINDOW_VITE_NAME, 'src/renderer/index.html', 'index.html').catch(
-        console.error,
-    )
+    loadRendererWindow(
+        mainWindow,
+        MAIN_WINDOW_VITE_DEV_SERVER_URL,
+        MAIN_WINDOW_VITE_NAME,
+        'src/renderer/index.html',
+        'src/renderer/index.html',
+    ).catch(console.error)
     mainWindow.once('ready-to-show', () => {
         preloaderWindow.close()
         preloaderWindow.destroy()
@@ -230,7 +251,13 @@ export function createSettingsWindow() {
         },
     })
 
-    loadRendererWindow(settingsWindow, SETTINGS_WINDOW_VITE_DEV_SERVER_URL, SETTINGS_WINDOW_VITE_NAME, 'src/renderer/settings.html', 'settings.html')
+    loadRendererWindow(
+        settingsWindow,
+        SETTINGS_WINDOW_VITE_DEV_SERVER_URL,
+        SETTINGS_WINDOW_VITE_NAME,
+        'src/renderer/settings.html',
+        'src/renderer/settings.html',
+    )
     settingsWindow.on('closed', () => {
         settingsWindow = null
     })
