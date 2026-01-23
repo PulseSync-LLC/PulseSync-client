@@ -1,4 +1,4 @@
-import { sentryVitePlugin } from '@sentry/vite-plugin'
+import { sentryVitePlugin,  } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
@@ -7,7 +7,6 @@ import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 import packageJson from './package.json'
 import config from './config.json'
-import nodeExternals from 'rollup-plugin-node-externals'
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -26,7 +25,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevSourceMapMode = process.env.NODE_ENV === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
-    const sharedAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
+    const rendererAssetsDir = path.resolve(__dirname, `.vite/renderer/${name}/${path.dirname(htmlEntry)}/assets`)
     const staticAssetsDir = path.resolve(__dirname, 'static/assets')
     const publicDir: string | false = isDevMode ? path.resolve(__dirname, 'static') : false
 
@@ -53,11 +52,16 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                     entryFileNames: 'renderer.js',
                     chunkFileNames: '[name].js',
                     assetFileNames: '[name].[ext]',
+                    manualChunks: id => {
+                        if (id.includes('node_modules')) {
+                            return 'vendor'
+                        }
+                        return undefined
+                    },
                 },
             },
         },
         plugins: [
-            nodeExternals(),
             nodePolyfills(),
             svgr({
                 include: 'src/**/*.svg',
@@ -71,10 +75,10 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                               if (!fs.existsSync(staticAssetsDir)) {
                                   return
                               }
-                              fs.mkdirSync(sharedAssetsDir, { recursive: true })
+                              fs.mkdirSync(rendererAssetsDir, { recursive: true })
                               for (const entry of fs.readdirSync(staticAssetsDir)) {
                                   const source = path.join(staticAssetsDir, entry)
-                                  const destination = path.join(sharedAssetsDir, entry)
+                                  const destination = path.join(rendererAssetsDir, entry)
                                   fs.cpSync(source, destination, { force: true, recursive: true })
                               }
                           },

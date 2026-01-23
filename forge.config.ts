@@ -83,6 +83,11 @@ const forgeConfig: ForgeConfig = {
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
+            const resourcesPath = path.resolve(buildPath, '..')
+            const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
+            const iconDestination = path.join(resourcesPath, 'assets', 'icon')
+            fs.mkdirSync(iconDestination, { recursive: true })
+            fs.cpSync(iconSource, iconDestination, { recursive: true })
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },
