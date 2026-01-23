@@ -17,6 +17,7 @@ import OptionMenu from '../../components/PSUI/OptionMenu'
 import Loader from '../../components/PSUI/Loader'
 
 import ExtensionView from './route/extensionview'
+import { preloadAddonFiles } from './route/extBox/hooks'
 
 import * as extensionStylesV2 from './extension.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
@@ -464,6 +465,22 @@ export default function ExtensionPage() {
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
+
+    useEffect(() => {
+        if (!mergedAddons.length) return
+
+        const preloadTargets = selectedAddon
+            ? [selectedAddon, ...mergedAddons.filter(addon => addon.directoryName !== selectedAddon.directoryName).slice(0, 7)]
+            : mergedAddons.slice(0, 8)
+
+        const timeoutId = window.setTimeout(() => {
+            preloadTargets.forEach(addon => {
+                void preloadAddonFiles(addon)
+            })
+        }, 0)
+
+        return () => window.clearTimeout(timeoutId)
+    }, [mergedAddons, selectedAddon])
 
     const whitelistedAddonNames = useMemo(() => {
         return new Set(addonWhitelist.map(addon => addon.name.toLowerCase()))
