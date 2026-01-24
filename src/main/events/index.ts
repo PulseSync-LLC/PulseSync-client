@@ -45,6 +45,9 @@ const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
+let uiReady = false
+let pendingAddonOpen: string | null = null
+
 const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
@@ -116,6 +119,17 @@ const mimeByExt: Record<string, string> = {
     '.webp': 'image/webp',
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
+}
+
+export const queueAddonOpen = (addonName: string): void => {
+    pendingAddonOpen = addonName
+    tryOpenPendingAddon()
+}
+
+const tryOpenPendingAddon = (): void => {
+    if (!authorized || !uiReady || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents.send(RendererEvents.OPEN_ADDON, pendingAddonOpen)
+    pendingAddonOpen = null
 }
 
 const allowedExternalProtocols = new Set(['http:', 'https:', 'yandexmusic:'])
@@ -218,6 +232,8 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         arch: os.arch(),
     }))
     ipcMain.on(MainEvents.UI_READY, () => {
+        uiReady = true
+        tryOpenPendingAddon()
         get_current_track()
     })
 }
@@ -532,6 +548,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             await rpc_connect()
         }
         authorized = data.status
+        tryOpenPendingAddon()
         if (data?.user) {
             Sentry.setUser({ id: data.user.id, username: data.user.username, email: data.user.email })
         } else {

@@ -1,4 +1,5 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useLocation, useParams } from 'react-router'
 import semver from 'semver'
 
 import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
@@ -70,6 +71,8 @@ function useDebouncedValue<T>(value: T, delay: number) {
 export default function ExtensionPage() {
     const { t } = useTranslation()
     const { addons, setAddons, musicVersion } = useContext(userContext)
+    const { contactId } = useParams()
+    const location = useLocation()
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
     const [enabledScripts, setEnabledScripts] = useState<string[]>(() => safeStoreGet<string[]>('addons.scripts', []))
     const [searchQuery, setSearchQuery] = useState('')
@@ -98,6 +101,16 @@ export default function ExtensionPage() {
 
     const previewCacheRef = useRef<Map<string, string>>(new Map())
     const loadedRef = useRef(false)
+    const requestedAddonId = useMemo(() => {
+        const stateAddon = (location.state as { theme?: Addon } | null)?.theme
+        const raw = stateAddon?.directoryName ?? stateAddon?.name ?? contactId
+        if (!raw) return null
+        try {
+            return decodeURIComponent(raw)
+        } catch {
+            return raw
+        }
+    }, [contactId, location.state])
 
     useEffect(() => {
         const init = async () => {
@@ -329,6 +342,11 @@ export default function ExtensionPage() {
         return result
     }, [addons, type, selectedTags, selectedCreators, debouncedSearchQuery, sort, sortOrder])
 
+    const requestedAddonExists = useMemo(
+        () => !!requestedAddonId && mergedAddons.some(addon => addon.directoryName === requestedAddonId || addon.name === requestedAddonId),
+        [mergedAddons, requestedAddonId],
+    )
+
     useEffect(() => {
         const updates: Record<string, string> = {}
         const controller = new AbortController()
@@ -374,15 +392,30 @@ export default function ExtensionPage() {
             const activeAddon = mergedAddons.find(addon =>
                 addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
             )
-            setSelectedAddonId((activeAddon || mergedAddons[0])?.directoryName || null)
+            if (!requestedAddonExists) {
+                setSelectedAddonId((activeAddon || mergedAddons[0])?.directoryName || null)
+            }
         }
-    }, [currentTheme, enabledScripts, mergedAddons, selectedAddonId])
+    }, [currentTheme, enabledScripts, mergedAddons, requestedAddonExists, selectedAddonId])
+
+    useEffect(() => {
+        if (!requestedAddonId || !mergedAddons.length) return
+        const matched = mergedAddons.find(addon => addon.directoryName === requestedAddonId || addon.name === requestedAddonId)
+        if (matched && selectedAddonId !== matched.directoryName) {
+            setSelectedAddonId(matched.directoryName)
+        }
+    }, [mergedAddons, requestedAddonId, selectedAddonId])
 
     useEffect(() => {
         if (selectedAddonId && !mergedAddons.some(addon => addon.directoryName === selectedAddonId)) {
-            setSelectedAddonId(mergedAddons[0]?.directoryName || null)
+            if (requestedAddonExists && requestedAddonId) {
+                const matched = mergedAddons.find(addon => addon.directoryName === requestedAddonId || addon.name === requestedAddonId)
+                setSelectedAddonId(matched?.directoryName || mergedAddons[0]?.directoryName || null)
+            } else {
+                setSelectedAddonId(mergedAddons[0]?.directoryName || null)
+            }
         }
-    }, [mergedAddons, selectedAddonId])
+    }, [mergedAddons, requestedAddonExists, requestedAddonId, selectedAddonId])
 
     useEffect(() => {
         return () => {

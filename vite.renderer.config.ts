@@ -25,7 +25,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevSourceMapMode = process.env.NODE_ENV === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
-    const rendererAssetsDir = path.resolve(__dirname, `.vite/renderer/${name}/${path.dirname(htmlEntry)}/assets`)
+    const rendererAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
     const staticAssetsDir = path.resolve(__dirname, 'static/assets')
     const publicDir: string | false = isDevMode ? path.resolve(__dirname, 'static') : false
 
@@ -44,7 +44,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         build: {
             sourcemap: isDevSourceMapMode,
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
-            assetsDir: '',
+            assetsDir: '../assets',
             emptyOutDir: true,
             rollupOptions: {
                 input: path.resolve(__dirname, htmlEntry),

@@ -131,6 +131,11 @@
                 * {
                     user-select: text !important;
                 }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                }
             }
         }
     }

@@ -6,7 +6,7 @@ import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'original-fs'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
-import { authorized } from '../events'
+import { authorized, queueAddonOpen } from '../events'
 import { mainWindow } from './createWindow'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
@@ -132,7 +132,5 @@ async function handlePextFile(filePath: string) {
             })
         }
     }
-    if (authorized) {
-        mainWindow.webContents.send(RendererEvents.OPEN_ADDON, addonName)
-    }
+    queueAddonOpen(addonName)
 }

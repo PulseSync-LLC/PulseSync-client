@@ -840,7 +840,7 @@ function App() {
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extension/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${encodeURIComponent(foundAddon.directoryName)}`)
                         setNavigateState(foundAddon)
                     }
                 })
