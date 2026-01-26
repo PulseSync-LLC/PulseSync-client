@@ -127,6 +127,18 @@ function applyConfigFromEnv() {
     }
 }
 
+function ensureNodeHeapForMac(): void {
+    if (os.platform() !== 'darwin') return
+    const currentOptions = process.env.NODE_OPTIONS ?? ''
+    if (/--max-old-space-size=\d+/u.test(currentOptions)) {
+        return
+    }
+    const defaultHeapMb = 6144
+    const nextOptions = `${currentOptions} --max-old-space-size=${defaultHeapMb}`.trim()
+    process.env.NODE_OPTIONS = nextOptions
+    log(LogLevel.WARN, `NODE_OPTIONS not set; defaulting to "${nextOptions}" to avoid macOS OOMs`)
+}
+
 function setConfigDevFalse() {
     const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
@@ -150,6 +162,7 @@ async function main(): Promise<void> {
         await publishPatchNotesToDiscord()
         return
     }
+    ensureNodeHeapForMac()
     log(LogLevel.INFO, `CONFIG_JSON length: ${process.env.CONFIG_JSON?.length}`)
     log(LogLevel.INFO, `RENDERER_CONFIG length: ${process.env.RENDERER_CONFIG?.length}`)
     applyConfigFromEnv()

@@ -366,7 +366,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             const { modVersion, realMusicVersion, downloadUrl, checksum_v2, spoof, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum } =
                 modInfo[0]
 
-            window.desktopEvents?.send(MainEvents.UPDATE_MUSIC_ASAR, {
+            window.desktopEvents?.send(MainEvents.INSTALL_MOD, {
                 version: modVersion,
                 musicVersion: realMusicVersion,
                 name,

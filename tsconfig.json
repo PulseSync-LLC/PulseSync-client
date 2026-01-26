@@ -34,7 +34,11 @@
         "declarations.d.ts",
         "vite-env.d.ts"
     ],
+    "exclude": [
+        "src/renderer/**"
+    ],
     "references": [
-        { "path": "./tsconfig.node.json" }
+        { "path": "./tsconfig.node.json" },
+        { "path": "./tsconfig.renderer.json" }
     ]
 }

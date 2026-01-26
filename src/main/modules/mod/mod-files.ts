@@ -29,7 +29,7 @@ export async function resolveBasePaths(): Promise<Paths> {
     const savedModPath = (State.get('settings.modSavePath') as string) || ''
     const modAsar = savedModPath || defaultAsar
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
-    const infoPlistPath = path.join(musicPath, 'Contents', 'Info.plist')
+    const infoPlistPath = path.join(musicPath, '..', 'Info.plist')
     return { music: musicPath, defaultAsar, modAsar, backupAsar, infoPlist: infoPlistPath }
 }
 

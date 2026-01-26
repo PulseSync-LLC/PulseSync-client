@@ -31,7 +31,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
 
     return {
         root: __dirname,
-        base: isDevMode ? '/' : './',
+        base: isDevMode ? '/' : '../',
         publicDir,
         server: {
             fs: {

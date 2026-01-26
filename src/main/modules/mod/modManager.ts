@@ -144,7 +144,7 @@ async function sendSuccessAfterLaunch(
 
 export const modManager = (window: BrowserWindow): void => {
     ipcMain.on(
-        MainEvents.UPDATE_MUSIC_ASAR,
+        MainEvents.INSTALL_MOD,
         async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, force, spoof }) => {
             try {
                 if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
