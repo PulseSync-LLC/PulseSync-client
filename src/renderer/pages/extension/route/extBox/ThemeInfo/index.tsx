@@ -20,10 +20,27 @@ interface Props {
     setShowFilters?: (show: boolean) => void
 }
 
-type UrlEntry = { url: string; refs: number }
+type UrlEntry = { url: string }
 
 const bannerUrlCache: Map<string, UrlEntry> = new Map()
 const logoUrlCache: Map<string, UrlEntry> = new Map()
+const MAX_CACHED_OBJECT_URLS = 40
+
+function storeObjectUrl(cache: Map<string, UrlEntry>, key: string, url: string) {
+    cache.delete(key)
+    cache.set(key, { url })
+    while (cache.size > MAX_CACHED_OBJECT_URLS) {
+        const oldestKey = cache.keys().next().value as string | undefined
+        if (!oldestKey) break
+        const entry = cache.get(oldestKey)
+        if (entry) {
+            try {
+                URL.revokeObjectURL(entry.url)
+            } catch {}
+        }
+        cache.delete(oldestKey)
+    }
+}
 
 async function acquireObjectUrl(
     cache: Map<string, UrlEntry>,
@@ -32,24 +49,11 @@ async function acquireObjectUrl(
 ): Promise<{ url: string; acquired: boolean }> {
     const existing = cache.get(key)
     if (existing) {
-        existing.refs += 1
         return { url: existing.url, acquired: true }
     }
     const url = await fetchFactory()
-    cache.set(key, { url, refs: 1 })
+    storeObjectUrl(cache, key, url)
     return { url, acquired: true }
-}
-
-function releaseObjectUrl(cache: Map<string, UrlEntry>, key: string) {
-    const entry = cache.get(key)
-    if (!entry) return
-    entry.refs -= 1
-    if (entry.refs <= 0) {
-        try {
-            URL.revokeObjectURL(entry.url)
-        } catch {}
-        cache.delete(key)
-    }
 }
 
 const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
@@ -97,24 +101,15 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
 
     useEffect(() => {
-        let didAcquire = false
         let cancelled = false
         const controller = new AbortController()
 
         if (isMac && isGif(addon.banner)) {
-            if (currentBannerKeyRef.current) {
-                releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
-                currentBannerKeyRef.current = null
-            }
             setBannerUrl(fallbackBanner)
             return () => controller.abort()
         }
 
         if (!addon.banner) {
-            if (currentBannerKeyRef.current) {
-                releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
-                currentBannerKeyRef.current = null
-            }
             setBannerUrl(fallbackBanner)
             return () => controller.abort()
         }
@@ -129,11 +124,10 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             const blob = await res.blob()
             return URL.createObjectURL(blob)
         })
-            .then(({ url, acquired }) => {
+            .then(({ url }) => {
                 if (cancelled) return
-                didAcquire = acquired
                 if (currentBannerKeyRef.current && currentBannerKeyRef.current !== key) {
-                    releaseObjectUrl(bannerUrlCache, currentBannerKeyRef.current)
+                    currentBannerKeyRef.current = null
                 }
                 currentBannerKeyRef.current = key
                 setBannerUrl(url)
@@ -147,32 +141,19 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         return () => {
             cancelled = true
             controller.abort()
-            if (didAcquire) {
-                releaseObjectUrl(bannerUrlCache, key)
-                if (currentBannerKeyRef.current === key) currentBannerKeyRef.current = null
-            }
         }
     }, [addon.banner, addon.directoryName, addon.name, fallbackBanner])
 
     useEffect(() => {
-        let didAcquire = false
         let cancelled = false
         const controller = new AbortController()
 
         if (isMac && isGif(addon.libraryLogo)) {
-            if (currentLogoKeyRef.current) {
-                releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
-                currentLogoKeyRef.current = null
-            }
             setLogoUrl(fallbackLogo)
             return () => controller.abort()
         }
 
         if (!addon.libraryLogo) {
-            if (currentLogoKeyRef.current) {
-                releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
-                currentLogoKeyRef.current = null
-            }
             setLogoUrl(null)
             return () => controller.abort()
         }
@@ -187,11 +168,10 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             const blob = await res.blob()
             return URL.createObjectURL(blob)
         })
-            .then(({ url, acquired }) => {
+            .then(({ url }) => {
                 if (cancelled) return
-                didAcquire = acquired
                 if (currentLogoKeyRef.current && currentLogoKeyRef.current !== key) {
-                    releaseObjectUrl(logoUrlCache, currentLogoKeyRef.current)
+                    currentLogoKeyRef.current = null
                 }
                 currentLogoKeyRef.current = key
                 setLogoUrl(url)
@@ -205,10 +185,6 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         return () => {
             cancelled = true
             controller.abort()
-            if (didAcquire) {
-                releaseObjectUrl(logoUrlCache, key)
-                if (currentLogoKeyRef.current === key) currentLogoKeyRef.current = null
-            }
         }
     }, [addon.libraryLogo, addon.directoryName, addon.name, fallbackLogo])
 

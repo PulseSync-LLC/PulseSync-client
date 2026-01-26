@@ -21,6 +21,9 @@ const forgeConfig: ForgeConfig = {
         extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
+    rebuildConfig: {
+        ignoreModules: ['@parcel/watcher', 'bufferutil', 'utf-8-validate'],
+    },
     plugins: [
         new VitePlugin({
             build: [

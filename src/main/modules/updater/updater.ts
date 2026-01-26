@@ -203,6 +203,7 @@ class Updater {
 
             if (!updateResult) {
                 logger.updater.log(t('main.updater.noUpdatesFound'))
+                this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
                 return null
             }
 

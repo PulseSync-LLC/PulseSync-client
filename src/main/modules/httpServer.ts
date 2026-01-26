@@ -266,7 +266,10 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
                 svg: 'image/svg+xml',
                 ico: 'image/x-icon',
             }
-            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
+            res.writeHead(200, {
+                'Content-Type': mimes[ext] || 'application/octet-stream',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+            })
             return fs.createReadStream(targetPath).pipe(res)
         } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })

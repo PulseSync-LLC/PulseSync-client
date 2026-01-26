@@ -221,6 +221,7 @@
         "description": "Main application behavior flags and settings",
         "devSocket": "Enable developer mode: open debug socket",
         "hardwareAcceleration": "Enable or disable GPU hardware acceleration",
+        "language": "Preferred application language",
         "lastDisplayId": "ID of the last display that hosted the app window",
         "modSavePath": "Mod path",
         "musicReinstalled": "Flag indicating whether music was reinstalled",

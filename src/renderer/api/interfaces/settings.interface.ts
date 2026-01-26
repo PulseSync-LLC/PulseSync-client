@@ -11,6 +11,7 @@ export interface Settings {
     askSavePath: boolean
     saveAsMp3: boolean
     showModModalAfterInstall: boolean
+    language: string
 }
 export interface Info {
     version: string

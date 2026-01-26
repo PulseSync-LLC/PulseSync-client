@@ -32,7 +32,7 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
 
     const openUpdateModal = () => {
@@ -146,75 +146,116 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const toggleSetting = (type: string, status: boolean) => {
         const statusLabel = status ? t('common.enabled') : t('common.disabled')
-        const updatedSettings = { ...app.settings }
         switch (type) {
             case 'autoTray':
-                updatedSettings.autoStartInTray = status
                 window.electron.store.set('settings.autoStartInTray', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoTray', { status: statusLabel }))
                 break
             case 'autoStart':
-                updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
                 window.desktopEvents?.send(MainEvents.AUTO_START_APP, status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartApp', { status: statusLabel }))
                 break
             case 'autoStartMusic':
-                updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartMusic', { status: statusLabel }))
                 break
             case 'askSavePath':
-                updatedSettings.askSavePath = status
                 window.electron.store.set('settings.askSavePath', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.askSavePath', { status: statusLabel }))
                 break
             case 'saveAsMp3':
-                updatedSettings.saveAsMp3 = status
                 window.electron.store.set('settings.saveAsMp3', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveAsMp3', { status: statusLabel }))
                 break
             case 'closeAppInTray':
-                updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.closeAppInTray', { status: statusLabel }))
                 break
             case 'deletePextAfterImport':
-                updatedSettings.deletePextAfterImport = status
                 window.electron.store.set('settings.deletePextAfterImport', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.deletePextAfterImport'))
                 break
             case 'hardwareAcceleration':
-                updatedSettings.hardwareAcceleration = status
                 window.electron.store.set('settings.hardwareAcceleration', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.restartRequired'))
                 break
             case 'devSocket':
-                updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
-                console.log(updatedSettings.devSocket)
-                updatedSettings.devSocket
+                console.log(status)
+                status
                     ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
                     : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
                 toast.custom('success', t('common.doneTitle'), t('settings.websocketStatusChanged'))
                 break
             case 'showModModalAfterInstall':
-                updatedSettings.showModModalAfterInstall = status
                 window.electron.store.set('settings.showModModalAfterInstall', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.showModChangelog', { status: statusLabel }))
                 break
             case 'saveWindowPositionOnRestart':
-                updatedSettings.saveWindowPositionOnRestart = status
                 window.electron.store.set('settings.saveWindowPositionOnRestart', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowPosition', { status: statusLabel }))
                 break
             case 'saveWindowDimensionsOnRestart':
-                updatedSettings.saveWindowDimensionsOnRestart = status
                 window.electron.store.set('settings.saveWindowDimensionsOnRestart', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowDimensions', { status: statusLabel }))
                 break
         }
-        setApp({ ...app, settings: updatedSettings })
+        setApp((prevApp: SettingsInterface) => {
+            const updatedSettings = { ...prevApp.settings }
+            switch (type) {
+                case 'autoTray':
+                    updatedSettings.autoStartInTray = status
+                    break
+                case 'autoStart':
+                    updatedSettings.autoStartApp = status
+                    break
+                case 'autoStartMusic':
+                    updatedSettings.autoStartMusic = status
+                    break
+                case 'askSavePath':
+                    updatedSettings.askSavePath = status
+                    break
+                case 'saveAsMp3':
+                    updatedSettings.saveAsMp3 = status
+                    break
+                case 'closeAppInTray':
+                    updatedSettings.closeAppInTray = status
+                    break
+                case 'deletePextAfterImport':
+                    updatedSettings.deletePextAfterImport = status
+                    break
+                case 'hardwareAcceleration':
+                    updatedSettings.hardwareAcceleration = status
+                    break
+                case 'devSocket':
+                    updatedSettings.devSocket = status
+                    break
+                case 'showModModalAfterInstall':
+                    updatedSettings.showModModalAfterInstall = status
+                    break
+                case 'saveWindowPositionOnRestart':
+                    updatedSettings.saveWindowPositionOnRestart = status
+                    break
+                case 'saveWindowDimensionsOnRestart':
+                    updatedSettings.saveWindowDimensionsOnRestart = status
+                    break
+            }
+            return {
+                ...prevApp,
+                settings: updatedSettings
+            }
+        })
+    }
+
+    const setLanguage = async (language: string) => {
+        if (app.settings.language === language) return
+        await i18n.changeLanguage(language)
+        window.electron.store.set('settings.language', language)
+        setApp((prevApp: SettingsInterface) => ({
+            ...prevApp,
+            settings: { ...prevApp.settings, language }
+        }))
     }
 
     function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
@@ -345,6 +386,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton(t('contextMenu.windowSettings.hideOnClose'), app.settings.closeAppInTray, () =>
                 toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
+        ]),
+        createButtonSection(t('contextMenu.language.title'), [
+            createToggleButton(t('contextMenu.language.russian'), app.settings.language === 'ru', () => setLanguage('ru')),
+            createToggleButton(t('contextMenu.language.english'), app.settings.language === 'en', () => setLanguage('en')),
         ]),
         createButtonSection(t('contextMenu.misc.title'), [
             { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },

@@ -167,6 +167,11 @@ const schema = {
                 description: t('main.storage.settings.showModModalAfterInstall'),
                 default: false,
             },
+            language: {
+                type: 'string',
+                description: t('main.storage.settings.language'),
+                default: 'ru',
+            },
             modSavePath: {
                 type: 'string',
                 description: t('main.storage.settings.modSavePath'),
@@ -216,6 +221,7 @@ const schema = {
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
+            'language',
             'modSavePath',
             'windowDimensions',
             'windowPosition',
@@ -236,6 +242,7 @@ const schema = {
             askSavePath: false,
             saveAsMp3: false,
             showModModalAfterInstall: true,
+            language: 'ru',
             modSavePath: '',
             windowDimensions: {},
             windowPosition: {},

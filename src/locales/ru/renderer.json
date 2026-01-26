@@ -151,6 +151,11 @@
       "hardwareAcceleration": "Аппаратное ускорение",
       "title": "Настройки приложения"
     },
+    "language": {
+          "english": "Английский",
+          "russian": "Русский",
+          "title": "Язык"
+    },
     "misc": {
       "checkUpdates": "Проверить обновления",
       "collectLogs": "Собрать логи в архив",
@@ -747,7 +752,7 @@
     "downloadingLabel": "Загрузка",
     "downloadingTitle": "Скачивание обновления",
     "notFoundMessage": "Обновлений не найдено",
-    "notFoundTitle": "Обновлений нет"
+    "notFoundTitle": "Эвана как..."
   },
   "userStatus": {
     "inactive": "Не активен",

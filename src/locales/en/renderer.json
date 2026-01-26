@@ -151,6 +151,11 @@
       "hardwareAcceleration": "Hardware acceleration",
       "title": "App settings"
     },
+    "language": {
+          "english": "English",
+          "russian": "Russian",
+          "title": "Language"
+    },
     "misc": {
       "checkUpdates": "Check for updates",
       "collectLogs": "Collect logs archive",
