@@ -59,6 +59,7 @@ type GetMeVars = Record<string, never>
 
 function App() {
     const { t } = useTranslation()
+    const tRef = useRef(t)
     const [realtimeSocket, setRealtimeSocket] = useState<Socket | null>(null)
     const [connectionErrorCode, setConnectionErrorCode] = useState(-1)
     const [isConnected, setIsConnected] = useState(false)
@@ -86,6 +87,10 @@ function App() {
     const [hasToken, setHasToken] = useState(false)
     const appRef = useRef(app)
     const rendererLoggingInitialized = useRef(false)
+
+    useEffect(() => {
+        tRef.current = t
+    }, [t])
 
     useEffect(() => {
         if (rendererLoggingInitialized.current) return
@@ -331,7 +336,7 @@ function App() {
                 await router.navigate('/auth', { replace: true })
             })()
             setUser(userInitials)
-            toast.custom('error', t('common.errorTitle'), t('auth.failedToFetchUser'), null, null, 10000)
+            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.failedToFetchUser'), null, null, 10000)
             window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                 status: false,
             })
@@ -340,12 +345,12 @@ function App() {
 
     useEffect(() => {
         if (!meError) return
-        const message = meError?.message || t('auth.unknownAuthError')
+        const message = meError?.message || tRef.current('auth.unknownAuthError')
         if (CombinedGraphQLErrors.is(meError)) {
             const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
             const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
             if (isForbidden) {
-                toast.custom('error', t('common.errorTitle'), t('auth.sessionExpired'), null, null, 10000)
+                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.sessionExpired'), null, null, 10000)
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
                     await router.navigate('/auth', { replace: true })
@@ -356,7 +361,14 @@ function App() {
                 return
             }
             if (isDeprecated) {
-                toast.custom('error', t('auth.appVersionDeprecatedTitle'), t('auth.appVersionDeprecatedMessage'), null, null, 10000)
+                toast.custom(
+                    'error',
+                    tRef.current('auth.appVersionDeprecatedTitle'),
+                    tRef.current('auth.appVersionDeprecatedMessage'),
+                    null,
+                    null,
+                    10000,
+                )
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
                 dispatch(setAppDeprecatedStatus(true))
                 window.electron.store.delete('tokens.token')
@@ -370,10 +382,10 @@ function App() {
             }
         }
         Sentry.captureException(meError)
-        toast.custom('error', t('auth.accessQuestionTitle'), message)
+        toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
         setLoading(false)
-    }, [meError, dispatch, t])
+    }, [meError, dispatch])
 
     const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
@@ -389,7 +401,7 @@ function App() {
                         retryCount--
                         return false
                     } else {
-                        toast.custom('error', t('common.takeBreakTitle'), t('common.tooManyAttempts'))
+                        toast.custom('error', tRef.current('common.takeBreakTitle'), tRef.current('common.tooManyAttempts'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -397,9 +409,9 @@ function App() {
                 }
 
                 const sendErrorAuthNotify = (message: string, title?: string) => {
-                    toast.custom('error', t('common.errorTitle'), message, null, null, 10000)
+                    toast.custom('error', tRef.current('common.errorTitle'), message, null, null, 10000)
                     window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                        title: t('auth.authErrorTitle', { title }),
+                        title: tRef.current('auth.authErrorTitle', { title }),
                         body: message,
                     })
                 }
@@ -425,7 +437,7 @@ function App() {
                         window.electron.store.delete('tokens.token')
                         await router.navigate('/auth', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify(t('auth.failedToFetchUser'))
+                        sendErrorAuthNotify(tRef.current('auth.failedToFetchUser'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
@@ -438,7 +450,7 @@ function App() {
                             retryCount--
                             return false
                         } else {
-                            toast.custom('error', t('common.pingPongTitle'), t('common.serverUnavailable'))
+                            toast.custom('error', tRef.current('common.pingPongTitle'), tRef.current('common.serverUnavailable'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
@@ -448,14 +460,21 @@ function App() {
                         const isDeprecated = errors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
                         const isForbidden = errors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
-                            toast.custom('error', t('auth.sessionExpiredTitle'), t('auth.pleaseLoginAgain'))
+                            toast.custom('error', tRef.current('auth.sessionExpiredTitle'), tRef.current('auth.pleaseLoginAgain'))
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else if (isDeprecated) {
-                            toast.custom('error', t('auth.appVersionDeprecatedTitle'), t('auth.appVersionDeprecatedMessage'), null, null, 10000)
+                            toast.custom(
+                                'error',
+                                tRef.current('auth.appVersionDeprecatedTitle'),
+                                tRef.current('auth.appVersionDeprecatedMessage'),
+                                null,
+                                null,
+                                10000,
+                            )
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
@@ -465,14 +484,14 @@ function App() {
                             return false
                         } else {
                             Sentry.captureException(err)
-                            toast.custom('error', t('auth.accessQuestionTitle'), t('auth.unknownAuthError'))
+                            toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
                     } else {
                         Sentry.captureException(err)
-                        toast.custom('error', t('auth.accessQuestionTitle'), t('auth.unknownAuthError'))
+                        toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -513,7 +532,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }, [dispatch, refetchMe, router, t])
+    }, [dispatch, refetchMe, router])
 
     const emitGateway = useCallback(
         (event: string, data: any) => {
@@ -719,45 +738,42 @@ function App() {
         }
     }, [connectionErrorCode, isConnected])
 
-    const fetchModInfo = useCallback(
-        async (app: SettingsInterface) => {
-            try {
-                const res = await apolloClient.query<{ getMod: ModInterface[] }>({
-                    query: GetModQuery,
-                    fetchPolicy: 'no-cache',
-                })
+    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
+        try {
+            const res = await apolloClient.query<{ getMod: ModInterface[] }>({
+                query: GetModQuery,
+                fetchPolicy: 'no-cache',
+            })
 
-                const mods = res.data?.getMod
-                if (!mods || mods.length === 0) {
-                    console.error('Invalid response format for getMod:', res.data)
-                    return
-                }
-
-                setMod(mods)
-
-                const latest = mods[0]
-                if (!app.mod.installed || !app.mod.version) {
-                    toast.custom('info', t('mod.notInstalledTitle'), t('mod.availableVersion', { version: latest.modVersion }))
-                    return
-                }
-                if (compareVersions(latest.modVersion, app.mod.version) > 0) {
-                    const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
-                    if (lastNotifiedModVersion !== latest.modVersion) {
-                        window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                            title: t('mod.updateAvailableTitle'),
-                            body: t('mod.updateAvailableBody', { version: latest.modVersion }),
-                        })
-                        localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
-                    }
-                } else {
-                    toast.custom('info', t('common.allGoodTitle'), t('mod.latestInstalled'))
-                }
-            } catch (e) {
-                console.error('Failed to fetch mod info:', e)
+            const mods = res.data?.getMod
+            if (!mods || mods.length === 0) {
+                console.error('Invalid response format for getMod:', res.data)
+                return
             }
-        },
-        [t],
-    )
+
+            setMod(mods)
+
+            const latest = mods[0]
+            if (!app.mod.installed || !app.mod.version) {
+                toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
+                return
+            }
+            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+                const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
+                if (lastNotifiedModVersion !== latest.modVersion) {
+                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                        title: tRef.current('mod.updateAvailableTitle'),
+                        body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
+                    })
+                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                }
+            } else {
+                toast.custom('info', tRef.current('common.allGoodTitle'), tRef.current('mod.latestInstalled'))
+            }
+        } catch (e) {
+            console.error('Failed to fetch mod info:', e)
+        }
+    }, [])
 
     useEffect(() => {
         if (user.id !== '-1') {
