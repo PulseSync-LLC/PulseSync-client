@@ -71,7 +71,18 @@ export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
         const now = Date.now()
+        const optionId = typeof options?.id === 'string' ? options.id : null
 
+        if (optionId) {
+            const existing = queue.find(t => t.id === optionId)
+            if (existing) {
+                Object.assign(existing, { kind, title, msg, value, duration, sticky, ts: now })
+                sortQueue()
+                emit()
+                ensureStack(options)
+                return existing.id
+            }
+        }
         if (sticky) {
             const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
             if (existing) {
@@ -82,7 +93,7 @@ export const iToast = {
             }
         }
 
-        const id = `t-${now}-${Math.random()}`
+        const id = optionId ?? `t-${now}-${Math.random()}`
         queue.push({
             id,
             kind,
@@ -102,7 +113,11 @@ export const iToast = {
     update(id: string, patch: Partial<Omit<ToastData, 'id' | 'ts'>>) {
         const t = queue.find(x => x.id === id)
         if (!t) return
-        Object.assign(t, patch, { ts: Date.now() })
+        const nextPatch = { ...patch }
+        if (typeof patch.kind !== 'undefined' && typeof patch.sticky === 'undefined') {
+            nextPatch.sticky = STICKY_SET.has(patch.kind)
+        }
+        Object.assign(t, nextPatch, { ts: Date.now() })
         sortQueue()
         emit()
     },
@@ -271,14 +286,6 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             return () => clearTimeout(t)
         }
     }, [show, sticky, duration, memoizedOnDismiss])
-
-    useEffect(() => {
-        if (sticky && (value ?? 0) >= 100) {
-            setShow(false)
-            toast.dismiss(data.id)
-            setTimeout(onDismiss, 220)
-        }
-    }, [sticky, value, data.id])
 
     useEffect(() => {
         if (closingAll) {

@@ -6,7 +6,7 @@ import config from './config.json'
 import nodeExternals from 'rollup-plugin-node-externals'
 
 export default defineConfig(({ mode }) => {
-    const isDevMode = process.env.NODE_ENV === 'development'
+    const isDevMode = mode === 'development'
     const shouldUploadToSentry = process.env.SENTRY_UPLOAD === 'true'
     const isProd = mode === 'production' && shouldUploadToSentry
 
@@ -26,6 +26,8 @@ export default defineConfig(({ mode }) => {
         define: {
             'process.env.BRANCH': JSON.stringify((packageJson as any).buildInfo?.BRANCH),
             'process.env.VERSION': JSON.stringify(packageJson.version),
+            'import.meta.env.DEV': JSON.stringify(isDevMode),
+            'import.meta.env.PROD': JSON.stringify(!isDevMode),
             __non_vite_require__: 'require',
         },
 

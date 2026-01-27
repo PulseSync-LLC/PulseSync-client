@@ -103,12 +103,14 @@ export async function writePatchedAsarAndPatchBundle(
 ): Promise<boolean> {
     let asarBuf: Buffer = rawDownloaded
     const ext = path.extname(new URL(link).pathname).toLowerCase()
+    const isCompressed = ext === '.gz' || ext === '.zst' || ext === '.zstd'
     if (ext === '.gz') asarBuf = await gunzipAsync(rawDownloaded)
     else if (ext === '.zst' || ext === '.zstd') asarBuf = (await zstdDecompressAsync(rawDownloaded as any)) as any
     if (expectedChecksum) {
-        const actualHash = crypto.createHash('sha256').update(asarBuf).digest('hex')
+        const checksumTarget = isCompressed ? rawDownloaded : asarBuf
+        const actualHash = crypto.createHash('sha256').update(checksumTarget).digest('hex')
         if (actualHash !== expectedChecksum) {
-            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${asarBuf.length} bytes, URL: ${link}`)
+            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${checksumTarget.length} bytes, URL: ${link}`)
             throw new DownloadError(
                 `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${actualHash.substring(0, 8)}...)`,
                 'checksum_mismatch',

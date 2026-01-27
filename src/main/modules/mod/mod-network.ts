@@ -146,7 +146,7 @@ export async function downloadAndUpdateFile(
     cacheDir?: string,
 ): Promise<boolean> {
     try {
-        if (checksum && fs.existsSync(savePath)) {
+        if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
             const buf = fs.readFileSync(savePath)
             const currentHash = sha256Hex(buf)
             if (currentHash === checksum) {
@@ -166,7 +166,7 @@ export async function downloadAndUpdateFile(
             window,
             url: link,
             tempFilePath,
-            expectedChecksum: isCompressedArchiveLink(link) ? undefined : checksum,
+            expectedChecksum: checksum,
             userAgent: ua,
             progressScale: 0.6,
             rejectUnauthorized: false,

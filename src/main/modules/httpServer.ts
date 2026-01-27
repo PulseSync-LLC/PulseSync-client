@@ -25,6 +25,7 @@ let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
+let isStarting = false
 const State = getState()
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
@@ -55,9 +56,23 @@ const closeServer = async (): Promise<void> => {
 const startSocketServer = async () => {
     if (!isFirstInstance) return
 
+    if (io && server) {
+        logger.http.log('startSocketServer skipped: already running')
+        return
+    }
+    if (isStarting) {
+        logger.http.log('startSocketServer skipped: already starting')
+        return
+    }
+
+    isStarting = true
     logger.http.log('startSocketServer called. io:', !!io, 'server:', !!server)
-    await closeServer()
-    initializeServer()
+    try {
+        await closeServer()
+        initializeServer()
+    } finally {
+        isStarting = false
+    }
 }
 
 const stopSocketServer = async () => {

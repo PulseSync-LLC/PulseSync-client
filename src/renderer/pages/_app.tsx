@@ -78,6 +78,7 @@ function App() {
     const toastReference = useRef<string | null>(null)
     const realtimeSocketRef = useRef<Socket | null>(null)
     const zstdRef = useRef<any>(null)
+    const websocketStartedRef = useRef(false)
     const [zstdReady, setZstdReady] = useState(false)
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
@@ -551,6 +552,17 @@ function App() {
 
     useEffect(() => {
         if (typeof window === 'undefined') return
+
+        if (!websocketStartedRef.current) {
+            websocketStartedRef.current = true
+            window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
+        }
+
+        return () => {}
+    }, [])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
         const checkAuthorization = async () => {
             await authorize()
         }
@@ -579,7 +591,6 @@ function App() {
             await authorize()
         }
 
-        window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
         window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
         window.addEventListener('mouseup', handleMouseButton)
         window.addEventListener('beforeunload', handleBeforeunload)

@@ -317,4 +317,18 @@ export const modManager = (window: BrowserWindow): void => {
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })
         }
     })
+    ipcMain.on(MainEvents.CLEAR_MOD_CACHE, async () => {
+        try {
+            if (fs.existsSync(CACHE_DIR)) {
+                await fs.promises.rm(CACHE_DIR, { recursive: true, force: true })
+            }
+            sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_SUCCESS, { success: true })
+        } catch (error: any) {
+            logger.modManager.error('Failed to clear mod cache:', error)
+            sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_FAILURE, {
+                success: false,
+                error: error?.message || 'Failed to clear mod cache',
+            })
+        }
+    })
 }

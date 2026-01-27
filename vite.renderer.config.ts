@@ -31,8 +31,12 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
 
     return {
         root: __dirname,
-        base: isDevMode ? '/' : '../',
+        base: isDevMode ? '/' : './',
         publicDir,
+        define: {
+            'import.meta.env.DEV': JSON.stringify(isDevMode),
+            'import.meta.env.PROD': JSON.stringify(!isDevMode),
+        },
         server: {
             fs: {
                 allow: [__dirname],
