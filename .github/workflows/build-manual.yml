@@ -1,0 +1,131 @@
+name: Build Application (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Choose build branch"
+        required: true
+        default: "test-actions"
+      build_os:
+        description: "Choose OS to build"
+        required: true
+        type: choice
+        options:
+          - all
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        default: all
+      upload_to_s3:
+        description: "Upload release/ to S3 after build"
+        required: true
+        type: boolean
+        default: true
+      s3_prefix:
+        description: "S3 prefix inside the bucket (e.g. 'builds' or 'builds/tests')"
+        required: true
+        default: "builds"
+      s3_branch:
+        description: "Subpath under prefix (e.g. 'tests', 'beta', 'alpha', 'dev')"
+        required: true
+        default: "tests"
+      publish_changelog:
+        description: "Publish changelog (API/Discord)"
+        required: true
+        type: boolean
+        default: false
+      changelog_target:
+        description: "Where to publish changelog"
+        required: true
+        type: choice
+        options:
+          - both
+          - api
+          - discord
+        default: both
+      changelog_version:
+        description: "Override version for changelog (optional)"
+        required: false
+        default: ""
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    environment: BUILD_PRODUCTION
+    strategy:
+      matrix:
+        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest"]') }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.target }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create .env (optional)
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Build (package)
+        run: yarn build:package
+        env:
+          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
+          RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
+
+      - name: Show release contents (debug)
+        shell: bash
+        run: |
+          if [ -d release ]; then
+            echo "release/ files:"
+            find release -maxdepth 2 -type f | sort
+          else
+            echo "release/ not found"; exit 1
+          fi
+
+      - name: Upload release/ to S3 (optional)
+        if: ${{ inputs.upload_to_s3 == true && inputs.s3_branch != '' }}
+        shell: bash
+        run: |
+          BRANCH="${{ inputs.s3_branch }}"
+          PREFIX="${{ inputs.s3_prefix }}"
+          npx -y tsx scripts/s3-upload.ts \
+            --branch "$BRANCH" \
+            --dir "release" \
+            --prefix "$PREFIX" \
+            --mac-manifest
+
+      - name: Publish changelog (optional, single-run on ubuntu)
+        if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
+        shell: bash
+        run: |
+          VERSION_ARG=""
+          if [ -n "${{ inputs.changelog_version }}" ]; then
+            VERSION_ARG="--version ${{ inputs.changelog_version }}"
+          fi
+
+          case "${{ inputs.changelog_target }}" in
+            both)
+              yarn publish:changelog $VERSION_ARG
+              ;;
+            api)
+              yarn publish:api $VERSION_ARG
+              ;;
+            discord)
+              yarn publish:discord
+              ;;
+            *)
+              echo "Unknown changelog_target"; exit 1
+              ;;
+          esac
