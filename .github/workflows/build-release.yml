@@ -1,0 +1,69 @@
+name: Build Application (Release)
+
+on:
+  release:
+    types: [created, published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    environment: BUILD_PRODUCTION
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Create .env (optional)
+        if: ${{ secrets.ENV_FILE != '' }}
+        shell: bash
+        run: |
+          cat <<'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Build (package)
+        run: yarn build:package
+        env:
+          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
+          RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
+
+      - name: Show release contents (debug)
+        shell: bash
+        run: |
+          if [ -d release ]; then
+            echo "release/ files:"
+            find release -maxdepth 2 -type f | sort
+          else
+            echo "release/ not found"; exit 1
+          fi
+
+      - name: Upload release/ to S3
+        env:
+          DEPRECATED_VERSIONS: ${{ secrets.DEPRECATED_VERSIONS }}
+          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
+          S3_BUCKET: ${{ secrets.S3_BUCKET }}
+          S3_REGION: ${{ secrets.S3_REGION }}
+          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
+          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
+          S3_MAX_ATTEMPTS: ${{ secrets.S3_MAX_ATTEMPTS }}
+          S3_URL: ${{ secrets.S3_URL }}
+        shell: bash
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          PREFIX="builds/releases"
+          npx -y tsx scripts/s3-upload.ts \
+            --branch "$BRANCH" \
+            --dir "release" \
+            --prefix "$PREFIX" \
+            --mac-manifest

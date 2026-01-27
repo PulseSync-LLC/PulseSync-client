@@ -1,13 +1,22 @@
-name: Build Application
+name: Build Application (Manual)
 
 on:
-  pull_request:
   workflow_dispatch:
     inputs:
       target:
         description: "Choose build branch"
         required: true
         default: "test-actions"
+      build_os:
+        description: "Choose OS to build"
+        required: true
+        type: choice
+        options:
+          - all
+          - ubuntu-latest
+          - windows-latest
+          - macos-latest
+        default: all
       upload_to_s3:
         description: "Upload release/ to S3 after build"
         required: true
@@ -46,16 +55,24 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest"]') }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.target || '' }}
+          ref: ${{ inputs.target }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+
+      - name: Create .env (optional)
+        if: ${{ secrets.ENV_FILE != '' }}
+        shell: bash
+        run: |
+          cat <<'EOF' > .env
+          ${{ secrets.ENV_FILE }}
+          EOF
 
       - name: Install deps
         run: yarn install --frozen-lockfile
@@ -77,7 +94,7 @@ jobs:
           fi
 
       - name: Upload release/ to S3 (optional)
-        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.upload_to_s3 == true && inputs.s3_branch != '') || github.event_name == 'pull_request' }}
+        if: ${{ inputs.upload_to_s3 == true && inputs.s3_branch != '' }}
         env:
           DEPRECATED_VERSIONS: ${{ secrets.DEPRECATED_VERSIONS }}
           S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
@@ -89,13 +106,8 @@ jobs:
           S3_URL: ${{ secrets.S3_URL }}
         shell: bash
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            BRANCH="${{ inputs.s3_branch }}"
-            PREFIX="${{ inputs.s3_prefix }}"
-          else
-            BRANCH="${{ github.head_ref }}"
-            PREFIX="builds/pr"
-          fi
+          BRANCH="${{ inputs.s3_branch }}"
+          PREFIX="${{ inputs.s3_prefix }}"
           npx -y tsx scripts/s3-upload.ts \
             --branch "$BRANCH" \
             --dir "release" \
@@ -103,7 +115,7 @@ jobs:
             --mac-manifest
 
       - name: Publish changelog (optional, single-run on ubuntu)
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
+        if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
         env:
           CDN_API_URL: ${{ secrets.CDN_API_URL }}
           CDN_API_TOKEN: ${{ secrets.CDN_API_TOKEN }}
