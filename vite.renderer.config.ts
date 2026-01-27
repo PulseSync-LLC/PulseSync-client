@@ -6,7 +6,6 @@ import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 import packageJson from './package.json'
-import config from './config.json'
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
