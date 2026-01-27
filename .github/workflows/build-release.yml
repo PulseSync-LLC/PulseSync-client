@@ -22,12 +22,13 @@ jobs:
           node-version: 22
 
       - name: Create .env (optional)
-        if: ${{ secrets.ENV_FILE != '' }}
         shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
         run: |
-          cat <<'EOF' > .env
-          ${{ secrets.ENV_FILE }}
-          EOF
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
 
       - name: Install deps
         run: yarn install --frozen-lockfile
@@ -49,15 +50,6 @@ jobs:
           fi
 
       - name: Upload release/ to S3
-        env:
-          DEPRECATED_VERSIONS: ${{ secrets.DEPRECATED_VERSIONS }}
-          S3_ENDPOINT: ${{ secrets.S3_ENDPOINT }}
-          S3_BUCKET: ${{ secrets.S3_BUCKET }}
-          S3_REGION: ${{ secrets.S3_REGION }}
-          S3_ACCESS_KEY_ID: ${{ secrets.S3_ACCESS_KEY_ID }}
-          S3_SECRET_ACCESS_KEY: ${{ secrets.S3_SECRET_ACCESS_KEY }}
-          S3_MAX_ATTEMPTS: ${{ secrets.S3_MAX_ATTEMPTS }}
-          S3_URL: ${{ secrets.S3_URL }}
         shell: bash
         run: |
           BRANCH="${{ github.ref_name }}"

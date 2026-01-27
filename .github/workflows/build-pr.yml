@@ -18,24 +18,13 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create .env (optional)
-        if: ${{ secrets.ENV_FILE != '' }}
-        shell: bash
-        run: |
-          cat <<'EOF' > .env
-          ${{ secrets.ENV_FILE }}
-          EOF
-
       - name: Install deps
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
         run: yarn build:package
-        env:
-          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
-          RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
 
-      - name: Show release contents
+      - name: Show release contents (debug)
         shell: bash
         run: |
           if [ -d release ]; then
