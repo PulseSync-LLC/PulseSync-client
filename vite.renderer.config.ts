@@ -94,7 +94,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                       sentryVitePlugin({
                           org: 'pulsesync',
                           project: 'electron',
-                          authToken: (config as any).SENTRY_KEY,
+                          authToken: process.env.SENTRY_KEY,
                           release: {
                               name: `pulsesync@${packageJson.version}`,
                           },
