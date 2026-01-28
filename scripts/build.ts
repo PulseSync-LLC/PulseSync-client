@@ -201,8 +201,18 @@ async function main(): Promise<void> {
         const nmDir = path.resolve(__dirname, '../nativeModules')
         log(LogLevel.INFO, `Building native modules in ${nmDir}`)
         const modules = fs.readdirSync(nmDir).filter(name => fs.statSync(path.join(nmDir, name)).isDirectory())
+        const windowsOnlyModules = new Set(['checkAccess'])
         for (const mod of modules) {
             const fullPath = path.join(nmDir, mod)
+            const packageJsonPath = path.join(fullPath, 'package.json')
+            if (!fs.existsSync(packageJsonPath)) {
+                log(LogLevel.WARN, `Skipping native module "${mod}" (package.json not found)`)
+                continue
+            }
+            if (os.platform() !== 'win32' && windowsOnlyModules.has(mod)) {
+                log(LogLevel.WARN, `Skipping native module "${mod}" (Windows-only)`)
+                continue
+            }
             await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)
         }
         log(LogLevel.SUCCESS, 'All native modules built successfully')
