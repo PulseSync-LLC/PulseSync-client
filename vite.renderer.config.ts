@@ -6,7 +6,6 @@ import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 import packageJson from './package.json'
-import config from './config.json'
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -94,7 +93,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                       sentryVitePlugin({
                           org: 'pulsesync',
                           project: 'electron',
-                          authToken: (config as any).SENTRY_KEY,
+                          authToken: process.env.SENTRY_KEY,
                           release: {
                               name: `pulsesync@${packageJson.version}`,
                           },

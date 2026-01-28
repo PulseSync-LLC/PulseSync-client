@@ -2,7 +2,6 @@ import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { defineConfig } from 'vite'
 import path from 'path'
 import packageJson from './package.json'
-import config from './config.json'
 import nodeExternals from 'rollup-plugin-node-externals'
 
 export default defineConfig(({ mode }) => {
@@ -50,7 +49,7 @@ export default defineConfig(({ mode }) => {
                       sentryVitePlugin({
                           org: 'pulsesync',
                           project: 'electron',
-                          authToken: (config as any).SENTRY_KEY,
+                          authToken: process.env.SENTRY_KEY,
                           release: {
                               name: `pulsesync@${packageJson.version}`,
                           },
