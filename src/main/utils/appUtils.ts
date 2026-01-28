@@ -177,7 +177,21 @@ export function getYandexMusicAppDataPath(): string {
             return ''
     }
 }
-
+export function getYandexMusicLogsPath(): string {
+    const home = os.homedir()
+    switch (os.platform()) {
+        case 'darwin':
+            return path.join(home, 'Library', 'Logs', 'YandexMusic')
+        case 'win32':
+            return path.join(process.env.APPDATA || '', 'YandexMusic', 'logs')
+        case 'linux': {
+            const xdg = process.env.XDG_CONFIG_HOME || path.join(home, '.config')
+            return path.join(xdg, 'YandexMusic', 'logs')
+        }
+        default:
+            return ''
+    }
+}
 export async function copyFile(target: string, dest: string): Promise<void> {
     try {
         await fsp.copyFile(target, dest)
