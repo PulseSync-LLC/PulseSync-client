@@ -80,7 +80,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
+        run: yarn build:package ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
           RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}

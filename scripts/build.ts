@@ -25,11 +25,13 @@ const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
 if (publishIndex !== -1) {
     if (process.argv.length > publishIndex + 1) {
-        const candidate = process.argv[publishIndex + 1]
-        if (['beta', 'alpha', 'dev'].includes(candidate)) {
+        const candidate = process.argv[publishIndex + 1].trim().toLowerCase()
+        if (/^[a-z0-9][a-z0-9-]*$/u.test(candidate)) {
             publishBranch = candidate
         } else {
-            console.error(chalk.red(`[ERROR] Invalid publish branch "${candidate}". Allowed: beta, alpha, dev.`))
+            console.error(
+                chalk.red(`[ERROR] Invalid publish branch "${candidate}". Use only letters, numbers, and dashes (e.g. beta, alpha, dev, tests).`),
+            )
             process.exit(1)
         }
     } else {
