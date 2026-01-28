@@ -4,7 +4,6 @@ import * as fs from 'original-fs'
 import crypto from 'crypto'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
-import { deleteFfmpeg, installFfmpeg } from '../../utils/ffmpeg-installer'
 import { getState } from '../state'
 import logger from '../logger'
 import {
@@ -273,7 +272,6 @@ export const modManager = (window: BrowserWindow): void => {
                 const versionFilePath = path.join(paths.music, 'version')
                 await fs.promises.writeFile(versionFilePath, musicVersion)
 
-                await installFfmpeg(window)
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
             } catch (error: any) {
                 logger.modManager.error('Unexpected error:', error)
@@ -309,7 +307,6 @@ export const modManager = (window: BrowserWindow): void => {
             const unpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
             removeUnpackedDir(unpackedDir)
 
-            await deleteFfmpeg()
 
             await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {

@@ -53,7 +53,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
-    const ffmpegToastIdRef = useRef<string | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
@@ -280,54 +279,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [musicInstalled, setApp, setMusicInstalled, t])
 
-    useEffect(() => {
-        if ((window as any).__ffmpegListenersAdded) return
-        ;(window as any).__ffmpegListenersAdded = true
-
-        const handleFfmpegStatus = (_: any, { message, progress, success }: { message: string; progress: number; success?: boolean }) => {
-            if (ffmpegToastIdRef.current) {
-                if (success) {
-                    toast.update(ffmpegToastIdRef.current, {
-                        kind: 'success',
-                        title: t('layout.ffmpegInstalledTitle'),
-                        msg: message,
-                        sticky: false,
-                        value: undefined,
-                    })
-                } else if (progress === 100 && !success) {
-                    toast.update(ffmpegToastIdRef.current, {
-                        kind: 'error',
-                        title: t('layout.installErrorTitle'),
-                        msg: message,
-                        sticky: false,
-                        value: undefined,
-                    })
-                } else {
-                    toast.update(ffmpegToastIdRef.current, {
-                        title: t('layout.ffmpegInstallProgress', { progress }),
-                        msg: message,
-                        value: progress,
-                    })
-                }
-            } else {
-                if (success) {
-                    toast.custom('success', t('layout.ffmpegInstalledTitle'), message)
-                } else if (progress === 100 && !success) {
-                    toast.custom('error', t('layout.installErrorTitle'), message)
-                } else {
-                    const id = toast.custom('loading', t('layout.ffmpegInstallProgress', { progress }), message, { duration: Infinity }, progress)
-                    ffmpegToastIdRef.current = id
-                }
-            }
-        }
-
-        window.desktopEvents?.on(RendererEvents.FFMPEG_DOWNLOAD_STATUS, handleFfmpegStatus)
-
-        return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.FFMPEG_DOWNLOAD_STATUS)
-            ;(window as any).__ffmpegListenersAdded = false
-        }
-    }, [t])
 
     const updateYandexMusic = useCallback(() => {
         if (isMusicUpdating) {

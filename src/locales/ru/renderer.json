@@ -416,8 +416,6 @@
     "downloading": "Загружаю",
     "errorOccurred": "Произошла ошибка",
     "errorWithMessage": "Ошибка: {{message}}",
-    "ffmpegInstallProgress": "Установка FFmpeg: {{progress}}%",
-    "ffmpegInstalledTitle": "FFmpeg установлен",
     "forceInstallAction": "Все равно установить",
     "forceUpdateAction": "Все равно обновить",
     "infoTitle": "Информация.",

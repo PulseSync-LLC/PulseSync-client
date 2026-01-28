@@ -91,17 +91,6 @@
       "yandexUninstallSuccess": "Yandex Music removed",
       "yandexUninstallSuccessMessage": "Yandex Music removed"
     },
-    "ffmpeg": {
-      "downloading": "Downloading FFmpeg...",
-      "extractComplete": "Extraction complete",
-      "extracting": "Extracting archive...",
-      "foundInStorage": "FFmpeg found in storage, installing...",
-      "installError": "Install error: {{message}}",
-      "installSuccess": "FFmpeg installed successfully",
-      "installing": "Installing FFmpeg...",
-      "pathError": "Error getting path:",
-      "platformNotSupported": "Platform not supported"
-    },
     "handleErrors": {
       "internalError": "Error inside ErrorService.handleError:",
       "writeCrashLogError": "Error writing crash.log:"

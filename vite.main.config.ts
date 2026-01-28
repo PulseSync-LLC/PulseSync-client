@@ -3,6 +3,7 @@ import { defineConfig } from 'vite'
 import path from 'path'
 import packageJson from './package.json'
 import nodeExternals from 'rollup-plugin-node-externals'
+import { createDeleteSourceMapsPlugin } from './vite/deleteSourceMapsPlugin'
 
 export default defineConfig(({ mode }) => {
     const isDevMode = mode === 'development'
@@ -12,6 +13,7 @@ export default defineConfig(({ mode }) => {
     return {
         build: {
             sourcemap: isDevMode || shouldUploadToSentry,
+            outDir: path.resolve(__dirname, `.vite/main`),
             rollupOptions: {
                 external: ['electron', 'original-fs'],
                 output: {
@@ -62,8 +64,11 @@ export default defineConfig(({ mode }) => {
                               console.warn(err)
                           },
                       }),
+                      createDeleteSourceMapsPlugin(path.resolve(__dirname, '.vite/main')),
                   ]
-                : []),
+                : shouldUploadToSentry
+                  ? [createDeleteSourceMapsPlugin('.vite')]
+                  : []),
         ],
     }
 })

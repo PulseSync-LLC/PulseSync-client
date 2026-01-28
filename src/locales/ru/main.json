@@ -91,17 +91,6 @@
       "yandexUninstallSuccess": "Яндекс Музыка удалена",
       "yandexUninstallSuccessMessage": "Яндекс Музыка удалена"
     },
-    "ffmpeg": {
-      "downloading": "Загрузка FFmpeg...",
-      "extractComplete": "Распаковка завершена",
-      "extracting": "Распаковка архива...",
-      "foundInStorage": "FFmpeg найден в хранилище, устанавливаю...",
-      "installError": "Ошибка установки: {{message}}",
-      "installSuccess": "FFmpeg успешно установлен",
-      "installing": "Установка FFmpeg...",
-      "pathError": "Ошибка при получении пути:",
-      "platformNotSupported": "Платформа не поддерживается"
-    },
     "handleErrors": {
       "internalError": "Ошибка внутри ErrorService.handleError:",
       "writeCrashLogError": "Ошибка записи в crash.log:"

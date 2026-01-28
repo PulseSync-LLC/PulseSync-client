@@ -1,11 +1,12 @@
 import { sentryVitePlugin,  } from '@sentry/vite-plugin'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react-swc'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
 import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 import packageJson from './package.json'
+import { createDeleteSourceMapsPlugin } from './vite/deleteSourceMapsPlugin'
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -108,8 +109,11 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                               console.warn(err)
                           },
                       }),
+                      createDeleteSourceMapsPlugin(path.resolve(__dirname, `.vite/renderer/${name}`)),
                   ]
-                : []),
+                : shouldUploadToSentry
+                  ? [createDeleteSourceMapsPlugin('.vite')]
+                  : []),
         ],
         resolve: {
             alias: {

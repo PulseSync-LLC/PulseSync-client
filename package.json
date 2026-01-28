@@ -4,8 +4,8 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.10.1-beta",
-    "main": ".vite/build/index.js",
+    "version": "2.10.0-beta",
+    "main": ".vite/main/index.js",
     "scripts": {
         "start": "electron-forge start",
         "build:package": "ts-node scripts/build.ts --application --debug",
@@ -56,7 +56,7 @@
         "@types/yazl": "^3.3.0",
         "@typescript-eslint/eslint-plugin": "^8.54.0",
         "@typescript-eslint/parser": "^8.54.0",
-        "@vitejs/plugin-react": "^5.1.2",
+        "@vitejs/plugin-react-swc": "^4.2.2",
         "electron": "40.0.0",
         "electron-builder": "^26.4.0",
         "eslint": "^9.39.2",
@@ -145,9 +145,9 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.10.0-beta",
-        "BRANCH": "a5dbd0c",
-        "BUILD_TIME": "28.01.2026, 19:50:30"
+        "VERSION": "2.10.1-beta",
+        "BRANCH": "494798f",
+        "BUILD_TIME": "28.01.2026, 21:08:29"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

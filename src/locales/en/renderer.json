@@ -416,8 +416,6 @@
     "downloading": "Downloading",
     "errorOccurred": "An error occurred",
     "errorWithMessage": "Error: {{message}}",
-    "ffmpegInstallProgress": "Installing FFmpeg: {{progress}}%",
-    "ffmpegInstalledTitle": "FFmpeg installed",
     "forceInstallAction": "Install anyway",
     "forceUpdateAction": "Update anyway",
     "infoTitle": "Info.",

@@ -10,6 +10,7 @@
     "vite.main.config.ts",
     "vite.preload.config.ts",
     "vite.renderer.config.ts",
+    "vite/deleteSourceMapsPlugin.ts",
     "forge.config.ts",
     "scripts/build.ts",
     "scripts/changelog-publish.ts",
