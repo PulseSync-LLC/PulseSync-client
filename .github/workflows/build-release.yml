@@ -34,7 +34,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
+        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
           RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}

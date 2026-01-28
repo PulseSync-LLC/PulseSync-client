@@ -18,6 +18,7 @@ const buildOnlyInstaller = process.argv.includes('--installer') || process.argv.
 const buildApplication = process.argv.includes('--application') || process.argv.includes('-app')
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
+const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -365,7 +366,9 @@ async function main(): Promise<void> {
             if (os.platform() === 'darwin') {
                 await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
             }
-            await publishChangelogToApi(version)
+            if (publishChangelogFlag) {
+                await publishChangelogToApi(version)
+            }
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
