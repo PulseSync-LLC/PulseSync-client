@@ -8,6 +8,7 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
+import iconv from 'iconv-lite'
 import { publishToS3, generateAndPublishMacDownloadJson } from './s3-upload'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
 
@@ -172,6 +173,22 @@ function setConfigBranch(branch: string) {
     log(LogLevel.SUCCESS, `Set branch=${branch} in web_config.ts`)
 }
 
+function convertLicenseToCp1251(): (() => void) | null {
+    const licensePath = path.resolve(__dirname, '../license_ru.txt')
+    if (!fs.existsSync(licensePath)) {
+        log(LogLevel.WARN, `License file not found at ${licensePath}, skipping cp-1251 conversion`)
+        return null
+    }
+    const originalContent = fs.readFileSync(licensePath, 'utf-8')
+    const encoded = iconv.encode(originalContent, 'windows-1251')
+    fs.writeFileSync(licensePath, encoded)
+    log(LogLevel.SUCCESS, 'Converted license_ru.txt to cp-1251 encoding')
+    return () => {
+        fs.writeFileSync(licensePath, originalContent, 'utf-8')
+        log(LogLevel.SUCCESS, 'Restored license_ru.txt to utf-8 encoding')
+    }
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -239,7 +256,12 @@ async function main(): Promise<void> {
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
-        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}" --config "${tmpPath}"`)
+        const restoreLicense = convertLicenseToCp1251()
+        try {
+            await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}" --config "${tmpPath}"`)
+        } finally {
+            restoreLicense?.()
+        }
         fs.unlinkSync(tmpPath)
         log(LogLevel.SUCCESS, 'Done')
         return
@@ -350,23 +372,28 @@ async function main(): Promise<void> {
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
-        if (os.platform() === 'darwin') {
-            if (macX64Build) {
-                await runCommandStep(
-                    'Build (electron-builder:x64)',
-                    `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
-                )
+        const restoreLicense = convertLicenseToCp1251()
+        try {
+            if (os.platform() === 'darwin') {
+                if (macX64Build) {
+                    await runCommandStep(
+                        'Build (electron-builder:x64)',
+                        `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
+                    )
+                } else {
+                    await runCommandStep(
+                        'Build (electron-builder:arm64)',
+                        `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
+                    )
+                }
             } else {
                 await runCommandStep(
-                    'Build (electron-builder:arm64)',
-                    `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
+                    'Build (electron-builder)',
+                    `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}" --config "${tmpPath}" --publish never`,
                 )
             }
-        } else {
-            await runCommandStep(
-                'Build (electron-builder)',
-                `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}" --config "${tmpPath}" --publish never`,
-            )
+        } finally {
+            restoreLicense?.()
         }
 
         fs.unlinkSync(tmpPath)
