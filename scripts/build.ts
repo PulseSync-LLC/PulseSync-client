@@ -209,10 +209,25 @@ async function main(): Promise<void> {
         const productName = getProductNameFromConfig()
         const pdPath =
             os.platform() === 'darwin'
-                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64', `${productName}.app`)
+                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
 
-        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}"`)
+        const builderBase = path.resolve(__dirname, '../electron-builder.yml')
+        const baseYml = fs.readFileSync(builderBase, 'utf-8')
+        const configObj = yaml.load(baseYml) as any
+        if (os.platform() === 'darwin') {
+            configObj.dmg = configObj.dmg || {}
+            configObj.dmg.contents = [
+                { x: 130, y: 220, type: 'file', path: path.resolve(pdPath, `${productName}.app`) },
+                { x: 410, y: 220, type: 'link', path: '/Applications' },
+            ]
+        }
+        const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
+        const tmpPath = path.join(os.tmpdir(), tmpName)
+        fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
+
+        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}" --config "${tmpPath}"`)
+        fs.unlinkSync(tmpPath)
         log(LogLevel.SUCCESS, 'Done')
         return
     }
@@ -264,13 +279,7 @@ async function main(): Promise<void> {
             copyNodes(nativeDir)
 
             if (os.platform() === 'linux') {
-                const builderBaseForName = path.resolve(__dirname, '../electron-builder.yml')
-                let productNameFromYml = 'PulseSync'
-                try {
-                    const cfgRaw = fs.readFileSync(builderBaseForName, 'utf-8')
-                    const cfg = yaml.load(cfgRaw) as any
-                    if (cfg && typeof cfg.productName === 'string') productNameFromYml = cfg.productName
-                } catch {}
+                const productNameFromYml = getProductNameFromConfig()
 
                 const currentBinUpper = path.join(outDir, productNameFromYml)
                 const targetBinLower = path.join(outDir, desiredLinuxExeName)
@@ -313,6 +322,15 @@ async function main(): Promise<void> {
             configObj.extraMetadata = configObj.extraMetadata || {}
             configObj.extraMetadata.branch = publishBranch
             configObj.extraMetadata.version = version
+        }
+
+        if (os.platform() === 'darwin') {
+            const productName = getProductNameFromConfig()
+            configObj.dmg = configObj.dmg || {}
+            configObj.dmg.contents = [
+                { x: 130, y: 220, type: 'file', path: path.resolve(outDir, `${productName}.app`) },
+                { x: 410, y: 220, type: 'link', path: '/Applications' },
+            ]
         }
 
         const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
