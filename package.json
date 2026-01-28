@@ -61,6 +61,7 @@
         "electron-builder": "^26.4.0",
         "eslint": "^9.39.2",
         "eslint-plugin-import": "^2.32.0",
+        "iconv-lite": "^0.7.2",
         "prettier": "^3.8.1",
         "rollup-plugin-node-externals": "^8.1.2",
         "sass": "^1.97.3",
@@ -145,9 +146,9 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.10.1-beta",
-        "BRANCH": "494798f",
-        "BUILD_TIME": "28.01.2026, 21:08:29"
+        "VERSION": "2.10.0-beta",
+        "BRANCH": "5b6e718",
+        "BUILD_TIME": "29.01.2026, 00:04:20"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

@@ -6,6 +6,9 @@ copyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитри
 directories:
   output: release
 
+beforePack: ./scripts/before-pack.cjs
+afterAllArtifactBuild: ./scripts/after-all-artifact-build.cjs
+
 files:
   - package.json
 
