@@ -6,7 +6,7 @@ on:
       target:
         description: "Choose build branch"
         required: true
-        default: "test-actions"
+        default: "2.10.0"
       build_os:
         description: "Choose OS to build"
         required: true
