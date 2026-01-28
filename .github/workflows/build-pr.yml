@@ -2,9 +2,11 @@ name: Build Application (PR)
 
 on:
   pull_request:
+  merge_group:
 
 jobs:
   build:
+    if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
@@ -18,11 +20,24 @@ jobs:
         with:
           node-version: 22
 
+      - name: Create .env
+        if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
       - name: Install deps
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
         run: yarn build:package
+        env:
+          CONFIG_JSON: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) && secrets.CONFIG_JSON || '' }}
+          RENDERER_CONFIG: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) && secrets.RENDERER_CONFIG || '' }}
 
       - name: Show release contents (debug)
         shell: bash

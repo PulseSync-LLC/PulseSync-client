@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: 22
 
-      - name: Create .env (optional)
+      - name: Create .env
         shell: bash
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
