@@ -95,18 +95,6 @@ jobs:
             echo "release/ not found"; exit 1
           fi
 
-      - name: Upload release/ to S3 (optional)
-        if: ${{ inputs.upload_to_s3 == true && inputs.s3_branch != '' }}
-        shell: bash
-        run: |
-          BRANCH="${{ inputs.s3_branch }}"
-          PREFIX="${{ inputs.s3_prefix }}"
-          npx -y tsx scripts/s3-upload.ts \
-            --branch "$BRANCH" \
-            --dir "release" \
-            --prefix "$PREFIX" \
-            --mac-manifest
-
       - name: Publish changelog (optional, single-run on ubuntu)
         if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
         shell: bash
