@@ -16,6 +16,7 @@ on:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+          - macos-15-intel
         default: all
       upload_to_s3:
         description: "Upload release/ to S3 after build"
@@ -55,14 +56,14 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest"]') }}
+        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest", "macos-15-intel"]') }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.target }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -79,7 +80,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package
+        run: yarn build:package ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
           RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
