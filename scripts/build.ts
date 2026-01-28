@@ -89,6 +89,18 @@ function generateBuildInfo(): { version: string } {
     return { version: newVersion }
 }
 
+function getProductNameFromConfig(): string {
+    const builderBase = path.resolve(__dirname, '../electron-builder.yml')
+    try {
+        const cfgRaw = fs.readFileSync(builderBase, 'utf-8')
+        const cfg = yaml.load(cfgRaw) as any
+        if (cfg && typeof cfg.productName === 'string') {
+            return cfg.productName
+        }
+    } catch {}
+    return 'PulseSync'
+}
+
 async function runCommandStep(name: string, command: string): Promise<void> {
     log(LogLevel.INFO, `Running step "${name}"…`)
     const start = performance.now()
@@ -194,9 +206,10 @@ async function main(): Promise<void> {
     }
 
     if (!buildNativeModules && buildOnlyInstaller && !publishBranch) {
+        const productName = getProductNameFromConfig()
         const pdPath =
             os.platform() === 'darwin'
-                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
+                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64', `${productName}.app`)
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
 
         await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}"`)
