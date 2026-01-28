@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useContext, useRef } from 'react'
 import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
 import MainEvents from '../../../common/types/mainEvents'
@@ -34,6 +34,7 @@ interface SectionConfig {
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
+    const widgetDownloadToastIdRef = useRef<string | null>(null)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
@@ -81,17 +82,48 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const downloadObsWidget = () => {
-        const toastId = toast.custom('info', t('common.waitTitle'), t('obsWidget.downloading'))
+        const handleProgress = (_: any, { progress }: { progress: number }) => {
+            if (widgetDownloadToastIdRef.current) {
+                toast.update(widgetDownloadToastIdRef.current, {
+                    kind: 'loading',
+                    title: t('obsWidget.downloading'),
+                    msg: t('layout.downloadProgressLabel'),
+                    value: progress,
+                })
+            } else {
+                const id = toast.custom('loading', t('obsWidget.downloading'), t('layout.downloadProgressLabel'), { duration: Infinity }, progress)
+                widgetDownloadToastIdRef.current = id
+            }
+        }
+
+        const cleanupListeners = () => {
+            window.desktopEvents?.removeListener(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
+        }
 
         const handleSuccess = () => {
-            toast.custom('success', t('common.doneTitle'), t('obsWidget.installSuccess'), { id: toastId })
+            cleanupListeners()
+            if (widgetDownloadToastIdRef.current) {
+                toast.custom('success', t('common.doneTitle'), t('obsWidget.installSuccess'), { id: widgetDownloadToastIdRef.current })
+                widgetDownloadToastIdRef.current = null
+            } else {
+                toast.custom('success', t('common.doneTitle'), t('obsWidget.installSuccess'))
+            }
             setWidgetInstalled(true)
         }
 
         const handleFailure = (event: any, args: any) => {
-            toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }), { id: toastId })
+            cleanupListeners()
+            if (widgetDownloadToastIdRef.current) {
+                toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }), {
+                    id: widgetDownloadToastIdRef.current,
+                })
+                widgetDownloadToastIdRef.current = null
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }))
+            }
         }
 
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
         window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_SUCCESS, handleSuccess)
         window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, handleFailure)
         window.desktopEvents?.send(MainEvents.DOWNLOAD_OBS_WIDGET)
@@ -183,9 +215,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             case 'devSocket':
                 window.electron.store.set('settings.devSocket', status)
                 console.log(status)
-                status
-                    ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
-                    : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
+                status ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START) : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
                 toast.custom('success', t('common.doneTitle'), t('settings.websocketStatusChanged'))
                 break
             case 'showModModalAfterInstall':
@@ -243,7 +273,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             }
             return {
                 ...prevApp,
-                settings: updatedSettings
+                settings: updatedSettings,
             }
         })
     }
@@ -254,7 +284,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.electron.store.set('settings.language', language)
         setApp((prevApp: SettingsInterface) => ({
             ...prevApp,
-            settings: { ...prevApp.settings, language }
+            settings: { ...prevApp.settings, language },
         }))
     }
 

@@ -8,7 +8,7 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import logger from '../logger'
 import { OBS_WIDGET_RELEASE_URL } from '../../constants/urls'
-import { sendProgress, sendToRenderer } from '../mod/download.helpers'
+import { sendToRenderer } from '../mod/download.helpers'
 import { t } from '../../i18n'
 
 const WIDGET_INSTALL_DIR = (app: any) => path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
@@ -66,7 +66,7 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
         response.data.on('data', (chunk: Buffer) => {
             downloadedLength += chunk.length
             const progress = Math.round((downloadedLength / totalLength) * 100)
-            sendProgress(window, progress)
+            sendToRenderer(window, RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, { progress })
         })
 
         await new Promise<void>((resolve, reject) => {
