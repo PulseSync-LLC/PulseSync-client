@@ -45,7 +45,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             cors: true,
         },
         build: {
-            sourcemap: isDevSourceMapMode,
+            sourcemap: isDevSourceMapMode || shouldUploadToSentry,
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: '../assets',
             emptyOutDir: true,

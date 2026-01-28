@@ -11,7 +11,7 @@ export default defineConfig(({ mode }) => {
 
     return {
         build: {
-            sourcemap: isDevMode,
+            sourcemap: isDevMode || shouldUploadToSentry,
             rollupOptions: {
                 external: ['electron', 'original-fs'],
                 output: {
