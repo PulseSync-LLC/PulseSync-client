@@ -246,20 +246,20 @@ async function main(): Promise<void> {
     }
 
     if (buildApplication) {
-        if (publishBranch && publishBranch === 'beta' && os.platform() !== 'darwin') {
+        if (publishBranch) {
             setConfigDevFalse()
-            const appUpdateConfig = {
-                provider: 'generic',
-                url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
-                channel: 'latest',
-                updaterCacheDirName: 'pulsesyncapp-updater',
-                useMultipleRangeRequest: true,
+            if (os.platform() !== 'darwin') {
+                const appUpdateConfig = {
+                    provider: 'generic',
+                    url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
+                    channel: 'latest',
+                    updaterCacheDirName: 'pulsesyncapp-updater',
+                    useMultipleRangeRequest: true,
+                }
+                const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
+                fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
+                log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
             }
-            const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
-            fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
-            log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
-        } else if (publishBranch && publishBranch === 'beta' && os.platform() === 'darwin') {
-            setConfigDevFalse()
         }
 
         const baseOutDir = path.join('.', 'out')
