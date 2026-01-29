@@ -58,6 +58,11 @@ const schema = {
                 description: t('main.storage.discordRpc.showTrackVersion'),
                 default: false,
             },
+            supporterHideBranding: {
+                type: 'boolean',
+                description: t('main.storage.discordRpc.supporterHideBranding'),
+                default: false,
+            },
             showSmallIcon: {
                 type: 'boolean',
                 description: t('main.storage.discordRpc.showSmallIcon'),
@@ -83,6 +88,7 @@ const schema = {
             'displayPause',
             'showVersionOrDevice',
             'showTrackVersion',
+            'supporterHideBranding',
             'showSmallIcon',
             'enableRpcButtonListen',
             'enableWebsiteButton',
@@ -97,6 +103,7 @@ const schema = {
             displayPause: false,
             showVersionOrDevice: false,
             showTrackVersion: false,
+            supporterHideBranding: false,
             showSmallIcon: false,
             enableRpcButtonListen: true,
             enableWebsiteButton: true,

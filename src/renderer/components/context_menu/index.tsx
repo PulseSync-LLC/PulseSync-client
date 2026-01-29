@@ -5,6 +5,8 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
 import ArrowContext from '../../assets/icons/arrowContext.svg'
+import { MdFolderOpen } from 'react-icons/md'
+
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import store from '../../api/store/store'
@@ -338,7 +340,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const buttonConfigs: SectionConfig[] = [
         createContentSection(
             <button className={menuStyles.contextButton} onClick={openAppDirectory}>
-                {t('contextMenu.appDirectory')}
+                <span>{t('contextMenu.appDirectory')}</span>
+                <MdFolderOpen size={18} />
             </button>,
         ),
         createButtonSection(t('contextMenu.obsWidget.title'), [

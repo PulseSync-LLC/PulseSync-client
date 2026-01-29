@@ -42,6 +42,7 @@ export interface discordRpc {
     enableWebsiteButton: boolean
     enableDeepLink: boolean
     showTrackVersion: boolean
+    supporterHideBranding: boolean
 }
 
 export default interface SettingsInterface {

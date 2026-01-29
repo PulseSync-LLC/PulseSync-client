@@ -40,6 +40,7 @@ export default function TrackInfoPage() {
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
+    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
         appId: app.discordRpc.appId || '',
@@ -265,6 +266,16 @@ export default function TrackInfoPage() {
                                 label={t('trackInfo.special.showPausedLabel')}
                                 checkType="displayPause"
                                 description={t('trackInfo.special.showPausedDescription')}
+                            />
+                            <ButtonInput
+                                label={t('trackInfo.special.supporterHideBrandingLabel')}
+                                checkType="supporterHideBranding"
+                                description={
+                                    hasSupporter
+                                        ? t('trackInfo.special.supporterHideBrandingDescription')
+                                        : t('trackInfo.special.supporterHideBrandingLockedDescription')
+                                }
+                                disabled={!hasSupporter}
                             />
                         </div>
                     </div>

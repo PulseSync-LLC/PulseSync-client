@@ -134,13 +134,14 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
     const isGenerative = typeof t.id === 'string' && t.id.includes('generative')
     const withSmall = settings.discordRpc.showSmallIcon
     const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+    const hideBranding = Boolean(settings.discordRpc.supporterHideBranding && hasSupporter)
 
     const base: SetActivity = {
         type: 2,
         statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
         largeImageKey: getCoverImage(t),
-        largeImageText: hasSupporter ? '' : stripAfterDash(`PulseSync ${settings.info.version}`),
-        largeImageUrl: hasSupporter ? undefined : 'https://pulsesync.dev',
+        largeImageText: hideBranding ? '' : stripAfterDash(`PulseSync ${settings.info.version}`),
+        largeImageUrl: hideBranding ? undefined : 'https://pulsesync.dev',
     }
 
     if (album?.title && album.title !== t.title) {
