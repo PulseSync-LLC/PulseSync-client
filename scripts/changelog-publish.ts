@@ -66,6 +66,43 @@ function readPkgVersion(): string {
     return pkg.version
 }
 
+function looksLikeCloudflareChallenge(htmlOrText: string): boolean {
+    const s = (htmlOrText || '').toLowerCase()
+    return (
+        s.includes('just a moment') ||
+        s.includes('challenge-platform') ||
+        s.includes('_cf_chl_opt') ||
+        s.includes('cf-ray') ||
+        s.includes('enable javascript and cookies') ||
+        s.includes('challenge-error-text')
+    )
+}
+
+function safeSnippet(text: string, maxLen = 900): string {
+    const t = (text || '').trim()
+    if (!t) return ''
+    if (t.length <= maxLen) return t
+    return t.slice(0, maxLen) + '…'
+}
+
+function buildApiHeaders(version: string, token: string): Record<string, string> {
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        Accept: 'application/json, text/plain, */*',
+        Authorization: `Bearer ${token}`,
+        'User-Agent': `PulseSync-ChangelogPublisher/${version} (github-actions)`,
+    }
+
+    const cfAccessId = (process.env.CF_ACCESS_CLIENT_ID || '').trim()
+    const cfAccessSecret = (process.env.CF_ACCESS_CLIENT_SECRET || '').trim()
+    if (cfAccessId && cfAccessSecret) {
+        headers['CF-Access-Client-Id'] = cfAccessId
+        headers['CF-Access-Client-Secret'] = cfAccessSecret
+    }
+
+    return headers
+}
+
 export async function publishChangelogToApi(version?: string): Promise<void> {
     const apiUrl = process.env.CDN_API_URL
     if (!apiUrl) {
@@ -84,18 +121,25 @@ export async function publishChangelogToApi(version?: string): Promise<void> {
     try {
         const res = await fetch(`${apiUrl}/cdn/app/changelog`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
-            },
+            headers: buildApiHeaders(resolvedVersion, token),
             body: JSON.stringify({ version: resolvedVersion, rawPatch }),
         })
+
         if (!res.ok) {
-            log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
+            const contentType = (res.headers.get('content-type') || '').toLowerCase()
             const text = await res.text().catch(() => '')
-            if (text) console.error(text)
+
+            log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
+
+            const isHtml = contentType.includes('text/html') || looksLikeCloudflareChallenge(text)
+            if (isHtml) {
+                log(LogLevel.ERROR, "Cloudflare challenge detected. Make sure CF Access headers are set correctly in environment variables.")
+            }
+
+            if (text) console.error(safeSnippet(text))
             process.exit(1)
         }
+
         log(LogLevel.SUCCESS, `Changelog sent successfully (version: ${resolvedVersion})`)
     } catch (err: any) {
         log(LogLevel.ERROR, `Error sending changelog: ${err?.message || err}`)
