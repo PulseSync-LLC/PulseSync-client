@@ -50,6 +50,10 @@ on:
         required: false
         default: ""
 
+concurrency:
+  group: build-manual-${{ github.workflow }}-${{ inputs.target }}-${{ inputs.build_os }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
