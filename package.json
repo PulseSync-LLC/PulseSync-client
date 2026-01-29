@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.10.0-beta",
+    "version": "2.10.1-beta",
     "main": ".vite/main/index.js",
     "scripts": {
         "start": "electron-forge start",
@@ -147,8 +147,8 @@
     },
     "buildInfo": {
         "VERSION": "2.10.0-beta",
-        "BRANCH": "7118a3f",
-        "BUILD_TIME": "29.01.2026, 18:15:04"
+        "BRANCH": "5213d8d",
+        "BUILD_TIME": "29.01.2026, 20:48:17"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",
