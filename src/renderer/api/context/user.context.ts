@@ -32,6 +32,7 @@ interface p {
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]
     modInfo: ModInterface[]
+    modInfoFetched: boolean
     setMod: (mod: any) => void
     features: Record<string, boolean>
     setFeatures: (features: Record<string, boolean>) => void
@@ -58,6 +59,7 @@ const UserContext = createContext<p>({
     updateAvailable: false,
     appInfo: AppinfoInitials,
     modInfo: modInitials,
+    modInfoFetched: false,
     setMod: () => void 0,
     features: {},
     setFeatures: () => void 0,

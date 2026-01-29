@@ -144,6 +144,7 @@ export async function downloadAndUpdateFile(
     backupPath: string,
     checksum?: string,
     cacheDir?: string,
+    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
@@ -162,13 +163,18 @@ export async function downloadAndUpdateFile(
 
         const ua = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
 
+        const progressBase = progress?.base ?? 0
+        const progressScale = progress?.scale ?? 1
+
         await downloadToTempWithProgress({
             window,
             url: link,
             tempFilePath,
             expectedChecksum: checksum,
             userAgent: ua,
-            progressScale: 0.6,
+            progressScale,
+            progressBase,
+            progressBase: 0,
             rejectUnauthorized: false,
         })
 
@@ -207,7 +213,9 @@ export async function downloadAndUpdateFile(
             return false
         }
 
-        resetProgress(window)
+        if (progress?.resetOnComplete ?? true) {
+            resetProgress(window)
+        }
         return true
     } catch (err: any) {
         unlinkIfExists(tempFilePath)
@@ -240,13 +248,16 @@ export async function downloadAndExtractUnpacked(
     targetPath: string,
     checksum?: string,
     cacheDir?: string,
+    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(targetPath)) {
             const installed = readUnpackedMarker(targetPath)
             if (installed && installed === checksum) {
                 logger.modManager.info('app.asar.unpacked hash matches, skipping')
-                resetProgress(window)
+                if (progress?.resetOnComplete ?? true) {
+                    resetProgress(window)
+                }
                 return true
             }
             if (installed && installed !== checksum) {
@@ -300,12 +311,16 @@ export async function downloadAndExtractUnpacked(
         }
 
         if (!rawArchive) {
+            const progressBase = progress?.base ?? 0
+            const progressScale = progress?.scale ?? 1
+
             await downloadToTempWithProgress({
                 window,
                 url: link,
                 tempFilePath: tempArchivePath,
                 userAgent: ua,
-                progressScale: 0.4,
+                progressScale,
+                progressBase,
                 rejectUnauthorized: false,
                 expectedChecksum: checksum,
             })
@@ -387,7 +402,9 @@ export async function downloadAndExtractUnpacked(
             writeUnpackedMarker(targetPath, checksum)
         }
 
-        resetProgress(window)
+        if (progress?.resetOnComplete ?? true) {
+            resetProgress(window)
+        }
         return true
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)

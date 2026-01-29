@@ -74,6 +74,7 @@ function App() {
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const [musicVersion, setMusicVersion] = useState<any>(null)
+    const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
     const realtimeSocketRef = useRef<Socket | null>(null)
@@ -783,8 +784,16 @@ function App() {
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
+        } finally {
+            setModInfoFetched(true)
         }
     }, [])
+
+    useEffect(() => {
+        if (user.id === '-1') {
+            setModInfoFetched(false)
+        }
+    }, [user.id])
 
     useEffect(() => {
         if (user.id !== '-1') {
@@ -1094,6 +1103,7 @@ function App() {
                         addons,
                         setMod: setMod,
                         modInfo: modInfo,
+                        modInfoFetched,
                         features,
                         setFeatures,
                         emitGateway,

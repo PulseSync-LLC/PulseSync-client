@@ -410,7 +410,6 @@
     "uploadBanner": "Upload banner"
   },
   "layout": {
-    "closeMusicWarning": "Make sure Yandex Music is closed!",
     "downloadProgress": "Download progress: {{progress}}%",
     "downloadProgressLabel": "Download progress",
     "downloading": "Downloading",
@@ -429,6 +428,7 @@
     "modInstallStart": "Starting mod installation...",
     "modInstallSuccess": "Installation completed successfully!",
     "modInstallTitle": "Mod installation",
+    "modInstallDescription": "The process will take about a minute",
     "modInstallUpdateError": "Install/update error",
     "modNotInstalled": "Not installed",
     "modNotSupportedOnLinux": "The mod is not supported on Linux.",

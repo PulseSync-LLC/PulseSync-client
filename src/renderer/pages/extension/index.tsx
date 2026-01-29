@@ -41,14 +41,6 @@ const defaultOrder = {
 
 type SortKey = keyof typeof defaultOrder
 
-const revokeBlobUrls = (urls: Iterable<string>) => {
-    for (const url of urls) {
-        if (typeof url === 'string' && url.startsWith('blob:')) {
-            URL.revokeObjectURL(url)
-        }
-    }
-}
-
 function safeStoreGet<T>(path: string, fallback: T): T {
     try {
         // @ts-ignore
@@ -97,9 +89,6 @@ export default function ExtensionPage() {
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
 
-    const [imageCache, setImageCache] = useState<Record<string, string>>({})
-
-    const previewCacheRef = useRef<Map<string, string>>(new Map())
     const loadedRef = useRef(false)
     const requestedAddonId = useMemo(() => {
         const stateAddon = (location.state as { theme?: Addon } | null)?.theme
@@ -348,46 +337,6 @@ export default function ExtensionPage() {
     )
 
     useEffect(() => {
-        const updates: Record<string, string> = {}
-        const controller = new AbortController()
-        const signal = controller.signal
-        let stopped = false
-        const run = async () => {
-            await Promise.all(
-                mergedAddons.map(async addon => {
-                    if (!addon.image) return
-                    if (previewCacheRef.current.has(addon.directoryName) || imageCache[addon.directoryName]) return
-                    const url =
-                        `http://127.0.0.1:${config.MAIN_PORT}/addon_file` +
-                        `?name=${encodeURIComponent(addon.name)}` +
-                        `&file=${encodeURIComponent(addon.image)}`
-                    try {
-                        const res = await fetch(url, { signal })
-                        if (!res.ok) throw new Error('404')
-                        const blob = await res.blob()
-                        if (stopped) return
-                        const blobUrl = URL.createObjectURL(blob)
-                        previewCacheRef.current.set(addon.directoryName, blobUrl)
-                        updates[addon.directoryName] = blobUrl
-                    } catch {
-                        if (stopped) return
-                        previewCacheRef.current.set(addon.directoryName, fallbackAddonImage)
-                        updates[addon.directoryName] = fallbackAddonImage
-                    }
-                }),
-            )
-            if (Object.keys(updates).length) {
-                setImageCache(prev => ({ ...prev, ...updates }))
-            }
-        }
-        run()
-        return () => {
-            stopped = true
-            controller.abort()
-        }
-    }, [fallbackAddonImage, mergedAddons])
-
-    useEffect(() => {
         if (!selectedAddonId) {
             const activeAddon = mergedAddons.find(addon =>
                 addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
@@ -417,14 +366,6 @@ export default function ExtensionPage() {
         }
     }, [mergedAddons, requestedAddonExists, requestedAddonId, selectedAddonId])
 
-    useEffect(() => {
-        return () => {
-            revokeBlobUrls(Object.values(imageCache))
-            revokeBlobUrls(previewCacheRef.current.values())
-            previewCacheRef.current.clear()
-        }
-    }, [fallbackAddonImage])
-
     const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
 
     const toggleFilterPanel = useCallback(() => {
@@ -438,11 +379,14 @@ export default function ExtensionPage() {
     }, [])
 
     const getImagePath = useCallback(
-        (addon: Addon, cache: Record<string, string>) => {
+        (addon: Addon) => {
             if (!addon.image) return fallbackAddonImage
             if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
-            if (cache[addon.directoryName]) return cache[addon.directoryName]
-            return fallbackAddonImage
+            return (
+                `http://127.0.0.1:${config.MAIN_PORT}/addon_file` +
+                `?name=${encodeURIComponent(addon.name)}` +
+                `&file=${encodeURIComponent(addon.image)}`
+            )
         },
         [fallbackAddonImage],
     )
@@ -450,10 +394,6 @@ export default function ExtensionPage() {
     const handleReloadAddons = useCallback(async () => {
         try {
             window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
-            revokeBlobUrls(Object.values(imageCache))
-            revokeBlobUrls(previewCacheRef.current.values())
-            previewCacheRef.current.clear()
-            setImageCache({})
             await loadAddons(true)
             setSelectedAddonId(null)
             toast.custom('success', t('common.doneTitle'), t('extensions.reloadSuccess'))
@@ -461,7 +401,7 @@ export default function ExtensionPage() {
             console.error(e)
             toast.custom('error', t('common.oopsTitle'), t('extensions.reloadFailed'))
         }
-    }, [imageCache, loadAddons, t])
+    }, [loadAddons, t])
 
     const handleOpenAddonsDirectory = useCallback(() => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, {
@@ -720,10 +660,13 @@ export default function ExtensionPage() {
                                         <MdCheckCircle size={18} />
                                     </div>
                                     <img
-                                        src={getImagePath(addon, imageCache)}
+                                        src={getImagePath(addon)}
                                         alt={addon.name}
                                         className={extensionStylesV2.addonImage}
                                         loading="lazy"
+                                        onError={event => {
+                                            event.currentTarget.src = fallbackAddonImage
+                                        }}
                                     />
                                     <div className={extensionStylesV2.addonName}>{addon.name}</div>
                                     <div className={extensionStylesV2.addonType}>
@@ -760,10 +703,13 @@ export default function ExtensionPage() {
                                         <MdCheckCircle size={18} />
                                     </div>
                                     <img
-                                        src={getImagePath(addon, imageCache)}
+                                        src={getImagePath(addon)}
                                         alt={addon.name}
                                         className={extensionStylesV2.addonImage}
                                         loading="lazy"
+                                        onError={event => {
+                                            event.currentTarget.src = fallbackAddonImage
+                                        }}
                                     />
                                     <div className={extensionStylesV2.addonName}>{addon.name}</div>
                                     <div className={extensionStylesV2.addonType}>

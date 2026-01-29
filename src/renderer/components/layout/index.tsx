@@ -38,12 +38,12 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo, features, musicInstalled, setMusicInstalled } = useContext(userContext)
+    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
+        useContext(userContext)
     const { t } = useTranslation()
 
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
-    const [loadingModInfo, setLoadingModInfo] = useState(true)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
     const [modUpdateState, setModUpdateState] = useState({
@@ -55,10 +55,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const toastReference = useRef<string | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
-
-    useEffect(() => {
-        setLoadingModInfo(modInfo.length === 0)
-    }, [modInfo])
 
     useEffect(() => {
         const serverRaw = modInfo[0]?.modVersion
@@ -128,8 +124,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     store.dispatch(openModal())
                 }
                 setForceInstallEnabled(false)
-                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS).then((status: any) => {
-                    setMusicInstalled(status)
+                Promise.all([
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
+                ]).then(([status, version]) => {
+                    setMusicInstalled(Boolean(status))
+                    setMusicVersion(version ?? null)
                 })
             } else {
                 toast.custom('error', t('common.somethingWrongTitle'), t('layout.modInstallUpdateError'))
@@ -186,7 +186,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.UPDATE_AVAILABLE)
             ;(window as any).__listenersAdded = false
         }
-    }, [app.mod.installed, app.settings.showModModalAfterInstall, modInfo, setApp, setMusicInstalled, setUpdate, t])
+    }, [app.mod.installed, app.settings.showModModalAfterInstall, modInfo, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])
 
     useEffect(() => {
         if ((window as any).__musicEventListeners) return
@@ -279,7 +279,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [musicInstalled, setApp, setMusicInstalled, t])
 
-
     const updateYandexMusic = useCallback(() => {
         if (isMusicUpdating) {
             toast.custom('info', t('layout.infoTitle'), t('layout.updateAlreadyRunning'))
@@ -334,25 +333,24 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     )
 
     useEffect(() => {
-        if (!loadingModInfo && !isUpdating && app.mod.installed && app.mod.version) {
-            const currentEntry = modInfo.find(m => m.modVersion === app.mod.version)
-            if (currentEntry?.deprecated) {
-                const availableVersions = modInfo.map(m => m.modVersion).filter(v => semver.valid(v))
-                const latestVersion = availableVersions.sort(semver.rcompare)[0]
+        if (!modInfoFetched || modInfo.length === 0 || isUpdating || !app.mod.installed || !app.mod.version) return
+        const currentEntry = modInfo.find(m => m.modVersion === app.mod.version)
+        if (currentEntry?.deprecated) {
+            const availableVersions = modInfo.map(m => m.modVersion).filter(v => semver.valid(v))
+            const latestVersion = availableVersions.sort(semver.rcompare)[0]
 
-                if (semver.gt(latestVersion, app.mod.version)) {
-                    toast.custom(
-                        'info',
-                        t('layout.installedVersionOutdated', { version: app.mod.version }),
-                        t('layout.newVersionFound', { version: latestVersion }),
-                        null,
-                        15000,
-                    )
-                    startUpdate()
-                }
+            if (semver.gt(latestVersion, app.mod.version)) {
+                toast.custom(
+                    'info',
+                    t('layout.installedVersionOutdated', { version: app.mod.version }),
+                    t('layout.newVersionFound', { version: latestVersion }),
+                    null,
+                    15000,
+                )
+                startUpdate()
             }
         }
-    }, [app.mod.version, isUpdating, loadingModInfo, modInfo, startUpdate, t])
+    }, [app.mod.version, isUpdating, modInfo, modInfoFetched, startUpdate, t])
 
     useEffect(() => {
         if (isDevmark) {
@@ -368,7 +366,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [isDevmark])
 
-    if (loadingModInfo) {
+    if (!modInfoFetched) {
         return <Preloader />
     }
 
@@ -431,7 +429,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         <div className={pageStyles.alert_title}>
                                             {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
                                         </div>
-                                        <div className={pageStyles.alert_warn}>{t('layout.closeMusicWarning')}</div>
+                                        <div className={pageStyles.alert_warn}>{t('layout.modInstallDescription')}</div>
                                     </div>
                                     <div className={pageStyles.button_container}>
                                         <button className={pageStyles.patch_button} onClick={() => startUpdate()}>

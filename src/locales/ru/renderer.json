@@ -410,7 +410,6 @@
     "uploadBanner": "Загрузить баннер"
   },
   "layout": {
-    "closeMusicWarning": "Убедитесь, что Яндекс Музыка закрыта!",
     "downloadProgress": "Прогресс загрузки: {{progress}}%",
     "downloadProgressLabel": "Прогресс загрузки",
     "downloading": "Загружаю",
@@ -429,6 +428,7 @@
     "modInstallStart": "Начало установки мода...",
     "modInstallSuccess": "Установка прошла успешно!",
     "modInstallTitle": "Установка мода",
+    "modInstallDescription": "Процесс займет около минуты",
     "modInstallUpdateError": "Ошибка установки/обновления",
     "modNotInstalled": "Не установлен",
     "modNotSupportedOnLinux": "Мод не поддерживается на Linux.",

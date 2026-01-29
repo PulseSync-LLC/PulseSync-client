@@ -26,7 +26,7 @@ import {
 } from './mod-files'
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
 import { nativeDeleteFile, nativeFileExists, nativeRenameFile } from '../nativeModules'
-import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
+import { resetProgress, sendFailure, sendProgress, sendToRenderer, setProgress } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
 
@@ -69,6 +69,7 @@ async function tryUseCacheOrDownload(
     paths: Paths,
     checksum: string,
     cacheDir: string,
+    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
 ): Promise<boolean> {
     if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
@@ -88,7 +89,7 @@ async function tryUseCacheOrDownload(
             resetProgress(window)
         }
     }
-    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir)
+    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress)
 }
 
 function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'version_too_new' | 'unknown' {
@@ -198,6 +199,10 @@ export const modManager = (window: BrowserWindow): void => {
 
                 const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
 
+                const hasUnpacked = Boolean(unpackLink)
+                const asarProgress = hasUnpacked ? { base: 0, scale: 0.6, resetOnComplete: false } : { base: 0, scale: 1, resetOnComplete: true }
+                const unpackedProgress = hasUnpacked ? { base: 0.6, scale: 0.4, resetOnComplete: true } : undefined
+
                 if (checksum) {
                     const cacheFile = path.join(CACHE_DIR, `${checksum}.asar`)
                     try {
@@ -213,26 +218,70 @@ export const modManager = (window: BrowserWindow): void => {
                             if (currentHash === checksum) {
                                 logger.modManager.info('app.asar hash matches, skipping download')
                                 sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
-                                resetProgress(window)
+                                if (hasUnpacked) {
+                                    setProgress(window, 0.6)
+                                    sendProgress(window, 60)
+                                } else {
+                                    resetProgress(window)
+                                }
                             } else {
-                                const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR)
+                                const ok = await tryUseCacheOrDownload(
+                                    window,
+                                    cacheFile,
+                                    tempFilePath,
+                                    link,
+                                    paths,
+                                    checksum,
+                                    CACHE_DIR,
+                                    asarProgress,
+                                )
                                 if (!ok) return
                             }
                         } catch (e: any) {
                             logger.modManager.warn('Failed to verify existing file:', e)
-                            const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
+                            const ok = await downloadAndUpdateFile(
+                                window,
+                                link,
+                                tempFilePath,
+                                paths.modAsar,
+                                paths.backupAsar,
+                                checksum,
+                                CACHE_DIR,
+                                asarProgress,
+                            )
                             if (!ok) return
                         }
                     } else {
-                        const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR)
+                        const ok = await tryUseCacheOrDownload(
+                            window,
+                            cacheFile,
+                            tempFilePath,
+                            link,
+                            paths,
+                            checksum,
+                            CACHE_DIR,
+                            asarProgress,
+                        )
                         if (!ok) return
                     }
                 } else {
-                    const ok = await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR)
+                    const ok = await downloadAndUpdateFile(
+                        window,
+                        link,
+                        tempFilePath,
+                        paths.modAsar,
+                        paths.backupAsar,
+                        checksum,
+                        CACHE_DIR,
+                        asarProgress,
+                    )
                     if (!ok) return
                 }
 
                 if (unpackLink) {
+                    setProgress(window, 0.6)
+                    sendProgress(window, 60)
+
                     const unpackName = path.basename(new URL(unpackLink).pathname)
                     const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
                     const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
@@ -246,6 +295,7 @@ export const modManager = (window: BrowserWindow): void => {
                         targetUnpackedDir,
                         unpackedChecksum,
                         CACHE_DIR,
+                        unpackedProgress,
                     )
                     if (!unpackedOk) return
                 }

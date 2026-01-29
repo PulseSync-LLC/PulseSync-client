@@ -6,6 +6,8 @@ export const staticAsset = (assetPath: string): string => {
         return `${base}${assetPathNormalized}`
     }
     const url = new URL(window.location.href)
+    url.hash = ''
+    url.search = ''
 
     const asarMatch = url.pathname.match(/^(.+?app\.asar)/)
     if (asarMatch) {

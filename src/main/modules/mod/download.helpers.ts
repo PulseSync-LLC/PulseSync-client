@@ -60,10 +60,11 @@ export async function downloadToTempWithProgress(args: {
     tempFilePath: string
     expectedChecksum?: string
     progressScale?: number
+    progressBase?: number
     userAgent: string
     rejectUnauthorized?: boolean
 }): Promise<{ totalBytes: number; computedHash?: string }> {
-    const { window, url, tempFilePath, expectedChecksum, progressScale = 0.6, userAgent, rejectUnauthorized = true } = args
+    const { window, url, tempFilePath, expectedChecksum, progressScale = 0.6, progressBase = 0, userAgent, rejectUnauthorized = true } = args
 
     const headers: Record<string, string> = {
         'User-Agent': userAgent,
@@ -83,8 +84,10 @@ export async function downloadToTempWithProgress(args: {
             downloaded += chunk.length
             if (total > 0) {
                 const frac = downloaded / total
-                setProgress(window, Math.min(frac * progressScale, progressScale))
-                sendProgress(window, Math.round(Math.min(frac, 1) * 100))
+                const scaled = Math.min(frac * progressScale, progressScale)
+                const combined = Math.min(progressBase + scaled, progressBase + progressScale)
+                setProgress(window, combined)
+                sendProgress(window, Math.round(Math.min(progressBase + Math.min(frac, 1) * progressScale, 1) * 100))
             }
             if (hasher) hasher.update(chunk)
             this.push(chunk)

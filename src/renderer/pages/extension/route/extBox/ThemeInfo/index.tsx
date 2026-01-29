@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
 import AddonInterface from '../../../../../api/interfaces/addon.interface'
@@ -20,40 +20,31 @@ interface Props {
     setShowFilters?: (show: boolean) => void
 }
 
-type UrlEntry = { url: string }
+function useResolvedImage(url: string | null, fallback: string | null) {
+    const [resolved, setResolved] = useState<string | null>(fallback)
 
-const bannerUrlCache: Map<string, UrlEntry> = new Map()
-const logoUrlCache: Map<string, UrlEntry> = new Map()
-const MAX_CACHED_OBJECT_URLS = 40
-
-function storeObjectUrl(cache: Map<string, UrlEntry>, key: string, url: string) {
-    cache.delete(key)
-    cache.set(key, { url })
-    while (cache.size > MAX_CACHED_OBJECT_URLS) {
-        const oldestKey = cache.keys().next().value as string | undefined
-        if (!oldestKey) break
-        const entry = cache.get(oldestKey)
-        if (entry) {
-            try {
-                URL.revokeObjectURL(entry.url)
-            } catch {}
+    useEffect(() => {
+        if (!url) {
+            setResolved(fallback)
+            return
         }
-        cache.delete(oldestKey)
-    }
-}
 
-async function acquireObjectUrl(
-    cache: Map<string, UrlEntry>,
-    key: string,
-    fetchFactory: () => Promise<string>,
-): Promise<{ url: string; acquired: boolean }> {
-    const existing = cache.get(key)
-    if (existing) {
-        return { url: existing.url, acquired: true }
-    }
-    const url = await fetchFactory()
-    storeObjectUrl(cache, key, url)
-    return { url, acquired: true }
+        let active = true
+        const img = new Image()
+        img.onload = () => {
+            if (active) setResolved(url)
+        }
+        img.onerror = () => {
+            if (active) setResolved(fallback)
+        }
+        img.src = url
+
+        return () => {
+            active = false
+        }
+    }, [url, fallback])
+
+    return resolved
 }
 
 const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
@@ -63,7 +54,6 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
     const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
-    const fallbackLogo = staticAsset('assets/images/O^O.png')
 
     const authorNames =
         typeof addon.author === 'string'
@@ -88,105 +78,24 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         return () => document.removeEventListener('mousedown', handler)
     }, [showAll])
 
-    const [bannerUrl, setBannerUrl] = useState(fallbackBanner)
-    const [logoUrl, setLogoUrl] = useState<string | null>(fallbackLogo)
-
-    const currentBannerKeyRef = useRef<string | null>(null)
-    const currentLogoKeyRef = useRef<string | null>(null)
-
     const isMac = typeof window !== 'undefined' ? window.electron.isMac() : false
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
 
-    useEffect(() => {
-        let cancelled = false
-        const controller = new AbortController()
+    const bannerSource = useMemo(() => {
+        if (!addon.banner || (isMac && isGif(addon.banner))) return null
+        return getAssetUrl(addon.banner)
+    }, [addon.banner, addon.name, isMac])
 
-        if (isMac && isGif(addon.banner)) {
-            setBannerUrl(fallbackBanner)
-            return () => controller.abort()
-        }
+    const logoSource = useMemo(() => {
+        if (!addon.libraryLogo || (isMac && isGif(addon.libraryLogo))) return null
+        return getAssetUrl(addon.libraryLogo)
+    }, [addon.libraryLogo, addon.name, isMac])
 
-        if (!addon.banner) {
-            setBannerUrl(fallbackBanner)
-            return () => controller.abort()
-        }
-
-        const key = `${addon.directoryName}|banner|${addon.banner}`
-
-        acquireObjectUrl(bannerUrlCache, key, async () => {
-            const res = await fetch(getAssetUrl(addon.banner!), {
-                signal: controller.signal,
-            })
-            if (!res.ok) throw new Error('Failed to fetch banner')
-            const blob = await res.blob()
-            return URL.createObjectURL(blob)
-        })
-            .then(({ url }) => {
-                if (cancelled) return
-                if (currentBannerKeyRef.current && currentBannerKeyRef.current !== key) {
-                    currentBannerKeyRef.current = null
-                }
-                currentBannerKeyRef.current = key
-                setBannerUrl(url)
-            })
-            .catch(err => {
-                if (cancelled) return
-                if (err?.name === 'AbortError') return
-                setBannerUrl(fallbackBanner)
-            })
-
-        return () => {
-            cancelled = true
-            controller.abort()
-        }
-    }, [addon.banner, addon.directoryName, addon.name, fallbackBanner])
-
-    useEffect(() => {
-        let cancelled = false
-        const controller = new AbortController()
-
-        if (isMac && isGif(addon.libraryLogo)) {
-            setLogoUrl(fallbackLogo)
-            return () => controller.abort()
-        }
-
-        if (!addon.libraryLogo) {
-            setLogoUrl(null)
-            return () => controller.abort()
-        }
-
-        const key = `${addon.directoryName}|logo|${addon.libraryLogo}`
-
-        acquireObjectUrl(logoUrlCache, key, async () => {
-            const res = await fetch(getAssetUrl(addon.libraryLogo!), {
-                signal: controller.signal,
-            })
-            if (!res.ok) throw new Error('Failed to fetch logo')
-            const blob = await res.blob()
-            return URL.createObjectURL(blob)
-        })
-            .then(({ url }) => {
-                if (cancelled) return
-                if (currentLogoKeyRef.current && currentLogoKeyRef.current !== key) {
-                    currentLogoKeyRef.current = null
-                }
-                currentLogoKeyRef.current = key
-                setLogoUrl(url)
-            })
-            .catch(err => {
-                if (cancelled) return
-                if (err?.name === 'AbortError') return
-                setLogoUrl(null)
-            })
-
-        return () => {
-            cancelled = true
-            controller.abort()
-        }
-    }, [addon.libraryLogo, addon.directoryName, addon.name, fallbackLogo])
+    const bannerUrl = useResolvedImage(bannerSource, fallbackBanner)
+    const logoUrl = useResolvedImage(logoSource, null)
 
     useEffect(() => {
         if (!menuOpen) return
