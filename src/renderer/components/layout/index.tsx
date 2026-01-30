@@ -232,7 +232,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setIsMusicUpdating(false)
         }
 
-        const onExecutionComplete = (_: any, data: any) => {
+        const onExecutionComplete = async (_: any, data: any) => {
             if (toastReference.current) {
                 toast.custom(
                     'success',
@@ -246,10 +246,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: '',
                 })
                 setIsMusicUpdating(false)
-                if (!musicInstalled) {
-                    setMusicInstalled(true)
-                    window.location.reload()
-                } else if (data?.type === 'reinstall') {
+                const [status, version] = await Promise.all([
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
+                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
+                ])
+                setMusicInstalled(Boolean(status))
+                setMusicVersion(version ?? null)
+                if (data?.type === 'reinstall') {
                     setApp((prevApp: SettingsInterface) => {
                         const updatedApp = {
                             ...prevApp,
@@ -262,7 +265,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                         window.electron.store.delete('mod')
                         return updatedApp
                     })
-                    window.location.reload()
                 }
             }
         }

@@ -27,6 +27,7 @@ let isReconnecting = false
 let reconnectAttempts = 0
 const baseBackoffMs = 5000
 const maxBackoffMs = 60000
+const connectTimeoutMs = 15000
 
 let clientId: string
 let client: Client | null
@@ -34,6 +35,7 @@ let changeId = false
 export let rpcConnected = false
 export let isConnecting = false
 let connectGeneration = 0
+let connectTimeout: ReturnType<typeof setTimeout> | undefined
 
 const activityThrottler = new Throttler<SetActivity>(ACTIVITY_THROTTLE_MS, activity => {
     try {
@@ -65,6 +67,13 @@ function stopReconnectLoop() {
     isReconnecting = false
 }
 
+function clearConnectTimeout() {
+    if (connectTimeout) {
+        clearTimeout(connectTimeout)
+        connectTimeout = undefined
+    }
+}
+
 function startReconnectLoop(customDelayMs?: number) {
     if (isReconnecting) return
     isReconnecting = true
@@ -73,6 +82,8 @@ function startReconnectLoop(customDelayMs?: number) {
             stopReconnectLoop()
             return
         }
+        clearConnectTimeout()
+        isConnecting = false
         if (client) {
             try {
                 await client.destroy()
@@ -196,6 +207,7 @@ async function rpc_connect() {
 
     client.login().catch(async e => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('login error: ' + msg)
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
@@ -218,11 +230,23 @@ async function rpc_connect() {
         startReconnectLoop()
     })
 
+    clearConnectTimeout()
+    connectTimeout = setTimeout(() => {
+        if (myGeneration !== connectGeneration) return
+        if (!rpcConnected) {
+            logger.discordRpc.warn('rpc_connect timeout, retrying')
+            isConnecting = false
+            startReconnectLoop()
+        }
+    }, connectTimeoutMs)
+
     client.on('ready', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
         isConnecting = false
         rpcConnected = true
         reconnectAttempts = 0
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         if (changeId) changeId = false
         stopReconnectLoop()
@@ -244,7 +268,10 @@ async function rpc_connect() {
 
     client.on('disconnected', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         rpcConnected = false
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         logger.discordRpc.info('Disconnected')
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.disconnected'), type: 'info' })
@@ -253,9 +280,12 @@ async function rpc_connect() {
 
     client.on('error', async e => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         if ((e as any)?.name === 'Could not connect') {
             rpcConnected = false
         }
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('Error: ' + msg)
@@ -276,6 +306,8 @@ async function rpc_connect() {
 
     client.on('close', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         rpcConnected = false
         previousActivity = undefined
         logger.discordRpc.info('Connection closed')

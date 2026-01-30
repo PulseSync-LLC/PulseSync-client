@@ -216,6 +216,9 @@ const ToastStack: React.FC = () => {
                     requestCloseAll()
                 }
             }}
+            onWheel={() => {
+                requestCloseAll()
+            }}
         >
             <TransitionGroup component={null}>
                 {renderList.map((td, idx) => {
@@ -321,6 +324,9 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                     e.stopPropagation()
                     requestCloseAll()
                 }
+            }}
+            onWheel={() => {
+                requestCloseAll()
             }}
         >
             <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>

@@ -40,6 +40,7 @@ const settingsInitials: SettingsInterface = {
         showVersionOrDevice: false,
         showSmallIcon: true,
         showTrackVersion: false,
+        supporterHideBranding: false,
         statusDisplayType: 1,
         status: true,
         details: '',

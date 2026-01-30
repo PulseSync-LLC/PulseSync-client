@@ -60,7 +60,7 @@ const Header: React.FC<p> = () => {
     const openSettings = useCallback(() => {
         window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
     }, [])
-
+    const [settingsAvailable, setSettingsAvailable] = useState(false)
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -451,9 +451,17 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button className={styles.settingsButton} onClick={openSettings} disabled>
-                                <MdSettings size={22} />
-                            </button>
+                            {!settingsAvailable ? (
+                                <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
+                                    <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
+                                        <MdSettings size={22} />
+                                    </button>
+                                </TooltipButton>
+                            ) : (
+                                <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
+                                    <MdSettings size={22} />
+                                </button>
+                            )}
                             <div className={styles.line} />
                             <button
                                 className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}

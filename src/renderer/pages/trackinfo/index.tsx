@@ -4,7 +4,7 @@ import MainEvents from '../../../common/types/mainEvents'
 import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
-import { useCallback, useContext, useRef, useState, useMemo } from 'react'
+import { useCallback, useContext, useRef, useState, useMemo, useEffect } from 'react'
 import userContext from '../../api/context/user.context'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
@@ -49,6 +49,21 @@ export default function TrackInfoPage() {
         button: app.discordRpc.button || '',
         statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
     }))
+
+    useEffect(() => {
+        if (hasSupporter || !app.discordRpc.supporterHideBranding) return
+
+        window.discordRpc.clearActivity()
+        window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+        window.electron.store.set('discordRpc.supporterHideBranding', false)
+        setApp({
+            ...app,
+            discordRpc: {
+                ...app.discordRpc,
+                supporterHideBranding: false,
+            },
+        })
+    }, [app.discordRpc.supporterHideBranding, hasSupporter, setApp])
 
     const schema = object().shape({
         appId: string()
@@ -140,7 +155,6 @@ export default function TrackInfoPage() {
     const isReady = app.discordRpc.status && hasData && shouldShowByStatus
 
     const activityButtons = useMemo(() => buildActivityButtonsRpc(currentTrack, app), [currentTrack, app])
-
     return (
         <PageLayout title={t('trackInfo.pageTitle')} containerRef={containerRef}>
             <ContainerV2

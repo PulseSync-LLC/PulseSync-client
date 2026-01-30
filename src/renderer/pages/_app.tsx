@@ -17,10 +17,9 @@ import StorePage from './store'
 
 import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
-import { Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
-import { io } from 'socket.io-client'
 import UserContext from '../api/context/user.context'
 import toast from '../components/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
@@ -28,6 +27,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 import trackInitials from '../api/initials/track.initials'
 import PlayerContext from '../api/context/player.context'
 import apolloClient from '../api/apolloClient'
+import client from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import settingsInitials from '../api/initials/settings.initials'
 import getUserToken from '../api/getUserToken'
@@ -36,7 +36,7 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
 import { fetchSettings } from '../api/settings'
-import { checkInternetAccess, compareVersions, notifyUserRetries, normalizeTrack, areTracksEqual } from '../utils/utils'
+import { areTracksEqual, checkInternetAccess, compareVersions, normalizeTrack, notifyUserRetries } from '../utils/utils'
 import Addon from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
@@ -44,7 +44,6 @@ import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
-import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
@@ -78,9 +77,18 @@ function App() {
     const [widgetInstalled, setWidgetInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
     const realtimeSocketRef = useRef<Socket | null>(null)
+    const socketReconnectAttemptsRef = useRef(0)
+    const socketReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const socketActivityClearedRef = useRef(false)
     const zstdRef = useRef<any>(null)
     const websocketStartedRef = useRef(false)
     const [zstdReady, setZstdReady] = useState(false)
+    const connectionErrorAttemptsRef = useRef(0)
+    const connectionErrorToastThreshold = 3
+
+    const socketOfflineSinceRef = useRef<number | null>(null)
+    const socketOfflineClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const socketOfflineClearAfterMs = 15000
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
@@ -615,6 +623,10 @@ function App() {
             const socket = io(config.SOCKET_URL, {
                 path: '/ws',
                 autoConnect: false,
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 10000,
                 auth: {
                     page,
                     token: getUserToken(),
@@ -663,22 +675,91 @@ function App() {
         const socket = realtimeSocketRef.current
         if (!socket) return
 
+        const clearOfflineTimer = () => {
+            if (socketOfflineClearTimerRef.current) {
+                clearTimeout(socketOfflineClearTimerRef.current)
+                socketOfflineClearTimerRef.current = null
+            }
+        }
+
+        const resetSocketFailures = () => {
+            socketReconnectAttemptsRef.current = 0
+            socketActivityClearedRef.current = false
+            if (socketReconnectTimerRef.current) {
+                clearTimeout(socketReconnectTimerRef.current)
+                socketReconnectTimerRef.current = null
+            }
+
+            socketOfflineSinceRef.current = null
+            clearOfflineTimer()
+        }
+
+        const recordSocketFailure = (attempt?: number) => {
+            socketReconnectAttemptsRef.current = Math.max(socketReconnectAttemptsRef.current, attempt ?? socketReconnectAttemptsRef.current + 1)
+        }
+
+        const scheduleReconnect = () => {
+            if (socket.connected || socketReconnectTimerRef.current) return
+            const delay = Math.min(1000 * Math.pow(2, Math.max(socketReconnectAttemptsRef.current - 1, 0)), 10000)
+            socketReconnectTimerRef.current = setTimeout(() => {
+                socketReconnectTimerRef.current = null
+                if (!socket.connected) {
+                    socket.connect()
+                }
+            }, delay)
+        }
+
+        const scheduleRpcClearIfOfflineTooLong = () => {
+            if (socket.connected) return
+            if (!socketOfflineSinceRef.current) socketOfflineSinceRef.current = Date.now()
+            if (socketOfflineClearTimerRef.current) return
+
+            socketOfflineClearTimerRef.current = setTimeout(() => {
+                socketOfflineClearTimerRef.current = null
+                if (!socket.connected && !socketActivityClearedRef.current) {
+                    socketActivityClearedRef.current = true
+                    if ((window as any)?.discordRpc?.clearActivity) {
+                        ;(window as any).discordRpc.clearActivity()
+                    }
+                }
+            }, socketOfflineClearAfterMs)
+        }
+
         const onConnect = () => {
+            resetSocketFailures()
+
             toast.custom('success', t('common.phewTitle'), t('common.connectionEstablished'))
+            connectionErrorAttemptsRef.current = 0
             setRealtimeSocket(socket)
             setIsConnected(true)
             setConnectionErrorCode(-1)
             setLoading(false)
         }
+
         const onDisconnect = () => {
-            setConnectionErrorCode(1)
+            connectionErrorAttemptsRef.current += 1
+            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
+                setConnectionErrorCode(1)
+            }
             setRealtimeSocket(null)
             setIsConnected(false)
+
+            scheduleRpcClearIfOfflineTooLong()
         }
+
         const onConnectError = (_err: any) => {
-            setConnectionErrorCode(1)
+            connectionErrorAttemptsRef.current += 1
+            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
+                setConnectionErrorCode(1)
+            }
             setRealtimeSocket(null)
             setIsConnected(false)
+
+            scheduleRpcClearIfOfflineTooLong()
+        }
+
+        const onReconnectAttempt = (attempt: number) => {
+            recordSocketFailure(attempt)
         }
 
         const onLogout = async () => {
@@ -687,6 +768,7 @@ function App() {
             setConnectionErrorCode(1)
             setRealtimeSocket(null)
             setIsConnected(false)
+            resetSocketFailures()
             await router.navigate('/auth', { replace: true })
         }
         const onFeatures = (data: any) => {
@@ -733,12 +815,17 @@ function App() {
         socket.on('disconnect', onDisconnect)
         socket.on('connect_error', onConnectError)
         socket.on('gw', onGatewayMessage)
+        socket.io.on('reconnect_attempt', onReconnectAttempt)
+        socket.io.on('reconnect', resetSocketFailures)
 
         return () => {
+            resetSocketFailures()
             socket.off('connect', onConnect)
             socket.off('disconnect', onDisconnect)
             socket.off('connect_error', onConnectError)
             socket.off('gw', onGatewayMessage)
+            socket.io.off('reconnect_attempt', onReconnectAttempt)
+            socket.io.off('reconnect', resetSocketFailures)
         }
     }, [router, zstdReady])
 
@@ -928,6 +1015,7 @@ function App() {
         },
         [t],
     )
+
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         if (!window.desktopEvents) return
@@ -1076,6 +1164,7 @@ function App() {
             await fetchModInfo(currentApp)
         }
     }, [authorize, fetchModInfo, router])
+
     return (
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />
@@ -1129,6 +1218,17 @@ const Player: React.FC<any> = ({ children }) => {
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
 
+    const lastValidActivityRef = useRef<ReturnType<typeof buildDiscordActivity>>(null)
+    const lastValidActivityAtRef = useRef(0)
+
+    const rpcClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const rpcStatusLostAtRef = useRef<number | null>(null)
+    const rpcClearDebounceMs = 10000 // 10s
+
+    const holdLastActivityMs = 30000 // 30s
+
+    const refreshGraceMs = 15000
+
     const handleSendTrackPlayedEnough = useCallback(
         (_e: any, data: any) => {
             if (!data) return
@@ -1163,27 +1263,82 @@ const Player: React.FC<any> = ({ children }) => {
         return () => {
             de.removeListener(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
             de.removeListener(RendererEvents.TRACK_INFO, handleTrackInfo)
-            setTrack(trackInitials)
         }
     }, [user.id, handleSendTrackPlayedEnough, handleTrackInfo])
 
     useEffect(() => {
-        if (!app.discordRpc.status || user.id === '-1') {
+        if (user.id !== '-1') return
+        setTrack(trackInitials)
+    }, [user.id])
+
+    useEffect(() => {
+        if (user.id === '-1') return
+
+        const rpcEnabled = !!app?.discordRpc?.status
+
+        if (rpcEnabled) {
+            rpcStatusLostAtRef.current = null
+            if (rpcClearTimerRef.current) {
+                clearTimeout(rpcClearTimerRef.current)
+                rpcClearTimerRef.current = null
+            }
+            return
+        }
+
+        if (!rpcStatusLostAtRef.current) {
+            rpcStatusLostAtRef.current = Date.now()
+        }
+        if (!rpcClearTimerRef.current) {
+            rpcClearTimerRef.current = setTimeout(() => {
+                rpcClearTimerRef.current = null
+                if (!app?.discordRpc?.status && (window as any)?.discordRpc?.clearActivity) {
+                    ;(window as any).discordRpc.clearActivity()
+                }
+            }, rpcClearDebounceMs)
+        }
+
+        return () => {
+            if (rpcClearTimerRef.current) {
+                clearTimeout(rpcClearTimerRef.current)
+                rpcClearTimerRef.current = null
+            }
+        }
+    }, [app?.discordRpc?.status, user.id])
+
+    useEffect(() => {
+        if (user.id === '-1') {
             if ((window as any)?.discordRpc?.clearActivity) {
                 ;(window as any).discordRpc.clearActivity()
             }
+            return
+        }
+
+        if (!app.discordRpc.status) {
             return
         }
 
         const activity = buildDiscordActivity(track, app, user)
 
         if (!activity) {
+            const isRefreshTrack = track.realId === trackInitials.realId
+            const now = Date.now()
+
+            if (isRefreshTrack && lastValidActivityRef.current && now - lastValidActivityAtRef.current < refreshGraceMs) {
+                return
+            }
+
+            if (lastValidActivityRef.current && now - lastValidActivityAtRef.current < holdLastActivityMs) {
+                return
+            }
+
             if ((window as any)?.discordRpc?.clearActivity) {
                 ;(window as any).discordRpc.clearActivity()
             }
             return
         }
 
+        lastValidActivityRef.current = activity
+        lastValidActivityAtRef.current = Date.now()
         if ((window as any)?.discordRpc?.setActivity) {
             ;(window as any).discordRpc.setActivity(activity)
         }

@@ -88,7 +88,7 @@ export async function publishChangelogToApi(version?: string): Promise<void> {
                 'Content-Type': 'application/json',
                 Authorization: `Bearer ${token}`,
             },
-            body: JSON.stringify({ version: resolvedVersion, rawPatch }),
+            body: JSON.stringify({ version: resolvedVersion, changelog: rawPatch }),
         })
         if (!res.ok) {
             log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
