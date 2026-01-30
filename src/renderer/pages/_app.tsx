@@ -1320,6 +1320,14 @@ const Player: React.FC<any> = ({ children }) => {
         const activity = buildDiscordActivity(track, app, user)
 
         if (!activity) {
+            if (track.status === 'paused' && !app.discordRpc.displayPause) {
+                if ((window as any)?.discordRpc?.clearActivity) {
+                    ;(window as any).discordRpc.clearActivity()
+                }
+                lastValidActivityRef.current = null
+                lastValidActivityAtRef.current = 0
+                return
+            }
             const isRefreshTrack = track.realId === trackInitials.realId
             const now = Date.now()
 
