@@ -18,6 +18,7 @@ import config from '../../api/web_config'
 import { staticAsset } from '../../utils/staticAssets'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
+import SelectInput from '../../components/PSUI/SelectInput'
 import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
@@ -155,6 +156,14 @@ export default function TrackInfoPage() {
     const isReady = app.discordRpc.status && hasData && shouldShowByStatus
 
     const activityButtons = useMemo(() => buildActivityButtonsRpc(currentTrack, app), [currentTrack, app])
+    const statusDisplayOptions = useMemo(
+        () => [
+            { value: '0', label: t('textInput.statusDisplay.appName') },
+            { value: '1', label: t('textInput.statusDisplay.trackArtist') },
+            { value: '2', label: t('textInput.statusDisplay.trackTitle') },
+        ],
+        [t],
+    )
     return (
         <PageLayout title={t('trackInfo.pageTitle')} containerRef={containerRef}>
             <ContainerV2
@@ -207,25 +216,16 @@ export default function TrackInfoPage() {
                                 description={t('trackInfo.fields.stateDescription')}
                                 showCommandsButton={true}
                             />
-                            <TextInput
-                                name="statusDisplayType"
+                            <SelectInput
                                 label={t('trackInfo.fields.statusDisplayTypeLabel')}
                                 description={
                                     <>
                                         <img src={statusDisplayTip} alt="" srcSet="" /> {t('trackInfo.fields.statusDisplayTypeDescription')}
                                     </>
                                 }
-                                placeholder="0"
-                                ariaLabel={t('trackInfo.fields.statusDisplayTypeAria')}
                                 value={formik.values.statusDisplayType}
-                                onChange={val => {
-                                    formik.setFieldValue('statusDisplayType', String(val))
-                                }}
-                                onBlur={handleBlur}
-                                error={formik.errors.statusDisplayType as any}
-                                touched={formik.touched.statusDisplayType as any}
-                                showCommandsButton={true}
-                                commandsType="status"
+                                onChange={val => formik.setFieldValue('statusDisplayType', String(val))}
+                                options={statusDisplayOptions}
                             />
                         </div>
                         <div className={themeV2.optionalContainer}>
