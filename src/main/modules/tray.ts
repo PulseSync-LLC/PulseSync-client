@@ -14,7 +14,7 @@ let menu: Menu
 const State = getState()
 
 function createTray() {
-    const iconExt = isWindows() ? '.ico' : '.png'
+    const iconExt = isMac() ? '.png' : isWindows() ? '.ico' : '.png'
     const icon = getNativeImg('App', iconExt, 'icon').resize({
         width: 16,
         height: 16,
@@ -23,10 +23,6 @@ function createTray() {
         width: 16,
         height: 12,
     })
-    if (isMac()) {
-        icon.setTemplateImage(true)
-        dsIcon.setTemplateImage(true)
-    }
 
     tray = new Tray(icon)
     menu = new Menu()
