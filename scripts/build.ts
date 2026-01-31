@@ -154,13 +154,16 @@ function ensureNodeHeapForMac(): void {
     log(LogLevel.WARN, `NODE_OPTIONS not set; defaulting to "${nextOptions}" to avoid macOS OOMs`)
 }
 
-function setConfigDevFalse() {
+function setConfigDevFalse(branch?: string) {
     const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
-    content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
+    if (branch !== 'dev') {
+        content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
+    }
     fs.writeFileSync(configPath, content, 'utf-8')
-    log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in web_config.ts`)
+    const devmarkStatus = branch === 'dev' ? ' (isDevmark kept for dev branch)' : ''
+    log(LogLevel.SUCCESS, `Set isDev to false in web_config.ts${devmarkStatus}`)
 }
 
 function setConfigBranch(branch: string) {
@@ -247,7 +250,7 @@ async function main(): Promise<void> {
 
     if (buildApplication) {
         if (publishBranch) {
-            setConfigDevFalse()
+            setConfigDevFalse(publishBranch)
             if (os.platform() !== 'darwin') {
                 const appUpdateConfig = {
                     provider: 'generic',
