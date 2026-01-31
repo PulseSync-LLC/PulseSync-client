@@ -6,6 +6,7 @@ import ProfileHeader from './ProfileHeader'
 import FriendButton from './FriendButton'
 import AchievementsSection from './AchievementsSection'
 import userContext from '../../../../api/context/user.context'
+import { useTranslation } from 'react-i18next'
 
 interface ProfileTabProps {
     userProfile: any
@@ -16,15 +17,16 @@ interface ProfileTabProps {
 
 const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, username }) => {
     const { user } = useContext(userContext)
+    const { t } = useTranslation()
 
     if (loading) {
         return <LoadingIndicator />
     }
     if (!userProfile || !userProfile.id || userProfile.id === '-1') {
-        return <ErrorMessage message="Пользователь не найден" />
+        return <ErrorMessage message={t('profile.errors.userNotFound')} />
     }
     if (error) {
-        return <ErrorMessage message={`Ошибка: ${String(error)}`} />
+        return <ErrorMessage message={t('profile.errors.withMessage', { message: String(error) })} />
     }
 
     return (

@@ -1,0 +1,162 @@
+.main_window {
+    display: flex;
+    overflow: hidden;
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    justify-content: center;
+    padding: 20px 40px;
+    border-radius: 16px 16px 0 0;
+    align-items: center;
+    position: absolute;
+    bottom: 0;
+
+    .img1 {
+        pointer-events: none;
+        position: absolute;
+        top: -290px;
+        right: -176px;
+        rotate: 32deg;
+        min-width: 820px;
+        min-height: 780px;
+    }
+
+    .img2 {
+        pointer-events: none;
+        position: absolute;
+        bottom: -80px;
+        right: -108px;
+        rotate: 4deg;
+        min-width: 520px;
+    }
+
+    .img3 {
+        pointer-events: none;
+        position: absolute;
+        left: -180px;
+        bottom: -200px;
+        min-width: 660px;
+        rotate: 6deg;
+    }
+
+    .filter {
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        mix-blend-mode: color-burn;
+    }
+
+    .hat {
+        pointer-events: none;
+        position: absolute;
+        right: 0px;
+        top: 0px;
+        rotate: 355deg;
+        align-self: anchor-center;
+        justify-self: anchor-center;
+        transform: translate(-160px, -40px);
+    }
+
+    .background {
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        background: radial-gradient(77.12% 94.8% at 50.03% 47.75%, #10ff00 0%, #6809ff 100%);
+        mix-blend-mode: color;
+    }
+
+    .container {
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0px;
+        gap: 15px;
+        width: -webkit-fill-available;
+        height: -webkit-fill-available;
+
+        .logoName {
+            pointer-events: none;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            align-self: center;
+            position: absolute;
+            height: -webkit-fill-available;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            justify-content: center;
+        }
+
+        .discordAuth {
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 16px 22px;
+            gap: 10px;
+            background: #ff4040;
+            border-radius: 8px;
+            width: 360px;
+            font-weight: 900;
+            font-size: 14px;
+            line-height: 110%;
+            color: #ffffff;
+            border: none;
+
+            &:disabled {
+                opacity: 0.3 !important;
+
+                &:hover {
+                    background: rgba(22, 24, 30, 0.7);
+                    cursor: not-allowed;
+                }
+            }
+
+            &:hover {
+                background: rgb(255 58 58 / 77%);
+            }
+        }
+
+        .terms {
+            width: 360px;
+
+            font-weight: 600;
+            font-size: 12px;
+            line-height: 140%;
+            text-align: center;
+
+            color: #ffffff;
+
+            a {
+                text-decoration: underline;
+                color: #ffe72f;
+                cursor: pointer;
+                &:hover {
+                    color: rgb(255, 69, 171);
+                }
+            }
+        }
+    }
+}
+
+.snowfall-canvas {
+    pointer-events: none;
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    opacity: 0.8;
+}

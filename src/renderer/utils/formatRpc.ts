@@ -2,6 +2,8 @@ import { Track, Album } from '../api/interfaces/track.interface'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { getCoverImage } from './utils'
+import UserInterface from '../api/interfaces/user.interface'
+import { t as i18nT } from '../i18n'
 
 export function truncateLabel(label: string, maxLength = 30) {
     return label.length > maxLength ? label.slice(0, maxLength) : label
@@ -10,8 +12,8 @@ export function truncateLabel(label: string, maxLength = 30) {
 export const replaceParams = (str: any, track: Track, showVersion: boolean = false) => {
     return str
         .replace('{track}', showVersion && track.version ? `${track.title} (${track.version})` : track.title || '')
-        .replace('{artist}', track.artists.map(a => a.name).join(', ') || 'Unknown Artist')
-        .replace('{album}', track.albums.map(a => a.title).join(', ') || 'Unknown Album')
+        .replace('{artist}', track.artists.map(a => a.name).join(', ') || i18nT('rpc.unknownArtist'))
+        .replace('{album}', track.albums.map(a => a.title).join(', ') || i18nT('rpc.unknownAlbum'))
 }
 
 export function fixStrings(string: string): string {
@@ -24,6 +26,12 @@ export function fixStrings(string: string): string {
         string += '…'
     }
     return string
+}
+
+function stripAfterDash(str: string): string {
+    if (!str) return str
+    const idx = str.indexOf('-')
+    return idx !== -1 ? str.slice(0, idx).trim() : str
 }
 
 class ConvertableLink {
@@ -64,7 +72,7 @@ export const STATUS_DISPLAY_TYPES: Record<number, number> = {
     2: 2,
 }
 
-export function buildActivityButtons(t: Track, settings: SettingsInterface) {
+export function buildActivityButtons(t: Track, settings: SettingsInterface, user?: UserInterface) {
     const buttons: { label: string; url: string }[] = []
     const { shareTrackPathYnison, shareTrackPathRegular } = buildShareLinks(t)
     const shareTrackPath = t.sourceType === 'ynison' ? shareTrackPathYnison : shareTrackPathRegular
@@ -117,7 +125,7 @@ export function buildActivityButtons(t: Track, settings: SettingsInterface) {
     return buttons.length > 2 ? buttons.slice(0, 2) : buttons.length ? buttons : undefined
 }
 
-export function buildDiscordActivity(t: Track, settings: SettingsInterface): SetActivity | null {
+export function buildDiscordActivity(t: Track, settings: SettingsInterface, user?: UserInterface): SetActivity | null {
     if (!t.title) return null
     if (t.status === 'paused' && !settings.discordRpc.displayPause) return null
 
@@ -125,13 +133,15 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
     const album: Album | undefined = Array.isArray(t.albums) && t.albums.length > 0 ? t.albums[0] : undefined
     const isGenerative = typeof t.id === 'string' && t.id.includes('generative')
     const withSmall = settings.discordRpc.showSmallIcon
+    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+    const hideBranding = Boolean(settings.discordRpc.supporterHideBranding && hasSupporter)
 
     const base: SetActivity = {
         type: 2,
         statusDisplayType: STATUS_DISPLAY_TYPES[settings.discordRpc.statusDisplayType] ?? 0,
         largeImageKey: getCoverImage(t),
-        largeImageText: `PulseSync ${settings.info.version}`,
-        largeImageUrl: 'https://pulsesync.dev',
+        largeImageText: hideBranding ? '' : stripAfterDash(`PulseSync ${settings.info.version}`),
+        largeImageUrl: hideBranding ? undefined : 'https://pulsesync.dev',
     }
 
     if (album?.title && album.title !== t.title) {
@@ -150,14 +160,14 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
         const activity: SetActivity = { ...base, details: fixStrings(t.title) }
 
         if (t.status === 'paused' && settings.discordRpc.displayPause) {
-            activity.smallImageText = 'Paused'
+            activity.smallImageText = i18nT('rpc.paused')
             activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
         } else if (!isGenerative) {
             activity.startTimestamp = Math.floor(start)
             activity.endTimestamp = Math.floor(start + (t.durationMs ?? 0))
         }
 
-        const buttons = buildActivityButtons(t, settings)
+        const buttons = buildActivityButtons(t, settings, user)
         if (buttons) activity.buttons = buttons
         return activity
     } else {
@@ -170,13 +180,13 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
         } else if (settings.discordRpc.details && settings.discordRpc.details.length > 0) {
             rawDetails = replaceParams(settings.discordRpc.details, t, settings.discordRpc.showTrackVersion)
         } else {
-            rawDetails = t.title || 'Unknown Track'
+            rawDetails = t.title || i18nT('rpc.unknownTrack')
         }
 
         const stateText =
             settings.discordRpc.state && settings.discordRpc.state.length > 0
                 ? fixStrings(replaceParams(settings.discordRpc.state, t))
-                : fixStrings(artistName || 'Unknown Artist')
+                : fixStrings(artistName || i18nT('rpc.unknownArtist'))
 
         const activity: SetActivity = {
             ...base,
@@ -187,7 +197,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
         }
 
         if (t.status === 'paused' && settings.discordRpc.displayPause) {
-            activity.smallImageText = 'Paused'
+            activity.smallImageText = i18nT('rpc.paused')
             activity.smallImageKey = 'https://cdn.discordapp.com/app-assets/984031241357647892/1340838860963450930.png?size=256'
             activity.details = fixStrings(t.title)
             delete activity.startTimestamp
@@ -198,7 +208,8 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
         }
 
         if ((!t.artists || t.artists.length === 0) && t.trackSource !== 'UGC') {
-            const newDetails = t.title.endsWith(' - Нейромузыка') ? t.title : `${t.title} - Нейромузыка`
+            const neuroSuffix = ` - ${i18nT('rpc.neuroMusic')}`
+            const newDetails = t.title.endsWith(neuroSuffix) ? t.title : `${t.title}${neuroSuffix}`
             activity.details = fixStrings(newDetails)
             if (t.albumArt && t.albumArt.includes('%%')) {
                 activity.largeImageKey = `https://${t.albumArt.replace('%%', 'orig')}`
@@ -206,7 +217,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface): Set
             delete activity.state
         }
 
-        const buttons = buildActivityButtons(t, settings)
+        const buttons = buildActivityButtons(t, settings, user)
         if (buttons) activity.buttons = buttons
         return activity
     }

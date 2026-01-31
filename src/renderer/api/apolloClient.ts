@@ -1,8 +1,8 @@
-import { ApolloClient, InMemoryCache, ApolloLink, HttpLink, split, concat } from '@apollo/client'
+import { ApolloClient, InMemoryCache, ApolloLink, HttpLink } from '@apollo/client'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
-import config from './config'
+import config from './web_config'
 
 const httpUrl = config.SERVER_URL + '/graphql'
 const wsUrl = config.SERVER_URL.replace(/^http/, 'ws') + '/graphql'
@@ -31,15 +31,15 @@ const authMiddleware = new ApolloLink((operation, forward) => {
 })
 
 const splitLink = wsLink
-    ? split(
+    ? ApolloLink.split(
           ({ query }) => {
               const def = getMainDefinition(query)
               return def.kind === 'OperationDefinition' && def.operation === 'subscription'
           },
           wsLink,
-          concat(authMiddleware, httpLink),
+          ApolloLink.from([authMiddleware, httpLink]),
       )
-    : concat(authMiddleware, httpLink)
+    : ApolloLink.from([authMiddleware, httpLink])
 
 const client = new ApolloClient({
     link: splitLink,

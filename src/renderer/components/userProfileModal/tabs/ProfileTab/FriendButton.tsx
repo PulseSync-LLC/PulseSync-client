@@ -1,9 +1,10 @@
 import React, { useState } from 'react'
 import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
+import { useMutation } from '@apollo/client/react'
 import Button from '../../../buttonV2'
-import apolloClient from '../../../../api/apolloClient'
 import toggleFollowMutation from '../../../../api/mutations/toggleFollow.query'
 import * as styles from '../../userProfileModal.module.scss'
+import { useTranslation } from 'react-i18next'
 
 interface FriendButtonProps {
     userProfile: any
@@ -11,33 +12,43 @@ interface FriendButtonProps {
     username: string
 }
 
+type ToggleFollowData = {
+    toggleFollow: {
+        isFollowing: boolean
+        areFriends: boolean
+    }
+}
+
+type ToggleFollowVars = {
+    targetId: string
+}
+
 const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username }) => {
+    const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
-    const [, setFriendStatusLoading] = useState(false)
+
+    const [runToggleFollow, { loading, error }] = useMutation<ToggleFollowData, ToggleFollowVars>(toggleFollowMutation, {
+        onCompleted: data => {
+            userProfile.isFollowing = data.toggleFollow.isFollowing
+            userProfile.isFriend = data.toggleFollow.areFriends
+        },
+    })
 
     const handleToggleFollow = async () => {
         try {
-            setFriendStatusLoading(true)
-            const { data } = await apolloClient.mutate({
-                mutation: toggleFollowMutation,
-                variables: { targetId: userProfile.id },
+            await runToggleFollow({
+                variables: { targetId: userProfile.id as string },
             })
-            if (data && data.toggleFollow) {
-                userProfile.isFollowing = data.toggleFollow.isFollowing
-                userProfile.isFriend = data.toggleFollow.areFriends
-            }
-        } catch (error) {
-            console.error('Ошибка при запросе на добавление/удаление из друзей', error)
-        } finally {
-            setFriendStatusLoading(false)
+        } catch (e) {
+            console.error(t('profile.friendButton.requestError'), e)
         }
     }
 
-    if (user.username === username) {
+    if ((user?.username || '').toLowerCase() === (username || '').toLowerCase()) {
         return (
             <>
                 <Button className={styles.buttonAddFriend} disabled>
-                    <MdPersonAdd size={20} /> Редактировать профиль
+                    <MdPersonAdd size={20} /> {t('profile.friendButton.editProfile')}
                 </Button>
                 <Button className={styles.buttonPersonal} disabled>
                     <MdSettings size={20} />
@@ -46,21 +57,21 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
         )
     }
 
-    let buttonTextNormal = 'Добавить в друзья'
-    let buttonTextHover = 'Подписаться'
+    let buttonTextNormal = t('profile.friendButton.addFriend')
+    let buttonTextHover = t('profile.friendButton.follow')
     let normalIcon = <MdPersonAdd size={20} />
     let hoverIcon = <MdPersonAdd size={20} />
     let buttonClass = styles.buttonAddFriendWhite
 
     if (userProfile.isFriend) {
-        buttonTextNormal = 'Друзья'
-        buttonTextHover = 'Удалить из друзей'
+        buttonTextNormal = t('profile.friendButton.friends')
+        buttonTextHover = t('profile.friendButton.removeFriend')
         normalIcon = <MdPeopleAlt size={20} />
         hoverIcon = <MdPersonOff size={20} />
         buttonClass = styles.buttonRemoveFriend
     } else if (userProfile.isFollowing) {
-        buttonTextNormal = 'Подписан'
-        buttonTextHover = 'Отписаться'
+        buttonTextNormal = t('profile.friendButton.following')
+        buttonTextHover = t('profile.friendButton.unfollow')
         normalIcon = <MdHowToReg size={20} />
         hoverIcon = <MdPersonRemove size={20} />
         buttonClass = styles.buttonUnsubscribe
@@ -73,6 +84,10 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
             onClick={handleToggleFollow}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
+            disabled={loading}
+            aria-busy={loading}
+            aria-disabled={loading}
+            title={error ? t('profile.friendButton.actionError') : undefined}
         >
             {isHovered ? hoverIcon : normalIcon} {isHovered ? buttonTextHover : buttonTextNormal}
         </Button>

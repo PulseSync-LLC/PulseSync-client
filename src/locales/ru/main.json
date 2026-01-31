@@ -1,0 +1,234 @@
+{
+    "main": {
+        "appUtils": {
+            "appInstalledAndLaunched": "Приложение установлено и запущено.",
+            "dmgAppNotFound": "В DMG не найден .app пакет",
+            "dumpingEntitlements": "Дампим entitlements…",
+            "executeFailed": "Не удалось выполнить: {{message}}",
+            "fileExecutedSuccessfully": "Файл успешно выполнен.",
+            "fileOpenedSuccessfully": "Файл успешно открыт.",
+            "hashUpdated": "Хеш обновлён",
+            "jsonArrayEndNotFound": "Не найден конец JSON-массива",
+            "jsonArrayStartNotFound": "Не найдено начало JSON-массива",
+            "jsonLengthMismatch": "Новая JSON длина не совпадает со старой",
+            "latestYmlVersionNotFound": "Версия не найдена в latest.yml",
+            "localAppDataMissing": "LOCALAPPDATA не задан",
+            "macPatchError": "Ошибка macOS-патча: {{message}}",
+            "macPatchSuccess": "Патч macOS выполнен успешно",
+            "noWriteAccess": "Нет прав на запись app.asar",
+            "patchSupportedPlatforms": "Патч доступен только на Windows и macOS",
+            "permissionsRequiredMessage": "Предоставьте доступ к записи для патча ASAR и повторите.",
+            "permissionsRequiredTitle": "Требуются права",
+            "rcdataJsonNotFound": "RCDATA JSON запись не найдена",
+            "reSigningApp": "Переподписываем приложение…",
+            "readingExe": "Чтение EXE...",
+            "resourcesAsarNotFound": "Запись resources\\app.asar не найдена",
+            "sipEnabled": "SIP включён — отключите его и повторите",
+            "updateIntegrityError": "Ошибка в updateIntegrityHashInExe:",
+            "updatingInfoPlistHash": "Обновляем хеш в Info.plist...",
+            "windowsPatchError": "Ошибка Windows-патча: {{message}}",
+            "windowsPatchSuccess": "Патч Windows выполнен успешно",
+            "yandexNotInstalledMessage": "Приложение Яндекс Музыка не найдено. Начать установку?",
+            "yandexNotInstalledTitle": "Яндекс Музыка не установлена"
+        },
+        "common": {
+            "cancel": "Отменить",
+            "download": "Скачать",
+            "error": "Ошибка",
+            "later": "Позже",
+            "ok": "Ок",
+            "openSettings": "Открыть настройки",
+            "selectFile": "Указать файл",
+            "start": "Начать"
+        },
+        "createWindow": {
+            "fileNotFound": "Файл не найден: {{path}}"
+        },
+        "discordRpc": {
+            "activityClearError": "Ошибка очистки активности",
+            "activitySetError": "Ошибка установки активности",
+            "connectError": "Ошибка подключения к Discord RPC",
+            "connected": "Успешное подключение",
+            "connectionClosed": "Закрытие соединения",
+            "disconnectError": "Ошибка отключения клиента",
+            "disconnected": "Отключение RPC",
+            "genericConnectError": "Ошибка подключения",
+            "stateRetry": "{{state}} Следующая попытка через несколько секунд.",
+            "states": {
+                "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.",
+                "closed": "Не удалось обнаружить запущенный Discord!",
+                "flatpak": "Похоже, Discord запущен из пакета Flatpak. Это, скорее всего, помешает приложению подключиться к RPC",
+                "snap": "Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC",
+                "success": ""
+            },
+            "timeoutFallback": "Тайм-аут подключения. Переключаюсь на резервный App ID.",
+            "timeoutRateLimit": "Тайм-аут подключения. Возможны рейт-лимиты от Discord. Если не показывается активность, то попробуйте снова через 10–15 минут."
+        },
+        "events": {
+            "addonsLoadError": "Addons: Ошибка загрузки тем:",
+            "createArchiveError": "Ошибка при создании архива",
+            "createExtensionError": "Ошибка создания расширения:",
+            "createZipError": "Ошибка при создании .zip файла с AdmZip",
+            "exitApp": "Выход из приложения",
+            "fileDownloadError": "Ошибка при скачивании файла: {{message}}",
+            "fileExecuteFailed": "Не удалось выполнить файл: {{message}}",
+            "fileExecutedSuccessfully": "Файл успешно выполнен.",
+            "fileOpenFailed": "Не удалось открыть файл: {{message}}",
+            "fileOpenedSuccessfully": "Файл успешно открыт.",
+            "folderNotFound": "Папка не найдена.",
+            "invalidDownloadUrl": "Недопустимая ссылка для загрузки",
+            "latestYmlVersionNotFound": "Версия не найдена в latest.yml",
+            "newExtensionAuthor": "Ваше имя",
+            "newExtensionDescription": "Тема по умолчанию.",
+            "newExtensionName": "Новое расширение",
+            "newExtensionNameWithIndex": "Новое расширение {{index}}",
+            "rendererError": "Ошибка рендера",
+            "yandexNotFound": "Приложение Яндекс Музыка не найдено",
+            "yandexNotFoundMessage": "Приложение Яндекс Музыка не найдено",
+            "yandexUninstallError": "Ошибка при удалении приложения",
+            "yandexUninstallFailedWithReason": "Не удалось удалить приложение: {{message}}",
+            "yandexUninstallStart": "Начинаю удаление Яндекс Музыки...",
+            "yandexUninstallSuccess": "Яндекс Музыка удалена",
+            "yandexUninstallSuccessMessage": "Яндекс Музыка удалена"
+        },
+        "handleErrors": {
+            "internalError": "Ошибка внутри ErrorService.handleError:",
+            "writeCrashLogError": "Ошибка записи в crash.log:"
+        },
+        "hostFile": {
+            "entriesAddError": "Произошла ошибка при добавлении записей",
+            "entriesAddFailed": "Не удалось добавить записи в список",
+            "entriesAdded": "pulsesync.dev и ru-node-1.pulsesync.dev успешно добавлены в список",
+            "invalidListGeneralPath": "Некорректный путь list-general.txt",
+            "noPendingListGeneralPath": "Нет ожидающего пути list-general.txt для этого окна"
+        },
+        "index": {
+            "appStartupError": "Ошибка при запуске приложения:",
+            "musicPathError": "Ошибка при получении пути:"
+        },
+        "macUpdater": {
+            "commandFailed": "{{cmd}} {{args}} завершилась с кодом {{code}}: {{stderr}}",
+            "currentVersionAvailable": "Текущая версия {{current}}, доступна {{version}}",
+            "dmgVolumeNotFound": "Том DMG не найден",
+            "fileDownloaded": "Файл загружен: {{path}}",
+            "firstCallRequiresOptions": "Первый вызов getMacUpdater требует options",
+            "invalidManifest": "Некорректный манифест обновления",
+            "manifestMissingAssets": "В манифесте нет url/assets",
+            "manifestNotFound": "Манифест обновления не найден",
+            "sha256Mismatch": "Контрольная сумма sha256 не совпала",
+            "sha512Mismatch": "Контрольная сумма sha512 не совпала",
+            "skipNonMac": "MacOSUpdater: пропуск, не macOS",
+            "updateFileNotDownloaded": "Файл обновления не загружен"
+        },
+        "modDownload": {
+            "networkError": "Ошибка сети"
+        },
+        "modFiles": {
+            "asarNotFound": "{{name}} не найден. Пожалуйста, переустановите Яндекс Музыку.",
+            "pickAsarMessage": "Куда сохранить модификацию ASAR для Яндекс Музыки?",
+            "pickAsarTitle": "Укажите путь к модификации ASAR",
+            "saveAsTitle": "Сохранить модификацию ASAR как..."
+        },
+        "modManager": {
+            "closingMusic": "Закрытие Яндекс Музыки...",
+            "fullDiskAccessRequired": "Пожалуйста, предоставьте приложению полный доступ к диску.",
+            "incompatibleMod": "Мод не совместим с текущей версией Яндекс Музыки.",
+            "modAlreadyInstalled": "Мод уже установлен.",
+            "modAsarNotFound": "{{name}} не найден. Пожалуйста, переустановите Яндекс Музыку.",
+            "usingCache": "Использую кеш мода..."
+        },
+        "modNetwork": {
+            "compatibilityCheckError": "Произошла ошибка при проверке совместимости мода.",
+            "integrityError": "Ошибка целостности файла. Пожалуйста, попробуйте снова или проверьте интернет-соединение.",
+            "patchError": "Ошибка при патчинге ASAR",
+            "unpackedCopyError": "Ошибка при копировании зависимостей мода",
+            "unpackedDownloadError": "Ошибка при загрузке зависимостей мода",
+            "unpackedMoveError": "Ошибка при перемещении зависимостей мода"
+        },
+        "obsWidget": {
+            "downloadError": "Ошибка при скачивании виджета",
+            "downloadUnknownError": "Неизвестная ошибка при скачивании виджета",
+            "downloading": "Скачивание виджета OBS...",
+            "extracting": "Распаковка архива...",
+            "installSuccess": "Виджет OBS успешно установлен",
+            "removeError": "Ошибка при удалении виджета",
+            "removeSuccess": "Виджет OBS успешно удален",
+            "removeUnknownError": "Неизвестная ошибка при удалении виджета",
+            "removing": "Удаление виджета OBS..."
+        },
+        "process": {
+            "updateCompleteBody": "Посмотреть список изменений можно в приложении",
+            "updateCompleteTitle": "Обновление завершено"
+        },
+        "storage": {
+            "app": {
+                "description": "Информация о приложении (версия и пр.)",
+                "version": "Текущая версия приложения"
+            },
+            "discordRpc": {
+                "appId": "ID приложения Discord для Rich Presence",
+                "button": "Текст кнопки в Rich Presence (например, URL или действие)",
+                "description": "Настройки Discord Rich Presence",
+                "details": "Текст деталей, отображаемый в Rich Presence",
+                "displayPause": "Показывать паузу в статусе, если воспроизведение на паузе",
+                "enableRpcButtonListen": "Включить прослушивание кликов по кнопке Rich Presence",
+                "enableWebsiteButton": "Показывать кнопку Website в Rich Presence",
+                "showSmallIcon": "Использовать маленькую иконку для Rich Presence",
+                "showTrackVersion": "Показывать версию трека в rpc",
+                "supporterHideBranding": "Скрывать брендинг PulseSync в Rich Presence",
+                "showVersionOrDevice": "Показывать версию приложения или информацию об устройстве в статусе",
+                "state": "Текущее состояние для Rich Presence",
+                "status": "Включен ли статус Rich Presence"
+            },
+            "mod": {
+                "checksum": "Контрольная сумма мода",
+                "description": "Информация и состояние мода",
+                "installed": "Флаг, указывающий, установлен ли мод",
+                "musicVersion": "Версия мода",
+                "name": "Название мода",
+                "realMusicVersion": "Реальная версия музыки",
+                "unpackedChecksum": "Контрольная сумма зависимостей мода",
+                "updated": "Флаг, указывающий, обновлен ли мод до последней версии",
+                "version": "Версия мода"
+            },
+            "settings": {
+                "askSavePath": "Спрашивать путь для сохранения при выгрузке/экспорте",
+                "autoStartApp": "Автоматически запускать приложение при загрузке системы",
+                "autoStartInTray": "Запускать приложение свернутым в трей при старте системы",
+                "autoStartMusic": "Автоматически запускать воспроизведение музыки при старте приложения",
+                "closeAppInTray": "При закрытии окна сворачивать приложение в трей, а не выходить полностью",
+                "deletePextAfterImport": "Удалять временные файлы (Pext) после завершения импорта",
+                "description": "Основные флаги и параметры поведения приложения",
+                "devSocket": "Включить режим разработчика: открывать сокет для отладки",
+                "hardwareAcceleration": "Включить или отключить аппаратное ускорение (GPU) для приложения",
+                "language": "Предпочитаемый язык приложения",
+                "lastDisplayId": "ID последнего экрана, на котором было окно приложения",
+                "modSavePath": "Путь до мода",
+                "musicReinstalled": "Флаг, указывающий, переустановлена ли музыка",
+                "saveAsMp3": "Сохранять треки или результаты в формате MP3 по умолчанию",
+                "saveWindowDimensionsOnRestart": "Сохранять размер окна при закрытии и восстанавливать при следующем запуске",
+                "saveWindowPositionOnRestart": "Сохранять позицию окна при закрытии и восстанавливать при следующем запуске",
+                "showModModalAfterInstall": "Показывать окно с информацией о моде после установки",
+                "windowDimensions": "Последние сохранённые размеры окна",
+                "windowPosition": "Последние сохранённые координаты окна"
+            },
+            "tokens": {
+                "description": "Токены для аутентификации",
+                "token": "Основной токен сессии"
+            }
+        },
+        "tray": {
+            "addonsDirectory": "Директория аддонов",
+            "checkUpdates": "Проверить обновления",
+            "close": "Закрыть",
+            "discordRpc": "Discord RPC",
+            "openDiscord": "Перейти в дискорд PulseSync"
+        },
+        "updater": {
+            "appFilesCorrupted": "Файлы приложения повреждены. Переустановите приложение.",
+            "noUpdatesFound": "Обновлений не найдено",
+            "updateReadyBody": "PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения",
+            "updateReadyTitle": "Новое обновление готово к установке"
+        }
+    }
+}

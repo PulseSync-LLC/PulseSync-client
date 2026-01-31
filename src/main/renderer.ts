@@ -1,5 +1,5 @@
-import '../renderer/App'
-import '../../static/styles/globals.css'
+import '../renderer/main.tsx'
+import '../styles/globals.css'
 import * as Sentry from '@sentry/electron/renderer'
 
 Sentry.init({
@@ -7,3 +7,4 @@ Sentry.init({
     integrations: [Sentry.browserTracingIntegration(), Sentry.browserProfilingIntegration()],
     tracePropagationTargets: ['127.0.0.1', 'localhost', /^https:\/\/ru-node-1\.pulsesync\.dev/],
 })
+Sentry.setTag('process', 'renderer')

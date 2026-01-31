@@ -1,17 +1,21 @@
 import { app, Menu, MenuItem, shell, Tray } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import { checkOrFindUpdate } from '../events'
+import { isMac, isWindows } from '../utils/appUtils'
 import path from 'path'
 import { setRpcStatus } from './discordRpc'
 import { mainWindow } from './createWindow'
 import { getState } from './state'
+import RendererEvents from '../../common/types/rendererEvents'
+import { t } from '../i18n'
 
 let tray: Tray
 let menu: Menu
 const State = getState()
 
 function createTray() {
-    const icon = getNativeImg('App', '.ico', 'icon').resize({
+    const iconExt = isMac() ? '.png' : isWindows() ? '.ico' : '.png'
+    const icon = getNativeImg('App', iconExt, 'icon').resize({
         width: 16,
         height: 16,
     })
@@ -25,7 +29,7 @@ function createTray() {
 
     menu.append(
         new MenuItem({
-            label: 'Перейти в дискорд PulseSync',
+            label: t('main.tray.openDiscord'),
             icon: dsIcon,
             click: async () => {
                 await shell.openExternal('https://discord.gg/qy42uGTzRy')
@@ -34,7 +38,7 @@ function createTray() {
     )
     menu.append(
         new MenuItem({
-            label: 'Директория аддонов',
+            label: t('main.tray.addonsDirectory'),
             click: async () => {
                 const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
                 await shell.openPath(themesFolderPath)
@@ -43,20 +47,20 @@ function createTray() {
     )
     const menuItem = new MenuItem({
         type: 'checkbox',
-        label: 'Discord RPC',
+        label: t('main.tray.discordRpc'),
         checked: State.get('discordRpc.status'),
         id: 'rpc-status',
         click: async () => {
-            await setRpcStatus(!State.get('discordRpc.status'))
+            setRpcStatus(!State.get('discordRpc.status'))
         },
     })
     menu.append(menuItem)
     menu.append(
         new MenuItem({
-            label: 'Проверить обновления',
+            label: t('main.tray.checkUpdates'),
             click: async () => {
                 await checkOrFindUpdate()
-                mainWindow.webContents.send('check-mod-update')
+                mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE)
             },
         }),
     )
@@ -67,8 +71,8 @@ function createTray() {
     )
     menu.append(
         new MenuItem({
-            label: 'Закрыть',
-            accelerator: process.platform === 'darwin' ? 'Cmd+Q' : 'Alt+F4',
+            label: t('main.tray.close'),
+            accelerator: isMac() ? 'Cmd+Q' : isWindows() ? 'Alt+F4' : 'Ctrl+Q',
             click: app.quit,
         }),
     )

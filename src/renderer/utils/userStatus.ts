@@ -1,5 +1,6 @@
 import { timeAgo } from './utils'
 import UserInterface from '../api/interfaces/user.interface'
+import { t } from '../i18n'
 
 export const getStatusColor = (user: UserInterface, dark = false): string => {
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {
@@ -15,21 +16,21 @@ export const getStatus = (user: UserInterface): { text: string; detail: string }
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {
         const artists = user.currentTrack.artists?.map(a => a.name).join(', ')
         return {
-            text: 'Слушает',
+            text: t('userStatus.listening'),
             detail: `${user.currentTrack.title} - ${artists}`,
         }
     }
     if (user.status === 'online') {
         return {
-            text: 'В сети',
+            text: t('userStatus.online'),
             detail: null,
         }
     }
     if (user.lastOnline) {
-        return { text: 'Не в сети', detail: `${timeAgo(Number(user.lastOnline))}` }
+        return { text: t('userStatus.offline'), detail: `${timeAgo(Number(user.lastOnline))}` }
     }
     return {
-        text: 'Не в сети',
+        text: t('userStatus.offline'),
         detail: `💤`,
     }
 }

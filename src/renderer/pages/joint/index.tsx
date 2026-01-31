@@ -1,14 +1,12 @@
-import Layout from '../../components/layout'
+import PageLayout from '../PageLayout'
 import Container from '../../components/containerV2'
-
-import * as styles from '../../../../static/styles/page/index.module.scss'
+import { useTranslation } from 'react-i18next'
 
 export default function JointPage() {
+    const { t } = useTranslation()
     return (
-        <Layout title="Совместное прослушивание">
-            <div className={styles.page}>
-                <Container titleName={'Совместное прослушивание'}>Скоро</Container>
-            </div>
-        </Layout>
+        <PageLayout title={t('pages.joint.title')}>
+            <Container titleName={t('pages.joint.title')}>{t('pages.joint.comingSoon')}</Container>
+        </PageLayout>
     )
 }

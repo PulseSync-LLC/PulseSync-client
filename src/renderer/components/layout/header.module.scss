@@ -18,6 +18,13 @@
             align-items: center;
             gap: 23px;
 
+            .settingsTooltip {
+                display: flex;
+                align-items: center;
+                -webkit-app-region: no-drag;
+                cursor: not-allowed;
+            }
+
             .settingsButton {
                 transition: var(--transition);
                 display: flex;

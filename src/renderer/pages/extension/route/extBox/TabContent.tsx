@@ -4,6 +4,8 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
+import MainEvents from '../../../../../common/types/mainEvents'
+import RendererEvents from '../../../../../common/types/rendererEvents'
 
 import MetadataEditor from './MetadataEditor'
 
@@ -13,8 +15,10 @@ import { AddonConfig } from '../../../../components/сonfigurationSettings/types
 
 import { ActiveTab, DocTab } from './types'
 import * as styles from './../extensionview.module.scss'
-import appConfig from '../../../../api/config'
+import appConfig from '../../../../api/web_config'
 import Addon from '../../../../api/interfaces/addon.interface'
+import { t as i18nT } from '../../../../i18n'
+import { useTranslation } from 'react-i18next'
 
 interface Props {
     active: ActiveTab
@@ -48,9 +52,187 @@ const Heading =
         )
     }
 
-const defaultTemplate = {} as AddonConfig
+const defaultTemplate: AddonConfig = {
+    sections: [
+        {
+            title: i18nT('extensions.defaults.interface.title'),
+            items: [
+                {
+                    id: 'primaryColor',
+                    name: i18nT('extensions.defaults.interface.primaryColor'),
+                    description: i18nT('extensions.defaults.interface.primaryColorDescription'),
+                    type: 'color',
+                    input: '#3b82f6',
+                    defaultParameter: '#3b82f6',
+                },
+                {
+                    id: 'secondaryColor',
+                    name: i18nT('extensions.defaults.interface.secondaryColor'),
+                    description: i18nT('extensions.defaults.interface.secondaryColorDescription'),
+                    type: 'color',
+                    input: '#10b981',
+                    defaultParameter: '#10b981',
+                },
+                {
+                    id: 'borderRadius',
+                    name: i18nT('extensions.defaults.interface.borderRadius'),
+                    description: i18nT('extensions.defaults.interface.borderRadiusDescription'),
+                    type: 'slider',
+                    min: 0,
+                    max: 30,
+                    step: 1,
+                    value: 8,
+                    defaultParameter: 8,
+                },
+                {
+                    id: 'layoutStyle',
+                    name: i18nT('extensions.defaults.interface.layoutStyle'),
+                    description: i18nT('extensions.defaults.interface.layoutStyleDescription'),
+                    type: 'selector',
+                    selected: 2,
+                    options: {
+                        '1': { event: 'grid', name: i18nT('extensions.defaults.interface.layoutGrid') },
+                        '2': { event: 'list', name: i18nT('extensions.defaults.interface.layoutList') },
+                        '3': { event: 'compact', name: i18nT('extensions.defaults.interface.layoutCompact') },
+                    },
+                    defaultParameter: 2,
+                },
+                {
+                    id: 'darkMode',
+                    name: i18nT('extensions.defaults.interface.darkMode'),
+                    description: i18nT('extensions.defaults.interface.darkModeDescription'),
+                    type: 'button',
+                    bool: false,
+                    defaultParameter: false,
+                },
+            ],
+        },
+        {
+            title: i18nT('extensions.defaults.player.title'),
+            items: [
+                {
+                    id: 'enableCrossfade',
+                    name: i18nT('extensions.defaults.player.crossfade'),
+                    description: i18nT('extensions.defaults.player.crossfadeDescription'),
+                    type: 'button',
+                    bool: true,
+                    defaultParameter: true,
+                },
+                {
+                    id: 'crossfadeDuration',
+                    name: i18nT('extensions.defaults.player.crossfadeDuration'),
+                    description: i18nT('extensions.defaults.player.crossfadeDurationDescription'),
+                    type: 'slider',
+                    min: 0,
+                    max: 12,
+                    step: 1,
+                    value: 6,
+                    defaultParameter: 6,
+                },
+                {
+                    id: 'audioQuality',
+                    name: i18nT('extensions.defaults.player.audioQuality'),
+                    description: i18nT('extensions.defaults.player.audioQualityDescription'),
+                    type: 'selector',
+                    selected: 3,
+                    options: {
+                        '1': { event: 'low', name: i18nT('extensions.defaults.player.qualityLow') },
+                        '2': { event: 'medium', name: i18nT('extensions.defaults.player.qualityMedium') },
+                        '3': { event: 'high', name: i18nT('extensions.defaults.player.qualityHigh') },
+                    },
+                    defaultParameter: 3,
+                },
+                {
+                    id: 'customEqualizerPreset',
+                    name: i18nT('extensions.defaults.player.customEq'),
+                    description: i18nT('extensions.defaults.player.customEqDescription'),
+                    type: 'file',
+                    filePath: '',
+                    defaultParameter: { filePath: '' },
+                },
+            ],
+        },
+        {
+            title: i18nT('extensions.defaults.notifications.title'),
+            items: [
+                {
+                    id: 'desktopNotifications',
+                    name: i18nT('extensions.defaults.notifications.desktop'),
+                    description: i18nT('extensions.defaults.notifications.desktopDescription'),
+                    type: 'button',
+                    bool: true,
+                    defaultParameter: true,
+                },
+                {
+                    id: 'notificationSound',
+                    name: i18nT('extensions.defaults.notifications.sound'),
+                    description: i18nT('extensions.defaults.notifications.soundDescription'),
+                    type: 'selector',
+                    selected: 1,
+                    options: {
+                        '1': { event: 'chime', name: i18nT('extensions.defaults.notifications.soundChime') },
+                        '2': { event: 'pop', name: i18nT('extensions.defaults.notifications.soundPop') },
+                        '3': { event: 'ding', name: i18nT('extensions.defaults.notifications.soundDing') },
+                    },
+                    defaultParameter: 1,
+                },
+                {
+                    id: 'notificationVolume',
+                    name: i18nT('extensions.defaults.notifications.volume'),
+                    description: i18nT('extensions.defaults.notifications.volumeDescription'),
+                    type: 'slider',
+                    min: 0,
+                    max: 100,
+                    step: 5,
+                    value: 60,
+                    defaultParameter: 60,
+                },
+            ],
+        },
+        {
+            title: i18nT('extensions.defaults.about.title'),
+            items: [
+                {
+                    id: 'aboutText',
+                    name: i18nT('extensions.defaults.about.text'),
+                    description: i18nT('extensions.defaults.about.textDescription'),
+                    type: 'text',
+                    buttons: [
+                        {
+                            id: 'name',
+                            name: i18nT('extensions.defaults.about.appName'),
+                            text: i18nT('extensions.defaults.about.sampleName'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleName'),
+                        },
+                        {
+                            id: 'tagline',
+                            name: i18nT('extensions.defaults.about.tagline'),
+                            text: i18nT('extensions.defaults.about.sampleTagline'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleTagline'),
+                        },
+                        {
+                            id: 'version',
+                            name: i18nT('extensions.defaults.about.version'),
+                            text: i18nT('extensions.defaults.about.sampleVersion'),
+                            defaultParameter: i18nT('extensions.defaults.about.sampleVersion'),
+                        },
+                    ],
+                },
+                {
+                    id: 'customLogo',
+                    name: i18nT('extensions.defaults.about.logo'),
+                    description: i18nT('extensions.defaults.about.logoDescription'),
+                    type: 'file',
+                    filePath: '',
+                    defaultParameter: { filePath: '' },
+                },
+            ],
+        },
+    ],
+}
 
 const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon }) => {
+    const { t } = useTranslation()
     const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
@@ -77,29 +259,34 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
         return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
     }
 
+    const isConfigEmpty = !config || !Array.isArray(config.sections) || config.sections.length === 0
+
     if (active === 'Settings') {
-        if (!config && !creating)
+        if (isConfigEmpty && !creating)
             return (
                 <div className={styles.alertContent}>
-                    <p>
-                        Файл <code>handleEvents.json</code> не найден.
-                    </p>
+                    <p>{t('extensions.handleEventsMissing')}</p>
                     <button
                         className={styles.primaryButton}
                         onClick={async () => {
                             setCreating(true)
                             const fp = path.join(addon.path, 'handleEvents.json')
-                            await window.desktopEvents?.invoke('file-event', 'write-file', fp, JSON.stringify(defaultTemplate, null, 4))
+                            await window.desktopEvents?.invoke(
+                                MainEvents.FILE_EVENT,
+                                RendererEvents.WRITE_FILE,
+                                fp,
+                                JSON.stringify(defaultTemplate, null, 4),
+                            )
                             await configApi?.reload?.()
                             setSettingsKey(k => k + 1)
                         }}
                     >
-                        Создать handleEvents.json
+                        {t('extensions.createHandleEvents')}
                     </button>
                 </div>
             )
 
-        if (creating && !config) return <div className={styles.alertContent}>Перезайдите в тему!</div>
+        if (creating && isConfigEmpty) return <div className={styles.alertContent}>{t('extensions.reopenTheme')}</div>
 
         if (config) {
             return editMode ? (
@@ -113,7 +300,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
 
     const doc = docs.find(d => d.title === active)
-    if (!doc) return <div className={styles.alertContent}>Файл не найден</div>
+    if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
 
     return (
         <div className={styles.galleryContainer}>
@@ -125,7 +312,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                         rehypePlugins={[rehypeRaw]}
                         components={{
                             img: MDImg,
-                            a: ({ node, ...p }) => (
+                            a: ({ ...p }) => (
                                 <a
                                     href={p.href?.startsWith('#') ? p.href : `${encodeURIComponent(addon.directoryName)}/${p.href}`}
                                     target="_blank"

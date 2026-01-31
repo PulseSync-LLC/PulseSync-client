@@ -1,141 +1,137 @@
-import React, { useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useQuery } from '@apollo/client/react'
 
-import apolloClient from '../../api/apolloClient'
 import getUserProfileQuery from '../../api/queries/user/getUserProfile.query'
 import getMeProfileQuery from '../../api/queries/user/getMeProfile.query'
 import userInitials from '../../api/initials/user.initials'
 import UserInterface from '../../api/interfaces/user.interface'
 
-import Layout from '../../components/layout'
+import PageLayout from '../PageLayout'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 
 import ProfileTab from '../../components/userProfileModal/tabs/ProfileTab'
 import FriendsTab from '../../components/userProfileModal/tabs/FriendsTab'
 import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
 
-import * as pageStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './profilePage.module.scss'
-import { MdPersonOutline, MdPeopleOutline, MdSettings, MdClose } from 'react-icons/md'
+import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
 import userContext from '../../api/context/user.context'
-
-const USER_NOT_FOUND_MSG = 'Пользователь не найден'
+import { useTranslation } from 'react-i18next'
 
 const ProfilePage: React.FC = () => {
     const { username: raw } = useParams()
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
     const { user } = useContext(userContext)
-    const [userProfile, setUserProfile] = useState<ExtendedUser>(userInitials)
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState<string | null>(null)
+    const { t } = useTranslation()
+
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
-    useEffect(() => {
-        if (!username) return
-        setUserProfile(userInitials)
-        setLoading(true)
-        setError(null)
+    const isSelf = useMemo(() => {
+        if (!username) return false
+        const u = user?.username || ''
+        return u.toLowerCase() === username.toLowerCase()
+    }, [user?.username, username])
 
-        const isSelf = Boolean(user?.username) && user!.username!.toLowerCase() === username.toLowerCase()
+    const queryDoc = useMemo(() => (isSelf ? getMeProfileQuery : getUserProfileQuery), [isSelf])
 
-        const query = isSelf ? getMeProfileQuery : getUserProfileQuery
+    const variables = useMemo(
+        () =>
+            isSelf
+                ? { page: 1, pageSize: 50 }
+                : {
+                      name: username,
+                      page: 1,
+                      pageSize: 50,
+                      search: '',
+                      sortOptions: [] as Array<unknown>,
+                  },
+        [isSelf, username],
+    )
 
-        const baseOptions: any = {
-            query,
-            fetchPolicy: 'no-cache',
+    const { data, loading, error } = useQuery<any>(queryDoc, {
+        variables,
+        fetchPolicy: 'no-cache',
+        skip: !username,
+    })
+
+    const payload: ExtendedUser | null = useMemo(() => {
+        if (!data) return null
+        return (isSelf ? data.getMeProfile : data.findUserByName) || null
+    }, [data, isSelf])
+
+    const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
+        if (!payload) return userInitials
+        return {
+            ...payload,
+            allAchievements: data?.getAchievements?.achievements || [],
         }
+    }, [payload, data])
 
-        if (isSelf) {
-            baseOptions.variables = {
-                page: 1,
-                pageSize: 50,
-            }
-        } else {
-            baseOptions.variables = {
-                name: username,
-                page: 1,
-                pageSize: 50,
-                search: '',
-                sortOptions: [],
-            }
-        }
+    const normalizedError: string | null = useMemo(() => {
+        if (error) return error.message || t('profile.errors.loadFailed')
+        if (!loading && username && !payload) return t('profile.errors.userNotFound')
+        return null
+    }, [error, loading, payload, t, username])
 
-        apolloClient
-            .query(baseOptions)
-            .then(res => {
-                const payload = isSelf ? res.data.getMeProfile : res.data.findUserByName
-                if (!payload) {
-                    setError(USER_NOT_FOUND_MSG)
-                } else {
-                    setUserProfile({
-                        ...payload,
-                        allAchievements: res.data.getAchievements?.achievements || [],
-                    })
-                }
-            })
-            .catch(err => setError((err && (err.message || String(err))) || 'Ошибка загрузки'))
-            .finally(() => setLoading(false))
-    }, [username, user?.username])
-
-    useEffect(() => {
-        const onKeyDown = (e: KeyboardEvent) => {
+    const onEscPress = useCallback(
+        (e: KeyboardEvent) => {
             if (e.key === 'Escape') navigate(-1)
-        }
-        document.addEventListener('keydown', onKeyDown, true)
-        return () => document.removeEventListener('keydown', onKeyDown, true)
-    }, [navigate])
+        },
+        [navigate],
+    )
 
-    const renderTabTitle = () => {
+    useEffect(() => {
+        document.addEventListener('keydown', onEscPress, true)
+        return () => document.removeEventListener('keydown', onEscPress, true)
+    }, [onEscPress])
+
+    const renderTabTitle = useCallback(() => {
         if (activeTab === 'profile')
             return (
                 <>
                     <MdPersonOutline size={34} />
-                    <span>Профиль {username}</span>
+                    <span>{t('profile.tabs.profileWithName', { username })}</span>
                 </>
             )
         if (activeTab === 'friends')
             return (
                 <>
                     <MdPeopleOutline size={34} />
-                    <span>Друзья {username}</span>
+                    <span>{t('profile.tabs.friendsWithName', { username })}</span>
                 </>
             )
         if (activeTab === 'settings')
             return (
                 <>
                     <MdSettings size={34} />
-                    <span>Настройки профиля</span>
+                    <span>{t('profile.tabs.settings')}</span>
                 </>
             )
         return null
-    }
+    }, [activeTab, username])
 
     return (
-        <Layout title={`Профиль`}>
-            <div className={pageStyles.page}>
-                <div className={pageStyles.container}>
-                    <div className={pageStyles.main_container}>
-                        <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
-                            {/* <div className={styles.tabs}>
+        <PageLayout title={t('profile.pageTitle')}>
+            <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
+                {/*<div className={styles.tabs}>{renderTabTitle()}</div>*/}
+                {/* <div className={styles.tabs}>
                 <button onClick={() => setActiveTab('profile')}  className={activeTab === 'profile'  ? styles.activeTab : ''}>Профиль</button>
                 <button onClick={() => setActiveTab('friends')}  className={activeTab === 'friends'  ? styles.activeTab : ''}>Друзья</button>
                 <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? styles.activeTab : ''}>Настройки</button>
               </div> */}
 
-                            <div className={styles.content}>
-                                {activeTab === 'profile' && (
-                                    <ProfileTab userProfile={userProfile} loading={loading} error={error} username={username} />
-                                )}
-                                {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={error} />}
-                                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={error} />}
-                            </div>
-                        </Scrollbar>
-                    </div>
+                <div className={styles.content}>
+                    {activeTab === 'profile' && (
+                        <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
+                    )}
+                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
+                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
                 </div>
-            </div>
-        </Layout>
+            </Scrollbar>
+        </PageLayout>
     )
 }
 

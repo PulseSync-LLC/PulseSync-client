@@ -1,12 +1,5 @@
-import corsAnywhereServer from 'cors-anywhere'
-import getPort from 'get-port'
 import { protocol } from 'electron'
 
-export async function initializeCorsAnywhere(): Promise<number> {
-    const port = await getPort()
-    corsAnywhereServer.createServer().listen(port, 'localhost')
-    return port
-}
 
 export function registerSchemes(): void {
     protocol.registerSchemesAsPrivileged([

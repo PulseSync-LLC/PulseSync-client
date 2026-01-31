@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+import { t } from '../i18n'
 
 interface Addon {
     charCount: string
@@ -15,9 +16,9 @@ export function useCharCount(containerRef: React.RefObject<HTMLDivElement>, them
             const currentLength = inputElement.value.length
 
             if (maxLength) {
-                counterElement.textContent = `${currentLength}/${maxLength} символов`
+                counterElement.textContent = t('utils.charCount.withMax', { currentLength, maxLength })
             } else {
-                counterElement.textContent = `${currentLength} символов`
+                counterElement.textContent = t('utils.charCount.withoutMax', { currentLength })
             }
         }
 

@@ -8,11 +8,12 @@ import ThemeInfo from './extBox/ThemeInfo'
 import { useAddonFiles } from './extBox/hooks'
 import { useConfig } from './extBox/useConfig'
 import { ExtensionViewProps, ActiveTab } from './extBox/types'
+import { useTranslation } from 'react-i18next'
 
-import toast from '../../../components/toast'
 import * as s from './extensionview.module.scss'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
+    const { t } = useTranslation()
     const { docs } = useAddonFiles(addon)
     const { configExists, config, configApi } = useConfig(addon.path)
 
@@ -29,11 +30,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
 
     const toggleWithToast = (enabled: boolean) => {
         onToggleEnabled(enabled)
-        toast.custom(
-            enabled ? 'success' : 'info',
-            addon.type === 'theme' ? (enabled ? 'Тема активирована' : 'Тема деактивирована') : enabled ? 'Скрипт включён' : 'Скрипт выключен',
-            addon.name,
-        )
     }
 
     return (
@@ -43,7 +39,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                     <button
                         className={`${s.edit} ${editMode ? s.activeEdit : ''}`}
                         onClick={() => setEditMode(e => !e)}
-                        title={editMode ? 'Выйти из режима редактирования' : 'Войти в режим редактирования'}
+                        title={editMode ? t('extensions.editModeExit') : t('extensions.editModeEnter')}
                     >
                         <MdEdit />
                     </button>

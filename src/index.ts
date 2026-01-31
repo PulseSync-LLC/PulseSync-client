@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, ipcMain } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
@@ -6,8 +6,8 @@ import createTray from './main/modules/tray'
 import config from './config.json'
 import { checkForSingleInstance } from './main/modules/singleInstance'
 import * as Sentry from '@sentry/electron/main'
-import { sendAddon, setAddon } from './main/modules/httpServer'
-import { AppxPackage, checkAsar, findAppByName, formatJson, getPathToYandexMusic, isLinux, isWindows, uninstallApp } from './main/utils/appUtils'
+import { setAddon } from './main/modules/httpServer'
+import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
 import { modManager } from './main/modules/mod/modManager'
@@ -15,16 +15,19 @@ import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectr
 import * as dns from 'node:dns'
 
 import { checkCLIArguments } from './main/utils/processUtils'
-import { initializeCorsAnywhere, registerSchemes } from './main/utils/serverUtils'
+import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
+import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
+import { initMainI18n, t } from './main/i18n'
 import Addon from './renderer/api/interfaces/addon.interface'
 import { getState } from './main/modules/state'
-import { startThemeWatcher } from './main/modules/naviveModule'
+import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'
+import MainEvents from './common/types/mainEvents'
+import RendererEvents from './common/types/rendererEvents'
 
-export let corsAnywherePort: string | number
 export let updated = false
 export let hardwareAcceleration = false
 export let musicPath: string
@@ -33,11 +36,14 @@ export let asarBackup: string
 export let selectedAddon: string
 
 registerSchemes()
+initMainI18n()
 
 dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
 app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
-app.setAppUserModelId('pulsesync.app')
+if (isWindows()) {
+    app.setAppUserModelId('pulsesync.app')
+}
 
 const State = getState()
 
@@ -50,16 +56,32 @@ const mimeByExt: Record<string, string> = {
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
 }
+const checkOldYandexMusic = async () => {
+    try {
+        const namePart = 'Yandex.Music'
+        const pkg = await findAppByName(namePart)
+
+        if (pkg && mainWindow && !mainWindow.isDestroyed()) {
+            logger.main.info('Old Yandex Music found, sending dialog event to renderer')
+            mainWindow.webContents.send('SHOW_YANDEX_MUSIC_UPDATE_DIALOG')
+        }
+    } catch (err) {
+        HandleErrorsElectron.handleError('prestartCheck', 'checkOldYandexMusic', 'app_startup', err)
+    }
+}
 
 const initializeMusicPath = async () => {
     try {
         musicPath = await getPathToYandexMusic()
         asarBackup = path.join(musicPath, asarFilename)
     } catch (err) {
-        logger.main.error('Ошибка при получении пути:', err)
+        logger.main.error(t('main.index.musicPathError'), err)
     }
 }
 initializeMusicPath()
+
+const sentryPrefix = 'app:///'
+const sentryRoot = app.isPackaged ? path.join(process.resourcesPath, 'app.asar') : path.resolve(__dirname, '..', '..')
 
 if (!isAppDev) {
     logger.main.info('Sentry enabled')
@@ -71,8 +93,15 @@ if (!isAppDev) {
         attachStacktrace: true,
         enableRendererProfiling: true,
         attachScreenshot: true,
+        integrations: [
+            Sentry.rewriteFramesIntegration({
+                root: sentryRoot,
+                prefix: sentryPrefix,
+            }),
+        ],
     })
-} else {
+    Sentry.setTag('process', 'main')
+} else if (isWindows() || isMac()) {
     const openAtLogin = app.getLoginItemSettings().openAtLogin
     if (openAtLogin) {
         app.setLoginItemSettings({
@@ -82,66 +111,35 @@ if (!isAppDev) {
     }
 }
 
-const checkOldYandexMusic = async () => {
-    try {
-        const namePart = 'Yandex.Music'
-        const pkg: AppxPackage | null = await findAppByName(namePart)
-
-        if (pkg) {
-            const info = `Найдена старая версия Яндекс.Музыки, ` + `её наличие будет мешать работе мода. ` + `Приложение необходимо удалить.`
-
-            const { response } = await dialog.showMessageBox({
-                type: 'warning',
-                buttons: ['Удалить', 'Отмена'],
-                defaultId: 0,
-                cancelId: 1,
-                title: 'Старая версия Яндекс.Музыки обнаружена',
-                message: info,
-            })
-
-            if (response === 0) {
-                try {
-                    await uninstallApp(pkg.PackageFullName)
-                    app.relaunch()
-                    app.exit(0)
-                } catch (err) {
-                    await dialog.showMessageBox({
-                        type: 'error',
-                        title: 'Ошибка удаления',
-                        message: `Не удалось удалить приложение:\n${(err as Error).message}`,
-                    })
-                }
-            }
-        }
-    } catch (err) {
-        HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', err)
-    }
-}
-
 app.on('ready', async () => {
     try {
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
-        corsAnywherePort = await initializeCorsAnywhere()
         updated = checkCLIArguments(isAppDev)
-        if (isWindows()) {
-            await checkOldYandexMusic()
-        }
         await createWindow()
         await checkForSingleInstance()
         handleEvents(mainWindow)
+        if (isWindows()) {
+            await checkOldYandexMusic()
+        }
+        setupPulseSyncDialogHandler()
+        if (isWindows()) {
+            checkAndAddPulseSyncOnStartup(mainWindow).catch(err => {
+                logger.main.warn('Failed to check pulsesync on startup:', err)
+            })
+        }
         modManager(mainWindow)
         createTray()
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
-        logger.main.error('Ошибка при запуске приложения:', e)
+        logger.main.error(t('main.index.appStartupError'), e)
     }
 })
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        ipcMain.emit('discordrpc-clearstate')
+        ipcMain.emit(MainEvents.DISCORDRPC_CLEARSTATE)
         app.quit()
     }
 })
@@ -199,7 +197,7 @@ const resolveInputPath = (p0: string): string => {
     }
     return norm
 }
-const readBufResilient = async (p0: string): Promise<Buffer> => {
+export const readBufResilient = async (p0: string): Promise<Buffer> => {
     if (!p0) throw new Error('empty path')
     const candidates: string[] = []
     if (p0.startsWith('file://')) {
@@ -245,11 +243,10 @@ const mimeFromExt = (p: string) => {
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
 }
 
-ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
+ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) => {
     try {
         switch (eventType) {
-            case 'exists':
-            case 'check-file-exists': {
+            case RendererEvents.CHECK_FILE_EXISTS: {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -260,7 +257,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'read-file': {
+            case RendererEvents.READ_FILE: {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -272,7 +269,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'write-file': {
+            case RendererEvents.WRITE_FILE: {
                 if (!filePath) return { success: false, error: 'filePath is required' }
                 try {
                     const p = resolveInputPath(filePath)
@@ -287,7 +284,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'read-file-base64': {
+            case RendererEvents.READ_FILE_BASE64: {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -299,7 +296,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'write-file-base64': {
+            case RendererEvents.WRITE_FILE_BASE64: {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -315,7 +312,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'delete-file': {
+            case RendererEvents.DELETE_FILE: {
                 if (!filePath) return false
                 try {
                     const p = resolveInputPath(filePath)
@@ -324,7 +321,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 return true
             }
 
-            case 'copy-file': {
+            case RendererEvents.COPY_FILE: {
                 const src: string = filePath
                 const dest: string = data?.dest
                 if (!src || !dest) return false
@@ -340,7 +337,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 return true
             }
 
-            case 'as-data-url': {
+            case RendererEvents.AS_DATA_URL: {
                 if (!filePath) return null
                 try {
                     const p = resolveInputPath(filePath)
@@ -353,7 +350,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
                 }
             }
 
-            case 'create-config-file': {
+            case RendererEvents.CREATE_CONFIG_FILE: {
                 if (!filePath) return { success: false, error: 'filePath is required' }
                 try {
                     const p = resolveInputPath(filePath)
@@ -373,12 +370,11 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
     } catch (err: any) {
         logger?.main?.error?.('[file-event] Fatal:', eventType, err)
         switch (eventType) {
-            case 'exists':
-            case 'check-file-exists':
+            case RendererEvents.CHECK_FILE_EXISTS:
                 return false
-            case 'read-file':
-            case 'read-file-base64':
-            case 'as-data-url':
+            case RendererEvents.READ_FILE:
+            case RendererEvents.READ_FILE_BASE64:
+            case RendererEvents.AS_DATA_URL:
                 return null
             default:
                 return { success: false, error: err?.message || String(err) }
@@ -386,7 +382,7 @@ ipcMain.handle('file-event', async (_event, eventType, filePath, data) => {
     }
 })
 
-ipcMain.handle('deleteAddonDirectory', async (_event, themeDirectoryPath) => {
+ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryPath) => {
     try {
         if (fs.existsSync(themeDirectoryPath)) {
             await fsp.rm(themeDirectoryPath, {
@@ -402,7 +398,7 @@ ipcMain.handle('deleteAddonDirectory', async (_event, themeDirectoryPath) => {
     }
 })
 
-ipcMain.on('themeChanged', async (_event, addon: Addon) => {
+ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
     try {
         if (!addon) {
             logger.main.error('Addons: No addon data received')
@@ -442,9 +438,14 @@ ipcMain.on('themeChanged', async (_event, addon: Addon) => {
 
 export async function prestartCheck() {
     const musicDir = app.getPath('music')
+    const pulseSyncMusicPath = path.join(musicDir, 'PulseSyncMusic')
 
-    if (!fs.existsSync(path.join(musicDir, 'PulseSyncMusic'))) {
-        fs.mkdirSync(path.join(musicDir, 'PulseSyncMusic'))
+    if (!fs.existsSync(pulseSyncMusicPath)) {
+        try {
+            fs.mkdirSync(pulseSyncMusicPath, { recursive: true })
+        } catch (err) {
+            logger.main.error('Ошибка при создании директории PulseSyncMusic:', err)
+        }
     }
 
     if (isLinux() && State.get('settings.modFilename')) {

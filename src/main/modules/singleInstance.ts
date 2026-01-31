@@ -6,13 +6,26 @@ import AdmZip from 'adm-zip'
 import path from 'path'
 import fs from 'original-fs'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
-import { authorized } from '../events'
+import { authorized, queueAddonOpen } from '../events'
 import { mainWindow } from './createWindow'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
+import RendererEvents from '../../common/types/rendererEvents'
 
 export const isFirstInstance = app.requestSingleInstanceLock()
 const State = getState()
+
+const findPextArg = (args: string[]): string | null => {
+    for (const raw of [...args].reverse()) {
+        if (!raw) continue
+        const trimmed = raw.replace(/^["']|["']$/g, '')
+        if (!trimmed) continue
+        if (path.extname(trimmed).toLowerCase() === '.pext') {
+            return trimmed
+        }
+    }
+    return null
+}
 
 export const checkForSingleInstance = async (): Promise<void> => {
     logger.main.info('Single instance: ', isFirstInstance ? 'yes' : 'no')
@@ -40,15 +53,21 @@ export const checkForSingleInstance = async (): Promise<void> => {
                     window.restore()
                     logger.main.info('Restore window')
                 }
-                const lastCommandLineArg = commandLine.pop()
-                if (lastCommandLineArg.toLowerCase().endsWith('.pext')) {
-                    await handlePextFile(lastCommandLineArg)
+                const pextPath = findPextArg(commandLine)
+                if (pextPath) {
+                    await handlePextFile(pextPath)
                 }
                 toggleWindowVisibility(window, true)
                 logger.main.info('Show window')
             }
         })
         await prestartCheck()
+        if (process.platform !== 'darwin') {
+            const pextPath = findPextArg(process.argv.slice(1))
+            if (pextPath) {
+                await handlePextFile(pextPath)
+            }
+        }
         handleUncaughtException()
     } else {
         logger.main.info('Another instance is already running, quitting this instance.')
@@ -113,7 +132,5 @@ async function handlePextFile(filePath: string) {
             })
         }
     }
-    if (authorized) {
-        mainWindow.webContents.send('open-addon', addonName)
-    }
+    queueAddonOpen(addonName)
 }

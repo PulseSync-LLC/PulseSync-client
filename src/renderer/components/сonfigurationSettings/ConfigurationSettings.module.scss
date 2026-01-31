@@ -19,6 +19,8 @@
 .section {
     display: grid;
     gap: 5px;
+    overflow: visible;
+    padding: 1px;
 }
 
 .sectionHeader {
@@ -126,7 +128,6 @@
     opacity: 0;
 }
 
-/* reduced motion — пусть просто щёлкает, без will-change */
 @media (prefers-reduced-motion: reduce) {
     .collapse {
         will-change: auto;

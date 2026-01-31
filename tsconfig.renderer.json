@@ -1,0 +1,16 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "module": "ESNext"
+    },
+    "include": [
+        "src/renderer/**/*",
+        "styles.d.ts",
+        "window.d.ts",
+        "declarations.d.ts",
+        "vite-env.d.ts"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}

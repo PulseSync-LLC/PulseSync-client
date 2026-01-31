@@ -6,7 +6,7 @@ on:
       target:
         description: "Choose build branch"
         required: true
-        default: "test-actions"
+        default: "2.10.0"
       build_os:
         description: "Choose OS to build"
         required: true
@@ -49,20 +49,24 @@ on:
         required: false
         default: ""
 
+concurrency:
+  group: build-manual-${{ github.workflow }}-${{ inputs.target }}-${{ inputs.build_os }}
+  cancel-in-progress: true
+
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest"]') }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.target }}
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
 
@@ -79,7 +83,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package
+        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }} ${{ inputs.publish_changelog && '--publish-changelog' || '' }}
         env:
           CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
           RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
@@ -93,18 +97,6 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
-
-      - name: Upload release/ to S3 (optional)
-        if: ${{ inputs.upload_to_s3 == true && inputs.s3_branch != '' }}
-        shell: bash
-        run: |
-          BRANCH="${{ inputs.s3_branch }}"
-          PREFIX="${{ inputs.s3_prefix }}"
-          npx -y tsx scripts/s3-upload.ts \
-            --branch "$BRANCH" \
-            --dir "release" \
-            --prefix "$PREFIX" \
-            --mac-manifest
 
       - name: Publish changelog (optional, single-run on ubuntu)
         if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}

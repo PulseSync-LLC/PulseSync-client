@@ -2,6 +2,8 @@ import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { app, dialog, ipcMain } from 'electron'
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
 import { selectedAddon } from '../../index'
 import { authorized } from '../events'
 import isAppDev from 'electron-is-dev'
@@ -12,15 +14,18 @@ import { isFirstInstance } from './singleInstance'
 import { parse } from 'url'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
-import config from '../../renderer/api/config'
+import config from '../../renderer/api/web_config'
 import { getState } from './state'
 import { sanitizeScript } from '../utils/addonUtils'
 import axios from 'axios'
+import { resolveBasePaths } from './mod/mod-files'
+import crypto from 'node:crypto'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
+let isStarting = false
 const State = getState()
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
@@ -51,9 +56,23 @@ const closeServer = async (): Promise<void> => {
 const startSocketServer = async () => {
     if (!isFirstInstance) return
 
+    if (io && server) {
+        logger.http.log('startSocketServer skipped: already running')
+        return
+    }
+    if (isStarting) {
+        logger.http.log('startSocketServer skipped: already starting')
+        return
+    }
+
+    isStarting = true
     logger.http.log('startSocketServer called. io:', !!io, 'server:', !!server)
-    await closeServer()
-    initializeServer()
+    try {
+        await closeServer()
+        initializeServer()
+    } finally {
+        isStarting = false
+    }
 }
 
 const stopSocketServer = async () => {
@@ -262,7 +281,10 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
                 svg: 'image/svg+xml',
                 ico: 'image/x-icon',
             }
-            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
+            res.writeHead(200, {
+                'Content-Type': mimes[ext] || 'application/octet-stream',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+            })
             return fs.createReadStream(targetPath).pipe(res)
         } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })
@@ -355,10 +377,15 @@ const initializeServer = () => {
 
         socket.emit('PING', { message: 'Connected to server' })
 
-        socket.on('READY', () => {
+        socket.on('READY', async () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
-                mainWindow.webContents.send('CLIENT_READY')
+                // if (!(await checkAsarChecksum()) && !isAppDev) {
+                //     logger.http.warn('Client mod checksum mismatch, disconnecting client.')
+                //     socket.disconnect(true)
+                //     return
+                // }
+                mainWindow.webContents.send(RendererEvents.CLIENT_READY)
                 ;(socket as any).hasPong = true
                 if (authorized) {
                     sendDataToMusic({ targetSocket: socket })
@@ -373,7 +400,7 @@ const initializeServer = () => {
 
         socket.on('BROWSER_BAN', (args: any) => {
             logger.http.log('BROWSER_BAN received:', args)
-            mainWindow.webContents.send('authBanned', { reason: args.reason })
+            mainWindow.webContents.send(RendererEvents.AUTH_BANNED, { reason: args.reason })
         })
 
         socket.on('UPDATE_DATA', (payload: any) => {
@@ -385,18 +412,18 @@ const initializeServer = () => {
         socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
             if (!authorized) return
             logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
-            mainWindow.webContents.send('TRACK_INFO', data)
+            mainWindow.webContents.send(RendererEvents.TRACK_INFO, data)
         })
 
-        socket.on('SEND_TRACK', (payload: any) => {
+        socket.on(RendererEvents.SEND_TRACK, (payload: any) => {
             if (!authorized) return
             logger.http.log('SEND_TRACK received:', payload)
-            mainWindow.webContents.send('SEND_TRACK', payload.data)
+            mainWindow.webContents.send(RendererEvents.SEND_TRACK, payload.data)
         })
 
         socket.on('disconnect', () => {
             logger.http.log('Client disconnected')
-            mainWindow.webContents.send('TRACK_INFO', {
+            mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
                 type: 'refresh',
             })
         })
@@ -418,6 +445,14 @@ const initializeServer = () => {
             logger.http.error('HTTP server error:', error)
         }
     })
+}
+const checkAsarChecksum = async (): Promise<boolean> => {
+    const basePaths = await resolveBasePaths()
+    const asarPath = basePaths.modAsar
+    const buf = fs.readFileSync(asarPath)
+    const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
+    const savedChecksum = State.get('mod.checksum')
+    return currentHash === savedChecksum
 }
 const getFilesInDirectory = (dir: string): Record<string, string> =>
     fs.readdirSync(dir).reduce(
@@ -459,7 +494,7 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
     try {
         if (isAppDev) {
             State.set('tokens.token', token)
-            mainWindow.webContents.send('authSuccess')
+            mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
             mainWindow.show()
             return
         }
@@ -470,7 +505,7 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         }
         State.set('tokens.token', token)
         logger.socketManager.info(`Access confirmed for user ${userId}.`)
-        mainWindow.webContents.send('authSuccess')
+        mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
         mainWindow.show()
     } catch (error) {
         logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)
@@ -548,11 +583,18 @@ export const sendAddon = (withJs: boolean, themeDef?: boolean) => {
     if (!fs.existsSync(metadataPath)) return
 
     const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+    let css = ''
+    let js = ''
+
     const cssPath = path.join(themePath, metadata.css || '')
+    if (metadata.css && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile()) {
+        css = fs.readFileSync(cssPath, 'utf8')
+    }
     const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
-    const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
-    let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
-    js = sanitizeScript(js)
+    if (jsPath && fs.existsSync(jsPath) && fs.statSync(jsPath).isFile()) {
+        js = fs.readFileSync(jsPath, 'utf8')
+        js = sanitizeScript(js)
+    }
 
     const themeData = {
         name: themeDef ? 'Default' : State.get('addons.theme') || 'Default',
@@ -650,7 +692,7 @@ export const sendExtensions = async (): Promise<void> => {
     io.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            sock.emit('REFRESH_EXTENSIONS', {
+            sock.emit(MainEvents.REFRESH_EXTENSIONS, {
                 addons: found,
             })
             sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
@@ -666,7 +708,7 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
             sendAddon(true, true)
-            sock.emit('REFRESH_EXTENSIONS', { addons: [] })
+            sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: [] })
             logger.http.log('Data sent after READY')
         }
     }
@@ -685,25 +727,25 @@ const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
     }, 1000)
 }
 
-ipcMain.on('WEBSOCKET_START', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_START, async () => {
     if (isAppDev && !State.get('settings.devSocket')) return
     logger.http.log('WEBSOCKET_START: starting server...')
     await startSocketServer()
 })
-ipcMain.on('WEBSOCKET_STOP', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_STOP, async () => {
     logger.http.log('WEBSOCKET_STOP: stopping server...')
     await stopSocketServer()
 })
-ipcMain.on('WEBSOCKET_RESTART', async () => {
+ipcMain.on(MainEvents.WEBSOCKET_RESTART, async () => {
     logger.http.log('WEBSOCKET_RESTART: restarting server...')
     await stopSocketServer()
     setTimeout(() => startSocketServer(), 1500)
 })
-ipcMain.on('REFRESH_MOD_INFO', () => {
+ipcMain.on(MainEvents.REFRESH_MOD_INFO, () => {
     logger.http.log('REFRESH_MOD_INFO: forcing data send...')
     sendDataToMusic()
 })
-ipcMain.on('REFRESH_EXTENSIONS', async () => {
+ipcMain.on(MainEvents.REFRESH_EXTENSIONS, async () => {
     await sendExtensions()
 })
 
@@ -711,24 +753,24 @@ export const get_current_track = () => {
     io?.sockets.sockets.forEach(sock => {
         const s = sock as any
         if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
-            sock.emit('GET_TRACK_INFO')
+            sock.emit(MainEvents.GET_TRACK_INFO)
         }
     })
 }
 
-ipcMain.on('GET_TRACK_INFO', () => {
+ipcMain.on(MainEvents.GET_TRACK_INFO, () => {
     logger.http.log('GET_TRACK_INFO: returning current track...')
     get_current_track()
 })
 
 const updateData = (newData: any) => {
     if (newData.type === 'refresh') {
-        return mainWindow.webContents.send('TRACK_INFO', {
+        return mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
             type: 'refresh',
         })
     }
     data = newData
-    mainWindow.webContents.send('TRACK_INFO', data)
+    mainWindow.webContents.send(RendererEvents.TRACK_INFO, data)
 }
 
 export const getTrackInfo = () => data

@@ -2,6 +2,8 @@ import React from 'react'
 import * as Sentry from '@sentry/electron/renderer'
 import * as styles from './errorBoundary.module.scss'
 import toast from '../toast'
+import MainEvents from '../../../common/types/mainEvents'
+import { t } from '../../i18n'
 
 interface ErrorBoundaryProps {
     children: React.ReactNode
@@ -24,7 +26,7 @@ class ErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        window.desktopEvents?.send('log-error', {
+        window.desktopEvents?.send(MainEvents.LOG_ERROR, {
             type: 'react-error-boundary',
             message: error.message,
             stack: error.stack,
@@ -36,11 +38,11 @@ class ErrorBoundary extends React.Component<
         navigator.clipboard
             .writeText(text)
             .then(() => {
-                toast.custom('success', 'Успешно!', 'Содержание ошибки скопировано в буфер обмена')
+                toast.custom('success', t('common.successTitle'), t('errors.copiedToClipboard'))
             })
             .catch(err => {
-                toast.custom('error', 'Ой...', 'Произошла ошибка при попытке записи в буфер обмена')
-                console.error('Failed to copy stack trace: ', err)
+                toast.custom('error', t('common.oopsTitle'), t('errors.copyFailed'))
+                console.error(t('errors.copyStackFailed'), err)
             })
     }
 
@@ -48,10 +50,10 @@ class ErrorBoundary extends React.Component<
         if (this.state.hasError) {
             return (
                 <div className={styles.errorBoundary}>
-                    <h1>Так, погоди-ка... Что-то здесь не так...</h1>
-                    <p>{this.state.error?.message || 'An unknown error occurred'}</p>
-                    <pre onClick={() => this.copyToClipboard(this.state.error?.stack || 'No stack trace available')}>
-                        {this.state.error?.stack || 'No stack trace available'}
+                    <h1>{t('errors.title')}</h1>
+                    <p>{this.state.error?.message || t('errors.unknownError')}</p>
+                    <pre onClick={() => this.copyToClipboard(this.state.error?.stack || t('errors.noStackTrace'))}>
+                        {this.state.error?.stack || t('errors.noStackTrace')}
                     </pre>
                 </div>
             )

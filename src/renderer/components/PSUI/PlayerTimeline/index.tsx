@@ -1,8 +1,5 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
 import PlayerContext from '../../../api/context/player.context'
-import UserContext from '../../../api/context/user.context'
-import { Track } from '../../../api/interfaces/track.interface'
-import trackInitials from '../../../api/initials/track.initials'
 import * as styles from './PlayerTimeline.module.scss'
 
 const formatTime = (seconds: number): string => {
@@ -22,6 +19,7 @@ const PlayerTimeline: React.FC = () => {
     useEffect(() => {
         setCurrentTime(currentTrack?.progress?.position || 0)
         playingRef.current = currentTrack.status === 'playing'
+        lastTimestampRef.current = performance.now()
     }, [currentTrack])
 
     useEffect(() => {
@@ -48,7 +46,7 @@ const PlayerTimeline: React.FC = () => {
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [currentTrack.progress?.duration])
+    }, [currentTrack.progress?.duration, currentTrack.status])
 
     const progressPercent = currentTrack.progress?.duration && currentTime ? (currentTime / currentTrack.progress.duration) * 100 : 0
 

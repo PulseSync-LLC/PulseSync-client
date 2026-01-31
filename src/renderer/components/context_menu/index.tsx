@@ -1,12 +1,17 @@
-import React, { useContext } from 'react'
+import React, { useContext, useRef } from 'react'
 import * as menuStyles from './context_menu.module.scss'
 import userContext from '../../api/context/user.context'
+import MainEvents from '../../../common/types/mainEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 
-import ArrowContext from './../../../../static/assets/icons/arrowContext.svg'
+import ArrowContext from '../../assets/icons/arrowContext.svg'
+import { MdFolderOpen } from 'react-icons/md'
+
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import store from '../../api/store/store'
 import { openModal } from '../../api/store/modalSlice'
+import { useTranslation } from 'react-i18next'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{
@@ -29,27 +34,29 @@ interface SectionConfig {
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
-    const { app, setApp } = useContext(userContext)
+    const { t, i18n } = useTranslation()
+    const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
+    const widgetDownloadToastIdRef = useRef<string | null>(null)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
     }
 
     const openAppDirectory = () => {
-        window.desktopEvents?.send('openPath', { action: 'appPath' })
+        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
     }
 
     const showLoadingToast = (event: any, message: string) => {
-        const toastId = toast.custom('info', 'Ожидайте', message)
+        const toastId = toast.custom('info', t('common.waitTitle'), message)
 
         const handleFailure = (event: any, args: any) => {
-            toast.custom('error', `Что-то не так`, `Ошибка удаления мода: ${args.error}`, {
+            toast.custom('error', t('common.somethingWrongTitle'), t('mod.removeError', { message: args.error }), {
                 id: toastId,
             })
         }
 
         const handleSuccess = (event: any, args: any) => {
-            toast.custom('success', `Готово`, `Мод удален успешно`, {
+            toast.custom('success', t('common.doneTitle'), t('mod.removedSuccess'), {
                 id: toastId,
             })
             setApp((prevApp: SettingsInterface) => {
@@ -66,84 +73,221 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             })
         }
 
-        window.desktopEvents?.once('remove-mod-success', handleSuccess)
-        window.desktopEvents?.once('remove-mod-failure', handleFailure)
+        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_FAILURE, handleFailure)
     }
 
     const deleteMod = (e: any) => {
-        showLoadingToast(e, 'Удаление мода...')
-        window.desktopEvents?.send('remove-mod')
+        showLoadingToast(e, t('mod.removing'))
+        window.desktopEvents?.send(MainEvents.REMOVE_MOD)
         window.localStorage.removeItem('lastNotifiedModVersion')
     }
 
+    const downloadObsWidget = () => {
+        const handleProgress = (_: any, { progress }: { progress: number }) => {
+            if (widgetDownloadToastIdRef.current) {
+                toast.update(widgetDownloadToastIdRef.current, {
+                    kind: 'loading',
+                    title: t('obsWidget.downloading'),
+                    msg: t('layout.downloadProgressLabel'),
+                    value: progress,
+                })
+            } else {
+                const id = toast.custom('loading', t('obsWidget.downloading'), t('layout.downloadProgressLabel'), { duration: Infinity }, progress)
+                widgetDownloadToastIdRef.current = id
+            }
+        }
+
+        const cleanupListeners = () => {
+            window.desktopEvents?.removeListener(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
+        }
+
+        const handleSuccess = () => {
+            cleanupListeners()
+            if (widgetDownloadToastIdRef.current) {
+                toast.custom('success', t('common.doneTitle'), t('obsWidget.installSuccess'), { id: widgetDownloadToastIdRef.current })
+                widgetDownloadToastIdRef.current = null
+            } else {
+                toast.custom('success', t('common.doneTitle'), t('obsWidget.installSuccess'))
+            }
+            setWidgetInstalled(true)
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            cleanupListeners()
+            if (widgetDownloadToastIdRef.current) {
+                toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }), {
+                    id: widgetDownloadToastIdRef.current,
+                })
+                widgetDownloadToastIdRef.current = null
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }))
+            }
+        }
+
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
+        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.DOWNLOAD_OBS_WIDGET)
+    }
+
+    const removeObsWidget = () => {
+        const toastId = toast.custom('info', t('common.waitTitle'), t('obsWidget.removing'))
+
+        const handleSuccess = () => {
+            toast.custom('success', t('common.doneTitle'), t('obsWidget.removeSuccess'), { id: toastId })
+            setWidgetInstalled(false)
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            toast.custom('error', t('common.errorTitle'), t('obsWidget.removeError', { message: args.error }), { id: toastId })
+        }
+
+        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.REMOVE_OBS_WIDGET)
+    }
+
+    const clearModCache = () => {
+        const toastId = toast.custom('info', t('common.waitTitle'), t('mod.cacheClearing'))
+
+        const handleSuccess = () => {
+            toast.custom('success', t('common.doneTitle'), t('mod.cacheCleared'), { id: toastId })
+        }
+
+        const handleFailure = (event: any, args: any) => {
+            toast.custom('error', t('common.errorTitle'), t('mod.cacheClearError', { message: args.error }), { id: toastId })
+        }
+
+        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_SUCCESS, handleSuccess)
+        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_FAILURE, handleFailure)
+        window.desktopEvents?.send(MainEvents.CLEAR_MOD_CACHE)
+    }
+
+    const copyWidgetPath = async () => {
+        try {
+            const widgetPath = await window.desktopEvents?.invoke(MainEvents.GET_OBS_WIDGET_PATH)
+            if (widgetPath) {
+                await navigator.clipboard.writeText(widgetPath)
+                toast.custom('success', t('common.doneTitle'), t('obsWidget.pathCopied'))
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('obsWidget.pathFetchError'))
+            }
+        } catch (error) {
+            toast.custom('error', t('common.errorTitle'), t('obsWidget.pathCopyError'))
+        }
+    }
+
     const toggleSetting = (type: string, status: boolean) => {
-        const updatedSettings = { ...app.settings }
+        const statusLabel = status ? t('common.enabled') : t('common.disabled')
         switch (type) {
             case 'autoTray':
-                updatedSettings.autoStartInTray = status
                 window.electron.store.set('settings.autoStartInTray', status)
-                toast.custom('success', `Готово`, `Опция "Автозапуск в трее" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoTray', { status: statusLabel }))
                 break
             case 'autoStart':
-                updatedSettings.autoStartApp = status
                 window.electron.store.set('settings.autoStartApp', status)
-                window.desktopEvents?.send('autoStartApp', status)
-                toast.custom('success', `Готово`, `Опция "Автозапуск приложения" ${status ? 'включена' : 'выключена'}`)
+                window.desktopEvents?.send(MainEvents.AUTO_START_APP, status)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartApp', { status: statusLabel }))
                 break
             case 'autoStartMusic':
-                updatedSettings.autoStartMusic = status
                 window.electron.store.set('settings.autoStartMusic', status)
-                toast.custom('success', `Готово`, `Опция "Автозапуск музыки" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartMusic', { status: statusLabel }))
                 break
             case 'askSavePath':
-                updatedSettings.askSavePath = status
                 window.electron.store.set('settings.askSavePath', status)
-                toast.custom('success', `Готово`, `Опция "Спрашивать куда сохранять трек" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.askSavePath', { status: statusLabel }))
                 break
             case 'saveAsMp3':
-                updatedSettings.saveAsMp3 = status
                 window.electron.store.set('settings.saveAsMp3', status)
-                toast.custom('success', `Готово`, `Опция "Сохранять в формате mp3" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveAsMp3', { status: statusLabel }))
                 break
             case 'closeAppInTray':
-                updatedSettings.closeAppInTray = status
                 window.electron.store.set('settings.closeAppInTray', status)
-                toast.custom('success', `Готово`, `Опция "Закрытие приложения в трее" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.closeAppInTray', { status: statusLabel }))
                 break
             case 'deletePextAfterImport':
-                updatedSettings.deletePextAfterImport = status
                 window.electron.store.set('settings.deletePextAfterImport', status)
-                toast.custom('success', `Готово`, `Включена функция удаления .pext после импорта темы`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.deletePextAfterImport'))
                 break
             case 'hardwareAcceleration':
-                updatedSettings.hardwareAcceleration = status
                 window.electron.store.set('settings.hardwareAcceleration', status)
-                toast.custom('success', `Готово`, 'Изменения вступят в силу после перезапуска приложения')
+                toast.custom('success', t('common.doneTitle'), t('settings.restartRequired'))
                 break
             case 'devSocket':
-                updatedSettings.devSocket = status
                 window.electron.store.set('settings.devSocket', status)
-                console.log(updatedSettings.devSocket)
-                updatedSettings.devSocket ? window.desktopEvents?.send('WEBSOCKET_START') : window.desktopEvents?.send('WEBSOCKET_STOP')
-                toast.custom('success', `Готово`, 'Статус вебсокета изменен')
+                console.log(status)
+                status ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START) : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
+                toast.custom('success', t('common.doneTitle'), t('settings.websocketStatusChanged'))
                 break
             case 'showModModalAfterInstall':
-                updatedSettings.showModModalAfterInstall = status
                 window.electron.store.set('settings.showModModalAfterInstall', status)
-                toast.custom('success', `Готово`, `Опция "Показывать список изменений после установки" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.showModChangelog', { status: statusLabel }))
                 break
             case 'saveWindowPositionOnRestart':
-                updatedSettings.saveWindowPositionOnRestart = status
                 window.electron.store.set('settings.saveWindowPositionOnRestart', status)
-                toast.custom('success', `Готово`, `Опция "Сохранять положение окна" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowPosition', { status: statusLabel }))
                 break
             case 'saveWindowDimensionsOnRestart':
-                updatedSettings.saveWindowDimensionsOnRestart = status
                 window.electron.store.set('settings.saveWindowDimensionsOnRestart', status)
-                toast.custom('success', `Готово`, `Опция "Сохранять размер окна" ${status ? 'включена' : 'выключена'}`)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowDimensions', { status: statusLabel }))
                 break
         }
-        setApp({ ...app, settings: updatedSettings })
+        setApp((prevApp: SettingsInterface) => {
+            const updatedSettings = { ...prevApp.settings }
+            switch (type) {
+                case 'autoTray':
+                    updatedSettings.autoStartInTray = status
+                    break
+                case 'autoStart':
+                    updatedSettings.autoStartApp = status
+                    break
+                case 'autoStartMusic':
+                    updatedSettings.autoStartMusic = status
+                    break
+                case 'askSavePath':
+                    updatedSettings.askSavePath = status
+                    break
+                case 'saveAsMp3':
+                    updatedSettings.saveAsMp3 = status
+                    break
+                case 'closeAppInTray':
+                    updatedSettings.closeAppInTray = status
+                    break
+                case 'deletePextAfterImport':
+                    updatedSettings.deletePextAfterImport = status
+                    break
+                case 'hardwareAcceleration':
+                    updatedSettings.hardwareAcceleration = status
+                    break
+                case 'devSocket':
+                    updatedSettings.devSocket = status
+                    break
+                case 'showModModalAfterInstall':
+                    updatedSettings.showModModalAfterInstall = status
+                    break
+                case 'saveWindowPositionOnRestart':
+                    updatedSettings.saveWindowPositionOnRestart = status
+                    break
+                case 'saveWindowDimensionsOnRestart':
+                    updatedSettings.saveWindowDimensionsOnRestart = status
+                    break
+            }
+            return {
+                ...prevApp,
+                settings: updatedSettings,
+            }
+        })
+    }
+
+    const setLanguage = async (language: string) => {
+        if (app.settings.language === language) return
+        await i18n.changeLanguage(language)
+        window.electron.store.set('settings.language', language)
+        setApp((prevApp: SettingsInterface) => ({
+            ...prevApp,
+            settings: { ...prevApp.settings, language },
+        }))
     }
 
     function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
@@ -196,65 +340,105 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const buttonConfigs: SectionConfig[] = [
         createContentSection(
             <button className={menuStyles.contextButton} onClick={openAppDirectory}>
-                Директория приложения
+                <span>{t('contextMenu.appDirectory')}</span>
+                <MdFolderOpen size={18} />
             </button>,
         ),
-        createButtonSection('Мод', [
+        createButtonSection(t('contextMenu.obsWidget.title'), [
             {
-                label: app.mod.installed && app.mod.version ? `${app.mod.name || 'Eclipse'} v${app.mod.version}` : 'Не установлен',
+                label: t('contextMenu.obsWidget.download', {
+                    status: widgetInstalled ? t('contextMenu.status.installed') : t('contextMenu.status.notInstalled'),
+                }),
+                onClick: downloadObsWidget,
+                disabled: widgetInstalled,
+            },
+            {
+                label: t('contextMenu.obsWidget.openFolder'),
+                onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' }),
+                disabled: !widgetInstalled,
+            },
+            {
+                label: t('contextMenu.obsWidget.copyPath'),
+                onClick: copyWidgetPath,
+                disabled: !widgetInstalled,
+            },
+            {
+                label: t('contextMenu.obsWidget.remove'),
+                onClick: removeObsWidget,
+                disabled: !widgetInstalled,
+            },
+        ]),
+        createButtonSection(t('contextMenu.mod.title'), [
+            {
+                label:
+                    app.mod.installed && app.mod.version
+                        ? `${app.mod.name || t('contextMenu.mod.defaultName')} v${app.mod.version}`
+                        : t('contextMenu.mod.notInstalled'),
                 onClick: () => store.dispatch(openModal()),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
-                label: 'Удалить мод',
+                label: t('contextMenu.mod.remove'),
                 onClick: deleteMod,
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
-                label: 'Проверить обновления мода',
+                label: t('contextMenu.mod.checkUpdates'),
                 onClick: () => window.getModInfo(app),
                 disabled: !app.mod.installed || !app.mod.version,
             },
-            createToggleButton('Показывать список изменений после установки', app.settings.showModModalAfterInstall, () =>
+            {
+                label: t('contextMenu.mod.clearCache'),
+                onClick: clearModCache,
+            },
+            createToggleButton(t('contextMenu.mod.showChangelog'), app.settings.showModModalAfterInstall, () =>
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
         ]),
-        createButtonSection('Настройки приложения', [
-            createToggleButton('Автозапуск приложения', app.settings.autoStartApp, () => toggleSetting('autoStart', !app.settings.autoStartApp)),
-            createToggleButton('Аппаратное ускорение', app.settings.hardwareAcceleration, () =>
+        createButtonSection(t('contextMenu.appSettings.title'), [
+            createToggleButton(t('contextMenu.appSettings.autoStartApp'), app.settings.autoStartApp, () =>
+                toggleSetting('autoStart', !app.settings.autoStartApp),
+            ),
+            createToggleButton(t('contextMenu.appSettings.hardwareAcceleration'), app.settings.hardwareAcceleration, () =>
                 toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
-            createToggleButton('Удалять .pext после импорта темы', app.settings.deletePextAfterImport, () =>
+            createToggleButton(t('contextMenu.appSettings.deletePextAfterImport'), app.settings.deletePextAfterImport, () =>
                 toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
             ),
         ]),
-        createButtonSection('Настройки окна приложения', [
-            createToggleButton('Сохранять размер окна', app.settings.saveWindowDimensionsOnRestart, () =>
+        createButtonSection(t('contextMenu.windowSettings.title'), [
+            createToggleButton(t('contextMenu.windowSettings.saveWindowDimensions'), app.settings.saveWindowDimensionsOnRestart, () =>
                 toggleSetting('saveWindowDimensionsOnRestart', !app.settings.saveWindowDimensionsOnRestart),
             ),
-            createToggleButton('Сохранять положение окна', app.settings.saveWindowPositionOnRestart, () =>
+            createToggleButton(t('contextMenu.windowSettings.saveWindowPosition'), app.settings.saveWindowPositionOnRestart, () =>
                 toggleSetting('saveWindowPositionOnRestart', !app.settings.saveWindowPositionOnRestart),
             ),
-            createToggleButton('Автотрей', app.settings.autoStartInTray, () => toggleSetting('autoTray', !app.settings.autoStartInTray)),
-            createToggleButton('Скрыть окно при нажатии на «X»', app.settings.closeAppInTray, () =>
+            createToggleButton(t('contextMenu.windowSettings.autoTray'), app.settings.autoStartInTray, () =>
+                toggleSetting('autoTray', !app.settings.autoStartInTray),
+            ),
+            createToggleButton(t('contextMenu.windowSettings.hideOnClose'), app.settings.closeAppInTray, () =>
                 toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
-        createButtonSection('Особое', [
-            { label: `Версия: v${app.info.version}. Commit #${window.appInfo.getBranch()}`, onClick: openUpdateModal },
+        createButtonSection(t('contextMenu.language.title'), [
+            createToggleButton(t('contextMenu.language.russian'), app.settings.language === 'ru', () => setLanguage('ru')),
+            createToggleButton(t('contextMenu.language.english'), app.settings.language === 'en', () => setLanguage('en')),
+        ]),
+        createButtonSection(t('contextMenu.misc.title'), [
+            { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
             {
-                label: 'Проверить обновления',
-                onClick: () => window.desktopEvents?.send('checkUpdate'),
+                label: t('contextMenu.misc.checkUpdates'),
+                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE),
             },
             {
-                label: 'Собрать логи в архив',
+                label: t('contextMenu.misc.collectLogs'),
                 onClick: () => {
-                    window.desktopEvents?.send('getLogArchive')
-                    toast.custom('success', `Готово`, 'Скоро открою папку')
+                    window.desktopEvents?.send(MainEvents.GET_LOG_ARCHIVE)
+                    toast.custom('success', t('common.doneTitle'), t('contextMenu.misc.logsReady'))
                 },
             },
             createToggleButton(
-                'Статус вебсокета',
+                t('contextMenu.misc.websocketStatus'),
                 app.settings.devSocket,
                 () => {
                     toggleSetting('devSocket', !app.settings.devSocket)

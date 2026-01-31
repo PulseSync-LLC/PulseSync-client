@@ -30,13 +30,13 @@ declare global {
                 setPlaying: (value: boolean) => void
             }
             request: (url: string, config: AxiosRequestConfig) => AxiosResponse
-            corsAnywherePort: () => number
             authorize: () => string
             version: () => string
             receive: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             receiveOnce: (channel: string, func: (event: any, ...arg: any[]) => void) => void
             removeListener: (channel: string) => void
             isAppDev: () => boolean
+            isLinux: () => boolean
             isMac: () => boolean
         }
         refreshAddons: () => void

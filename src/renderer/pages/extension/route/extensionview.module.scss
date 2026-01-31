@@ -131,6 +131,18 @@
                 * {
                     user-select: text !important;
                 }
+                img {
+                    max-width: 100%;
+                    height: auto;
+                    display: block;
+                }
+                .markdownImage {
+                    max-width: 100%;
+                    width: 100%;
+                    height: auto;
+                    display: block;
+                    object-fit: contain;
+                }
             }
         }
     }

@@ -11,6 +11,7 @@ export interface Settings {
     askSavePath: boolean
     saveAsMp3: boolean
     showModModalAfterInstall: boolean
+    language: string
 }
 export interface Info {
     version: string
@@ -41,6 +42,7 @@ export interface discordRpc {
     enableWebsiteButton: boolean
     enableDeepLink: boolean
     showTrackVersion: boolean
+    supporterHideBranding: boolean
 }
 
 export default interface SettingsInterface {

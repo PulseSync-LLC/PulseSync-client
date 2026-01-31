@@ -2,7 +2,11 @@ import React from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
-import config from '../../../../api/config'
+import config from '../../../../api/web_config'
+import { staticAsset } from '../../../../utils/staticAssets'
+import { useTranslation } from 'react-i18next'
+
+const fallbackAvatar = staticAsset('assets/images/undef.png')
 
 interface ProfileHeaderProps {
     userProfile: any
@@ -11,6 +15,7 @@ interface ProfileHeaderProps {
 }
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
+    const { t, i18n } = useTranslation()
     const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`
     const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`
 
@@ -28,7 +33,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                     src={avatarUrl}
                     alt="Avatar"
                     onError={e => {
-                        ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                        ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                     }}
                     width="84"
                     height="84"
@@ -44,7 +49,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     }}
                                     tooltipText={
                                         <div className={styles.dateCreateTooltip}>
-                                            {new Date(userProfile.createdAt).toLocaleString('ru-RU', {
+                                            {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -56,7 +61,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     }
                                     side="top"
                                 >
-                                    Здесь с самого начала
+                                    {t('profile.sinceBeginning')}
                                 </TooltipButton>
                             ) : (
                                 <TooltipButton
@@ -66,7 +71,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     }}
                                     tooltipText={
                                         <div className={styles.dateCreateTooltip}>
-                                            {new Date(userProfile.createdAt).toLocaleString('ru-RU', {
+                                            {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
                                                 year: 'numeric',
                                                 month: 'long',
                                                 day: 'numeric',
@@ -78,8 +83,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     }
                                     side="top"
                                 >
-                                    Дата регистрации:{' '}
-                                    {new Date(userProfile.createdAt).toLocaleDateString('ru-RU', {
+                                    {t('profile.registrationDate')}{' '}
+                                    {new Date(userProfile.createdAt).toLocaleDateString(i18n.language, {
                                         month: 'long',
                                         year: 'numeric',
                                     })}
@@ -88,9 +93,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                         </div>
                     </div>
                     <div className={styles.userName}>
-                        {userProfile.nickname || 'Без никнейма'}
+                        {userProfile.nickname || t('profile.noNickname')}
                         <div className={styles.userBadges}>
-                            <TooltipButton tooltipText={`Уровень ${userProfile.levelInfo.currentLevel}`} side="top">
+                            <TooltipButton tooltipText={t('profile.level', { level: userProfile.levelInfo.currentLevel })} side="top">
                                 <LevelBadge level={userProfile.levelInfo.currentLevel} />
                             </TooltipButton>
                             {Array.isArray(userProfile.badges) &&
@@ -98,7 +103,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                                     .sort((a: any, b: any) => b.level - a.level)
                                     .map((badge: any) => (
                                         <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid}>
-                                            <img src={`static/assets/badges/${badge.type}.svg`} alt={badge.type} />
+                                            <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
                                         </TooltipButton>
                                     ))}
                         </div>

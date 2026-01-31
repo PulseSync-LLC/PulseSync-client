@@ -1,107 +1,173 @@
-import React, { ReactNode } from "react";
-import ReactDOM from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import ButtonV2 from "../../buttonV2";
-import * as styles from "./CustomModalPS.module.scss";
+import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
+import ReactDOM from 'react-dom'
+import { motion, AnimatePresence } from 'framer-motion'
+import ButtonV2 from '../../buttonV2'
+import * as styles from './CustomModalPS.module.scss'
 
 export interface ModalButton {
-  text: string;
-  onClick: () => void;
-  variant?: "primary" | "secondary" | "danger";
-  disabled?: boolean;
-  className?: string;
+    text: string
+    onClick: () => void
+    variant?: 'primary' | 'secondary' | 'danger'
+    disabled?: boolean
+    className?: string
 }
 
 export interface CustomModalPSProps {
-  isOpen: boolean;
-  onClose: () => void;
-  title?: string;
-  text?: string;
-  children?: ReactNode;
-  buttons?: ModalButton[];
+    isOpen: boolean
+    onClose: () => void
+    title?: string
+    text?: string
+    subText?: string
+    children?: ReactNode
+    buttons?: ModalButton[]
 }
 
 const backdropVariants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.15 } },
-  exit: { opacity: 0, transition: { duration: 0.15 } },
-} as const;
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: { duration: 0.15, ease: 'easeOut' },
+    },
+    exit: {
+        opacity: 0,
+        transition: { duration: 0.15, ease: 'easeIn' },
+    },
+} as const
 
 const modalVariants = {
-  hidden: { opacity: 0, scale: 0.95, y: -20 },
-  visible: {
-    opacity: 1,
-    scale: 1,
-    y: 0,
-    transition: { duration: 0.2, type: "spring", stiffness: 260, damping: 20 },
-  },
-  exit: { opacity: 0, scale: 0.95, y: -20, transition: { duration: 0.15 } },
-} as const;
+    hidden: {
+        opacity: 0,
+        y: -8,
+    },
+    visible: {
+        opacity: 1,
+        y: 0,
+        transition: { duration: 0.2, ease: 'easeOut' },
+    },
+    exit: {
+        opacity: 0,
+        y: -8,
+        transition: { duration: 0.15, ease: 'easeIn' },
+    },
+} as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({
-  isOpen,
-  onClose,
-  title,
-  text,
-  children,
-  buttons = [],
-}) => {
-  if (typeof window === "undefined") return null;
+const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, buttons = [] }) => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') {
+        return null
+    }
 
-  const renderButtons = () => {
-    if (!buttons.length) return null;
-    return (
-      <div className={styles.buttonsWrapper}>
-        {buttons.map(({ text, onClick, variant = "primary", disabled, className }, idx) => {
-          const variantClass =
-            styles[`btn_${variant}` as keyof typeof styles] || styles.btn_primary;
+    const isVertical = buttons.length > 2
 
-          return (
-            <ButtonV2
-              key={idx}
-              onClick={onClick}
-              disabled={disabled}
-              className={`${variantClass}${className ? ` ${className}` : ""}`}
-            >
-              {text}
-            </ButtonV2>
-          );
-        })}
-      </div>
-    );
-  };
+    const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
+    const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
 
-  return ReactDOM.createPortal(
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          key="backdrop"
-          className={styles.backdrop}
-          variants={backdropVariants}
-          initial="hidden"
-          animate="visible"
-          exit="exit"
-          onClick={onClose}
-        >
-          <motion.div
-            key="modal"
-            className={styles.modal}
-            variants={modalVariants}
-            initial="hidden"
-            animate="visible"
-            exit="exit"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {title && <h2 className={styles.title}>{title}</h2>}
-            {text && <p className={styles.text}>{text}</p>}
-            {children}
-            {renderButtons()}
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body,
-  );
-};
+    const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
-export default CustomModalPS;
+    useEffect(() => {
+        if (!isOpen) return
+
+        const onKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') {
+                onClose()
+            }
+        }
+
+        document.addEventListener('keydown', onKeyDown)
+
+        return () => {
+            document.removeEventListener('keydown', onKeyDown)
+        }
+    }, [isOpen, onClose])
+
+    useEffect(() => {
+        if (!isOpen) return
+        if (!buttons.length) return
+
+        const timer = window.setTimeout(() => {
+            firstBtnRef.current?.focus()
+        }, 0)
+
+        return () => {
+            window.clearTimeout(timer)
+        }
+    }, [isOpen, buttons.length])
+
+    const renderButtons = () => {
+        if (!buttons.length) return null
+
+        const wrapperClass = `${styles.buttonsWrapper} ${isVertical ? styles.buttonsVertical : styles.buttonsHorizontal}`
+
+        return (
+            <div className={wrapperClass}>
+                {buttons.map(({ text: btnText, onClick, variant = 'primary', disabled, className }, index) => {
+                    const variantClass = styles[`btn_${variant}` as keyof typeof styles] ?? styles.btn_primary
+
+                    const refProp = index === 0 ? { ref: firstBtnRef } : {}
+
+                    return (
+                        <ButtonV2
+                            key={`${btnText}-${index}`}
+                            onClick={onClick}
+                            disabled={disabled}
+                            className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            {...refProp}
+                        >
+                            {btnText}
+                        </ButtonV2>
+                    )
+                })}
+            </div>
+        )
+    }
+
+    return ReactDOM.createPortal(
+        <AnimatePresence>
+            {isOpen && (
+                <motion.div
+                    key="backdrop"
+                    className={styles.backdrop}
+                    variants={backdropVariants}
+                    initial="hidden"
+                    animate="visible"
+                    exit="exit"
+                    onClick={onClose}
+                    aria-hidden="true"
+                >
+                    <motion.div
+                        key="modal"
+                        className={styles.modal}
+                        variants={modalVariants}
+                        initial="hidden"
+                        animate="visible"
+                        exit="exit"
+                        onClick={event => event.stopPropagation()}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-labelledby={title ? titleId : undefined}
+                        aria-describedby={text || subText ? descId : undefined}
+                    >
+                        {title && (
+                            <div id={titleId} className={styles.title}>
+                                {title}
+                            </div>
+                        )}
+
+                        {(text || subText) && (
+                            <div id={descId} className={styles.textBlock}>
+                                {text && <p className={styles.description}>{text}</p>}
+                                {subText && <p className={styles.subText}>{subText}</p>}
+                            </div>
+                        )}
+
+                        {children}
+
+                        {renderButtons()}
+                    </motion.div>
+                </motion.div>
+            )}
+        </AnimatePresence>,
+        document.body,
+    )
+}
+
+export default CustomModalPS

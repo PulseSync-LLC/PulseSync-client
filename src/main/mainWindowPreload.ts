@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import packageJson from '../../package.json'
+import MainEvents from '../common/types/mainEvents'
+import RendererEvents from '../common/types/rendererEvents'
 
 export interface DesktopEvents {
     send(channel: string, ...args: any[]): void
@@ -14,69 +16,66 @@ export interface DesktopEvents {
 contextBridge.exposeInMainWorld('electron', {
     store: {
         get(key: string) {
-            return ipcRenderer.sendSync('electron-store-get', key)
+            return ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, key)
         },
         set(property: string, val: any) {
-            ipcRenderer.send('electron-store-set', property, val)
+            ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, property, val)
         },
         delete(property: string) {
-            ipcRenderer.send('electron-store-delete', property)
+            ipcRenderer.send(MainEvents.ELECTRON_STORE_DELETE, property)
         },
     },
     window: {
         minimize() {
-            ipcRenderer.send('electron-window-minimize')
+            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MINIMIZE)
         },
         maximize() {
-            ipcRenderer.send('electron-window-maximize')
+            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MAXIMIZE)
         },
         close(val: boolean) {
-            ipcRenderer.send('electron-window-close', val)
+            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_CLOSE, val)
         },
         exit() {
-            ipcRenderer.send('electron-window-exit')
+            ipcRenderer.send(MainEvents.ELECTRON_WINDOW_EXIT)
         },
     },
     settings: {
         minimize() {
-            ipcRenderer.send('electron-settings-minimize')
+            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MINIMIZE)
         },
         maximize() {
-            ipcRenderer.send('electron-settings-maximize')
+            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MAXIMIZE)
         },
         close(val: boolean) {
-            ipcRenderer.send('electron-settings-close', val)
+            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_CLOSE, val)
         },
         exit() {
-            ipcRenderer.send('electron-settings-exit')
+            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_EXIT)
         },
-        isMac() {
-            return ipcRenderer.sendSync('electron-mac')
-        },
-    },
-    corsAnywherePort() {
-        return ipcRenderer.sendSync('electron-corsanywhereport')
     },
     isAppDev() {
-        return ipcRenderer.sendSync('electron-isdev')
+        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
+    },
+    isLinux() {
+        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISLINUX)
     },
     isMac() {
-        return ipcRenderer.sendSync('electron-ismac')
+        return ipcRenderer.sendSync(MainEvents.ELECTRON_ISMAC)
     },
 })
 contextBridge.exposeInMainWorld('appInfo', {
-    getBranch: () => ipcRenderer.sendSync('getLastBranch'),
+    getBranch: () => ipcRenderer.sendSync(MainEvents.GET_LAST_BRANCH),
     getVersion: () => packageJson.version,
 })
 contextBridge.exposeInMainWorld('discordRpc', {
     async setActivity(presence: SetActivity) {
-        ipcRenderer.send('discordrpc-setstate', presence)
+        ipcRenderer.send(MainEvents.DISCORDRPC_SETSTATE, presence)
     },
     async clearActivity() {
-        ipcRenderer.send('discordrpc-clearstate')
+        ipcRenderer.send(MainEvents.DISCORDRPC_CLEARSTATE)
     },
     async discordRpc(val: boolean) {
-        ipcRenderer.send('discordrpc-discordRpc', val)
+        ipcRenderer.send(MainEvents.DISCORDRPC_DISCORDRPC, val)
     },
 })
 const desktopEvents: DesktopEvents = {
@@ -104,3 +103,7 @@ const desktopEvents: DesktopEvents = {
     },
 }
 contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)
+
+ipcRenderer.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, (event, data) => {
+    ;(window as any).__pendingPulseSyncData = data
+})

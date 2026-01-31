@@ -4,6 +4,9 @@ import path from 'path'
 import * as s from './FileInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdFolderOpen, MdClose } from 'react-icons/md'
+import MainEvents from '../../../../common/types/mainEvents'
+import RendererEvents from '../../../../common/types/rendererEvents'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     label: string
@@ -27,6 +30,9 @@ type Props = {
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'])
 const isImageName = (name: string) => IMAGE_EXTS.has(path.extname(name || '').toLowerCase())
 const isAbsPath = (p: string) => /^([a-zA-Z]:[\\/]|\\\\|\/)/.test(p || '')
+const revokeIfBlob = (url?: string | null) => {
+    if (url) URL.revokeObjectURL(url)
+}
 
 const toFilters = (accept?: string): Electron.FileFilter[] | undefined => {
     if (!accept) return undefined
@@ -45,7 +51,6 @@ function sanitizeFilename(name: string) {
         .trim()
 }
 
-/** копируем файл в аддон, возвращаем короткое имя */
 async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, preferredName?: string): Promise<string> {
     const src = path.normalize(absSourcePath)
     const root = path.normalize(addonPath) + path.sep
@@ -60,7 +65,7 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
 
     const safeExists = async (p: string) => {
         try {
-            return !!(await window.desktopEvents.invoke('file-event', 'check-file-exists', p))
+            return !!(await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.CHECK_FILE_EXISTS, p))
         } catch {
             return false
         }
@@ -73,30 +78,14 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     if (i > MAX_TRIES) dest = path.join(addonPath, `${stem}_${Date.now()}${ext}`)
 
     try {
-        await window.desktopEvents.invoke('file-event', 'copy-file', src, { dest })
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, src, { dest })
     } catch {
-        const data: string = await window.desktopEvents.invoke('file-event', 'read-file-base64', src)
-        await window.desktopEvents.invoke('file-event', 'write-file-base64', dest, data)
+        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, src)
+        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE_BASE64, dest, data)
     }
     return path.basename(dest)
 }
 
-/** безопасно удаляем локальный файл в аддоне (если событие поддерживается) */
-async function removeLocalIfExists(fullPath: string) {
-    try {
-        const exists = await window.desktopEvents.invoke('file-event', 'check-file-exists', fullPath)
-        if (!exists) return
-        try {
-            await window.desktopEvents.invoke('file-event', 'delete-file', fullPath)
-        } catch {
-            try {
-                await window.desktopEvents.invoke('file-event', 'write-file', fullPath, '')
-            } catch {}
-        }
-    } catch {}
-}
-
-/** SHA-256 от base64-данных */
 async function hashBase64(b64: string): Promise<string> {
     if (!b64) return ''
     const clean = b64.includes(',') ? b64.split(',').pop()! : b64
@@ -109,24 +98,22 @@ async function hashBase64(b64: string): Promise<string> {
         .join('')
 }
 
-/** хэш файла по пути (через read-file-base64) */
 async function fileHash(fullPath: string): Promise<string> {
     try {
-        const b64: string | null = await window.desktopEvents.invoke('file-event', 'read-file-base64', fullPath)
+        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
         return b64 ? await hashBase64(b64) : ''
     } catch {
         return ''
     }
 }
 
-/** получить dataURL с фолбэком через read-file-base64 */
 async function getDataUrlSafe(fullPath: string): Promise<string | null> {
     try {
-        const url: string | null = await window.desktopEvents.invoke('file-event', 'as-data-url', fullPath)
+        const url: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, fullPath)
         if (url) return url
     } catch {}
     try {
-        const b64: string | null = await window.desktopEvents.invoke('file-event', 'read-file-base64', fullPath)
+        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
         if (!b64) return null
         const ext = path.extname(fullPath).toLowerCase()
         const mime =
@@ -158,12 +145,14 @@ const FileInput: React.FC<Props> = ({
     accept = '',
     previewSrc,
     disabled = false,
-    placeholder = 'Выберите файл',
+    placeholder,
     metadata = false,
     addonPath,
     preferredBaseName,
 }) => {
+    const { t } = useTranslation()
     const inputRef = useRef<HTMLInputElement>(null)
+    const placeholderText = placeholder ?? t('common.selectFile')
 
     const [text, setText] = useState<string>(value ?? '')
     const [isTyping, setIsTyping] = useState(false)
@@ -173,18 +162,23 @@ const FileInput: React.FC<Props> = ({
     const [imgLoading, setImgLoading] = useState(false)
     const [imgOk, setImgOk] = useState(false)
 
-    // ревизия превью: увеличиваем, когда реально сменилось содержимое файла
     const [rev, setRev] = useState(0)
+
+    const resetPreviewState = () => {
+        setLocalPreview(prev => {
+            revokeIfBlob(prev)
+            return null
+        })
+        setDataPreview(null)
+        setImgOk(false)
+        setImgLoading(false)
+    }
 
     useEffect(() => {
         if (!isTyping) setText(value ?? '')
 
         if (!value || !isImageName(value)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
             return
         }
 
@@ -221,7 +215,7 @@ const FileInput: React.FC<Props> = ({
 
     useEffect(
         () => () => {
-            if (localPreview) URL.revokeObjectURL(localPreview)
+            revokeIfBlob(localPreview)
         },
         [localPreview],
     )
@@ -239,8 +233,13 @@ const FileInput: React.FC<Props> = ({
     const openPicker = async () => {
         if (disabled) return
         const filters = toFilters(accept)
-        const channel = metadata ? 'dialog:openFileMetadata' : 'dialog:openFile'
-        const filePath = await window.desktopEvents?.invoke(channel, { filters })
+        const channel = metadata ? MainEvents.DIALOG_OPEN_FILE_METADATA : MainEvents.DIALOG_OPEN_FILE
+        let defaultPath: string | undefined = undefined
+
+        if ((accept.includes('.css') || accept.includes('.js')) && addonPath) {
+            defaultPath = addonPath
+        }
+        const filePath = await window.desktopEvents?.invoke(channel, { filters, defaultPath })
         if (!filePath) return
         if (metadata && addonPath) await commitPicked(String(filePath))
         else commitManual(String(filePath))
@@ -253,16 +252,13 @@ const FileInput: React.FC<Props> = ({
         if (isImageName(f.name)) {
             const url = URL.createObjectURL(f)
             setLocalPreview(prev => {
-                if (prev) URL.revokeObjectURL(prev)
+                revokeIfBlob(prev)
                 return url
             })
             setImgOk(false)
             setImgLoading(true)
         } else {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         }
 
         const anyFile = f as any
@@ -278,22 +274,13 @@ const FileInput: React.FC<Props> = ({
         setText(v)
         onChange?.(v)
         if (!v || !isImageName(v)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         } else {
             if (!isAbsPath(v)) setImgLoading(false)
             else setImgLoading(true)
         }
     }
 
-    /**
-     * metadata-режим: если уже есть короткое имя в значении — перезаписываем старый файл новым.
-     * если содержимое не поменялось (по хэшу) — не бампим rev.
-     * иначе — копируем в аддон и возвращаем новое короткое имя.
-     */
     const commitPicked = async (absNewPath: string) => {
         if (!metadata || !addonPath) {
             commitManual(absNewPath)
@@ -309,7 +296,7 @@ const FileInput: React.FC<Props> = ({
                     const destFull = path.join(addonPath, prevShort)
                     const [oldHash, newHash] = await Promise.all([fileHash(destFull), fileHash(absNewPath)])
                     if (oldHash !== newHash) {
-                        await window.desktopEvents.invoke('file-event', 'copy-file', absNewPath, { dest: destFull })
+                        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, absNewPath, { dest: destFull })
                         setRev(r => r + 1)
                     }
                     finalShort = prevShort
@@ -332,11 +319,7 @@ const FileInput: React.FC<Props> = ({
         onChange?.(finalShort)
 
         if (!finalShort || !isImageName(finalShort)) {
-            if (localPreview) URL.revokeObjectURL(localPreview)
-            setLocalPreview(null)
-            setDataPreview(null)
-            setImgOk(false)
-            setImgLoading(false)
+            resetPreviewState()
         } else {
             setImgLoading(true)
         }
@@ -344,15 +327,7 @@ const FileInput: React.FC<Props> = ({
 
     const clearAll = async (e?: React.MouseEvent) => {
         e?.stopPropagation()
-        if (metadata && addonPath && text && !isAbsPath(text)) {
-            const full = path.join(addonPath, text)
-            await removeLocalIfExists(full)
-        }
-        if (localPreview) URL.revokeObjectURL(localPreview)
-        setLocalPreview(null)
-        setDataPreview(null)
-        setImgOk(false)
-        setImgLoading(false)
+        resetPreviewState()
         setText('')
         onChange?.('')
         setRev(r => r + 1)
@@ -390,24 +365,24 @@ const FileInput: React.FC<Props> = ({
                 <input
                     className={s.text}
                     value={text}
-                    placeholder={placeholder}
+                    placeholder={placeholderText}
                     onFocus={() => setIsTyping(true)}
                     onBlur={() => setIsTyping(false)}
                     onClick={e => e.stopPropagation()}
                     onChange={e => commitManual(e.target.value)}
                 />
                 {text && (
-                    <button type="button" className={s.clearBtn} title="Очистить" onClick={clearAll}>
+                    <button type="button" className={s.clearBtn} title={t('common.clear')} onClick={clearAll}>
                         <MdClose size={16} />
                     </button>
                 )}
                 <button
                     type="button"
                     className={s.pickBtn}
-                    title="Выбрать файл"
-                    onClick={e => {
+                    title={t('common.selectFile')}
+                    onClick={async e => {
                         e.stopPropagation()
-                        openPicker()
+                        await openPicker()
                     }}
                 >
                     <MdFolderOpen size={18} />

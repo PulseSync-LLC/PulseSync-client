@@ -1,11 +1,15 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as styles from './userCard.module.scss'
-import config from '../../api/config'
+import config from '../../api/web_config'
 import TooltipButton from '../tooltip_button'
 import { getStatusColor, getStatus } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
 import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
+import { staticAsset } from '../../utils/staticAssets'
+import { useTranslation } from 'react-i18next'
+
+const fallbackAvatar = staticAsset('assets/images/undef.png')
 
 interface UserCardProps {
     user: Partial<UserInterface>
@@ -29,7 +33,7 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
 const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; hash?: string; ext?: string; hovered: boolean }) => {
     if (!hash) {
         return type === 'avatar'
-            ? './static/assets/images/undef.png'
+            ? fallbackAvatar
             : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
     }
     const base = `${config.S3_URL}/${type}s/${hash}`
@@ -51,6 +55,7 @@ const isInactive = (lastOnline?: number) => {
 }
 
 const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
+    const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
     const [isHovered, setIsHovered] = useState(false)
@@ -60,7 +65,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
             hash: (user as UserInterface).bannerHash,
             ext: (user as UserInterface).bannerType,
             hovered: false,
-        })
+        }),
     )
 
     useEffect(() => {
@@ -74,13 +79,11 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                     hash: (user as UserInterface).bannerHash,
                     ext: (user as UserInterface).bannerType,
                     hovered: isHovered,
-                })
+                }),
             )
         }
         img.onerror = () => {
-            setBannerUrl(
-                `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
-            )
+            setBannerUrl(`linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`)
         }
     }, [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered])
 
@@ -98,7 +101,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                 ext: (user as UserInterface).avatarType,
                 hovered: isHovered,
             }),
-        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered]
+        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered],
     )
 
     return (
@@ -132,18 +135,21 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                             src={avatarUrl}
                             alt={user.username}
                             onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                             }}
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>
-                                <TooltipButton tooltipText={`Уровень ${(user as UserInterface).levelInfo.currentLevel}`} side="bottom">
+                                <TooltipButton
+                                    tooltipText={t('profile.level', { level: (user as UserInterface).levelInfo.currentLevel })}
+                                    side="bottom"
+                                >
                                     <LevelBadge level={(user as UserInterface).levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(b => (
                                     <TooltipButton key={`${b.type}-${b.level}`} tooltipText={b.name} side="bottom">
                                         <div className={styles.badge}>
-                                            <img src={`static/assets/badges/${b.type}.svg`} alt={b.name} className={styles.badgeIcon} />
+                                            <img src={staticAsset(`assets/badges/${b.type}.svg`)} alt={b.name} className={styles.badgeIcon} />
                                         </div>
                                     </TooltipButton>
                                 ))}
@@ -158,7 +164,11 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                                 color: isInactive(Number(user.lastOnline)) ? '#9885A9' : 'var(--statusColorProfile)',
                             }}
                         >
-                            {isInactive(Number(user.lastOnline)) ? 'Потеряшка' : (user as UserInterface).status === 'online' ? 'В сети' : 'Не в сети'}
+                            {isInactive(Number(user.lastOnline))
+                                ? t('userStatus.inactive')
+                                : (user as UserInterface).status === 'online'
+                                  ? t('userStatus.online')
+                                  : t('userStatus.offline')}
                         </div>
                         {isInactive(Number(user.lastOnline)) ? (
                             <MdNightsStay className={styles.statusIcon} style={{ color: '#9885A9' }} />
