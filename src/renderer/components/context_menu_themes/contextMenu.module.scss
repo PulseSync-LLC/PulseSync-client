@@ -1,5 +1,3 @@
-/* contextMenu.module.scss */
-
 .contextMenu {
     align-self: self-end;
     display: flex;
@@ -54,7 +52,6 @@
     height: 24px;
 }
 
-/* Анимация появления */
 @keyframes fadeIn {
     from {
         opacity: 0;
@@ -67,7 +64,6 @@
     }
 }
 
-/* Анимация исчезновения */
 @keyframes fadeOut {
     from {
         opacity: 1;

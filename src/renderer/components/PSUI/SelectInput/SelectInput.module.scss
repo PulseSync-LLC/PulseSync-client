@@ -9,6 +9,7 @@
     flex-direction: column;
     gap: 6px;
     padding: 10px 16px;
+    width: -webkit-fill-available;
     background: #3b4052;
     border-radius: 8px;
     outline: transparent solid 2px;
@@ -54,13 +55,13 @@
     top: calc(100% + 8px);
     left: 0;
     z-index: 1000;
-    min-width: var(--sel-panel-w);
+    min-width: 100%;
     background: #2b3042;
     border: 1px solid #3e465f;
     border-radius: 12px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     padding: 6px;
-    width: -webkit-fill-available;
+    width: 100%;
 }
 .panel.right {
     left: auto;

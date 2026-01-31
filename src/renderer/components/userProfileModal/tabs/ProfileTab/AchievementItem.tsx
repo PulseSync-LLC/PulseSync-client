@@ -2,6 +2,10 @@ import React from 'react'
 import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
 import TooltipButton from '../../../tooltip_button'
 import * as achv from '../../achievements.module.scss'
+import { staticAsset } from '../../../../utils/staticAssets'
+import { useTranslation } from 'react-i18next'
+
+const fallbackAchievement = staticAsset('assets/images/O^O.png')
 
 interface AchievementItemProps {
     ach: any
@@ -12,6 +16,7 @@ interface AchievementItemProps {
 }
 
 const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expanded, toggleExpand, canViewDetails }) => {
+    const { t, i18n } = useTranslation()
     const statusLower = userAch?.status?.toLowerCase() || 'not_started'
     const progressCurrent = userAch?.progressCurrent ?? 0
     const progressTotal = userAch?.progressTotal ?? ach.progressTotal ?? 0
@@ -20,10 +25,10 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
 
     type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
     const difficultyMap: Record<Difficulty, string> = {
-        EASY: 'Легко',
-        NORMAL: 'Нормально',
-        HARD: 'Сложно',
-        EXTREME: 'Экстремально',
+        EASY: t('profile.achievements.difficulty.easy'),
+        NORMAL: t('profile.achievements.difficulty.normal'),
+        HARD: t('profile.achievements.difficulty.hard'),
+        EXTREME: t('profile.achievements.difficulty.extreme'),
     }
     const difficultyColors: Record<Difficulty, string> = {
         EASY: '#92FFB2',
@@ -33,7 +38,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
     }
 
     const diffKey = ((ach.difficulty as string).toUpperCase() as Difficulty) || 'EASY'
-    const difficultyLabel = difficultyMap[diffKey] ?? 'Неизвестно'
+    const difficultyLabel = difficultyMap[diffKey] ?? t('profile.achievements.unknown')
     const difficultyColor = difficultyColors[diffKey] || '#000'
 
     const itemClassNames = [achv.achievementCard, isCompleted && achv.completed, isInProgress && achv.inProgress].filter(Boolean).join(' ')
@@ -50,9 +55,9 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                         </div>
                         <img
                             className={achv.image}
-                            src={ach.imageUrl || 'static/assets/images/O^O.png'}
+                            src={ach.imageUrl || fallbackAchievement}
                             onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = 'static/assets/images/O^O.png'
+                                ;(e.currentTarget as HTMLImageElement).src = fallbackAchievement
                             }}
                             alt={ach.title}
                         />
@@ -62,7 +67,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                     {isCompleted && (
                         <div className={achv.achievementCompletedAt}>
                             {userAch?.completedAt
-                                ? new Date(Number(userAch.completedAt)).toLocaleString('ru-RU', {
+                                ? new Date(Number(userAch.completedAt)).toLocaleString(i18n.language, {
                                       year: 'numeric',
                                       month: 'long',
                                       day: 'numeric',
@@ -70,7 +75,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                                       minute: '2-digit',
                                       second: '2-digit',
                                   })
-                                : 'Неизвестно'}
+                                : t('profile.achievements.unknown')}
                         </div>
                     )}
                     <div className={achv.achievementTitle}>{ach.title}</div>
@@ -99,7 +104,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                     <div className={achv.trackList}>
                         {userAch.criteriaProgress.map((crit: any) => (
                             <div key={crit.id} className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}>
-                                {crit.isCompleted ? crit.name : 'Неизвестно'}
+                                {crit.isCompleted ? crit.name : t('profile.achievements.unknown')}
                             </div>
                         ))}
                     </div>
@@ -107,11 +112,11 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
             <div className={achv.achievementFooter}>
                 {!isCompleted && (
                     <div className={achv.goal} style={{ color: difficultyColor }}>
-                        Прогресс: {progressCurrent} / {progressTotal}
+                        {t('profile.achievements.progress', { current: progressCurrent, total: progressTotal })}
                     </div>
                 )}
                 <div className={achv.points} style={{ color: difficultyColor }}>
-                    <MdStar /> {ach.points} очков
+                    <MdStar /> {t('profile.achievements.points', { points: ach.points })}
                 </div>
                 <div className={achv.difficulty} style={{ color: difficultyColor }}>
                     {difficultyLabel}

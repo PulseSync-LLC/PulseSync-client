@@ -1,0 +1,61 @@
+name: Build Application (Release)
+
+on:
+  release:
+    types: [created, published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    environment: BUILD_PRODUCTION
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-15-intel]
+
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.ref_name }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Build (package)
+        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
+        env:
+          CONFIG_JSON: ${{ secrets.CONFIG_JSON }}
+          RENDERER_CONFIG: ${{ secrets.RENDERER_CONFIG }}
+
+      - name: Show release contents (debug)
+        shell: bash
+        run: |
+          if [ -d release ]; then
+            echo "release/ files:"
+            find release -maxdepth 2 -type f | sort
+          else
+            echo "release/ not found"; exit 1
+          fi
+
+      - name: Upload release/ to S3
+        shell: bash
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          PREFIX="builds/releases"
+          npx -y tsx scripts/s3-upload.ts \
+            --branch "$BRANCH" \
+            --dir "release" \
+            --prefix "$PREFIX" \
+            --mac-manifest

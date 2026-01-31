@@ -19,7 +19,7 @@
 .section {
     display: grid;
     gap: 5px;
-    overflow: hidden;
+    overflow: visible;
     padding: 1px;
 }
 
@@ -128,7 +128,6 @@
     opacity: 0;
 }
 
-/* reduced motion — пусть просто щёлкает, без will-change */
 @media (prefers-reduced-motion: reduce) {
     .collapse {
         will-change: auto;

@@ -3,6 +3,7 @@ import path from 'path'
 import * as Sentry from '@sentry/electron/main'
 import logger from '../logger'
 import { app } from 'electron'
+import { t } from '../../i18n'
 
 const CRASH_FILE = path.join(app.getPath('appData'), 'PulseSync', 'logs', 'crash_app.log')
 
@@ -29,7 +30,7 @@ export class HandleErrorsElectron {
                 scope.captureException(errorObj)
             })
         } catch (internalError) {
-            logger.main.error('Ошибка внутри ErrorService.handleError:', internalError)
+            logger.main.error(t('main.handleErrors.internalError'), internalError)
         }
     }
 
@@ -55,7 +56,7 @@ export class HandleErrorsElectron {
         try {
             fs.appendFileSync(CRASH_FILE, `${errorMessage}\n`)
         } catch (fsError) {
-            logger.main.error('Ошибка записи в crash.log:', fsError)
+            logger.main.error(t('main.handleErrors.writeCrashLogError'), fsError)
         }
     }
 }

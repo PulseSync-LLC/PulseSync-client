@@ -13,13 +13,13 @@ import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
 import ExtensionPage from './extension'
 import JointPage from './joint'
+import StorePage from './store'
 
 import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
-import { Socket } from 'socket.io-client'
+import { io, Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
-import { io } from 'socket.io-client'
 import UserContext from '../api/context/user.context'
 import toast from '../components/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
@@ -27,6 +27,7 @@ import 'react-loading-skeleton/dist/skeleton.css'
 import trackInitials from '../api/initials/track.initials'
 import PlayerContext from '../api/context/player.context'
 import apolloClient from '../api/apolloClient'
+import client from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import settingsInitials from '../api/initials/settings.initials'
 import getUserToken from '../api/getUserToken'
@@ -35,7 +36,7 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
 import { fetchSettings } from '../api/settings'
-import { checkInternetAccess, compareVersions, notifyUserRetries, normalizeTrack, areTracksEqual } from '../utils/utils'
+import { areTracksEqual, checkInternetAccess, compareVersions, normalizeTrack, notifyUserRetries } from '../utils/utils'
 import Addon from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
@@ -43,12 +44,12 @@ import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import * as Sentry from '@sentry/electron/renderer'
-import client from '../api/apolloClient'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
+import { useTranslation } from 'react-i18next'
 
 type GetMeData = {
     getMe: Partial<UserInterface> | null
@@ -56,6 +57,8 @@ type GetMeData = {
 type GetMeVars = Record<string, never>
 
 function App() {
+    const { t } = useTranslation()
+    const tRef = useRef(t)
     const [realtimeSocket, setRealtimeSocket] = useState<Socket | null>(null)
     const [connectionErrorCode, setConnectionErrorCode] = useState(-1)
     const [isConnected, setIsConnected] = useState(false)
@@ -70,16 +73,127 @@ function App() {
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
     const [musicVersion, setMusicVersion] = useState<any>(null)
+    const [modInfoFetched, setModInfoFetched] = useState(false)
+    const [widgetInstalled, setWidgetInstalled] = useState(false)
     const toastReference = useRef<string | null>(null)
     const realtimeSocketRef = useRef<Socket | null>(null)
+    const socketReconnectAttemptsRef = useRef(0)
+    const socketReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const socketActivityClearedRef = useRef(false)
     const zstdRef = useRef<any>(null)
+    const websocketStartedRef = useRef(false)
     const [zstdReady, setZstdReady] = useState(false)
+    const connectionErrorAttemptsRef = useRef(0)
+    const connectionErrorToastThreshold = 3
+
+    const socketOfflineSinceRef = useRef<number | null>(null)
+    const socketOfflineClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const socketOfflineClearAfterMs = 15000
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const dispatch = useDispatch()
 
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
+    const appRef = useRef(app)
+    const rendererLoggingInitialized = useRef(false)
+
+    useEffect(() => {
+        tRef.current = t
+    }, [t])
+
+    useEffect(() => {
+        if (rendererLoggingInitialized.current) return
+        rendererLoggingInitialized.current = true
+        if (typeof window === 'undefined') return
+
+        const sendRendererError = (text: string) => {
+            window.desktopEvents?.send(MainEvents.RENDERER_LOG, { error: true, text })
+        }
+
+        const formatLogValue = (value: any) => {
+            if (value instanceof Error) {
+                const stack = value.stack ? `\n${value.stack}` : ''
+                return `${value.name}: ${value.message}${stack}`
+            }
+            if (typeof value === 'string') return value
+            try {
+                return JSON.stringify(value)
+            } catch {
+                return String(value)
+            }
+        }
+
+        const formatLogArgs = (args: any[]) => args.map(formatLogValue).join(' ')
+
+        const isIgnoredFetchUrl = (url: string) => {
+            return url.startsWith('sentry-ipc://')
+        }
+
+        const originalConsoleError = console.error.bind(console)
+        let isLoggingConsoleError = false
+        console.error = (...args: any[]) => {
+            if (!isLoggingConsoleError) {
+                isLoggingConsoleError = true
+                try {
+                    sendRendererError(formatLogArgs(args))
+                } catch (err) {
+                    originalConsoleError('[Logger Error]', err)
+                } finally {
+                    isLoggingConsoleError = false
+                }
+            }
+            originalConsoleError(...args)
+        }
+
+        const originalFetch = window.fetch?.bind(window)
+        if (originalFetch) {
+            window.fetch = (async (...args: Parameters<typeof fetch>) => {
+                const [input] = args
+                const url =
+                    typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : 'unknown'
+
+                if (typeof url === 'string' && isIgnoredFetchUrl(url)) {
+                    return originalFetch(...args)
+                }
+
+                try {
+                    const response = await originalFetch(...args)
+                    if (!response.ok) {
+                        sendRendererError(`Fetch error: ${response.status} ${response.statusText} (${url})`)
+                    }
+                    return response
+                } catch (error) {
+                    sendRendererError(`Fetch exception: ${url} - ${formatLogValue(error)}`)
+                    throw error
+                }
+            }) as typeof window.fetch
+        }
+
+        const onError = (event: ErrorEvent) => {
+            const detail = event.error ? ` - ${formatLogValue(event.error)}` : ''
+            sendRendererError(`Unhandled error: ${event.message}${detail}`)
+        }
+        const onUnhandledRejection = (event: PromiseRejectionEvent) => {
+            sendRendererError(`Unhandled rejection: ${formatLogValue(event.reason)}`)
+        }
+
+        window.addEventListener('error', onError)
+        window.addEventListener('unhandledrejection', onUnhandledRejection)
+
+        return () => {
+            console.error = originalConsoleError
+            if (originalFetch) {
+                window.fetch = originalFetch
+            }
+            window.removeEventListener('error', onError)
+            window.removeEventListener('unhandledrejection', onUnhandledRejection)
+        }
+    }, [])
+
+    useEffect(() => {
+        appRef.current = app
+    }, [app])
 
     useEffect(() => {
         let mounted = true
@@ -122,85 +236,19 @@ function App() {
         skip: !tokenReady || !hasToken,
     })
 
-    useEffect(() => {
-        if (!meData || !tokenReady) return
-        if (meData.getMe && meData.getMe.id) {
-            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
-            ;(async () => {
-                await router.navigate('/trackinfo', { replace: true })
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                    status: true,
-                    user: {
-                        id: meData.getMe!.id as string,
-                        username: meData.getMe!.username as string,
-                        email: meData.getMe!.email as string,
-                    },
-                })
-                setLoading(false)
-            })()
-        } else {
-            setLoading(false)
-            window.electron.store.delete('tokens.token')
-            ;(async () => {
-                await router.navigate('/', { replace: true })
-            })()
-            setUser(userInitials)
-            toast.custom('error', 'Ошибка', 'Не удалось получить данные пользователя. Пожалуйста, войдите снова.', null, null, 10000)
-            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
-                status: false,
-            })
-        }
-    }, [meData, tokenReady])
-
-    useEffect(() => {
-        if (!meError) return
-        const message = meError?.message || 'Неизвестная ошибка авторизации.'
-        if (CombinedGraphQLErrors.is(meError)) {
-            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
-            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
-            if (isForbidden) {
-                toast.custom('error', 'Ошибка', 'Ваша сессия истекла. Пожалуйста, войдите снова.', null, null, 10000)
-                window.electron.store.delete('tokens.token')
-                ;(async () => {
-                    await router.navigate('/', { replace: true })
-                })()
-                setUser(userInitials)
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-                setLoading(false)
-                return
-            }
-            if (isDeprecated) {
-                toast.custom(
-                    'error',
-                    'Данная версия приложения устарела',
-                    'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
-                    null,
-                    null,
-                    10000,
-                )
-                window.desktopEvents?.send(MainEvents.UPDATER_START)
-                dispatch(setAppDeprecatedStatus(true))
-                window.electron.store.delete('tokens.token')
-                ;(async () => {
-                    await router.navigate('/', { replace: true })
-                })()
-                setUser(userInitials)
-                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-                setLoading(false)
-                return
-            }
-        }
-        Sentry.captureException(meError)
-        toast.custom('error', 'Может у тебя нет доступа?', message)
-        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
-        setLoading(false)
-    }, [meError, dispatch])
-
     const router = useMemo(
         () =>
             createHashRouter([
                 {
                     path: '/',
+                    element: (
+                        <ErrorBoundary>
+                            <TrackInfoPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/auth',
                     element: (
                         <ErrorBoundary>
                             <AuthPage />
@@ -220,14 +268,6 @@ function App() {
                     element: (
                         <ErrorBoundary>
                             <CallbackPage />
-                        </ErrorBoundary>
-                    ),
-                },
-                {
-                    path: '/trackinfo',
-                    element: (
-                        <ErrorBoundary>
-                            <TrackInfoPage />
                         </ErrorBoundary>
                     ),
                 },
@@ -256,6 +296,14 @@ function App() {
                     ),
                 },
                 {
+                    path: '/store',
+                    element: (
+                        <ErrorBoundary>
+                            <StorePage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
                     path: '/joint',
                     element: (
                         <ErrorBoundary>
@@ -275,7 +323,81 @@ function App() {
         [],
     )
 
-    const authorize = async () => {
+    useEffect(() => {
+        if (!meData || !tokenReady) return
+        if (meData.getMe && meData.getMe.id) {
+            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
+            ;(async () => {
+                await router.navigate('/', { replace: true })
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                    status: true,
+                    user: {
+                        id: meData.getMe!.id as string,
+                        username: meData.getMe!.username as string,
+                        email: meData.getMe!.email as string,
+                    },
+                })
+                setLoading(false)
+            })()
+        } else {
+            setLoading(false)
+            window.electron.store.delete('tokens.token')
+            ;(async () => {
+                await router.navigate('/auth', { replace: true })
+            })()
+            setUser(userInitials)
+            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.failedToFetchUser'), null, null, 10000)
+            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+                status: false,
+            })
+        }
+    }, [meData, tokenReady, router])
+
+    useEffect(() => {
+        if (!meError) return
+        const message = meError?.message || tRef.current('auth.unknownAuthError')
+        if (CombinedGraphQLErrors.is(meError)) {
+            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
+            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
+            if (isForbidden) {
+                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.sessionExpired'), null, null, 10000)
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/auth', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+            if (isDeprecated) {
+                toast.custom(
+                    'error',
+                    tRef.current('auth.appVersionDeprecatedTitle'),
+                    tRef.current('auth.appVersionDeprecatedMessage'),
+                    null,
+                    null,
+                    10000,
+                )
+                window.desktopEvents?.send(MainEvents.UPDATER_START)
+                dispatch(setAppDeprecatedStatus(true))
+                window.electron.store.delete('tokens.token')
+                ;(async () => {
+                    await router.navigate('/auth', { replace: true })
+                })()
+                setUser(userInitials)
+                window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+                setLoading(false)
+                return
+            }
+        }
+        Sentry.captureException(meError)
+        toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
+        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+        setLoading(false)
+    }, [meError, dispatch])
+
+    const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
 
         const attemptAuthorization = async (): Promise<boolean> => {
@@ -289,7 +411,7 @@ function App() {
                         retryCount--
                         return false
                     } else {
-                        toast.custom('error', 'Отдохни чуток:)', 'Превышено количество попыток подключения.')
+                        toast.custom('error', tRef.current('common.takeBreakTitle'), tRef.current('common.tooManyAttempts'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -297,9 +419,9 @@ function App() {
                 }
 
                 const sendErrorAuthNotify = (message: string, title?: string) => {
-                    toast.custom('error', 'Ошибка', message, null, null, 10000)
+                    toast.custom('error', tRef.current('common.errorTitle'), message, null, null, 10000)
                     window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                        title: `Ошибка авторизации 😡 ${title ? title : ''}`,
+                        title: tRef.current('auth.authErrorTitle', { title }),
                         body: message,
                     })
                 }
@@ -310,7 +432,7 @@ function App() {
 
                     if (data?.getMe && data.getMe.id) {
                         setUser(prev => ({ ...prev, ...data.getMe }) as UserInterface)
-                        await router.navigate('/trackinfo', { replace: true })
+                        await router.navigate('/', { replace: true })
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: true,
                             user: {
@@ -323,9 +445,9 @@ function App() {
                     } else {
                         setLoading(false)
                         window.electron.store.delete('tokens.token')
-                        await router.navigate('/', { replace: true })
+                        await router.navigate('/auth', { replace: true })
                         setUser(userInitials)
-                        sendErrorAuthNotify('Не удалось получить данные пользователя. Пожалуйста, войдите снова.')
+                        sendErrorAuthNotify(tRef.current('auth.failedToFetchUser'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
@@ -338,7 +460,7 @@ function App() {
                             retryCount--
                             return false
                         } else {
-                            toast.custom('error', 'Пинг-понг', 'Сервер недоступен. Попробуйте позже.')
+                            toast.custom('error', tRef.current('common.pingPongTitle'), tRef.current('common.serverUnavailable'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
@@ -348,17 +470,17 @@ function App() {
                         const isDeprecated = errors.some((error: any) => error.extensions?.originalError?.error === 'DEPRECATED_VERSION')
                         const isForbidden = errors.some((error: any) => error.extensions?.code === 'FORBIDDEN')
                         if (isForbidden) {
-                            toast.custom('error', 'Ваша сессия истекла', 'Пожалуйста, войдите снова.')
+                            toast.custom('error', tRef.current('auth.sessionExpiredTitle'), tRef.current('auth.pleaseLoginAgain'))
                             window.electron.store.delete('tokens.token')
-                            await router.navigate('/', { replace: true })
+                            await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else if (isDeprecated) {
                             toast.custom(
                                 'error',
-                                'Данная версия приложения устарела',
-                                'Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.',
+                                tRef.current('auth.appVersionDeprecatedTitle'),
+                                tRef.current('auth.appVersionDeprecatedMessage'),
                                 null,
                                 null,
                                 10000,
@@ -366,20 +488,20 @@ function App() {
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
                             dispatch(setAppDeprecatedStatus(true))
                             window.electron.store.delete('tokens.token')
-                            await router.navigate('/', { replace: true })
+                            await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else {
                             Sentry.captureException(err)
-                            toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
+                            toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
                     } else {
                         Sentry.captureException(err)
-                        toast.custom('error', 'Может у тебя нет доступа?', 'Неизвестная ошибка авторизации.')
+                        toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
                         return false
@@ -420,7 +542,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }
+    }, [dispatch, refetchMe, router])
 
     const emitGateway = useCallback(
         (event: string, data: any) => {
@@ -438,48 +560,57 @@ function App() {
     )
 
     useEffect(() => {
-        if (typeof window !== 'undefined') {
-            const checkAuthorization = async () => {
-                await authorize()
-            }
+        if (typeof window === 'undefined') return
 
-            if (user.id === '-1') {
-                checkAuthorization()
-            }
-
-            const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
-
-            const handleMouseButton = (event: MouseEvent) => {
-                const rawHash = window.location?.hash || ''
-                const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
-                const allowSideButtons = path.startsWith('/users') || path.startsWith('/profile')
-
-                if (!allowSideButtons && (event.button === 3 || event.button === 4)) {
-                    event.preventDefault()
-                }
-            }
-
-            const handleBeforeunload = (_event: BeforeUnloadEvent) => {
-                window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
-            }
-
-            const handleAuthStatus = async (_event: any) => {
-                await authorize()
-            }
-
+        if (!websocketStartedRef.current) {
+            websocketStartedRef.current = true
             window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
-            window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
-            window.addEventListener('mouseup', handleMouseButton)
-            window.addEventListener('beforeunload', handleBeforeunload)
+        }
 
-            return () => {
-                clearInterval(intervalId)
-                window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
-                window.removeEventListener('mouseup', handleMouseButton)
-                window.removeEventListener('beforeunload', handleBeforeunload)
+        return () => {}
+    }, [])
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        const checkAuthorization = async () => {
+            await authorize()
+        }
+
+        if (user.id === '-1') {
+            checkAuthorization()
+        }
+
+        const intervalId = setInterval(checkAuthorization, 10 * 60 * 1000)
+
+        const handleMouseButton = (event: MouseEvent) => {
+            const rawHash = window.location?.hash || ''
+            const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+            const allowSideButtons = path.startsWith('/users') || path.startsWith('/profile')
+
+            if (!allowSideButtons && (event.button === 3 || event.button === 4)) {
+                event.preventDefault()
             }
         }
-    }, [])
+
+        const handleBeforeunload = (_event: BeforeUnloadEvent) => {
+            window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
+        }
+
+        const handleAuthStatus = async () => {
+            await authorize()
+        }
+
+        window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
+        window.addEventListener('mouseup', handleMouseButton)
+        window.addEventListener('beforeunload', handleBeforeunload)
+
+        return () => {
+            clearInterval(intervalId)
+            window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
+            window.removeEventListener('mouseup', handleMouseButton)
+            window.removeEventListener('beforeunload', handleBeforeunload)
+        }
+    }, [authorize, user.id])
 
     useEffect(() => {
         if (!zstdReady) return
@@ -492,6 +623,10 @@ function App() {
             const socket = io(config.SOCKET_URL, {
                 path: '/ws',
                 autoConnect: false,
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 1000,
+                reconnectionDelayMax: 10000,
                 auth: {
                     page,
                     token: getUserToken(),
@@ -518,25 +653,113 @@ function App() {
     }, [app.info.version, zstdReady])
 
     useEffect(() => {
+        if (user.id !== '-1' && realtimeSocketRef.current) {
+            const newToken = getUserToken()
+            if (newToken && realtimeSocketRef.current.auth) {
+                const wasConnected = realtimeSocketRef.current.connected
+
+                realtimeSocketRef.current.auth = {
+                    ...realtimeSocketRef.current.auth,
+                    token: newToken,
+                }
+
+                if (wasConnected) {
+                    realtimeSocketRef.current.disconnect()
+                    realtimeSocketRef.current.connect()
+                }
+            }
+        }
+    }, [user.id])
+
+    useEffect(() => {
         const socket = realtimeSocketRef.current
         if (!socket) return
 
+        const clearOfflineTimer = () => {
+            if (socketOfflineClearTimerRef.current) {
+                clearTimeout(socketOfflineClearTimerRef.current)
+                socketOfflineClearTimerRef.current = null
+            }
+        }
+
+        const resetSocketFailures = () => {
+            socketReconnectAttemptsRef.current = 0
+            socketActivityClearedRef.current = false
+            if (socketReconnectTimerRef.current) {
+                clearTimeout(socketReconnectTimerRef.current)
+                socketReconnectTimerRef.current = null
+            }
+
+            socketOfflineSinceRef.current = null
+            clearOfflineTimer()
+        }
+
+        const recordSocketFailure = (attempt?: number) => {
+            socketReconnectAttemptsRef.current = Math.max(socketReconnectAttemptsRef.current, attempt ?? socketReconnectAttemptsRef.current + 1)
+        }
+
+        const scheduleReconnect = () => {
+            if (socket.connected || socketReconnectTimerRef.current) return
+            const delay = Math.min(1000 * Math.pow(2, Math.max(socketReconnectAttemptsRef.current - 1, 0)), 10000)
+            socketReconnectTimerRef.current = setTimeout(() => {
+                socketReconnectTimerRef.current = null
+                if (!socket.connected) {
+                    socket.connect()
+                }
+            }, delay)
+        }
+
+        const scheduleRpcClearIfOfflineTooLong = () => {
+            if (socket.connected) return
+            if (!socketOfflineSinceRef.current) socketOfflineSinceRef.current = Date.now()
+            if (socketOfflineClearTimerRef.current) return
+
+            socketOfflineClearTimerRef.current = setTimeout(() => {
+                socketOfflineClearTimerRef.current = null
+                if (!socket.connected && !socketActivityClearedRef.current) {
+                    socketActivityClearedRef.current = true
+                    if ((window as any)?.discordRpc?.clearActivity) {
+                        ;(window as any).discordRpc.clearActivity()
+                    }
+                }
+            }, socketOfflineClearAfterMs)
+        }
+
         const onConnect = () => {
-            toast.custom('success', 'Фух', 'Соединение установлено')
+            resetSocketFailures()
+
+            toast.custom('success', t('common.phewTitle'), t('common.connectionEstablished'))
+            connectionErrorAttemptsRef.current = 0
             setRealtimeSocket(socket)
             setIsConnected(true)
             setConnectionErrorCode(-1)
             setLoading(false)
         }
+
         const onDisconnect = () => {
-            setConnectionErrorCode(1)
+            connectionErrorAttemptsRef.current += 1
+            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
+                setConnectionErrorCode(1)
+            }
             setRealtimeSocket(null)
             setIsConnected(false)
+
+            scheduleRpcClearIfOfflineTooLong()
         }
+
         const onConnectError = (_err: any) => {
-            setConnectionErrorCode(1)
+            connectionErrorAttemptsRef.current += 1
+            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
+                setConnectionErrorCode(1)
+            }
             setRealtimeSocket(null)
             setIsConnected(false)
+
+            scheduleRpcClearIfOfflineTooLong()
+        }
+
+        const onReconnectAttempt = (attempt: number) => {
+            recordSocketFailure(attempt)
         }
 
         const onLogout = async () => {
@@ -545,16 +768,17 @@ function App() {
             setConnectionErrorCode(1)
             setRealtimeSocket(null)
             setIsConnected(false)
-            await router.navigate('/', { replace: true })
+            resetSocketFailures()
+            await router.navigate('/auth', { replace: true })
         }
         const onFeatures = (data: any) => {
             setFeatures(data)
         }
         const onDeprecated = () => {
-            toast.custom('error', 'Внимание!', 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.')
+            toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
             window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                title: 'Внимание!',
-                body: 'Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.',
+                title: t('common.attentionTitle'),
+                body: t('auth.deprecatedSoon'),
             })
         }
 
@@ -576,7 +800,7 @@ function App() {
                     case 'update_features_ack':
                         break
                     case 'error_message':
-                        if (d?.message) toast.custom('error', 'Ошибка.', d.message, null, null, 15000)
+                        if (d?.message) toast.custom('error', t('common.errorTitleShort'), d.message, null, null, 15000)
                         break
                     case 'logout':
                         onLogout()
@@ -591,24 +815,29 @@ function App() {
         socket.on('disconnect', onDisconnect)
         socket.on('connect_error', onConnectError)
         socket.on('gw', onGatewayMessage)
+        socket.io.on('reconnect_attempt', onReconnectAttempt)
+        socket.io.on('reconnect', resetSocketFailures)
 
         return () => {
+            resetSocketFailures()
             socket.off('connect', onConnect)
             socket.off('disconnect', onDisconnect)
             socket.off('connect_error', onConnectError)
             socket.off('gw', onGatewayMessage)
+            socket.io.off('reconnect_attempt', onReconnectAttempt)
+            socket.io.off('reconnect', resetSocketFailures)
         }
     }, [router, zstdReady])
 
     useEffect(() => {
         if (connectionErrorCode === 1 || connectionErrorCode === 0) {
-            toast.custom('error', 'Что-то не так!', 'Сервер не доступен')
+            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
         } else if (isConnected && connectionErrorCode !== -1) {
-            toast.custom('success', 'На связи', 'Соединение восстановлено')
+            toast.custom('success', t('common.connectedTitle'), t('common.connectionRestored'))
         }
     }, [connectionErrorCode, isConnected])
 
-    const fetchModInfo = async (app: SettingsInterface) => {
+    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
         try {
             const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
@@ -625,25 +854,33 @@ function App() {
 
             const latest = mods[0]
             if (!app.mod.installed || !app.mod.version) {
-                toast.custom('info', 'Мод не установлен', `Доступна установка версии ${latest.modVersion}`)
+                toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
                 return
             }
             if (compareVersions(latest.modVersion, app.mod.version) > 0) {
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
                 if (lastNotifiedModVersion !== latest.modVersion) {
                     window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                        title: 'Доступно обновление мода',
-                        body: `Версия ${latest.modVersion} доступна для установки.`,
+                        title: tRef.current('mod.updateAvailableTitle'),
+                        body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
                     })
                     localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
                 }
             } else {
-                toast.custom('info', 'Всё в порядке', 'У вас установлена последняя версия мода')
+                toast.custom('info', tRef.current('common.allGoodTitle'), tRef.current('mod.latestInstalled'))
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
+        } finally {
+            setModInfoFetched(true)
         }
-    }
+    }, [])
+
+    useEffect(() => {
+        if (user.id === '-1') {
+            setModInfoFetched(false)
+        }
+    }, [user.id])
 
     useEffect(() => {
         if (user.id !== '-1') {
@@ -653,6 +890,7 @@ function App() {
                         const s = realtimeSocketRef.current
                         s.auth = {
                             ...(s.auth || {}),
+                            token: getUserToken(),
                             compression: 'zstd-stream',
                             inboundCompression: 'zstd-stream',
                         }
@@ -671,6 +909,14 @@ function App() {
                 setMusicInstalled(musicStatus)
                 setMusicVersion(musicVersion)
                 setAddons(fetchedAddons)
+
+                try {
+                    const widgetExists = await window.desktopEvents?.invoke(MainEvents.CHECK_OBS_WIDGET_INSTALLED)
+                    setWidgetInstalled(widgetExists || false)
+                } catch (error) {
+                    console.error('Failed to check widget installation:', error)
+                    setWidgetInstalled(false)
+                }
 
                 try {
                     const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
@@ -694,32 +940,39 @@ function App() {
                 clearInterval(modCheckId)
             }
         } else {
-            router.navigate('/', { replace: true })
+            router.navigate('/auth', { replace: true })
         }
-    }, [user.id, zstdReady])
+    }, [fetchModInfo, router, user.id, zstdReady])
 
-    const invokeFileEvent = async (eventType: string, filePath: string, data?: any) => {
-        return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
-    }
+    const invokeFileEvent = useCallback(
+        async (eventType: string, filePath: string, data?: any) => {
+            return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
+        },
+        [t],
+    )
 
-    useEffect(() => {
-        const handleOpenAddon = (_event: any, data: string) => {
+    const handleOpenAddon = useCallback(
+        (_event: any, data: string) => {
             window.desktopEvents
                 ?.invoke(MainEvents.GET_ADDONS)
                 .then((fetchedAddons: Addon[]) => {
                     const foundAddon = fetchedAddons.find(t => t.name === data)
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                            toast.custom('error', 'Ошибка.', 'У аддона отсутствует поле type или оно некорректно', null, null, 15000)
+                            toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), null, null, 15000)
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extension/${foundAddon.name}`)
+                        setNavigateTo(`/extension/${encodeURIComponent(foundAddon.directoryName)}`)
                         setNavigateState(foundAddon)
                     }
                 })
                 .catch(error => console.error('Error getting themes:', error))
-        }
+        },
+        [setAddons, t],
+    )
+
+    useEffect(() => {
         window.desktopEvents?.on(RendererEvents.OPEN_ADDON, handleOpenAddon)
         window.desktopEvents?.on(RendererEvents.CHECK_FILE_EXISTS, (_event, filePath) => invokeFileEvent(RendererEvents.CHECK_FILE_EXISTS, filePath))
         window.desktopEvents?.on(RendererEvents.READ_FILE, (_event, filePath) => invokeFileEvent(RendererEvents.READ_FILE, filePath))
@@ -735,138 +988,145 @@ function App() {
             window.desktopEvents?.removeAllListeners(RendererEvents.READ_FILE)
             window.desktopEvents?.removeAllListeners(RendererEvents.WRITE_FILE)
         }
-    }, [])
+    }, [handleOpenAddon, invokeFileEvent])
 
     useEffect(() => {
         if (navigateTo && navigateState) {
             router.navigate(navigateTo, { state: { theme: navigateState } })
         }
-    }, [navigateTo, navigateState])
+    }, [navigateTo, navigateState, router])
 
-    const onRpcLog = useCallback((_: any, data: any) => {
-        switch (data.type) {
-            case 'error':
-                toast.custom('error', 'Ошибка.', 'RPC: ' + data.message, null, null, 15000)
-                break
-            case 'success':
-                toast.custom('success', 'Успешно.', 'RPC: ' + data.message, null, null, 15000)
-                break
-            case 'info':
-                toast.custom('info', 'Информация.', 'RPC: ' + data.message)
-                break
-            case 'warn':
-                toast.custom('warning', 'Предупреждение.', 'RPC: ' + data.message)
-                break
-        }
-    }, [])
+    const onRpcLog = useCallback(
+        (_: any, data: any) => {
+            switch (data.type) {
+                case 'error':
+                    toast.custom('error', t('common.errorTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    break
+                case 'success':
+                    toast.custom('success', t('common.successTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    break
+                case 'info':
+                    toast.custom('info', t('common.infoTitleShort'), t('rpc.message', { message: data.message }))
+                    break
+                case 'warn':
+                    toast.custom('warning', t('common.warningTitleShort'), t('rpc.message', { message: data.message }))
+                    break
+            }
+        },
+        [t],
+    )
+
     useEffect(() => {
-        if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
-            if (!window.desktopEvents) return
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return
+        if (!window.desktopEvents) return
 
-            window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, (_event, data) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    discordRpc: {
-                        ...prevSettings.discordRpc,
-                        status: data,
-                    },
-                }))
-            })
+        const handleRpcState = (_event: any, data: any) => {
+            setApp(prevSettings => ({
+                ...prevSettings,
+                discordRpc: {
+                    ...prevSettings.discordRpc,
+                    status: data,
+                },
+            }))
+        }
 
-            window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, async () => {
-                await fetchModInfo(app)
-            })
+        const handleModUpdateCheck = async () => {
+            await fetchModInfo(appRef.current)
+        }
 
-            window.desktopEvents?.on(RendererEvents.CLIENT_READY, () => {
-                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-            })
+        const handleClientReady = () => {
+            window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
+            window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+        }
 
-            window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
-
-            window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
-                setApp(prevSettings => ({
-                    ...prevSettings,
-                    info: {
-                        ...prevSettings.info,
-                        version: version,
-                    },
-                }))
-            })
-
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, (_event, data) => {
-                if (!toastReference.current) {
-                    toastReference.current = toast.custom('loading', 'Проверка обновлений', 'Ожидайте...')
-                }
-                if (!data.updateAvailable) {
-                    toast.update(toastReference.current!, {
-                        kind: 'info',
-                        title: 'Эвана как...',
-                        msg: 'Обновление не найдено',
-                        sticky: false,
-                        duration: 5000,
-                    })
-                    toastReference.current = null
-                }
-            })
-
-            const onDownloadProgress = (_e: any, value: number) => {
-                toast.update(toastReference.current!, {
-                    kind: 'loading',
-                    title: 'Загрузка',
-                    msg: (
-                        <>
-                            Загрузка обновления&nbsp;
-                            <b>{Math.floor(value)}%</b>
-                        </>
-                    ),
-                    value,
-                })
+        const handleCheckUpdate = (_event: any, data: any) => {
+            if (!toastReference.current) {
+                toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
-
-            const onDownloadFailed = () => {
+            if (!data.updateAvailable) {
                 toast.update(toastReference.current!, {
-                    kind: 'error',
-                    title: 'Ошибка',
-                    msg: 'Ошибка загрузки обновления',
-                    sticky: false,
-                })
-                toastReference.current = null
-            }
-
-            const onDownloadFinished = () => {
-                toast.update(toastReference.current!, {
-                    kind: 'success',
-                    title: 'Успешно',
-                    msg: 'Обновление загружено',
+                    kind: 'info',
+                    title: t('updates.notFoundTitle'),
+                    msg: t('updates.notFoundMessage'),
                     sticky: false,
                     duration: 5000,
                 })
                 toastReference.current = null
-                setUpdate(true)
-            }
-
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
-
-            const loadSettings = async () => {
-                await fetchSettings(setApp)
-            }
-            loadSettings()
-
-            return () => {
-                window.desktopEvents?.removeListener(RendererEvents.RPC_LOG, onRpcLog)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
-                window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
-                window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
             }
         }
-    }, [])
+
+        const onDownloadProgress = (_e: any, value: number) => {
+            toast.update(toastReference.current!, {
+                kind: 'loading',
+                title: t('updates.downloadingTitle'),
+                msg: (
+                    <>
+                        {t('updates.downloadingLabel')}&nbsp;
+                        <b>{Math.floor(value)}%</b>
+                    </>
+                ),
+                value,
+            })
+        }
+
+        const onDownloadFailed = () => {
+            toast.update(toastReference.current!, {
+                kind: 'error',
+                title: t('common.errorTitle'),
+                msg: t('updates.downloadError'),
+                sticky: false,
+            })
+            toastReference.current = null
+        }
+
+        const onDownloadFinished = () => {
+            toast.update(toastReference.current!, {
+                kind: 'success',
+                title: t('common.successTitle'),
+                msg: t('updates.downloaded'),
+                sticky: false,
+                duration: 5000,
+            })
+            toastReference.current = null
+            setUpdate(true)
+        }
+
+        window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, handleRpcState)
+        window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
+        window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
+        window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
+
+        window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
+            setApp(prevSettings => ({
+                ...prevSettings,
+                info: {
+                    ...prevSettings.info,
+                    version: version,
+                },
+            }))
+        })
+
+        window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
+        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
+
+        const loadSettings = async () => {
+            await fetchSettings(setApp)
+        }
+        loadSettings()
+
+        return () => {
+            window.desktopEvents?.removeAllListeners(RendererEvents.RPC_LOG)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
+        }
+    }, [fetchModInfo, onRpcLog])
 
     const setAppWithSocket = useCallback(
         (updater: (prev: SettingsInterface) => SettingsInterface) => {
@@ -886,7 +1146,8 @@ function App() {
         [emitGateway],
     )
 
-    if (typeof window !== 'undefined' && typeof navigator !== 'undefined') {
+    useEffect(() => {
+        if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         ;(window as any).setToken = async (args: any) => {
             window.electron.store.set('tokens.token', args)
             setHasToken(true)
@@ -902,7 +1163,8 @@ function App() {
         ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
             await fetchModInfo(currentApp)
         }
-    }
+    }, [authorize, fetchModInfo, router])
+
     return (
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />
@@ -917,6 +1179,8 @@ function App() {
                         setMusicInstalled,
                         musicVersion,
                         setMusicVersion,
+                        widgetInstalled,
+                        setWidgetInstalled,
                         socket: realtimeSocket,
                         socketConnected: isConnected,
                         app,
@@ -928,6 +1192,7 @@ function App() {
                         addons,
                         setMod: setMod,
                         modInfo: modInfo,
+                        modInfoFetched,
                         features,
                         setFeatures,
                         emitGateway,
@@ -952,6 +1217,17 @@ const Player: React.FC<any> = ({ children }) => {
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
+
+    const lastValidActivityRef = useRef<ReturnType<typeof buildDiscordActivity>>(null)
+    const lastValidActivityAtRef = useRef(0)
+
+    const rpcClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const rpcStatusLostAtRef = useRef<number | null>(null)
+    const rpcClearDebounceMs = 10000 // 10s
+
+    const holdLastActivityMs = 30000 // 30s
+
+    const refreshGraceMs = 15000
 
     const handleSendTrackPlayedEnough = useCallback(
         (_e: any, data: any) => {
@@ -987,31 +1263,94 @@ const Player: React.FC<any> = ({ children }) => {
         return () => {
             de.removeListener(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
             de.removeListener(RendererEvents.TRACK_INFO, handleTrackInfo)
-            setTrack(trackInitials)
         }
     }, [user.id, handleSendTrackPlayedEnough, handleTrackInfo])
 
     useEffect(() => {
-        if (!app.discordRpc.status || user.id === '-1') {
+        if (user.id !== '-1') return
+        setTrack(trackInitials)
+    }, [user.id])
+
+    useEffect(() => {
+        if (user.id === '-1') return
+
+        const rpcEnabled = !!app?.discordRpc?.status
+
+        if (rpcEnabled) {
+            rpcStatusLostAtRef.current = null
+            if (rpcClearTimerRef.current) {
+                clearTimeout(rpcClearTimerRef.current)
+                rpcClearTimerRef.current = null
+            }
+            return
+        }
+
+        if (!rpcStatusLostAtRef.current) {
+            rpcStatusLostAtRef.current = Date.now()
+        }
+        if (!rpcClearTimerRef.current) {
+            rpcClearTimerRef.current = setTimeout(() => {
+                rpcClearTimerRef.current = null
+                if (!app?.discordRpc?.status && (window as any)?.discordRpc?.clearActivity) {
+                    ;(window as any).discordRpc.clearActivity()
+                }
+            }, rpcClearDebounceMs)
+        }
+
+        return () => {
+            if (rpcClearTimerRef.current) {
+                clearTimeout(rpcClearTimerRef.current)
+                rpcClearTimerRef.current = null
+            }
+        }
+    }, [app?.discordRpc?.status, user.id])
+
+    useEffect(() => {
+        if (user.id === '-1') {
             if ((window as any)?.discordRpc?.clearActivity) {
                 ;(window as any).discordRpc.clearActivity()
             }
             return
         }
 
-        const activity = buildDiscordActivity(track, app)
+        if (!app.discordRpc.status) {
+            return
+        }
+
+        const activity = buildDiscordActivity(track, app, user)
 
         if (!activity) {
+            if (track.status === 'paused' && !app.discordRpc.displayPause) {
+                if ((window as any)?.discordRpc?.clearActivity) {
+                    ;(window as any).discordRpc.clearActivity()
+                }
+                lastValidActivityRef.current = null
+                lastValidActivityAtRef.current = 0
+                return
+            }
+            const isRefreshTrack = track.realId === trackInitials.realId
+            const now = Date.now()
+
+            if (isRefreshTrack && lastValidActivityRef.current && now - lastValidActivityAtRef.current < refreshGraceMs) {
+                return
+            }
+
+            if (lastValidActivityRef.current && now - lastValidActivityAtRef.current < holdLastActivityMs) {
+                return
+            }
+
             if ((window as any)?.discordRpc?.clearActivity) {
                 ;(window as any).discordRpc.clearActivity()
             }
             return
         }
 
+        lastValidActivityRef.current = activity
+        lastValidActivityAtRef.current = Date.now()
         if ((window as any)?.discordRpc?.setActivity) {
             ;(window as any).discordRpc.setActivity(activity)
         }
-    }, [app, user.id, track])
+    }, [app, user.id, track, user])
 
     useEffect(() => {
         if (!socket || !features.sendTrack) return

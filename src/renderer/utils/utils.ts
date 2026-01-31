@@ -2,6 +2,7 @@ import toast from '../components/toast'
 import config from '../api/web_config'
 import { Track } from '../api/interfaces/track.interface'
 import trackInitials from '../api/initials/track.initials'
+import { t } from '../i18n'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
@@ -11,14 +12,14 @@ export const checkInternetAccess = async (): Promise<boolean> => {
         })
         return response.ok || response.type === 'opaque'
     } catch (error) {
-        console.error('Ошибка проверки доступа в интернет:', error)
+        console.error(t('utils.internetCheckError'), error)
         return false
     }
 }
 
 export const notifyUserRetries = (retriesLeft: number) => {
     const retryIntervalInSeconds = Number(config.RETRY_INTERVAL_MS) / 1000
-    toast.custom('success', 'Попытка подключения.', `Осталось попыток: ${retriesLeft}. Следующая через ${retryIntervalInSeconds} сек.`, {
+    toast.custom('success', t('utils.connectionAttemptTitle'), t('utils.connectionAttemptMessage', { retriesLeft, retryIntervalInSeconds }), {
         icon: '🔄',
         duration: 10000,
     })
@@ -47,31 +48,20 @@ export const timeAgo = (timestamp: number) => {
     const weeks = Math.floor(days / 7)
     const months = Math.floor(days / 30)
     const years = Math.floor(days / 365)
-    const pluralize = (number: number, singular: string, few: string, many: string, singularAccusative?: string) => {
-        const mod10 = number % 10
-        const mod100 = number % 100
-        if (mod10 === 1 && mod100 !== 11) {
-            return `${number} ${singularAccusative ?? singular}`
-        }
-        if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) {
-            return `${number} ${few}`
-        }
-        return `${number} ${many}`
-    }
     if (seconds < 60) {
-        return pluralize(seconds, 'секунда', 'секунды', 'секунд', 'секунду') + ' назад'
+        return t('utils.timeAgo.seconds', { count: seconds })
     } else if (minutes < 60) {
-        return pluralize(minutes, 'минута', 'минуты', 'минут', 'минуту') + ' назад'
+        return t('utils.timeAgo.minutes', { count: minutes })
     } else if (hours < 24) {
-        return pluralize(hours, 'час', 'часа', 'часов') + ' назад'
+        return t('utils.timeAgo.hours', { count: hours })
     } else if (days < 7) {
-        return pluralize(days, 'день', 'дня', 'дней', 'день') + ' назад'
+        return t('utils.timeAgo.days', { count: days })
     } else if (days < 30) {
-        return pluralize(weeks, 'неделя', 'недели', 'недель', 'неделю') + ' назад'
+        return t('utils.timeAgo.weeks', { count: weeks })
     } else if (days < 365) {
-        return pluralize(months, 'месяц', 'месяца', 'месяцев', 'месяц') + ' назад'
+        return t('utils.timeAgo.months', { count: months })
     } else {
-        return pluralize(years, 'год', 'года', 'лет', 'год') + ' назад'
+        return t('utils.timeAgo.years', { count: years })
     }
 }
 
@@ -247,6 +237,5 @@ export function areTracksEqual(a: Track, b: Track): boolean {
     if (a.sourceType !== b.sourceType) return false
     const aArtist = (a.artists || []).map(x => x.name).join(',')
     const bArtist = (b.artists || []).map(x => x.name).join(',')
-    if (aArtist !== bArtist) return false
-    return true
+    return aArtist === bArtist
 }

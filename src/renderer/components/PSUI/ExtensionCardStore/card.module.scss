@@ -1,0 +1,364 @@
+.card {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    height: -webkit-fill-available;
+    justify-content: space-between;
+    padding: 75px 15px 15px;
+    gap: 10px;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+
+    font-family:
+        'Segoe UI',
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI Variable',
+        'SF Pro Text',
+        sans-serif;
+    color: #eff2ff;
+
+    box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
+    outline: 2px solid #98ffd600;
+    transition: var(--transition);
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+.card_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(0deg, rgba(35, 38, 50, 0.95) 0%, rgba(35, 38, 50, 0.7) 40%, rgba(35, 38, 50, 0.4) 100%);
+}
+
+.card_with_image_bg {
+    background-color: #232632;
+    padding: 100px 15px 15px;
+}
+
+.card_theme_purple {
+    background:
+        linear-gradient(0deg, #252735 0%, rgba(48, 51, 70, 0.85) 39.42%, rgba(54, 58, 78, 0.3) 100%),
+        radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), #232632;
+}
+
+.card_theme_red {
+    background:
+        linear-gradient(0deg, #342328 0%, rgba(67, 36, 33, 0.9) 40%, rgba(75, 34, 30, 0.3) 100%),
+        radial-gradient(circle at 40% 0%, rgba(255, 132, 100, 0.95), transparent 55%), #2b2226;
+}
+
+.card_theme_wave {
+    background:
+        linear-gradient(0deg, #151826 0%, rgba(16, 20, 33, 0.9) 40%, rgba(10, 14, 29, 0.4) 100%),
+        radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.9), transparent 55%),
+        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.85), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.9), transparent 55%), #050816;
+}
+
+.card_large {
+    max-width: none;
+}
+
+.card_main {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 5px 0;
+    gap: 10px;
+    flex: 1 1 auto;
+    min-width: 0;
+    z-index: 2;
+}
+
+.card_icon_wrapper {
+    flex: 0 0 auto;
+}
+
+.card_icon {
+    width: 75px;
+    height: 75px;
+    border-radius: 15px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.7);
+    overflow: hidden;
+    outline: 3px solid rgb(255 255 255 / 5%);
+    box-sizing: border-box;
+}
+
+.card_icon_placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
+}
+
+.card_icon_image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.card_text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.card_title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 19px;
+    line-height: 110%;
+    color: #eff2ff;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card_subtitle {
+    margin: 0;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 110%;
+    color: #c7d2fb;
+
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card_meta {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    gap: 5px;
+    margin-top: 2px;
+
+    font-size: 12px;
+    line-height: 110%;
+    color: #b0b9d8;
+}
+
+.card_version {
+    color: #b0b9d8;
+}
+
+.card_dot {
+    width: 2px;
+    height: 2px;
+    border-radius: 11px;
+    background: #b0b9d8;
+}
+
+.card_authors {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: #b0b9d8;
+    font: inherit;
+    cursor: pointer;
+}
+
+.card_authors:hover {
+    color: #ffffff;
+}
+
+.download_button {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    min-width: 55px;
+    min-height: 55px;
+    box-sizing: border-box;
+    background: rgba(168, 255, 102, 0.15);
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    color: #a8ff66;
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 110%;
+    white-space: nowrap;
+    overflow: hidden;
+
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        color 0.15s ease;
+}
+
+.download_button:hover:not(:disabled) {
+    background: rgb(168 255 102);
+    color: #000000;
+}
+
+.download_button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.download_icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+}
+
+.download_count {
+    font-weight: 700;
+    font-size: 12px;
+    line-height: 110%;
+    font-variant-numeric: tabular-nums;
+}
+
+.download_content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: color 0.15s ease;
+}
+
+.button_downloading {
+    background: #ffd166;
+    color: #000000;
+    cursor: default;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.download_progress_bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: rgb(255 194 102 / 16%);
+    transition: width 0.3s linear;
+    z-index: 2;
+}
+
+.button_installing {
+    background: #7657ff;
+    color: #ffffff;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: none;
+    animation: pulse-install 1.5s infinite alternate;
+}
+
+@keyframes pulse-install {
+    0% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
+    }
+}
+
+.button_installed {
+    cursor: default;
+    pointer-events: none;
+    background: #a8ff66;
+    color: black;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner_path {
+    opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+    .card {
+        padding: 56px 12px 12px;
+        max-width: 100%;
+    }
+
+    .card_with_image_bg {
+        padding: 80px 12px 12px;
+    }
+}
+
+.card_header_badges {
+    position: absolute;
+    top: 15px;
+    left: 15px;
+    display: flex;
+    gap: 8px;
+    z-index: 2;
+}
+
+.card_badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1;
+    color: #ffffff;
+    opacity: 0.9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.badge_active {
+    background-color: rgb(168, 255, 102);
+    color: black;
+}
+
+.badge_deprecated {
+    background-color: #ef4444;
+}
+
+.badge_css {
+    background-color: #1d4ed8;
+}
+
+.badge_js {
+    background-color: #f0db4f;
+    color: black;
+}
+
+.badge_both {
+    background-color: #9333ea;
+}

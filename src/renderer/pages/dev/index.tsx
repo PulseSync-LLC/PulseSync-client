@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
 import * as styles from './dev.module.scss'
@@ -9,6 +10,7 @@ import CustomFormikModalPS from '../../components/PSUI/CustomFormikModalPS'
 import ButtonV2 from '../../components/buttonV2'
 import AddonUploadModal, { UploadStep } from '../../components/PSUI/AddonUploadModal'
 import { Line } from 'react-chartjs-2'
+import { useTranslation } from 'react-i18next'
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -35,6 +37,8 @@ const API = {
 const RANGES = [12, 24, 48, 0] as const
 
 function Dev() {
+    const { t } = useTranslation()
+    const navigate = useNavigate()
     const [stats, setStats] = useState<StatPoint[]>([])
     const [count, setCount] = useState<{ users: number; online: number } | null>(null)
     const [loading, setLoading] = useState(true)
@@ -55,14 +59,14 @@ function Dev() {
             const cJson = await cRes.json()
 
             if (sJson?.ok) setStats(sJson.data as StatPoint[])
-            else toast.custom('error', 'Ошибка', 'Ошибка загрузки статистики')
+            else toast.custom('error', t('common.errorTitle'), t('dev.errors.statsLoad'))
 
             if (cJson?.ok) setCount({ users: cJson.users, online: cJson.online })
-            else toast.custom('error', 'Ошибка', 'Ошибка загрузки онлайна')
+            else toast.custom('error', t('common.errorTitle'), t('dev.errors.onlineLoad'))
 
             setLastUpdated(new Date())
         } catch {
-            toast.custom('error', 'Сеть', 'Не удалось получить данные')
+            toast.custom('error', t('common.networkTitle'), t('common.fetchFailed'))
         } finally {
             setLoading(false)
         }
@@ -107,7 +111,7 @@ function Dev() {
             labels: formatted.map(d => d.timeFormatted),
             datasets: [
                 {
-                    label: 'Online Users',
+                    label: t('dev.chart.datasetLabel'),
                     data: formatted.map(d => d.online),
                     borderColor: '#8fa4ff',
                     backgroundColor: datasetBg,
@@ -119,7 +123,7 @@ function Dev() {
                 },
             ],
         }),
-        [formatted],
+        [formatted, t],
     )
 
     const chartOptions = useMemo(
@@ -139,8 +143,8 @@ function Dev() {
                     cornerRadius: 6,
                     displayColors: false,
                     callbacks: {
-                        label: (context: any) => `${context.parsed.y} users online`,
-                        title: (context: any[]) => `Time: ${context[0].label}`,
+                        label: (context: any) => t('dev.chart.usersOnline', { count: context.parsed.y }),
+                        title: (context: any[]) => t('dev.chart.timeLabel', { time: context[0].label }),
                     },
                 },
             },
@@ -158,14 +162,14 @@ function Dev() {
             },
             interaction: { mode: 'index' as InteractionMode, intersect: false },
         }),
-        [maxOnline],
+        [maxOnline, t],
     )
 
     const statsCards = [
-        { icon: '👥', label: 'Всего пользователей', value: count?.users ?? null },
-        { icon: '🟢', label: 'Сейчас онлайн', value: count?.online ?? null },
-        { icon: '⏱️', label: 'Средний онлайн', value: avgOnline ?? null },
-        { icon: '🚀', label: 'Пик за период', value: maxOnline ?? null },
+        { icon: '👥', label: t('dev.metrics.totalUsers'), value: count?.users ?? null },
+        { icon: '🟢', label: t('dev.metrics.onlineNow'), value: count?.online ?? null },
+        { icon: '⏱️', label: t('dev.metrics.averageOnline'), value: avgOnline ?? null },
+        { icon: '🚀', label: t('dev.metrics.peak'), value: maxOnline ?? null },
     ]
 
     const simulate = (ms: number, report: (p: number, note?: string) => void, signal: AbortSignal) =>
@@ -174,7 +178,7 @@ function Dev() {
             const id = window.setInterval(() => {
                 if (signal.aborted) {
                     clearInterval(id)
-                    reject(new Error('Отменено'))
+                    reject(new Error(t('common.cancelled')))
                     return
                 }
                 const p = Math.min(100, Math.round(((Date.now() - start) / ms) * 100))
@@ -189,29 +193,29 @@ function Dev() {
     const uploadSteps: UploadStep[] = [
         {
             key: 'manifests',
-            label: 'Создание .manifests',
+            label: t('dev.upload.steps.manifests'),
             run: async ({ report, signal }) => {
                 await simulate(900, report, signal)
             },
         },
         {
             key: 'validate',
-            label: 'Проверка файлов',
+            label: t('dev.upload.steps.validate'),
             run: async ({ report, signal }) => {
-                report(10, 'Сканирование…')
+                report(10, t('dev.upload.scanning'))
                 await simulate(1200, report, signal)
             },
         },
         {
             key: 'upload',
-            label: 'Отправка на сервер',
+            label: t('dev.upload.steps.upload'),
             run: async ({ report, signal }) => {
                 await simulate(2000, report, signal)
             },
         },
         {
             key: 'review',
-            label: 'Отправлено на рассмотрение',
+            label: t('dev.upload.steps.review'),
             run: async ({ report, signal }) => {
                 await simulate(600, report, signal)
             },
@@ -219,7 +223,7 @@ function Dev() {
     ]
 
     return (
-        <Layout title="Dev Gallery">
+        <Layout title={t('dev.pageTitle')}>
             <div className={`${globalStyles.page} ${styles.page}`}>
                 <motion.section
                     className={styles.hero}
@@ -228,27 +232,29 @@ function Dev() {
                     transition={{ duration: 0.35 }}
                 >
                     <div className={styles.heroLeft}>
-                        <span className={styles.badge}>DEV</span>
-                        <h1 className={styles.title}>Developer Gallery</h1>
-                        <p className={styles.subtitle}>Прокручивай вниз и пробуй компоненты вживую.</p>
+                        <span className={styles.badge}>{t('dev.badge')}</span>
+                        <h1 className={styles.title}>{t('dev.title')}</h1>
+                        <p className={styles.subtitle}>{t('dev.subtitle')}</p>
                     </div>
                     <div className={styles.heroRight}>
-                        <div className={styles.updated}>Обновлено: {lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}</div>
+                        <div className={styles.updated}>
+                            {t('dev.updatedLabel')}: {lastUpdated ? lastUpdated.toLocaleTimeString() : t('common.emDash')}
+                        </div>
                         <ButtonV2 className={styles.primaryBtn} onClick={() => loadAll()}>
-                            Обновить
+                            {t('common.refresh')}
                         </ButtonV2>
                     </div>
                 </motion.section>
 
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Метрики</h2>
+                    <h2 className={styles.sectionTitle}>{t('dev.sections.metrics')}</h2>
                     <div className={styles.statsGrid}>
                         {statsCards.map(({ icon, label, value }) => (
                             <div key={label} className={styles.statCard}>
                                 <div className={styles.statIcon}>{icon}</div>
                                 <div className={styles.statContent}>
                                     <div className={styles.statLabel}>{label}</div>
-                                    <div className={styles.statValue}>{value !== null ? value.toLocaleString('ru-RU') : '—'}</div>
+                                    <div className={styles.statValue}>{value !== null ? value.toLocaleString('ru-RU') : t('common.emDash')}</div>
                                 </div>
                             </div>
                         ))}
@@ -257,8 +263,8 @@ function Dev() {
 
                 <section className={styles.section}>
                     <div className={styles.blockHeader}>
-                        <h2 className={styles.sectionTitle}>Аналитика</h2>
-                        <div className={styles.segmented} role="tablist" aria-label="Диапазон">
+                        <h2 className={styles.sectionTitle}>{t('dev.sections.analytics')}</h2>
+                        <div className={styles.segmented} role="tablist" aria-label={t('dev.rangeLabel')}>
                             {RANGES.map(r => (
                                 <button
                                     key={r}
@@ -266,9 +272,9 @@ function Dev() {
                                     aria-selected={rangeHours === r}
                                     className={`${styles.segBtn} ${rangeHours === r ? styles.segActive : ''}`}
                                     onClick={() => setRangeHours(r)}
-                                    title={r === 0 ? 'Все' : `${r}ч`}
+                                    title={r === 0 ? t('common.all') : t('dev.rangeHours', { hours: r })}
                                 >
-                                    {r === 0 ? 'Все' : `${r}ч`}
+                                    {r === 0 ? t('common.all') : t('dev.rangeHours', { hours: r })}
                                 </button>
                             ))}
                         </div>
@@ -278,75 +284,90 @@ function Dev() {
                         {loading ? (
                             <div className={styles.loadingState}>
                                 <div className={styles.loadingSpinner} />
-                                <p>Загружаем аналитику…</p>
+                                <p>{t('dev.loadingAnalytics')}</p>
                             </div>
                         ) : formatted.length ? (
                             <div className={styles.chartWrapper}>
                                 <Line data={chartData as any} options={chartOptions as any} />
                             </div>
                         ) : (
-                            <div className={styles.emptyState}>Нет данных за выбранный период</div>
+                            <div className={styles.emptyState}>{t('dev.noData')}</div>
                         )}
                     </div>
                 </section>
 
                 <section className={styles.section}>
-                    <h2 className={styles.sectionTitle}>Компоненты</h2>
+                    <h2 className={styles.sectionTitle}>{t('dev.sections.components')}</h2>
 
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <h3>Модальные окна</h3>
-                            <p className={styles.cardHint}>Проверь горизонтальную и вертикальную раскладки кнопок</p>
+                            <h3>{t('dev.cards.modals.title')}</h3>
+                            <p className={styles.cardHint}>{t('dev.cards.modals.subtitle')}</p>
                         </div>
                         <div className={styles.actionsRow}>
                             <ButtonV2 className={styles.actionBtn} onClick={() => setModal2Open(true)}>
-                                Открыть модалку (2 кнопки)
+                                {t('dev.cards.modals.twoButtons')}
                             </ButtonV2>
                             <ButtonV2 className={styles.actionBtn} onClick={() => setModal3Open(true)}>
-                                Открыть модалку (3 кнопки)
+                                {t('dev.cards.modals.threeButtons')}
                             </ButtonV2>
                         </div>
                     </div>
 
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <h3>Форма (Formik)</h3>
-                            <p className={styles.cardHint}>Интерактивный ввод с подтверждением</p>
+                            <h3>{t('dev.cards.form.title')}</h3>
+                            <p className={styles.cardHint}>{t('dev.cards.form.subtitle')}</p>
                         </div>
                         <div className={styles.actionsRow}>
                             <ButtonV2 className={styles.actionBtn} onClick={() => setFormikModalOpen(true)}>
-                                Открыть форму
+                                {t('dev.cards.form.open')}
                             </ButtonV2>
                         </div>
                     </div>
 
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <h3>Выгрузка аддона</h3>
-                            <p className={styles.cardHint}>Интерактивная выгрузка аддона</p>
+                            <h3>{t('dev.cards.upload.title')}</h3>
+                            <p className={styles.cardHint}>{t('dev.cards.upload.subtitle')}</p>
                         </div>
                         <div className={styles.actionsRow}>
                             <ButtonV2 className={styles.actionBtn} onClick={() => setUploadOpen(true)}>
-                                Выгрузка аддона (модалка)
+                                {t('dev.cards.upload.open')}
                             </ButtonV2>
                         </div>
                     </div>
 
                     <div className={styles.card}>
                         <div className={styles.cardHeader}>
-                            <h3>Toast-уведомления</h3>
-                            <p className={styles.cardHint}>Быстрые проверки разных типов</p>
+                            <h3>{t('dev.cards.toasts.title')}</h3>
+                            <p className={styles.cardHint}>{t('dev.cards.toasts.subtitle')}</p>
                         </div>
                         <div className={styles.toastGrid}>
                             {[
-                                { type: 'success', title: 'Success', message: 'Готово', text: 'Success' },
-                                { type: 'error', title: 'Error', message: 'Ошибка', text: 'Error' },
-                                { type: 'warning', title: 'Warning', message: 'Осторожно', text: 'Warning' },
-                                { type: 'info', title: 'Info', message: 'Инфо', text: 'Info' },
-                                { type: 'loading', title: 'Loading', message: 'Загрузка…', text: 'Loading' },
-                                { type: 'download', title: 'Download', message: 'Скачиваем…', text: 'Download' },
-                                { type: 'import', title: 'Import', message: 'Импорт…', text: 'Import' },
-                                { type: 'export', title: 'Export', message: 'Экспорт готов', text: 'Export' },
+                                { type: 'success', title: t('common.successTitle'), message: t('common.done'), text: t('common.successTitle') },
+                                { type: 'error', title: t('common.errorTitle'), message: t('common.errorTitle'), text: t('common.errorTitle') },
+                                {
+                                    type: 'warning',
+                                    title: t('common.warningTitleShort'),
+                                    message: t('common.caution'),
+                                    text: t('common.warningTitleShort'),
+                                },
+                                {
+                                    type: 'info',
+                                    title: t('common.infoTitleShort'),
+                                    message: t('common.infoTitleShort'),
+                                    text: t('common.infoTitleShort'),
+                                },
+                                { type: 'loading', title: t('common.loadingTitle'), message: t('common.loading'), text: t('common.loadingTitle') },
+                                {
+                                    type: 'download',
+                                    title: t('common.downloadTitle'),
+                                    message: t('common.downloading'),
+                                    text: t('common.downloadTitle'),
+                                },
+                                { type: 'import', title: t('common.importTitle'), message: t('common.importing'), text: t('common.importTitle') },
+                                { type: 'export', title: t('common.exportTitle'), message: t('common.exportDone'), text: t('common.exportTitle') },
                             ].map(({ type, title, message, text }) => (
                                 <ButtonV2 key={type} className={styles.toastBtn} onClick={() => toast.custom(type as any, title, message)}>
                                     {text}
@@ -356,10 +377,34 @@ function Dev() {
                     </div>
                 </section>
 
+                <section className={styles.section}>
+                    <h2 className={styles.sectionTitle}>{t('dev.sections.navigation')}</h2>
+                    <p className={styles.cardHint} style={{ marginBottom: '16px' }}>
+                        {t('dev.navigationHint')}
+                    </p>
+                    <div className={styles.navigationGrid}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                            {t('dev.navigation.trackInfo')}
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
+                            {t('dev.navigation.users')}
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extension')}>
+                            {t('dev.navigation.extension')}
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
+                            {t('dev.navigation.joint')}
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
+                            {t('dev.navigation.auth')}
+                        </ButtonV2>
+                    </div>
+                </section>
+
                 <AddonUploadModal
                     isOpen={uploadOpen}
                     onClose={() => setUploadOpen(false)}
-                    addonName="НАЗВАНИЕ"
+                    addonName={t('dev.addonPlaceholder')}
                     steps={uploadSteps}
                     rulesHref="https://example.com/rules"
                 />
@@ -367,48 +412,53 @@ function Dev() {
                 <CustomModalPS
                     isOpen={modal2Open}
                     onClose={() => setModal2Open(false)}
-                    title="Подтверждение действия"
-                    text="Это модалка с двумя кнопками. Кнопки расположены горизонтально."
-                    subText={`Обновлено: ${lastUpdated ? lastUpdated.toLocaleTimeString() : '—'}`}
+                    title={t('dev.modalTwo.title')}
+                    text={t('dev.modalTwo.text')}
+                    subText={t('dev.updatedLabelWithTime', { time: lastUpdated ? lastUpdated.toLocaleTimeString() : t('common.emDash') })}
                     buttons={[
-                        { text: 'Продолжить', onClick: () => setModal2Open(false), variant: 'primary' },
-                        { text: 'Отмена', onClick: () => setModal2Open(false), variant: 'danger' },
+                        { text: t('common.continue'), onClick: () => setModal2Open(false), variant: 'primary' },
+                        { text: t('common.cancel'), onClick: () => setModal2Open(false), variant: 'danger' },
                     ]}
                 />
 
                 <CustomModalPS
                     isOpen={modal3Open}
                     onClose={() => setModal3Open(false)}
-                    title="Несколько вариантов"
-                    text="Три кнопки — раскладка по вертикали, как в дизайне."
-                    subText="Проверь поведение по Tab/ESC и клику на фон."
+                    title={t('dev.modalThree.title')}
+                    text={t('dev.modalThree.text')}
+                    subText={t('dev.modalThree.subText')}
                     buttons={[
-                        { text: 'Сделать', onClick: () => setModal3Open(false), variant: 'primary' },
-                        { text: 'Подумать позже', onClick: () => setModal3Open(false), variant: 'secondary' },
-                        { text: 'Отмена', onClick: () => setModal3Open(false), variant: 'danger' },
+                        { text: t('common.do'), onClick: () => setModal3Open(false), variant: 'primary' },
+                        { text: t('common.thinkLater'), onClick: () => setModal3Open(false), variant: 'secondary' },
+                        { text: t('common.cancel'), onClick: () => setModal3Open(false), variant: 'danger' },
                     ]}
                 />
 
                 <CustomFormikModalPS
                     isOpen={formikModalOpen}
                     onClose={() => setFormikModalOpen(false)}
-                    title="Форма примера"
-                    text="Введите произвольный текст и подтвердите:"
+                    title={t('dev.formik.title')}
+                    text={t('dev.formik.text')}
                     initialInputValue=""
-                    inputPlaceholder="Type anything…"
+                    inputPlaceholder={t('dev.formik.placeholder')}
                     onSubmit={values => {
-                        toast.custom('success', 'Submitted', `You entered: ${values.input}`)
+                        toast.custom('success', t('dev.formik.submittedTitle'), t('dev.formik.submittedMessage', { value: values.input }))
                         setFormikModalOpen(false)
                     }}
                     buttons={[
-                        { text: 'Cancel', onClick: () => setFormikModalOpen(false), variant: 'secondary' },
+                        { text: t('common.cancel'), onClick: () => setFormikModalOpen(false), variant: 'secondary', type: 'button' },
                         {
-                            text: 'Submit',
+                            text: t('common.submit'),
                             onClick: values => {
-                                toast.custom('success', 'Submitted', `You entered: ${values?.input ?? ''}`)
+                                toast.custom(
+                                    'success',
+                                    t('dev.formik.submittedTitle'),
+                                    t('dev.formik.submittedMessage', { value: values?.input ?? '' }),
+                                )
                                 setFormikModalOpen(false)
                             },
                             variant: 'primary',
+                            type: 'submit',
                         },
                     ]}
                 />

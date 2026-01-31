@@ -1,0 +1,21 @@
+{
+    "name": "native-file-ops",
+    "version": "1.0.0",
+    "scripts": {
+        "clean": "node -e \"require('fs').rmSync('build', { recursive: true, force: true })\"",
+        "build": "yarn && node-gyp clean && node-gyp configure && node-gyp build",
+        "debug": "yarn && node-gyp clean && node-gyp configure --debug && node-gyp build --debug"
+    },
+    "keywords": [],
+    "author": "",
+    "license": "ISC",
+    "description": "Native Electron module for file operations and watching",
+    "gypfile": true,
+    "dependencies": {
+        "bindings": "^1.5.0",
+        "node-addon-api": "^8.5.0"
+    },
+    "devDependencies": {
+        "node-gyp": "^12.1.0"
+    }
+}

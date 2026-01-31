@@ -1,5 +1,6 @@
 import { DiscordState } from './types/rpcTypes'
 import { readDiscord } from './state'
+import { t } from '../../i18n'
 
 export function isTimeoutErrorMessage(msg: string | undefined) {
     if (!msg) return false
@@ -9,9 +10,7 @@ export function isTimeoutErrorMessage(msg: string | undefined) {
 export async function handleRpcError(e: Error): Promise<string> {
     const state = await readDiscord()
     if (state !== DiscordState.SUCCESS) {
-        return state
+        return t(`main.discordRpc.states.${state}`)
     }
-    return isTimeoutErrorMessage(e?.message)
-        ? 'Тайм-аут подключения. Возможны рейт-лимиты от Discord. Если не показывается активность, то попробуйте снова через 10–15 минут.'
-        : e.message
+    return isTimeoutErrorMessage(e?.message) ? t('main.discordRpc.timeoutRateLimit') : e.message
 }

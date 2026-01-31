@@ -1,6 +1,5 @@
-import Layout from '../../components/layout'
+import PageLayout from '../PageLayout'
 import * as s from './users.module.scss'
-import * as styles from '../../../../static/styles/page/index.module.scss'
 import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import UserInterface from '../../api/interfaces/user.interface'
@@ -12,6 +11,7 @@ import config from '../../api/web_config'
 import toast from '../../components/toast'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
+import { useTranslation } from 'react-i18next'
 
 const PER_PAGE = 51
 const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
@@ -47,6 +47,7 @@ export default function UsersPage() {
     const containerRef = useRef<HTMLDivElement>(null)
     const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
     const nav = useNavigate()
+    const { t } = useTranslation()
 
     const openProfile = useCallback(
         (u: any) => {
@@ -63,7 +64,7 @@ export default function UsersPage() {
             sortRefs.current[idx] = el
         }
 
-    const calculateIndicator = (index: number) => {
+    const calculateIndicator = useCallback((index: number) => {
         const el = sortRefs.current[index]
         if (el && el.parentElement) {
             const rect = el.getBoundingClientRect()
@@ -73,11 +74,11 @@ export default function UsersPage() {
                 width: rect.width,
             })
         }
-    }
+    }, [])
 
-    const processUsers = (rawUsers: UserInterface[]): UserInterface[] => {
-        const id = sorting[0].id
-        const desc = sorting[0].desc
+    const processUsers = useCallback((rawUsers: UserInterface[], sortingState: SortState): UserInterface[] => {
+        const id = sortingState[0].id
+        const desc = sortingState[0].desc
         const arr = rawUsers.map(normalizeUser)
 
         if (id === 'lastOnline') {
@@ -116,7 +117,7 @@ export default function UsersPage() {
         }
 
         return arr
-    }
+    }, [])
 
     const fetchUsers = useCallback(
         (page_: number, perPage_: number, sorting_: SortState, search_: string) => {
@@ -133,7 +134,7 @@ export default function UsersPage() {
                     if (payload) {
                         const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
                         const totalPages: number = payload.totalPages || 1
-                        setUsers(processUsers(raw))
+                        setUsers(processUsers(raw, sorting_))
                         setMaxPages(totalPages)
                     } else {
                         setUsers([])
@@ -143,14 +144,20 @@ export default function UsersPage() {
                 })
                 .catch(e => {
                     console.error(e)
-                    toast.custom('error', 'Ошибка', 'Произошла ошибка при получении пользователей!')
+                    toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
                     setLoading(false)
                 })
         },
-        [sorting],
+        [processUsers, t],
     )
 
     const debouncedFetchUsers = useMemo(() => debounce(fetchUsers, 300), [fetchUsers])
+
+    useEffect(() => {
+        return () => {
+            debouncedFetchUsers.cancel()
+        }
+    }, [debouncedFetchUsers])
 
     useEffect(() => {
         const handler = setTimeout(() => {
@@ -167,7 +174,7 @@ export default function UsersPage() {
         const activeIndex = SORT_FIELDS.indexOf(sorting[0].id)
         const timer = setTimeout(() => calculateIndicator(activeIndex), 0)
         return () => clearTimeout(timer)
-    }, [sorting, users])
+    }, [calculateIndicator, sorting, users])
 
     useEffect(() => {
         const handler = () => {
@@ -176,26 +183,29 @@ export default function UsersPage() {
         }
         window.addEventListener('resize', handler)
         return () => window.removeEventListener('resize', handler)
-    }, [sorting])
+    }, [calculateIndicator, sorting])
 
-    const getPT = () => Math.round(window.innerHeight * 0.15)
+    const getPT = useCallback(() => Math.round(window.innerHeight * 0.15), [])
     const [pt, setPt] = useState(getPT())
 
     useEffect(() => {
         const onResize = () => setPt(getPT())
         window.addEventListener('resize', onResize)
         return () => window.removeEventListener('resize', onResize)
-    }, [])
+    }, [getPT])
 
-    const handleSort = (field: string) => {
+    const handleSort = useCallback((field: string) => {
         setPage(1)
         setSorting(prev => (prev[0].id === field ? [{ id: field as any, desc: !prev[0].desc }] : [{ id: field as any, desc: true }]))
-    }
+    }, [])
 
-    const getSortIcon = (field: string) => {
-        if (sorting[0].id !== (field as any)) return null
-        return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
-    }
+    const getSortIcon = useCallback(
+        (field: string) => {
+            if (sorting[0].id !== (field as any)) return null
+            return sorting[0].desc ? <MdKeyboardArrowDown className={s.sortIcon} /> : <MdKeyboardArrowUp className={s.sortIcon} />
+        },
+        [sorting],
+    )
 
     const defaultBackground = useMemo(
         () => ({
@@ -233,15 +243,15 @@ export default function UsersPage() {
         usersWithBanner.length ? checkBanner(usersWithBanner) : setBackgroundStyle(defaultBackground)
     }, [users, defaultBackground])
 
-    const renderPagination = () => {
-        if (maxPages <= 1) return null
+    const handlePageChange = useCallback((newPage: number) => {
+        setPage(newPage)
+        setTimeout(() => {
+            containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
+        }, 0)
+    }, [])
 
-        const handlePageChange = (newPage: number) => {
-            setPage(newPage)
-            setTimeout(() => {
-                containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-            }, 0)
-        }
+    const pagination = useMemo(() => {
+        if (maxPages <= 1) return null
 
         const maxVisibleButtons = 5
         let startPage = Math.max(1, page - Math.floor(maxVisibleButtons / 2))
@@ -289,72 +299,66 @@ export default function UsersPage() {
                 </button>
             </div>
         )
-    }
+    }, [handlePageChange, maxPages, page])
 
     return (
-        <Layout title="Пользователи">
-            <div className={styles.page}>
-                <div className={styles.container}>
-                    <div className={styles.main_container}>
-                        <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
-                            <div style={backgroundStyle} className={s.headerSection}>
-                                <div className={s.topSection}>
-                                    <h1 className={s.title}>Пользователи</h1>
-                                    <div className={s.searchContainer} onClick={() => inputRef.current?.focus()}>
-                                        <input
-                                            ref={inputRef}
-                                            type="text"
-                                            placeholder="найти..."
-                                            value={search}
-                                            onChange={e => {
-                                                setSearch(e.target.value)
-                                                setPage(1)
-                                            }}
-                                            className={s.searchInput}
-                                        />
-                                        <div className={s.searchIconWrapper}>
-                                            <MdSearch className={s.searchIcon} />
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className={s.sortOptions}>
-                                    {SORT_FIELDS.map((field, idx) => (
-                                        <div
-                                            key={field}
-                                            ref={setSortRef(idx)}
-                                            className={`${s.sortOption} ${sorting[0].id === field ? s.active : ''}`}
-                                            onClick={() => handleSort(field)}
-                                        >
-                                            {
-                                                {
-                                                    lastOnline: 'Последняя активность',
-                                                    createdAt: 'Дата регистрации',
-                                                    username: 'Имя пользователя',
-                                                    level: 'Уровень',
-                                                }[field]
-                                            }{' '}
-                                            {getSortIcon(field)}
-                                        </div>
-                                    ))}
-                                    <div className={s.indicator} style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px` }} />
-                                </div>
+        <PageLayout title={t('users.pageTitle')}>
+            <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
+                <div style={backgroundStyle} className={s.headerSection}>
+                    <div className={s.topSection}>
+                        <h1 className={s.title}>{t('users.title')}</h1>
+                        <div className={s.searchContainer} onClick={() => inputRef.current?.focus()}>
+                            <input
+                                ref={inputRef}
+                                type="text"
+                                placeholder={t('users.searchPlaceholder')}
+                                value={search}
+                                onChange={e => {
+                                    setSearch(e.target.value)
+                                    setPage(1)
+                                }}
+                                className={s.searchInput}
+                            />
+                            <div className={s.searchIconWrapper}>
+                                <MdSearch className={s.searchIcon} />
                             </div>
-                            <div className={s.userPage}>
-                                {users.length > 0 ? (
-                                    <div className={s.userGrid}>
-                                        {users.map(user => (
-                                            <UserCardV2 key={user.id} user={user} onClick={openProfile} />
-                                        ))}
-                                    </div>
-                                ) : (
-                                    !loading && <div className={s.noResults}>Нет результатов</div>
-                                )}
+                        </div>
+                    </div>
+                    <div className={s.sortOptions}>
+                        {SORT_FIELDS.map((field, idx) => (
+                            <div
+                                key={field}
+                                ref={setSortRef(idx)}
+                                className={`${s.sortOption} ${sorting[0].id === field ? s.active : ''}`}
+                                onClick={() => handleSort(field)}
+                            >
+                                {
+                                    {
+                                        lastOnline: t('users.sort.lastOnline'),
+                                        createdAt: t('users.sort.createdAt'),
+                                        username: t('users.sort.username'),
+                                        level: t('users.sort.level'),
+                                    }[field]
+                                }{' '}
+                                {getSortIcon(field)}
                             </div>
-                            {renderPagination()}
-                        </Scrollbar>
+                        ))}
+                        <div className={s.indicator} style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px` }} />
                     </div>
                 </div>
-            </div>
-        </Layout>
+                <div className={s.userPage}>
+                    {users.length > 0 ? (
+                        <div className={s.userGrid}>
+                            {users.map(user => (
+                                <UserCardV2 key={user.id} user={user} onClick={openProfile} />
+                            ))}
+                        </div>
+                    ) : (
+                        !loading && <div className={s.noResults}>{t('users.noResults')}</div>
+                    )}
+                </div>
+                {pagination}
+            </Scrollbar>
+        </PageLayout>
     )
 }

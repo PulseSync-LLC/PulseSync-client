@@ -6,17 +6,27 @@ import * as fsp from 'fs/promises'
 import * as si from 'systeminformation'
 import os from 'node:os'
 import { v4 } from 'uuid'
-import { corsAnywherePort, musicPath, updated } from '../../index'
+import { musicPath, readBufResilient, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
 import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
-import { exec, execFile } from 'child_process'
+import { execFile } from 'child_process'
 import axios from 'axios'
 import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
-import { checkMusic, getYandexMusicAppDataPath, getYandexMusicVersion, isLinux, isMac, isWindows } from '../utils/appUtils'
+import {
+    checkMusic,
+    findAppByName,
+    getInstalledYmMetadata,
+    getLinuxInstallerUrl,
+    getYandexMusicAppDataPath,
+    getYandexMusicLogsPath,
+    isLinux,
+    isMac,
+    uninstallApp,
+} from '../utils/appUtils'
 import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
@@ -27,19 +37,24 @@ import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
+import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
+import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
+import { t } from '../i18n'
 
 const updater = getUpdater()
 const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
+let uiReady = false
+let pendingAddonOpen: string | null = null
+
 const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
           manifestUrl: macManifestUrl,
           appName: 'PulseSync',
           attemptAutoInstall: false,
-          openFinderOnMount: true,
           onProgress: p => {
               try {
                   if (mainWindow) {
@@ -106,12 +121,57 @@ const mimeByExt: Record<string, string> = {
     '.svg': 'image/svg+xml',
 }
 
+export const queueAddonOpen = (addonName: string): void => {
+    pendingAddonOpen = addonName
+    tryOpenPendingAddon()
+}
+
+const tryOpenPendingAddon = (): void => {
+    if (!authorized || !uiReady || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
+    mainWindow.webContents.send(RendererEvents.OPEN_ADDON, pendingAddonOpen)
+    pendingAddonOpen = null
+}
+
+const allowedExternalProtocols = new Set(['http:', 'https:', 'yandexmusic:'])
+const allowedMusicHosts = new Set(['desktop.app.music.yandex.net'])
+
+const isSafeExternalUrl = (rawUrl: string): boolean => {
+    try {
+        const url = new URL(rawUrl)
+        return allowedExternalProtocols.has(url.protocol)
+    } catch {
+        return false
+    }
+}
+
+const isAllowedMusicDownloadUrl = (rawUrl: string): boolean => {
+    try {
+        const url = new URL(rawUrl)
+        if (url.protocol !== 'https:') return false
+        if (!allowedMusicHosts.has(url.hostname)) return false
+        return (
+            /^\/stable\/Yandex_Music_x64_[\d.]+\.exe$/i.test(url.pathname) ||
+            /^\/stable\/Yandex_Music_universal_[\d.]+\.dmg$/i.test(url.pathname) ||
+            /^\/stable\/Yandex_Music_amd64_[\d.]+\.deb$/i.test(url.pathname)
+        )
+    } catch {
+        return false
+    }
+}
+
+const resolveWithinBase = (baseDir: string, target: string): string | null => {
+    const resolved = path.resolve(baseDir, target)
+    const normalizedBase = path.resolve(baseDir)
+    if (resolved === normalizedBase) return resolved
+    return resolved.startsWith(normalizedBase + path.sep) ? resolved : null
+}
+
 const registerWindowEvents = (): void => {
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MINIMIZE, () => {
         mainWindow.minimize()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_EXIT, () => {
-        logger.main.info('Exit app')
+        logger.main.info(t('main.events.exitApp'))
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MAXIMIZE, () => {
@@ -128,7 +188,7 @@ const registerSettingsEvents = (): void => {
         settingsWindow.minimize()
     })
     ipcMain.on(MainEvents.ELECTRON_SETTINGS_EXIT, () => {
-        logger.main.info('Exit app')
+        logger.main.info(t('main.events.exitApp'))
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_SETTINGS_MAXIMIZE, () => {
@@ -139,17 +199,7 @@ const registerSettingsEvents = (): void => {
         else settingsWindow.hide()
     })
 }
-
-ipcMain.on(MainEvents.BEFORE_QUIT, async () => {
-    const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-    if (fs.existsSync(tempFilePath)) fs.rmSync(tempFilePath)
-    if (mainWindow) mainWindow.close()
-})
-
 const registerSystemEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.ELECTRON_CORSANYWHEREPORT, event => {
-        event.returnValue = corsAnywherePort
-    })
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
     })
@@ -182,90 +232,61 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         arch: os.arch(),
     }))
     ipcMain.on(MainEvents.UI_READY, () => {
+        uiReady = true
+        tryOpenPendingAddon()
         get_current_track()
     })
 }
 
-const readBufResilient = async (p0: string): Promise<Buffer> => {
-    if (!p0) throw new Error('empty path')
-
-    const candidates: string[] = []
-
-    if (p0.startsWith('file://')) {
-        try {
-            const u = new URL(p0)
-            candidates.push(path.normalize(decodeURI(u.pathname)))
-        } catch {}
-    }
-
-    const norm = path.normalize(p0)
-    candidates.push(norm)
-
-    if (process.platform === 'win32') {
-        candidates.push(norm.replace(/\//g, '\\'))
-        candidates.push(norm.replace(/\\/g, '/'))
-        if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
-    }
-
-    try {
-        candidates.push(norm.normalize('NFC'))
-    } catch {}
-    try {
-        candidates.push(norm.normalize('NFD'))
-    } catch {}
-
-    candidates.push(norm.replace(/^["']|["']$/g, ''))
-
-    let lastErr: any = null
-    for (const p of candidates) {
-        try {
-            return await fsp.readFile(p)
-        } catch (e1) {
-            lastErr = e1
-            try {
-                const buf = await new Promise<Buffer>((resolve, reject) => {
-                    fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
-                })
-                return buf
-            } catch (e2) {
-                lastErr = e2
-            }
-        }
-    }
-    throw lastErr ?? new Error('Unable to read file')
-}
-
 const registerFileOperations = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
-        exec(`start "" "${url}"`)
+        try {
+            if (!isSafeExternalUrl(url)) {
+                logger.main.warn(`Blocked opening external URL: ${url}`)
+                return
+            }
+            await shell.openExternal(url)
+        } catch (error) {
+            logger.main.error('Error opening external URL:', error)
+        }
     })
 
     ipcMain.on(MainEvents.OPEN_FILE, (_event, markdownContent: string) => {
         const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        fs.writeFile(tempFilePath, markdownContent, err => {
-            if (err) {
-                logger.main.error('Error writing to file:', err)
-                return
-            }
-            let command: string
-            if (process.platform === 'win32') command = `"${tempFilePath}"`
-            else if (process.platform === 'darwin') command = `open "${tempFilePath}"`
-            else command = `xdg-open "${tempFilePath}"`
-            exec(command, error => {
-                if (error) {
-                    logger.main.error('Error opening the file:', error)
-                    return
+        fsp.writeFile(tempFilePath, markdownContent)
+            .then(async () => {
+                const openError = await shell.openPath(tempFilePath)
+                if (openError) {
+                    logger.main.error(`Error opening the file: ${openError}`)
                 }
-                fs.unlink(tempFilePath, unlinkErr => {
-                    if (unlinkErr) logger.main.error('Error deleting the file:', unlinkErr)
-                    else logger.main.log('Temporary file successfully deleted')
-                })
+                setTimeout(async () => {
+                    try {
+                        await fsp.unlink(tempFilePath)
+                        logger.main.log('Temporary file successfully deleted')
+                    } catch (unlinkErr: any) {
+                        if (unlinkErr?.code !== 'ENOENT') {
+                            logger.main.error('Error deleting the file:', unlinkErr)
+                        }
+                    }
+                }, 10000)
             })
-        })
+            .catch(err => {
+                logger.main.error('Error writing to file:', err)
+            })
     })
 
     ipcMain.on(MainEvents.OPEN_PATH, async (_event, data: any) => {
         switch (data.action) {
+            case 'openApplications': {
+                await shell.openPath('/Applications')
+                break
+            }
+            case 'openPath': {
+                if (typeof data.path === 'string' && data.path.trim().length > 0) {
+                    await shell.openPath(data.path)
+                }
+                break
+            }
             case 'appPath': {
                 const appPath = app.getAppPath()
                 const pulseSyncPath = path.resolve(appPath, '../..')
@@ -284,8 +305,18 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 break
             }
             case 'theme': {
-                const themeFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons', data.themeName)
-                await shell.openPath(themeFolder)
+                const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+                const safeThemePath = resolveWithinBase(addonsRoot, data.themeName || '')
+                if (!safeThemePath) {
+                    logger.main.warn(`Blocked opening theme path: ${data.themeName}`)
+                    break
+                }
+                await shell.openPath(safeThemePath)
+                break
+            }
+            case 'obsWidgetPath': {
+                const widgetPath = path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
+                await shell.openPath(widgetPath)
                 break
             }
         }
@@ -336,10 +367,17 @@ const registerMediaEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
         let exeUrl = downloadUrl
         if (!exeUrl) {
-            const { data } = await axios.get('https://music-desktop-application.s3.yandex.net/stable/latest.yml')
+            const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
             const match = data.match(/version:\s*([\d.]+)/)
-            if (!match) throw new Error('Версия не найдена в latest.yml')
-            exeUrl = `https://music-desktop-application.s3.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
+            if (!match) throw new Error(t('main.events.latestYmlVersionNotFound'))
+            exeUrl = isMac()
+                ? `https://desktop.app.music.yandex.net/stable/Yandex_Music_universal_${match[1]}.dmg`
+                : isLinux()
+                  ? await getLinuxInstallerUrl()
+                  : `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
+        } else if (!isAllowedMusicDownloadUrl(exeUrl)) {
+            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: t('main.events.invalidDownloadUrl') })
+            return
         }
 
         const fileName = path.basename(exeUrl)
@@ -369,20 +407,46 @@ const registerMediaEvents = (window: BrowserWindow): void => {
             mainWindow.setProgressBar(-1)
             fs.chmodSync(downloadPath, 0o755)
 
-            setTimeout(() => {
-                execFile(downloadPath, error => {
-                    if (error) {
-                        event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Failed to execute the file: ${error.message}` })
-                        return
-                    }
-                    event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, { success: true, message: 'File executed successfully.' })
-                    fs.unlinkSync(downloadPath)
+            setTimeout(async () => {
+                if (process.platform === 'win32') {
+                    execFile(downloadPath, error => {
+                        if (error) {
+                            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                                success: false,
+                                error: t('main.events.fileExecuteFailed', { message: error.message }),
+                            })
+                            return
+                        }
+                        event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                            success: true,
+                            message: t('main.events.fileExecutedSuccessfully'),
+                        })
+                        fs.unlinkSync(downloadPath)
+                    })
+                    return
+                }
+
+                const openError = await shell.openPath(downloadPath)
+                if (openError) {
+                    event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                        success: false,
+                        error: t('main.events.fileOpenFailed', { message: openError }),
+                    })
+                    return
+                }
+                event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                    success: true,
+                    message: t('main.events.fileOpenedSuccessfully'),
                 })
+                fs.unlinkSync(downloadPath)
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
             if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath)
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: `Error downloading file: ${error.message}` })
+            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                success: false,
+                error: t('main.events.fileDownloadError', { message: error.message }),
+            })
         }
     })
 }
@@ -398,6 +462,7 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 
     ipcMain.on(MainEvents.AUTO_START_APP, (_event, enabled: boolean) => {
         if (isAppDev) return
+        if (isLinux()) return
         app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
     })
 
@@ -407,7 +472,8 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
-        return getYandexMusicVersion()
+        const metadata = await getInstalledYmMetadata()
+        return metadata?.version
     })
 
     ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {
@@ -419,7 +485,10 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
         if (isMac()) {
             try {
-                await macUpdater?.installUpdate()
+                const installInfo = await macUpdater?.installUpdate()
+                if (installInfo && mainWindow) {
+                    mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
+                }
             } catch (e: any) {
                 logger.updater.error(`macOS install error: ${e?.message || e}`)
             }
@@ -456,6 +525,17 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
 }
 
 const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
+    const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
+        const text = payload?.text ?? payload?.message ?? ''
+        const details: string[] = []
+        const type = payload?.type ? `type=${payload.type}` : null
+        if (type) details.push(type)
+        if (payload?.stack) details.push(`stack:\n${payload.stack}`)
+        if (payload?.componentStack) details.push(`componentStack:\n${payload.componentStack}`)
+        const detailText = details.length ? `\n${details.join('\n')}` : ''
+        return `[${prefix}] ${text}${detailText}`.trim()
+    }
+
     ipcMain.on(MainEvents.UPDATE_RPC_SETTINGS, async (_event, data: any) => {
         switch (Object.keys(data)[0]) {
             case 'appId':
@@ -481,6 +561,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             await rpc_connect()
         }
         authorized = data.status
+        tryOpenPendingAddon()
         if (data?.user) {
             Sentry.setUser({ id: data.user.id, username: data.user.username, email: data.user.email })
         } else {
@@ -489,13 +570,21 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {
-        if (data.info) logger.renderer.info(data.text)
-        else if (data.error) logger.renderer.error(data.text)
-        else logger.renderer.log(data.text)
+        const message = formatRendererLogMessage('RENDERER_LOG', data)
+        const level = data?.error ? 'error' : data?.info ? 'info' : 'log'
+        logger.renderer[level](message)
     })
 
     ipcMain.on(MainEvents.LOG_ERROR, (_event, errorInfo: any) => {
-        HandleErrorsElectron.handleError('renderer-error', errorInfo.type, errorInfo.message, errorInfo.componentStack)
+        const message = formatRendererLogMessage('LOG_ERROR', errorInfo)
+        logger.renderer.error(message)
+        const errorMessage = errorInfo?.message ?? t('main.events.rendererError')
+        const error = new Error(errorMessage)
+        if (errorInfo?.stack) {
+            const componentStack = errorInfo?.componentStack ? `\nComponentStack:\n${errorInfo.componentStack}` : ''
+            error.stack = `${errorInfo.stack}${componentStack}`
+        }
+        HandleErrorsElectron.handleError('renderer-error', errorInfo?.type ?? 'unknown', 'error-boundary', error)
     })
 }
 
@@ -542,7 +631,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
             const systemInfoPath = path.join(logDirPath, 'system-info.json')
             const configPulsePath = path.join(app.getPath('userData'), 'pulsesync_settings.json')
             const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
-            const logsYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'logs')
+            const logsYandexMusicPath = getYandexMusicLogsPath()
 
             fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')
 
@@ -568,7 +657,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         try {
             return await loadAddons()
         } catch (error) {
-            logger.main.error('Addons: Error loading themes:', error)
+            logger.main.error(t('main.events.addonsLoadError'), error)
         }
     })
     ipcMain.on(MainEvents.OPEN_SETTINGS_WINDOW, () => {
@@ -577,12 +666,12 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
-                name: 'New Extension',
+                name: t('main.events.newExtensionName'),
                 image: '',
                 banner: '',
-                author: 'Your Name',
+                author: t('main.events.newExtensionAuthor'),
                 version: '1.0.0',
-                description: 'Default theme.',
+                description: t('main.events.newExtensionDescription'),
                 css: 'style.css',
                 script: 'script.js',
                 type: 'theme',
@@ -593,11 +682,11 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             const defaultScriptContent = ``
             const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
             if (!fs.existsSync(extensionsPath)) fs.mkdirSync(extensionsPath)
-            let newName = 'New Extension'
+            let newName = t('main.events.newExtensionName')
             let counter = 1
             while (fs.readdirSync(extensionsPath).includes(newName)) {
                 counter++
-                newName = `New Extension ${counter}`
+                newName = t('main.events.newExtensionNameWithIndex', { index: counter })
                 defaultAdd.name = newName
             }
             const extensionPath = path.join(extensionsPath, newName)
@@ -608,7 +697,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             return { success: true, name: newName }
         } catch (error: any) {
             HandleErrorsElectron.handleError('event-handler', MainEvents.CREATE_NEW_EXTENSION, 'try-catch', error)
-            logger.main.error('Error creating new extension:', error)
+            logger.main.error(t('main.events.createExtensionError'), error)
             return { success: false, error: error.message }
         }
     })
@@ -616,7 +705,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.EXPORT_ADDON, async (_event, data: any) => {
         try {
             if (!fs.existsSync(data.path)) {
-                logger.main.error('Folder not found.')
+                logger.main.error(t('main.events.folderNotFound'))
             }
 
             const zip = new AdmZip()
@@ -652,13 +741,56 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
                 logger.main.info(`Create zip ${zipPath}`)
                 shell.showItemInFolder(zipPath)
             } catch (errZip: any) {
-                logger.main.error('Error while creating .zip file with AdmZip', errZip)
+                logger.main.error(t('main.events.createZipError'), errZip)
             }
 
             return true
         } catch (error: any) {
-            logger.main.error('Error while creating archive file', error.message)
+            logger.main.error(t('main.events.createArchiveError'), error.message)
             return false
+        }
+    })
+}
+
+const registerYandexMusicEvents = (window: BrowserWindow): void => {
+    ipcMain.on('DELETE_YANDEX_MUSIC_APP', async _event => {
+        try {
+            logger.main.info(t('main.events.yandexUninstallStart'))
+
+            const namePart = 'Yandex.Music'
+            const pkg = await findAppByName(namePart)
+
+            if (!pkg) {
+                logger.main.warn(t('main.events.yandexNotFound'))
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: false,
+                    message: t('main.events.yandexNotFoundMessage'),
+                })
+                return
+            }
+
+            try {
+                logger.main.info(`Uninstalling Yandex Music: ${pkg.PackageFullName}`)
+                await uninstallApp(pkg.PackageFullName)
+
+                logger.main.info(t('main.events.yandexUninstallSuccess'))
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: true,
+                    message: t('main.events.yandexUninstallSuccessMessage'),
+                })
+            } catch (uninstallErr) {
+                logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
+                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                    success: false,
+                    message: t('main.events.yandexUninstallFailedWithReason', { message: (uninstallErr as Error).message }),
+                })
+            }
+        } catch (error: any) {
+            logger.main.error(`Uninstall exception: ${error.message}`)
+            window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                success: false,
+                message: t('main.events.yandexUninstallError'),
+            })
         }
     })
 }
@@ -677,20 +809,27 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)
     registerExtensionEvents(window)
+    registerYandexMusicEvents(window)
+    obsWidgetManager(window, app)
 }
 
 export const checkOrFindUpdate = async (hard?: boolean) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
-            const m = await macUpdater?.checkForUpdates()
-            if (m) {
+            const macUpdaterInstance = await macUpdater?.checkForUpdates()
+            if (macUpdaterInstance) {
                 mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
                 updateAvailable = true
                 try {
-                    await macUpdater?.downloadUpdate(m)
+                    await macUpdater?.downloadUpdate(macUpdaterInstance)
                     mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                    if (hard) await macUpdater?.installUpdate(m)
+                    if (hard) {
+                        const installInfo = await macUpdater?.installUpdate(macUpdaterInstance)
+                        if (installInfo && mainWindow) {
+                            mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
+                        }
+                    }
                 } catch (e: any) {
                     logger.updater.error(`macOS download/install error: ${e?.message || e}`)
                     try {

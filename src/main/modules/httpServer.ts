@@ -18,11 +18,14 @@ import config from '../../renderer/api/web_config'
 import { getState } from './state'
 import { sanitizeScript } from '../utils/addonUtils'
 import axios from 'axios'
+import { resolveBasePaths } from './mod/mod-files'
+import crypto from 'node:crypto'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
 let io: IOServer | null = null
 let attempt = 0
+let isStarting = false
 const State = getState()
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
@@ -53,9 +56,23 @@ const closeServer = async (): Promise<void> => {
 const startSocketServer = async () => {
     if (!isFirstInstance) return
 
+    if (io && server) {
+        logger.http.log('startSocketServer skipped: already running')
+        return
+    }
+    if (isStarting) {
+        logger.http.log('startSocketServer skipped: already starting')
+        return
+    }
+
+    isStarting = true
     logger.http.log('startSocketServer called. io:', !!io, 'server:', !!server)
-    await closeServer()
-    initializeServer()
+    try {
+        await closeServer()
+        initializeServer()
+    } finally {
+        isStarting = false
+    }
 }
 
 const stopSocketServer = async () => {
@@ -264,7 +281,10 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
                 svg: 'image/svg+xml',
                 ico: 'image/x-icon',
             }
-            res.writeHead(200, { 'Content-Type': mimes[ext] || 'application/octet-stream' })
+            res.writeHead(200, {
+                'Content-Type': mimes[ext] || 'application/octet-stream',
+                'Cache-Control': 'public, max-age=31536000, immutable',
+            })
             return fs.createReadStream(targetPath).pipe(res)
         } else {
             res.writeHead(404, { 'Content-Type': 'application/json' })
@@ -357,9 +377,14 @@ const initializeServer = () => {
 
         socket.emit('PING', { message: 'Connected to server' })
 
-        socket.on('READY', () => {
+        socket.on('READY', async () => {
             logger.http.log('READY received from client')
             if ((socket as any).clientType === 'yaMusic') {
+                // if (!(await checkAsarChecksum()) && !isAppDev) {
+                //     logger.http.warn('Client mod checksum mismatch, disconnecting client.')
+                //     socket.disconnect(true)
+                //     return
+                // }
                 mainWindow.webContents.send(RendererEvents.CLIENT_READY)
                 ;(socket as any).hasPong = true
                 if (authorized) {
@@ -420,6 +445,14 @@ const initializeServer = () => {
             logger.http.error('HTTP server error:', error)
         }
     })
+}
+const checkAsarChecksum = async (): Promise<boolean> => {
+    const basePaths = await resolveBasePaths()
+    const asarPath = basePaths.modAsar
+    const buf = fs.readFileSync(asarPath)
+    const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
+    const savedChecksum = State.get('mod.checksum')
+    return currentHash === savedChecksum
 }
 const getFilesInDirectory = (dir: string): Record<string, string> =>
     fs.readdirSync(dir).reduce(

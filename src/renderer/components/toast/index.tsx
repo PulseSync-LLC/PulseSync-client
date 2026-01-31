@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useLayoutEffect, JSX } from 'react'
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, JSX } from 'react'
 import toast, { Renderable, ToastOptions } from 'react-hot-toast'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
@@ -62,11 +62,27 @@ function clearAll() {
     stackShown = false
 }
 
+const closeAllSubs = new Set<() => void>()
+function requestCloseAll() {
+    closeAllSubs.forEach(fn => fn())
+}
+
 export const iToast = {
     custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
         const now = Date.now()
+        const optionId = typeof options?.id === 'string' ? options.id : null
 
+        if (optionId) {
+            const existing = queue.find(t => t.id === optionId)
+            if (existing) {
+                Object.assign(existing, { kind, title, msg, value, duration, sticky, ts: now })
+                sortQueue()
+                emit()
+                ensureStack(options)
+                return existing.id
+            }
+        }
         if (sticky) {
             const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
             if (existing) {
@@ -77,7 +93,7 @@ export const iToast = {
             }
         }
 
-        const id = `t-${now}-${Math.random()}`
+        const id = optionId ?? `t-${now}-${Math.random()}`
         queue.push({
             id,
             kind,
@@ -97,7 +113,11 @@ export const iToast = {
     update(id: string, patch: Partial<Omit<ToastData, 'id' | 'ts'>>) {
         const t = queue.find(x => x.id === id)
         if (!t) return
-        Object.assign(t, patch, { ts: Date.now() })
+        const nextPatch = { ...patch }
+        if (typeof patch.kind !== 'undefined' && typeof patch.sticky === 'undefined') {
+            nextPatch.sticky = STICKY_SET.has(patch.kind)
+        }
+        Object.assign(t, nextPatch, { ts: Date.now() })
         sortQueue()
         emit()
     },
@@ -107,13 +127,14 @@ export const iToast = {
     },
 
     dismissAll() {
-        clearAll()
+        requestCloseAll()
     },
 }
 
 const ToastStack: React.FC = () => {
     const [toasts, setToasts] = useState<ToastData[]>(queue)
     const [open, setOpen] = useState(false)
+    const [closingAll, setClosingAll] = useState(false)
 
     useEffect(() => {
         const sub = (s: ToastData[]) => setToasts([...s])
@@ -121,6 +142,25 @@ const ToastStack: React.FC = () => {
         return () => {
             subs.delete(sub)
         }
+    }, [])
+
+    useEffect(() => {
+        const onReq = () => {
+            setClosingAll(true)
+            setTimeout(() => setClosingAll(false), 260)
+        }
+        closeAllSubs.add(onReq)
+        return () => {
+            closeAllSubs.delete(onReq)
+        }
+    }, [])
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') requestCloseAll()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
     }, [])
 
     const list = [...toasts].slice(-7).reverse()
@@ -162,41 +202,58 @@ const ToastStack: React.FC = () => {
                 if (e.button === 1) {
                     e.preventDefault()
                     e.stopPropagation()
-                    clearAll()
+                    requestCloseAll()
                 }
             }}
-            onClick={() => list.length > 1 && setOpen(o => !o)}
+            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (typeof e.button === 'number' && e.button !== 0) return
+                if (list.length > 1) setOpen(o => !o)
+            }}
+            onAuxClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onWheel={() => {
+                requestCloseAll()
+            }}
         >
             <TransitionGroup component={null}>
-                {renderList.map((td, idx) => (
-                    <CSSTransition
-                        key={td.id}
-                        timeout={320}
-                        nodeRef={getNodeRef(td.id)}
-                        classNames={{
-                            enter: styles.fadeEnter,
-                            enterActive: styles.fadeEnterActive,
-                            exit: styles.fadeExit,
-                            exitActive: styles.fadeExitActive,
-                        }}
-                    >
-                        <Card
-                            data={td}
-                            index={idx}
-                            stackSize={renderList.length}
-                            open={open || list.length === 1}
-                            offset={open ? offsets[idx] : 0}
-                            ref={el => {
-                                cardRefs.current[idx] = el
-                                getNodeRef(td.id).current = el
+                {renderList.map((td, idx) => {
+                    const handleDismiss = () => {
+                        nodeRefs.current.delete(td.id)
+                        remove(td.id)
+                    }
+                    return (
+                        <CSSTransition
+                            key={td.id}
+                            timeout={320}
+                            nodeRef={getNodeRef(td.id)}
+                            classNames={{
+                                enter: styles.fadeEnter,
+                                enterActive: styles.fadeEnterActive,
+                                exit: styles.fadeExit,
+                                exitActive: styles.fadeExitActive,
                             }}
-                            onDismiss={() => {
-                                nodeRefs.current.delete(td.id)
-                                remove(td.id)
-                            }}
-                        />
-                    </CSSTransition>
-                ))}
+                        >
+                            <Card
+                                data={td}
+                                index={idx}
+                                stackSize={renderList.length}
+                                open={open || list.length === 1}
+                                offset={open ? offsets[idx] : 0}
+                                closingAll={closingAll}
+                                ref={el => {
+                                    cardRefs.current[idx] = el
+                                    getNodeRef(td.id).current = el
+                                }}
+                                onDismiss={handleDismiss}
+                            />
+                        </CSSTransition>
+                    )
+                })}
             </TransitionGroup>
         </div>
     )
@@ -208,12 +265,15 @@ interface CardProps {
     stackSize: number
     open: boolean
     offset: number
+    closingAll: boolean
     onDismiss: () => void
 }
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, onDismiss }, ref) => {
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, closingAll, onDismiss }, ref) => {
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
+
+    const memoizedOnDismiss = useCallback(onDismiss, [data.id])
 
     useEffect(() => {
         const t = setTimeout(() => setShow(true), 60)
@@ -224,19 +284,19 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
         if (!sticky && show) {
             const t = setTimeout(() => {
                 setShow(false)
-                setTimeout(onDismiss, 280)
+                setTimeout(memoizedOnDismiss, 280)
             }, duration)
             return () => clearTimeout(t)
         }
-    }, [show, sticky, duration, onDismiss])
+    }, [show, sticky, duration, memoizedOnDismiss])
 
     useEffect(() => {
-        if (sticky && (value ?? 0) >= 100) {
+        if (closingAll) {
             setShow(false)
-            toast.dismiss(data.id)
-            setTimeout(onDismiss, 220)
+            const t = setTimeout(memoizedOnDismiss, 220)
+            return () => clearTimeout(t)
         }
-    }, [sticky, value, onDismiss, data.id])
+    }, [closingAll, memoizedOnDismiss])
 
     const zIndex = stackSize - index
 
@@ -251,6 +311,23 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                     color: palette(kind),
                 } as React.CSSProperties
             }
+            onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onAuxClick={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onWheel={() => {
+                requestCloseAll()
+            }}
         >
             <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>

@@ -19,6 +19,8 @@ interface p {
     musicInstalled: boolean
     setMusicInstalled: (value: boolean) => void
     musicVersion: string | null
+    widgetInstalled?: boolean
+    setWidgetInstalled?: (value: boolean) => void
     setMusicVersion: (version: string | null) => void
     socket: Socket | null
     socketConnected: boolean
@@ -30,6 +32,7 @@ interface p {
     updateAvailable?: boolean
     appInfo: AppInfoInterface[]
     modInfo: ModInterface[]
+    modInfoFetched: boolean
     setMod: (mod: any) => void
     features: Record<string, boolean>
     setFeatures: (features: Record<string, boolean>) => void
@@ -44,6 +47,8 @@ const UserContext = createContext<p>({
     setMusicInstalled: () => void 0,
     musicVersion: null,
     setMusicVersion: () => void 0,
+    widgetInstalled: false,
+    setWidgetInstalled: () => void 0,
     socket: null,
     socketConnected: false,
     app: settingsInitials,
@@ -54,6 +59,7 @@ const UserContext = createContext<p>({
     updateAvailable: false,
     appInfo: AppinfoInitials,
     modInfo: modInitials,
+    modInfoFetched: false,
     setMod: () => void 0,
     features: {},
     setFeatures: () => void 0,

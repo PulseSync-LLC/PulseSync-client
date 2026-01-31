@@ -5,6 +5,7 @@ import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
 import userContext from '../../../api/context/user.context'
 import MainEvents from '../../../../common/types/mainEvents'
+import { useTranslation } from 'react-i18next'
 
 interface ButtonInputProps {
     label: string
@@ -31,6 +32,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     onChange,
     onClick,
 }) => {
+    const { t } = useTranslation()
     const { app, setApp } = useContext(userContext)
     const [isActive, setIsActive] = useState<boolean>(defaultValue ?? false)
 
@@ -63,6 +65,9 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                 break
             case 'showTrackVersion':
                 setIsActive(app.discordRpc.showTrackVersion)
+                break
+            case 'supporterHideBranding':
+                setIsActive(app.discordRpc.supporterHideBranding)
                 break
             default:
                 break
@@ -173,6 +178,18 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                     },
                 })
                 break
+            case 'supporterHideBranding':
+                window.discordRpc.clearActivity()
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+                window.electron.store.set('discordRpc.supporterHideBranding', newValue)
+                setApp({
+                    ...app,
+                    discordRpc: {
+                        ...app.discordRpc,
+                        supporterHideBranding: newValue,
+                    },
+                })
+                break
             default:
                 break
         }
@@ -181,7 +198,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     return (
         <div
             className={clsx(styles.inputContainer, className)}
-            style={disabled ? { pointerEvents: 'none', opacity: 0.5 } : { cursor: onClick || checkType ? 'pointer' : 'default' }}
+            style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : { cursor: onClick || checkType ? 'pointer' : 'default' }}
             onClick={toggleState}
         >
             <div className={styles.label}>
@@ -203,7 +220,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                         aria-invalid={Boolean(touched && error)}
                         aria-errormessage={touched && error ? `${checkType}-error` : undefined}
                     >
-                        {isActive ? 'Включено' : 'Выключено'}
+                        {isActive ? t('common.enabled') : t('common.disabled')}
                     </div>
 
                     <button

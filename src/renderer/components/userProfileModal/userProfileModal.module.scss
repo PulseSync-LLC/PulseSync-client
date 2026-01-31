@@ -123,8 +123,6 @@
     padding: 0;
 }
 
-/* --- Дальше стили для элементов внутри вкладок --- */
-
 .bannerBackground {
     background-position: 50% 50% !important;
     background-size: cover !important;
@@ -520,19 +518,18 @@
 
 .loader {
     display: flex;
-    gap: 8px; /* расстояние между точками */
-    margin-bottom: 8px; /* отступ снизу, перед текстом Загрузка */
+    gap: 8px;
+    margin-bottom: 8px;
 }
 
 .dot {
     width: 10px;
     height: 10px;
-    background: #ffffff; /* цвет точек */
+    background: #ffffff;
     border-radius: 50%;
     animation: bounce 0.6s infinite alternate;
 }
 
-/* Чтобы точки прыгали не одновременно, сдвигаем тайминги */
 .dot:nth-child(2) {
     animation-delay: 0.2s;
 }
@@ -546,7 +543,7 @@
         opacity: 1;
     }
     100% {
-        transform: translateY(-10px); /* вверх на 10px */
-        opacity: 0.3; /* немного выцветаем */
+        transform: translateY(-10px);
+        opacity: 0.3;
     }
 }

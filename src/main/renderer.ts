@@ -1,5 +1,5 @@
-import '../renderer/App'
-import '../../static/styles/globals.css'
+import '../renderer/main.tsx'
+import '../styles/globals.css'
 import * as Sentry from '@sentry/electron/renderer'
 
 Sentry.init({

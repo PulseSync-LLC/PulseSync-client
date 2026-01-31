@@ -1,11 +1,11 @@
-import React, { CSSProperties, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
-import Minus from './../../../../static/assets/icons/minus.svg'
-import Minimize from './../../../../static/assets/icons/minimize.svg'
-import Close from './../../../../static/assets/icons/close.svg'
-import ArrowDown from './../../../../static/assets/icons/arrowDown.svg'
+import Minus from '../../assets/icons/minus.svg'
+import Minimize from '../../assets/icons/minimize.svg'
+import Close from '../../assets/icons/close.svg'
+import ArrowDown from '../../assets/icons/arrowDown.svg'
 
 import userContext from '../../api/context/user.context'
 import ContextMenu from '../context_menu'
@@ -13,7 +13,7 @@ import Modal from '../PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
-import * as modalStyles from '../PSUI/Modal/modal.modules.scss'
+import * as modalStyles from '../PSUI/Modal/modal.module.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
@@ -27,6 +27,7 @@ import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
 import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
+import { staticAsset } from '../../utils/staticAssets'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
 import { useDispatch, useSelector } from 'react-redux'
 import { RootState } from '../../api/store/store'
@@ -36,6 +37,7 @@ import playerContext from '../../api/context/player.context'
 import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
+import { useTranslation } from 'react-i18next'
 
 interface p {
     goBack?: boolean
@@ -52,11 +54,13 @@ type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
-const Header: React.FC<p> = () => {
-    const openSettings = () => {
-        window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
-    }
+const fallbackAvatar = staticAsset('assets/images/undef.png')
 
+const Header: React.FC<p> = () => {
+    const openSettings = useCallback(() => {
+        window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
+    }, [])
+    const [settingsAvailable, setSettingsAvailable] = useState(false)
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -65,6 +69,7 @@ const Header: React.FC<p> = () => {
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, appInfo, app, setUser, modInfo } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const { t } = useTranslation()
     const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
@@ -85,30 +90,30 @@ const Header: React.FC<p> = () => {
 
     const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
 
-    const openUpdateModal = () => setModal(true)
-    const closeUpdateModal = () => setModal(false)
+    const openUpdateModal = useCallback(() => setModal(true), [])
+    const closeUpdateModal = useCallback(() => setModal(false), [])
 
-    const openModModal = () => dispatch(openModal())
-    const closeModModal = () => dispatch(closeModal())
+    const openModModal = useCallback(() => dispatch(openModal()), [dispatch])
+    const closeModModal = useCallback(() => dispatch(closeModal()), [dispatch])
 
     modModalRef.current = {
         openModal: openModModal,
         closeModal: closeModModal,
     }
     updateModalRef.current = { openUpdateModal, closeUpdateModal }
-    const toggleMenu = () => {
+    const toggleMenu = useCallback(() => {
         if (isUserCardOpen) {
             setIsUserCardOpen(false)
         }
         setIsMenuOpen(!isMenuOpen)
-    }
+    }, [isMenuOpen, isUserCardOpen])
 
-    const toggleUserContainer = () => {
+    const toggleUserContainer = useCallback(() => {
         if (isMenuOpen) {
             setIsMenuOpen(false)
         }
         setIsUserCardOpen(!isUserCardOpen)
-    }
+    }, [isMenuOpen, isUserCardOpen])
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
@@ -180,7 +185,7 @@ const Header: React.FC<p> = () => {
         }).then(async r => {
             const res = await r.json()
             if (res.ok) {
-                toast.custom('success', `До встречи ${user.nickname}`, 'Успешный выход')
+                toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
                 await client.resetStore()
@@ -188,38 +193,51 @@ const Header: React.FC<p> = () => {
         })
     }
 
-    const formatDate = (timestamp: any) => {
+    const formatDate = useCallback((timestamp: any) => {
         const date = new Date(timestamp * 1000)
         return date.toLocaleDateString('ru-RU', {
             year: 'numeric',
             month: 'long',
             day: 'numeric',
         })
-    }
-    function LinkRenderer(props: any) {
+    }, [])
+
+    const LinkRenderer = useCallback((props: any) => {
         return (
             <a href={props.href} target="_blank" rel="noreferrer">
                 {props.children}
             </a>
         )
-    }
+    }, [])
+
+    const markdownComponents = useMemo(() => ({ a: LinkRenderer }), [LinkRenderer])
+    const updateMarkdownComponents = useMemo(
+        () => ({
+            a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
+                <a href={href as string} target="_blank" rel="noopener noreferrer">
+                    {children}
+                </a>
+            ),
+        }),
+        [],
+    )
     useCharCount(containerRef, fixedAddon)
 
-    const handleAvatarChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleAvatarChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const selectedFile = event.target.files[0]
             setAvatarProgress(-1)
             handleAvatarUpload(selectedFile)
         }
-    }
+    }, [])
 
-    const handleBannerChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleBannerChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files) {
             const selectedFile = event.target.files[0]
             setBannerProgress(-1)
             handleBannerUpload(selectedFile)
         }
-    }
+    }, [])
 
     const handleAvatarUpload = async (file: File) => {
         if (!file) return
@@ -249,24 +267,24 @@ const Header: React.FC<p> = () => {
                     avatarHash: data.hash,
                     avatarType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Аватар успешно загружен!')
+                toast.custom('success', t('common.doneTitle'), t('header.avatarUploadSuccess'))
             } else {
                 setAvatarProgress(-1)
-                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке аватара')
+                toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadUnknownError'))
             }
         } catch (error: any) {
             switch (error.response?.data?.message) {
                 case 'FILE_TOO_LARGE':
-                    toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
                     break
                 case 'FILE_NOT_ALLOWED':
-                    toast.custom('error', 'Так-так', 'Файл не является изображением')
+                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileNotImage'))
                     break
                 case 'UPLOAD_FORBIDDEN':
-                    toast.custom('error', 'Доступ запрещён', 'Загрузка аватара запрещена')
+                    toast.custom('error', t('header.accessDeniedTitle'), t('header.avatarUploadForbidden'))
                     break
                 default:
-                    toast.custom('error', 'Ой...', 'Ошибка при загрузке аватара, попробуй ещё раз')
+                    toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadRetry'))
                     Sentry.captureException(error)
                     break
             }
@@ -302,18 +320,18 @@ const Header: React.FC<p> = () => {
                     bannerHash: data.hash,
                     bannerType: data.type,
                 }))
-                toast.custom('success', 'Готово', 'Баннер успешно загружен!')
+                toast.custom('success', t('common.doneTitle'), t('header.bannerUploadSuccess'))
             } else {
                 setBannerProgress(-1)
-                toast.custom('error', 'Ой...', 'Неизвестная ошибка при загрузке баннера')
+                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadUnknownError'))
             }
         } catch (error: any) {
             if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', 'Так-так', 'Размер файла превышает 10мб')
+                toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
             } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', 'Доступ запрещён', 'Загрузка баннера запрещена')
+                toast.custom('error', t('header.accessDeniedTitle'), t('header.bannerUploadForbidden'))
             } else {
-                toast.custom('error', 'Ой...', 'Ошибка при загрузке баннера, попробуй ещё раз')
+                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadRetry'))
                 Sentry.captureException(error)
             }
             setBannerProgress(-1)
@@ -380,10 +398,10 @@ const Header: React.FC<p> = () => {
 
     return (
         <>
-            <Modal title="Последние обновления" isOpen={modal} reqClose={closeUpdateModal}>
+            <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingAppUpdates && <Loader text="Загрузка…" />}
-                    {appError && <p>Error: {appError}</p>}
+                    {loadingAppUpdates && <Loader text={t('common.loading')} />}
+                    {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
                         appUpdatesInfo
@@ -395,21 +413,21 @@ const Header: React.FC<p> = () => {
                                         <span>{formatDate(info.createdAt)}</span>
                                     </div>
                                     <div className={modalStyles.remerkStyle}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
                                             {info.changelog}
                                         </ReactMarkdown>
                                     </div>
                                 </div>
                             ))}
                     {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= app.info.version).length === 0 && (
-                        <p>Список изменений не найден.</p>
+                        <p>{t('header.noChangelogFound')}</p>
                     )}
                 </div>
             </Modal>
-            <Modal title="Последние обновления мода" isOpen={isModModalOpen} reqClose={closeModModal}>
+            <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Loader text="Загрузка…" />}
-                    {modError && <p>Error: {modError.message}</p>}
+                    {loadingModChanges && <Loader text={t('common.loading')} />}
+                    {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&
                         modChangesInfoRaw.length > 0 &&
@@ -420,38 +438,37 @@ const Header: React.FC<p> = () => {
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
                                 <div className={modalStyles.remerkStyle}>
-                                    <ReactMarkdown
-                                        remarkPlugins={[remarkGfm, remarkBreaks]}
-                                        components={{
-                                            a: ({ href, children }) => (
-                                                <a href={href as string} target="_blank" rel="noopener noreferrer">
-                                                    {children}
-                                                </a>
-                                            ),
-                                        }}
-                                    >
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={updateMarkdownComponents}>
                                         {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
                                     </ReactMarkdown>
                                 </div>
                             </div>
                         ))}
-                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>Список изменений не найден.</p>}
+                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>{t('header.noChangelogFound')}</p>}
                 </div>
             </Modal>
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <button className={styles.settingsButton} onClick={openSettings} disabled>
-                                <MdSettings size={22} />
-                            </button>
+                            {!settingsAvailable ? (
+                                <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
+                                    <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
+                                        <MdSettings size={22} />
+                                    </button>
+                                </TooltipButton>
+                            ) : (
+                                <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
+                                    <MdSettings size={22} />
+                                </button>
+                            )}
                             <div className={styles.line} />
                             <button
                                 className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}
                                 onClick={toggleMenu}
                                 disabled={user.id === '-1'}
                             >
-                                <img className={styles.logoapp} src="static/assets/logo/logoapp.svg" alt="" />
+                                <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
                             </button>
@@ -459,7 +476,11 @@ const Header: React.FC<p> = () => {
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
-                        {isDevmark && <div className={styles.dev}>DEVELOPMENT BUILD #{window.appInfo.getBranch() ?? 'unknown'}</div>}
+                        {isDevmark && (
+                            <div className={styles.dev}>
+                                {t('header.developmentBuild', { branch: window.appInfo.getBranch() ?? t('header.unknownBranch') })}
+                            </div>
+                        )}
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
@@ -484,7 +505,7 @@ const Header: React.FC<p> = () => {
                                                 src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
                                                 alt=""
                                                 onError={e => {
-                                                    ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                    ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                                                 }}
                                             />
                                             <div className={styles.status}>
@@ -525,7 +546,7 @@ const Header: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div className={styles.hoverUpload} onClick={() => bannerInputRef.current!.showPicker()}>
-                                                        Загрузить баннер
+                                                        {t('header.uploadBanner')}
                                                     </div>
                                                     <div className={styles.badges_container}>
                                                         {user.badges.length > 0 &&
@@ -534,7 +555,10 @@ const Header: React.FC<p> = () => {
                                                                 .map(_badge => (
                                                                     <TooltipButton tooltipText={_badge.name} side="bottom" key={_badge.type}>
                                                                         <div className={styles.badge}>
-                                                                            <img src={`static/assets/badges/${_badge.type}.svg`} alt={_badge.type} />
+                                                                            <img
+                                                                                src={staticAsset(`assets/badges/${_badge.type}.svg`)}
+                                                                                alt={_badge.type}
+                                                                            />
                                                                         </div>
                                                                     </TooltipButton>
                                                                 ))}
@@ -546,11 +570,11 @@ const Header: React.FC<p> = () => {
                                                         src={
                                                             `${user.avatarType}`
                                                                 ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
-                                                                : 'static/assets/images/undef.png'
+                                                                : fallbackAvatar
                                                         }
                                                         alt="card_avatar"
                                                         onError={e => {
-                                                            ;(e.currentTarget as HTMLImageElement).src = './static/assets/images/undef.png'
+                                                            ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
                                                         }}
                                                     />
                                                     <motion.div
@@ -574,7 +598,7 @@ const Header: React.FC<p> = () => {
                                                         />
                                                     </motion.div>
                                                     <div className={styles.hoverUpload} onClick={() => avatarInputRef.current!.showPicker()}>
-                                                        Загрузить аватар
+                                                        {t('header.uploadAvatar')}
                                                     </div>
                                                     <div className={styles.status}>
                                                         <div className={styles.dot}></div>
@@ -602,16 +626,16 @@ const Header: React.FC<p> = () => {
                                                     key={user.id}
                                                     className={styles.menu_button}
                                                 >
-                                                    Мой профиль
+                                                    {t('header.myProfile')}
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
-                                                    Друзья
+                                                    {t('header.friends')}
                                                 </button>
                                                 <button className={styles.menu_button} disabled>
-                                                    Настройки
+                                                    {t('header.settings')}
                                                 </button>
                                                 <button className={styles.menu_button} onClick={logout}>
-                                                    Выйти
+                                                    {t('header.logout')}
                                                 </button>
                                             </div>
                                         </div>

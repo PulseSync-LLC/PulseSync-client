@@ -6,6 +6,7 @@ import crypto from 'crypto'
 import yaml from 'js-yaml'
 import chalk from 'chalk'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import https from 'https'
 
 enum LogLevel {
     INFO = 'INFO',
@@ -88,6 +89,30 @@ function collectMacArtifacts(releaseDir: string, version: string) {
         if (!uniq.has(key)) uniq.set(key, a)
     }
     return Array.from(uniq.values())
+}
+
+async function fetchJson(url: string): Promise<any | null> {
+    return await new Promise(resolve => {
+        https
+            .get(url, res => {
+                if (res.statusCode && res.statusCode >= 400) {
+                    res.resume()
+                    resolve(null)
+                    return
+                }
+                const chunks: Buffer[] = []
+                res.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
+                res.on('end', () => {
+                    try {
+                        const raw = Buffer.concat(chunks).toString('utf-8')
+                        resolve(JSON.parse(raw))
+                    } catch {
+                        resolve(null)
+                    }
+                })
+            })
+            .on('error', () => resolve(null))
+    })
 }
 
 function walkFiles(dir: string): string[] {
@@ -190,7 +215,7 @@ export async function generateAndPublishMacDownloadJson(
     if (fs.existsSync(patchPath)) {
         releaseNotes = fs.readFileSync(patchPath, 'utf-8')
     }
-    const assets = []
+    const assets: Array<{ arch: string; url: string; fileType: string; sha512: string }> = []
     for (const a of artifacts) {
         const sha512 = await hashFileSha512(a.file)
         const fileName = path.basename(a.file)
@@ -201,16 +226,32 @@ export async function generateAndPublishMacDownloadJson(
             sha512,
         })
     }
-    const preferred = assets.find(x => x.arch === 'x64') || assets.find(x => x.arch === 'arm64') || assets[0]
+    const existingUrl = `${baseUrl}/${prefix}/${branch}/download.json`
+    const existing = await fetchJson(existingUrl)
+    const existingAssets = Array.isArray(existing?.assets) ? existing.assets : []
+    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512: string }>()
+    for (const a of existingAssets) {
+        if (a?.arch && a?.fileType && a?.url && a?.sha512) {
+            merged.set(`${a.arch}:${a.fileType}`, a)
+        }
+    }
+    for (const a of assets) {
+        merged.set(`${a.arch}:${a.fileType}`, a)
+    }
+    const mergedAssets = Array.from(merged.values())
+    const preferred =
+        mergedAssets.find(x => x.arch === 'x64') ||
+        mergedAssets.find(x => x.arch === 'arm64') ||
+        mergedAssets[0]
     const manifest = {
         version,
         url: preferred.url,
         fileType: preferred.fileType,
         sha512: preferred.sha512,
-        releaseNotes,
+        releaseNotes: releaseNotes || existing?.releaseNotes || '',
         updateUrgency: 'soft',
         minOsVersion: '>=10.13',
-        assets,
+        assets: mergedAssets,
     }
     const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
     const client = createS3Client()

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useTranslation } from 'react-i18next'
 import * as styles from '../../userProfileModal/userProfileModal.module.scss'
 import { ExtendedUser } from '../../../api/interfaces/extendUser.interface'
 
@@ -9,6 +10,8 @@ interface FriendsTabProps {
 }
 
 const FriendsTab: React.FC<FriendsTabProps> = ({ userProfile, loading, error }) => {
+    const { t } = useTranslation()
+
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
@@ -17,23 +20,23 @@ const FriendsTab: React.FC<FriendsTabProps> = ({ userProfile, loading, error }) 
                     <div className={styles.dot} />
                     <div className={styles.dot} />
                 </div>
-                <div>Загрузка...</div>
+                <div>{t('common.loading')}</div>
             </div>
         )
     }
 
     if (error) {
-        return <div>Ошибка: {String(error)}</div>
+        return <div>{t('profile.errors.withMessage', { message: String(error) })}</div>
     }
 
     if (!userProfile || !userProfile.id || userProfile.id === '-1') {
-        return <div>Пользователь не найден</div>
+        return <div>{t('profile.errors.userNotFound')}</div>
     }
 
     return (
         <div className={styles.friendsContainer}>
-            <h2>Друзья</h2>
-            <div className={styles.friendsList}>hi</div>
+            <h2>{t('profile.tabs.friends')}</h2>
+            <div className={styles.friendsList}>{t('profile.friends.placeholder')}</div>
         </div>
     )
 }

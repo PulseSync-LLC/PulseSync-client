@@ -3,6 +3,7 @@ import clsx from 'clsx'
 import * as s from './SliderInput.module.scss'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     label: string
@@ -36,6 +37,7 @@ const SliderInput: React.FC<Props> = ({
     unit,
     showNumber = true,
 }) => {
+    const { t } = useTranslation()
     const trackRef = useRef<HTMLDivElement>(null)
     const [drag, setDrag] = useState(false)
 
@@ -129,7 +131,7 @@ const SliderInput: React.FC<Props> = ({
                 {showNumber && (
                     <div className={s.valBox}>
                         {!editing ? (
-                            <button type="button" className={s.val} onClick={startEdit} title="Нажмите, чтобы редактировать">
+                            <button type="button" className={s.val} onClick={startEdit} title={t('common.clickToEdit')}>
                                 {format(v)}
                                 {unit && <span className={s.unitLabel}>{unit}</span>}
                             </button>

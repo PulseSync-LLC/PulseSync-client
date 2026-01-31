@@ -14,6 +14,7 @@ const settingsInitials: SettingsInterface = {
         saveAsMp3: false,
         devSocket: false,
         showModModalAfterInstall: true,
+        language: 'ru',
     },
     info: {
         version: '',
@@ -39,6 +40,7 @@ const settingsInitials: SettingsInterface = {
         showVersionOrDevice: false,
         showSmallIcon: true,
         showTrackVersion: false,
+        supporterHideBranding: false,
         statusDisplayType: 1,
         status: true,
         details: '',

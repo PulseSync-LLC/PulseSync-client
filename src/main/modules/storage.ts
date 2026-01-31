@@ -1,6 +1,7 @@
 import { app, ipcMain } from 'electron'
 import logger from './logger'
 import ElectronStoreModule from 'electron-store'
+import { t } from '../i18n'
 
 const ElectronStore = ElectronStoreModule
 
@@ -15,61 +16,66 @@ export interface StoreType {
 const schema = {
     discordRpc: {
         type: 'object',
-        description: 'Настройки Discord Rich Presence',
+        description: t('main.storage.discordRpc.description'),
         properties: {
             appId: {
                 type: 'string',
-                description: 'ID приложения Discord для Rich Presence',
+                description: t('main.storage.discordRpc.appId'),
                 default: '',
             },
             status: {
                 type: 'boolean',
-                description: 'Включен ли статус Rich Presence',
+                description: t('main.storage.discordRpc.status'),
                 default: true,
             },
             details: {
                 type: 'string',
-                description: 'Текст деталей, отображаемый в Rich Presence',
+                description: t('main.storage.discordRpc.details'),
                 default: '',
             },
             state: {
                 type: 'string',
-                description: 'Текущее состояние для Rich Presence',
+                description: t('main.storage.discordRpc.state'),
                 default: '',
             },
             button: {
                 type: 'string',
-                description: 'Текст кнопки в Rich Presence (например, URL или действие)',
+                description: t('main.storage.discordRpc.button'),
                 default: '',
             },
             displayPause: {
                 type: 'boolean',
-                description: 'Показывать паузу в статусе, если воспроизведение на паузе',
+                description: t('main.storage.discordRpc.displayPause'),
                 default: false,
             },
             showVersionOrDevice: {
                 type: 'boolean',
-                description: 'Показывать версию приложения или информацию об устройстве в статусе',
+                description: t('main.storage.discordRpc.showVersionOrDevice'),
                 default: false,
             },
             showTrackVersion: {
                 type: 'boolean',
-                description: 'Показывать версию трека в rpc',
+                description: t('main.storage.discordRpc.showTrackVersion'),
+                default: false,
+            },
+            supporterHideBranding: {
+                type: 'boolean',
+                description: t('main.storage.discordRpc.supporterHideBranding'),
                 default: false,
             },
             showSmallIcon: {
                 type: 'boolean',
-                description: 'Использовать маленькую иконку для Rich Presence',
+                description: t('main.storage.discordRpc.showSmallIcon'),
                 default: false,
             },
             enableRpcButtonListen: {
                 type: 'boolean',
-                description: 'Включить прослушивание кликов по кнопке Rich Presence',
+                description: t('main.storage.discordRpc.enableRpcButtonListen'),
                 default: true,
             },
             enableWebsiteButton: {
                 type: 'boolean',
-                description: 'Показывать кнопку Website в Rich Presence',
+                description: t('main.storage.discordRpc.enableWebsiteButton'),
                 default: true,
             },
         },
@@ -82,6 +88,7 @@ const schema = {
             'displayPause',
             'showVersionOrDevice',
             'showTrackVersion',
+            'supporterHideBranding',
             'showSmallIcon',
             'enableRpcButtonListen',
             'enableWebsiteButton',
@@ -96,6 +103,7 @@ const schema = {
             displayPause: false,
             showVersionOrDevice: false,
             showTrackVersion: false,
+            supporterHideBranding: false,
             showSmallIcon: false,
             enableRpcButtonListen: true,
             enableWebsiteButton: true,
@@ -104,76 +112,81 @@ const schema = {
 
     settings: {
         type: 'object',
-        description: 'Основные флаги и параметры поведения приложения',
+        description: t('main.storage.settings.description'),
         properties: {
             saveWindowDimensionsOnRestart: {
                 type: 'boolean',
-                description: 'Сохранять размер окна при закрытии и восстанавливать при следующем запуске',
+                description: t('main.storage.settings.saveWindowDimensionsOnRestart'),
                 default: false,
             },
             saveWindowPositionOnRestart: {
                 type: 'boolean',
-                description: 'Сохранять позицию окна при закрытии и восстанавливать при следующем запуске',
+                description: t('main.storage.settings.saveWindowPositionOnRestart'),
                 default: false,
             },
             autoStartInTray: {
                 type: 'boolean',
-                description: 'Запускать приложение свернутым в трей при старте системы',
+                description: t('main.storage.settings.autoStartInTray'),
                 default: false,
             },
             autoStartMusic: {
                 type: 'boolean',
-                description: 'Автоматически запускать воспроизведение музыки при старте приложения',
+                description: t('main.storage.settings.autoStartMusic'),
                 default: false,
             },
             autoStartApp: {
                 type: 'boolean',
-                description: 'Автоматически запускать приложение при загрузке системы',
+                description: t('main.storage.settings.autoStartApp'),
                 default: false,
             },
             hardwareAcceleration: {
                 type: 'boolean',
-                description: 'Включить или отключить аппаратное ускорение (GPU) для приложения',
+                description: t('main.storage.settings.hardwareAcceleration'),
                 default: true,
             },
             deletePextAfterImport: {
                 type: 'boolean',
-                description: 'Удалять временные файлы (Pext) после завершения импорта',
+                description: t('main.storage.settings.deletePextAfterImport'),
                 default: false,
             },
             closeAppInTray: {
                 type: 'boolean',
-                description: 'При закрытии окна сворачивать приложение в трей, а не выходить полностью',
+                description: t('main.storage.settings.closeAppInTray'),
                 default: false,
             },
             devSocket: {
                 type: 'boolean',
-                description: 'Включить режим разработчика: открывать сокет для отладки',
+                description: t('main.storage.settings.devSocket'),
                 default: true,
             },
             askSavePath: {
                 type: 'boolean',
-                description: 'Спрашивать путь для сохранения при выгрузке/экспорте',
+                description: t('main.storage.settings.askSavePath'),
                 default: false,
             },
             saveAsMp3: {
                 type: 'boolean',
-                description: 'Сохранять треки или результаты в формате MP3 по умолчанию',
+                description: t('main.storage.settings.saveAsMp3'),
                 default: false,
             },
             showModModalAfterInstall: {
                 type: 'boolean',
-                description: 'Показывать окно с информацией о моде после установки',
+                description: t('main.storage.settings.showModModalAfterInstall'),
                 default: false,
+            },
+            language: {
+                type: 'string',
+                description: t('main.storage.settings.language'),
+                default: 'ru',
             },
             modSavePath: {
                 type: 'string',
-                description: 'Путь до мода',
+                description: t('main.storage.settings.modSavePath'),
                 default: '',
             },
             windowDimensions: {
                 type: 'object',
-                description: 'Последние сохранённые размеры окна',
+                description: t('main.storage.settings.windowDimensions'),
                 properties: {
                     width: { type: 'number' },
                     height: { type: 'number' },
@@ -183,7 +196,7 @@ const schema = {
             },
             windowPosition: {
                 type: 'object',
-                description: 'Последние сохранённые координаты окна',
+                description: t('main.storage.settings.windowPosition'),
                 properties: {
                     x: { type: 'number' },
                     y: { type: 'number' },
@@ -193,12 +206,12 @@ const schema = {
             },
             lastDisplayId: {
                 type: 'number',
-                description: 'ID последнего экрана, на котором было окно приложения',
+                description: t('main.storage.settings.lastDisplayId'),
                 default: 0,
             },
             musicReinstalled: {
                 type: 'boolean',
-                description: 'Флаг, указывающий, переустановлена ли музыка',
+                description: t('main.storage.settings.musicReinstalled'),
                 default: false,
             },
         },
@@ -215,6 +228,7 @@ const schema = {
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
+            'language',
             'modSavePath',
             'windowDimensions',
             'windowPosition',
@@ -235,6 +249,7 @@ const schema = {
             askSavePath: false,
             saveAsMp3: false,
             showModModalAfterInstall: true,
+            language: 'ru',
             modSavePath: '',
             windowDimensions: {},
             windowPosition: {},
@@ -245,52 +260,87 @@ const schema = {
 
     mod: {
         type: 'object',
-        description: 'Информация и состояние мода',
+        description: t('main.storage.mod.description'),
         properties: {
             musicVersion: {
                 type: 'string',
-                description: 'Версия мода',
+                description: t('main.storage.mod.musicVersion'),
                 default: '',
             },
             name: {
                 type: 'string',
-                description: 'Название мода',
+                description: t('main.storage.mod.name'),
                 default: '',
             },
             version: {
                 type: 'string',
-                description: 'Версия мода',
+                description: t('main.storage.mod.version'),
+                default: '',
+            },
+            realMusicVersion: {
+                type: 'string',
+                description: t('main.storage.mod.realMusicVersion'),
                 default: '',
             },
             installed: {
                 type: 'boolean',
-                description: 'Флаг, указывающий, установлен ли мод',
+                description: t('main.storage.mod.installed'),
                 default: false,
             },
             updated: {
                 type: 'boolean',
-                description: 'Флаг, указывающий, обновлен ли мод до последней версии',
+                description: t('main.storage.mod.updated'),
                 default: false,
             },
+            checksum: {
+                type: 'string',
+                description: t('main.storage.mod.checksum'),
+                default: '',
+            },
+            unpackedChecksum: {
+                type: 'string',
+                description: t('main.storage.mod.unpackedChecksum'),
+                default: '',
+            },
         },
-        required: ['musicVersion', 'name', 'version', 'installed', 'updated'],
+        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum', 'unpackedChecksum'],
         additionalProperties: false,
         default: {
             musicVersion: '',
+            realMusicVersion: '',
             name: '',
             version: '',
             installed: false,
             updated: false,
+            checksum: '',
+            unpackedChecksum: '',
+        },
+    },
+
+    app: {
+        type: 'object',
+        description: t('main.storage.app.description'),
+        properties: {
+            version: {
+                type: 'string',
+                description: t('main.storage.app.version'),
+                default: '',
+            },
+        },
+        required: ['version'],
+        additionalProperties: false,
+        default: {
+            version: '',
         },
     },
 
     tokens: {
         type: 'object',
-        description: 'Токены для аутентификации',
+        description: t('main.storage.tokens.description'),
         properties: {
             token: {
                 type: 'string',
-                description: 'Основной токен сессии',
+                description: t('main.storage.tokens.token'),
                 default: '',
             },
         },

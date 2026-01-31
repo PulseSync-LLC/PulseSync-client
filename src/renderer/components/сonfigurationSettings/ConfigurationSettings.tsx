@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect, memo } from 'react'
+import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import clsx from 'clsx'
 import { AddonConfig, Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, ButtonAction } from './types'
 
@@ -12,6 +12,7 @@ import BufferedSliderInput from './BufferedSliderInput'
 
 import * as css from './ConfigurationSettings.module.scss'
 import ChangesBar from '../PSUI/ChangesBar'
+import { useTranslation } from 'react-i18next'
 
 type Props = {
     configData: AddonConfig
@@ -121,6 +122,7 @@ const SectionTextGroup: React.FC<{
     ii: number
     updateTextButton: (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) => void
 }> = ({ item, si, ii, updateTextButton }) => {
+    const { t } = useTranslation()
     return (
         <div className={css.list}>
             {item.buttons.map((b, bi) => {
@@ -148,7 +150,7 @@ const SectionTextGroup: React.FC<{
                                         })
                                     }}
                                 >
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -160,6 +162,7 @@ const SectionTextGroup: React.FC<{
 }
 
 const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
+    const { t } = useTranslation()
     const [cfg, setCfg] = useState<AddonConfig>(structuredClone(configData))
 
     const rootRef = useRef<HTMLDivElement>(null)
@@ -301,7 +304,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         {dirty && (
                             <div className={css.resetRow}>
                                 <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -325,7 +328,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         {dirty && (
                             <div className={css.resetRow}>
                                 <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -349,7 +352,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         {dirty && (
                             <div className={css.resetRow}>
                                 <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -379,7 +382,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         {dirty && (
                             <div className={css.resetRow}>
                                 <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -398,12 +401,12 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                             value={current}
                             onChange={p => updateItem(si, ii, { filePath: p })}
                             previewSrc={filePreviewSrc}
-                            placeholder="Выберите файл"
+                            placeholder={t('common.selectFile')}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
                                 <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
-                                    ↺ Сбросить
+                                    ↺ {t('common.reset')}
                                 </button>
                             </div>
                         )}
@@ -421,7 +424,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <div className={css.placeholder}>
                         <div className={css.phTitle}>{u.name}</div>
-                        <div className={css.phHint}>Компонент в переработке (тип: {(u as any).type}). Скоро будет доступен.</div>
+                        <div className={css.phHint}>{t('configEditor.placeholderWithType', { type: (u as any).type })}</div>
                     </div>
                 )
             }
@@ -457,7 +460,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 )
             })}
 
-            <ChangesBar open={isDirty} text="Аккуратнее, вы не сохранили изменения!" onReset={resetAll} onSave={commitAll} />
+            <ChangesBar open={isDirty} text={t('changes.unsavedWarning')} onReset={resetAll} onSave={commitAll} />
         </div>
     )
 }

@@ -2,6 +2,7 @@ import React from 'react'
 import * as styles from './AddonFilters.module.scss'
 import Scrollbar from '../../PSUI/Scrollbar'
 import { MdKeyboardArrowUp, MdRefresh } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
 
 interface AddonFiltersProps {
     tags: string[]
@@ -35,6 +36,7 @@ export default function AddonFilters({
     onSortChange,
     onSortOrderChange,
 }: AddonFiltersProps) {
+    const { t } = useTranslation()
     const toggleSet = (set: Set<string>, value: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
         const copy = new Set(set)
         copy.has(value) ? copy.delete(value) : copy.add(value)
@@ -73,11 +75,12 @@ export default function AddonFilters({
             {showReset && <MdRefresh size={16} className={styles.resetIcon} onClick={onReset} />}
         </div>
     )
+    const alphabetOrderLabel = sort === 'alphabet' ? (sortOrder === 'asc' ? t('filters.sort.az') : t('filters.sort.za')) : ''
 
     return (
         <Scrollbar className={styles.filterWindow} classNameInner={styles.filterWindowInner}>
             <div className={styles.filterGroup}>
-                {renderTitle('СОРТИРОВКА', resetSort, sort !== 'type' || sortOrder !== 'desc')}
+                {renderTitle(t('filters.sort.title'), resetSort, sort !== 'type' || sortOrder !== 'desc')}
                 {['type', 'alphabet', 'date', 'size', 'author'].map(opt => (
                     <div
                         key={opt}
@@ -88,14 +91,14 @@ export default function AddonFilters({
                         <div className={styles.textGroup}>
                             <div className={styles.text}>
                                 {opt === 'type'
-                                    ? 'По типу'
+                                    ? t('filters.sort.byType')
                                     : opt === 'alphabet'
-                                      ? `По алфавиту${sort === 'alphabet' ? (sortOrder === 'asc' ? ' (А-Я)' : ' (Я-А)') : ''}`
+                                      ? t('filters.sort.byAlphabet', { order: alphabetOrderLabel })
                                       : opt === 'date'
-                                        ? 'По дате'
+                                        ? t('filters.sort.byDate')
                                         : opt === 'size'
-                                          ? 'По размеру'
-                                          : 'По авторам'}
+                                          ? t('filters.sort.bySize')
+                                          : t('filters.sort.byAuthors')}
                             </div>
                             {sort === opt && (
                                 <MdKeyboardArrowUp
@@ -116,17 +119,17 @@ export default function AddonFilters({
             </div>
 
             <div className={styles.filterGroup}>
-                {renderTitle('ТИП', resetType, type !== 'all')}
+                {renderTitle(t('filters.type.title'), resetType, type !== 'all')}
                 {['all', 'theme', 'script'].map(opt => (
                     <div key={opt} className={`${styles.radioLabel} ${type === opt ? styles.selected : ''}`} onClick={() => setType(opt as any)}>
                         <div className={`${styles.customRadio} ${type === opt ? styles.selected : ''}`} />
-                        {opt === 'all' ? 'Все' : opt === 'theme' ? 'Темы' : 'Скрипты'}
+                        {opt === 'all' ? t('filters.type.all') : opt === 'theme' ? t('filters.type.themes') : t('filters.type.scripts')}
                     </div>
                 ))}
             </div>
 
             <div className={styles.filterGroup}>
-                {renderTitle('ТЕГИ', resetTags, selectedTags.size > 0)}
+                {renderTitle(t('filters.tags.title'), resetTags, selectedTags.size > 0)}
                 {tags.map(tag => (
                     <label key={tag} className={`${styles.checkboxLabel} ${selectedTags.has(tag) ? styles.selected : ''}`}>
                         <input type="checkbox" checked={selectedTags.has(tag)} onChange={() => toggleSet(selectedTags, tag, setSelectedTags)} />
@@ -137,7 +140,7 @@ export default function AddonFilters({
             </div>
 
             <div className={styles.filterGroup}>
-                {renderTitle('АВТОРЫ', resetCreators, selectedCreators.size > 0)}
+                {renderTitle(t('filters.authors.title'), resetCreators, selectedCreators.size > 0)}
                 {creators.map(creator => (
                     <label key={creator} className={`${styles.checkboxLabel} ${selectedCreators.has(creator) ? styles.selected : ''}`}>
                         <input

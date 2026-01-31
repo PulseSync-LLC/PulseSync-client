@@ -1,54 +1,61 @@
 import type { ForgeConfig } from '@electron-forge/shared-types'
-import { WebpackPlugin } from '@electron-forge/plugin-webpack'
+import { VitePlugin } from '@electron-forge/plugin-vite'
 import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import { mainConfig } from './webpack/webpack.main.config'
-import { rendererConfig } from './webpack/webpack.renderer.config'
 import path from 'path'
 import fs from 'fs'
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
-        icon: './icons/icon',
+        icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
         name: 'PulseSync',
         executableName: 'PulseSync',
-        appCopyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»',
-        asar: true,
+        appCopyright: `Copyright (C) ${new Date().getFullYear()} ИП «Деднев Григорий Дмитриевич»`,
+        asar: {
+            unpack: '**/.vite/renderer/**/static/assets/icon/**',
+        },
         win32metadata: {
             CompanyName: 'ИП «Деднев Григорий Дмитриевич»',
         },
-        appBundleId: "pulsesync.app",
+        appBundleId: 'pulsesync.app',
         extendInfo: 'Info.plist',
         extraResource: ['./app-update.yml'],
     },
+    rebuildConfig: {
+        ignoreModules: ['@parcel/watcher', 'bufferutil', 'utf-8-validate'],
+    },
     plugins: [
-        new WebpackPlugin({
-            mainConfig,
-            renderer: {
-                config: rendererConfig,
-                entryPoints: [
-                    {
-                        name: 'preloader',
-                        html: '../src/renderer/preloader.html',
-                        js: '../src/main/preload.ts',
-                        preload: { js: '../src/main/preload.ts' },
-                    },
-                    {
-                        name: 'main_window',
-                        html: '../src/renderer/index.html',
-                        js: '../src/main/renderer.ts',
-                        preload: { js: '../src/main/mainWindowPreload.ts' },
-                    },
-                    {
-                        name: 'settings_window',
-                        html: '../src/renderer/settings.html',
-                        js: '../src/main/settingsRenderer.ts',
-                        preload: {
-                            js: '../src/main/mainWindowPreload.ts',
-                        },
-                    },
-                ],
-            },
+        new VitePlugin({
+            build: [
+                {
+                    entry: 'src/index.ts',
+                    config: 'vite.main.config.ts',
+                },
+                {
+                    entry: 'src/main/mainWindowPreload.ts',
+                    config: 'vite.preload.config.ts',
+                    target: 'preload',
+                },
+                {
+                    entry: 'src/main/preloaderPreload.ts',
+                    config: 'vite.preload.config.ts',
+                    target: 'preload',
+                },
+            ],
+            renderer: [
+                {
+                    name: 'preloader',
+                    config: 'vite.renderer.config.ts',
+                },
+                {
+                    name: 'main_window',
+                    config: 'vite.renderer.config.ts',
+                },
+                {
+                    name: 'settings_window',
+                    config: 'vite.renderer.config.ts',
+                },
+            ],
         }),
         new FusesPlugin({
             version: FuseVersion.V1,
@@ -57,7 +64,6 @@ const forgeConfig: ForgeConfig = {
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
             [FuseV1Options.EnableNodeCliInspectArguments]: true,
-
         }),
     ],
     hooks: {
@@ -80,6 +86,11 @@ const forgeConfig: ForgeConfig = {
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
+            const resourcesPath = path.resolve(buildPath, '..')
+            const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
+            const iconDestination = path.join(resourcesPath, 'assets', 'icon')
+            fs.mkdirSync(iconDestination, { recursive: true })
+            fs.cpSync(iconSource, iconDestination, { recursive: true })
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },

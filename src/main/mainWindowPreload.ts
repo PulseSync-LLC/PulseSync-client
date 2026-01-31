@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
+import RendererEvents from '../common/types/rendererEvents'
 
 export interface DesktopEvents {
     send(channel: string, ...args: any[]): void
@@ -51,9 +52,6 @@ contextBridge.exposeInMainWorld('electron', {
         exit() {
             ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_EXIT)
         },
-    },
-    corsAnywherePort() {
-        return ipcRenderer.sendSync(MainEvents.ELECTRON_CORSANYWHEREPORT)
     },
     isAppDev() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
@@ -105,3 +103,7 @@ const desktopEvents: DesktopEvents = {
     },
 }
 contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)
+
+ipcRenderer.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, (event, data) => {
+    ;(window as any).__pendingPulseSyncData = data
+})

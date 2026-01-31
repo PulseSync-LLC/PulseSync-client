@@ -4,6 +4,7 @@ import TooltipButton from '../../tooltip_button'
 import { MdHelp, MdKeyboardCommandKey } from 'react-icons/md'
 import clsx from 'clsx'
 import ButtonV2 from '../../buttonV2'
+import { useTranslation } from 'react-i18next'
 
 interface TextInputProps {
     name: string
@@ -27,25 +28,14 @@ const STATUS_DISPLAY_TYPES: Record<number, number> = {
     2: 2,
 }
 
-const STATUS_DISPLAY_NAMES: Record<number, string> = {
-    0: 'Название приложения',
-    1: 'Автор трека',
-    2: 'Название трека',
-}
-
-const musicCommands = [
-    { key: '{track}', label: 'название трека' },
-    { key: '{artist}', label: 'имя артиста' },
-    { key: '{album}', label: 'название альбома' },
-]
-
-const statusCommands = Object.keys(STATUS_DISPLAY_TYPES).map(k => {
-    const num = Number(k)
-    return {
-        key: k,
-        label: STATUS_DISPLAY_NAMES[num],
-    }
-})
+const buildStatusCommands = (labels: Record<number, string>) =>
+    Object.keys(STATUS_DISPLAY_TYPES).map(k => {
+        const num = Number(k)
+        return {
+            key: k,
+            label: labels[num],
+        }
+    })
 
 function getTextNodes(root: Node): Text[] {
     const out: Text[] = []
@@ -126,6 +116,18 @@ const TextInput: React.FC<TextInputProps> = ({
     showCommandsButton = false,
     commandsType = 'music',
 }) => {
+    const { t } = useTranslation()
+    const statusDisplayNames: Record<number, string> = {
+        0: t('textInput.statusDisplay.appName'),
+        1: t('textInput.statusDisplay.trackArtist'),
+        2: t('textInput.statusDisplay.trackTitle'),
+    }
+    const musicCommands = [
+        { key: '{track}', label: t('textInput.commands.trackTitle') },
+        { key: '{artist}', label: t('textInput.commands.trackArtist') },
+        { key: '{album}', label: t('textInput.commands.trackAlbum') },
+    ]
+    const statusCommands = buildStatusCommands(statusDisplayNames)
     const [isFocused, setIsFocused] = useState(false)
     const [commandsVisible, setCommandsVisible] = useState(false)
     const editorRef = useRef<HTMLDivElement>(null)
@@ -196,7 +198,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
         if (newValue !== lastValueRef.current) {
             if (rafRef.current) cancelAnimationFrame(rafRef.current)
-            // Сначала сохраняем позицию относительно текущего DOM
+
             saveSelection()
             rafRef.current = requestAnimationFrame(() => {
                 onChange?.(newValue)

@@ -37,7 +37,7 @@ const splitLink = wsLink
               return def.kind === 'OperationDefinition' && def.operation === 'subscription'
           },
           wsLink,
-        ApolloLink.from([authMiddleware, httpLink]),
+          ApolloLink.from([authMiddleware, httpLink]),
       )
     : ApolloLink.from([authMiddleware, httpLink])
 

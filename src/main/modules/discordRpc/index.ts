@@ -13,6 +13,7 @@ import { readDiscord } from './state'
 import { isTimeoutErrorMessage, handleRpcError } from './errors'
 import { compareActivities } from './activityCompare'
 import Throttler from './throttler'
+import { t } from '../../i18n'
 
 const State = getState()
 
@@ -26,6 +27,7 @@ let isReconnecting = false
 let reconnectAttempts = 0
 const baseBackoffMs = 5000
 const maxBackoffMs = 60000
+const connectTimeoutMs = 15000
 
 let clientId: string
 let client: Client | null
@@ -33,13 +35,14 @@ let changeId = false
 export let rpcConnected = false
 export let isConnecting = false
 let connectGeneration = 0
+let connectTimeout: ReturnType<typeof setTimeout> | undefined
 
 const activityThrottler = new Throttler<SetActivity>(ACTIVITY_THROTTLE_MS, activity => {
     try {
         client?.user?.setActivity(activity).catch(async e => {
             const msg = await handleRpcError(e as any)
             mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                message: msg || 'Ошибка установки активности',
+                message: msg || t('main.discordRpc.activitySetError'),
                 type: 'error',
             })
         })
@@ -64,6 +67,13 @@ function stopReconnectLoop() {
     isReconnecting = false
 }
 
+function clearConnectTimeout() {
+    if (connectTimeout) {
+        clearTimeout(connectTimeout)
+        connectTimeout = undefined
+    }
+}
+
 function startReconnectLoop(customDelayMs?: number) {
     if (isReconnecting) return
     isReconnecting = true
@@ -72,6 +82,8 @@ function startReconnectLoop(customDelayMs?: number) {
             stopReconnectLoop()
             return
         }
+        clearConnectTimeout()
+        isConnecting = false
         if (client) {
             try {
                 await client.destroy()
@@ -127,7 +139,7 @@ ipcMain.on(MainEvents.DISCORDRPC_CLEARSTATE, () => {
         client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e as any)
             mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                message: msg || 'Ошибка очистки активности',
+                message: msg || t('main.discordRpc.activityClearError'),
                 type: 'error',
             })
         })
@@ -185,7 +197,7 @@ async function rpc_connect() {
     if (discordState !== DiscordState.SUCCESS) {
         logger.discordRpc.info(`Discord state ${discordState}. Next retry`)
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-            message: `${discordState} Следующая попытка через несколько секунд.`,
+            message: t('main.discordRpc.stateRetry', { state: t(`main.discordRpc.states.${discordState}`) }),
             type: 'info',
         })
         isConnecting = false
@@ -195,15 +207,19 @@ async function rpc_connect() {
 
     client.login().catch(async e => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('login error: ' + msg)
-        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: msg || 'Ошибка подключения к Discord RPC', type: 'error' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+            message: msg || t('main.discordRpc.connectError'),
+            type: 'error',
+        })
         const hasCustom = (State.get('discordRpc.appId') || '').length > 0
         const reserve = config.RESERVE_CLIENT_ID
         const isTimeout = isTimeoutErrorMessage((e as any)?.message)
         if (isTimeout && !hasCustom && reserve && String(reserve).length > 0 && reserve !== clientId) {
             mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.',
+                message: t('main.discordRpc.timeoutFallback'),
                 type: 'info',
             })
             isConnecting = false
@@ -214,21 +230,33 @@ async function rpc_connect() {
         startReconnectLoop()
     })
 
+    clearConnectTimeout()
+    connectTimeout = setTimeout(() => {
+        if (myGeneration !== connectGeneration) return
+        if (!rpcConnected) {
+            logger.discordRpc.warn('rpc_connect timeout, retrying')
+            isConnecting = false
+            startReconnectLoop()
+        }
+    }, connectTimeoutMs)
+
     client.on('ready', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
         isConnecting = false
         rpcConnected = true
         reconnectAttempts = 0
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         if (changeId) changeId = false
         stopReconnectLoop()
         logger.discordRpc.info('Connection established')
-        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Успешное подключение', type: 'success' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.connected'), type: 'success' })
         if (pendingActivity) {
             client?.user?.setActivity(pendingActivity).catch(async e => {
                 const msg = await handleRpcError(e as any)
                 mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                    message: msg || 'Ошибка установки активности',
+                    message: msg || t('main.discordRpc.activitySetError'),
                     type: 'error',
                 })
             })
@@ -240,28 +268,34 @@ async function rpc_connect() {
 
     client.on('disconnected', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         rpcConnected = false
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         logger.discordRpc.info('Disconnected')
-        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Отключение RPC', type: 'info' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.disconnected'), type: 'info' })
         startReconnectLoop()
     })
 
     client.on('error', async e => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         if ((e as any)?.name === 'Could not connect') {
             rpcConnected = false
         }
+        pendingActivity = previousActivity ?? pendingActivity
         previousActivity = undefined
         const msg = await handleRpcError(e as any)
         logger.discordRpc.error('Error: ' + msg)
-        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: msg || 'Ошибка подключения', type: 'error' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: msg || t('main.discordRpc.genericConnectError'), type: 'error' })
         const hasCustom = (State.get('discordRpc.appId') || '').length > 0
         const reserve = config.RESERVE_CLIENT_ID
         const isTimeout = isTimeoutErrorMessage((e as any)?.message)
         if (isTimeout && !hasCustom && reserve && String(reserve).length > 0 && reserve !== clientId) {
             mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                message: 'Тайм-аут подключения. Переключаюсь на резервный App ID.',
+                message: t('main.discordRpc.timeoutFallback'),
                 type: 'info',
             })
             updateAppId(String(reserve))
@@ -272,10 +306,12 @@ async function rpc_connect() {
 
     client.on('close', () => {
         if (myGeneration !== connectGeneration) return
+        clearConnectTimeout()
+        isConnecting = false
         rpcConnected = false
         previousActivity = undefined
         logger.discordRpc.info('Connection closed')
-        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: 'Закрытие соединения', type: 'info' })
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.connectionClosed'), type: 'info' })
         startReconnectLoop()
     })
 }
@@ -329,7 +365,7 @@ export const setRpcStatus = (status: boolean) => {
                     client?.destroy().catch(async e => {
                         const msg = await handleRpcError(e as any)
                         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                            message: msg || 'Ошибка отключения клиента',
+                            message: msg || t('main.discordRpc.disconnectError'),
                             type: 'error',
                         })
                         logger.discordRpc.error((e as any)?.message, msg)
@@ -342,7 +378,7 @@ export const setRpcStatus = (status: boolean) => {
                 .catch(async e => {
                     const msg = await handleRpcError(e as any)
                     mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                        message: msg || 'Ошибка очистки активности',
+                        message: msg || t('main.discordRpc.activityClearError'),
                         type: 'error',
                     })
                 })

@@ -1,13 +1,11 @@
 import React from 'react'
-import CheckOn from './../../../../static/assets/stratis-icons/check-square-on.svg'
-import CheckOff from './../../../../static/assets/stratis-icons/minus-square-off.svg'
-import FileDirectory from './../../../../static/assets/stratis-icons/file-eye.svg'
-import FileExport from './../../../../static/assets/stratis-icons/file-export.svg'
-import FileDelete from './../../../../static/assets/stratis-icons/file-delete.svg'
+import CheckOn from '../../assets/stratis-icons/check-square-on.svg'
+import CheckOff from '../../assets/stratis-icons/minus-square-off.svg'
 import Addon from '../../api/interfaces/addon.interface'
 import toast from '../toast'
 import { MdDeleteForever, MdFileOpen, MdIosShare } from 'react-icons/md'
 import MainEvents from '../../../common/types/mainEvents'
+import { t } from '../../i18n'
 
 export interface MenuItem {
     label?: string
@@ -30,7 +28,9 @@ export const createContextMenuActions = (
     currentAddon: Addon,
 ): MenuItem[] => [
     {
-        label: checkedState ? `Выключить ${currentAddon.name}` : `Включить ${currentAddon.name}`,
+        label: checkedState
+            ? t('contextMenuThemes.disable', { name: currentAddon.name })
+            : t('contextMenuThemes.enable', { name: currentAddon.name }),
         onClick: () => {
             if (handleToggleCheck) {
                 handleToggleCheck(currentAddon.name, !checkedState)
@@ -40,7 +40,7 @@ export const createContextMenuActions = (
         icon: checkedState ? <CheckOn /> : <CheckOff />,
     },
     {
-        label: `Директория аддона ${currentAddon.name}`,
+        label: t('contextMenuThemes.directory', { name: currentAddon.name }),
         onClick: () =>
             window.desktopEvents?.send(MainEvents.OPEN_PATH, {
                 action: 'theme',
@@ -50,7 +50,7 @@ export const createContextMenuActions = (
         icon: <MdFileOpen size={20} />,
     },
     {
-        label: `Экспорт ${currentAddon.name}`,
+        label: t('contextMenuThemes.export', { name: currentAddon.name }),
         onClick: () => {
             window.desktopEvents
                 .invoke(MainEvents.EXPORT_ADDON, {
@@ -59,7 +59,7 @@ export const createContextMenuActions = (
                 })
                 .then(result => {
                     if (result) {
-                        toast.custom('success', `Готово`, 'Успешный экспорт')
+                        toast.custom('success', t('common.doneTitle'), t('contextMenuThemes.exportSuccess'))
                     }
                 })
                 .catch(error => {
@@ -70,34 +70,34 @@ export const createContextMenuActions = (
         icon: <MdIosShare size={20} />,
     },
     {
-        label: `Страница темы ${currentAddon.name}`,
-        onClick: () => console.log('Страница темы'),
+        label: t('contextMenuThemes.page', { name: currentAddon.name }),
+        onClick: () => console.log(t('contextMenuThemes.pageLog')),
         show: false,
     },
     {
-        label: `Опубликовать ${currentAddon.name}`,
-        onClick: () => console.log('Опубликовать'),
+        label: t('contextMenuThemes.publish', { name: currentAddon.name }),
+        onClick: () => console.log(t('contextMenuThemes.publishLog')),
         show: false,
     },
     {
-        label: 'Откатиться до версии с сервера',
-        onClick: () => console.log('Откат'),
+        label: t('contextMenuThemes.rollback'),
+        onClick: () => console.log(t('contextMenuThemes.rollbackLog')),
         show: false,
     },
     {
-        label: `Удалить ${currentAddon.name}`,
+        label: t('contextMenuThemes.delete', { name: currentAddon.name }),
         onClick: () => {
-            const confirmation = window.confirm(`Вы уверены, что хотите удалить тему "${currentAddon.name}"? Это действие нельзя будет отменить.`)
+            const confirmation = window.confirm(t('contextMenuThemes.deleteConfirm', { name: currentAddon.name }))
             if (confirmation) {
                 const themeDirPath = currentAddon.path
                 window.desktopEvents
                     .invoke(MainEvents.DELETE_ADDON_DIRECTORY, themeDirPath)
                     .then(() => {
                         window.refreshAddons()
-                        console.log(`Тема "${currentAddon.name}" и связанные файлы удалены.`)
+                        console.log(t('contextMenuThemes.deleteSuccess', { name: currentAddon.name }))
                     })
                     .catch(error => {
-                        console.error(`Ошибка при удалении темы "${currentAddon.name}":`, error)
+                        console.error(t('contextMenuThemes.deleteError', { name: currentAddon.name }), error)
                     })
             }
         },

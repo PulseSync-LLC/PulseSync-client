@@ -1,0 +1,146 @@
+.main_window {
+    display: flex;
+    overflow: hidden;
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    justify-content: center;
+    padding: 20px 40px;
+    border-radius: 16px 16px 0 0;
+    align-items: center;
+    position: absolute;
+    bottom: 0;
+
+    .img1 {
+        pointer-events: none;
+        position: absolute;
+        top: -130px;
+        left: -120px;
+        rotate: -21deg;
+    }
+
+    .img2 {
+        pointer-events: none;
+        position: absolute;
+        bottom: -640px;
+        left: -540px;
+        rotate: -21deg;
+    }
+
+    .img3 {
+        pointer-events: none;
+        position: absolute;
+        right: -150px;
+        bottom: -180px;
+        rotate: 48deg;
+    }
+
+    .img4 {
+        pointer-events: none;
+        position: absolute;
+        right: -550px;
+        top: -330px;
+        rotate: 355deg;
+    }
+
+    .filter {
+        pointer-events: none;
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        mix-blend-mode: color-burn;
+    }
+
+    .background {
+        pointer-events: none;
+
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        left: 0;
+        top: 0;
+        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        mix-blend-mode: lighten;
+    }
+
+    .container {
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        align-items: center;
+        padding: 0px;
+        gap: 15px;
+        width: -webkit-fill-available;
+        height: -webkit-fill-available;
+
+        .logoName {
+            pointer-events: none;
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            align-self: center;
+            position: absolute;
+            height: -webkit-fill-available;
+            left: 0;
+            right: 0;
+            top: 0;
+            bottom: 0;
+            justify-content: center;
+        }
+
+        .discordAuth {
+            cursor: pointer;
+            transition: var(--transition);
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 16px 22px;
+            gap: 10px;
+            background: rgba(22, 24, 30, 0.7);
+            border-radius: 8px;
+            width: 360px;
+            font-weight: 900;
+            font-size: 14px;
+            line-height: 110%;
+            color: #ffffff;
+            border: none;
+
+            &:disabled {
+                opacity: 0.3 !important;
+
+                &:hover {
+                    background: rgba(22, 24, 30, 0.7);
+                    cursor: not-allowed;
+                }
+            }
+
+            &:hover {
+                background: rgba(36, 46, 75, 0.7);
+            }
+        }
+
+        .terms {
+            width: 360px;
+
+            font-weight: 600;
+            font-size: 12px;
+            line-height: 140%;
+            text-align: center;
+
+            color: #ffffff;
+
+            a {
+                text-decoration: underline;
+                color: #ffe72f;
+                cursor: pointer;
+                &:hover {
+                    color: rgb(255, 69, 171);
+                }
+            }
+        }
+    }
+}

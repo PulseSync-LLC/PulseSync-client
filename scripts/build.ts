@@ -18,6 +18,7 @@ const buildOnlyInstaller = process.argv.includes('--installer') || process.argv.
 const buildApplication = process.argv.includes('--application') || process.argv.includes('-app')
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
+const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -25,11 +26,13 @@ const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
 if (publishIndex !== -1) {
     if (process.argv.length > publishIndex + 1) {
-        const candidate = process.argv[publishIndex + 1]
-        if (['beta', 'alpha', 'dev'].includes(candidate)) {
+        const candidate = process.argv[publishIndex + 1].trim().toLowerCase()
+        if (/^[a-z0-9][a-z0-9-]*$/u.test(candidate)) {
             publishBranch = candidate
         } else {
-            console.error(chalk.red(`[ERROR] Invalid publish branch "${candidate}". Allowed: beta, alpha, dev.`))
+            console.error(
+                chalk.red(`[ERROR] Invalid publish branch "${candidate}". Use only letters, numbers, and dashes (e.g. beta, alpha, dev, tests).`),
+            )
             process.exit(1)
         }
     } else {
@@ -89,6 +92,18 @@ function generateBuildInfo(): { version: string } {
     return { version: newVersion }
 }
 
+function getProductNameFromConfig(): string {
+    const builderBase = path.resolve(__dirname, '../electron-builder.yml')
+    try {
+        const cfgRaw = fs.readFileSync(builderBase, 'utf-8')
+        const cfg = yaml.load(cfgRaw) as any
+        if (cfg && typeof cfg.productName === 'string') {
+            return cfg.productName
+        }
+    } catch {}
+    return 'PulseSync'
+}
+
 async function runCommandStep(name: string, command: string): Promise<void> {
     log(LogLevel.INFO, `Running step "${name}"…`)
     const start = performance.now()
@@ -127,13 +142,28 @@ function applyConfigFromEnv() {
     }
 }
 
-function setConfigDevFalse() {
+function ensureNodeHeapForMac(): void {
+    if (os.platform() !== 'darwin') return
+    const currentOptions = process.env.NODE_OPTIONS ?? ''
+    if (/--max-old-space-size=\d+/u.test(currentOptions)) {
+        return
+    }
+    const defaultHeapMb = 6144
+    const nextOptions = `${currentOptions} --max-old-space-size=${defaultHeapMb}`.trim()
+    process.env.NODE_OPTIONS = nextOptions
+    log(LogLevel.WARN, `NODE_OPTIONS not set; defaulting to "${nextOptions}" to avoid macOS OOMs`)
+}
+
+function setConfigDevFalse(branch?: string) {
     const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
-    content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
+    if (branch !== 'dev') {
+        content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
+    }
     fs.writeFileSync(configPath, content, 'utf-8')
-    log(LogLevel.SUCCESS, `Set isDev and isDevmark to false in web_config.ts`)
+    const devmarkStatus = branch === 'dev' ? ' (isDevmark kept for dev branch)' : ''
+    log(LogLevel.SUCCESS, `Set isDev to false in web_config.ts${devmarkStatus}`)
 }
 
 function setConfigBranch(branch: string) {
@@ -150,6 +180,7 @@ async function main(): Promise<void> {
         await publishPatchNotesToDiscord()
         return
     }
+    ensureNodeHeapForMac()
     log(LogLevel.INFO, `CONFIG_JSON length: ${process.env.CONFIG_JSON?.length}`)
     log(LogLevel.INFO, `RENDERER_CONFIG length: ${process.env.RENDERER_CONFIG?.length}`)
     applyConfigFromEnv()
@@ -173,39 +204,65 @@ async function main(): Promise<void> {
         const nmDir = path.resolve(__dirname, '../nativeModules')
         log(LogLevel.INFO, `Building native modules in ${nmDir}`)
         const modules = fs.readdirSync(nmDir).filter(name => fs.statSync(path.join(nmDir, name)).isDirectory())
+        const windowsOnlyModules = new Set(['checkAccess'])
         for (const mod of modules) {
             const fullPath = path.join(nmDir, mod)
+            const packageJsonPath = path.join(fullPath, 'package.json')
+            if (!fs.existsSync(packageJsonPath)) {
+                log(LogLevel.WARN, `Skipping native module "${mod}" (package.json not found)`)
+                continue
+            }
+            if (os.platform() !== 'win32' && windowsOnlyModules.has(mod)) {
+                log(LogLevel.WARN, `Skipping native module "${mod}" (Windows-only)`)
+                continue
+            }
             await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)
         }
         log(LogLevel.SUCCESS, 'All native modules built successfully')
     }
 
     if (!buildNativeModules && buildOnlyInstaller && !publishBranch) {
+        const productName = getProductNameFromConfig()
         const pdPath =
             os.platform() === 'darwin'
                 ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
 
-        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}"`)
+        const builderBase = path.resolve(__dirname, '../electron-builder.yml')
+        const baseYml = fs.readFileSync(builderBase, 'utf-8')
+        const configObj = yaml.load(baseYml) as any
+        if (os.platform() === 'darwin') {
+            configObj.dmg = configObj.dmg || {}
+            configObj.dmg.contents = [
+                { x: 130, y: 220, type: 'file', path: path.resolve(pdPath, `${productName}.app`) },
+                { x: 410, y: 220, type: 'link', path: '/Applications' },
+            ]
+        }
+        const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
+        const tmpPath = path.join(os.tmpdir(), tmpName)
+        fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
+
+        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}" --config "${tmpPath}"`)
+        fs.unlinkSync(tmpPath)
         log(LogLevel.SUCCESS, 'Done')
         return
     }
 
     if (buildApplication) {
-        if (publishBranch && publishBranch === 'beta' && os.platform() !== 'darwin') {
-            setConfigDevFalse()
-            const appUpdateConfig = {
-                provider: 'generic',
-                url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
-                channel: 'latest',
-                updaterCacheDirName: 'pulsesyncapp-updater',
-                useMultipleRangeRequest: true,
+        if (publishBranch) {
+            setConfigDevFalse(publishBranch)
+            if (os.platform() !== 'darwin') {
+                const appUpdateConfig = {
+                    provider: 'generic',
+                    url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
+                    channel: 'latest',
+                    updaterCacheDirName: 'pulsesyncapp-updater',
+                    useMultipleRangeRequest: true,
+                }
+                const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
+                fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
+                log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
             }
-            const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
-            fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
-            log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
-        } else if (publishBranch && publishBranch === 'beta' && os.platform() === 'darwin') {
-            setConfigDevFalse()
         }
 
         const baseOutDir = path.join('.', 'out')
@@ -238,13 +295,7 @@ async function main(): Promise<void> {
             copyNodes(nativeDir)
 
             if (os.platform() === 'linux') {
-                const builderBaseForName = path.resolve(__dirname, '../electron-builder.yml')
-                let productNameFromYml = 'PulseSync'
-                try {
-                    const cfgRaw = fs.readFileSync(builderBaseForName, 'utf-8')
-                    const cfg = yaml.load(cfgRaw) as any
-                    if (cfg && typeof cfg.productName === 'string') productNameFromYml = cfg.productName
-                } catch {}
+                const productNameFromYml = getProductNameFromConfig()
 
                 const currentBinUpper = path.join(outDir, productNameFromYml)
                 const targetBinLower = path.join(outDir, desiredLinuxExeName)
@@ -289,6 +340,15 @@ async function main(): Promise<void> {
             configObj.extraMetadata.version = version
         }
 
+        if (os.platform() === 'darwin') {
+            const productName = getProductNameFromConfig()
+            configObj.dmg = configObj.dmg || {}
+            configObj.dmg.contents = [
+                { x: 130, y: 220, type: 'file', path: path.resolve(outDir, `${productName}.app`) },
+                { x: 410, y: 220, type: 'link', path: '/Applications' },
+            ]
+        }
+
         const tmpName = `builder-override-${crypto.randomBytes(4).toString('hex')}.yml`
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
@@ -319,7 +379,9 @@ async function main(): Promise<void> {
             if (os.platform() === 'darwin') {
                 await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
             }
-            await publishChangelogToApi(version)
+            if (publishChangelogFlag) {
+                await publishChangelogToApi(version)
+            }
         }
         log(LogLevel.SUCCESS, 'All steps completed successfully')
     }
