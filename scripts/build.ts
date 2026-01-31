@@ -104,20 +104,6 @@ function getProductNameFromConfig(): string {
     return 'PulseSync'
 }
 
-function ensureLinuxExecutableName(targetDir: string, desiredName: string, productName: string): void {
-    if (os.platform() !== 'linux') return
-    const currentBinUpper = path.join(targetDir, productName)
-    const targetBinLower = path.join(targetDir, desiredName)
-    try {
-        if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
-            fs.renameSync(currentBinUpper, targetBinLower)
-            log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredName}`)
-        }
-    } catch (e: any) {
-        log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
-    }
-}
-
 async function runCommandStep(name: string, command: string): Promise<void> {
     log(LogLevel.INFO, `Running step "${name}"…`)
     const start = performance.now()
@@ -210,7 +196,6 @@ async function main(): Promise<void> {
         log(LogLevel.INFO, `Mac target arch: ${macX64Build ? 'x64' : 'arm64'}`)
     }
 
-    const desiredLinuxExeName = 'pulsesync'
     const branchForConfig = publishBranch ?? 'beta'
     setConfigBranch(branchForConfig)
 
@@ -245,7 +230,7 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
-        ensureLinuxExecutableName(pdPath, desiredLinuxExeName, productName)
+
         if (os.platform() === 'darwin') {
             configObj.dmg = configObj.dmg || {}
             configObj.dmg.contents = [
@@ -308,11 +293,6 @@ async function main(): Promise<void> {
                 })
             }
             copyNodes(nativeDir)
-
-            if (os.platform() === 'linux') {
-                const productNameFromYml = getProductNameFromConfig()
-                ensureLinuxExecutableName(outDir, desiredLinuxExeName, productNameFromYml)
-            }
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
