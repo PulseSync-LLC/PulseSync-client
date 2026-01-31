@@ -9,7 +9,7 @@ const forgeConfig: ForgeConfig = {
     packagerConfig: {
         icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
         name: 'PulseSync',
-        executableName: 'PulseSync',
+        executableName: process.platform === 'linux' ? 'pulsesync' : 'PulseSync',
         appCopyright: `Copyright (C) ${new Date().getFullYear()} ИП «Деднев Григорий Дмитриевич»`,
         asar: {
             unpack: '**/.vite/renderer/**/static/assets/icon/**',
