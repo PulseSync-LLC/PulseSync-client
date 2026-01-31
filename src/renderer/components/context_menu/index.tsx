@@ -10,7 +10,7 @@ import { MdFolderOpen } from 'react-icons/md'
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import store from '../../api/store/store'
-import { openModal } from '../../api/store/modalSlice'
+import { openModal, setLinuxAsarPath } from '../../api/store/modalSlice'
 import { useTranslation } from 'react-i18next'
 
 interface ContextMenuProps {
@@ -44,6 +44,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const openAppDirectory = () => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
+    }
+
+    const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
+
+    const resetAsarPath = () => {
+        if (!window.electron.isLinux()) return
+        window.electron.store.set('settings.modSavePath', '')
+        store.dispatch(setLinuxAsarPath(null))
+        toast.custom('success', t('common.doneTitle'), t('contextMenu.mod.resetAsarPathSuccess'))
     }
 
     const showLoadingToast = (event: any, message: string) => {
@@ -391,6 +400,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 label: t('contextMenu.mod.clearCache'),
                 onClick: clearModCache,
             },
+            ...(window.electron.isLinux()
+                ? [
+                      {
+                          label: t('contextMenu.mod.resetAsarPath'),
+                          onClick: resetAsarPath,
+                          disabled: !canResetAsarPath,
+                      },
+                  ]
+                : []),
             createToggleButton(t('contextMenu.mod.showChangelog'), app.settings.showModModalAfterInstall, () =>
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
