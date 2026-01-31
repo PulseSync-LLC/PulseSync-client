@@ -17,7 +17,7 @@ import { t } from '../../i18n'
 
 const State = getState()
 
-const ACTIVITY_THROTTLE_MS = 3000
+const ACTIVITY_THROTTLE_MS = 2000
 
 let previousActivity: SetActivity | undefined
 let pendingActivity: SetActivity | undefined
@@ -25,9 +25,11 @@ let pendingActivity: SetActivity | undefined
 let reconnectTimeout: ReturnType<typeof setTimeout> | undefined
 let isReconnecting = false
 let reconnectAttempts = 0
-const baseBackoffMs = 5000
-const maxBackoffMs = 60000
-const connectTimeoutMs = 15000
+const baseBackoffMs = 3000
+const maxBackoffMs = 30000
+const connectTimeoutMs = 10000
+const fastRetryDelayMs = 2000
+const fastRetryAttempts = 3
 
 let clientId: string
 let client: Client | null
@@ -54,6 +56,9 @@ const activityThrottler = new Throttler<SetActivity>(ACTIVITY_THROTTLE_MS, activ
 })
 
 function computeBackoffDelay() {
+    if (reconnectAttempts < fastRetryAttempts) {
+        return fastRetryDelayMs
+    }
     const exp = Math.min(maxBackoffMs, Math.floor(baseBackoffMs * Math.pow(2, reconnectAttempts)))
     const jitter = Math.floor(Math.random() * Math.max(500, Math.floor(exp / 4)))
     return exp + jitter
@@ -201,7 +206,7 @@ async function rpc_connect() {
             type: 'info',
         })
         isConnecting = false
-        startReconnectLoop(5000)
+        startReconnectLoop(3000)
         return
     }
 
@@ -227,7 +232,7 @@ async function rpc_connect() {
             return
         }
         isConnecting = false
-        startReconnectLoop()
+        startReconnectLoop(fastRetryDelayMs)
     })
 
     clearConnectTimeout()
@@ -236,7 +241,7 @@ async function rpc_connect() {
         if (!rpcConnected) {
             logger.discordRpc.warn('rpc_connect timeout, retrying')
             isConnecting = false
-            startReconnectLoop()
+            startReconnectLoop(fastRetryDelayMs)
         }
     }, connectTimeoutMs)
 
@@ -275,7 +280,7 @@ async function rpc_connect() {
         previousActivity = undefined
         logger.discordRpc.info('Disconnected')
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.disconnected'), type: 'info' })
-        startReconnectLoop()
+        startReconnectLoop(fastRetryDelayMs)
     })
 
     client.on('error', async e => {
@@ -301,7 +306,7 @@ async function rpc_connect() {
             updateAppId(String(reserve))
             return
         }
-        startReconnectLoop()
+        startReconnectLoop(fastRetryDelayMs)
     })
 
     client.on('close', () => {
@@ -312,7 +317,7 @@ async function rpc_connect() {
         previousActivity = undefined
         logger.discordRpc.info('Connection closed')
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.connectionClosed'), type: 'info' })
-        startReconnectLoop()
+        startReconnectLoop(fastRetryDelayMs)
     })
 }
 
