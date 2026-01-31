@@ -6,7 +6,7 @@ on:
       target:
         description: "Choose build branch"
         required: true
-        default: "2.10.0"
+        default: "dev"
       build_os:
         description: "Choose OS to build"
         required: true
