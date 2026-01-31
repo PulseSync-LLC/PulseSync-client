@@ -752,6 +752,11 @@
         "downloaded": "Обновление загружено",
         "downloadingLabel": "Загрузка",
         "downloadingTitle": "Скачивание обновления",
+        "macInstallBodyDmg": "Откройте смонтированный диск и перетащите PulseSync в Applications, чтобы заменить старую версию.",
+        "macInstallBodyZip": "Откройте распакованную папку и перетащите PulseSync в Applications, чтобы заменить старую версию.",
+        "macInstallOpenApplications": "Открыть Applications",
+        "macInstallOpenFinder": "Открыть в Finder",
+        "macInstallTitle": "Завершите установку обновления",
         "notFoundMessage": "Обновлений не найдено",
         "notFoundTitle": "Эвана как..."
     },

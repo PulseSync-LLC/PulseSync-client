@@ -1,10 +1,12 @@
 import React from 'react'
-import PulseSyncDialog from './PulseSyncDialog'
-import YandexMusicUpdateDialog from './YandexMusicUpdateDialog'
+import PulseSyncDialog from './modals/PulseSyncDialog'
+import YandexMusicUpdateDialog from './modals/YandexMusicUpdateDialog'
+import MacUpdateDialog from './modals/MacUpdateDialog'
 
 const ModalContainer: React.FC = () => {
     return (
         <>
+            <MacUpdateDialog />
             <PulseSyncDialog />
             <YandexMusicUpdateDialog />
         </>

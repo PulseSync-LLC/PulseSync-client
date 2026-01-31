@@ -5,7 +5,7 @@ import { Provider } from 'react-redux'
 import store from './api/store/store'
 import client from './api/apolloClient'
 import { ApolloProvider } from '@apollo/client/react'
-import ModalContainer from './components/layout/ModalContainer'
+import ModalContainer from './components/modalContainer/ModalContainer'
 import './i18n'
 
 function App() {

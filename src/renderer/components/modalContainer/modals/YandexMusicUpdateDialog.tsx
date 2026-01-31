@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import CustomModalPS from '../PSUI/CustomModalPS'
-import toast from '../toast'
+import CustomModalPS from '../../PSUI/CustomModalPS'
+import toast from '../../toast'
 import { useTranslation } from 'react-i18next'
 
 const YandexMusicUpdateDialog: React.FC = () => {

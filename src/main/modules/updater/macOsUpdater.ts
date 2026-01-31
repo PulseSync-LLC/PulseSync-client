@@ -1,4 +1,4 @@
-import { app, dialog, shell, Notification } from 'electron'
+import { app } from 'electron'
 import axios from 'axios'
 import * as fs from 'fs'
 import * as path from 'path'
@@ -36,7 +36,6 @@ export type MacUpdaterOptions = {
     appName?: string
     downloadsDir?: string
     attemptAutoInstall?: boolean
-    openFinderOnMount?: boolean
     onStatus?: (status: UpdateStatus) => void
     onProgress?: (percent: number) => void
     onLog?: (message: string) => void
@@ -48,6 +47,12 @@ type PickedAsset = {
     fileType: 'dmg' | 'zip'
     sha256?: string
     sha512?: string
+}
+
+export type MacUpdateInstallInfo = {
+    type: 'dmg' | 'zip'
+    openPath: string
+    appBundlePath?: string | null
 }
 
 export class MacOSUpdater extends EventEmitter {
@@ -101,27 +106,6 @@ export class MacOSUpdater extends EventEmitter {
         }
         this.currentManifest = manifest
         return manifest
-    }
-
-    async promptAndUpdate(manifest?: MacUpdateManifest) {
-        const m = manifest ?? (await this.checkForUpdates())
-        if (!m) return
-        const urgency = m.updateUrgency ?? UpdateUrgency.SOFT
-        const buttons = [t('main.common.download'), t('main.common.later')]
-        const detail = `${t('main.macUpdater.updateAvailableDetail', { version: m.version })}${m.releaseNotes ? `\n\n${m.releaseNotes}` : ''}`
-        const res = await dialog.showMessageBox({
-            type: urgency === UpdateUrgency.HARD ? 'warning' : 'info',
-            buttons,
-            defaultId: 0,
-            cancelId: 1,
-            title: t('main.macUpdater.updateAvailableTitle'),
-            message: t('main.macUpdater.updateAvailableMessage', { version: m.version }),
-            detail,
-        })
-        if (res.response === 0) {
-            await this.downloadUpdate(m)
-            await this.installUpdate(m)
-        }
     }
 
     async downloadUpdate(manifest?: MacUpdateManifest) {
@@ -218,79 +202,47 @@ export class MacOSUpdater extends EventEmitter {
         return `${name}-${m.version}-${asset.arch}.${asset.fileType}`
     }
 
-    async installUpdate(manifest?: MacUpdateManifest) {
+    async installUpdate(manifest?: MacUpdateManifest): Promise<MacUpdateInstallInfo> {
         const m = manifest ?? this.currentManifest
         if (!m) throw new Error(t('main.macUpdater.manifestNotFound'))
         const filePath = this.downloadedFile
         if (!filePath) throw new Error(t('main.macUpdater.updateFileNotDownloaded'))
         const fileType: 'dmg' | 'zip' = filePath.toLowerCase().endsWith('.zip') ? 'zip' : 'dmg'
         if (fileType === 'dmg') {
-            await this.installFromDMG(filePath, m)
-        } else {
-            await this.installFromZIP(filePath, m)
+            return this.installFromDMG(filePath)
         }
+        return this.installFromZIP(filePath, m)
     }
 
-    private async installFromDMG(dmgPath: string, m: MacUpdateManifest) {
+    private async installFromDMG(dmgPath: string): Promise<MacUpdateInstallInfo> {
         const { stdout } = await this.runWithOutput('hdiutil', ['attach', dmgPath, '-nobrowse'])
         const mountPoint = this.extractVolume(stdout)
         if (!mountPoint) {
             throw new Error(t('main.macUpdater.dmgVolumeNotFound'))
         }
         const appBundle = await this.findAppBundle(mountPoint)
-        if (!appBundle) {
-            if (this.options.openFinderOnMount !== false) {
-                await shell.openPath(mountPoint)
-            }
-            await dialog.showMessageBox({
-                type: 'info',
-                message: t('main.macUpdater.openMountedImageTitle'),
-                detail: t('main.macUpdater.openMountedImageDetail'),
-            })
-            return
-        }
-        if (this.options.attemptAutoInstall) {
+        if (appBundle && this.options.attemptAutoInstall) {
             await this.copyAndRelaunch(appBundle)
-        } else {
-            if (this.options.openFinderOnMount !== false) {
-                await shell.openPath(mountPoint)
-            }
-            new Notification({
-                title: t('main.macUpdater.readyToInstallTitle'),
-                body: t('main.macUpdater.readyToInstallBody'),
-            }).show()
-            await dialog.showMessageBox({
-                type: 'info',
-                buttons: [t('main.common.ok')],
-                message: t('main.macUpdater.readyToInstallTitle'),
-                detail: t('main.macUpdater.readyToInstallDetail'),
-            })
+        }
+        return {
+            type: 'dmg',
+            openPath: mountPoint,
+            appBundlePath: appBundle,
         }
     }
 
-    private async installFromZIP(zipPath: string, m: MacUpdateManifest) {
+    private async installFromZIP(zipPath: string, m: MacUpdateManifest): Promise<MacUpdateInstallInfo> {
         const unzipDir = path.join(path.dirname(zipPath), `${this.options.appName || app.getName()}-${m.version}-unzipped`)
         await fs.promises.mkdir(unzipDir, { recursive: true })
         await this.runWithOutput('ditto', ['-x', '-k', zipPath, unzipDir])
         const appBundle = await this.findAppBundle(unzipDir)
-        if (!appBundle) {
-            await shell.openPath(unzipDir)
-            await dialog.showMessageBox({
-                type: 'info',
-                message: t('main.macUpdater.unzippedTitle'),
-                detail: t('main.macUpdater.unzippedDetail'),
-            })
-            return
-        }
-        if (this.options.attemptAutoInstall) {
+        if (appBundle && this.options.attemptAutoInstall) {
             await this.copyAndRelaunch(appBundle)
-        } else {
-            await shell.openPath(unzipDir)
-            await dialog.showMessageBox({
-                type: 'info',
-                message: t('main.macUpdater.readyToInstallTitle'),
-                detail: t('main.macUpdater.readyToInstallDetail'),
-            })
+        }
+        return {
+            type: 'zip',
+            openPath: unzipDir,
+            appBundlePath: appBundle,
         }
     }
 

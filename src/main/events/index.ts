@@ -55,7 +55,6 @@ const macUpdater = isMac()
           manifestUrl: macManifestUrl,
           appName: 'PulseSync',
           attemptAutoInstall: false,
-          openFinderOnMount: true,
           onProgress: p => {
               try {
                   if (mainWindow) {
@@ -278,6 +277,16 @@ const registerFileOperations = (window: BrowserWindow): void => {
 
     ipcMain.on(MainEvents.OPEN_PATH, async (_event, data: any) => {
         switch (data.action) {
+            case 'openApplications': {
+                await shell.openPath('/Applications')
+                break
+            }
+            case 'openPath': {
+                if (typeof data.path === 'string' && data.path.trim().length > 0) {
+                    await shell.openPath(data.path)
+                }
+                break
+            }
             case 'appPath': {
                 const appPath = app.getAppPath()
                 const pulseSyncPath = path.resolve(appPath, '../..')
@@ -476,7 +485,10 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
         if (isMac()) {
             try {
-                await macUpdater?.installUpdate()
+                const installInfo = await macUpdater?.installUpdate()
+                if (installInfo && mainWindow) {
+                    mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
+                }
             } catch (e: any) {
                 logger.updater.error(`macOS install error: ${e?.message || e}`)
             }
@@ -805,14 +817,19 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
-            const m = await macUpdater?.checkForUpdates()
-            if (m) {
+            const macUpdaterInstance = await macUpdater?.checkForUpdates()
+            if (macUpdaterInstance) {
                 mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
                 updateAvailable = true
                 try {
-                    await macUpdater?.downloadUpdate(m)
+                    await macUpdater?.downloadUpdate(macUpdaterInstance)
                     mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                    if (hard) await macUpdater?.installUpdate(m)
+                    if (hard) {
+                        const installInfo = await macUpdater?.installUpdate(macUpdaterInstance)
+                        if (installInfo && mainWindow) {
+                            mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
+                        }
+                    }
                 } catch (e: any) {
                     logger.updater.error(`macOS download/install error: ${e?.message || e}`)
                     try {

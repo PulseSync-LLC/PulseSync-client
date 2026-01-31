@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents from '../../../common/types/rendererEvents'
-import toast from '../toast'
-import CustomModalPS from '../PSUI/CustomModalPS'
+import MainEvents from '../../../../common/types/mainEvents'
+import RendererEvents from '../../../../common/types/rendererEvents'
+import toast from '../../toast'
+import CustomModalPS from '../../PSUI/CustomModalPS'
 import { useTranslation } from 'react-i18next'
 
 type PulseSyncAddResult = { ok: true; message: string } | { ok: false; message: string }

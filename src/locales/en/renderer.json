@@ -752,6 +752,11 @@
         "downloaded": "Update downloaded",
         "downloadingLabel": "Downloading",
         "downloadingTitle": "Downloading update",
+        "macInstallBodyDmg": "Open the mounted disk and drag PulseSync to Applications to replace the old version.",
+        "macInstallBodyZip": "Open the extracted folder and drag PulseSync to Applications to replace the old version.",
+        "macInstallOpenApplications": "Open Applications",
+        "macInstallOpenFinder": "Open in Finder",
+        "macInstallTitle": "Finish installing the update",
         "notFoundMessage": "No updates found",
         "notFoundTitle": "No updates"
     },
