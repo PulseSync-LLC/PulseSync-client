@@ -16,7 +16,6 @@ on:
           - ubuntu-latest
           - windows-latest
           - macos-latest
-          - macos-15-intel
         default: all
       upload_to_s3:
         description: "Upload release/ to S3 after build"
@@ -60,7 +59,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os != 'all' && format('["{0}"]', inputs.build_os) || '["ubuntu-latest","windows-latest","macos-latest", "macos-15-intel"]') }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
       - uses: actions/checkout@v5
