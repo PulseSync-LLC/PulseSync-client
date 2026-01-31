@@ -38,7 +38,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
+    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
         useContext(userContext)
     const { t } = useTranslation()
 
@@ -55,6 +55,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const toastReference = useRef<string | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
+
+    const isUserDeveloper = useCallback(() => {
+        return user?.perms === 'developer' || isDev
+    }, [user])
 
     useEffect(() => {
         const serverRaw = modInfo[0]?.modVersion
@@ -396,7 +400,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
-                            {isDev && (
+                            {isUserDeveloper() && (
                                 <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
                                     <MdHandyman size={24} />
                                 </NavButtonPulse>
