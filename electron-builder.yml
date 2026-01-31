@@ -90,7 +90,6 @@ linux:
     entry:
       Name: PulseSync
       Comment: PulseSync App with Yandex Music Mod
-      Exec: pulsesync
       Icon: pulsesync
       Terminal: false
       Type: Application

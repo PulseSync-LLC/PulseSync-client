@@ -104,6 +104,20 @@ function getProductNameFromConfig(): string {
     return 'PulseSync'
 }
 
+function ensureLinuxExecutableName(targetDir: string, desiredName: string, productName: string): void {
+    if (os.platform() !== 'linux') return
+    const currentBinUpper = path.join(targetDir, productName)
+    const targetBinLower = path.join(targetDir, desiredName)
+    try {
+        if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
+            fs.renameSync(currentBinUpper, targetBinLower)
+            log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredName}`)
+        }
+    } catch (e: any) {
+        log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
+    }
+}
+
 async function runCommandStep(name: string, command: string): Promise<void> {
     log(LogLevel.INFO, `Running step "${name}"…`)
     const start = performance.now()
@@ -231,6 +245,7 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+        ensureLinuxExecutableName(pdPath, desiredLinuxExeName, productName)
         if (os.platform() === 'darwin') {
             configObj.dmg = configObj.dmg || {}
             configObj.dmg.contents = [
@@ -296,17 +311,7 @@ async function main(): Promise<void> {
 
             if (os.platform() === 'linux') {
                 const productNameFromYml = getProductNameFromConfig()
-
-                const currentBinUpper = path.join(outDir, productNameFromYml)
-                const targetBinLower = path.join(outDir, desiredLinuxExeName)
-                try {
-                    if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
-                        fs.renameSync(currentBinUpper, targetBinLower)
-                        log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredLinuxExeName}`)
-                    }
-                } catch (e: any) {
-                    log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
-                }
+                ensureLinuxExecutableName(outDir, desiredLinuxExeName, productNameFromYml)
             }
         }
 
