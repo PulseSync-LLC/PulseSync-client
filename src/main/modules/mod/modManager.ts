@@ -154,7 +154,7 @@ export const modManager = (window: BrowserWindow): void => {
                 }
 
                 let paths: Paths = await resolveBasePaths()
-                paths = await ensureLinuxModPath(window, paths)
+                paths = await ensureLinuxModPath(paths)
 
                 const wasClosed = await closeMusicIfRunning(window)
 
