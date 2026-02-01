@@ -7,7 +7,7 @@ import crypto from 'crypto'
 import asar from '@electron/asar'
 import logger from '../logger'
 import { getState } from '../state'
-import { AsarPatcher, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
+import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
 import { DownloadError } from './download.helpers'
 import { t } from '../../i18n'
 
@@ -42,9 +42,7 @@ export async function ensureLinuxModPath(paths: Paths): Promise<Paths> {
     if (!isLinux()) return paths
     const saved = State.get('settings.modSavePath') as string | undefined
 
-    const modAsar = saved
-        ? saved
-        : paths.defaultAsar
+    const modAsar = saved ? saved : paths.defaultAsar
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
     return { ...paths, modAsar, backupAsar }
 }
@@ -62,12 +60,11 @@ export async function ensureBackup(paths: Paths): Promise<void> {
         err.code = 'file_not_found'
         throw err
     }
-    fs.copyFileSync(source, paths.backupAsar)
+    await copyFile(source, paths.backupAsar)
     logger.modManager.info(`Backup created ${path.basename(source)} -> ${path.basename(paths.backupAsar)}`)
 }
 
 export async function writePatchedAsarAndPatchBundle(
-    window: BrowserWindow,
     savePath: string,
     rawDownloaded: Buffer,
     link: string,
@@ -92,7 +89,7 @@ export async function writePatchedAsarAndPatchBundle(
     }
     fs.writeFileSync(savePath, asarBuf)
     const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
-    let ok = false
+    let ok: boolean
     try {
         ok = await patcher.patch(() => {})
     } catch {

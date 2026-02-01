@@ -10,6 +10,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { gunzipAsync, isCompressedArchiveLink, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
 import { t } from '../../i18n'
+import { copyFile } from '../../utils/appUtils'
 import {
     sendToRenderer,
     resetProgress,
@@ -174,7 +175,6 @@ export async function downloadAndUpdateFile(
             userAgent: ua,
             progressScale,
             progressBase,
-            progressBase: 0,
             rejectUnauthorized: false,
         })
 
@@ -184,7 +184,7 @@ export async function downloadAndUpdateFile(
             try {
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
                 await fs.promises.mkdir(cacheDir, { recursive: true })
-                await fs.promises.copyFile(tempFilePath, cacheFile)
+                await copyFile(tempFilePath, cacheFile)
 
                 try {
                     const files = await fs.promises.readdir(cacheDir)
@@ -334,7 +334,7 @@ export async function downloadAndExtractUnpacked(
                         cacheFile = path.join(cacheDir, `${fileHash}${ext}`)
                     }
 
-                    await fs.promises.copyFile(tempArchivePath, cacheFile)
+                    await copyFile(tempArchivePath, cacheFile)
 
                     try {
                         const files = await fs.promises.readdir(cacheDir)

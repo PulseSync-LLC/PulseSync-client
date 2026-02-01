@@ -157,7 +157,7 @@ export async function getPathToYandexMusic(): Promise<string> {
     } else if (platform === 'win32') {
         return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
     } else if (platform === 'linux') {
-        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath)
+        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath, '..')
     }
     return ''
 }
@@ -469,6 +469,7 @@ export class AsarPatcher {
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
+        if(isLinux()) return true
         if (isWindows()) {
             const localAppData = process.env.LOCALAPPDATA
             if (!localAppData) {
@@ -659,7 +660,7 @@ export async function getInstalledYmMetadata() {
             logger.modManager.warn('getPathToYandexMusic returned empty path')
             return null
         }
-        const versionFilePath = path.join(ymDir, 'version')
+        const versionFilePath = path.join(ymDir, 'version.bin')
         if (!nativeFileExists(versionFilePath)) {
             logger.modManager.warn('version file not found in Yandex Music directory')
             return null

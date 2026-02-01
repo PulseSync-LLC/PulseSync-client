@@ -8,6 +8,7 @@ import { getState } from '../state'
 import logger from '../logger'
 import {
     closeYandexMusic,
+    copyFile,
     downloadYandexMusic,
     getInstalledYmMetadata,
     isMac,
@@ -75,7 +76,7 @@ async function tryUseCacheOrDownload(
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
         try {
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
-            await fs.promises.copyFile(cacheFile, tempFilePath)
+            await copyFile(cacheFile, tempFilePath)
             const fileBuffer = fs.readFileSync(tempFilePath)
             const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
             if (ok) {
@@ -189,8 +190,8 @@ export const modManager = (window: BrowserWindow): void => {
 
                 if (isMac()) {
                     try {
-                        await fs.promises.copyFile(paths.modAsar, paths.modAsar)
-                        await fs.promises.copyFile(paths.infoPlist, paths.infoPlist)
+                        await copyFile(paths.modAsar, paths.modAsar)
+                        await copyFile(paths.infoPlist, paths.infoPlist)
                     } catch {
                         await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
                         return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
@@ -252,16 +253,7 @@ export const modManager = (window: BrowserWindow): void => {
                             if (!ok) return
                         }
                     } else {
-                        const ok = await tryUseCacheOrDownload(
-                            window,
-                            cacheFile,
-                            tempFilePath,
-                            link,
-                            paths,
-                            checksum,
-                            CACHE_DIR,
-                            asarProgress,
-                        )
+                        const ok = await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR, asarProgress)
                         if (!ok) return
                     }
                 } else {
@@ -319,7 +311,7 @@ export const modManager = (window: BrowserWindow): void => {
                     installed: true,
                 })
 
-                const versionFilePath = path.join(paths.music, 'version')
+                const versionFilePath = path.join(paths.music, 'version.bin')
                 await fs.promises.writeFile(versionFilePath, musicVersion)
 
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
@@ -352,11 +344,10 @@ export const modManager = (window: BrowserWindow): void => {
 
             clearModState()
 
-            const versionFilePath = path.join(paths.music, 'version')
+            const versionFilePath = path.join(paths.music, 'version.bin')
             await removeVersionFile(versionFilePath)
             const unpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
             removeUnpackedDir(unpackedDir)
-
 
             await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {
