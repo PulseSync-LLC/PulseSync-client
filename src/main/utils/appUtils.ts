@@ -14,7 +14,7 @@ import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import { t } from '../i18n'
 import * as yaml from 'yaml'
-import { YM_RELEASE_METADATA_URL, YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
+import { YM_RELEASE_METADATA_URL } from '../constants/urls'
 import asar from '@electron/asar'
 import { nativeFileExists } from '../modules/nativeModules'
 
@@ -622,7 +622,11 @@ export async function getYandexMusicMetadata() {
 }
 
 export async function getLinuxInstallerUrl(): Promise<string> {
-    return YM_SETUP_DOWNLOAD_URLS.linux
+    const yml = await axios.get(YM_RELEASE_METADATA_URL)
+    const match = String(yml.data).match(/version:\s*([\d.]+)/)
+    if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
+    const version = match[1]
+    return `https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_${version}.deb`
 }
 
 function sleep(ms: number) {

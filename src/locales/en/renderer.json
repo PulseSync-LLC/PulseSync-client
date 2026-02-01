@@ -425,6 +425,7 @@
         "installUpdateTooltip": "Install update",
         "installedVersionOutdated": "Installed version ({{version}}) is outdated",
         "linuxAsarDescription": "Select the Yandex Music folder where the patched app.asar should be written.",
+        "linuxAsarMissingAsar": "app.asar was not found in the selected folder. Please pick the Yandex Music folder again.",
         "linuxAsarSelectButton": "Select Yandex Music folder",
         "linuxAsarTitle": "Custom Yandex Music folder required",
         "modInstallAlreadyRunning": "Installation already started",

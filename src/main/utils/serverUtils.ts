@@ -1,6 +1,5 @@
 import { protocol } from 'electron'
 
-
 export function registerSchemes(): void {
     protocol.registerSchemesAsPrivileged([
         {

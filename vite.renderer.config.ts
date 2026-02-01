@@ -1,4 +1,4 @@
-import { sentryVitePlugin,  } from '@sentry/vite-plugin'
+import { sentryVitePlugin } from '@sentry/vite-plugin'
 import react from '@vitejs/plugin-react-swc'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'

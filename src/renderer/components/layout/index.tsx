@@ -178,7 +178,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setIsUpdating(false)
         }
 
-
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)

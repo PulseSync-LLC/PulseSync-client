@@ -425,6 +425,7 @@
         "installUpdateTooltip": "Установить обновление",
         "installedVersionOutdated": "Установленная версия ({{version}}) устарела",
         "linuxAsarDescription": "Укажите папку Яндекс Музыки, куда нужно записать модифицированный app.asar.",
+        "linuxAsarMissingAsar": "В выбранной папке не найден app.asar. Пожалуйста, выберите папку Яндекс Музыки снова.",
         "linuxAsarSelectButton": "Выбрать папку Яндекс Музыки",
         "linuxAsarTitle": "Нужна папка Яндекс Музыки",
         "modInstallAlreadyRunning": "Установка уже запущена",

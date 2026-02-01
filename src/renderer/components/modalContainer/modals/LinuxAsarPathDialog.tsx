@@ -1,10 +1,13 @@
 import React, { useState } from 'react'
+import path from 'path'
 import { useTranslation } from 'react-i18next'
 import { useDispatch, useSelector } from 'react-redux'
 import MainEvents from '../../../../common/types/mainEvents'
+import RendererEvents from '../../../../common/types/rendererEvents'
 import { closeLinuxAsarModal, setLinuxAsarPath } from '../../../api/store/modalSlice'
 import { RootState } from '../../../api/store/store'
 import CustomModalPS from '../../PSUI/CustomModalPS'
+import toast from '../../toast'
 
 const LinuxAsarPathDialog: React.FC = () => {
     const { t } = useTranslation()
@@ -29,6 +32,12 @@ const LinuxAsarPathDialog: React.FC = () => {
             })
 
             if (selectedPath) {
+                const asarPath = path.join(selectedPath, 'app.asar')
+                const hasAsar = await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.CHECK_FILE_EXISTS, asarPath)
+                if (!hasAsar) {
+                    toast.custom('error', t('common.errorTitle'), t('layout.linuxAsarMissingAsar'))
+                    return
+                }
                 window.electron?.store?.set?.('settings.modSavePath', selectedPath)
                 dispatch(setLinuxAsarPath(selectedPath))
                 dispatch(closeLinuxAsarModal())
