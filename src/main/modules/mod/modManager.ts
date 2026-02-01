@@ -78,7 +78,7 @@ async function tryUseCacheOrDownload(
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
             await copyFile(cacheFile, tempFilePath)
             const fileBuffer = fs.readFileSync(tempFilePath)
-            const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
+            const ok = await writePatchedAsarAndPatchBundle(paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
             if (ok) {
                 logger.modManager.info('Successfully restored app.asar from cache')
                 return true

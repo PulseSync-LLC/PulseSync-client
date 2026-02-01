@@ -179,7 +179,7 @@ export async function downloadAndUpdateFile(
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)
-        const ok = await writePatchedAsarAndPatchBundle(window, savePath, fileBuffer, link, backupPath, checksum)
+        const ok = await writePatchedAsarAndPatchBundle(savePath, fileBuffer, link, backupPath, checksum)
         if (checksum && cacheDir) {
             try {
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
