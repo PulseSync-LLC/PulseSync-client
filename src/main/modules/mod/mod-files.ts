@@ -7,7 +7,7 @@ import crypto from 'crypto'
 import asar from '@electron/asar'
 import logger from '../logger'
 import { getState } from '../state'
-import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, updateIntegrityHashInExe } from '../../utils/appUtils'
+import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, resolveModAsarPath, updateIntegrityHashInExe } from '../../utils/appUtils'
 import { DownloadError } from './download.helpers'
 import { t } from '../../i18n'
 
@@ -26,8 +26,8 @@ export type Paths = {
 export async function resolveBasePaths(): Promise<Paths> {
     const musicPath = await getPathToYandexMusic()
     const defaultAsar = path.join(musicPath, 'app.asar')
-    const savedModPath = (State.get('settings.modSavePath') as string) || ''
-    const modAsar = savedModPath || defaultAsar
+    const savedModPath = State.get('settings.modSavePath') as string | undefined
+    const modAsar = resolveModAsarPath(musicPath, savedModPath)
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
     const infoPlistPath = path.join(musicPath, '..', 'Info.plist')
     return { music: musicPath, defaultAsar, modAsar, backupAsar, infoPlist: infoPlistPath }
@@ -41,8 +41,7 @@ export function isCompressedArchiveLink(link: string): boolean {
 export async function ensureLinuxModPath(paths: Paths): Promise<Paths> {
     if (!isLinux()) return paths
     const saved = State.get('settings.modSavePath') as string | undefined
-
-    const modAsar = saved ? saved : paths.defaultAsar
+    const modAsar = resolveModAsarPath(paths.music, saved)
     const backupAsar = modAsar.replace(/\.asar$/, '.backup.asar')
     return { ...paths, modAsar, backupAsar }
 }

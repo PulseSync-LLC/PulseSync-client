@@ -23,6 +23,19 @@ const execFileAsync = promisify(execFile)
 
 const State = getState()
 
+export const normalizeModSaveDir = (customPath?: string): string | null => {
+    if (!customPath) return null
+    const trimmed = customPath.trim()
+    if (!trimmed) return null
+    const ext = path.extname(trimmed).toLowerCase()
+    return ext === '.asar' ? path.dirname(trimmed) : trimmed
+}
+
+export const resolveModAsarPath = (musicPath: string, customPath?: string): string => {
+    const baseDir = normalizeModSaveDir(customPath) || musicPath
+    return path.join(baseDir, 'app.asar')
+}
+
 interface ProcessInfo {
     pid: number
 }
@@ -151,13 +164,13 @@ export async function openExternalDetached(url: string) {
 
 export async function getPathToYandexMusic(): Promise<string> {
     const platform = os.platform()
-    const customSavePath = State.get('settings.modSavePath')
+    const customSavePath = normalizeModSaveDir(State.get('settings.modSavePath') as string | undefined)
     if (platform === 'darwin') {
         return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
     } else if (platform === 'win32') {
         return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
     } else if (platform === 'linux') {
-        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath, '..')
+        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : customSavePath
     }
     return ''
 }
@@ -469,7 +482,7 @@ export class AsarPatcher {
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
-        if(isLinux()) return true
+        if (isLinux()) return true
         if (isWindows()) {
             const localAppData = process.env.LOCALAPPDATA
             if (!localAppData) {

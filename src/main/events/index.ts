@@ -332,6 +332,15 @@ const registerFileOperations = (window: BrowserWindow): void => {
         return path.normalize(filePaths[0])
     })
 
+    ipcMain.handle(MainEvents.DIALOG_OPEN_DIRECTORY, async (_evt, opts?: { defaultPath?: string }) => {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openDirectory'],
+            defaultPath: opts?.defaultPath,
+        })
+        if (canceled || !filePaths.length) return null
+        return path.normalize(filePaths[0])
+    })
+
     ipcMain.handle(MainEvents.DIALOG_SAVE_FILE, async (_evt, opts?: { filters?: Electron.FileFilter[]; defaultPath?: string }) => {
         const { canceled, filePath } = await dialog.showSaveDialog({
             filters: opts?.filters,

@@ -23,10 +23,9 @@ const LinuxAsarPathDialog: React.FC = () => {
 
         try {
             const storedPath = window.electron?.store?.get?.('settings.modSavePath') as string | undefined
-            const defaultPath = storedPath || '/opt/Яндекс Музыка/app.asar'
-            const selectedPath = await window.desktopEvents?.invoke(MainEvents.DIALOG_SAVE_FILE, {
+            const defaultPath = storedPath || '/opt/Яндекс Музыка'
+            const selectedPath = await window.desktopEvents?.invoke(MainEvents.DIALOG_OPEN_DIRECTORY, {
                 defaultPath,
-                filters: [{ name: 'ASAR Files', extensions: ['asar'] }],
             })
 
             if (selectedPath) {
