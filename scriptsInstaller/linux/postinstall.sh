@@ -6,7 +6,7 @@ MIME_XML_PATH="/usr/share/mime/packages/pulsesync.xml"
 MIME_DB_DIR="/usr/share/mime"
 DESKTOP_FILE="pulsesync.desktop"
 ICON_SRC="${APP_DIR}/resources/assets/pext/pext.png"
-ICON_DEST_DIR="/usr/share/icons/hicolor/256x256/mimetypes"
+ICON_DEST_DIR="/usr/share/icons/hicolor/1024x1024/mimetypes"
 ICON_NAME="application-x-pext.png"
 
 if [[ -d "${APP_DIR}" ]]; then
@@ -24,6 +24,7 @@ cat > "${MIME_XML_PATH}" <<'EOF'
   <mime-type type="application/x-pext">
     <comment>PulseSync extension</comment>
     <glob pattern="*.pext"/>
+    <icon name="application-x-pext"/>
   </mime-type>
 </mime-info>
 EOF
@@ -42,7 +43,7 @@ fi
 
 if [[ -f "${ICON_SRC}" ]]; then
   if command -v xdg-icon-resource >/dev/null 2>&1; then
-    xdg-icon-resource install --context mimetypes --size 256 "${ICON_SRC}" application-x-pext || true
+    xdg-icon-resource install --context mimetypes --size 1024 "${ICON_SRC}" application-x-pext || true
   else
     install -Dm644 "${ICON_SRC}" "${ICON_DEST_DIR}/${ICON_NAME}"
   fi
