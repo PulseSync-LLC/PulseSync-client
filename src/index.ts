@@ -164,8 +164,8 @@ const safeJson = (obj: any) => {
         return String(obj ?? '')
     }
 }
-const resolveInputPath = (p0: string): string => {
-    if (!p0) return ''
+const getInputPathCandidates = (p0: string): string[] => {
+    if (!p0) return []
     const list: string[] = []
     if (p0.startsWith('file://')) {
         try {
@@ -192,10 +192,15 @@ const resolveInputPath = (p0: string): string => {
         } catch {}
         variants.add(norm.replace(/^["']|["']$/g, ''))
     }
-    for (const c of variants) {
-        return c
+    return Array.from(variants)
+}
+
+const resolveInputPath = (p0: string): string => {
+    const variants = getInputPathCandidates(p0)
+    for (const candidate of variants) {
+        if (fs.existsSync(candidate)) return candidate
     }
-    return norm
+    return variants[0] || ''
 }
 export const readBufResilient = async (p0: string): Promise<Buffer> => {
     if (!p0) throw new Error('empty path')
@@ -248,13 +253,15 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
         switch (eventType) {
             case RendererEvents.CHECK_FILE_EXISTS: {
                 if (!filePath) return false
-                try {
-                    const p = resolveInputPath(filePath)
-                    await fsp.access(p, fs.constants.F_OK)
-                    return true
-                } catch {
-                    return false
+                const candidates = getInputPathCandidates(filePath)
+                for (const candidate of candidates) {
+                    try {
+                        if (fs.existsSync(candidate)) return true
+                        await fsp.access(candidate, fs.constants.F_OK)
+                        return true
+                    } catch {}
                 }
+                return false
             }
 
             case RendererEvents.READ_FILE: {

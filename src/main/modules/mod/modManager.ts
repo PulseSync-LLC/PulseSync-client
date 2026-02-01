@@ -32,6 +32,9 @@ import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
 
 const State = getState()
+const PROGRESS_ASAR_ONLY = { base: 0, scale: 1, resetOnComplete: true }
+const PROGRESS_ASAR_WITH_UNPACKED = { base: 0, scale: 0.6, resetOnComplete: false }
+const PROGRESS_UNPACKED = { base: 0.6, scale: 0.4, resetOnComplete: true }
 
 try {
     const currentVersion = app.getVersion()
@@ -91,6 +94,29 @@ async function tryUseCacheOrDownload(
         }
     }
     return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress)
+}
+
+async function ensureCacheDir(dir: string): Promise<void> {
+    try {
+        await fs.promises.mkdir(dir, { recursive: true })
+    } catch (err) {
+        logger.modManager.warn('Failed to create cache dir:', err)
+    }
+}
+
+function readChecksum(filePath: string): string | null {
+    try {
+        const buf = fs.readFileSync(filePath)
+        return crypto.createHash('sha256').update(buf).digest('hex')
+    } catch (err: any) {
+        logger.modManager.warn('Failed to verify existing file:', err)
+        return null
+    }
+}
+
+function markUnpackedProgress(window: BrowserWindow): void {
+    setProgress(window, 0.6)
+    sendProgress(window, 60)
 }
 
 function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'version_too_new' | 'unknown' {
@@ -201,51 +227,31 @@ export const modManager = (window: BrowserWindow): void => {
                 const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
 
                 const hasUnpacked = Boolean(unpackLink)
-                const asarProgress = hasUnpacked ? { base: 0, scale: 0.6, resetOnComplete: false } : { base: 0, scale: 1, resetOnComplete: true }
-                const unpackedProgress = hasUnpacked ? { base: 0.6, scale: 0.4, resetOnComplete: true } : undefined
+                const asarProgress = hasUnpacked ? PROGRESS_ASAR_WITH_UNPACKED : PROGRESS_ASAR_ONLY
+                const unpackedProgress = hasUnpacked ? PROGRESS_UNPACKED : undefined
 
                 if (checksum) {
                     const cacheFile = path.join(CACHE_DIR, `${checksum}.asar`)
-                    try {
-                        await fs.promises.mkdir(CACHE_DIR, { recursive: true })
-                    } catch (err) {
-                        logger.modManager.warn('Failed to create cache dir:', err)
-                    }
+                    await ensureCacheDir(CACHE_DIR)
 
-                    if (nativeFileExists(paths.modAsar) || fs.existsSync(paths.modAsar)) {
-                        try {
-                            const buf = fs.readFileSync(paths.modAsar)
-                            const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
-                            if (currentHash === checksum) {
-                                logger.modManager.info('app.asar hash matches, skipping download')
-                                sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
-                                if (hasUnpacked) {
-                                    setProgress(window, 0.6)
-                                    sendProgress(window, 60)
-                                } else {
-                                    resetProgress(window)
-                                }
+                    const modAsarExists = nativeFileExists(paths.modAsar) || fs.existsSync(paths.modAsar)
+                    if (modAsarExists) {
+                        const currentHash = readChecksum(paths.modAsar)
+                        if (currentHash === checksum) {
+                            logger.modManager.info('app.asar hash matches, skipping download')
+                            sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
+                            if (hasUnpacked) {
+                                markUnpackedProgress(window)
                             } else {
-                                const ok = await tryUseCacheOrDownload(
-                                    window,
-                                    cacheFile,
-                                    tempFilePath,
-                                    link,
-                                    paths,
-                                    checksum,
-                                    CACHE_DIR,
-                                    asarProgress,
-                                )
-                                if (!ok) return
+                                resetProgress(window)
                             }
-                        } catch (e: any) {
-                            logger.modManager.warn('Failed to verify existing file:', e)
-                            const ok = await downloadAndUpdateFile(
+                        } else {
+                            const ok = await tryUseCacheOrDownload(
                                 window,
-                                link,
+                                cacheFile,
                                 tempFilePath,
-                                paths.modAsar,
-                                paths.backupAsar,
+                                link,
+                                paths,
                                 checksum,
                                 CACHE_DIR,
                                 asarProgress,
@@ -271,8 +277,7 @@ export const modManager = (window: BrowserWindow): void => {
                 }
 
                 if (unpackLink) {
-                    setProgress(window, 0.6)
-                    sendProgress(window, 60)
+                    markUnpackedProgress(window)
 
                     const unpackName = path.basename(new URL(unpackLink).pathname)
                     const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')

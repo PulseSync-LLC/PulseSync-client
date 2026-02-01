@@ -22,9 +22,95 @@ import {
 } from './download.helpers'
 
 const UNPACKED_MARKER_FILE = '.pulsesync_unpacked_checksum'
+const USER_AGENT = () =>
+    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
 
 function sha256Hex(buf: Buffer): string {
     return crypto.createHash('sha256').update(buf).digest('hex')
+}
+
+async function ensureDir(dir: string): Promise<void> {
+    try {
+        await fs.promises.mkdir(dir, { recursive: true })
+    } catch (err) {
+        logger.modManager.warn('Failed to create cache dir:', err)
+    }
+}
+
+async function pruneCacheFiles(cacheDir: string, keepFile: string, matcher: (file: string) => boolean, warnLabel: string) {
+    try {
+        const files = await fs.promises.readdir(cacheDir)
+        const keepName = path.basename(keepFile)
+        for (const file of files) {
+            if (file === keepName) continue
+            if (!matcher(file)) continue
+            try {
+                await fs.promises.unlink(path.join(cacheDir, file))
+            } catch (e) {
+                logger.modManager.warn(warnLabel, file, e)
+            }
+        }
+    } catch (e) {
+        logger.modManager.warn('Failed to cleanup cache:', e)
+    }
+}
+
+function readCachedArchive(cacheFile: string, checksum?: string): Buffer | null {
+    if (!fs.existsSync(cacheFile)) return null
+    try {
+        const cached = fs.readFileSync(cacheFile)
+        if (checksum) {
+            const cachedHash = sha256Hex(cached)
+            if (cachedHash !== checksum) {
+                logger.modManager.warn('Cached archive hash mismatch, redownloading')
+                try {
+                    fs.rmSync(cacheFile, { force: true })
+                } catch {}
+                return null
+            }
+        }
+        return cached
+    } catch (e) {
+        logger.modManager.warn('Failed to read cached archive, redownloading:', e)
+        return null
+    }
+}
+
+async function decompressArchive(rawArchive: Buffer, lowerPath: string): Promise<Buffer> {
+    if (lowerPath.endsWith('.zst') || lowerPath.endsWith('.zstd')) {
+        return (await zstdDecompressAsync(rawArchive as any)) as Buffer
+    }
+    if (lowerPath.endsWith('.gz')) {
+        return await gunzipAsync(rawArchive)
+    }
+    return rawArchive
+}
+
+function tryReplaceDir(
+    sourceDir: string,
+    targetDir: string,
+    tempExtractPath: string,
+): { ok: true } | { ok: false; error: any; stage: 'move' | 'copy' } {
+    try {
+        fs.renameSync(sourceDir, targetDir)
+
+        if (sourceDir !== tempExtractPath) {
+            fs.rmSync(tempExtractPath, { recursive: true, force: true })
+        }
+        return { ok: true }
+    } catch (err: any) {
+        if (err?.code !== 'EXDEV') {
+            return { ok: false, error: err, stage: 'move' }
+        }
+    }
+
+    try {
+        fs.cpSync(sourceDir, targetDir, { recursive: true })
+        fs.rmSync(tempExtractPath, { recursive: true, force: true })
+        return { ok: true }
+    } catch (copyErr: any) {
+        return { ok: false, error: copyErr, stage: 'copy' }
+    }
 }
 
 export async function checkModCompatibility(
@@ -162,8 +248,6 @@ export async function downloadAndUpdateFile(
             }
         }
 
-        const ua = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
-
         const progressBase = progress?.base ?? 0
         const progressScale = progress?.scale ?? 1
 
@@ -172,7 +256,7 @@ export async function downloadAndUpdateFile(
             url: link,
             tempFilePath,
             expectedChecksum: checksum,
-            userAgent: ua,
+            userAgent: USER_AGENT(),
             progressScale,
             progressBase,
             rejectUnauthorized: false,
@@ -183,24 +267,14 @@ export async function downloadAndUpdateFile(
         if (checksum && cacheDir) {
             try {
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
-                await fs.promises.mkdir(cacheDir, { recursive: true })
+                await ensureDir(cacheDir)
                 await copyFile(tempFilePath, cacheFile)
-
-                try {
-                    const files = await fs.promises.readdir(cacheDir)
-                    for (const f of files) {
-                        if (f === path.basename(cacheFile)) continue
-                        if (f.toLowerCase().endsWith('.asar')) {
-                            try {
-                                await fs.promises.unlink(path.join(cacheDir, f))
-                            } catch (e) {
-                                logger.modManager.warn('Failed to remove old asar cache:', f, e)
-                            }
-                        }
-                    }
-                } catch (e: any) {
-                    logger.modManager.warn('Failed to cleanup old asar cache:', e)
-                }
+                await pruneCacheFiles(
+                    cacheDir,
+                    cacheFile,
+                    file => file.toLowerCase().endsWith('.asar'),
+                    'Failed to remove old asar cache:',
+                )
             } catch (e: any) {
                 logger.modManager.warn('Failed to cache mod:', e)
             }
@@ -270,42 +344,25 @@ export async function downloadAndExtractUnpacked(
             }
         }
 
-        const ua = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
-
         unlinkIfExists(tempArchivePath)
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
 
         const pathname = new URL(link).pathname
         const ext = path.extname(pathname) || '.zip'
+        const extLower = ext.toLowerCase()
         let rawArchive: Buffer | null = null
 
         let cacheFile: string | null = null
 
         if (cacheDir) {
-            try {
-                await fs.promises.mkdir(cacheDir, { recursive: true })
-            } catch (err) {
-                logger.modManager.warn('Failed to create cache dir:', err)
-            }
+            await ensureDir(cacheDir)
 
             if (checksum) {
                 cacheFile = path.join(cacheDir, `${checksum}${ext}`)
-                if (fs.existsSync(cacheFile)) {
-                    try {
-                        const cached = fs.readFileSync(cacheFile)
-                        const cachedHash = sha256Hex(cached)
-                        if (cachedHash === checksum) {
-                            logger.modManager.info('Using cached unpacked archive')
-                            rawArchive = cached
-                        } else {
-                            logger.modManager.warn('Cached unpacked archive hash mismatch, redownloading')
-                            try {
-                                fs.rmSync(cacheFile, { force: true })
-                            } catch {}
-                        }
-                    } catch (e) {
-                        logger.modManager.warn('Failed to read cached unpacked, redownloading:', e)
-                    }
+                const cached = readCachedArchive(cacheFile, checksum)
+                if (cached) {
+                    logger.modManager.info('Using cached unpacked archive')
+                    rawArchive = cached
                 }
             }
         }
@@ -318,7 +375,7 @@ export async function downloadAndExtractUnpacked(
                 window,
                 url: link,
                 tempFilePath: tempArchivePath,
-                userAgent: ua,
+                userAgent: USER_AGENT(),
                 progressScale,
                 progressBase,
                 rejectUnauthorized: false,
@@ -335,22 +392,7 @@ export async function downloadAndExtractUnpacked(
                     }
 
                     await copyFile(tempArchivePath, cacheFile)
-
-                    try {
-                        const files = await fs.promises.readdir(cacheDir)
-                        for (const f of files) {
-                            if (f === path.basename(cacheFile)) continue
-                            if (ext && f.toLowerCase().endsWith(ext.toLowerCase())) {
-                                try {
-                                    await fs.promises.unlink(path.join(cacheDir, f))
-                                } catch (e) {
-                                    logger.modManager.warn('Failed to remove old unpacked cache:', f, e)
-                                }
-                            }
-                        }
-                    } catch (e: any) {
-                        logger.modManager.warn('Failed to cleanup old unpacked cache:', e)
-                    }
+                    await pruneCacheFiles(cacheDir, cacheFile, file => file.toLowerCase().endsWith(extLower), 'Failed to remove old unpacked cache:')
                 } catch (e: any) {
                     logger.modManager.warn('Failed to cache unpacked archive:', e)
                 }
@@ -358,15 +400,7 @@ export async function downloadAndExtractUnpacked(
         }
 
         const lowerPath = pathname.toLowerCase()
-        let zipBuffer: Buffer
-
-        if (lowerPath.endsWith('.zst') || lowerPath.endsWith('.zstd')) {
-            zipBuffer = (await zstdDecompressAsync(rawArchive as any)) as Buffer
-        } else if (lowerPath.endsWith('.gz')) {
-            zipBuffer = await gunzipAsync(rawArchive)
-        } else {
-            zipBuffer = rawArchive as Buffer
-        }
+        const zipBuffer = await decompressArchive(rawArchive as Buffer, lowerPath)
 
         extractZipBuffer(zipBuffer, tempExtractPath)
 
@@ -375,27 +409,12 @@ export async function downloadAndExtractUnpacked(
         fs.rmSync(targetPath, { recursive: true, force: true })
         fs.mkdirSync(path.dirname(targetPath), { recursive: true })
 
-        try {
-            fs.renameSync(extractedRoot, targetPath)
-
-            if (extractedRoot !== tempExtractPath) {
-                fs.rmSync(tempExtractPath, { recursive: true, force: true })
-            }
-        } catch (err: any) {
-            if (err?.code !== 'EXDEV') {
-                logger.modManager.error('Failed to move unpacked dir:', err)
-                sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedMoveError'), type: 'download_unpacked_error' })
-                return false
-            }
-
-            try {
-                fs.cpSync(extractedRoot, targetPath, { recursive: true })
-                fs.rmSync(tempExtractPath, { recursive: true, force: true })
-            } catch (copyErr: any) {
-                logger.modManager.error('Failed to copy unpacked dir:', copyErr)
-                sendFailure(window, { error: copyErr?.message || t('main.modNetwork.unpackedCopyError'), type: 'download_unpacked_error' })
-                return false
-            }
+        const moved = tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
+        if (!moved.ok) {
+            const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
+            logger.modManager.error('Failed to replace unpacked dir:', moved.error)
+            sendFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' })
+            return false
         }
 
         if (checksum) {
