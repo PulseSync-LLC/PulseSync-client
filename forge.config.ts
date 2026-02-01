@@ -91,6 +91,10 @@ const forgeConfig: ForgeConfig = {
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')
             fs.mkdirSync(iconDestination, { recursive: true })
             fs.cpSync(iconSource, iconDestination, { recursive: true })
+            const pextIconSource = path.resolve(__dirname, 'icons', 'pext')
+            const pextIconDestination = path.join(resourcesPath, 'assets', 'pext')
+            fs.mkdirSync(pextIconDestination, { recursive: true })
+            fs.cpSync(pextIconSource, pextIconDestination, { recursive: true })
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },
