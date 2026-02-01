@@ -158,14 +158,23 @@ export async function createWindow(): Promise<void> {
         'src/renderer/index.html',
         'src/renderer/index.html',
     ).catch(console.error)
-    mainWindow.once('ready-to-show', () => {
-        preloaderWindow.close()
-        preloaderWindow.destroy()
+    let mainWindowReadyHandled = false
+    const handleMainWindowReady = () => {
+        if (mainWindowReadyHandled) {
+            return
+        }
+        mainWindowReadyHandled = true
+        if (!preloaderWindow.isDestroyed()) {
+            preloaderWindow.close()
+            preloaderWindow.destroy()
+        }
         if (!State.get('settings.autoStartInTray')) {
             mainWindow.show()
             mainWindow.moveTop()
         }
-    })
+    }
+    mainWindow.once('ready-to-show', handleMainWindowReady)
+    mainWindow.webContents.once('did-finish-load', handleMainWindowReady)
 
     mainWindow.webContents.on('before-input-event', (e, input) => {
         if (input.control && (input.key === '+' || input.key === '-')) {
