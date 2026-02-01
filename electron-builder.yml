@@ -109,6 +109,7 @@ rpm:
     - libXtst
     - nss
     - xdg-utils
+  afterInstall: scriptsInstaller/linux/postinstall.sh
 
 deb:
   depends:
@@ -125,3 +126,4 @@ deb:
     - libayatana-appindicator3-1 | libappindicator3-1
   compression: xz
   priority: optional
+  afterInstall: scriptsInstaller/linux/postinstall.sh
