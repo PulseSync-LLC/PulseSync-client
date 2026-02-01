@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "2.10.1-beta",
+    "version": "2.10.2-beta",
     "main": ".vite/main/index.js",
     "scripts": {
         "start": "electron-forge start",
