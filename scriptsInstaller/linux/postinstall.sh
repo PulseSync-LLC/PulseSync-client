@@ -8,6 +8,7 @@ DESKTOP_FILE="pulsesync.desktop"
 ICON_SRC="${APP_DIR}/resources/assets/pext/pext.png"
 ICON_DEST_DIR="/usr/share/icons/hicolor/1024x1024/mimetypes"
 ICON_NAME="application-x-pext.png"
+BIN_LINK="/usr/bin/pulsesync"
 
 if [[ -d "${APP_DIR}" ]]; then
   chmod -R a+rX "${APP_DIR}"
@@ -15,6 +16,10 @@ if [[ -d "${APP_DIR}" ]]; then
 
   if [[ -f "${APP_DIR}/pulsesync" ]]; then
     chmod a+rx "${APP_DIR}/pulsesync"
+    if [[ -L "${BIN_LINK}" || -f "${BIN_LINK}" ]]; then
+      rm -f "${BIN_LINK}"
+    fi
+    ln -s "${APP_DIR}/pulsesync" "${BIN_LINK}"
   fi
 fi
 
