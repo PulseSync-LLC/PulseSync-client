@@ -67,9 +67,9 @@ nsis:
 
 linux:
   target:
-    - AppImage
-    - deb
-    - rpm
+#    - AppImage
+     - deb
+#    - rpm
   category: AudioVideo
   icon: ./icons/icon.png
   executableName: pulsesync
