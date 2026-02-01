@@ -21,6 +21,11 @@ if [[ -d "${APP_DIR}" ]]; then
     fi
     ln -s "${APP_DIR}/pulsesync" "${BIN_LINK}"
   fi
+
+  if [[ -f "${APP_DIR}/chrome-sandbox" ]]; then
+    chown root:root "${APP_DIR}/chrome-sandbox" || true
+    chmod 4755 "${APP_DIR}/chrome-sandbox" || true
+  fi
 fi
 
 cat > "${MIME_XML_PATH}" <<'EOF'
