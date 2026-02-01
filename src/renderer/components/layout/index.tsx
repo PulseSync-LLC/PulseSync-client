@@ -178,20 +178,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setIsUpdating(false)
         }
 
-        const handleUpdateAvailable = () => {
-            setUpdate(true)
-        }
 
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)
-        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
 
         return () => {
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_PROGRESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_SUCCESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.UPDATE_AVAILABLE)
             ;(window as any).__listenersAdded = false
         }
     }, [app.mod.installed, app.settings.showModModalAfterInstall, dispatch, modInfo, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])

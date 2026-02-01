@@ -1091,6 +1091,10 @@ function App() {
             setUpdate(true)
         }
 
+        const handleUpdateAvailable = () => {
+            setUpdate(true)
+        }
+
         window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, handleRpcState)
         window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
         window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
@@ -1110,6 +1114,7 @@ function App() {
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
+        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
 
         const loadSettings = async () => {
             await fetchSettings(setApp)
@@ -1117,14 +1122,21 @@ function App() {
         loadSettings()
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.RPC_LOG)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
+            const cleanupEvents = [
+                RendererEvents.RPC_LOG,
+                RendererEvents.DISCORD_RPC_STATE,
+                RendererEvents.CHECK_MOD_UPDATE,
+                RendererEvents.CLIENT_READY,
+                RendererEvents.DOWNLOAD_UPDATE_PROGRESS,
+                RendererEvents.DOWNLOAD_UPDATE_FAILED,
+                RendererEvents.DOWNLOAD_UPDATE_FINISHED,
+                RendererEvents.CHECK_UPDATE,
+                RendererEvents.UPDATE_AVAILABLE,
+            ]
+
+            cleanupEvents.forEach(event => {
+                window.desktopEvents?.removeAllListeners(event)
+            })
         }
     }, [fetchModInfo, onRpcLog])
 
