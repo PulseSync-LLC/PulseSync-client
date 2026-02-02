@@ -18,7 +18,7 @@ export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
 }
 
 export const openAuthCallback = (navigate: NavigateFunction) => {
-    window.open(config.WEBSITE_URL + '/callback')
+    window.open(config.WEBSITE_URL + '/callback?source=app')
     navigate('/auth/callback', { replace: true })
 }
 
