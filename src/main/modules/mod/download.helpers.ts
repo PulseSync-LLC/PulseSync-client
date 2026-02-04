@@ -19,7 +19,7 @@ export function setProgress(window: BrowserWindow | null | undefined, frac: numb
 }
 
 export function resetProgress(window: BrowserWindow | null | undefined) {
-    window?.setProgressBar(-1)
+    setProgress(window, -1)
 }
 
 export function sendProgress(window: BrowserWindow | null | undefined, progress: number) {
@@ -47,10 +47,8 @@ export function restoreBackupIfExists(savePath: string, backupPath: string) {
 }
 
 export class DownloadError extends Error {
-    code: 'network' | 'checksum_mismatch' | 'writer_error' | 'unknown'
-    constructor(message: string, code: 'network' | 'checksum_mismatch' | 'writer_error' | 'unknown' = 'unknown') {
+    constructor(message: string, public code: 'network' | 'checksum_mismatch' | 'writer_error' | 'unknown' = 'unknown') {
         super(message)
-        this.code = code
     }
 }
 

@@ -76,11 +76,11 @@ function readCachedArchive(cacheFile: string, checksum?: string): Buffer | null 
     }
 }
 
-async function decompressArchive(rawArchive: Buffer, lowerPath: string): Promise<Buffer> {
-    if (lowerPath.endsWith('.zst') || lowerPath.endsWith('.zstd')) {
+async function decompressArchive(rawArchive: Buffer, extLower: string): Promise<Buffer> {
+    if (extLower === '.zst' || extLower === '.zstd') {
         return (await zstdDecompressAsync(rawArchive as any)) as Buffer
     }
-    if (lowerPath.endsWith('.gz')) {
+    if (extLower === '.gz') {
         return await gunzipAsync(rawArchive)
     }
     return rawArchive
@@ -145,16 +145,13 @@ export async function checkModCompatibility(
 }
 
 function isZipBuffer(buf: Buffer): boolean {
-    if (!buf || buf.length < 4) return false
-    const a = buf[0]
-    const b = buf[1]
-    const c = buf[2]
-    const d = buf[3]
-    const isPK = a === 0x50 && b === 0x4b
-    const isLocal = c === 0x03 && d === 0x04
-    const isEmpty = c === 0x05 && d === 0x06
-    const isSpanned = c === 0x07 && d === 0x08
-    return isPK && (isLocal || isEmpty || isSpanned)
+    return (
+        !!buf &&
+        buf.length >= 4 &&
+        buf[0] === 0x50 &&
+        buf[1] === 0x4b &&
+        ((buf[2] === 0x03 && buf[3] === 0x04) || (buf[2] === 0x05 && buf[3] === 0x06) || (buf[2] === 0x07 && buf[3] === 0x08))
+    )
 }
 
 function extractZipBuffer(zipBuffer: Buffer, destination: string): void {
@@ -248,17 +245,14 @@ export async function downloadAndUpdateFile(
             }
         }
 
-        const progressBase = progress?.base ?? 0
-        const progressScale = progress?.scale ?? 1
-
         await downloadToTempWithProgress({
             window,
             url: link,
             tempFilePath,
             expectedChecksum: checksum,
             userAgent: USER_AGENT(),
-            progressScale,
-            progressBase,
+            progressScale: progress?.scale ?? 1,
+            progressBase: progress?.base ?? 0,
             rejectUnauthorized: false,
         })
 
@@ -368,16 +362,13 @@ export async function downloadAndExtractUnpacked(
         }
 
         if (!rawArchive) {
-            const progressBase = progress?.base ?? 0
-            const progressScale = progress?.scale ?? 1
-
             await downloadToTempWithProgress({
                 window,
                 url: link,
                 tempFilePath: tempArchivePath,
                 userAgent: USER_AGENT(),
-                progressScale,
-                progressBase,
+                progressScale: progress?.scale ?? 1,
+                progressBase: progress?.base ?? 0,
                 rejectUnauthorized: false,
                 expectedChecksum: checksum,
             })
@@ -399,8 +390,7 @@ export async function downloadAndExtractUnpacked(
             }
         }
 
-        const lowerPath = pathname.toLowerCase()
-        const zipBuffer = await decompressArchive(rawArchive as Buffer, lowerPath)
+        const zipBuffer = await decompressArchive(rawArchive as Buffer, extLower)
 
         extractZipBuffer(zipBuffer, tempExtractPath)
 

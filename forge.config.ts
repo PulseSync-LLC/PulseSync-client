@@ -78,6 +78,7 @@ const forgeConfig: ForgeConfig = {
                     case 'author':
                     case 'devDependencies':
                     case 'homepage':
+                    case 'buildInfo':
                         break
                     default:
                         delete pkg[key]

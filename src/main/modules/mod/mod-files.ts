@@ -1,4 +1,3 @@
-import { BrowserWindow } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
 import * as zlib from 'node:zlib'
@@ -51,10 +50,8 @@ export async function ensureBackup(paths: Paths): Promise<void> {
         logger.modManager.info(`Backup already exists: ${path.basename(paths.backupAsar)}`)
         return
     }
-    let source: string | null = null
-    if (fs.existsSync(paths.modAsar)) source = paths.modAsar
-    else if (fs.existsSync(paths.defaultAsar)) source = paths.defaultAsar
-    if (!source) {
+    const source = fs.existsSync(paths.modAsar) ? paths.modAsar : fs.existsSync(paths.defaultAsar) ? paths.defaultAsar : null
+    if (source === null) {
         const err: any = new Error(t('main.modFiles.asarNotFound', { name: path.basename(paths.modAsar) }))
         err.code = 'file_not_found'
         throw err
@@ -72,11 +69,10 @@ export async function writePatchedAsarAndPatchBundle(
 ): Promise<boolean> {
     let asarBuf: Buffer = rawDownloaded
     const ext = path.extname(new URL(link).pathname).toLowerCase()
-    const isCompressed = ext === '.gz' || ext === '.zst' || ext === '.zstd'
     if (ext === '.gz') asarBuf = await gunzipAsync(rawDownloaded)
     else if (ext === '.zst' || ext === '.zstd') asarBuf = (await zstdDecompressAsync(rawDownloaded as any)) as any
     if (expectedChecksum) {
-        const checksumTarget = isCompressed ? rawDownloaded : asarBuf
+        const checksumTarget = ext === '.gz' || ext === '.zst' || ext === '.zstd' ? rawDownloaded : asarBuf
         const actualHash = crypto.createHash('sha256').update(checksumTarget).digest('hex')
         if (actualHash !== expectedChecksum) {
             console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${checksumTarget.length} bytes, URL: ${link}`)
