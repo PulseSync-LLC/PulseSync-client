@@ -693,7 +693,7 @@
         "confirmButton": "Да, добавить",
         "description": "Если вы испытываете трудности с доступностью PulseSync (приложение не подключается, долго загружается или работает нестабильно), можно добавить домены в конфиг zapret.",
         "subText": "Записи pulsesync.dev сейчас нет. Добавить автоматически?",
-        "subTextWithPath": "Файл конфигурации: {{path}}. Записи pulsesync.dev там сейчас нет. Добавить автоматически?",
+        "subTextWithPath": "Файл конфигурации:\n{{path}}\nНе хватает записей PulseSync (pulsesync.dev, ru-node-1.pulsesync.dev, worker.pulsesync.dev). Добавить автоматически?",
         "title": "Обнаружен запущенный zapret"
     },
     "yandexMusicDialog": {

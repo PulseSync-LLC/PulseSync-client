@@ -23,6 +23,8 @@ type PulseSyncAddResult = { ok: true; message: string } | { ok: false; message: 
 
 const pendingListGeneralByWebContentsId = new Map<number, string>()
 
+const REQUIRED_PULSESYNC_HOSTS = ['pulsesync.dev', 'ru-node-1.pulsesync.dev', 'worker.pulsesync.dev']
+
 function normalizeOutput(s: string): string {
     return (s ?? '')
         .replace(/^\uFEFF/, '')
@@ -139,7 +141,7 @@ async function tryGetZapretServiceInfoViaSc(serviceName: string): Promise<Zapret
             ProcessId: Number.isFinite(pid) ? pid : undefined,
             PathName: pathName,
         }
-    } catch (err) {
+    } catch {
         return null
     }
 }
@@ -250,7 +252,6 @@ function normalizeAndValidateListGeneralPath(p: string): string | null {
         .map(x => x.toLowerCase())
 
     if (!dirParts.includes('lists')) return null
-
     if (!path.isAbsolute(normalized)) return null
 
     return normalized
@@ -275,59 +276,73 @@ async function getListGeneralPathBestEffort(): Promise<string | null> {
     return p
 }
 
+function detectEol(content: string): '\r\n' | '\n' {
+    return content.includes('\r\n') ? '\r\n' : '\n'
+}
+
+async function getMissingPulseSyncEntries(listGeneralPath: string, requiredHosts = REQUIRED_PULSESYNC_HOSTS): Promise<string[]> {
+    const fileExistsFlag = fileExists(listGeneralPath)
+    if (!fileExistsFlag) {
+        logger.main.warn(`File does not exist: ${listGeneralPath}`)
+        return requiredHosts.slice()
+    }
+
+    const content = await fsp.readFile(listGeneralPath, 'utf-8')
+    const lines = splitNonEmptyLines(content)
+    const normalized = new Set(lines.map(l => l.trim().toLowerCase()))
+
+    return requiredHosts.filter(h => !normalized.has(h))
+}
+
 async function hasPulseSyncEntry(listGeneralPath: string): Promise<boolean> {
     try {
-        const fileExistsFlag = fso.existsSync(listGeneralPath)
-        if (!fileExistsFlag) {
-            logger.main.warn(`File does not exist: ${listGeneralPath}`)
-            return false
+        const missing = await getMissingPulseSyncEntries(listGeneralPath, REQUIRED_PULSESYNC_HOSTS)
+
+        if (missing.length === 0) {
+            logger.main.info(`All PulseSync entries found: ${REQUIRED_PULSESYNC_HOSTS.join(', ')}`)
+            return true
         }
 
-        const content = await fsp.readFile(listGeneralPath, 'utf-8')
-        const lines = splitNonEmptyLines(content)
-        const hasPulseSync = lines.some(line => line.toLowerCase() === 'pulsesync.dev')
-        const hasRuNode = lines.some(line => line.toLowerCase() === 'ru-node-1.pulsesync.dev')
-
-        logger.main.info(`pulsesync.dev ${hasPulseSync ? 'found' : 'not found'}, ru-node-1.pulsesync.dev ${hasRuNode ? 'found' : 'not found'}`)
-        return hasPulseSync && hasRuNode
+        logger.main.info(`Missing PulseSync entries (${missing.length}): ${missing.join(', ')}`)
+        return false
     } catch (error) {
         logger.main.error('Error checking pulsesync entries in list-general.txt:', error)
         return false
     }
 }
 
-function detectEol(content: string): '\r\n' | '\n' {
-    return content.includes('\r\n') ? '\r\n' : '\n'
-}
-
 async function addPulseSyncEntry(listGeneralPath: string): Promise<boolean> {
     try {
         let content = ''
-        const fileExistsFlag = fso.existsSync(listGeneralPath)
+        const fileExistsFlag = fileExists(listGeneralPath)
 
         if (fileExistsFlag) {
             content = await fsp.readFile(listGeneralPath, 'utf-8')
-            const lines = splitNonEmptyLines(content)
-            const hasPulseSync = lines.some(line => line.toLowerCase() === 'pulsesync.dev')
-            const hasRuNode = lines.some(line => line.toLowerCase() === 'ru-node-1.pulsesync.dev')
+            const missing = await getMissingPulseSyncEntries(listGeneralPath, REQUIRED_PULSESYNC_HOSTS)
 
-            if (hasPulseSync && hasRuNode) {
-                logger.main.info('Both pulsesync.dev and ru-node-1.pulsesync.dev already present, skip write')
+            if (missing.length === 0) {
+                logger.main.info(`${REQUIRED_PULSESYNC_HOSTS.join(', ')} already present, skip write`)
                 return true
             }
+
+            const eol = detectEol(content)
+
+            if (content && !content.endsWith('\n') && !content.endsWith('\r\n')) {
+                content += eol
+            }
+
+            content += missing.map(h => `${h}${eol}`).join('')
+
+            await fsp.writeFile(listGeneralPath, content, 'utf-8')
+            logger.main.info(`Successfully added missing entries to list-general.txt: ${missing.join(', ')}`)
+            return true
         }
 
         const eol = detectEol(content)
-
-        if (content && !content.endsWith('\n') && !content.endsWith('\r\n')) {
-            content += eol
-        }
-
-        content += `pulsesync.dev${eol}`
-        content += `ru-node-1.pulsesync.dev${eol}`
+        content = REQUIRED_PULSESYNC_HOSTS.map(h => `${h}${eol}`).join('')
 
         await fsp.writeFile(listGeneralPath, content, 'utf-8')
-        logger.main.info('Successfully added pulsesync.dev and ru-node-1.pulsesync.dev to list-general.txt')
+        logger.main.info(`Successfully created list-general.txt with entries: ${REQUIRED_PULSESYNC_HOSTS.join(', ')}`)
         return true
     } catch (error) {
         logger.main.error('Error adding pulsesync entries to list-general.txt:', error)
@@ -396,7 +411,7 @@ export function setupPulseSyncDialogHandler(): void {
 
 export async function checkAndAddPulseSyncOnStartup(mainWindow: BrowserWindow): Promise<void> {
     try {
-        logger.main.info('Starting zapret/winws and pulsesync.dev check...')
+        logger.main.info('Starting zapret/winws and PulseSync entries check...')
 
         const listGeneralPath = await getListGeneralPathBestEffort()
         if (!listGeneralPath) {
@@ -410,15 +425,16 @@ export async function checkAndAddPulseSyncOnStartup(mainWindow: BrowserWindow): 
             return
         }
 
-        logger.main.debug(`Checking pulsesync.dev in: ${validated}`)
-        const hasPulseSync = await hasPulseSyncEntry(validated)
+        logger.main.debug(`Checking PulseSync entries in: ${validated}`)
+        const missing = await getMissingPulseSyncEntries(validated, REQUIRED_PULSESYNC_HOSTS)
 
-        if (!hasPulseSync) {
-            logger.main.info('pulsesync.dev not found, showing add dialog')
+        if (missing.length > 0) {
+            logger.main.info(`Missing PulseSync entries (${missing.length}): ${missing.join(', ')}, showing add dialog`)
             await showAddPulseSyncDialog(mainWindow, validated)
-        } else {
-            logger.main.info('pulsesync.dev already present in list-general.txt')
+            return
         }
+
+        logger.main.info('All PulseSync entries already present in list-general.txt')
     } catch (error) {
         logger.main.warn('Error in checkAndAddPulseSyncOnStartup (continuing anyway):', error)
     }

@@ -693,7 +693,7 @@
         "confirmButton": "Yes, add",
         "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
         "subText": "The pulsesync.dev entry is missing. Add automatically?",
-        "subTextWithPath": "Config file: {{path}}. The pulsesync.dev entry is missing. Add automatically?",
+        "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
         "title": "Detected running zapret"
     },
     "yandexMusicDialog": {

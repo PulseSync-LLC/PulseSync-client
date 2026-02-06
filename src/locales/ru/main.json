@@ -98,7 +98,7 @@
         "hostFile": {
             "entriesAddError": "Произошла ошибка при добавлении записей",
             "entriesAddFailed": "Не удалось добавить записи в список",
-            "entriesAdded": "pulsesync.dev и ru-node-1.pulsesync.dev успешно добавлены в список",
+            "entriesAdded": "Записи успешно добавлены в список",
             "invalidListGeneralPath": "Некорректный путь list-general.txt",
             "noPendingListGeneralPath": "Нет ожидающего пути list-general.txt для этого окна"
         },

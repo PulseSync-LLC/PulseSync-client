@@ -53,6 +53,9 @@
     margin: 0;
     color: #ffffff;
     align-self: stretch;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-line;
 }
 
 .buttonsWrapper {
