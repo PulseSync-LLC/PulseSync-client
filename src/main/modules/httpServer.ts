@@ -506,6 +506,7 @@ const handleBrowserAuth = async (payload: any, client: Socket) => {
         State.set('tokens.token', token)
         logger.socketManager.info(`Access confirmed for user ${userId}.`)
         mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
+        client.send(RendererEvents.AUTH_SUCCESS)
         mainWindow.show()
     } catch (error) {
         logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)

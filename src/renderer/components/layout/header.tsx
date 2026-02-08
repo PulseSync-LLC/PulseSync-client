@@ -188,7 +188,7 @@ const Header: React.FC<p> = () => {
                 toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
-                await client.resetStore()
+                await client.clearStore()
             }
         })
     }

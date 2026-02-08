@@ -82,13 +82,12 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
 
     const toggleState = (e: React.MouseEvent) => {
         e.stopPropagation()
-        if (disabled) return
 
         if (onClick) {
             onClick()
             return
         }
-
+        if (disabled) return
         const newValue = !isActive
         setIsActive(newValue)
 
@@ -198,7 +197,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     return (
         <div
             className={clsx(styles.inputContainer, className)}
-            style={disabled ? { opacity: 0.5, cursor: 'not-allowed' } : { cursor: onClick || checkType ? 'pointer' : 'default' }}
+            style={disabled ? { opacity: 0.5 } : { cursor: onClick || checkType ? 'pointer' : 'default' }}
             onClick={toggleState}
         >
             <div className={styles.label}>

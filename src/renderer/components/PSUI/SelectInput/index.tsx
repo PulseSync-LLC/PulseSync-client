@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { ReactElement, useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import * as s from './SelectInput.module.scss'
 import TooltipButton from '../../tooltip_button'
@@ -9,7 +9,7 @@ type Option = { value: string | number; label: string }
 
 type Props = {
     label: string
-    description?: string
+    description?: ReactElement | string
     className?: string
     value: string | number | null | undefined
     options: Option[]

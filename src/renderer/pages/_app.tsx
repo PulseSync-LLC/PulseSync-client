@@ -763,7 +763,7 @@ function App() {
         }
 
         const onLogout = async () => {
-            await client.resetStore()
+            await client.clearStore()
             setUser(userInitials)
             setConnectionErrorCode(1)
             setRealtimeSocket(null)

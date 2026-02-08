@@ -401,8 +401,11 @@ export async function downloadAndExtractUnpacked(
 
         const moved = tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
         if (!moved.ok) {
+            //@ts-ignore
             const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
+            //@ts-ignore
             logger.modManager.error('Failed to replace unpacked dir:', moved.error)
+            //@ts-ignore
             sendFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' })
             return false
         }

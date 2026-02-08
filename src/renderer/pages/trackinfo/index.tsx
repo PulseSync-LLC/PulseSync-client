@@ -219,9 +219,9 @@ export default function TrackInfoPage() {
                             <SelectInput
                                 label={t('trackInfo.fields.statusDisplayTypeLabel')}
                                 description={
-                                    <>
+                                    <div className={themeV2.selectInputDescription}>
                                         <img src={statusDisplayTip} alt="" srcSet="" /> {t('trackInfo.fields.statusDisplayTypeDescription')}
-                                    </>
+                                    </div>
                                 }
                                 value={formik.values.statusDisplayType}
                                 onChange={val => formik.setFieldValue('statusDisplayType', String(val))}

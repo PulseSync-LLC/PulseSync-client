@@ -5,7 +5,7 @@ import crypto from 'crypto'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import { closeYandexMusic, copyFile, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
+import { closeYandexMusic, copyFile, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
 import { Paths, writePatchedAsarAndPatchBundle } from './mod-files'
 import { downloadAndUpdateFile } from './mod-network'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
@@ -38,8 +38,7 @@ export function clearCacheOnVersionChange(): void {
 }
 
 export async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
-    const procs = await isYandexMusicRunning()
-    if (procs && procs.length > 0) {
+    if (await isYandexMusicRunning()) {
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
         await closeYandexMusic()
         await new Promise(r => setTimeout(r, 500))

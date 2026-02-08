@@ -124,12 +124,12 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     }
 }
 
-export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
-    return await getYandexMusicProcesses()
+export async function isYandexMusicRunning(): Promise<boolean> {
+    return !!(await getYandexMusicProcesses())?.length
 }
 
 export async function closeYandexMusic(): Promise<void> {
-    const procs = await isYandexMusicRunning()
+    const procs = await getYandexMusicProcesses()
     if (!procs.length) {
         logger.main.info('Yandex Music is not running.')
         return

@@ -5,20 +5,8 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import {
-    copyFile,
-    downloadYandexMusic,
-    getInstalledYmMetadata,
-    isMac,
-    isWindows,
-} from '../../utils/appUtils'
-import {
-    ensureBackup,
-    ensureLinuxModPath,
-    resolveBasePaths,
-    restoreMacIntegrity,
-    restoreWindowsIntegrity,
-} from './mod-files'
+import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isMac, isWindows } from '../../utils/appUtils'
+import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
 import { nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
@@ -123,23 +111,12 @@ export const modManager = (window: BrowserWindow): void => {
                         } else {
                             resetProgress(window)
                         }
-                    } else if (
-                        !(await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR, asarProgress))
-                    ) {
+                    } else if (!(await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR, asarProgress))) {
                         return
                     }
                 } else {
                     if (
-                        !(await downloadAndUpdateFile(
-                            window,
-                            link,
-                            tempFilePath,
-                            paths.modAsar,
-                            paths.backupAsar,
-                            checksum,
-                            CACHE_DIR,
-                            asarProgress,
-                        ))
+                        !(await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR, asarProgress))
                     ) {
                         return
                     }
