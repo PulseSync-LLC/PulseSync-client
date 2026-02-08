@@ -85,7 +85,7 @@
             overflow: hidden;
 
             width: 100%;
-            max-width: 670px;
+            max-width: 560px;
 
             background: #1e2027;
             border: 1px solid #363944;
@@ -94,16 +94,14 @@
             & > .patch_detail {
                 z-index: 2222;
                 display: flex;
-                flex-direction: column;
-                justify-content: center;
-                align-items: flex-start;
+                flex-direction: row;
+                justify-content: space-between;
+                align-items: center;
                 padding: 35px;
-                gap: 12px;
+                gap: 20px;
 
                 width: 100%;
                 height: fit-content;
-
-                background: linear-gradient(270deg, rgba(41, 44, 54, 0) 0%, #262832 100%);
 
                 & > .alert_info {
                     display: flex;
@@ -117,7 +115,7 @@
                         display: flex;
                         flex-direction: row;
                         align-items: center;
-                        padding-bottom: 5px;
+                        padding-top: 5px;
                         gap: 7px;
 
                         & > .version_old,
@@ -168,7 +166,8 @@
                     display: flex;
                     gap: 5px;
                     flex-direction: column;
-                    align-items: flex-start;
+                    align-items: flex-end;
+                    flex-shrink: 0;
 
                     & > .patch_button {
                         cursor: pointer;
@@ -196,13 +195,7 @@
             }
 
             & > .alert_patch_image {
-                width: 320px;
-                height: -webkit-fill-available;
-                position: absolute;
-                right: 0;
-                border-radius: 9px;
-                padding: 1px;
-                object-fit: cover;
+                display: none;
             }
         }
 

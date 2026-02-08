@@ -436,6 +436,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>
                                     <div className={pageStyles.alert_info}>
+                                        <div className={pageStyles.alert_title}>
+                                            {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
+                                        </div>
+                                        <div className={pageStyles.alert_warn}>{t('layout.modInstallDescription')}</div>
                                         <div className={pageStyles.alert_version_update}>
                                             <div className={pageStyles.version_old}>
                                                 {app.mod.version && app.mod.installed ? app.mod.version : t('layout.modNotInstalled')}
@@ -443,10 +447,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                             <MdKeyboardArrowRight size={14} />
                                             <div className={pageStyles.version_new}>{modInfo[0]?.modVersion}</div>
                                         </div>
-                                        <div className={pageStyles.alert_title}>
-                                            {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
-                                        </div>
-                                        <div className={pageStyles.alert_warn}>{t('layout.modInstallDescription')}</div>
                                     </div>
                                     <div className={pageStyles.button_container}>
                                         <button className={pageStyles.patch_button} onClick={() => startUpdate()}>
@@ -467,11 +467,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         )}
                                     </div>
                                 </div>
-                                <img
-                                    className={pageStyles.alert_patch_image}
-                                    src={staticAsset('assets/images/imageAlertPatch.png')}
-                                    alt={t('layout.patchUpdateAlt')}
-                                />
                             </div>
                         </div>
                     )}
