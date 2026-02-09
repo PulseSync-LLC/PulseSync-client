@@ -43,6 +43,7 @@ export interface discordRpc {
     enableDeepLink: boolean
     showTrackVersion: boolean
     supporterHideBranding: boolean
+    statusLanguage: string
 }
 
 export default interface SettingsInterface {

@@ -7,6 +7,8 @@ export enum DiscordState {
 }
 
 export type AppConfig = {
-    CLIENT_ID: string
+    ENG_CLIENT_ID?: string
+    RU_CLIENT_ID?: string
+    CLIENT_ID?: string
     RESERVE_CLIENT_ID?: string
 }

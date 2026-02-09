@@ -178,7 +178,9 @@
                 "supporterHideBranding": "Скрывать брендинг PulseSync в Rich Presence",
                 "showVersionOrDevice": "Показывать версию приложения или информацию об устройстве в статусе",
                 "state": "Текущее состояние для Rich Presence",
-                "status": "Включен ли статус Rich Presence"
+                "status": "Включен ли статус Rich Presence",
+                "statusDisplayType": "Тип отображения активности в RPC",
+                "statusLanguage": "Язык для отображения статуса в RPC"
             },
             "mod": {
                 "checksum": "Контрольная сумма мода",

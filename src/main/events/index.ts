@@ -571,6 +571,12 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             case 'statusDisplayType':
                 State.set('discordRpc.statusDisplayType', data.statusDisplayType)
                 break
+            case 'statusLanguage': {
+                State.set('discordRpc.statusLanguage', data.statusLanguage)
+                const currentAppId = String(State.get('discordRpc.appId') || '')
+                updateAppId(currentAppId)
+                break
+            }
         }
     })
 

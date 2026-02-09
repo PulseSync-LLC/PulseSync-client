@@ -178,7 +178,9 @@
                 "supporterHideBranding": "Hide PulseSync branding in Rich Presence",
                 "showVersionOrDevice": "Show app version or device info in status",
                 "state": "Current Rich Presence state",
-                "status": "Whether Rich Presence is enabled"
+                "status": "Whether Rich Presence is enabled",
+                "statusDisplayType": "Type of status to display in RPC",
+                "statusLanguage": "Language to use for status display"
             },
             "mod": {
                 "checksum": "Mod checksum",

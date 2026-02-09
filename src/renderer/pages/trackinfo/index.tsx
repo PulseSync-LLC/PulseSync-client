@@ -32,6 +32,7 @@ type FormValues = {
     state: string
     button: string
     statusDisplayType: string
+    statusLanguage: string
 }
 
 export default function TrackInfoPage() {
@@ -49,6 +50,7 @@ export default function TrackInfoPage() {
         state: app.discordRpc.state || '',
         button: app.discordRpc.button || '',
         statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+        statusLanguage: app.discordRpc.statusLanguage || 'en',
     }))
 
     useEffect(() => {
@@ -94,16 +96,8 @@ export default function TrackInfoPage() {
         return changedValues
     }, [])
 
-    const formik = useFormik<FormValues>({
-        initialValues: {
-            appId: app.discordRpc.appId,
-            details: app.discordRpc.details,
-            state: app.discordRpc.state,
-            button: app.discordRpc.button,
-            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
-        },
-        validationSchema: schema,
-        onSubmit: values => {
+    const commitRpcSettings = useCallback(
+        (values: FormValues) => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 if (Object.prototype.hasOwnProperty.call(changedValues, 'statusDisplayType')) {
@@ -122,17 +116,43 @@ export default function TrackInfoPage() {
                 })
             }
         },
+        [app, getChangedValues, previousValues, setApp],
+    )
+
+    const formik = useFormik<FormValues>({
+        initialValues: {
+            appId: app.discordRpc.appId,
+            details: app.discordRpc.details,
+            state: app.discordRpc.state,
+            button: app.discordRpc.button,
+            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+            statusLanguage: app.discordRpc.statusLanguage,
+        },
+        validationSchema: schema,
+        onSubmit: values => {
+            commitRpcSettings(values)
+        },
     })
 
     const handleBlur = useCallback(
         (e: any) => {
             formik.handleBlur(e)
-            const changedValues = getChangedValues(previousValues, formik.values)
-            if (formik.isValid && Object.keys(changedValues).length > 0) {
-                formik.handleSubmit()
+            if (formik.isValid) {
+                commitRpcSettings(formik.values)
             }
         },
-        [formik, getChangedValues, previousValues],
+        [commitRpcSettings, formik],
+    )
+
+    const handleSelectChange = useCallback(
+        (field: keyof FormValues) => (val: string | number) => {
+            const nextValues = { ...formik.values, [field]: String(val) }
+            formik.setFieldValue(field, String(val))
+            if (formik.isValid) {
+                commitRpcSettings(nextValues as FormValues)
+            }
+        },
+        [commitRpcSettings, formik],
     )
 
     const toggleRpcStatus = useCallback(() => {
@@ -161,6 +181,13 @@ export default function TrackInfoPage() {
             { value: '0', label: t('textInput.statusDisplay.appName') },
             { value: '1', label: t('textInput.statusDisplay.trackArtist') },
             { value: '2', label: t('textInput.statusDisplay.trackTitle') },
+        ],
+        [t],
+    )
+    const statusLanguageOptions = useMemo(
+        () => [
+            { value: 'en', label: t('textInput.statusLanguage.english') },
+            { value: 'ru', label: t('textInput.statusLanguage.russian') },
         ],
         [t],
     )
@@ -217,6 +244,12 @@ export default function TrackInfoPage() {
                                 showCommandsButton={true}
                             />
                             <SelectInput
+                                label={t('trackInfo.fields.statusLanguage')}
+                                value={formik.values.statusLanguage}
+                                onChange={handleSelectChange('statusLanguage')}
+                                options={statusLanguageOptions}
+                            />
+                            <SelectInput
                                 label={t('trackInfo.fields.statusDisplayTypeLabel')}
                                 description={
                                     <div className={themeV2.selectInputDescription}>
@@ -224,7 +257,7 @@ export default function TrackInfoPage() {
                                     </div>
                                 }
                                 value={formik.values.statusDisplayType}
-                                onChange={val => formik.setFieldValue('statusDisplayType', String(val))}
+                                onChange={handleSelectChange('statusDisplayType')}
                                 options={statusDisplayOptions}
                             />
                         </div>

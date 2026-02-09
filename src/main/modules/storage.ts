@@ -78,6 +78,16 @@ const schema = {
                 description: t('main.storage.discordRpc.enableWebsiteButton'),
                 default: true,
             },
+            statusDisplayType: {
+                type: 'number',
+                description: t('main.storage.discordRpc.statusDisplayType'),
+                default: 1,
+            },
+            statusLanguage: {
+                type: 'string',
+                description: t('main.storage.discordRpc.statusLanguage'),
+                default: 'en',
+            },
         },
         required: [
             'appId',
@@ -92,6 +102,8 @@ const schema = {
             'showSmallIcon',
             'enableRpcButtonListen',
             'enableWebsiteButton',
+            'statusDisplayType',
+            'statusLanguage',
         ],
         additionalProperties: true,
         default: {
@@ -107,6 +119,8 @@ const schema = {
             showSmallIcon: false,
             enableRpcButtonListen: true,
             enableWebsiteButton: true,
+            statusDisplayType: 1,
+            statusLanguage: 'en',
         },
     },
 
