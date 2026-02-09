@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import path from 'path'
 
-import appConfig from '../../../../api/web_config'
+import appConfig from '@common/appConfig'
 import { DocTab } from './types'
 import AddonInterface from '../../../../api/interfaces/addon.interface'
 import { AddonConfig } from '../../../../components/сonfigurationSettings/types'
@@ -158,3 +158,4 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
 
     return { docs, config, configExists }
 }
+

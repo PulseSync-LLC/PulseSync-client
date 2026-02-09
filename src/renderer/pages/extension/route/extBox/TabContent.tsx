@@ -15,7 +15,7 @@ import { AddonConfig } from '../../../../components/сonfigurationSettings/types
 
 import { ActiveTab, DocTab } from './types'
 import * as styles from './../extensionview.module.scss'
-import appConfig from '../../../../api/web_config'
+import appConfig from '@common/appConfig'
 import Addon from '../../../../api/interfaces/addon.interface'
 import { t as i18nT } from '../../../../i18n'
 import { useTranslation } from 'react-i18next'
@@ -339,3 +339,4 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 }
 
 export default TabContent
+

@@ -7,7 +7,7 @@ import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
 import debounce from 'lodash.debounce'
 import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import toast from '../../components/toast'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
@@ -362,3 +362,4 @@ export default function UsersPage() {
         </PageLayout>
     )
 }
+

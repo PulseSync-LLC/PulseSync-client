@@ -21,7 +21,7 @@ import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
-import { isDev, isDevmark } from '../../api/web_config'
+import { isDev, isDevmark } from '@common/appConfig'
 import TooltipButton from '../tooltip_button'
 import { RootState } from '../../api/store/store'
 import { openModal, openLinuxAsarModal, setLinuxAsarPath } from '../../api/store/modalSlice'
@@ -478,3 +478,4 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 }
 
 export default Layout
+

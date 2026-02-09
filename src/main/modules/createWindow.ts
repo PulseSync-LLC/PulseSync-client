@@ -4,7 +4,7 @@ import isAppDev from 'electron-is-dev'
 import { getUpdater } from './updater/updater'
 import { updateAvailable } from '../events'
 import { isWindows } from '../utils/appUtils'
-import { isDevmark } from '../../renderer/api/web_config'
+import { isDevmark } from '@common/appConfig'
 import path from 'path'
 import fs from 'original-fs'
 import logger from './logger'
@@ -271,3 +271,4 @@ export function createSettingsWindow() {
         settingsWindow = null
     })
 }
+

@@ -2,7 +2,7 @@ import React from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
-import config from '../../../../api/web_config'
+import config from '@common/appConfig'
 import { staticAsset } from '../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
 
@@ -117,3 +117,4 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
 }
 
 export default ProfileHeader
+

@@ -118,6 +118,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         resolve: {
             alias: {
                 '@': path.resolve(__dirname, 'static'),
+                '@common': path.resolve(__dirname, 'src/common'),
                 '/assets': path.resolve(__dirname, 'static/assets'),
             },
         },

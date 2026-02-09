@@ -5,7 +5,7 @@ import * as path from 'path'
 import crypto from 'crypto'
 import AdmZip from 'adm-zip'
 import logger from '../logger'
-import config from '../../../renderer/api/web_config'
+import config from '@common/appConfig'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import { gunzipAsync, isCompressedArchiveLink, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
@@ -427,3 +427,4 @@ export async function downloadAndExtractUnpacked(
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
     }
 }
+

@@ -95,8 +95,7 @@ out/
 .idea
 yarn.lock
 
-web_config.ts
-config.json
+appConfig.ts
 release
 
 

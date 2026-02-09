@@ -31,7 +31,7 @@ import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import config, { branch, isDevmark } from '../../renderer/api/web_config'
+import config, { branch, isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -879,3 +879,4 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
     }
 }
+

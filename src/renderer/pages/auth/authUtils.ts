@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import MainEvents from '../../../common/types/mainEvents'
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import { staticAsset } from '../../utils/staticAssets'
 
 export const isDevModeEnabled = () => {
@@ -31,3 +31,4 @@ export const readAndSendTerms = async () => {
     const fileContent = await response.text()
     window.desktopEvents?.send(MainEvents.OPEN_FILE, fileContent)
 }
+

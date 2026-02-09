@@ -14,7 +14,7 @@ import { isFirstInstance } from './singleInstance'
 import { parse } from 'url'
 import { Track } from '../../renderer/api/interfaces/track.interface'
 import { mainWindow } from './createWindow'
-import config from '../../renderer/api/web_config'
+import config from '@common/appConfig'
 import { getState } from './state'
 import { sanitizeScript } from '../utils/addonUtils'
 import axios from 'axios'
@@ -776,3 +776,4 @@ const updateData = (newData: any) => {
 
 export const getTrackInfo = () => data
 export default server
+

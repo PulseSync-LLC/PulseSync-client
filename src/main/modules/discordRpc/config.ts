@@ -1,4 +1,4 @@
-import rawConfig from '../../../config.json'
+import appConfig from '../../../common/appConfig'
 import { AppConfig } from './types/rpcTypes'
 
-export const config = rawConfig as AppConfig
+export const config = appConfig as AppConfig

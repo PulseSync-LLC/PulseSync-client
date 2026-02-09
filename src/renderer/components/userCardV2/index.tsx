@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as styles from './userCard.module.scss'
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import TooltipButton from '../tooltip_button'
 import { getStatusColor, getStatus } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
@@ -185,3 +185,4 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
 }
 
 export default UserCardV2
+

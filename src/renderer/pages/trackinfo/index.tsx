@@ -14,7 +14,7 @@ import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import { staticAsset } from '../../utils/staticAssets'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
@@ -459,3 +459,4 @@ export default function TrackInfoPage() {
         </PageLayout>
     )
 }
+

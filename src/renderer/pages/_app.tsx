@@ -31,7 +31,7 @@ import client from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import settingsInitials from '../api/initials/settings.initials'
 import getUserToken from '../api/getUserToken'
-import config from '../api/web_config'
+import config from '@common/appConfig'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
@@ -1412,3 +1412,4 @@ const Player: React.FC<any> = ({ children }) => {
 }
 
 export default App
+

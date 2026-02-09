@@ -17,7 +17,7 @@ import * as modalStyles from '../PSUI/Modal/modal.module.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
-import config, { isDevmark } from '../../api/web_config'
+import config, { isDevmark } from '@common/appConfig'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
@@ -666,3 +666,4 @@ const Header: React.FC<p> = () => {
 }
 
 export default Header
+
