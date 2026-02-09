@@ -209,8 +209,11 @@ export async function copyFile(target: string, dest: string): Promise<void> {
     try {
         await fsp.copyFile(target, dest)
     } catch (error: any) {
-        if (process.platform === 'linux' && error && error.code === 'EACCES') {
-            await execFileAsync('pkexec', ['cp', target, dest])
+        if (process.platform === 'linux' && error.code === 'EACCES') {
+            await execFileAsync('pkexec', ['cp', `"${target}"`, `"${dest}"`])
+            const encodedTarget = target.replaceAll("'", "\\'")
+            const encodedDest = dest.replaceAll("'", "\\'")
+            await execFileAsync('pkexec', ['bash', '-c', `cp '${encodedTarget}' '${encodedDest}'`])
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
@@ -223,8 +226,10 @@ export async function createDirIfNotExist(target: string): Promise<void> {
         try {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
-            if (process.platform === 'linux' && error && error.code === 'EACCES') {
+            if (process.platform === 'linux' && error.code === 'EACCES') {
                 await execFileAsync('pkexec', ['mkdir', '-p', target])
+                const encodedTarget = target.replaceAll("'", "\\'")
+                await execFileAsync('pkexec', ['bash', '-c', `mkdir -p '${encodedTarget}'`])
             } else {
                 logger.modManager.error('Directory creation failed:', error)
                 throw error
