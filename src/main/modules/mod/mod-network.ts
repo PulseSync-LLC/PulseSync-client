@@ -99,13 +99,18 @@ function tryReplaceDir(
         }
         return { ok: true }
     } catch (err: any) {
-        if (err?.code !== 'EXDEV') {
+        const code = err?.code
+        const shouldFallbackToCopy =
+            code === 'EXDEV' || (process.platform === 'win32' && (code === 'EPERM' || code === 'EACCES' || code === 'EBUSY'))
+
+        if (!shouldFallbackToCopy) {
             return { ok: false, error: err, stage: 'move' }
         }
     }
 
     try {
-        fs.cpSync(sourceDir, targetDir, { recursive: true })
+        fs.rmSync(targetDir, { recursive: true, force: true })
+        fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
         return { ok: true }
     } catch (copyErr: any) {
@@ -427,4 +432,3 @@ export async function downloadAndExtractUnpacked(
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
     }
 }
-
