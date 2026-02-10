@@ -84,7 +84,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }} ${{ inputs.publish_changelog && '--publish-changelog' || '' }}
+        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
           APP_CONFIG: ${{ secrets.APP_CONFIG }}
 
@@ -102,20 +102,21 @@ jobs:
         if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
         shell: bash
         run: |
-          VERSION_ARG=""
+          VERSION_ARGS=()
           if [ -n "${{ inputs.changelog_version }}" ]; then
-            VERSION_ARG="--version ${{ inputs.changelog_version }}"
+            VERSION_ARGS=(--version "${{ inputs.changelog_version }}")
           fi
 
           case "${{ inputs.changelog_target }}" in
             both)
-              yarn publish:changelog $VERSION_ARG
+              yarn publish:api "${VERSION_ARGS[@]}"
+              yarn publish:discord "${VERSION_ARGS[@]}"
               ;;
             api)
-              yarn publish:api $VERSION_ARG
+              yarn publish:api "${VERSION_ARGS[@]}"
               ;;
             discord)
-              yarn publish:discord
+              yarn publish:discord "${VERSION_ARGS[@]}"
               ;;
             *)
               echo "Unknown changelog_target"; exit 1
