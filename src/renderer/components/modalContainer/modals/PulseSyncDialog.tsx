@@ -78,7 +78,11 @@ const PulseSyncDialog: React.FC = () => {
 
     const text = t('pulseSyncDialog.description')
 
-    const subText = dialogPath ? t('pulseSyncDialog.subTextWithPath', { path: dialogPath }) : t('pulseSyncDialog.subText')
+    const wrapPath = (path: string) => path.replace(/[\\/]/g, match => `${match}\u200B`)
+
+    const subText = dialogPath
+        ? t('pulseSyncDialog.subTextWithPath', { path: wrapPath(dialogPath) })
+        : t('pulseSyncDialog.subText')
 
     return (
         <CustomModalPS

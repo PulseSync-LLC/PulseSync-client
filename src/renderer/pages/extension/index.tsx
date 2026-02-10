@@ -23,7 +23,7 @@ import { preloadAddonFiles } from './route/extBox/hooks'
 import * as extensionStylesV2 from './extension.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
 
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import MainEvents from '../../../common/types/mainEvents'
 import CustomModalPS from '../../components/PSUI/CustomModalPS'
 import { staticAsset } from '../../utils/staticAssets'
@@ -749,3 +749,4 @@ export default function ExtensionPage() {
         </PageLayout>
     )
 }
+

@@ -1,146 +1,295 @@
+/* ===== Auth Page - Space Theme ===== */
+
 .main_window {
     display: flex;
     overflow: hidden;
-    height: -webkit-fill-available;
-    width: -webkit-fill-available;
     justify-content: center;
-    padding: 20px 40px;
-    border-radius: 16px 16px 0 0;
     align-items: center;
     position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
     bottom: 0;
+    background: #050505;
+}
 
-    .img1 {
-        pointer-events: none;
-        position: absolute;
-        top: -130px;
-        left: -120px;
-        rotate: -21deg;
+/* ===== Space Background ===== */
+.spaceBackground {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+/* Star Layers — oversized for seamless tiling during translate animation */
+.stars1,
+.stars2,
+.stars3 {
+    position: absolute;
+    inset: -800px;
+    width: calc(100% + 1600px);
+    height: calc(100% + 1600px);
+    background-repeat: repeat;
+}
+
+/* Layer 1: Bright stars - slow */
+.stars1 {
+    background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(1.5px 1.5px at 90px 40px, #fff, transparent),
+        radial-gradient(2px 2px at 160px 120px, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(1.5px 1.5px at 250px 80px, #fff, transparent),
+        radial-gradient(2px 2px at 300px 150px, rgba(255, 255, 255, 0.85), transparent),
+        radial-gradient(1.5px 1.5px at 370px 200px, #fff, transparent),
+        radial-gradient(2px 2px at 450px 50px, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(1.5px 1.5px at 520px 180px, #fff, transparent),
+        radial-gradient(2px 2px at 600px 100px, rgba(255, 255, 255, 0.95), transparent),
+        radial-gradient(1.5px 1.5px at 680px 250px, #fff, transparent),
+        radial-gradient(2px 2px at 750px 170px, rgba(255, 255, 255, 0.8), transparent);
+    background-size: 800px 300px;
+    animation: starsMove1 120s linear infinite;
+}
+
+/* Layer 2: Medium dim stars - medium speed */
+.stars2 {
+    background-image: radial-gradient(1px 1px at 50px 100px, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 120px 50px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 200px 150px, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 280px 80px, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 350px 200px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 420px 30px, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 500px 170px, rgba(255, 255, 255, 0.6), transparent),
+        radial-gradient(1px 1px at 580px 90px, rgba(255, 255, 255, 0.5), transparent),
+        radial-gradient(1px 1px at 660px 140px, rgba(255, 255, 255, 0.55), transparent),
+        radial-gradient(1px 1px at 740px 60px, rgba(255, 255, 255, 0.5), transparent);
+    background-size: 800px 250px;
+    animation: starsMove2 90s linear infinite;
+    opacity: 0.8;
+}
+
+/* Layer 3: Colored twinkling stars */
+.stars3 {
+    background-image: radial-gradient(1.5px 1.5px at 80px 60px, rgba(200, 220, 255, 0.9), transparent),
+        radial-gradient(1.5px 1.5px at 180px 140px, rgba(255, 220, 240, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 300px 40px, rgba(220, 255, 240, 0.75), transparent),
+        radial-gradient(1.5px 1.5px at 400px 180px, rgba(240, 220, 255, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 520px 100px, rgba(255, 240, 220, 0.85), transparent),
+        radial-gradient(1.5px 1.5px at 640px 160px, rgba(220, 240, 255, 0.8), transparent),
+        radial-gradient(1.5px 1.5px at 760px 80px, rgba(255, 230, 240, 0.75), transparent);
+    background-size: 800px 220px;
+    animation: starsMove3 150s linear infinite, twinkle 6s ease-in-out infinite;
+    opacity: 0.7;
+}
+
+/* Star movement animations */
+@keyframes starsMove1 {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-800px, -300px); }
+}
+
+@keyframes starsMove2 {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-800px, -250px); }
+}
+
+@keyframes starsMove3 {
+    from { transform: translate(0, 0); }
+    to { transform: translate(-800px, -220px); }
+}
+
+@keyframes twinkle {
+    0%, 100% { opacity: 0.7; }
+    50% { opacity: 1; }
+}
+
+/* ===== Shooting Stars ===== */
+.shootingStarsLayer {
+    position: absolute;
+    inset: 0;
+}
+
+.shootingStar {
+    position: absolute;
+    width: 120px;
+    height: 2px;
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.1) 10%,
+        rgba(255, 255, 255, 0.8) 50%,
+        #fff 70%,
+        transparent 100%
+    );
+    border-radius: 2px;
+    opacity: 0;
+    animation: shooting 8s ease-in-out infinite;
+
+    &:nth-child(1) {
+        top: 15%;
+        left: 80%;
+        animation-delay: 0s;
+        width: 100px;
     }
 
-    .img2 {
-        pointer-events: none;
-        position: absolute;
-        bottom: -640px;
-        left: -540px;
-        rotate: -21deg;
+    &:nth-child(2) {
+        top: 35%;
+        left: 20%;
+        animation-delay: 2.5s;
+        width: 80px;
     }
 
-    .img3 {
-        pointer-events: none;
-        position: absolute;
-        right: -150px;
-        bottom: -180px;
-        rotate: 48deg;
+    &:nth-child(3) {
+        top: 55%;
+        left: 90%;
+        animation-delay: 5s;
+        width: 60px;
+    }
+}
+
+@keyframes shooting {
+    0% {
+        transform: translateX(0) translateY(0) rotate(-45deg);
+        opacity: 0;
+    }
+    3% {
+        opacity: 1;
+    }
+    15% {
+        transform: translateX(-350px) translateY(350px) rotate(-45deg);
+        opacity: 0;
+    }
+    100% {
+        opacity: 0;
+    }
+}
+
+/* ===== Content Container ===== */
+.container {
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 24px;
+    transition: transform 0.15s ease-out;
+    animation: contentAppear 0.8s ease-out;
+}
+
+@keyframes contentAppear {
+    from {
+        opacity: 0;
+        transform: translateY(20px) scale(0.96);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Logo Block */
+.logoBlock {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    margin-bottom: 8px;
+}
+
+.logoIcon {
+    width: 56px;
+    height: 56px;
+    color: #fff;
+    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.15));
+}
+
+.logoName {
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    svg {
+        width: 220px;
+        height: auto;
+    }
+}
+
+/* Auth Button */
+.authButton {
+    cursor: pointer;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 14px 0;
+    width: 320px;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.2;
+    color: #fff;
+    transition: all 0.2s ease;
+    letter-spacing: 0.02em;
+
+    &:hover {
+        background: rgba(255, 255, 255, 0.14);
+        border-color: rgba(255, 255, 255, 0.2);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 24px rgba(255, 255, 255, 0.06);
     }
 
-    .img4 {
-        pointer-events: none;
-        position: absolute;
-        right: -550px;
-        top: -330px;
-        rotate: 355deg;
+    &:active {
+        transform: translateY(0);
+        background: rgba(255, 255, 255, 0.1);
     }
 
-    .filter {
-        pointer-events: none;
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        left: 0;
-        top: 0;
-        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
-        mix-blend-mode: color-burn;
+    &:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+
+        &:hover {
+            background: rgba(255, 255, 255, 0.08);
+            transform: none;
+            box-shadow: none;
+        }
+    }
+}
+
+/* Terms */
+.terms {
+    width: 320px;
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: center;
+    color: rgba(255, 255, 255, 0.4);
+
+    a {
+        text-decoration: underline;
+        color: rgba(255, 255, 255, 0.6);
+        cursor: pointer;
+        transition: color 0.15s ease;
+
+        &:hover {
+            color: #fff;
+        }
+    }
+}
+
+/* ===== Reduced Motion ===== */
+@media (prefers-reduced-motion: reduce) {
+    .stars1,
+    .stars2,
+    .stars3 {
+        animation: none;
     }
 
-    .background {
-        pointer-events: none;
-
-        position: absolute;
-        width: 100%;
-        height: 100%;
-        left: 0;
-        top: 0;
-        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
-        mix-blend-mode: lighten;
+    .shootingStar {
+        display: none;
     }
 
     .container {
-        z-index: 3;
-        display: flex;
-        flex-direction: column;
-        justify-content: flex-end;
-        align-items: center;
-        padding: 0px;
-        gap: 15px;
-        width: -webkit-fill-available;
-        height: -webkit-fill-available;
-
-        .logoName {
-            pointer-events: none;
-            display: flex;
-            flex-direction: row;
-            align-items: center;
-            align-self: center;
-            position: absolute;
-            height: -webkit-fill-available;
-            left: 0;
-            right: 0;
-            top: 0;
-            bottom: 0;
-            justify-content: center;
-        }
-
-        .discordAuth {
-            cursor: pointer;
-            transition: var(--transition);
-            display: flex;
-            flex-direction: row;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 16px 22px;
-            gap: 10px;
-            background: rgba(22, 24, 30, 0.7);
-            border-radius: 8px;
-            width: 360px;
-            font-weight: 900;
-            font-size: 14px;
-            line-height: 110%;
-            color: #ffffff;
-            border: none;
-
-            &:disabled {
-                opacity: 0.3 !important;
-
-                &:hover {
-                    background: rgba(22, 24, 30, 0.7);
-                    cursor: not-allowed;
-                }
-            }
-
-            &:hover {
-                background: rgba(36, 46, 75, 0.7);
-            }
-        }
-
-        .terms {
-            width: 360px;
-
-            font-weight: 600;
-            font-size: 12px;
-            line-height: 140%;
-            text-align: center;
-
-            color: #ffffff;
-
-            a {
-                text-decoration: underline;
-                color: #ffe72f;
-                cursor: pointer;
-                &:hover {
-                    color: rgb(255, 69, 171);
-                }
-            }
-        }
+        animation: none;
     }
 }

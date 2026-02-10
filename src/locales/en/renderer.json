@@ -55,10 +55,11 @@
         "successTitle": "Success",
         "successTitleShort": "Success",
         "takeBreakTitle": "Take a break",
-        "thinkLater": "Think later",
+        "thinkLater": "Install later",
         "tooManyAttempts": "Too many connection attempts.",
         "waitTitle": "Wait",
-        "warningTitleShort": "Warning"
+        "warningTitleShort": "Warning",
+        "discordRpc": "Discord RPC"
     },
     "auth": {
         "accessQuestionTitle": "Maybe you don't have access?",
@@ -68,12 +69,12 @@
         "bannedMessage": "You are banned. Reason: {{reason}}.",
         "checkUpdates": "Check for updates",
         "closeAfterSeconds": "The app will close in 10 seconds",
-        "consentPrefix": "By clicking \"Authorize via Discord\", you agree to",
-        "consentPrefixQuotes": "By clicking \"Authorize via Discord\", you agree to",
+        "consentPrefix": "By clicking \"Authorize\", you agree to",
+        "consentPrefixQuotes": "By clicking \"Authorize\", you agree to",
         "deprecatedRequiresUpdate": "The app is outdated and requires an update 😡😡😡",
         "deprecatedRequiresUpdateShort": "The app is outdated and requires an update",
         "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
-        "discordAuth": "Authorize via Discord",
+        "discordAuth": "Authorize",
         "failedToFetchUser": "Failed to fetch user data. Please log in again.",
         "images": {
             "flatCylinder": "Flat Cylinder",
@@ -167,6 +168,8 @@
         "mod": {
             "checkUpdates": "Check mod updates",
             "clearCache": "Clear mod cache",
+            "resetAsarPath": "Reset custom folder",
+            "resetAsarPathSuccess": "Custom folder reset",
             "defaultName": "Eclipse",
             "notInstalled": "Not installed",
             "remove": "Remove mod",
@@ -422,6 +425,10 @@
         "installErrorTitle": "Install error",
         "installUpdateTooltip": "Install update",
         "installedVersionOutdated": "Installed version ({{version}}) is outdated",
+        "linuxAsarDescription": "Select the Yandex Music folder where the patched app.asar should be written.",
+        "linuxAsarMissingAsar": "app.asar was not found in the selected folder. Please pick the Yandex Music folder again.",
+        "linuxAsarSelectButton": "Select Yandex Music folder",
+        "linuxAsarTitle": "Custom Yandex Music folder required",
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
         "modInstallFailed": "Failed to install the mod. Please try again.",
@@ -646,6 +653,7 @@
             "statusDisplayTypeAria": "Status display type",
             "statusDisplayTypeDescription": "Changes how activity is shown after “Listen”.",
             "statusDisplayTypeLabel": "Change activity status display type",
+            "statusLanguage": "Change the language in which the app name will be displayed in RPC.",
             "textPlaceholder": "enter text"
         },
         "listeningStatus": "Listening to PulseSync",
@@ -687,7 +695,7 @@
         "confirmButton": "Yes, add",
         "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
         "subText": "The pulsesync.dev entry is missing. Add automatically?",
-        "subTextWithPath": "Config file: {{path}}. The pulsesync.dev entry is missing. Add automatically?",
+        "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
         "title": "Detected running zapret"
     },
     "yandexMusicDialog": {
@@ -744,6 +752,10 @@
             "appName": "App name",
             "trackArtist": "Track artist",
             "trackTitle": "Track title"
+        },
+        "statusLanguage": {
+            "english": "English",
+            "russian": "Russian"
         }
     },
     "updates": {
@@ -757,8 +769,15 @@
         "macInstallOpenApplications": "Open Applications",
         "macInstallOpenFinder": "Open in Finder",
         "macInstallTitle": "Finish installing the update",
-        "notFoundMessage": "No updates found",
-        "notFoundTitle": "No updates"
+        "readyDescription": "A new version has been downloaded. Install the update now?",
+        "readyTitle": "Update ready to install",
+        "installButton": "Install update",
+        "notFoundMessage": "App is up to date",
+        "notFoundTitle": "No updates",
+        "mod": {
+            "notFoundMessage": "Mod is up to date",
+            "notFoundTitle": "No updates"
+        }
     },
     "userStatus": {
         "inactive": "Inactive",

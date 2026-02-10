@@ -3,6 +3,7 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { Client } from '@xhayper/discord-rpc'
 import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
+import { CUSTOM_RPC_ERROR_CODE, RPC_ERROR_CODE } from '@xhayper/discord-rpc/dist/structures/Transport'
 import logger from '../logger'
 import { updateTray } from '../tray'
 import { mainWindow } from '../createWindow'
@@ -18,6 +19,8 @@ import { t } from '../../i18n'
 const State = getState()
 
 const ACTIVITY_THROTTLE_MS = 2000
+const ACTIVITY_TIMEOUT_MS = 5000
+const ACTIVITY_RATE_LIMIT_BACKOFF_MS = 15000
 
 let previousActivity: SetActivity | undefined
 let pendingActivity: SetActivity | undefined
@@ -38,21 +41,11 @@ export let rpcConnected = false
 export let isConnecting = false
 let connectGeneration = 0
 let connectTimeout: ReturnType<typeof setTimeout> | undefined
+let activityCooldownUntil = 0
+let activityCooldownTimer: ReturnType<typeof setTimeout> | undefined
 
 const activityThrottler = new Throttler<SetActivity>(ACTIVITY_THROTTLE_MS, activity => {
-    try {
-        client?.user?.setActivity(activity).catch(async e => {
-            const msg = await handleRpcError(e as any)
-            mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                message: msg || t('main.discordRpc.activitySetError'),
-                type: 'error',
-            })
-        })
-    } catch (e: any) {
-        logger.discordRpc.error(e.message)
-    } finally {
-        previousActivity = activity
-    }
+    void sendActivity(activity)
 })
 
 function computeBackoffDelay() {
@@ -76,6 +69,117 @@ function clearConnectTimeout() {
     if (connectTimeout) {
         clearTimeout(connectTimeout)
         connectTimeout = undefined
+    }
+}
+
+function resolveDefaultClientId() {
+    const lang = String(State.get('discordRpc.statusLanguage') || 'en').toLowerCase()
+    const preferRu = lang.startsWith('ru')
+    const fallback = config.CLIENT_ID || config.ENG_CLIENT_ID || config.RU_CLIENT_ID || ''
+    const selected = preferRu ? config.RU_CLIENT_ID : config.ENG_CLIENT_ID
+    return (selected && String(selected).length > 0 ? selected : fallback) || ''
+}
+
+function clearActivityCooldownTimer() {
+    if (activityCooldownTimer) {
+        clearTimeout(activityCooldownTimer)
+        activityCooldownTimer = undefined
+    }
+}
+
+function isRateLimitError(error: any) {
+    const code = error?.code
+    if (code === RPC_ERROR_CODE.RATE_LIMITED) return true
+    const msg = String(error?.message ?? '')
+    return /rate\s*limit|ratelimited/i.test(msg)
+}
+
+function isConnectionError(error: any) {
+    const code = error?.code
+    if (
+        code === CUSTOM_RPC_ERROR_CODE.CONNECTION_ENDED ||
+        code === CUSTOM_RPC_ERROR_CODE.CONNECTION_TIMEOUT ||
+        code === CUSTOM_RPC_ERROR_CODE.COULD_NOT_CONNECT ||
+        code === CUSTOM_RPC_ERROR_CODE.COULD_NOT_FIND_CLIENT ||
+        code === RPC_ERROR_CODE.NO_CONNECTION_FOUND
+    ) {
+        return true
+    }
+    const msg = String(error?.message ?? '')
+    return /connection.*(ended|timed out)|could not connect|no connection|socket|pipe|ECONNRESET|ECONNREFUSED|EPIPE|closed by discord/i.test(
+        msg
+    )
+}
+
+function scheduleReconnect(activity: SetActivity, reason: string) {
+    if (!State.get('discordRpc.status')) return
+    logger.discordRpc.info(reason)
+    pendingActivity = activity
+    previousActivity = undefined
+    rpcConnected = false
+    isConnecting = false
+    startReconnectLoop(fastRetryDelayMs)
+}
+
+function scheduleActivityCooldown(activity: SetActivity, reason: string, backoffMs: number) {
+    const now = Date.now()
+    activityCooldownUntil = Math.max(activityCooldownUntil, now + backoffMs)
+    pendingActivity = activity
+    clearActivityCooldownTimer()
+    logger.discordRpc.warn(reason)
+    const delay = activityCooldownUntil - now
+    activityCooldownTimer = setTimeout(() => {
+        activityCooldownTimer = undefined
+        if (!rpcConnected || !client || !client.user) return
+        const next = pendingActivity
+        pendingActivity = undefined
+        if (next) {
+            void sendActivity(next)
+        }
+    }, Math.max(0, delay))
+}
+
+async function sendActivity(activity: SetActivity): Promise<boolean> {
+    if (!client || !client.user) {
+        scheduleReconnect(activity, 'RPC client missing during activity update')
+        return false
+    }
+    if (!client.isConnected) {
+        scheduleReconnect(activity, 'RPC transport not connected during activity update')
+        return false
+    }
+    const now = Date.now()
+    if (activityCooldownUntil > now) {
+        scheduleActivityCooldown(activity, 'Activity update rate-limited, retrying later', activityCooldownUntil - now)
+        return false
+    }
+    try {
+        await Promise.race([
+            client.user.setActivity(activity),
+            new Promise<void>((_, reject) =>
+                setTimeout(() => reject(new Error('setActivity timed out')), ACTIVITY_TIMEOUT_MS)
+            ),
+        ])
+        previousActivity = activity
+        return true
+    } catch (e: any) {
+        const msg = await handleRpcError(e as any)
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+            message: msg || t('main.discordRpc.activitySetError'),
+            type: 'error',
+        })
+        if (isConnectionError(e)) {
+            scheduleReconnect(activity, 'Activity update failed, reconnecting')
+        } else if (isRateLimitError(e)) {
+            scheduleActivityCooldown(
+                activity,
+                'Activity update rate-limited by Discord RPC, backing off',
+                ACTIVITY_RATE_LIMIT_BACKOFF_MS
+            )
+        } else {
+            previousActivity = activity
+        }
+        return false
     }
 }
 
@@ -118,12 +222,18 @@ function startReconnectLoop(customDelayMs?: number) {
 ipcMain.on(MainEvents.DISCORDRPC_SETSTATE, (event, activity: SetActivity) => {
     if (!State.get('discordRpc.status')) return
     if (rpcConnected && client) {
+        if (!client.isConnected) {
+            scheduleReconnect(activity, 'RPC transport not connected, forcing reconnect')
+            return
+        }
         if (compareActivities(previousActivity, activity)) return true
         previousActivity = activity
         activityThrottler.schedule(activity)
     } else {
         pendingActivity = activity
-        rpc_connect()
+        if (!isReconnecting && !isConnecting) {
+            rpc_connect()
+        }
     }
 })
 
@@ -135,11 +245,16 @@ ipcMain.on(MainEvents.DISCORDRPC_RESET_ACTIVITY, () => {
     previousActivity = undefined
     pendingActivity = undefined
     activityThrottler.clear()
+    clearActivityCooldownTimer()
+    activityCooldownUntil = 0
 })
 
 ipcMain.on(MainEvents.DISCORDRPC_CLEARSTATE, () => {
     pendingActivity = undefined
+    previousActivity = undefined
     activityThrottler.clear()
+    clearActivityCooldownTimer()
+    activityCooldownUntil = 0
     if (rpcConnected && client) {
         client.user?.clearActivity().catch(async e => {
             const msg = await handleRpcError(e as any)
@@ -191,7 +306,8 @@ async function rpc_connect() {
     }
 
     const customId = (State.get('discordRpc.appId') || '') as string
-    clientId = customId.length > 0 ? customId : config.CLIENT_ID
+    const defaultId = resolveDefaultClientId()
+    clientId = customId.length > 0 ? customId : defaultId
     logger.discordRpc.info('Using clientId: ' + clientId)
     client = new Client({
         clientId,
@@ -258,16 +374,13 @@ async function rpc_connect() {
         logger.discordRpc.info('Connection established')
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, { message: t('main.discordRpc.connected'), type: 'success' })
         if (pendingActivity) {
-            client?.user?.setActivity(pendingActivity).catch(async e => {
-                const msg = await handleRpcError(e as any)
-                mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-                    message: msg || t('main.discordRpc.activitySetError'),
-                    type: 'error',
-                })
-            })
-            previousActivity = pendingActivity
-            activityThrottler.markJustSent()
+            const activity = pendingActivity
             pendingActivity = undefined
+            void sendActivity(activity).then(sent => {
+                if (sent) {
+                    activityThrottler.markJustSent()
+                }
+            })
         }
     })
 
@@ -355,11 +468,15 @@ export const setRpcStatus = (status: boolean) => {
         activityThrottler.clear()
         previousActivity = undefined
         stopReconnectLoop()
+        clearActivityCooldownTimer()
+        activityCooldownUntil = 0
         if (!rpcConnected) {
             rpc_connect()
         }
     } else {
         activityThrottler.clear()
+        clearActivityCooldownTimer()
+        activityCooldownUntil = 0
         if (rpcConnected && client) {
             client.user
                 ?.clearActivity()

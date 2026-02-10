@@ -1,13 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import * as styles from './userCard.module.scss'
-import config from '../../api/web_config'
 import TooltipButton from '../tooltip_button'
-import { getStatusColor, getStatus } from '../../utils/userStatus'
+import { getStatusColor } from '../../utils/userStatus'
 import UserInterface from '../../api/interfaces/user.interface'
 import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
 import { staticAsset } from '../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
+import Image from '../PSUI/Image'
 
 const fallbackAvatar = staticAsset('assets/images/undef.png')
 
@@ -30,22 +30,6 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: In
     return isIntersecting
 }
 
-const getMediaUrl = ({ type, hash, ext, hovered }: { type: 'avatar' | 'banner'; hash?: string; ext?: string; hovered: boolean }) => {
-    if (!hash) {
-        return type === 'avatar'
-            ? fallbackAvatar
-            : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`
-    }
-    const base = `${config.S3_URL}/${type}s/${hash}`
-    if (ext === 'gif') {
-        const preview = hovered ? `${base}.gif` : `${base}_preview.webp`
-        return type === 'avatar' ? preview : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${preview})`
-    }
-    return type === 'avatar'
-        ? `${config.S3_URL}/avatars/${hash}.${ext}`
-        : `linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/${hash}.${ext})`
-}
-
 const isInactive = (lastOnline?: number) => {
     if (!lastOnline) return false
     const date = new Date(lastOnline)
@@ -58,59 +42,17 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
-    const [isHovered, setIsHovered] = useState(false)
-    const [bannerUrl, setBannerUrl] = useState(
-        getMediaUrl({
-            type: 'banner',
-            hash: (user as UserInterface).bannerHash,
-            ext: (user as UserInterface).bannerType,
-            hovered: false,
-        }),
-    )
 
-    useEffect(() => {
-        const img = new Image()
-        const bannerSrc = `${config.S3_URL}/banners/${(user as UserInterface).bannerHash}.${(user as UserInterface).bannerType}`
-        img.src = bannerSrc
-        img.onload = () => {
-            setBannerUrl(
-                getMediaUrl({
-                    type: 'banner',
-                    hash: (user as UserInterface).bannerHash,
-                    ext: (user as UserInterface).bannerType,
-                    hovered: isHovered,
-                }),
-            )
-        }
-        img.onerror = () => {
-            setBannerUrl(`linear-gradient(0deg, #2C303F 0%, rgba(55,60,80,0.3) 100%), url(${config.S3_URL}/banners/default_banner.webp)`)
-        }
-    }, [(user as UserInterface).bannerHash, (user as UserInterface).bannerType, isHovered])
-
-    const statusInfo = getStatus(user as UserInterface)
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
 
     const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
-
-    const avatarUrl = useMemo(
-        () =>
-            getMediaUrl({
-                type: 'avatar',
-                hash: (user as UserInterface).avatarHash,
-                ext: (user as UserInterface).avatarType,
-                hovered: isHovered,
-            }),
-        [(user as UserInterface).avatarHash, (user as UserInterface).avatarType, isHovered],
-    )
 
     return (
         <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!isVisible}>
             {isVisible ? (
                 <div
                     className={`${styles.container} ${styles.visible}`}
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
                     onClick={() => onClick(user.username!)}
                     style={
                         {
@@ -119,24 +61,27 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         } as React.CSSProperties
                     }
                 >
-                    <div
-                        className={styles.topSection}
-                        style={{
-                            background: bannerUrl,
-                            backgroundRepeat: 'no-repeat',
-                            backgroundPosition: 'center center',
-                            backgroundSize: 'cover',
-                        }}
-                    >
-                        <img
-                            key={avatarUrl}
+                    <div className={styles.topSection}>
+                        <Image
+                            className={styles.bannerImage}
+                            type="banner"
+                            hash={(user as UserInterface).bannerHash}
+                            ext={(user as UserInterface).bannerType}
+                            sizes="360px"
+                            alt=""
+                            fallbackHash="default_banner"
+                            fallbackExt="webp"
+                        />
+                        <div className={styles.bannerGradient} />
+                        <Image
                             loading="lazy"
                             className={styles.userAvatar}
-                            src={avatarUrl}
+                            type="avatar"
+                            hash={(user as UserInterface).avatarHash}
+                            ext={(user as UserInterface).avatarType}
+                            sizes="60px"
                             alt={user.username}
-                            onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
-                            }}
+                            fallbackSrc={fallbackAvatar}
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>

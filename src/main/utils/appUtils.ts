@@ -14,7 +14,7 @@ import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import { t } from '../i18n'
 import * as yaml from 'yaml'
-import { YM_RELEASE_METADATA_URL, YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
+import { YM_RELEASE_METADATA_URL } from '../constants/urls'
 import asar from '@electron/asar'
 import { nativeFileExists } from '../modules/nativeModules'
 
@@ -22,6 +22,19 @@ const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
 
 const State = getState()
+
+export const normalizeModSaveDir = (customPath?: string): string | null => {
+    if (!customPath) return null
+    const trimmed = customPath.trim()
+    if (!trimmed) return null
+    const ext = path.extname(trimmed).toLowerCase()
+    return ext === '.asar' ? path.dirname(trimmed) : trimmed
+}
+
+export const resolveModAsarPath = (musicPath: string, customPath?: string): string => {
+    const baseDir = normalizeModSaveDir(customPath) || musicPath
+    return path.join(baseDir, 'app.asar')
+}
 
 interface ProcessInfo {
     pid: number
@@ -111,12 +124,12 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     }
 }
 
-export async function isYandexMusicRunning(): Promise<ProcessInfo[]> {
-    return await getYandexMusicProcesses()
+export async function isYandexMusicRunning(): Promise<boolean> {
+    return !!(await getYandexMusicProcesses())?.length
 }
 
 export async function closeYandexMusic(): Promise<void> {
-    const procs = await isYandexMusicRunning()
+    const procs = await getYandexMusicProcesses()
     if (!procs.length) {
         logger.main.info('Yandex Music is not running.')
         return
@@ -151,13 +164,13 @@ export async function openExternalDetached(url: string) {
 
 export async function getPathToYandexMusic(): Promise<string> {
     const platform = os.platform()
-    const customSavePath = State.get('settings.modSavePath')
+    const customSavePath = normalizeModSaveDir(State.get('settings.modSavePath') as string | undefined)
     if (platform === 'darwin') {
         return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
     } else if (platform === 'win32') {
         return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
     } else if (platform === 'linux') {
-        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : path.join(customSavePath)
+        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : customSavePath
     }
     return ''
 }
@@ -196,8 +209,11 @@ export async function copyFile(target: string, dest: string): Promise<void> {
     try {
         await fsp.copyFile(target, dest)
     } catch (error: any) {
-        if (process.platform === 'linux' && error && error.code === 'EACCES') {
-            await execFileAsync('pkexec', ['cp', target, dest])
+        if (process.platform === 'linux' && error.code === 'EACCES') {
+            await execFileAsync('pkexec', ['cp', `"${target}"`, `"${dest}"`])
+            const encodedTarget = target.replaceAll("'", "\\'")
+            const encodedDest = dest.replaceAll("'", "\\'")
+            await execFileAsync('pkexec', ['bash', '-c', `cp '${encodedTarget}' '${encodedDest}'`])
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
@@ -210,8 +226,10 @@ export async function createDirIfNotExist(target: string): Promise<void> {
         try {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
-            if (process.platform === 'linux' && error && error.code === 'EACCES') {
+            if (process.platform === 'linux' && error.code === 'EACCES') {
                 await execFileAsync('pkexec', ['mkdir', '-p', target])
+                const encodedTarget = target.replaceAll("'", "\\'")
+                await execFileAsync('pkexec', ['bash', '-c', `mkdir -p '${encodedTarget}'`])
             } else {
                 logger.modManager.error('Directory creation failed:', error)
                 throw error
@@ -469,6 +487,7 @@ export class AsarPatcher {
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
+        if (isLinux()) return true
         if (isWindows()) {
             const localAppData = process.env.LOCALAPPDATA
             if (!localAppData) {
@@ -608,7 +627,11 @@ export async function getYandexMusicMetadata() {
 }
 
 export async function getLinuxInstallerUrl(): Promise<string> {
-    return YM_SETUP_DOWNLOAD_URLS.linux
+    const yml = await axios.get(YM_RELEASE_METADATA_URL)
+    const match = String(yml.data).match(/version:\s*([\d.]+)/)
+    if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
+    const version = match[1]
+    return `https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_${version}.deb`
 }
 
 function sleep(ms: number) {
@@ -659,7 +682,7 @@ export async function getInstalledYmMetadata() {
             logger.modManager.warn('getPathToYandexMusic returned empty path')
             return null
         }
-        const versionFilePath = path.join(ymDir, 'version')
+        const versionFilePath = path.join(ymDir, 'version.bin')
         if (!nativeFileExists(versionFilePath)) {
             logger.modManager.warn('version file not found in Yandex Music directory')
             return null

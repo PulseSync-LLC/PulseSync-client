@@ -14,6 +14,11 @@ export default defineConfig(({ mode }) => {
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
         },
+        resolve: {
+            alias: {
+                '@common': path.resolve(__dirname, 'src/common'),
+            },
+        },
         build: {
             sourcemap: isDevMode || shouldUploadToSentry,
             outDir: path.resolve(__dirname, `.vite/main`),

@@ -68,7 +68,7 @@ function requestCloseAll() {
 }
 
 export const iToast = {
-    custom(kind: Kind, title: string, msg: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
+    custom(kind: Kind, title: string, msg?: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
         const sticky = STICKY_SET.has(kind)
         const now = Date.now()
         const optionId = typeof options?.id === 'string' ? options.id : null

@@ -9,7 +9,7 @@ const forgeConfig: ForgeConfig = {
     packagerConfig: {
         icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
         name: 'PulseSync',
-        executableName: 'PulseSync',
+        executableName: process.platform === 'linux' ? 'pulsesync' : 'PulseSync',
         appCopyright: `Copyright (C) ${new Date().getFullYear()} ИП «Деднев Григорий Дмитриевич»`,
         asar: {
             unpack: '**/.vite/renderer/**/static/assets/icon/**',
@@ -78,6 +78,7 @@ const forgeConfig: ForgeConfig = {
                     case 'author':
                     case 'devDependencies':
                     case 'homepage':
+                    case 'buildInfo':
                         break
                     default:
                         delete pkg[key]
@@ -91,6 +92,10 @@ const forgeConfig: ForgeConfig = {
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')
             fs.mkdirSync(iconDestination, { recursive: true })
             fs.cpSync(iconSource, iconDestination, { recursive: true })
+            const pextIconSource = path.resolve(__dirname, 'icons', 'pext')
+            const pextIconDestination = path.join(resourcesPath, 'assets', 'pext')
+            fs.mkdirSync(pextIconDestination, { recursive: true })
+            fs.cpSync(pextIconSource, pextIconDestination, { recursive: true })
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },

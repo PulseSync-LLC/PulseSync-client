@@ -31,7 +31,7 @@ import Addon from '../../renderer/api/interfaces/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import config, { branch, isDevmark } from '../../renderer/api/web_config'
+import config, { branch, isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -332,6 +332,24 @@ const registerFileOperations = (window: BrowserWindow): void => {
         return path.normalize(filePaths[0])
     })
 
+    ipcMain.handle(MainEvents.DIALOG_OPEN_DIRECTORY, async (_evt, opts?: { defaultPath?: string }) => {
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openDirectory'],
+            defaultPath: opts?.defaultPath,
+        })
+        if (canceled || !filePaths.length) return null
+        return path.normalize(filePaths[0])
+    })
+
+    ipcMain.handle(MainEvents.DIALOG_SAVE_FILE, async (_evt, opts?: { filters?: Electron.FileFilter[]; defaultPath?: string }) => {
+        const { canceled, filePath } = await dialog.showSaveDialog({
+            filters: opts?.filters,
+            defaultPath: opts?.defaultPath,
+        })
+        if (canceled || !filePath) return null
+        return path.normalize(filePath)
+    })
+
     ipcMain.handle(MainEvents.FILE_AS_DATA_URL, async (_evt, fullPath: string) => {
         if (!fullPath) return null
         try {
@@ -553,6 +571,12 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
             case 'statusDisplayType':
                 State.set('discordRpc.statusDisplayType', data.statusDisplayType)
                 break
+            case 'statusLanguage': {
+                State.set('discordRpc.statusLanguage', data.statusLanguage)
+                const currentAppId = String(State.get('discordRpc.appId') || '')
+                updateAppId(currentAppId)
+                break
+            }
         }
     })
 
@@ -855,3 +879,4 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
     }
 }
+

@@ -17,7 +17,7 @@ import * as modalStyles from '../PSUI/Modal/modal.module.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
-import config, { isDevmark } from '../../api/web_config'
+import config, { isDevmark } from '@common/appConfig'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
@@ -38,6 +38,7 @@ import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
+import Image from '../PSUI/Image'
 
 interface p {
     goBack?: boolean
@@ -188,7 +189,7 @@ const Header: React.FC<p> = () => {
                 toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
                 window.electron.store.delete('tokens.token')
                 setUser(userInitials)
-                await client.resetStore()
+                await client.clearStore()
             }
         })
     }
@@ -381,18 +382,6 @@ const Header: React.FC<p> = () => {
     }, [shouldFetchModChanges, app.mod.version, refetchModChanges])
 
     const bannerRef = useRef<HTMLDivElement>(null)
-    const [bannerUrl, setBannerUrl] = useState(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
-
-    useEffect(() => {
-        const img = new Image()
-        img.src = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-        img.onload = () => {
-            setBannerUrl(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
-        }
-        img.onerror = () => {
-            setBannerUrl(`${config.S3_URL}/banners/default_banner.webp`)
-        }
-    }, [user.bannerHash, user.bannerType])
 
     const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
 
@@ -500,13 +489,14 @@ const Header: React.FC<p> = () => {
                                             onChange={handleBannerChange}
                                         />
                                         <div className={styles.user_avatar}>
-                                            <img
+                                            <Image
                                                 className={styles.avatar}
-                                                src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
+                                                type="avatar"
+                                                hash={user.avatarHash}
+                                                ext={user.avatarType}
+                                                sizes="38px"
                                                 alt=""
-                                                onError={e => {
-                                                    ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
-                                                }}
+                                                fallbackSrc={fallbackAvatar}
                                             />
                                             <div className={styles.status}>
                                                 <div className={styles.dot}></div>
@@ -516,13 +506,18 @@ const Header: React.FC<p> = () => {
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
                                             <div className={styles.user_info}>
-                                                <div
-                                                    className={styles.user_banner}
-                                                    ref={bannerRef}
-                                                    style={{
-                                                        backgroundImage: `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${bannerUrl})`,
-                                                    }}
-                                                >
+                                                <div className={styles.user_banner} ref={bannerRef}>
+                                                    <Image
+                                                        className={styles.banner_image}
+                                                        type="banner"
+                                                        hash={user.bannerHash}
+                                                        ext={user.bannerType}
+                                                        sizes="390px"
+                                                        alt=""
+                                                        fallbackHash="default_banner"
+                                                        fallbackExt="webp"
+                                                    />
+                                                    <div className={styles.banner_gradient} />
                                                     <motion.div
                                                         className={styles.banner_overlay}
                                                         initial={{
@@ -565,17 +560,14 @@ const Header: React.FC<p> = () => {
                                                     </div>
                                                 </div>
                                                 <div className={styles.user_avatar}>
-                                                    <img
+                                                    <Image
                                                         className={styles.avatar}
-                                                        src={
-                                                            `${user.avatarType}`
-                                                                ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
-                                                                : fallbackAvatar
-                                                        }
+                                                        type="avatar"
+                                                        hash={user.avatarHash}
+                                                        ext={user.avatarType}
+                                                        sizes="85px"
                                                         alt="card_avatar"
-                                                        onError={e => {
-                                                            ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
-                                                        }}
+                                                        fallbackSrc={fallbackAvatar}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}

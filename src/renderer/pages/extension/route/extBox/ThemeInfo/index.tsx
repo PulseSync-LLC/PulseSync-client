@@ -6,7 +6,7 @@ import Button from '../../../../../components/buttonV2'
 import ViewModal from '../../../../../components/context_menu_themes/viewModal'
 import { createContextMenuActions } from '../../../../../components/context_menu_themes/sectionConfig'
 import * as s from './ThemeInfo.module.scss'
-import config from '../../../../../api/web_config'
+import config from '@common/appConfig'
 import { staticAsset } from '../../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
 
@@ -235,3 +235,4 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
 }
 
 export default ThemeInfo
+

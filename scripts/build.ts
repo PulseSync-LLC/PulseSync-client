@@ -8,7 +8,7 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { publishToS3, generateAndPublishMacDownloadJson } from './s3-upload'
+import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
 
 const exec = promisify(_exec)
@@ -126,19 +126,11 @@ async function runCommandStep(name: string, command: string): Promise<void> {
 }
 
 function applyConfigFromEnv() {
-    const configJson = process.env.CONFIG_JSON
-    const rendererConfig = process.env.RENDERER_CONFIG
-
-    if (configJson) {
-        const configJsonPath = path.resolve(__dirname, '../src/config.json')
-        fs.writeFileSync(configJsonPath, configJson, 'utf-8')
-        log(LogLevel.SUCCESS, `Wrote ${configJsonPath}`)
-    }
-
-    if (rendererConfig) {
-        const rendererConfigPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
-        fs.writeFileSync(rendererConfigPath, rendererConfig, 'utf-8')
-        log(LogLevel.SUCCESS, `Wrote ${rendererConfigPath}`)
+    const configSource = process.env.APP_CONFIG
+    if (configSource) {
+        const appConfigPath = path.resolve(__dirname, '../src/common/appConfig.ts')
+        fs.writeFileSync(appConfigPath, configSource, 'utf-8')
+        log(LogLevel.SUCCESS, `Wrote ${appConfigPath}`)
     }
 }
 
@@ -155,7 +147,7 @@ function ensureNodeHeapForMac(): void {
 }
 
 function setConfigDevFalse(branch?: string) {
-    const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
+    const configPath = path.resolve(__dirname, '../src/common/appConfig.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
     if (branch !== 'dev') {
@@ -163,16 +155,16 @@ function setConfigDevFalse(branch?: string) {
     }
     fs.writeFileSync(configPath, content, 'utf-8')
     const devmarkStatus = branch === 'dev' ? ' (isDevmark kept for dev branch)' : ''
-    log(LogLevel.SUCCESS, `Set isDev to false in web_config.ts${devmarkStatus}`)
+    log(LogLevel.SUCCESS, `Set isDev to false in appConfig.ts${devmarkStatus}`)
 }
 
 function setConfigBranch(branch: string) {
-    const configPath = path.resolve(__dirname, '../src/renderer/api/web_config.ts')
+    const configPath = path.resolve(__dirname, '../src/common/appConfig.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const branch\s*=\s*.*$/m, `export const branch = "${branch}"`)
 
     fs.writeFileSync(configPath, content, 'utf-8')
-    log(LogLevel.SUCCESS, `Set branch=${branch} in web_config.ts`)
+    log(LogLevel.SUCCESS, `Set branch=${branch} in appConfig.ts`)
 }
 
 async function main(): Promise<void> {
@@ -181,8 +173,7 @@ async function main(): Promise<void> {
         return
     }
     ensureNodeHeapForMac()
-    log(LogLevel.INFO, `CONFIG_JSON length: ${process.env.CONFIG_JSON?.length}`)
-    log(LogLevel.INFO, `RENDERER_CONFIG length: ${process.env.RENDERER_CONFIG?.length}`)
+    log(LogLevel.INFO, `APP_CONFIG length: ${process.env.APP_CONFIG?.length}`)
     applyConfigFromEnv()
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
@@ -196,7 +187,6 @@ async function main(): Promise<void> {
         log(LogLevel.INFO, `Mac target arch: ${macX64Build ? 'x64' : 'arm64'}`)
     }
 
-    const desiredLinuxExeName = 'pulsesync'
     const branchForConfig = publishBranch ?? 'beta'
     setConfigBranch(branchForConfig)
 
@@ -231,6 +221,7 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+
         if (os.platform() === 'darwin') {
             configObj.dmg = configObj.dmg || {}
             configObj.dmg.contents = [
@@ -293,21 +284,6 @@ async function main(): Promise<void> {
                 })
             }
             copyNodes(nativeDir)
-
-            if (os.platform() === 'linux') {
-                const productNameFromYml = getProductNameFromConfig()
-
-                const currentBinUpper = path.join(outDir, productNameFromYml)
-                const targetBinLower = path.join(outDir, desiredLinuxExeName)
-                try {
-                    if (fs.existsSync(currentBinUpper) && !fs.existsSync(targetBinLower)) {
-                        fs.renameSync(currentBinUpper, targetBinLower)
-                        log(LogLevel.SUCCESS, `Renamed Linux executable → ${desiredLinuxExeName}`)
-                    }
-                } catch (e: any) {
-                    log(LogLevel.WARN, `Failed to rename executable: ${e.message || e}`)
-                }
-            }
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)

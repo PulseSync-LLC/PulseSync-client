@@ -1,146 +1,34 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { BrowserWindow, ipcMain, shell } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
-import crypto from 'crypto'
 import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import {
-    closeYandexMusic,
-    downloadYandexMusic,
-    getInstalledYmMetadata,
-    isMac,
-    isWindows,
-    isYandexMusicRunning,
-    launchYandexMusic,
-} from '../../utils/appUtils'
-import {
-    ensureBackup,
-    ensureLinuxModPath,
-    Paths,
-    resolveBasePaths,
-    restoreMacIntegrity,
-    restoreWindowsIntegrity,
-    writePatchedAsarAndPatchBundle,
-} from './mod-files'
+import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isMac, isWindows } from '../../utils/appUtils'
+import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './mod-network'
-import { nativeDeleteFile, nativeFileExists, nativeRenameFile } from '../nativeModules'
-import { resetProgress, sendFailure, sendProgress, sendToRenderer, setProgress } from './download.helpers'
+import { nativeRenameFile } from '../nativeModules'
+import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
+import {
+    clearCacheOnVersionChange,
+    cleanupModArtifacts,
+    clearModState,
+    closeMusicIfRunning,
+    fileExists,
+    readChecksum,
+    sendSuccessAfterLaunch,
+    setProgressPercent,
+    tryUseCacheOrDownload,
+} from './mod-manager.helpers'
 
 const State = getState()
-
-try {
-    const currentVersion = app.getVersion()
-    const savedVersion = State.get('app.version')
-    if (savedVersion !== currentVersion) {
-        try {
-            if (fs.existsSync(CACHE_DIR)) {
-                logger.modManager.info(`App version changed (${savedVersion} -> ${currentVersion}), clearing mod cache`)
-                fs.rmSync(CACHE_DIR, { recursive: true, force: true })
-            }
-        } catch (err: any) {
-            logger.modManager.warn('Failed to clear mod cache on version change:', err)
-        }
-        State.set('app.version', currentVersion)
-    }
-} catch (err: any) {
-    logger.modManager.warn('Failed to check/clear mod cache on startup:', err)
-}
-
-async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
-    const procs = await isYandexMusicRunning()
-    if (procs && procs.length > 0) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
-        await closeYandexMusic()
-        await new Promise(r => setTimeout(r, 500))
-        return true
-    }
-    return false
-}
-
-async function tryUseCacheOrDownload(
-    window: BrowserWindow,
-    cacheFile: string,
-    tempFilePath: string,
-    link: string,
-    paths: Paths,
-    checksum: string,
-    cacheDir: string,
-    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
-): Promise<boolean> {
-    if (nativeFileExists(cacheFile) || fs.existsSync(cacheFile)) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
-        try {
-            logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
-            await fs.promises.copyFile(cacheFile, tempFilePath)
-            const fileBuffer = fs.readFileSync(tempFilePath)
-            const ok = await writePatchedAsarAndPatchBundle(window, paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
-            if (ok) {
-                logger.modManager.info('Successfully restored app.asar from cache')
-                return true
-            } else {
-                logger.modManager.warn('Failed to apply cached file, redownloading')
-            }
-        } catch (e: any) {
-            logger.modManager.warn('Failed to use cache, redownloading:', e)
-            resetProgress(window)
-        }
-    }
-    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress)
-}
-
-function mapCompatibilityCodeToType(code?: string): 'version_outdated' | 'version_too_new' | 'unknown' {
-    if (code === 'YANDEX_VERSION_OUTDATED') return 'version_outdated'
-    if (code === 'YANDEX_VERSION_TOO_NEW') return 'version_too_new'
-    return 'unknown'
-}
-
-function clearModState(): void {
-    State.delete('mod.version')
-    State.delete('mod.musicVersion')
-    State.delete('mod.name')
-    State.delete('mod.checksum')
-    State.delete('mod.unpackedChecksum')
-    State.set('mod.installed', false)
-}
-
-async function removeVersionFile(versionFilePath: string): Promise<void> {
-    try {
-        if (fs.existsSync(versionFilePath)) {
-            await fs.promises.unlink(versionFilePath)
-        }
-    } catch (e) {
-        logger.modManager.warn('Failed to delete version file:', e)
-    }
-}
-
-function removeUnpackedDir(unpackedDir: string): void {
-    try {
-        if (fs.existsSync(unpackedDir)) {
-            nativeDeleteFile(unpackedDir)
-        }
-    } catch (e) {
-        logger.modManager.warn('Failed to delete unpacked dir:', e)
-    }
-}
-
-async function sendSuccessAfterLaunch(
-    window: BrowserWindow,
-    wasClosed: boolean,
-    channel: RendererEvent,
-    payload: { success: true },
-): Promise<boolean> {
-    if (!(await isYandexMusicRunning()) && wasClosed) {
-        await launchYandexMusic()
-        setTimeout(() => sendToRenderer(window, channel, payload), 1500)
-        return true
-    }
-    sendToRenderer(window, channel, payload)
-    return false
-}
+const PROGRESS_ASAR_ONLY = { base: 0, scale: 1, resetOnComplete: true }
+const PROGRESS_ASAR_WITH_UNPACKED = { base: 0, scale: 0.6, resetOnComplete: false }
+const PROGRESS_UNPACKED = { base: 0.6, scale: 0.4, resetOnComplete: true }
+clearCacheOnVersionChange()
 
 export const modManager = (window: BrowserWindow): void => {
     ipcMain.on(
@@ -153,8 +41,7 @@ export const modManager = (window: BrowserWindow): void => {
                     return
                 }
 
-                let paths: Paths = await resolveBasePaths()
-                paths = await ensureLinuxModPath(window, paths)
+                const paths = await ensureLinuxModPath(await resolveBasePaths())
 
                 const wasClosed = await closeMusicIfRunning(window)
 
@@ -162,9 +49,15 @@ export const modManager = (window: BrowserWindow): void => {
                 if (!force && !spoof) {
                     const comp = await checkModCompatibility(version, ymMetadata?.version)
                     if (!comp.success) {
+                        const type =
+                            comp.code === 'YANDEX_VERSION_OUTDATED'
+                                ? 'version_outdated'
+                                : comp.code === 'YANDEX_VERSION_TOO_NEW'
+                                  ? 'version_too_new'
+                                  : 'unknown'
                         return sendFailure(window, {
                             error: comp.message || t('main.modManager.incompatibleMod'),
-                            type: mapCompatibilityCodeToType(comp.code),
+                            type,
                             url: comp.url,
                             requiredVersion: comp.requiredVersion,
                             recommendedVersion: comp.recommendedVersion,
@@ -189,8 +82,8 @@ export const modManager = (window: BrowserWindow): void => {
 
                 if (isMac()) {
                     try {
-                        await fs.promises.copyFile(paths.modAsar, paths.modAsar)
-                        await fs.promises.copyFile(paths.infoPlist, paths.infoPlist)
+                        await copyFile(paths.modAsar, paths.modAsar)
+                        await copyFile(paths.infoPlist, paths.infoPlist)
                     } catch {
                         await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
                         return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
@@ -200,87 +93,37 @@ export const modManager = (window: BrowserWindow): void => {
                 const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
 
                 const hasUnpacked = Boolean(unpackLink)
-                const asarProgress = hasUnpacked ? { base: 0, scale: 0.6, resetOnComplete: false } : { base: 0, scale: 1, resetOnComplete: true }
-                const unpackedProgress = hasUnpacked ? { base: 0.6, scale: 0.4, resetOnComplete: true } : undefined
+                const asarProgress = hasUnpacked ? PROGRESS_ASAR_WITH_UNPACKED : PROGRESS_ASAR_ONLY
+                const unpackedProgress = hasUnpacked ? PROGRESS_UNPACKED : undefined
 
                 if (checksum) {
                     const cacheFile = path.join(CACHE_DIR, `${checksum}.asar`)
-                    try {
-                        await fs.promises.mkdir(CACHE_DIR, { recursive: true })
-                    } catch (err) {
+                    await fs.promises.mkdir(CACHE_DIR, { recursive: true }).catch(err => {
                         logger.modManager.warn('Failed to create cache dir:', err)
-                    }
+                    })
 
-                    if (nativeFileExists(paths.modAsar) || fs.existsSync(paths.modAsar)) {
-                        try {
-                            const buf = fs.readFileSync(paths.modAsar)
-                            const currentHash = crypto.createHash('sha256').update(buf).digest('hex')
-                            if (currentHash === checksum) {
-                                logger.modManager.info('app.asar hash matches, skipping download')
-                                sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
-                                if (hasUnpacked) {
-                                    setProgress(window, 0.6)
-                                    sendProgress(window, 60)
-                                } else {
-                                    resetProgress(window)
-                                }
-                            } else {
-                                const ok = await tryUseCacheOrDownload(
-                                    window,
-                                    cacheFile,
-                                    tempFilePath,
-                                    link,
-                                    paths,
-                                    checksum,
-                                    CACHE_DIR,
-                                    asarProgress,
-                                )
-                                if (!ok) return
-                            }
-                        } catch (e: any) {
-                            logger.modManager.warn('Failed to verify existing file:', e)
-                            const ok = await downloadAndUpdateFile(
-                                window,
-                                link,
-                                tempFilePath,
-                                paths.modAsar,
-                                paths.backupAsar,
-                                checksum,
-                                CACHE_DIR,
-                                asarProgress,
-                            )
-                            if (!ok) return
+                    const currentHash = fileExists(paths.modAsar) ? readChecksum(paths.modAsar) : null
+                    if (currentHash === checksum) {
+                        logger.modManager.info('app.asar hash matches, skipping download')
+                        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
+                        if (hasUnpacked) {
+                            setProgressPercent(window, PROGRESS_UNPACKED.base)
+                        } else {
+                            resetProgress(window)
                         }
-                    } else {
-                        const ok = await tryUseCacheOrDownload(
-                            window,
-                            cacheFile,
-                            tempFilePath,
-                            link,
-                            paths,
-                            checksum,
-                            CACHE_DIR,
-                            asarProgress,
-                        )
-                        if (!ok) return
+                    } else if (!(await tryUseCacheOrDownload(window, cacheFile, tempFilePath, link, paths, checksum, CACHE_DIR, asarProgress))) {
+                        return
                     }
                 } else {
-                    const ok = await downloadAndUpdateFile(
-                        window,
-                        link,
-                        tempFilePath,
-                        paths.modAsar,
-                        paths.backupAsar,
-                        checksum,
-                        CACHE_DIR,
-                        asarProgress,
-                    )
-                    if (!ok) return
+                    if (
+                        !(await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR, asarProgress))
+                    ) {
+                        return
+                    }
                 }
 
                 if (unpackLink) {
-                    setProgress(window, 0.6)
-                    sendProgress(window, 60)
+                    setProgressPercent(window, PROGRESS_UNPACKED.base)
 
                     const unpackName = path.basename(new URL(unpackLink).pathname)
                     const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
@@ -300,13 +143,9 @@ export const modManager = (window: BrowserWindow): void => {
                     if (!unpackedOk) return
                 }
 
-                let actualAsarChecksum = checksum
-                try {
-                    const buf = fs.readFileSync(paths.modAsar)
-                    actualAsarChecksum = crypto.createHash('sha256').update(buf).digest('hex')
+                const actualAsarChecksum = readChecksum(paths.modAsar) ?? checksum
+                if (actualAsarChecksum) {
                     logger.modManager.info('Calculated actual asar checksum:', actualAsarChecksum)
-                } catch (e: any) {
-                    logger.modManager.warn('Failed to calculate asar checksum, using provided checksum:', e)
                 }
 
                 State.set('mod', {
@@ -319,7 +158,7 @@ export const modManager = (window: BrowserWindow): void => {
                     installed: true,
                 })
 
-                const versionFilePath = path.join(paths.music, 'version')
+                const versionFilePath = path.join(paths.music, 'version.bin')
                 await fs.promises.writeFile(versionFilePath, musicVersion)
 
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
@@ -335,7 +174,7 @@ export const modManager = (window: BrowserWindow): void => {
             const paths = await resolveBasePaths()
             const wasClosed = await closeMusicIfRunning(window)
 
-            const backupExists = nativeFileExists(paths.backupAsar) || fs.existsSync(paths.backupAsar)
+            const backupExists = fileExists(paths.backupAsar)
 
             if (backupExists) {
                 const renamed = nativeRenameFile(paths.backupAsar, paths.modAsar)
@@ -352,11 +191,7 @@ export const modManager = (window: BrowserWindow): void => {
 
             clearModState()
 
-            const versionFilePath = path.join(paths.music, 'version')
-            await removeVersionFile(versionFilePath)
-            const unpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
-            removeUnpackedDir(unpackedDir)
-
+            await cleanupModArtifacts(paths)
 
             await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {
@@ -366,9 +201,7 @@ export const modManager = (window: BrowserWindow): void => {
     })
     ipcMain.on(MainEvents.CLEAR_MOD_CACHE, async () => {
         try {
-            if (fs.existsSync(CACHE_DIR)) {
-                await fs.promises.rm(CACHE_DIR, { recursive: true, force: true })
-            }
+            await fs.promises.rm(CACHE_DIR, { recursive: true, force: true })
             sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_SUCCESS, { success: true })
         } catch (error: any) {
             logger.modManager.error('Failed to clear mod cache:', error)

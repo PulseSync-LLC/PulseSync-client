@@ -3,6 +3,11 @@
     --scrollHTrackInfo: 100%;
 }
 
+.selectInputDescription{
+    display: flex;
+    flex-direction: column;
+}
+
 .buttonRpcStatus {
     background: #577eff;
 

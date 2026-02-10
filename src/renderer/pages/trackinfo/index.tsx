@@ -14,7 +14,6 @@ import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
-import config from '../../api/web_config'
 import { staticAsset } from '../../utils/staticAssets'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
@@ -23,6 +22,7 @@ import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
+import Image from '../../components/PSUI/Image'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -32,6 +32,7 @@ type FormValues = {
     state: string
     button: string
     statusDisplayType: string
+    statusLanguage: string
 }
 
 export default function TrackInfoPage() {
@@ -49,6 +50,7 @@ export default function TrackInfoPage() {
         state: app.discordRpc.state || '',
         button: app.discordRpc.button || '',
         statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+        statusLanguage: app.discordRpc.statusLanguage || 'en',
     }))
 
     useEffect(() => {
@@ -94,16 +96,8 @@ export default function TrackInfoPage() {
         return changedValues
     }, [])
 
-    const formik = useFormik<FormValues>({
-        initialValues: {
-            appId: app.discordRpc.appId,
-            details: app.discordRpc.details,
-            state: app.discordRpc.state,
-            button: app.discordRpc.button,
-            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
-        },
-        validationSchema: schema,
-        onSubmit: values => {
+    const commitRpcSettings = useCallback(
+        (values: FormValues) => {
             const changedValues = getChangedValues(previousValues, values)
             if (Object.keys(changedValues).length > 0) {
                 if (Object.prototype.hasOwnProperty.call(changedValues, 'statusDisplayType')) {
@@ -122,17 +116,43 @@ export default function TrackInfoPage() {
                 })
             }
         },
+        [app, getChangedValues, previousValues, setApp],
+    )
+
+    const formik = useFormik<FormValues>({
+        initialValues: {
+            appId: app.discordRpc.appId,
+            details: app.discordRpc.details,
+            state: app.discordRpc.state,
+            button: app.discordRpc.button,
+            statusDisplayType: String(app.discordRpc.statusDisplayType ?? ''),
+            statusLanguage: app.discordRpc.statusLanguage,
+        },
+        validationSchema: schema,
+        onSubmit: values => {
+            commitRpcSettings(values)
+        },
     })
 
     const handleBlur = useCallback(
         (e: any) => {
             formik.handleBlur(e)
-            const changedValues = getChangedValues(previousValues, formik.values)
-            if (formik.isValid && Object.keys(changedValues).length > 0) {
-                formik.handleSubmit()
+            if (formik.isValid) {
+                commitRpcSettings(formik.values)
             }
         },
-        [formik, getChangedValues, previousValues],
+        [commitRpcSettings, formik],
+    )
+
+    const handleSelectChange = useCallback(
+        (field: keyof FormValues) => (val: string | number) => {
+            const nextValues = { ...formik.values, [field]: String(val) }
+            formik.setFieldValue(field, String(val))
+            if (formik.isValid) {
+                commitRpcSettings(nextValues as FormValues)
+            }
+        },
+        [commitRpcSettings, formik],
     )
 
     const toggleRpcStatus = useCallback(() => {
@@ -161,6 +181,13 @@ export default function TrackInfoPage() {
             { value: '0', label: t('textInput.statusDisplay.appName') },
             { value: '1', label: t('textInput.statusDisplay.trackArtist') },
             { value: '2', label: t('textInput.statusDisplay.trackTitle') },
+        ],
+        [t],
+    )
+    const statusLanguageOptions = useMemo(
+        () => [
+            { value: 'en', label: t('textInput.statusLanguage.english') },
+            { value: 'ru', label: t('textInput.statusLanguage.russian') },
         ],
         [t],
     )
@@ -217,14 +244,20 @@ export default function TrackInfoPage() {
                                 showCommandsButton={true}
                             />
                             <SelectInput
+                                label={t('trackInfo.fields.statusLanguage')}
+                                value={formik.values.statusLanguage}
+                                onChange={handleSelectChange('statusLanguage')}
+                                options={statusLanguageOptions}
+                            />
+                            <SelectInput
                                 label={t('trackInfo.fields.statusDisplayTypeLabel')}
                                 description={
-                                    <>
+                                    <div className={themeV2.selectInputDescription}>
                                         <img src={statusDisplayTip} alt="" srcSet="" /> {t('trackInfo.fields.statusDisplayTypeDescription')}
-                                    </>
+                                    </div>
                                 }
                                 value={formik.values.statusDisplayType}
-                                onChange={val => formik.setFieldValue('statusDisplayType', String(val))}
+                                onChange={handleSelectChange('statusDisplayType')}
                                 options={statusDisplayOptions}
                             />
                         </div>
@@ -296,22 +329,25 @@ export default function TrackInfoPage() {
                 </div>
 
                 <div className={themeV2.discordRpc}>
-                    <img
+                    <Image
                         className={themeV2.userBanner}
-                        src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
+                        type="banner"
+                        hash={user.bannerHash}
+                        ext={user.bannerType}
+                        sizes="420px"
                         alt={user.bannerHash}
-                        onError={e => {
-                            ;(e.currentTarget as HTMLImageElement).src = `${config.S3_URL}/banners/default_banner.webp`
-                        }}
+                        fallbackHash="default_banner"
+                        fallbackExt="webp"
                     />
                     <div className={themeV2.userInfo}>
-                        <img
+                        <Image
                             className={themeV2.userAvatar}
-                            src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
+                            type="avatar"
+                            hash={user.avatarHash}
+                            ext={user.avatarType}
+                            sizes="90px"
                             alt={user.avatarHash}
-                            onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
-                            }}
+                            fallbackSrc={fallbackAvatar}
                         />
                         <div className={themeV2.userInfoContainer}>
                             <div className={themeV2.userName}>{user.username}</div>

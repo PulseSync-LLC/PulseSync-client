@@ -31,7 +31,7 @@ import client from '../api/apolloClient'
 import SettingsInterface from '../api/interfaces/settings.interface'
 import settingsInitials from '../api/initials/settings.initials'
 import getUserToken from '../api/getUserToken'
-import config from '../api/web_config'
+import config from '@common/appConfig'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
@@ -728,7 +728,7 @@ function App() {
         const onConnect = () => {
             resetSocketFailures()
 
-            toast.custom('success', t('common.phewTitle'), t('common.connectionEstablished'))
+            toast.custom('success', t('common.connectionEstablished'))
             connectionErrorAttemptsRef.current = 0
             setRealtimeSocket(socket)
             setIsConnected(true)
@@ -763,7 +763,7 @@ function App() {
         }
 
         const onLogout = async () => {
-            await client.resetStore()
+            await client.clearStore()
             setUser(userInitials)
             setConnectionErrorCode(1)
             setRealtimeSocket(null)
@@ -833,7 +833,7 @@ function App() {
         if (connectionErrorCode === 1 || connectionErrorCode === 0) {
             toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
         } else if (isConnected && connectionErrorCode !== -1) {
-            toast.custom('success', t('common.connectedTitle'), t('common.connectionRestored'))
+            toast.custom('success', t('common.connectionRestored'))
         }
     }, [connectionErrorCode, isConnected])
 
@@ -867,7 +867,7 @@ function App() {
                     localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
                 }
             } else {
-                toast.custom('info', tRef.current('common.allGoodTitle'), tRef.current('mod.latestInstalled'))
+                toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
@@ -1000,16 +1000,16 @@ function App() {
         (_: any, data: any) => {
             switch (data.type) {
                 case 'error':
-                    toast.custom('error', t('common.errorTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    toast.custom('error', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
                     break
                 case 'success':
-                    toast.custom('success', t('common.successTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    toast.custom('success', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
                     break
                 case 'info':
-                    toast.custom('info', t('common.infoTitleShort'), t('rpc.message', { message: data.message }))
+                    toast.custom('info', t('common.discordRpc'), t('rpc.message', { message: data.message }))
                     break
                 case 'warn':
-                    toast.custom('warning', t('common.warningTitleShort'), t('rpc.message', { message: data.message }))
+                    toast.custom('warning', t('common.discordRpc'), t('rpc.message', { message: data.message }))
                     break
             }
         },
@@ -1091,6 +1091,10 @@ function App() {
             setUpdate(true)
         }
 
+        const handleUpdateAvailable = () => {
+            setUpdate(true)
+        }
+
         window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, handleRpcState)
         window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
         window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
@@ -1110,6 +1114,7 @@ function App() {
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
+        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
 
         const loadSettings = async () => {
             await fetchSettings(setApp)
@@ -1117,14 +1122,21 @@ function App() {
         loadSettings()
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.RPC_LOG)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DISCORD_RPC_STATE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_MOD_UPDATE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CLIENT_READY)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_PROGRESS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_UPDATE)
+            const cleanupEvents = [
+                RendererEvents.RPC_LOG,
+                RendererEvents.DISCORD_RPC_STATE,
+                RendererEvents.CHECK_MOD_UPDATE,
+                RendererEvents.CLIENT_READY,
+                RendererEvents.DOWNLOAD_UPDATE_PROGRESS,
+                RendererEvents.DOWNLOAD_UPDATE_FAILED,
+                RendererEvents.DOWNLOAD_UPDATE_FINISHED,
+                RendererEvents.CHECK_UPDATE,
+                RendererEvents.UPDATE_AVAILABLE,
+            ]
+
+            cleanupEvents.forEach(event => {
+                window.desktopEvents?.removeAllListeners(event)
+            })
         }
     }, [fetchModInfo, onRpcLog])
 
@@ -1400,3 +1412,4 @@ const Player: React.FC<any> = ({ children }) => {
 }
 
 export default App
+

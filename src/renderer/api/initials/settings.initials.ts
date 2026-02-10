@@ -41,6 +41,7 @@ const settingsInitials: SettingsInterface = {
         showSmallIcon: true,
         showTrackVersion: false,
         supporterHideBranding: false,
+        statusLanguage: 'en',
         statusDisplayType: 1,
         status: true,
         details: '',

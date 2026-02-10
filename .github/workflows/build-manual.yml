@@ -6,7 +6,7 @@ on:
       target:
         description: "Choose build branch"
         required: true
-        default: "2.10.0"
+        default: "dev"
       build_os:
         description: "Choose OS to build"
         required: true
@@ -16,6 +16,7 @@ on:
           - ubuntu-latest
           - windows-latest
           - macos-latest
+          - windows+macos
         default: all
       upload_to_s3:
         description: "Upload release/ to S3 after build"
@@ -59,7 +60,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os)))) }}
 
     steps:
       - uses: actions/checkout@v5

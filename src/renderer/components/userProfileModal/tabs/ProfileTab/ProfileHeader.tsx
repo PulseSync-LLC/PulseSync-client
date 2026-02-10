@@ -2,9 +2,9 @@ import React from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
-import config from '../../../../api/web_config'
 import { staticAsset } from '../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
+import Image from '../../../PSUI/Image'
 
 const fallbackAvatar = staticAsset('assets/images/undef.png')
 
@@ -16,27 +16,30 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
     const { t, i18n } = useTranslation()
-    const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`
-    const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`
-
     return (
-        <div
-            className={styles.bannerBackground}
-            style={{
-                background: `linear-gradient(180deg, rgba(41, 44, 54, 0) 0%, #292C36 100%), url(${bannerUrl})`,
-                backgroundSize: 'cover',
-            }}
-        >
+        <div className={styles.bannerBackground}>
+            <Image
+                className={styles.bannerImage}
+                type="banner"
+                hash={userProfile.bannerHash}
+                ext={userProfile.bannerType}
+                sizes="(max-width: 1024px) 100vw, 1010px"
+                alt=""
+                fallbackHash="default_banner"
+                fallbackExt="webp"
+            />
+            <div className={styles.bannerGradient} />
             <div className={styles.userImage}>
-                <img
+                <Image
                     className={styles.avatarWrapper}
-                    src={avatarUrl}
+                    type="avatar"
+                    hash={userProfile.avatarHash}
+                    ext={userProfile.avatarType}
+                    sizes="84px"
                     alt="Avatar"
-                    onError={e => {
-                        ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
-                    }}
                     width="84"
                     height="84"
+                    fallbackSrc={fallbackAvatar}
                 />
                 <div className={styles.userInfo}>
                     <div className={styles.dateCreate}>

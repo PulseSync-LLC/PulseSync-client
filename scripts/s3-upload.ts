@@ -239,10 +239,7 @@ export async function generateAndPublishMacDownloadJson(
         merged.set(`${a.arch}:${a.fileType}`, a)
     }
     const mergedAssets = Array.from(merged.values())
-    const preferred =
-        mergedAssets.find(x => x.arch === 'x64') ||
-        mergedAssets.find(x => x.arch === 'arm64') ||
-        mergedAssets[0]
+    const preferred = mergedAssets.find(x => x.arch === 'x64') || mergedAssets.find(x => x.arch === 'arm64') || mergedAssets[0]
     const manifest = {
         version,
         url: preferred.url,

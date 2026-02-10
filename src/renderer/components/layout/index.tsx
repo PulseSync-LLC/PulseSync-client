@@ -21,15 +21,16 @@ import userContext from '../../api/context/user.context'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
-import { isDev, isDevmark } from '../../api/web_config'
+import { isDev, isDevmark } from '@common/appConfig'
 import TooltipButton from '../tooltip_button'
-import store from '../../api/store/store'
-import { openModal } from '../../api/store/modalSlice'
+import { RootState } from '../../api/store/store'
+import { openModal, openLinuxAsarModal, setLinuxAsarPath } from '../../api/store/modalSlice'
 import { errorTypesToShow } from '../../utils/utils'
 import { staticAsset } from '../../utils/staticAssets'
 import * as semver from 'semver'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { useDispatch, useSelector } from 'react-redux'
 
 interface LayoutProps {
     title: string
@@ -38,9 +39,11 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
+    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
         useContext(userContext)
     const { t } = useTranslation()
+    const dispatch = useDispatch()
+    const linuxAsarPath = useSelector((state: RootState) => state.modal.linuxAsarPath)
 
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
@@ -53,8 +56,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
+    const pendingLinuxUpdateRef = useRef<{ force?: boolean } | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
+
+    const isUserDeveloper = useCallback(() => {
+        return user?.perms === 'developer' || isDev
+    }, [user])
 
     useEffect(() => {
         const serverRaw = modInfo[0]?.modVersion
@@ -121,7 +129,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 }))
                 if (modInfo[0].showModal || app.settings.showModModalAfterInstall) {
-                    store.dispatch(openModal())
+                    dispatch(openModal())
                 }
                 setForceInstallEnabled(false)
                 Promise.all([
@@ -170,23 +178,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             setIsUpdating(false)
         }
 
-        const handleUpdateAvailable = () => {
-            setUpdate(true)
-        }
-
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)
-        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
 
         return () => {
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_PROGRESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_SUCCESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.UPDATE_AVAILABLE)
             ;(window as any).__listenersAdded = false
         }
-    }, [app.mod.installed, app.settings.showModModalAfterInstall, modInfo, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])
+    }, [app.mod.installed, app.settings.showModModalAfterInstall, dispatch, modInfo, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])
 
     useEffect(() => {
         if ((window as any).__musicEventListeners) return
@@ -293,8 +295,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const startUpdate = useCallback(
         (force?: boolean) => {
             if (window.electron.isLinux()) {
-                toast.custom('error', t('common.errorTitle'), t('layout.modNotSupportedOnLinux'))
-                return
+                const savedPath = window.electron.store.get('settings.modSavePath')
+                if (!savedPath) {
+                    pendingLinuxUpdateRef.current = { force }
+                    dispatch(openLinuxAsarModal())
+                    return
+                }
             }
             if (isUpdating) {
                 toast.custom(
@@ -331,7 +337,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 spoof: spoof || false,
             })
         },
-        [app.mod.installed, isUpdating, modInfo, t],
+        [app.mod.installed, dispatch, isUpdating, modInfo, t],
     )
 
     useEffect(() => {
@@ -368,6 +374,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
     }, [isDevmark])
 
+    useEffect(() => {
+        if (!linuxAsarPath) return
+        const pending = pendingLinuxUpdateRef.current
+        if (!pending) return
+        pendingLinuxUpdateRef.current = null
+        dispatch(setLinuxAsarPath(null))
+        startUpdate(pending.force)
+    }, [dispatch, linuxAsarPath, startUpdate])
+
     if (!modInfoFetched) {
         return <Preloader />
     }
@@ -396,7 +411,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
-                            {isDev && (
+                            {isUserDeveloper() && (
                                 <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
                                     <MdHandyman size={24} />
                                 </NavButtonPulse>
@@ -421,6 +436,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <div className={pageStyles.patch_container}>
                                 <div className={pageStyles.patch_detail}>
                                     <div className={pageStyles.alert_info}>
+                                        <div className={pageStyles.alert_title}>
+                                            {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
+                                        </div>
+                                        <div className={pageStyles.alert_warn}>{t('layout.modInstallDescription')}</div>
                                         <div className={pageStyles.alert_version_update}>
                                             <div className={pageStyles.version_old}>
                                                 {app.mod.version && app.mod.installed ? app.mod.version : t('layout.modNotInstalled')}
@@ -428,10 +447,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                             <MdKeyboardArrowRight size={14} />
                                             <div className={pageStyles.version_new}>{modInfo[0]?.modVersion}</div>
                                         </div>
-                                        <div className={pageStyles.alert_title}>
-                                            {app.mod.installed && app.mod.version ? t('layout.modUpdateTitle') : t('layout.modInstallTitle')}
-                                        </div>
-                                        <div className={pageStyles.alert_warn}>{t('layout.modInstallDescription')}</div>
                                     </div>
                                     <div className={pageStyles.button_container}>
                                         <button className={pageStyles.patch_button} onClick={() => startUpdate()}>
@@ -452,11 +467,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         )}
                                     </div>
                                 </div>
-                                <img
-                                    className={pageStyles.alert_patch_image}
-                                    src={staticAsset('assets/images/imageAlertPatch.png')}
-                                    alt={t('layout.patchUpdateAlt')}
-                                />
                             </div>
                         </div>
                     )}
@@ -468,3 +478,4 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 }
 
 export default Layout
+

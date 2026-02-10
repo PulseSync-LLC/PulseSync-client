@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
 import userContext from '../../../api/context/user.context'
-import { staticAsset } from '../../../utils/staticAssets'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import AppNameLogo from '../../../assets/icon/AppName.svg'
@@ -18,11 +17,7 @@ export default function AuthPage() {
     const navigate = useNavigate()
     const { user } = useContext(userContext)
     const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
-    const img1Ref = useRef(null)
-    const img2Ref = useRef(null)
-    const img3Ref = useRef(null)
-    const img4Ref = useRef(null)
-    const imgLogo = useRef(null)
+    const containerRef = useRef<HTMLDivElement>(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
     const checkUpdate = () => checkUpdateHard()
@@ -35,34 +30,14 @@ export default function AuthPage() {
     }
 
     useAuthRedirect(user.id, navigate)
+
     useEffect(() => {
-        const handleMouseMove = (e: { clientX: any; clientY: any }) => {
+        const handleMouseMove = (e: MouseEvent) => {
+            if (!containerRef.current) return
             const { innerWidth, innerHeight } = window
-            const mouseX = e.clientX
-            const mouseY = e.clientY
-
-            const centerX = innerWidth / 2
-            const centerY = innerHeight / 2
-
-            const offsetX = (mouseX - centerX) / centerX
-            const offsetY = (mouseY - centerY) / centerY
-
-            const movementIntensity = [
-                { ref: img1Ref, factor: 20, rotation: 5 },
-                { ref: img2Ref, factor: 40, rotation: -5 },
-                { ref: img3Ref, factor: 60, rotation: 7 },
-                { ref: img4Ref, factor: 80, rotation: -7 },
-                { ref: imgLogo, factor: -10, rotation: 0 },
-            ]
-
-            movementIntensity.forEach(({ ref, factor, rotation }) => {
-                if (ref.current) {
-                    const translateX = offsetX * factor
-                    const translateY = offsetY * factor
-                    const rotate = offsetX * rotation
-                    ref.current.style.transform = `translate(${translateX}px, ${translateY}px) rotate(${rotate}deg)`
-                }
-            })
+            const offsetX = (e.clientX - innerWidth / 2) / (innerWidth / 2)
+            const offsetY = (e.clientY - innerHeight / 2) / (innerHeight / 2)
+            containerRef.current.style.transform = `translate(${offsetX * -8}px, ${offsetY * -8}px)`
         }
 
         const handleKeyDown = (event: KeyboardEvent) => {
@@ -84,46 +59,40 @@ export default function AuthPage() {
         <>
             <Header />
             <div className={pageStyles.main_window}>
-                <img
-                    ref={img1Ref}
-                    className={pageStyles.img1}
-                    src={staticAsset('assets/images/normalAuth/FlatCylinder.png')}
-                    alt={t('auth.images.flatCylinder')}
-                />
-                <img
-                    ref={img2Ref}
-                    className={pageStyles.img2}
-                    src={staticAsset('assets/images/normalAuth/ThorusKnot.png')}
-                    alt={t('auth.images.thorusKnot')}
-                />
-                <img
-                    ref={img3Ref}
-                    className={pageStyles.img3}
-                    src={staticAsset('assets/images/normalAuth/Pyramid.png')}
-                    alt={t('auth.images.pyramid')}
-                />
-                <img
-                    ref={img4Ref}
-                    className={pageStyles.img4}
-                    src={staticAsset('assets/images/normalAuth/Icosahedron.png')}
-                    alt={t('auth.images.icosahedron')}
-                />
-                <div className={pageStyles.filter}></div>
-                <div className={pageStyles.background}></div>
-                <div className={pageStyles.container} ref={imgLogo}>
-                    <div className={pageStyles.logoName}>
-                        <AppNameLogo />
+                {/* Space Background */}
+                <div className={pageStyles.spaceBackground}>
+                    <div className={pageStyles.stars1} />
+                    <div className={pageStyles.stars2} />
+                    <div className={pageStyles.stars3} />
+                    <div className={pageStyles.shootingStarsLayer}>
+                        {[0, 1, 2].map(i => (
+                            <div key={i} className={pageStyles.shootingStar} style={{ '--index': i } as React.CSSProperties} />
+                        ))}
                     </div>
+                </div>
+
+                {/* Content */}
+                <div className={pageStyles.container} ref={containerRef}>
+                    <div className={pageStyles.logoBlock}>
+                        <svg className={pageStyles.logoIcon} viewBox="0 0 40 40" fill="currentColor">
+                            <path d="M20.6536 28.5839H40V40H20.6536V28.5839Z" />
+                            <path d="M0 0H40V25.7143H17.7778V40H0V14.2857H22.2222V11.4286H0V0Z" />
+                        </svg>
+                        <div className={pageStyles.logoName}>
+                            <AppNameLogo />
+                        </div>
+                    </div>
+
                     {isDeprecated ? (
                         <>
-                            <button className={pageStyles.discordAuth} onClick={checkUpdate}>
+                            <button className={pageStyles.authButton} onClick={checkUpdate}>
                                 {t('auth.checkUpdates')}
                             </button>
                             <span className={pageStyles.terms}>{t('auth.deprecatedRequiresUpdate')}</span>
                         </>
                     ) : (
                         <>
-                            <button className={pageStyles.discordAuth} onClick={startAuthProcess}>
+                            <button className={pageStyles.authButton} onClick={startAuthProcess}>
                                 {t('auth.discordAuth')}
                             </button>
                             <span className={pageStyles.terms}>

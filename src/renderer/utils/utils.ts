@@ -1,5 +1,5 @@
 import toast from '../components/toast'
-import config from '../api/web_config'
+import config from '@common/appConfig'
 import { Track } from '../api/interfaces/track.interface'
 import trackInitials from '../api/initials/track.initials'
 import { t } from '../i18n'
@@ -239,3 +239,4 @@ export function areTracksEqual(a: Track, b: Track): boolean {
     const bArtist = (b.artists || []).map(x => x.name).join(',')
     return aArtist === bArtist
 }
+

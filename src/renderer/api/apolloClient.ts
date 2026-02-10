@@ -2,7 +2,7 @@ import { ApolloClient, InMemoryCache, ApolloLink, HttpLink } from '@apollo/clien
 import { getMainDefinition } from '@apollo/client/utilities'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { createClient } from 'graphql-ws'
-import config from './web_config'
+import config from '@common/appConfig'
 
 const httpUrl = config.SERVER_URL + '/graphql'
 const wsUrl = config.SERVER_URL.replace(/^http/, 'ws') + '/graphql'
@@ -49,3 +49,4 @@ const client = new ApolloClient({
 })
 
 export default client
+

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
 import MainEvents from '../../../common/types/mainEvents'
-import config from '../../api/web_config'
+import config from '@common/appConfig'
 import { staticAsset } from '../../utils/staticAssets'
 
 export const isDevModeEnabled = () => {
@@ -18,7 +18,7 @@ export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
 }
 
 export const openAuthCallback = (navigate: NavigateFunction) => {
-    window.open(config.WEBSITE_URL + '/callback')
+    window.open(config.WEBSITE_URL + '/callback?source=app')
     navigate('/auth/callback', { replace: true })
 }
 
@@ -31,3 +31,4 @@ export const readAndSendTerms = async () => {
     const fileContent = await response.text()
     window.desktopEvents?.send(MainEvents.OPEN_FILE, fileContent)
 }
+
