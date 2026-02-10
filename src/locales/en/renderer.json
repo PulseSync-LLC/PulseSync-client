@@ -771,8 +771,12 @@
         "readyDescription": "A new version has been downloaded. Install the update now?",
         "readyTitle": "Update ready to install",
         "installButton": "Install update",
-        "notFoundMessage": "No updates found",
-        "notFoundTitle": "No updates"
+        "notFoundMessage": "App is up to date",
+        "notFoundTitle": "No updates",
+        "mod": {
+            "notFoundMessage": "Mod is up to date",
+            "notFoundTitle": "No updates"
+        }
     },
     "userStatus": {
         "inactive": "Inactive",

@@ -771,8 +771,12 @@
         "readyDescription": "Новая версия уже загружена. Установить обновление сейчас?",
         "readyTitle": "Обновление готово к установке",
         "installButton": "Установить обновление",
-        "notFoundMessage": "Обновлений не найдено",
-        "notFoundTitle": "Эвана как..."
+        "notFoundMessage": "У вас актуальная версия приложения",
+        "notFoundTitle": "Обновлений не найдено",
+        "mod": {
+            "notFoundMessage": "У вас актуальная версия мода",
+            "notFoundTitle": "Обновлений не найдено"
+        }
     },
     "userStatus": {
         "inactive": "Не активен",

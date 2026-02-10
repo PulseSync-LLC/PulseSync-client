@@ -728,7 +728,7 @@ function App() {
         const onConnect = () => {
             resetSocketFailures()
 
-            toast.custom('success', t('common.phewTitle'), t('common.connectionEstablished'))
+            toast.custom('success', t('common.connectionEstablished'))
             connectionErrorAttemptsRef.current = 0
             setRealtimeSocket(socket)
             setIsConnected(true)
@@ -833,7 +833,7 @@ function App() {
         if (connectionErrorCode === 1 || connectionErrorCode === 0) {
             toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
         } else if (isConnected && connectionErrorCode !== -1) {
-            toast.custom('success', t('common.connectedTitle'), t('common.connectionRestored'))
+            toast.custom('success', t('common.connectionRestored'))
         }
     }, [connectionErrorCode, isConnected])
 
@@ -867,7 +867,7 @@ function App() {
                     localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
                 }
             } else {
-                toast.custom('info', tRef.current('common.allGoodTitle'), tRef.current('mod.latestInstalled'))
+                toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
         } catch (e) {
             console.error('Failed to fetch mod info:', e)
