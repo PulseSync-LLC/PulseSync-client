@@ -45,6 +45,7 @@
             "fileNotFound": "File not found: {{path}}"
         },
         "discordRpc": {
+            "discordRpc": "Discord RPC",
             "activityClearError": "Failed to clear activity",
             "activitySetError": "Failed to set activity",
             "connectError": "Failed to connect to Discord RPC",

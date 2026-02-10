@@ -58,7 +58,8 @@
         "thinkLater": "Установить позже",
         "tooManyAttempts": "Превышено количество попыток подключения.",
         "waitTitle": "Подождите",
-        "warningTitleShort": "Предупреждение"
+        "warningTitleShort": "Предупреждение",
+        "discordRpc": "Discord RPC"
     },
     "auth": {
         "accessQuestionTitle": "Может у тебя нет доступа?",

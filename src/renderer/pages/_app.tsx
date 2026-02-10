@@ -1000,16 +1000,16 @@ function App() {
         (_: any, data: any) => {
             switch (data.type) {
                 case 'error':
-                    toast.custom('error', t('common.errorTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    toast.custom('error', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
                     break
                 case 'success':
-                    toast.custom('success', t('common.successTitleShort'), t('rpc.message', { message: data.message }), null, null, 15000)
+                    toast.custom('success', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
                     break
                 case 'info':
-                    toast.custom('info', t('common.infoTitleShort'), t('rpc.message', { message: data.message }))
+                    toast.custom('info', t('common.discordRpc'), t('rpc.message', { message: data.message }))
                     break
                 case 'warn':
-                    toast.custom('warning', t('common.warningTitleShort'), t('rpc.message', { message: data.message }))
+                    toast.custom('warning', t('common.discordRpc'), t('rpc.message', { message: data.message }))
                     break
             }
         },

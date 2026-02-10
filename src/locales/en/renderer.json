@@ -58,7 +58,8 @@
         "thinkLater": "Install later",
         "tooManyAttempts": "Too many connection attempts.",
         "waitTitle": "Wait",
-        "warningTitleShort": "Warning"
+        "warningTitleShort": "Warning",
+        "discordRpc": "Discord RPC"
     },
     "auth": {
         "accessQuestionTitle": "Maybe you don't have access?",
