@@ -24,7 +24,7 @@
     "keywords": [],
     "license": "GPL-3.0+",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.985.0",
+        "@aws-sdk/client-s3": "^3.986.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
         "@electron-forge/maker-dmg": "^7.11.1",
@@ -32,13 +32,13 @@
         "@electron-forge/maker-squirrel": "^7.11.1",
         "@electron-forge/maker-zip": "^7.11.1",
         "@electron-forge/plugin-vite": "^7.11.1",
-        "@sentry/vite-plugin": "^4.9.0",
+        "@sentry/vite-plugin": "^4.9.1",
         "@types/adm-zip": "^0.5.7",
         "@types/electron": "^1.6.12",
         "@types/fs-extra": "^11.0.4",
         "@types/glob": "^9.0.0",
         "@types/lodash.debounce": "^4.0.9",
-        "@types/node": "^25.2.2",
+        "@types/node": "^25.2.3",
         "@types/plist": "^3.0.5",
         "@types/react": "^19.2.13",
         "@types/react-dom": "^19.2.3",
@@ -54,8 +54,8 @@
         "@types/unzipper": "^0.10.11",
         "@types/uuid": "^11.0.0",
         "@types/yazl": "^3.3.0",
-        "@typescript-eslint/eslint-plugin": "^8.54.0",
-        "@typescript-eslint/parser": "^8.54.0",
+        "@typescript-eslint/eslint-plugin": "^8.55.0",
+        "@typescript-eslint/parser": "^8.55.0",
         "@vitejs/plugin-react-swc": "^4.2.3",
         "electron": "40.2.1",
         "electron-builder": "^26.7.0",
@@ -147,8 +147,8 @@
     },
     "buildInfo": {
         "VERSION": "2.10.2-beta",
-        "BRANCH": "27d84df",
-        "BUILD_TIME": "2/10/2026, 12:17:25 AM"
+        "BRANCH": "897313a",
+        "BUILD_TIME": "10.02.2026, 18:09:31"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

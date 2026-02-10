@@ -8,7 +8,7 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { publishToS3, generateAndPublishMacDownloadJson } from './s3-upload'
+import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
 
 const exec = promisify(_exec)
@@ -126,19 +126,11 @@ async function runCommandStep(name: string, command: string): Promise<void> {
 }
 
 function applyConfigFromEnv() {
-    const appConfig = process.env.APP_CONFIG
-    const rendererConfig = process.env.RENDERER_CONFIG
-    const configJson = process.env.CONFIG_JSON
-
-    const configSource = appConfig ?? rendererConfig
+    const configSource = process.env.APP_CONFIG
     if (configSource) {
         const appConfigPath = path.resolve(__dirname, '../src/common/appConfig.ts')
         fs.writeFileSync(appConfigPath, configSource, 'utf-8')
         log(LogLevel.SUCCESS, `Wrote ${appConfigPath}`)
-    }
-
-    if (configJson) {
-        log(LogLevel.WARN, 'CONFIG_JSON is ignored; use APP_CONFIG or RENDERER_CONFIG to write src/common/appConfig.ts')
     }
 }
 
@@ -182,7 +174,6 @@ async function main(): Promise<void> {
     }
     ensureNodeHeapForMac()
     log(LogLevel.INFO, `APP_CONFIG length: ${process.env.APP_CONFIG?.length}`)
-    log(LogLevel.INFO, `RENDERER_CONFIG length: ${process.env.RENDERER_CONFIG?.length}`)
     applyConfigFromEnv()
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
