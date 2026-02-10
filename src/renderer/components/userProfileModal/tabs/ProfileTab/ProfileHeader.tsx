@@ -1,10 +1,10 @@
-import React from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
-import config from '@common/appConfig'
 import { staticAsset } from '../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
+import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../../../utils/mediaVariants'
 
 const fallbackAvatar = staticAsset('assets/images/undef.png')
 
@@ -16,8 +16,30 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
     const { t, i18n } = useTranslation()
-    const bannerUrl = `${config.S3_URL}/banners/${userProfile.bannerHash}.${userProfile.bannerType}`
-    const avatarUrl = `${config.S3_URL}/avatars/${userProfile.avatarHash}.${userProfile.avatarType}`
+    const avatarMedia = useMemo(
+        () => getAvatarMediaUrls({ hash: userProfile.avatarHash, ext: userProfile.avatarType, cssSize: 84 }),
+        [userProfile.avatarHash, userProfile.avatarType],
+    )
+    const [avatarUrl, setAvatarUrl] = useState(avatarMedia?.variantUrl || fallbackAvatar)
+
+    useEffect(() => {
+        setAvatarUrl(avatarMedia?.variantUrl || fallbackAvatar)
+    }, [avatarMedia?.variantUrl])
+
+    const bannerMedia = useMemo(
+        () => getBannerMediaUrls({ hash: userProfile.bannerHash, ext: userProfile.bannerType, cssSize: 1010 }),
+        [userProfile.bannerHash, userProfile.bannerType],
+    )
+    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 1010 }), [])
+    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
+
+    useEffect(() => {
+        return loadFirstAvailableImage(
+            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
+            setBannerUrl,
+            () => setBannerUrl(defaultBannerMedia.originalUrl),
+        )
+    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
 
     return (
         <div
@@ -29,11 +51,17 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
         >
             <div className={styles.userImage}>
                 <img
+                    key={avatarUrl}
                     className={styles.avatarWrapper}
                     src={avatarUrl}
                     alt="Avatar"
-                    onError={e => {
-                        ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
+                    onError={() => {
+                        setAvatarUrl(prev => {
+                            if (avatarMedia?.originalUrl && prev !== avatarMedia.originalUrl) {
+                                return avatarMedia.originalUrl
+                            }
+                            return fallbackAvatar
+                        })
                     }}
                     width="84"
                     height="84"
@@ -117,4 +145,3 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
 }
 
 export default ProfileHeader
-

@@ -9,6 +9,10 @@ directories:
 files:
   - package.json
 
+electronLanguages:
+  - ru
+  - en-US
+
 fileAssociations:
   - ext: pext
     name: PulseSync extension

@@ -38,6 +38,7 @@ import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
+import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../utils/mediaVariants'
 
 interface p {
     goBack?: boolean
@@ -381,18 +382,40 @@ const Header: React.FC<p> = () => {
     }, [shouldFetchModChanges, app.mod.version, refetchModChanges])
 
     const bannerRef = useRef<HTMLDivElement>(null)
-    const [bannerUrl, setBannerUrl] = useState(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
+
+    const headerAvatarMedia = useMemo(
+        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 38 }),
+        [user.avatarHash, user.avatarType],
+    )
+    const cardAvatarMedia = useMemo(
+        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 85 }),
+        [user.avatarHash, user.avatarType],
+    )
+    const [headerAvatarUrl, setHeaderAvatarUrl] = useState(headerAvatarMedia?.variantUrl || fallbackAvatar)
+    const [cardAvatarUrl, setCardAvatarUrl] = useState(cardAvatarMedia?.variantUrl || fallbackAvatar)
 
     useEffect(() => {
-        const img = new Image()
-        img.src = `${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`
-        img.onload = () => {
-            setBannerUrl(`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`)
-        }
-        img.onerror = () => {
-            setBannerUrl(`${config.S3_URL}/banners/default_banner.webp`)
-        }
-    }, [user.bannerHash, user.bannerType])
+        setHeaderAvatarUrl(headerAvatarMedia?.variantUrl || fallbackAvatar)
+    }, [headerAvatarMedia?.variantUrl])
+
+    useEffect(() => {
+        setCardAvatarUrl(cardAvatarMedia?.variantUrl || fallbackAvatar)
+    }, [cardAvatarMedia?.variantUrl])
+
+    const bannerMedia = useMemo(
+        () => getBannerMediaUrls({ hash: user.bannerHash, ext: user.bannerType, cssSize: 390 }),
+        [user.bannerHash, user.bannerType],
+    )
+    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 390 }), [])
+    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
+
+    useEffect(() => {
+        return loadFirstAvailableImage(
+            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
+            setBannerUrl,
+            () => setBannerUrl(defaultBannerMedia.originalUrl),
+        )
+    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
 
     const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
 
@@ -501,11 +524,17 @@ const Header: React.FC<p> = () => {
                                         />
                                         <div className={styles.user_avatar}>
                                             <img
+                                                key={headerAvatarUrl}
                                                 className={styles.avatar}
-                                                src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
+                                                src={headerAvatarUrl}
                                                 alt=""
-                                                onError={e => {
-                                                    ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
+                                                onError={() => {
+                                                    setHeaderAvatarUrl(prev => {
+                                                        if (headerAvatarMedia?.originalUrl && prev !== headerAvatarMedia.originalUrl) {
+                                                            return headerAvatarMedia.originalUrl
+                                                        }
+                                                        return fallbackAvatar
+                                                    })
                                                 }}
                                             />
                                             <div className={styles.status}>
@@ -566,15 +595,17 @@ const Header: React.FC<p> = () => {
                                                 </div>
                                                 <div className={styles.user_avatar}>
                                                     <img
+                                                        key={cardAvatarUrl}
                                                         className={styles.avatar}
-                                                        src={
-                                                            `${user.avatarType}`
-                                                                ? `${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`
-                                                                : fallbackAvatar
-                                                        }
+                                                        src={cardAvatarUrl}
                                                         alt="card_avatar"
-                                                        onError={e => {
-                                                            ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
+                                                        onError={() => {
+                                                            setCardAvatarUrl(prev => {
+                                                                if (cardAvatarMedia?.originalUrl && prev !== cardAvatarMedia.originalUrl) {
+                                                                    return cardAvatarMedia.originalUrl
+                                                                }
+                                                                return fallbackAvatar
+                                                            })
                                                         }}
                                                     />
                                                     <motion.div
@@ -666,4 +697,3 @@ const Header: React.FC<p> = () => {
 }
 
 export default Header
-

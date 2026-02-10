@@ -14,7 +14,6 @@ import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
-import config from '@common/appConfig'
 import { staticAsset } from '../../utils/staticAssets'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
@@ -23,6 +22,7 @@ import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
+import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../utils/mediaVariants'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -43,6 +43,31 @@ export default function TrackInfoPage() {
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
     const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+
+    const avatarMedia = useMemo(
+        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 90 }),
+        [user.avatarHash, user.avatarType],
+    )
+    const [avatarUrl, setAvatarUrl] = useState(avatarMedia?.variantUrl || fallbackAvatar)
+
+    useEffect(() => {
+        setAvatarUrl(avatarMedia?.variantUrl || fallbackAvatar)
+    }, [avatarMedia?.variantUrl])
+
+    const bannerMedia = useMemo(
+        () => getBannerMediaUrls({ hash: user.bannerHash, ext: user.bannerType, cssSize: 420 }),
+        [user.bannerHash, user.bannerType],
+    )
+    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 420 }), [])
+    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
+
+    useEffect(() => {
+        return loadFirstAvailableImage(
+            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
+            setBannerUrl,
+            () => setBannerUrl(defaultBannerMedia.originalUrl),
+        )
+    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
         appId: app.discordRpc.appId || '',
@@ -330,20 +355,31 @@ export default function TrackInfoPage() {
 
                 <div className={themeV2.discordRpc}>
                     <img
+                        key={bannerUrl}
                         className={themeV2.userBanner}
-                        src={`${config.S3_URL}/banners/${user.bannerHash}.${user.bannerType}`}
+                        src={bannerUrl}
                         alt={user.bannerHash}
-                        onError={e => {
-                            ;(e.currentTarget as HTMLImageElement).src = `${config.S3_URL}/banners/default_banner.webp`
+                        onError={() => {
+                            setBannerUrl(prev => {
+                                if (prev !== bannerMedia.originalUrl) return bannerMedia.originalUrl
+                                if (prev !== defaultBannerMedia.variantUrl) return defaultBannerMedia.variantUrl
+                                return defaultBannerMedia.originalUrl
+                            })
                         }}
                     />
                     <div className={themeV2.userInfo}>
                         <img
+                            key={avatarUrl}
                             className={themeV2.userAvatar}
-                            src={`${config.S3_URL}/avatars/${user.avatarHash}.${user.avatarType}`}
+                            src={avatarUrl}
                             alt={user.avatarHash}
-                            onError={e => {
-                                ;(e.currentTarget as HTMLImageElement).src = fallbackAvatar
+                            onError={() => {
+                                setAvatarUrl(prev => {
+                                    if (avatarMedia?.originalUrl && prev !== avatarMedia.originalUrl) {
+                                        return avatarMedia.originalUrl
+                                    }
+                                    return fallbackAvatar
+                                })
                             }}
                         />
                         <div className={themeV2.userInfoContainer}>
@@ -459,4 +495,3 @@ export default function TrackInfoPage() {
         </PageLayout>
     )
 }
-
