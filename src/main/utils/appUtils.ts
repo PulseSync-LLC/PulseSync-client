@@ -71,6 +71,8 @@ const parseLinuxPgrep = (stdout: string): ProcessInfo[] =>
         .filter((pid): pid is number => pid !== null)
         .map(pid => ({ pid }))
 
+const escapeForBashSingleQuoted = (value: string): string => value.replace(/'/g, `'\\''`)
+
 const parseWindowsTasklist = (stdout: string): ProcessInfo[] => {
     const processes = splitNonEmptyLines(stdout)
     const parsed: ProcessInfo[] = []
@@ -209,11 +211,34 @@ export async function copyFile(target: string, dest: string): Promise<void> {
     try {
         await fsp.copyFile(target, dest)
     } catch (error: any) {
-        if (process.platform === 'linux' && error.code === 'EACCES') {
-            await execFileAsync('pkexec', ['cp', `"${target}"`, `"${dest}"`])
-            const encodedTarget = target.replaceAll("'", "\\'")
-            const encodedDest = dest.replaceAll("'", "\\'")
-            await execFileAsync('pkexec', ['bash', '-c', `cp '${encodedTarget}' '${encodedDest}'`])
+        if (process.platform === 'linux' && (error?.code === 'EACCES' || error?.code === 'EPERM')) {
+            try {
+                await execFileAsync('pkexec', ['cp', '--', target, dest])
+                return
+            } catch (pkexecError: any) {
+                try {
+                    const escapedTarget = escapeForBashSingleQuoted(target)
+                    const escapedDest = escapeForBashSingleQuoted(dest)
+                    await execFileAsync('pkexec', [
+                        'bash',
+                        '-lc',
+                        `export LANG=C.UTF-8 LC_ALL=C.UTF-8; cp -- '${escapedTarget}' '${escapedDest}'`,
+                    ])
+                    return
+                } catch (pkexecShellError: any) {
+                    logger.modManager.error('Elevated file copy via pkexec failed:', {
+                        source: target,
+                        destination: dest,
+                        directCode: pkexecError?.code,
+                        directMessage: pkexecError?.message,
+                        directStderr: pkexecError?.stderr,
+                        shellCode: pkexecShellError?.code,
+                        shellMessage: pkexecShellError?.message,
+                        shellStderr: pkexecShellError?.stderr,
+                    })
+                    throw pkexecShellError
+                }
+            }
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
@@ -226,10 +251,17 @@ export async function createDirIfNotExist(target: string): Promise<void> {
         try {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
-            if (process.platform === 'linux' && error.code === 'EACCES') {
-                await execFileAsync('pkexec', ['mkdir', '-p', target])
-                const encodedTarget = target.replaceAll("'", "\\'")
-                await execFileAsync('pkexec', ['bash', '-c', `mkdir -p '${encodedTarget}'`])
+            if (process.platform === 'linux' && (error?.code === 'EACCES' || error?.code === 'EPERM')) {
+                try {
+                    await execFileAsync('pkexec', ['mkdir', '-p', target])
+                } catch {
+                    const escapedTarget = escapeForBashSingleQuoted(target)
+                    await execFileAsync('pkexec', [
+                        'bash',
+                        '-lc',
+                        `export LANG=C.UTF-8 LC_ALL=C.UTF-8; mkdir -p -- '${escapedTarget}'`,
+                    ])
+                }
             } else {
                 logger.modManager.error('Directory creation failed:', error)
                 throw error
