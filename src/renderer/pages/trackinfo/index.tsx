@@ -22,7 +22,7 @@ import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
-import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../utils/mediaVariants'
+import Image from '../../components/PSUI/Image'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -43,31 +43,6 @@ export default function TrackInfoPage() {
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
     const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
-
-    const avatarMedia = useMemo(
-        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 90 }),
-        [user.avatarHash, user.avatarType],
-    )
-    const [avatarUrl, setAvatarUrl] = useState(avatarMedia?.variantUrl || fallbackAvatar)
-
-    useEffect(() => {
-        setAvatarUrl(avatarMedia?.variantUrl || fallbackAvatar)
-    }, [avatarMedia?.variantUrl])
-
-    const bannerMedia = useMemo(
-        () => getBannerMediaUrls({ hash: user.bannerHash, ext: user.bannerType, cssSize: 420 }),
-        [user.bannerHash, user.bannerType],
-    )
-    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 420 }), [])
-    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
-
-    useEffect(() => {
-        return loadFirstAvailableImage(
-            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
-            setBannerUrl,
-            () => setBannerUrl(defaultBannerMedia.originalUrl),
-        )
-    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
         appId: app.discordRpc.appId || '',
@@ -354,33 +329,25 @@ export default function TrackInfoPage() {
                 </div>
 
                 <div className={themeV2.discordRpc}>
-                    <img
-                        key={bannerUrl}
+                    <Image
                         className={themeV2.userBanner}
-                        src={bannerUrl}
+                        type="banner"
+                        hash={user.bannerHash}
+                        ext={user.bannerType}
+                        sizes="420px"
                         alt={user.bannerHash}
-                        onError={() => {
-                            setBannerUrl(prev => {
-                                if (prev !== bannerMedia.originalUrl) return bannerMedia.originalUrl
-                                if (prev !== defaultBannerMedia.variantUrl) return defaultBannerMedia.variantUrl
-                                return defaultBannerMedia.originalUrl
-                            })
-                        }}
+                        fallbackHash="default_banner"
+                        fallbackExt="webp"
                     />
                     <div className={themeV2.userInfo}>
-                        <img
-                            key={avatarUrl}
+                        <Image
                             className={themeV2.userAvatar}
-                            src={avatarUrl}
+                            type="avatar"
+                            hash={user.avatarHash}
+                            ext={user.avatarType}
+                            sizes="90px"
                             alt={user.avatarHash}
-                            onError={() => {
-                                setAvatarUrl(prev => {
-                                    if (avatarMedia?.originalUrl && prev !== avatarMedia.originalUrl) {
-                                        return avatarMedia.originalUrl
-                                    }
-                                    return fallbackAvatar
-                                })
-                            }}
+                            fallbackSrc={fallbackAvatar}
                         />
                         <div className={themeV2.userInfoContainer}>
                             <div className={themeV2.userName}>{user.username}</div>

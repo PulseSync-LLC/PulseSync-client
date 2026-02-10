@@ -28,8 +28,8 @@
         padding: 4px;
         gap: 10px;
         isolation: isolate;
-        background: rgba(201, 214, 255, 0.5);
-        outline: 4px solid rgba(154, 165, 200, 0.5);
+        background: rgba(154, 165, 200, 0.5);
+        //outline: 4px solid rgba(154, 165, 200, 0.5);
         border-radius: 8px;
 
         .progress_fill {
@@ -64,8 +64,8 @@
                 margin: 5px;
                 width: 29px;
                 height: 29px;
-                background: rgb(141 149 175);
-                outline: 4px solid rgb(184 195 230 / 24%);
+                background: rgb(184 195 230 / 35%);;
+                //outline: 4px solid rgb(184 195 230 / 24%);
                 border-radius: 4px;
             }
 

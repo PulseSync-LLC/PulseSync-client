@@ -1,10 +1,10 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
 import { staticAsset } from '../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
-import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../../../utils/mediaVariants'
+import Image from '../../../PSUI/Image'
 
 const fallbackAvatar = staticAsset('assets/images/undef.png')
 
@@ -16,55 +16,30 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
     const { t, i18n } = useTranslation()
-    const avatarMedia = useMemo(
-        () => getAvatarMediaUrls({ hash: userProfile.avatarHash, ext: userProfile.avatarType, cssSize: 84 }),
-        [userProfile.avatarHash, userProfile.avatarType],
-    )
-    const [avatarUrl, setAvatarUrl] = useState(avatarMedia?.variantUrl || fallbackAvatar)
-
-    useEffect(() => {
-        setAvatarUrl(avatarMedia?.variantUrl || fallbackAvatar)
-    }, [avatarMedia?.variantUrl])
-
-    const bannerMedia = useMemo(
-        () => getBannerMediaUrls({ hash: userProfile.bannerHash, ext: userProfile.bannerType, cssSize: 1010 }),
-        [userProfile.bannerHash, userProfile.bannerType],
-    )
-    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 1010 }), [])
-    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
-
-    useEffect(() => {
-        return loadFirstAvailableImage(
-            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
-            setBannerUrl,
-            () => setBannerUrl(defaultBannerMedia.originalUrl),
-        )
-    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
-
     return (
-        <div
-            className={styles.bannerBackground}
-            style={{
-                background: `linear-gradient(180deg, rgba(41, 44, 54, 0) 0%, #292C36 100%), url(${bannerUrl})`,
-                backgroundSize: 'cover',
-            }}
-        >
+        <div className={styles.bannerBackground}>
+            <Image
+                className={styles.bannerImage}
+                type="banner"
+                hash={userProfile.bannerHash}
+                ext={userProfile.bannerType}
+                sizes="(max-width: 1024px) 100vw, 1010px"
+                alt=""
+                fallbackHash="default_banner"
+                fallbackExt="webp"
+            />
+            <div className={styles.bannerGradient} />
             <div className={styles.userImage}>
-                <img
-                    key={avatarUrl}
+                <Image
                     className={styles.avatarWrapper}
-                    src={avatarUrl}
+                    type="avatar"
+                    hash={userProfile.avatarHash}
+                    ext={userProfile.avatarType}
+                    sizes="84px"
                     alt="Avatar"
-                    onError={() => {
-                        setAvatarUrl(prev => {
-                            if (avatarMedia?.originalUrl && prev !== avatarMedia.originalUrl) {
-                                return avatarMedia.originalUrl
-                            }
-                            return fallbackAvatar
-                        })
-                    }}
                     width="84"
                     height="84"
+                    fallbackSrc={fallbackAvatar}
                 />
                 <div className={styles.userInfo}>
                     <div className={styles.dateCreate}>

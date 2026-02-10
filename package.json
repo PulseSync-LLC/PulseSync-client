@@ -10,7 +10,7 @@
         "start": "electron-forge start",
         "build:package": "ts-node scripts/build.ts --application --debug",
         "build:installer": "ts-node scripts/build.ts --installer --debug",
-        "build:nativeModules": "ts-node scripts/build.ts --application --nativeModules --debug",
+        "build:nativeModules": "ts-node scripts/build.ts --nativeModules --debug",
         "publish:api": "ts-node scripts/changelog-publish.ts --api",
         "publish:discord": "ts-node scripts/changelog-publish.ts --discord",
         "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",

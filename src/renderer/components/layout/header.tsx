@@ -38,7 +38,7 @@ import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
-import { getAvatarMediaUrls, getBannerMediaUrls, loadFirstAvailableImage } from '../../utils/mediaVariants'
+import Image from '../PSUI/Image'
 
 interface p {
     goBack?: boolean
@@ -383,40 +383,6 @@ const Header: React.FC<p> = () => {
 
     const bannerRef = useRef<HTMLDivElement>(null)
 
-    const headerAvatarMedia = useMemo(
-        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 38 }),
-        [user.avatarHash, user.avatarType],
-    )
-    const cardAvatarMedia = useMemo(
-        () => getAvatarMediaUrls({ hash: user.avatarHash, ext: user.avatarType, cssSize: 85 }),
-        [user.avatarHash, user.avatarType],
-    )
-    const [headerAvatarUrl, setHeaderAvatarUrl] = useState(headerAvatarMedia?.variantUrl || fallbackAvatar)
-    const [cardAvatarUrl, setCardAvatarUrl] = useState(cardAvatarMedia?.variantUrl || fallbackAvatar)
-
-    useEffect(() => {
-        setHeaderAvatarUrl(headerAvatarMedia?.variantUrl || fallbackAvatar)
-    }, [headerAvatarMedia?.variantUrl])
-
-    useEffect(() => {
-        setCardAvatarUrl(cardAvatarMedia?.variantUrl || fallbackAvatar)
-    }, [cardAvatarMedia?.variantUrl])
-
-    const bannerMedia = useMemo(
-        () => getBannerMediaUrls({ hash: user.bannerHash, ext: user.bannerType, cssSize: 390 }),
-        [user.bannerHash, user.bannerType],
-    )
-    const defaultBannerMedia = useMemo(() => getBannerMediaUrls({ hash: 'default_banner', ext: 'webp', cssSize: 390 }), [])
-    const [bannerUrl, setBannerUrl] = useState(bannerMedia.variantUrl)
-
-    useEffect(() => {
-        return loadFirstAvailableImage(
-            [bannerMedia.variantUrl, bannerMedia.originalUrl, defaultBannerMedia.variantUrl, defaultBannerMedia.originalUrl],
-            setBannerUrl,
-            () => setBannerUrl(defaultBannerMedia.originalUrl),
-        )
-    }, [bannerMedia.originalUrl, bannerMedia.variantUrl, defaultBannerMedia.originalUrl, defaultBannerMedia.variantUrl])
-
     const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
 
     return (
@@ -523,19 +489,14 @@ const Header: React.FC<p> = () => {
                                             onChange={handleBannerChange}
                                         />
                                         <div className={styles.user_avatar}>
-                                            <img
-                                                key={headerAvatarUrl}
+                                            <Image
                                                 className={styles.avatar}
-                                                src={headerAvatarUrl}
+                                                type="avatar"
+                                                hash={user.avatarHash}
+                                                ext={user.avatarType}
+                                                sizes="38px"
                                                 alt=""
-                                                onError={() => {
-                                                    setHeaderAvatarUrl(prev => {
-                                                        if (headerAvatarMedia?.originalUrl && prev !== headerAvatarMedia.originalUrl) {
-                                                            return headerAvatarMedia.originalUrl
-                                                        }
-                                                        return fallbackAvatar
-                                                    })
-                                                }}
+                                                fallbackSrc={fallbackAvatar}
                                             />
                                             <div className={styles.status}>
                                                 <div className={styles.dot}></div>
@@ -545,13 +506,18 @@ const Header: React.FC<p> = () => {
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
                                             <div className={styles.user_info}>
-                                                <div
-                                                    className={styles.user_banner}
-                                                    ref={bannerRef}
-                                                    style={{
-                                                        backgroundImage: `linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%), url(${bannerUrl})`,
-                                                    }}
-                                                >
+                                                <div className={styles.user_banner} ref={bannerRef}>
+                                                    <Image
+                                                        className={styles.banner_image}
+                                                        type="banner"
+                                                        hash={user.bannerHash}
+                                                        ext={user.bannerType}
+                                                        sizes="390px"
+                                                        alt=""
+                                                        fallbackHash="default_banner"
+                                                        fallbackExt="webp"
+                                                    />
+                                                    <div className={styles.banner_gradient} />
                                                     <motion.div
                                                         className={styles.banner_overlay}
                                                         initial={{
@@ -594,19 +560,14 @@ const Header: React.FC<p> = () => {
                                                     </div>
                                                 </div>
                                                 <div className={styles.user_avatar}>
-                                                    <img
-                                                        key={cardAvatarUrl}
+                                                    <Image
                                                         className={styles.avatar}
-                                                        src={cardAvatarUrl}
+                                                        type="avatar"
+                                                        hash={user.avatarHash}
+                                                        ext={user.avatarType}
+                                                        sizes="85px"
                                                         alt="card_avatar"
-                                                        onError={() => {
-                                                            setCardAvatarUrl(prev => {
-                                                                if (cardAvatarMedia?.originalUrl && prev !== cardAvatarMedia.originalUrl) {
-                                                                    return cardAvatarMedia.originalUrl
-                                                                }
-                                                                return fallbackAvatar
-                                                            })
-                                                        }}
+                                                        fallbackSrc={fallbackAvatar}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}

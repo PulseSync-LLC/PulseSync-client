@@ -391,6 +391,30 @@
                             object-fit: cover;
                             background-size: cover;
                             background-position: 50% 50%;
+                            overflow: hidden;
+
+                            & > .banner_image {
+                                position: absolute;
+                                top: 0;
+                                right: 0;
+                                bottom: 0;
+                                left: 0;
+                                width: 100%;
+                                height: 100%;
+                                object-fit: cover;
+                                z-index: 0;
+                            }
+
+                            & > .banner_gradient {
+                                position: absolute;
+                                top: 0;
+                                right: 0;
+                                bottom: 0;
+                                left: 0;
+                                background: linear-gradient(180deg, rgba(31, 34, 43, 0.3) 0%, rgba(31, 34, 43, 0.8) 100%);
+                                z-index: 1;
+                                pointer-events: none;
+                            }
 
                             & > .banner_overlay {
                                 position: absolute;
@@ -412,6 +436,7 @@
 
                             & > .hoverUpload {
                                 border-radius: 0;
+                                z-index: 2;
                             }
 
                             & > .badges_container {
@@ -426,6 +451,7 @@
                                 top: 10px;
                                 padding: 3px;
                                 gap: 3px;
+                                z-index: 2;
                             }
                         }
 

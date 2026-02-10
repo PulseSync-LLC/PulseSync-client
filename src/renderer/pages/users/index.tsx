@@ -11,6 +11,7 @@ import toast from '../../components/toast'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
+import MediaImage from '../../components/PSUI/Image'
 import { getBannerMediaUrls } from '../../utils/mediaVariants'
 
 const PER_PAGE = 51
@@ -221,12 +222,11 @@ export default function UsersPage() {
         [pt],
     )
 
-    const [backgroundStyle, setBackgroundStyle] = useState(defaultBackground)
+    const [bannerUser, setBannerUser] = useState<UserInterface | null>(null)
 
     useEffect(() => {
         let cancelled = false
         const usersWithBanner = users.filter(u => u.bannerHash)
-        const bannerCssSize = typeof window !== 'undefined' ? window.innerWidth : 1440
 
         const loadBanner = (urls: string[], onSuccess: (url: string) => void, onError: () => void) => {
             const tryLoad = (idx: number) => {
@@ -237,7 +237,7 @@ export default function UsersPage() {
                 }
 
                 const candidate = urls[idx]
-                const img = new Image()
+                const img = new window.Image()
                 img.onload = () => {
                     if (!cancelled) onSuccess(candidate)
                 }
@@ -252,23 +252,23 @@ export default function UsersPage() {
 
         const checkBanner = (list: UserInterface[], idx = 0) => {
             if (idx >= list.length) {
-                if (!cancelled) setBackgroundStyle(defaultBackground)
+                if (!cancelled) setBannerUser(null)
                 return
             }
 
             const media = getBannerMediaUrls({
                 hash: list[idx].bannerHash,
                 ext: list[idx].bannerType,
-                cssSize: bannerCssSize,
             })
 
+            if (!media?.src) {
+                checkBanner(list, idx + 1)
+                return
+            }
+
             loadBanner(
-                [media.variantUrl, media.originalUrl],
-                url =>
-                    setBackgroundStyle({
-                        ...defaultBackground,
-                        backgroundImage: `linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(${url})`,
-                    }),
+                [media.src],
+                () => setBannerUser(list[idx]),
                 () => checkBanner(list, idx + 1),
             )
         }
@@ -276,13 +276,13 @@ export default function UsersPage() {
         if (usersWithBanner.length) {
             checkBanner(usersWithBanner)
         } else {
-            setBackgroundStyle(defaultBackground)
+            setBannerUser(null)
         }
 
         return () => {
             cancelled = true
         }
-    }, [users, defaultBackground])
+    }, [users])
 
     const handlePageChange = useCallback((newPage: number) => {
         setPage(newPage)
@@ -345,7 +345,20 @@ export default function UsersPage() {
     return (
         <PageLayout title={t('users.pageTitle')}>
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
-                <div style={backgroundStyle} className={s.headerSection}>
+                <div style={defaultBackground} className={s.headerSection}>
+                    {bannerUser && (
+                        <>
+                            <MediaImage
+                                className={s.headerBannerImage}
+                                type="banner"
+                                hash={bannerUser.bannerHash}
+                                ext={bannerUser.bannerType}
+                                sizes="100vw"
+                                alt=""
+                            />
+                            <div className={s.headerBannerGradient} />
+                        </>
+                    )}
                     <div className={s.topSection}>
                         <h1 className={s.title}>{t('users.title')}</h1>
                         <div className={s.searchContainer} onClick={() => inputRef.current?.focus()}>
