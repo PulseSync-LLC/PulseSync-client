@@ -292,7 +292,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsMusicUpdating(true)
     }, [isMusicUpdating, modUpdateState.updateUrl, t])
 
-    dispatch(openLinuxAsarModal())
 
     const startUpdate = useCallback(
         (force?: boolean) => {

@@ -19,7 +19,7 @@
 
     color: #fff;
 
-    &:hover {
+    &:not(:disabled):hover {
         background: #d8e1ff;
     }
 }

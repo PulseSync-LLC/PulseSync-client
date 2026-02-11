@@ -1,4 +1,6 @@
 import React, { ButtonHTMLAttributes, CSSProperties, forwardRef } from 'react'
+import cn from 'clsx'
+
 import * as styles from './button.module.scss'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -17,7 +19,7 @@ const ButtonV2 = forwardRef<HTMLButtonElement, ButtonProps>(({ onClick, style, c
     }
 
     return (
-        <button ref={ref} style={style} className={`${styles.button} ${className ? className : ''}`} onClick={handleClick} {...rest}>
+        <button ref={ref} style={style} className={cn(styles.button, className)} onClick={handleClick} {...rest}>
             {children}
         </button>
     )
