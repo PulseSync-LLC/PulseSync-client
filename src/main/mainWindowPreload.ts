@@ -5,6 +5,7 @@ import MainEvents from '../common/types/mainEvents'
 import RendererEvents from '../common/types/rendererEvents'
 
 export interface DesktopEvents {
+    emit(channel: string, ...args: any[]): void
     send(channel: string, ...args: any[]): void
     on(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): () => void
     once(channel: string, listener: (event: IpcRendererEvent, ...args: any[]) => void): void
@@ -79,6 +80,9 @@ contextBridge.exposeInMainWorld('discordRpc', {
     },
 })
 const desktopEvents: DesktopEvents = {
+    emit: (channel, ...args) => {
+        ipcRenderer.emit(channel as string, ...args)
+    },
     send: (channel, ...args) => {
         ipcRenderer.send(channel as string, ...args)
     },

@@ -63,6 +63,7 @@ const LinuxAsarPathDialog: React.FC = () => {
 
     return (
         <CustomModalPS
+            allowNoChoice={false}
             isOpen={isOpen}
             onClose={handleClose}
             title={t('layout.linuxAsarTitle')}
@@ -70,15 +71,15 @@ const LinuxAsarPathDialog: React.FC = () => {
             subText={errorMessage || undefined}
             buttons={[
                 {
-                    text: t('layout.linuxAsarSelectButton'),
-                    onClick: handleSelectPath,
-                    variant: 'primary',
-                    disabled: isSaving,
-                },
-                {
                     text: t('common.cancel'),
                     onClick: handleClose,
                     variant: 'secondary',
+                    disabled: isSaving,
+                },
+                {
+                    text: t('layout.linuxAsarSelectButton'),
+                    onClick: handleSelectPath,
+                    variant: 'primary',
                     disabled: isSaving,
                 },
             ]}

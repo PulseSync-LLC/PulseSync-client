@@ -1,4 +1,5 @@
-import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
+import cn from 'clsx'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ButtonV2 from '../../buttonV2'
@@ -14,6 +15,7 @@ export interface ModalButton {
 
 export interface CustomModalPSProps {
     isOpen: boolean
+    allowNoChoice?: boolean
     onClose: () => void
     title?: string
     text?: string
@@ -51,7 +53,7 @@ const modalVariants = {
     },
 } as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, buttons = [] }) => {
+const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, allowNoChoice = true, buttons = [] }) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return null
     }
@@ -63,11 +65,17 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
 
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
+    const onOutsideClick = useCallback(() => {
+        if (allowNoChoice || buttons.length === 0) {
+            onClose()
+        }
+    }, [allowNoChoice, buttons.length, onClose])
+
     useEffect(() => {
         if (!isOpen) return
 
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') {
+            if (e.key === 'Escape' && (allowNoChoice || buttons.length === 0)) {
                 onClose()
             }
         }
@@ -95,7 +103,12 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
     const renderButtons = () => {
         if (!buttons.length) return null
 
-        const wrapperClass = `${styles.buttonsWrapper} ${isVertical ? styles.buttonsVertical : styles.buttonsHorizontal}`
+        const wrapperClass =  cn(
+            styles.buttonsWrapper, {
+                [styles.buttonsVertical]: isVertical,
+                [styles.buttonsHorizontal]: !isVertical,
+            }
+        );
 
         return (
             <div className={wrapperClass}>
@@ -109,7 +122,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                             key={`${btnText}-${index}`}
                             onClick={onClick}
                             disabled={disabled}
-                            className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            className={cn(styles.btnBase, variantClass, className)}
                             {...refProp}
                         >
                             {btnText}
@@ -130,7 +143,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    onClick={onClose}
+                    onClick={onOutsideClick}
                     aria-hidden="true"
                 >
                     <motion.div
