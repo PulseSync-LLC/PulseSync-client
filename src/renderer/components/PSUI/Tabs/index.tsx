@@ -1,4 +1,5 @@
 import React from 'react'
+import cn from 'clsx'
 import * as s from './Tabs.module.scss'
 import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
 
@@ -21,7 +22,7 @@ const Tabs: React.FC<Props> = ({ active, onChange, tabs, sortDirection, stickyPo
             {tabs.map(tab => (
                 <button
                     key={tab.title}
-                    className={`${s.extensionNavButton} ${active === tab.title ? s.activeTabButton : ''}`}
+                    className={cn(s.extensionNavButton, active === tab.title && s.activeTabButton)}
                     onClick={() => onChange(tab.title)}
                 >
                     {tab.icon} {tab.title}
