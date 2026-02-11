@@ -1,4 +1,5 @@
 import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
+import cn from 'clsx'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { Formik, Form, Field } from 'formik'
@@ -101,7 +102,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                             key={`${text}-${idx}`}
                             onClick={() => onClick(values)}
                             disabled={disabled}
-                            className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            className={cn(styles.btnBase, variantClass, className)}
                             type={type}
                             {...refProp}
                         >

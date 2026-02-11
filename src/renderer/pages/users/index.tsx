@@ -2,6 +2,7 @@ import PageLayout from '../PageLayout'
 import * as s from './users.module.scss'
 import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import cn from 'clsx'
 import UserInterface from '../../api/interfaces/user.interface'
 import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
 import apolloClient from '../../api/apolloClient'
@@ -321,7 +322,7 @@ export default function UsersPage() {
                         <button
                             key={pageNum}
                             onClick={() => handlePageChange(pageNum)}
-                            className={`${s.paginationPageButton} ${pageNum === page ? s.activePage : ''}`}
+                            className={cn(s.paginationPageButton, pageNum === page && s.activePage)}
                         >
                             {pageNum}
                         </button>
@@ -383,7 +384,7 @@ export default function UsersPage() {
                             <div
                                 key={field}
                                 ref={setSortRef(idx)}
-                                className={`${s.sortOption} ${sorting[0].id === field ? s.active : ''}`}
+                                className={cn(s.sortOption, sorting[0].id === field && s.active)}
                                 onClick={() => handleSort(field)}
                             >
                                 {

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, JSX } from 'react'
+import cn from 'clsx'
 import toast, { Renderable, ToastOptions } from 'react-hot-toast'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 import * as styles from './toast.module.scss'
@@ -197,7 +198,7 @@ const ToastStack: React.FC = () => {
 
     return (
         <div
-            className={`${styles.stack} ${open || list.length === 1 ? styles.expanded : styles.collapsed}`}
+            className={cn(styles.stack, open || list.length === 1 ? styles.expanded : styles.collapsed)}
             onMouseDown={e => {
                 if (e.button === 1) {
                     e.preventDefault()
@@ -303,7 +304,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     return (
         <div
             ref={ref}
-            className={`${styles.card} ${show ? styles.cardIn : styles.cardOut} ${styles[kind]}`}
+            className={cn(styles.card, show ? styles.cardIn : styles.cardOut, styles[kind])}
             style={
                 {
                     transform: `translateY(${offset}px) scale(1)`,

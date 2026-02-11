@@ -2,6 +2,7 @@ import * as cm from './viewModal.module.scss'
 import { MenuItem } from './sectionConfig'
 import React from 'react'
 import { useTranslation } from 'react-i18next'
+import cn from 'clsx'
 
 interface ContextMenuProps {
     items: MenuItem[]
@@ -14,7 +15,7 @@ interface ContextMenuProps {
 const viewModal: React.FC<ContextMenuProps> = ({ items }) => {
     const { t } = useTranslation()
     return (
-        <div className={`${cm.contextMenu}`}>
+        <div className={cn(cm.contextMenu)}>
             <div className={cm.title}>{t('contextMenuThemes.title')}</div>
             {items
                 .filter(item => item.show)

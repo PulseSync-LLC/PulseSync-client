@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react'
+import cn from 'clsx'
 import * as cm from './contextMenu.module.scss'
 import { MenuItem } from './sectionConfig'
 import TooltipButton from '../tooltip_button'
@@ -36,7 +37,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isF
     }, [onClose])
 
     return (
-        <div ref={menuRef} className={`${cm.contextMenu} ${isFadingOut ? cm.contextMenuOut : ''}`} style={{ top: position.y, left: position.x }}>
+        <div ref={menuRef} className={cn(cm.contextMenu, isFadingOut && cm.contextMenuOut)} style={{ top: position.y, left: position.x }}>
             {items
                 .filter(item => item.show)
                 .map((item, index) => (

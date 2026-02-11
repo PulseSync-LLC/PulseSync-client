@@ -1,4 +1,5 @@
 import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
@@ -453,7 +454,7 @@ const Header: React.FC<p> = () => {
                             )}
                             <div className={styles.line} />
                             <button
-                                className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}
+                                className={cn(styles.logoplace, isMenuOpen && styles.active)}
                                 onClick={toggleMenu}
                                 disabled={user.id === '-1'}
                             >

@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import cn from 'clsx'
 import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
 import { useMutation } from '@apollo/client/react'
 import Button from '../../../buttonV2'
@@ -80,7 +81,7 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
     return (
         <Button
             type="button"
-            className={`${styles.friendActionButton} ${buttonClass}`}
+            className={cn(styles.friendActionButton, buttonClass)}
             onClick={handleToggleFollow}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}

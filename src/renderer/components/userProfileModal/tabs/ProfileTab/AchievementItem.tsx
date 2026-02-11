@@ -1,4 +1,5 @@
 import React from 'react'
+import cn from 'clsx'
 import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
 import TooltipButton from '../../../tooltip_button'
 import * as achv from '../../achievements.module.scss'
@@ -103,7 +104,7 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
                 userAch.criteriaProgress.length > 0 && (
                     <div className={achv.trackList}>
                         {userAch.criteriaProgress.map((crit: any) => (
-                            <div key={crit.id} className={`${achv.trackItem} ${crit.isCompleted ? achv.criteriaDone : ''}`}>
+                            <div key={crit.id} className={cn(achv.trackItem, crit.isCompleted && achv.criteriaDone)}>
                                 {crit.isCompleted ? crit.name : t('profile.achievements.unknown')}
                             </div>
                         ))}

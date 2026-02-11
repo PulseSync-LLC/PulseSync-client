@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import Layout from '../../components/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
@@ -224,7 +225,7 @@ function Dev() {
 
     return (
         <Layout title={t('dev.pageTitle')}>
-            <div className={`${globalStyles.page} ${styles.page}`}>
+            <div className={cn(globalStyles.page, styles.page)}>
                 <motion.section
                     className={styles.hero}
                     initial={{ opacity: 0, y: -12 }}
@@ -270,7 +271,7 @@ function Dev() {
                                     key={r}
                                     role="tab"
                                     aria-selected={rangeHours === r}
-                                    className={`${styles.segBtn} ${rangeHours === r ? styles.segActive : ''}`}
+                                    className={cn(styles.segBtn, rangeHours === r && styles.segActive)}
                                     onClick={() => setRangeHours(r)}
                                     title={r === 0 ? t('common.all') : t('dev.rangeHours', { hours: r })}
                                 >

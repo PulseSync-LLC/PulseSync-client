@@ -1,4 +1,5 @@
 import React from 'react'
+import cn from 'clsx'
 import * as styles from './AddonFilters.module.scss'
 import Scrollbar from '../../PSUI/Scrollbar'
 import { MdKeyboardArrowUp, MdRefresh } from 'react-icons/md'
@@ -84,10 +85,10 @@ export default function AddonFilters({
                 {['type', 'alphabet', 'date', 'size', 'author'].map(opt => (
                     <div
                         key={opt}
-                        className={`${styles.radioLabel} ${sort === opt ? styles.selected : ''}`}
+                        className={cn(styles.radioLabel, sort === opt && styles.selected)}
                         onClick={() => handleSortClick(opt as any)}
                     >
-                        <div className={`${styles.customRadio} ${sort === opt ? styles.selected : ''}`} />
+                        <div className={cn(styles.customRadio, sort === opt && styles.selected)} />
                         <div className={styles.textGroup}>
                             <div className={styles.text}>
                                 {opt === 'type'
@@ -121,8 +122,8 @@ export default function AddonFilters({
             <div className={styles.filterGroup}>
                 {renderTitle(t('filters.type.title'), resetType, type !== 'all')}
                 {['all', 'theme', 'script'].map(opt => (
-                    <div key={opt} className={`${styles.radioLabel} ${type === opt ? styles.selected : ''}`} onClick={() => setType(opt as any)}>
-                        <div className={`${styles.customRadio} ${type === opt ? styles.selected : ''}`} />
+                    <div key={opt} className={cn(styles.radioLabel, type === opt && styles.selected)} onClick={() => setType(opt as any)}>
+                        <div className={cn(styles.customRadio, type === opt && styles.selected)} />
                         {opt === 'all' ? t('filters.type.all') : opt === 'theme' ? t('filters.type.themes') : t('filters.type.scripts')}
                     </div>
                 ))}
@@ -131,7 +132,7 @@ export default function AddonFilters({
             <div className={styles.filterGroup}>
                 {renderTitle(t('filters.tags.title'), resetTags, selectedTags.size > 0)}
                 {tags.map(tag => (
-                    <label key={tag} className={`${styles.checkboxLabel} ${selectedTags.has(tag) ? styles.selected : ''}`}>
+                    <label key={tag} className={cn(styles.checkboxLabel, selectedTags.has(tag) && styles.selected)}>
                         <input type="checkbox" checked={selectedTags.has(tag)} onChange={() => toggleSet(selectedTags, tag, setSelectedTags)} />
                         <span className={styles.customCheckbox}></span>
                         {tag}
@@ -142,7 +143,7 @@ export default function AddonFilters({
             <div className={styles.filterGroup}>
                 {renderTitle(t('filters.authors.title'), resetCreators, selectedCreators.size > 0)}
                 {creators.map(creator => (
-                    <label key={creator} className={`${styles.checkboxLabel} ${selectedCreators.has(creator) ? styles.selected : ''}`}>
+                    <label key={creator} className={cn(styles.checkboxLabel, selectedCreators.has(creator) && styles.selected)}>
                         <input
                             type="checkbox"
                             checked={selectedCreators.has(creator)}

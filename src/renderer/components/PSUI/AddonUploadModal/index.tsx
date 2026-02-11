@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import CustomModalPS from '../CustomModalPS'
 import * as st from './AddonUploadModal.module.scss'
 import ButtonV2 from '../../buttonV2'
@@ -148,7 +149,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
                     const note = notes[step.key]
 
                     return (
-                        <li key={step.key} className={`${st.row} ${st[`st_${state}`]}`}>
+                        <li key={step.key} className={cn(st.row, st[`st_${state}`])}>
                             <span className={st.rowIcon} aria-hidden>
                                 {icon(state)}
                             </span>

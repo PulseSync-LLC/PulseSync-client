@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
+import cn from 'clsx'
 import { MdEdit } from 'react-icons/md'
 
 import Scrollbar from '../../../components/PSUI/Scrollbar'
@@ -37,7 +38,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner}>
                 {activeTab === 'Settings' && configExists && (
                     <button
-                        className={`${s.edit} ${editMode ? s.activeEdit : ''}`}
+                        className={cn(s.edit, editMode && s.activeEdit)}
                         onClick={() => setEditMode(e => !e)}
                         title={editMode ? t('extensions.editModeExit') : t('extensions.editModeEnter')}
                     >
