@@ -86,13 +86,13 @@
         opacity 0.15s ease,
         box-shadow 0.15s ease;
 
-    &:active {
+    &:not(:disabled):active {
         transform: translateY(1px);
     }
 
     &:disabled {
         opacity: 0.6;
-        cursor: not-allowed;
+        cursor: default;
     }
 
     &:focus-visible {
@@ -106,7 +106,7 @@
     color: #1e2230;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
+    &:not(:disabled):hover {
         background: #cfdaff;
     }
 }
@@ -116,7 +116,7 @@
     color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
+    &:not(:disabled):hover {
         background: #303546;
     }
 }
@@ -126,7 +126,7 @@
     color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
+    &:not(:disabled):hover {
         background: #d93939;
     }
 }
