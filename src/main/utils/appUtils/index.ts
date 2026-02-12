@@ -28,7 +28,6 @@ const execFileAsync = promisify(execFile)
 const State = getState()
 
 export type { AppxPackage, PatchCallback, ProcessInfo } from './types'
-export { replaceDirWithElevation } from './elevation'
 
 export const normalizeModSaveDir = (customPath?: string): string | null => {
     if (!customPath) return null
