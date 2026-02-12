@@ -59,8 +59,8 @@ function createTray() {
         new MenuItem({
             label: t('main.tray.checkUpdates'),
             click: async () => {
-                await checkOrFindUpdate()
-                mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE)
+                await checkOrFindUpdate(undefined, true)
+                mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE, { manual: true })
             },
         }),
     )
