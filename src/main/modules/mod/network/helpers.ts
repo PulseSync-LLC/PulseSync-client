@@ -3,14 +3,12 @@ import * as path from 'path'
 import crypto from 'crypto'
 import AdmZip from 'adm-zip'
 import logger from '../../logger'
-import { replaceDirWithElevation } from '../../../utils/appUtils'
 import { gunzipAsync, zstdDecompressAsync } from '../mod-files'
 import type { ReplaceDirFailure, ReplaceDirResult, RetryStageFailure, RetryStageResult } from './types'
 
 export const UNPACKED_MARKER_FILE = '.pulsesync_unpacked_checksum'
 
 const REPLACE_RECOVERABLE_CODES = new Set(['EXDEV', 'EPERM', 'EACCES', 'EBUSY', 'ENOTEMPTY', 'EEXIST'])
-const REPLACE_LINUX_PERMISSION_CODES = new Set(['EACCES', 'EPERM'])
 
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
@@ -156,10 +154,6 @@ function cleanupTempExtractPath(sourceDir: string, tempExtractPath: string): voi
     fs.rmSync(tempExtractPath, { recursive: true, force: true })
 }
 
-function isLinuxPermissionDeniedError(error: any): boolean {
-    return process.platform === 'linux' && REPLACE_LINUX_PERMISSION_CODES.has(error?.code)
-}
-
 function isRetryStageFailure(result: RetryStageResult): result is RetryStageFailure {
     return result.success === false
 }
@@ -216,18 +210,6 @@ export async function tryReplaceDir(sourceDir: string, targetDir: string, tempEx
     if (!isRetryStageFailure(copyResult)) {
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
         return { ok: true }
-    }
-
-    const permissionDenied = isLinuxPermissionDeniedError(moveResult.error) || isLinuxPermissionDeniedError(copyResult.error)
-    if (permissionDenied) {
-        try {
-            await replaceDirWithElevation(sourceDir, targetDir)
-            cleanupTempExtractPath(sourceDir, tempExtractPath)
-            return { ok: true }
-        } catch (e) {
-            logger.modManager.error('Elevated replace unpacked dir failed:', e)
-            return { ok: false, error: e, stage: 'copy' }
-        }
     }
 
     return { ok: false, error: copyResult.error, stage: 'copy' }

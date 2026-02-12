@@ -1,6 +1,5 @@
 import { execFile } from 'child_process'
 import { promisify } from 'util'
-import path from 'path'
 
 const execFileAsync = promisify(execFile)
 
@@ -19,29 +18,4 @@ export async function runPkexecCandidates(candidates: string[][]): Promise<void>
         }
     }
     throw lastError
-}
-
-export async function replaceDirWithElevation(sourceDir: string, targetDir: string): Promise<void> {
-    if (process.platform !== 'linux') {
-        throw new Error('replaceDirWithElevation is only supported on Linux')
-    }
-    if (path.basename(targetDir) !== 'app.asar.unpacked') {
-        throw new Error(`Unsafe targetDir for elevated replace: ${targetDir}`)
-    }
-
-    const targetParent = path.dirname(targetDir)
-    await runPkexecCandidates([
-        ['/bin/mkdir', '-p', '--', targetParent],
-        ['mkdir', '-p', '--', targetParent],
-    ])
-
-    await runPkexecCandidates([
-        ['/bin/rm', '-rf', '--', targetDir],
-        ['rm', '-rf', '--', targetDir],
-    ])
-
-    await runPkexecCandidates([
-        ['/bin/cp', '-a', '--', sourceDir, targetDir],
-        ['cp', '-a', '--', sourceDir, targetDir],
-    ])
 }
