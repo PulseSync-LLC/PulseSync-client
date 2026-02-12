@@ -831,7 +831,8 @@ function App() {
         }
     }, [connectionErrorCode, isConnected])
 
-    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
+    const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean }) => {
+        const isManualCheck = !!options?.manual
         try {
             const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
@@ -860,11 +861,12 @@ function App() {
                     })
                     localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
                 }
-            } else {
+            } else if (isManualCheck) {
                 toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
         } catch (modFetchError) {
             console.error('Failed to fetch mod info:', modFetchError)
+            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
         } finally {
             setModInfoFetched(true)
         }
@@ -1024,8 +1026,8 @@ function App() {
             }))
         }
 
-        const handleModUpdateCheck = async () => {
-            await fetchModInfo(appRef.current)
+        const handleModUpdateCheck = async (_event: any, data?: { manual?: boolean }) => {
+            await fetchModInfo(appRef.current, { manual: !!data?.manual })
         }
 
         const handleClientReady = () => {
@@ -1034,23 +1036,29 @@ function App() {
         }
 
         const handleCheckUpdate = (_event: any, data: any) => {
-            if (!toastReference.current) {
+            const isManualCheck = !!data?.manual
+            if (isManualCheck && !toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
             if (!data.updateAvailable) {
-                toast.update(toastReference.current!, {
-                    kind: 'info',
-                    title: t('updates.notFoundTitle'),
-                    msg: t('updates.notFoundMessage'),
-                    sticky: false,
-                    duration: 5000,
-                })
+                if (isManualCheck && toastReference.current) {
+                    toast.update(toastReference.current, {
+                        kind: 'info',
+                        title: t('updates.notFoundTitle'),
+                        msg: t('updates.notFoundMessage'),
+                        sticky: false,
+                        duration: 5000,
+                    })
+                }
                 toastReference.current = null
             }
         }
 
         const onDownloadProgress = (_event: any, value: number) => {
-            toast.update(toastReference.current!, {
+            if (!toastReference.current) {
+                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'))
+            }
+            toast.update(toastReference.current, {
                 kind: 'loading',
                 title: t('updates.downloadingTitle'),
                 msg: (
@@ -1064,23 +1072,29 @@ function App() {
         }
 
         const onDownloadFailed = () => {
-            toast.update(toastReference.current!, {
-                kind: 'error',
-                title: t('common.errorTitle'),
-                msg: t('updates.downloadError'),
-                sticky: false,
-            })
+            if (toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'error',
+                    title: t('common.errorTitle'),
+                    msg: t('updates.downloadError'),
+                    sticky: false,
+                })
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('updates.downloadError'))
+            }
             toastReference.current = null
         }
 
         const onDownloadFinished = () => {
-            toast.update(toastReference.current!, {
-                kind: 'success',
-                title: t('common.successTitle'),
-                msg: t('updates.downloaded'),
-                sticky: false,
-                duration: 5000,
-            })
+            if (toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'success',
+                    title: t('common.successTitle'),
+                    msg: t('updates.downloaded'),
+                    sticky: false,
+                    duration: 5000,
+                })
+            }
             toastReference.current = null
             setUpdate(true)
         }
@@ -1166,8 +1180,8 @@ function App() {
                 router.navigate('/extension', { replace: true })
             })
         }
-        ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
-            await fetchModInfo(currentApp)
+        ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean }) => {
+            await fetchModInfo(currentApp, options)
         }
     }, [authorize, fetchModInfo, router])
 

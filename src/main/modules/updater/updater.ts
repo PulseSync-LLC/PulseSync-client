@@ -134,7 +134,7 @@ class Updater {
         }
     }
 
-    private updateApplier(updateResult: UpdateResult) {
+    private updateApplier(updateResult: UpdateResult, manual = false) {
         const { downloadPromise, updateInfo } = updateResult
 
         if (updateInfo.updateUrgency !== undefined) {
@@ -146,13 +146,13 @@ class Updater {
         }
 
         if (!downloadPromise) {
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
+            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
             return
         }
 
         this.latestAvailableVersion = updateInfo.version
 
-        this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+        this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
 
         logger.updater.info('New version available', app.getVersion(), '->', updateInfo.version)
         this.updateStatus = UpdateStatus.DOWNLOADING
@@ -178,7 +178,7 @@ class Updater {
             })
     }
 
-    async check(): Promise<UpdateStatus | null> {
+    async check(manual = false): Promise<UpdateStatus | null> {
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
 
@@ -198,11 +198,11 @@ class Updater {
 
             if (!updateResult) {
                 logger.updater.log(t('main.updater.noUpdatesFound'))
-                this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
+                this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
                 return null
             }
 
-            this.updateApplier(updateResult)
+            this.updateApplier(updateResult, manual)
         } catch (error: unknown) {
             const e = error as any
             if (e?.code === 'ENOENT' && typeof e?.path === 'string' && e.path.endsWith('app-update.yml')) {
@@ -221,9 +221,9 @@ class Updater {
 
     start() {
         if (this.updaterId) return
-        this.check()
+        this.check(false)
         this.updaterId = setInterval(() => {
-            this.check()
+            this.check(false)
         }, 900000)
     }
 

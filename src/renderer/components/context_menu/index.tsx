@@ -393,7 +393,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             {
                 label: t('contextMenu.mod.checkUpdates'),
-                onClick: () => window.getModInfo(app),
+                onClick: () => window.getModInfo(app, { manual: true }),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
@@ -446,7 +446,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
             {
                 label: t('contextMenu.misc.checkUpdates'),
-                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE),
+                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
             },
             {
                 label: t('contextMenu.misc.collectLogs'),
