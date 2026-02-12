@@ -18,6 +18,9 @@ const UserInitials: UserInterface = {
     perms: 'default',
     badges: [],
     userAchievements: [],
+    subscription: null,
+    hasSupporterBadge: false,
+    active: false,
     isFriend: false,
     isFollowing: false,
     levelInfo: {
