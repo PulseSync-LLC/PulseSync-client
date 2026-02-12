@@ -159,7 +159,15 @@ export const modManager = (window: BrowserWindow): void => {
                 })
 
                 const versionFilePath = path.join(paths.music, 'version.bin')
-                await fs.promises.writeFile(versionFilePath, musicVersion)
+                const tempVersionFilePath = path.join(TEMP_DIR, `version.${Date.now()}.${process.pid}.bin`)
+                await fs.promises.writeFile(tempVersionFilePath, musicVersion)
+                try {
+                    await copyFile(tempVersionFilePath, versionFilePath)
+                } finally {
+                    try {
+                        await fs.promises.unlink(tempVersionFilePath)
+                    } catch {}
+                }
 
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
             } catch (error: any) {

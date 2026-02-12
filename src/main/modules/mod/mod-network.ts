@@ -86,36 +86,57 @@ async function decompressArchive(rawArchive: Buffer, extLower: string): Promise<
     return rawArchive
 }
 
-function tryReplaceDir(
+async function tryReplaceDir(
     sourceDir: string,
     targetDir: string,
     tempExtractPath: string,
-): { ok: true } | { ok: false; error: any; stage: 'move' | 'copy' } {
-    try {
-        fs.renameSync(sourceDir, targetDir)
+): Promise<{ ok: true } | { ok: false; error: any; stage: 'move' | 'copy' }> {
+    const recoverableCodes = new Set(['EXDEV', 'EPERM', 'EACCES', 'EBUSY', 'ENOTEMPTY', 'EEXIST'])
+    const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
+    const maxAttempts = process.platform === 'win32' ? 5 : 2
 
-        if (sourceDir !== tempExtractPath) {
+    let moveErr: any
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            fs.rmSync(targetDir, { recursive: true, force: true })
+            fs.renameSync(sourceDir, targetDir)
+            if (sourceDir !== tempExtractPath) {
+                fs.rmSync(tempExtractPath, { recursive: true, force: true })
+            }
+            return { ok: true }
+        } catch (err: any) {
+            moveErr = err
+            const isRecoverable = recoverableCodes.has(err?.code)
+            if (!isRecoverable) {
+                return { ok: false, error: err, stage: 'move' }
+            }
+            if (attempt < maxAttempts) {
+                await sleep(120 * attempt)
+                continue
+            }
+            break
+        }
+    }
+
+    let copyErr: any = moveErr
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            fs.rmSync(targetDir, { recursive: true, force: true })
+            fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
             fs.rmSync(tempExtractPath, { recursive: true, force: true })
-        }
-        return { ok: true }
-    } catch (err: any) {
-        const code = err?.code
-        const shouldFallbackToCopy =
-            code === 'EXDEV' || (process.platform === 'win32' && (code === 'EPERM' || code === 'EACCES' || code === 'EBUSY'))
-
-        if (!shouldFallbackToCopy) {
-            return { ok: false, error: err, stage: 'move' }
+            return { ok: true }
+        } catch (err: any) {
+            copyErr = err
+            const isRecoverable = recoverableCodes.has(err?.code)
+            if (isRecoverable && attempt < maxAttempts) {
+                await sleep(150 * attempt)
+                continue
+            }
+            return { ok: false, error: err, stage: 'copy' }
         }
     }
 
-    try {
-        fs.rmSync(targetDir, { recursive: true, force: true })
-        fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
-        fs.rmSync(tempExtractPath, { recursive: true, force: true })
-        return { ok: true }
-    } catch (copyErr: any) {
-        return { ok: false, error: copyErr, stage: 'copy' }
-    }
+    return { ok: false, error: copyErr, stage: 'copy' }
 }
 
 export async function checkModCompatibility(
@@ -268,12 +289,7 @@ export async function downloadAndUpdateFile(
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
                 await ensureDir(cacheDir)
                 await copyFile(tempFilePath, cacheFile)
-                await pruneCacheFiles(
-                    cacheDir,
-                    cacheFile,
-                    file => file.toLowerCase().endsWith('.asar'),
-                    'Failed to remove old asar cache:',
-                )
+                await pruneCacheFiles(cacheDir, cacheFile, file => file.toLowerCase().endsWith('.asar'), 'Failed to remove old asar cache:')
             } catch (e: any) {
                 logger.modManager.warn('Failed to cache mod:', e)
             }
@@ -401,10 +417,9 @@ export async function downloadAndExtractUnpacked(
 
         const extractedRoot = resolveExtractedRoot(tempExtractPath, targetPath)
 
-        fs.rmSync(targetPath, { recursive: true, force: true })
         fs.mkdirSync(path.dirname(targetPath), { recursive: true })
 
-        const moved = tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
+        const moved = await tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
         if (!moved.ok) {
             //@ts-ignore
             const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
