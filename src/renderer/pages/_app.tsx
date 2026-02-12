@@ -17,7 +17,7 @@ import StorePage from './store'
 
 import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
-import { io, Socket } from 'socket.io-client'
+import { Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
 import UserContext from '../api/context/user.context'
@@ -50,6 +50,8 @@ import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
 import { useTranslation } from 'react-i18next'
+import { applySubscriptionUpdate, applyUserUpdate, SubscriptionUpdatePayload, UserUpdatePayload } from '../api/socket/realtimeUserEvents'
+import { createRealtimeSocket, parseGatewayFrame, updateRealtimeSocketAuth } from '../api/socket/realtimeSocket'
 
 type GetMeData = {
     getMe: Partial<UserInterface> | null
@@ -451,8 +453,8 @@ function App() {
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
-                } catch (e: unknown) {
-                    const err = e as unknown
+                } catch (authorizationError: unknown) {
+                    const err = authorizationError as unknown
 
                     if ((ServerError as any)?.is?.(err) || (err as any)?.name === 'TypeError') {
                         if (retryCount > 0) {
@@ -619,35 +621,21 @@ function App() {
             return rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
         })()
         const version = (app.info?.version || '0.0.0').split('-')[0]
+        const socketAuth = {
+            page,
+            token: getUserToken(),
+            version,
+            compression: 'zstd-stream' as const,
+            inboundCompression: 'zstd-stream' as const,
+        }
         if (!realtimeSocketRef.current) {
-            const socket = io(config.SOCKET_URL, {
-                path: '/ws',
-                autoConnect: false,
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 10000,
-                auth: {
-                    page,
-                    token: getUserToken(),
-                    version,
-                    compression: 'zstd-stream',
-                    inboundCompression: 'zstd-stream',
-                },
-                transports: ['websocket'],
-            })
+            const socket = createRealtimeSocket(socketAuth)
             realtimeSocketRef.current = socket
             setRealtimeSocket(socket)
         } else {
             const socket = realtimeSocketRef.current
             if (socket) {
-                socket.auth = {
-                    page,
-                    token: getUserToken(),
-                    version,
-                    compression: 'zstd-stream',
-                    inboundCompression: 'zstd-stream',
-                }
+                updateRealtimeSocketAuth(socket, socketAuth)
             }
         }
     }, [app.info.version, zstdReady])
@@ -784,31 +772,37 @@ function App() {
 
         const onGatewayMessage = (buf: ArrayBuffer | Uint8Array) => {
             if (!zstdReady || !zstdRef.current) return
-            try {
-                const u8 = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf instanceof Uint8Array ? buf : new Uint8Array(buf as any)
-                const out: Uint8Array = zstdRef.current.decompress(u8)
-                const msg = JSON.parse(new TextDecoder().decode(out))
-                const e = msg?.e
-                const d = msg?.d
-                switch (e) {
-                    case 'feature_toggles':
-                        onFeatures(d)
-                        break
-                    case 'deprecated_version':
-                        onDeprecated()
-                        break
-                    case 'update_features_ack':
-                        break
-                    case 'error_message':
-                        if (d?.message) toast.custom('error', t('common.errorTitleShort'), d.message, null, null, 15000)
-                        break
-                    case 'logout':
-                        onLogout()
-                        break
-                    default:
-                        break
-                }
-            } catch {}
+            const msg = parseGatewayFrame(buf, zstdRef.current)
+            if (!msg?.e) return
+
+            const gatewayEvent = msg.e
+            const gatewayPayload = msg.d
+
+            switch (gatewayEvent) {
+                case 'feature_toggles':
+                    onFeatures(gatewayPayload)
+                    break
+                case 'deprecated_version':
+                    onDeprecated()
+                    break
+                case 'update_features_ack':
+                    break
+                case 'error_message':
+                    if ((gatewayPayload as any)?.message)
+                        toast.custom('error', t('common.errorTitleShort'), (gatewayPayload as any).message, null, null, 15000)
+                    break
+                case 'logout':
+                    onLogout()
+                    break
+                case 'user_update':
+                    setUser(prev => applyUserUpdate(prev, gatewayPayload as UserUpdatePayload))
+                    break
+                case 'subscription_update':
+                    setUser(prev => applySubscriptionUpdate(prev, gatewayPayload as SubscriptionUpdatePayload))
+                    break
+                default:
+                    break
+            }
         }
 
         socket.on('connect', onConnect)
@@ -869,8 +863,8 @@ function App() {
             } else {
                 toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
-        } catch (e) {
-            console.error('Failed to fetch mod info:', e)
+        } catch (modFetchError) {
+            console.error('Failed to fetch mod info:', modFetchError)
         } finally {
             setModInfoFetched(true)
         }
@@ -1055,7 +1049,7 @@ function App() {
             }
         }
 
-        const onDownloadProgress = (_e: any, value: number) => {
+        const onDownloadProgress = (_event: any, value: number) => {
             toast.update(toastReference.current!, {
                 kind: 'loading',
                 title: t('updates.downloadingTitle'),
@@ -1225,7 +1219,7 @@ function App() {
 const Player: React.FC<any> = ({ children }) => {
     const userCtx = useContext(UserContext) as any
     const { user, app, socket, features } = userCtx
-    const emitGateway: (e: string, d: any) => void = userCtx.emitGateway || userCtx.emitGw
+    const emitGateway: (eventName: string, payload: any) => void = userCtx.emitGateway || userCtx.emitGw
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
@@ -1242,7 +1236,7 @@ const Player: React.FC<any> = ({ children }) => {
     const refreshGraceMs = 15000
 
     const handleSendTrackPlayedEnough = useCallback(
-        (_e: any, data: any) => {
+        (_event: any, data: any) => {
             if (!data) return
             if (socket && socket.connected) {
                 emitGateway('track_played_enough', { track: { id: data.realId } })
@@ -1412,4 +1406,3 @@ const Player: React.FC<any> = ({ children }) => {
 }
 
 export default App
-

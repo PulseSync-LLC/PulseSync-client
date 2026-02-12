@@ -133,7 +133,7 @@ export function buildDiscordActivity(t: Track, settings: SettingsInterface, user
     const album: Album | undefined = Array.isArray(t.albums) && t.albums.length > 0 ? t.albums[0] : undefined
     const isGenerative = typeof t.id === 'string' && t.id.includes('generative')
     const withSmall = settings.discordRpc.showSmallIcon
-    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+    const hasSupporter = Boolean(user?.hasSupporterBadge || user?.badges?.some((badge: any) => badge.type === 'supporter'))
     const hideBranding = Boolean(settings.discordRpc.supporterHideBranding && hasSupporter)
 
     const base: SetActivity = {

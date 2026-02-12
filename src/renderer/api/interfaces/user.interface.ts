@@ -1,4 +1,5 @@
 import { Track } from './track.interface'
+import SubscriptionInterface from './subscription.interface'
 
 export default interface UserInterface {
     id: string
@@ -26,4 +27,7 @@ export default interface UserInterface {
     }
     userAchievements: any[]
     badges: any[]
+    subscription: SubscriptionInterface | null
+    hasSupporterBadge: boolean
+    active: boolean
 }

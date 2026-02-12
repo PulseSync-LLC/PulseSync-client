@@ -42,7 +42,7 @@ export default function TrackInfoPage() {
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
-    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+    const hasSupporter = Boolean(user?.hasSupporterBadge || user?.badges?.some((badge: any) => badge.type === 'supporter'))
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
         appId: app.discordRpc.appId || '',
