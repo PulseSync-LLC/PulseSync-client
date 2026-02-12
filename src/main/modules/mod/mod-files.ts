@@ -3,6 +3,7 @@ import * as fs from 'original-fs'
 import * as zlib from 'node:zlib'
 import { promisify } from 'util'
 import crypto from 'crypto'
+import os from 'os'
 import asar from '@electron/asar'
 import logger from '../logger'
 import { getState } from '../state'
@@ -82,7 +83,16 @@ export async function writePatchedAsarAndPatchBundle(
             )
         }
     }
-    fs.writeFileSync(savePath, asarBuf)
+    const tempAsarPath = path.join(os.tmpdir(), `pulsesync-${Date.now()}-${process.pid}.asar`)
+    await fs.promises.writeFile(tempAsarPath, asarBuf)
+    try {
+        await copyFile(tempAsarPath, savePath)
+    } finally {
+        try {
+            await fs.promises.unlink(tempAsarPath)
+        } catch {}
+    }
+
     const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
     let ok: boolean
     try {

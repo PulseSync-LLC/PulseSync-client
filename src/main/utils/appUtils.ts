@@ -221,8 +221,8 @@ export async function copyFile(target: string, dest: string): Promise<void> {
                     const escapedDest = escapeForBashSingleQuoted(dest)
                     await execFileAsync('pkexec', [
                         'bash',
-                        '-lc',
-                        `export LANG=C.UTF-8 LC_ALL=C.UTF-8; cp -- '${escapedTarget}' '${escapedDest}'`,
+                        '-c',
+                        `cp -- '${escapedTarget}' '${escapedDest}'`,
                     ])
                     return
                 } catch (pkexecShellError: any) {
@@ -258,8 +258,8 @@ export async function createDirIfNotExist(target: string): Promise<void> {
                     const escapedTarget = escapeForBashSingleQuoted(target)
                     await execFileAsync('pkexec', [
                         'bash',
-                        '-lc',
-                        `export LANG=C.UTF-8 LC_ALL=C.UTF-8; mkdir -p -- '${escapedTarget}'`,
+                        '-c',
+                        `mkdir -p -- '${escapedTarget}'`,
                     ])
                 }
             } else {
