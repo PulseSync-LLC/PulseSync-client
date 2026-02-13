@@ -17,9 +17,9 @@ export interface CustomModalPSProps {
     isOpen: boolean
     allowNoChoice?: boolean
     onClose: () => void
-    title?: string
-    text?: string
-    subText?: string
+    title?: ReactNode
+    text?: ReactNode
+    subText?: ReactNode
     children?: ReactNode
     buttons?: ModalButton[]
 }

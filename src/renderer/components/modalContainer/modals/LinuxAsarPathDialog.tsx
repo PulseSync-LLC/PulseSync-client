@@ -46,9 +46,9 @@ const LinuxAsarPathDialog: React.FC = () => {
                 )
                 const foundIndex = checkResults.findIndex(Boolean)
                 if (foundIndex === -1) {
-                    const message = t('layout.linuxAsarMissingAsar')
+                    const message = t('modals.linuxAsarPath.errors.missingAsar')
                     setErrorMessage(message)
-                    toast.custom('error', t('common.errorTitle'), message)
+                    toast.custom('error', t('modals.linuxAsarPath.toasts.errorTitle'), message)
                     return
                 }
                 const resolvedPath = path.dirname(asarCandidates[foundIndex])
@@ -66,18 +66,18 @@ const LinuxAsarPathDialog: React.FC = () => {
             allowNoChoice={false}
             isOpen={isOpen}
             onClose={handleClose}
-            title={t('layout.linuxAsarTitle')}
-            text={t('layout.linuxAsarDescription')}
+            title={t('modals.linuxAsarPath.title')}
+            text={t('modals.linuxAsarPath.description')}
             subText={errorMessage || undefined}
             buttons={[
                 {
-                    text: t('common.cancel'),
+                    text: t('modals.linuxAsarPath.buttons.cancel'),
                     onClick: handleClose,
                     variant: 'secondary',
                     disabled: isSaving,
                 },
                 {
-                    text: t('layout.linuxAsarSelectButton'),
+                    text: t('modals.linuxAsarPath.buttons.selectFolder'),
                     onClick: handleSelectPath,
                     variant: 'primary',
                     disabled: isSaving,

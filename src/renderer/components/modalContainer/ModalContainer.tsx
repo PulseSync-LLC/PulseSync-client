@@ -5,6 +5,7 @@ import MacUpdateDialog from './modals/MacUpdateDialog'
 import AppUpdateDialog from './modals/AppUpdateDialog'
 import LinuxAsarPathDialog from './modals/LinuxAsarPathDialog'
 import PremiumPromoModal from './modals/PremiumPromoModal'
+import MacPermissionsModal from './modals/MacPermissionsModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -15,6 +16,7 @@ const ModalContainer: React.FC = () => {
             <PulseSyncDialog />
             <YandexMusicUpdateDialog />
             <PremiumPromoModal />
+            <MacPermissionsModal/>
         </>
     )
 }
