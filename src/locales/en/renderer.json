@@ -693,7 +693,12 @@
         }
     },
     "rpc": {
-        "message": "{{message}}"
+        "message": "{{message}}",
+        "paused": "Paused",
+        "unknownArtist": "Unknown artist",
+        "unknownAlbum": "Unknown album",
+        "unknownTrack": "Unknown track",
+        "neuroMusic": "Neuro music"
     },
     "pulseSyncDialog": {
         "addFailed": "Failed to add entries",
