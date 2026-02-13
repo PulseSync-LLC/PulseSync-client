@@ -283,7 +283,10 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
             }
             res.writeHead(200, {
                 'Content-Type': mimes[ext] || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=31536000, immutable',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0',
+                'Surrogate-Control': 'no-store',
             })
             return fs.createReadStream(targetPath).pipe(res)
         } else {

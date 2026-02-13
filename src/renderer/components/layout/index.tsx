@@ -17,7 +17,7 @@ import Header from './header'
 import NavButtonPulse from '../PSUI/NavButton'
 import DiscordIcon from '../../assets/icons/discord.svg'
 import Preloader from '../preloader'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
@@ -479,4 +479,5 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 }
 
 export default Layout
+
 

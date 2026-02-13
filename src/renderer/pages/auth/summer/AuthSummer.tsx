@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user.context'
+import userContext from '../../../api/context/user'
 import { staticAsset } from '../../../utils/staticAssets'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
@@ -215,3 +215,4 @@ export default function AuthSummer() {
         </>
     )
 }
+

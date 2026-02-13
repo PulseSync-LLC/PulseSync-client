@@ -3,7 +3,7 @@ import * as styles from './ButtonInput.module.scss'
 import clsx from 'clsx'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
-import userContext from '../../../api/context/user.context'
+import userContext from '../../../api/context/user'
 import MainEvents from '../../../../common/types/mainEvents'
 import { useTranslation } from 'react-i18next'
 
@@ -245,3 +245,4 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
 }
 
 export default ButtonInput
+

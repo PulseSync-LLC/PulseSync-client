@@ -8,7 +8,7 @@ import DiscordAuthIcon from '../../assets/icons/discordAuth.svg'
 import HandBlockIcon from '../../assets/icons/handBlock.svg'
 import UserBlockIcon from '../../assets/icons/userBlock.svg'
 
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import Header from '../../components/layout/header'
 import { useTranslation } from 'react-i18next'
 
@@ -62,3 +62,4 @@ export default function CallbackPage() {
         </>
     )
 }
+

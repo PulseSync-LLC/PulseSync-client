@@ -1,6 +1,6 @@
 import React, { useContext } from 'react'
 import { useTranslation } from 'react-i18next'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 
 import Minus from '../../assets/icons/minus.svg'
 import Minimize from '../../assets/icons/minimize.svg'
@@ -49,3 +49,4 @@ const OptionHeader: React.FC<p> = () => {
 }
 
 export default OptionHeader
+

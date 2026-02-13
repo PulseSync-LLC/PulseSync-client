@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next'
 import LevelProgress from '../../../LevelProgress'
 import AchievementList from './AchievementList'
 import * as styles from '../../userProfileModal.module.scss'
-import userContext from '../../../../api/context/user.context'
+import userContext from '../../../../api/context/user'
 
 interface AchievementsSectionProps {
     userProfile: any
@@ -133,3 +133,4 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 }
 
 export default AchievementsSection
+
