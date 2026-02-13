@@ -693,7 +693,12 @@
         }
     },
     "rpc": {
-        "message": "{{message}}"
+        "message": "{{message}}",
+        "paused": "Пауза",
+        "unknownArtist": "Неизвестный исполнитель",
+        "unknownAlbum": "Неизвестный альбом",
+        "unknownTrack": "Неизвестный трек",
+        "neuroMusic": "Нейромузыка"
     },
     "pulseSyncDialog": {
         "addFailed": "Не удалось добавить записи",
