@@ -178,8 +178,12 @@ const registerWindowEvents = (): void => {
         mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_CLOSE, (_event, val: boolean) => {
-        if (!val) app.quit()
-        mainWindow.hide()
+        if (val) {
+            mainWindow.hide()
+            return
+        }
+
+        app.quit()
     })
 }
 
@@ -879,4 +883,3 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
     }
 }
-
