@@ -34,31 +34,31 @@ const MacUpdateDialog: React.FC = () => {
     }
 
     const description = useMemo(() => {
-        if (updateInfo?.type === 'zip') return t('updates.macInstallBodyZip')
-        return t('updates.macInstallBodyDmg')
+        if (updateInfo?.type === 'zip') return t('modals.macUpdate.description.zip')
+        return t('modals.macUpdate.description.dmg')
     }, [t, updateInfo?.type])
 
     return (
         <CustomModalPS
             isOpen={showDialog}
             onClose={handleClose}
-            title={t('updates.macInstallTitle')}
+            title={t('modals.macUpdate.title')}
             text={description}
             buttons={[
                 {
-                    text: t('updates.macInstallOpenFinder'),
+                    text: t('modals.macUpdate.buttons.openFinder'),
                     onClick: () =>
                         updateInfo?.openPath && window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'openPath', path: updateInfo.openPath }),
                     variant: 'primary',
                     disabled: !updateInfo?.openPath,
                 },
                 {
-                    text: t('updates.macInstallOpenApplications'),
+                    text: t('modals.macUpdate.buttons.openApplications'),
                     onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'openApplications' }),
                     variant: 'secondary',
                 },
                 {
-                    text: t('common.done'),
+                    text: t('modals.macUpdate.buttons.done'),
                     onClick: handleClose,
                     variant: 'secondary',
                 },

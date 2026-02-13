@@ -414,11 +414,91 @@
         "uploadBanner": "Upload banner"
     },
     "modals": {
+        "appUpdate": {
+            "title": "Update ready to install",
+            "description": "A new version has been downloaded. Install the update now?",
+            "buttons": {
+                "later": "Install later",
+                "install": "Install update"
+            }
+        },
+        "linuxAsarPath": {
+            "title": "Custom Yandex Music folder required",
+            "description": "Select the Yandex Music folder where the app.asar is located.",
+            "errors": {
+                "missingAsar": "app.asar was not found in the selected folder. Please pick the Yandex Music folder again."
+            },
+            "toasts": {
+                "errorTitle": "Error"
+            },
+            "buttons": {
+                "cancel": "Cancel",
+                "selectFolder": "Select folder"
+            }
+        },
+        "macPermissions": {
+            "title": "Additional permissions required",
+            "description": "On macOS, the patcher needs either App Management or Full disk access.",
+            "subText": "Open settings will take you directly to the required system settings page.",
+            "buttons": {
+                "cancel": "Cancel",
+                "openSettings": "Open settings"
+            }
+        },
+        "macUpdate": {
+            "title": "Finish installing the update",
+            "description": {
+                "dmg": "Open the mounted disk and drag PulseSync to Applications to replace the old version.",
+                "zip": "Open the extracted folder and drag PulseSync to Applications to replace the old version."
+            },
+            "buttons": {
+                "openFinder": "Open in Finder",
+                "openApplications": "Open Applications",
+                "done": "Done"
+            }
+        },
         "premiumPromo": {
             "title": "This is premium feature",
             "description": "You need subscribe on Boosty to use this feature.\nAlso you should connect the same Discord account to your Boosty and PulseSync accounts.",
             "subscribe": "Subscribe",
             "ok": "Got it"
+        },
+        "pulseSync": {
+            "title": "Detected running zapret",
+            "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
+            "subText": "The pulsesync.dev entry is missing. Add automatically?",
+            "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
+            "buttons": {
+                "cancel": "No",
+                "confirm": "Yes, add",
+                "adding": "Adding…"
+            },
+            "toasts": {
+                "addingTitle": "Adding entries...",
+                "pleaseWait": "Please wait",
+                "successTitle": "Done",
+                "addFailedTitle": "Couldn't complete",
+                "addFailed": "Failed to add entries",
+                "errorTitle": "Error"
+            }
+        },
+        "yandexMusicUpdate": {
+            "title": "Remove Yandex Music",
+            "description": "You have an outdated Microsoft Store version of Yandex Music installed. It will be removed to ensure full functionality.",
+            "subText": "If you agree, the app will be removed. Afterwards you can install the latest version.",
+            "buttons": {
+                "cancel": "Cancel",
+                "delete": "Delete"
+            },
+            "toasts": {
+                "deletingTitle": "Removing...",
+                "deletingDescription": "Removing Yandex Music from the Microsoft Store",
+                "deleteStartFailed": "Failed to start app removal",
+                "deleteFailed": "Failed to remove the app",
+                "deleteSuccess": "Yandex Music removed successfully",
+                "successTitle": "Done",
+                "errorTitle": "Error"
+            }
         }
     },
     "layout": {
@@ -434,10 +514,6 @@
         "installErrorTitle": "Install error",
         "installUpdateTooltip": "Install update",
         "installedVersionOutdated": "Installed version ({{version}}) is outdated",
-        "linuxAsarDescription": "Select the Yandex Music folder where the app.asar is located.",
-        "linuxAsarMissingAsar": "app.asar was not found in the selected folder. Please pick the Yandex Music folder again.",
-        "linuxAsarSelectButton": "Select folder",
-        "linuxAsarTitle": "Custom Yandex Music folder required",
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
         "modInstallFailed": "Failed to install the mod. Please try again.",
@@ -700,29 +776,6 @@
         "unknownTrack": "Unknown track",
         "neuroMusic": "Neuro music"
     },
-    "pulseSyncDialog": {
-        "addFailed": "Failed to add entries",
-        "addFailedTitle": "Couldn't complete",
-        "addingButton": "Adding…",
-        "addingTitle": "Adding entries...",
-        "cancelButton": "No",
-        "confirmButton": "Yes, add",
-        "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
-        "subText": "The pulsesync.dev entry is missing. Add automatically?",
-        "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
-        "title": "Detected running zapret"
-    },
-    "yandexMusicDialog": {
-        "deleteButton": "Delete",
-        "deleteFailed": "Failed to remove the app",
-        "deleteStartFailed": "Failed to start app removal",
-        "deleteSuccess": "Yandex Music removed successfully",
-        "deletingDescription": "Removing Yandex Music from the Microsoft Store",
-        "deletingTitle": "Removing...",
-        "description": "You have an outdated Microsoft Store version of Yandex Music installed. It will be removed to ensure full functionality.",
-        "subText": "If you agree, the app will be removed. Afterwards you can install the latest version.",
-        "title": "Remove Yandex Music"
-    },
     "settings": {
         "restartRequired": "Changes will take effect after restarting the app",
         "toggles": {
@@ -778,14 +831,6 @@
         "downloaded": "Update downloaded",
         "downloadingLabel": "Downloading",
         "downloadingTitle": "Downloading update",
-        "macInstallBodyDmg": "Open the mounted disk and drag PulseSync to Applications to replace the old version.",
-        "macInstallBodyZip": "Open the extracted folder and drag PulseSync to Applications to replace the old version.",
-        "macInstallOpenApplications": "Open Applications",
-        "macInstallOpenFinder": "Open in Finder",
-        "macInstallTitle": "Finish installing the update",
-        "readyDescription": "A new version has been downloaded. Install the update now?",
-        "readyTitle": "Update ready to install",
-        "installButton": "Install update",
         "notFoundMessage": "App is up to date",
         "notFoundTitle": "No updates",
         "mod": {

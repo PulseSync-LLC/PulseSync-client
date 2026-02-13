@@ -323,6 +323,12 @@ const registerFileOperations = (window: BrowserWindow): void => {
                 await shell.openPath(widgetPath)
                 break
             }
+            case 'privacySettings': {
+                if (isMac()) {
+                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy')
+                }
+                break
+            }
         }
     })
 

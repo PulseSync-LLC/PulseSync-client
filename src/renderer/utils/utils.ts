@@ -6,11 +6,11 @@ import { t } from '../i18n'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch('https://www.google.com', {
-            method: 'HEAD',
-            mode: 'no-cors',
+        const response = await fetch(`${config.SERVER_URL}`, {
+            method: 'GET',
+            cache: 'no-store',
         })
-        return response.ok || response.type === 'opaque'
+        return response.ok
     } catch (error) {
         console.error(t('utils.internetCheckError'), error)
         return false

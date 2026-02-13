@@ -414,11 +414,91 @@
         "uploadBanner": "Загрузить баннер"
     },
     "modals": {
+        "appUpdate": {
+            "title": "Обновление готово к установке",
+            "description": "Новая версия уже загружена. Установить обновление сейчас?",
+            "buttons": {
+                "later": "Установить позже",
+                "install": "Установить обновление"
+            }
+        },
+        "linuxAsarPath": {
+            "title": "Нужна папка Яндекс Музыки",
+            "description": "Укажите папку Яндекс Музыки, в которой лежит app.asar.",
+            "errors": {
+                "missingAsar": "В выбранной папке не найден app.asar. Пожалуйста, выберите папку Яндекс Музыки снова."
+            },
+            "toasts": {
+                "errorTitle": "Ошибка"
+            },
+            "buttons": {
+                "cancel": "Отмена",
+                "selectFolder": "Выбрать папку"
+            }
+        },
+        "macPermissions": {
+            "title": "Требуются дополнительные права",
+            "description": "На macOS для корректной работы патчера нужно выдать приложению разрешение App Management или Full disk access.",
+            "subText": "Кнопка «Открыть настройки» переведет вас сразу в нужный раздел системных настроек.",
+            "buttons": {
+                "cancel": "Отмена",
+                "openSettings": "Открыть настройки"
+            }
+        },
+        "macUpdate": {
+            "title": "Завершите установку обновления",
+            "description": {
+                "dmg": "Откройте смонтированный диск и перетащите PulseSync в Applications, чтобы заменить старую версию.",
+                "zip": "Откройте распакованную папку и перетащите PulseSync в Applications, чтобы заменить старую версию."
+            },
+            "buttons": {
+                "openFinder": "Открыть в Finder",
+                "openApplications": "Открыть Applications",
+                "done": "Готово"
+            }
+        },
         "premiumPromo": {
             "title": "Это премиум функция",
             "description": "Вам нужно оформить подписку на Boosty, чтобы использовать эту функцию.\nУчтите что вам также нужно привязать один и тот же аккаунт Discord к вашим аккаунтам на Boosty и PulseSync.",
             "subscribe": "Подписаться",
             "ok": "Ясно"
+        },
+        "pulseSync": {
+            "title": "Обнаружен запущенный zapret",
+            "description": "Если вы испытываете трудности с доступностью PulseSync (приложение не подключается, долго загружается или работает нестабильно), можно добавить домены в конфиг zapret.",
+            "subText": "Записи pulsesync.dev сейчас нет. Добавить автоматически?",
+            "subTextWithPath": "Файл конфигурации:\n{{path}}\nНе хватает записей PulseSync (pulsesync.dev, ru-node-1.pulsesync.dev, worker.pulsesync.dev). Добавить автоматически?",
+            "buttons": {
+                "cancel": "Нет",
+                "confirm": "Да, добавить",
+                "adding": "Добавляю…"
+            },
+            "toasts": {
+                "addingTitle": "Добавляю записи...",
+                "pleaseWait": "Ожидайте",
+                "successTitle": "Готово",
+                "addFailedTitle": "Не получилось",
+                "addFailed": "Не удалось добавить записи",
+                "errorTitle": "Ошибка"
+            }
+        },
+        "yandexMusicUpdate": {
+            "title": "Удаление Яндекс Музыки",
+            "description": "У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалено для корректной работы со всеми функциями.",
+            "subText": "Если вы согласны, приложение будет удалено. После этого вы сможете установить актуальную версию.",
+            "buttons": {
+                "cancel": "Отмена",
+                "delete": "Удалить"
+            },
+            "toasts": {
+                "deletingTitle": "Удаление...",
+                "deletingDescription": "Удаляю Яндекс Музыку из Microsoft Store",
+                "deleteStartFailed": "Не удалось запустить удаление приложения",
+                "deleteFailed": "Не удалось удалить приложение",
+                "deleteSuccess": "Яндекс Музыка успешно удалена",
+                "successTitle": "Готово",
+                "errorTitle": "Ошибка"
+            }
         }
     },
     "layout": {
@@ -434,10 +514,6 @@
         "installErrorTitle": "Ошибка установки",
         "installUpdateTooltip": "Установить обновление",
         "installedVersionOutdated": "Установленная версия ({{version}}) устарела",
-        "linuxAsarDescription": "Укажите папку Яндекс Музыки, в которой лежит app.asar.",
-        "linuxAsarMissingAsar": "В выбранной папке не найден app.asar. Пожалуйста, выберите папку Яндекс Музыки снова.",
-        "linuxAsarSelectButton": "Выбрать папку",
-        "linuxAsarTitle": "Нужна папка Яндекс Музыки",
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",
         "modInstallFailed": "Установка мода не удалась. Попробуйте ещё раз.",
@@ -700,29 +776,6 @@
         "unknownTrack": "Неизвестный трек",
         "neuroMusic": "Нейромузыка"
     },
-    "pulseSyncDialog": {
-        "addFailed": "Не удалось добавить записи",
-        "addFailedTitle": "Не получилось",
-        "addingButton": "Добавляю…",
-        "addingTitle": "Добавляю записи...",
-        "cancelButton": "Нет",
-        "confirmButton": "Да, добавить",
-        "description": "Если вы испытываете трудности с доступностью PulseSync (приложение не подключается, долго загружается или работает нестабильно), можно добавить домены в конфиг zapret.",
-        "subText": "Записи pulsesync.dev сейчас нет. Добавить автоматически?",
-        "subTextWithPath": "Файл конфигурации:\n{{path}}\nНе хватает записей PulseSync (pulsesync.dev, ru-node-1.pulsesync.dev, worker.pulsesync.dev). Добавить автоматически?",
-        "title": "Обнаружен запущенный zapret"
-    },
-    "yandexMusicDialog": {
-        "deleteButton": "Удалить",
-        "deleteFailed": "Не удалось удалить приложение",
-        "deleteStartFailed": "Не удалось запустить удаление приложения",
-        "deleteSuccess": "Яндекс Музыка успешно удалена",
-        "deletingDescription": "Удаляю Яндекс Музыку из Microsoft Store",
-        "deletingTitle": "Удаление...",
-        "description": "У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалено для корректной работы со всеми функциями.",
-        "subText": "Если вы согласны, приложение будет удалено. После этого вы сможете установить актуальную версию.",
-        "title": "Удаление Яндекс Музыки"
-    },
     "settings": {
         "restartRequired": "Изменения вступят в силу после перезапуска приложения",
         "toggles": {
@@ -778,14 +831,6 @@
         "downloaded": "Обновление загружено",
         "downloadingLabel": "Загрузка",
         "downloadingTitle": "Скачивание обновления",
-        "macInstallBodyDmg": "Откройте смонтированный диск и перетащите PulseSync в Applications, чтобы заменить старую версию.",
-        "macInstallBodyZip": "Откройте распакованную папку и перетащите PulseSync в Applications, чтобы заменить старую версию.",
-        "macInstallOpenApplications": "Открыть Applications",
-        "macInstallOpenFinder": "Открыть в Finder",
-        "macInstallTitle": "Завершите установку обновления",
-        "readyDescription": "Новая версия уже загружена. Установить обновление сейчас?",
-        "readyTitle": "Обновление готово к установке",
-        "installButton": "Установить обновление",
         "notFoundMessage": "У вас актуальная версия приложения",
         "notFoundTitle": "Обновлений не найдено",
         "mod": {

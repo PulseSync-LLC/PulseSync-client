@@ -85,7 +85,7 @@ export const modManager = (window: BrowserWindow): void => {
                         await copyFile(paths.modAsar, paths.modAsar)
                         await copyFile(paths.infoPlist, paths.infoPlist)
                     } catch {
-                        await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles')
+                        window.webContents.send(RendererEvents.REQUEST_MAC_PERMISSIONS)
                         return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
                     }
                 }
