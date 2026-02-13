@@ -199,10 +199,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 </div>
 
                 <div className={s.actions} ref={actionsRef}>
-                    <Button
-                        className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
-                        onClick={() => onToggleEnabled(!isEnabled)}
-                    >
+                    <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
                         {isEnabled ? t('common.disable') : t('common.enable')}
                     </Button>
 
@@ -236,4 +233,3 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
 }
 
 export default ThemeInfo
-
