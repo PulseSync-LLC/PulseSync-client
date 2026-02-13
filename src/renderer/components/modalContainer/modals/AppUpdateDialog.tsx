@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MainEvents from '../../../../common/types/mainEvents'
-import UserContext from '../../../api/context/user.context'
+import UserContext from '../../../api/context/user'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 
 const AppUpdateDialog: React.FC = () => {
@@ -47,3 +47,4 @@ const AppUpdateDialog: React.FC = () => {
 }
 
 export default AppUpdateDialog
+

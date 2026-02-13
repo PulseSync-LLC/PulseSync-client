@@ -8,7 +8,7 @@ import Minimize from '../../assets/icons/minimize.svg'
 import Close from '../../assets/icons/close.svg'
 import ArrowDown from '../../assets/icons/arrowDown.svg'
 
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import ContextMenu from '../context_menu'
 import Modal from '../PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
@@ -659,3 +659,4 @@ const Header: React.FC<p> = () => {
 }
 
 export default Header
+

@@ -5,7 +5,7 @@ import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
 import { useCallback, useContext, useRef, useState, useMemo, useEffect } from 'react'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
 import { Cubic } from '../../components/PSUI/Cubic'
@@ -469,3 +469,4 @@ export default function TrackInfoPage() {
         </PageLayout>
     )
 }
+

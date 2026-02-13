@@ -6,7 +6,7 @@ import semver from 'semver'
 import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
 import stringSimilarity from 'string-similarity'
 
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import Addon from '../../api/interfaces/addon.interface'
 import { AddonWhitelistItem } from '../../api/interfaces/addonWhitelist.interface'
 
@@ -19,7 +19,7 @@ import OptionMenu from '../../components/PSUI/OptionMenu'
 import Loader from '../../components/PSUI/Loader'
 
 import ExtensionView from './route/extensionview'
-import { preloadAddonFiles } from './route/extBox/hooks'
+import { clearAddonFilesCache, preloadAddonFiles } from './route/extBox/hooks'
 
 import * as extensionStylesV2 from './extension.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
@@ -394,6 +394,7 @@ export default function ExtensionPage() {
 
     const handleReloadAddons = useCallback(async () => {
         try {
+            clearAddonFilesCache()
             window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
             await loadAddons(true)
             setSelectedAddonId(null)
@@ -754,4 +755,5 @@ export default function ExtensionPage() {
         </PageLayout>
     )
 }
+
 

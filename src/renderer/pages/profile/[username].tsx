@@ -17,7 +17,7 @@ import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
 import * as styles from './profilePage.module.scss'
 import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import { useTranslation } from 'react-i18next'
 
 const ProfilePage: React.FC = () => {

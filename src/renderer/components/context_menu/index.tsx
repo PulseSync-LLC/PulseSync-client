@@ -1,6 +1,6 @@
 import React, { useContext, useRef } from 'react'
 import * as menuStyles from './context_menu.module.scss'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
@@ -501,3 +501,4 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 }
 
 export default ContextMenu
+

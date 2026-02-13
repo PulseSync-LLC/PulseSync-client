@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user.context'
+import userContext from '../../../api/context/user'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import AppNameLogo from '../../../assets/icon/AppName.svg'
@@ -114,3 +114,4 @@ export default function AuthPage() {
         </>
     )
 }
+

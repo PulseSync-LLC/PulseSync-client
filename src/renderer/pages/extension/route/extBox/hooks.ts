@@ -18,8 +18,24 @@ const configExistsCache = new Map<string, boolean>()
 
 const getAddonCacheKey = (addon: AddonInterface): string => addon.directoryName || addon.name
 
+export const clearAddonFilesCache = (addon?: AddonInterface | null): void => {
+    if (!addon) {
+        docsCache.clear()
+        configCache.clear()
+        configExistsCache.clear()
+        return
+    }
+
+    const cacheKey = getAddonCacheKey(addon)
+    docsCache.delete(cacheKey)
+    configCache.delete(cacheKey)
+    configExistsCache.delete(cacheKey)
+}
+
 const buildAddonUrl = (addon: AddonInterface, file: string): string =>
-    `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
+    `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}&r=${encodeURIComponent(
+        `addon-docs-v2-${addon.lastModified || ''}-${addon.size || ''}`,
+    )}`
 
 export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<void> => {
     if (!addon) return
@@ -37,7 +53,7 @@ export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<v
         await Promise.all(
             candidates.map(async f => {
                 try {
-                    const res = await fetch(buildAddonUrl(addon, f))
+                    const res = await fetch(buildAddonUrl(addon, f), { cache: 'no-store' })
                     if (!res.ok) return
                     const text = await res.text()
                     fetched.push({ title: prettify(f), content: text, isMarkdown: f.toLowerCase().endsWith('.md') })
@@ -51,7 +67,7 @@ export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<v
 
     if (shouldFetchConfig) {
         try {
-            const res = await fetch(buildAddonUrl(addon, 'handleEvents.json'))
+            const res = await fetch(buildAddonUrl(addon, 'handleEvents.json'), { cache: 'no-store' })
             if (!res.ok) throw new Error('404')
             const json: AddonConfig = await res.json()
             configCache.set(cacheKey, json)
@@ -108,14 +124,13 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
         let active = true
 
         ;(async () => {
-            if (docsCache.has(cacheKey)) return
             const candidates = ['readme.md', 'license', 'changelog.md']
             const fetched: DocTab[] = []
 
             await Promise.all(
                 candidates.map(async f => {
                     try {
-                        const res = await fetch(buildUrl(f))
+                        const res = await fetch(buildUrl(f), { cache: 'no-store' })
                         if (!res.ok) return
                         const text = await res.text()
                         fetched.push({ title: prettify(f), content: text, isMarkdown: f.toLowerCase().endsWith('.md') })
@@ -130,9 +145,8 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
             }
         })()
         ;(async () => {
-            if (configExistsCache.has(cacheKey)) return
             try {
-                const res = await fetch(buildUrl('handleEvents.json'))
+                const res = await fetch(buildUrl('handleEvents.json'), { cache: 'no-store' })
                 if (!res.ok) throw new Error('404')
                 const json: AddonConfig = await res.json()
                 configCache.set(cacheKey, json)
