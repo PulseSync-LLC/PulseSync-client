@@ -9,7 +9,7 @@
     padding: 8px 25px;
     gap: 10px;
 
-    background: #b3c5ff;
+    background: #577eff;
     border-radius: 8px;
     min-width: fit-content;
 
@@ -20,11 +20,17 @@
     color: #fff;
 
     &:not(:disabled):hover {
-        background: #d8e1ff;
+        background: #7192ff;
     }
-}
 
-.active {
-    background: #577eff;
-    color: #ffffff;
+    &:disabled {
+        background: #415eba;
+        color: #ffffff;
+        cursor: default;
+    }
+
+    &:not(:disabled):active {
+        background: #577eff;
+        color: #ffffff;
+    }
 }
