@@ -67,7 +67,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
     const protectedOnClose = useCallback(() => {
-        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 300) {
+        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 500) {
             onClose()
         }
     }, [allowNoChoice, buttons.length, onClose]);
