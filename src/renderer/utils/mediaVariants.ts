@@ -38,6 +38,11 @@ const withS3 = (path: string) => `${config.S3_URL}/${path}`
 const buildSrcSet = ({basePath, ext, sizes}: {basePath: string, ext?: string | null, sizes: number[]}) =>
     sizes.map(size => `${withS3(`${basePath}_${size}.${ext || 'webp'}`)} ${size}w`).join(', ')
 
+const appendSrcSetCandidate = (srcSet: string | undefined, src: string, descriptor: string): string | undefined => {
+    if (!srcSet) return undefined
+    return `${srcSet}, ${src} ${descriptor}`
+}
+
 export const getAvatarMediaUrls = ({ hash, ext, animated = false }: AvatarMediaOptions): MediaUrls | null => {
     const normalizedHash = normalizeHash(hash)
     if (!normalizedHash) return null
@@ -58,7 +63,7 @@ export const getAvatarMediaUrls = ({ hash, ext, animated = false }: AvatarMediaO
     }
 
     return {
-        srcSet: srcSet?.concat(', ').concat(withS3(originalPath)).concat(' 1600w'),
+        srcSet: appendSrcSetCandidate(srcSet, withS3(originalPath), '1600w'),
         src: withS3(originalPath),
     }
 }
@@ -83,7 +88,7 @@ export const getBannerMediaUrls = ({ hash, ext, animated = false }: BannerMediaO
     }
 
     return {
-        srcSet: srcSet?.concat(', ').concat(withS3(originalPath)).concat(' original'),
+        srcSet: appendSrcSetCandidate(srcSet, withS3(originalPath), '1920w'),
         src: withS3(originalPath),
     }
 }

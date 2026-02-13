@@ -23,7 +23,6 @@ import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
 import axios from 'axios'
-import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
 import { useNavigate } from 'react-router-dom'
@@ -287,7 +286,6 @@ const Header: React.FC<p> = () => {
                     break
                 default:
                     toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadRetry'))
-                    Sentry.captureException(error)
                     break
             }
             setAvatarProgress(-1)
@@ -334,7 +332,6 @@ const Header: React.FC<p> = () => {
                 toast.custom('error', t('header.accessDeniedTitle'), t('header.bannerUploadForbidden'))
             } else {
                 toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadRetry'))
-                Sentry.captureException(error)
             }
             setBannerProgress(-1)
             console.error('Error uploading banner:', error)

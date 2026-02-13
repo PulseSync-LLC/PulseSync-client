@@ -14,7 +14,6 @@ import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { execFile } from 'child_process'
 import axios from 'axios'
-import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import {
     checkMusic,
@@ -596,11 +595,6 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         }
         authorized = data.status
         tryOpenPendingAddon()
-        if (data?.user) {
-            Sentry.setUser({ id: data.user.id, username: data.user.username, email: data.user.email })
-        } else {
-            Sentry.setUser(null)
-        }
     })
 
     ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {

@@ -44,7 +44,6 @@ import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
-import * as Sentry from '@sentry/electron/renderer'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import { useDispatch } from 'react-redux'
 import { setAppDeprecatedStatus } from '../api/store/appSlice'
@@ -108,10 +107,6 @@ function App() {
 
         const formatLogArgs = (args: any[]) => args.map(formatLogValue).join(' ')
 
-        const isIgnoredFetchUrl = (url: string) => {
-            return url.startsWith('sentry-ipc://')
-        }
-
         const originalConsoleError = console.error.bind(console)
         let isLoggingConsoleError = false
         console.error = (...args: any[]) => {
@@ -134,10 +129,6 @@ function App() {
                 const [input] = args
                 const url =
                     typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : 'unknown'
-
-                if (typeof url === 'string' && isIgnoredFetchUrl(url)) {
-                    return originalFetch(...args)
-                }
 
                 try {
                     const response = await originalFetch(...args)
@@ -354,7 +345,6 @@ function App() {
                 return
             }
         }
-        Sentry.captureException(meError)
         toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
         setLoading(false)
@@ -456,14 +446,12 @@ function App() {
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else {
-                            Sentry.captureException(err)
                             toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
                     } else {
-                        Sentry.captureException(err)
                         toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
