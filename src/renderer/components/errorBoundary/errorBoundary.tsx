@@ -1,5 +1,4 @@
 import React from 'react'
-import * as Sentry from '@sentry/electron/renderer'
 import * as styles from './errorBoundary.module.scss'
 import toast from '../toast'
 import MainEvents from '../../../common/types/mainEvents'
@@ -32,7 +31,6 @@ class ErrorBoundary extends React.Component<
             stack: error.stack,
             componentStack: errorInfo.componentStack,
         })
-        Sentry.captureException(error)
     }
     copyToClipboard = (text: string) => {
         navigator.clipboard

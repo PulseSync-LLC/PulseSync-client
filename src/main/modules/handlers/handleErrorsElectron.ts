@@ -1,6 +1,5 @@
 import fs from 'original-fs'
 import path from 'path'
-import * as Sentry from '@sentry/electron/main'
 import logger from '../logger'
 import { app } from 'electron'
 import { t } from '../../i18n'
@@ -11,24 +10,10 @@ export class HandleErrorsElectron {
     public static handleError(className: string, method: string, block: string, error: unknown): void {
         try {
             const errorObj = error instanceof Error ? error : new Error(String(error))
-            const sentryContext = `${className}/${method}/${block}:${errorObj.message}`
-            const errorMessage = HandleErrorsElectron.formatLogMessage('ERROR', sentryContext, errorObj.stack || errorObj.message)
+            const errorContext = `${className}/${method}/${block}:${errorObj.message}`
+            const errorMessage = HandleErrorsElectron.formatLogMessage('ERROR', errorContext, errorObj.stack || errorObj.message)
 
             HandleErrorsElectron.storeCrash(errorMessage)
-
-            const currentUser = Sentry.getCurrentScope().getUser() ?? null
-
-            Sentry.withScope(scope => {
-                scope.setTag('module', className)
-                scope.setTag('method', method)
-                scope.setTag('block', block)
-                scope.setUser(currentUser)
-                scope.setFingerprint([sentryContext])
-                scope.setTransactionName(sentryContext)
-                scope.setExtra('error_stack', errorObj.stack || 'no_stack_trace')
-
-                scope.captureException(errorObj)
-            })
         } catch (internalError) {
             logger.main.error(t('main.handleErrors.internalError'), internalError)
         }
@@ -41,7 +26,7 @@ export class HandleErrorsElectron {
             const crashData = fs.readFileSync(CRASH_FILE, 'utf-8')
             if (crashData.trim()) {
                 fs.unlinkSync(CRASH_FILE)
-                Sentry.captureMessage(`Stored crashes:\n${crashData}`)
+                logger.main.error(`Stored crashes:\n${crashData}`)
             }
         } catch (error) {
             this.handleError('error_handler', 'process_stored_crashes', 'crash_file_handling', error)

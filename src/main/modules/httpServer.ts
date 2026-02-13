@@ -338,7 +338,7 @@ const initializeServer = () => {
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
         res.setHeader(
             'Access-Control-Allow-Headers',
-            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, sentry-trace, baggage',
+            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers',
         )
 
         if (method === 'OPTIONS') {
@@ -366,7 +366,7 @@ const initializeServer = () => {
         cors: {
             origin: allowedOrigins,
             methods: ['GET', 'POST'],
-            allowedHeaders: ['Content-Type', 'sentry-trace'],
+            allowedHeaders: ['Content-Type'],
         },
     })
 

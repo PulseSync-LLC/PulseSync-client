@@ -36,17 +36,6 @@ export function registerSchemes(): void {
             },
         },
         {
-            scheme: 'sentry-ipc',
-            privileges: {
-                standard: true,
-                bypassCSP: true,
-                allowServiceWorkers: true,
-                supportFetchAPI: true,
-                corsEnabled: true,
-                stream: true,
-            },
-        },
-        {
             scheme: 'file',
             privileges: {
                 standard: true,

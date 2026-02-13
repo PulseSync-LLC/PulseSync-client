@@ -3,9 +3,7 @@ import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
 import createTray from './main/modules/tray'
-import config from './common/appConfig'
 import { checkForSingleInstance } from './main/modules/singleInstance'
-import * as Sentry from '@sentry/electron/main'
 import { setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
@@ -80,28 +78,7 @@ const initializeMusicPath = async () => {
 }
 initializeMusicPath()
 
-const sentryPrefix = 'app:///'
-const sentryRoot = app.isPackaged ? path.join(process.resourcesPath, 'app.asar') : path.resolve(__dirname, '..', '..')
-
-if (!isAppDev) {
-    logger.main.info('Sentry enabled')
-    Sentry.init({
-        dsn: config.SENTRY_DSN,
-        debug: isAppDev,
-        release: `pulsesync@${app.getVersion()}`,
-        environment: isAppDev ? 'development' : 'production',
-        attachStacktrace: true,
-        enableRendererProfiling: true,
-        attachScreenshot: true,
-        integrations: [
-            Sentry.rewriteFramesIntegration({
-                root: sentryRoot,
-                prefix: sentryPrefix,
-            }),
-        ],
-    })
-    Sentry.setTag('process', 'main')
-} else if (isWindows() || isMac()) {
+if (isAppDev && (isWindows() || isMac())) {
     const openAtLogin = app.getLoginItemSettings().openAtLogin
     if (openAtLogin) {
         app.setLoginItemSettings({
