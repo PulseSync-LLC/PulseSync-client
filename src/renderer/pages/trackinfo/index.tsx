@@ -23,6 +23,8 @@ import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 import Image from '../../components/PSUI/Image'
+import { useDispatch } from 'react-redux'
+import { openPremiumPromoModal } from '../../api/store/modalSlice'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -39,6 +41,7 @@ export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
+    const dispatch = useDispatch()
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
@@ -166,6 +169,10 @@ export default function TrackInfoPage() {
             },
         })
     }, [app, setApp])
+
+    const openPremiumPromo = useCallback(() => {
+        dispatch(openPremiumPromoModal())
+    }, [dispatch])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedAddon = useMemo(() => ({ charCount: inputStyle.charCount }), [])
@@ -322,7 +329,7 @@ export default function TrackInfoPage() {
                                         ? t('trackInfo.special.supporterHideBrandingDescription')
                                         : t('trackInfo.special.supporterHideBrandingLockedDescription')
                                 }
-                                disabled={!hasSupporter}
+                                onClick={!hasSupporter && openPremiumPromo}
                             />
                         </div>
                     </div>

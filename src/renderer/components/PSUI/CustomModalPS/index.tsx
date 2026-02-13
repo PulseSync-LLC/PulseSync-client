@@ -90,19 +90,6 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
 
     useEffect(() => {
         if (!isOpen) return
-        if (!buttons.length) return
-
-        const timer = window.setTimeout(() => {
-            firstBtnRef.current?.focus()
-        }, 0)
-
-        return () => {
-            window.clearTimeout(timer)
-        }
-    }, [isOpen, buttons.length])
-
-    useEffect(() => {
-        if (!isOpen) return
         lastOpenTimeRef.current = Date.now();
     }, [isOpen])
 

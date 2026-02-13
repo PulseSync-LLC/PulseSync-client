@@ -1,5 +1,6 @@
 {
     "common": {
+        "ok": "Ok",
         "all": "All",
         "allGoodTitle": "All good",
         "attentionTitle": "Attention",
@@ -411,6 +412,14 @@
         "uploadAttentionTitle": "Heads up",
         "uploadAvatar": "Upload avatar",
         "uploadBanner": "Upload banner"
+    },
+    "modals": {
+        "premiumPromo": {
+            "title": "This is premium feature",
+            "description": "You need subscribe on Boosty to use this feature.\nAlso you should connect the same Discord account to your Boosty and PulseSync accounts.",
+            "subscribe": "Subscribe",
+            "ok": "Got it"
+        }
     },
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
