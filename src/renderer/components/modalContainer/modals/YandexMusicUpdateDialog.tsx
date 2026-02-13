@@ -72,15 +72,15 @@ const YandexMusicUpdateDialog: React.FC = () => {
             subText={t('yandexMusicDialog.subText')}
             buttons={[
                 {
-                    text: t('yandexMusicDialog.deleteButton'),
-                    onClick: handleDelete,
-                    variant: 'danger',
-                    disabled: isDeleting,
-                },
-                {
                     text: t('common.cancel'),
                     onClick: handleClose,
                     variant: 'secondary',
+                    disabled: isDeleting,
+                },
+                {
+                    text: t('yandexMusicDialog.deleteButton'),
+                    onClick: handleDelete,
+                    variant: 'danger',
                     disabled: isDeleting,
                 },
             ]}

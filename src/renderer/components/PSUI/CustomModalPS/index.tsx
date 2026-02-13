@@ -62,21 +62,22 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
 
     const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
     const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
+    const lastOpenTimeRef = useRef<number>(0);
 
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
-    const onOutsideClick = useCallback(() => {
-        if (allowNoChoice || buttons.length === 0) {
+    const protectedOnClose = useCallback(() => {
+        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 300) {
             onClose()
         }
-    }, [allowNoChoice, buttons.length, onClose])
+    }, [allowNoChoice, buttons.length, onClose]);
 
     useEffect(() => {
         if (!isOpen) return
 
         const onKeyDown = (e: KeyboardEvent) => {
-            if (e.key === 'Escape' && (allowNoChoice || buttons.length === 0)) {
-                onClose()
+            if (e.key === 'Escape') {
+                protectedOnClose()
             }
         }
 
@@ -85,7 +86,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
         return () => {
             document.removeEventListener('keydown', onKeyDown)
         }
-    }, [isOpen, onClose])
+    }, [isOpen, protectedOnClose])
 
     useEffect(() => {
         if (!isOpen) return
@@ -99,6 +100,11 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
             window.clearTimeout(timer)
         }
     }, [isOpen, buttons.length])
+
+    useEffect(() => {
+        if (!isOpen) return
+        lastOpenTimeRef.current = Date.now();
+    }, [isOpen])
 
     const renderButtons = () => {
         if (!buttons.length) return null
@@ -143,7 +149,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    onClick={onOutsideClick}
+                    onClick={protectedOnClose}
                     aria-hidden="true"
                 >
                     <motion.div

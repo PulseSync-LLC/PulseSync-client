@@ -32,14 +32,14 @@ const AppUpdateDialog: React.FC = () => {
             text={t('updates.readyDescription')}
             buttons={[
                 {
-                    text: t('updates.installButton'),
-                    onClick: handleInstall,
-                    variant: 'primary',
-                },
-                {
                     text: t('common.thinkLater'),
                     onClick: handleClose,
                     variant: 'secondary',
+                },
+                {
+                    text: t('updates.installButton'),
+                    onClick: handleInstall,
+                    variant: 'primary',
                 },
             ]}
         />
