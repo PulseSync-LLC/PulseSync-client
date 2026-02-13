@@ -1,5 +1,6 @@
 {
     "common": {
+        "ok": "Ясно",
         "all": "Все",
         "allGoodTitle": "Все хорошо",
         "attentionTitle": "Внимание",
@@ -411,6 +412,14 @@
         "uploadAttentionTitle": "Так-так",
         "uploadAvatar": "Загрузить аватар",
         "uploadBanner": "Загрузить баннер"
+    },
+    "modals": {
+        "premiumPromo": {
+            "title": "Это премиум функция",
+            "description": "Вам нужно оформить подписку на Boosty, чтобы использовать эту функцию.\nУчтите что вам также нужно привязать один и тот же аккаунт Discord к вашим аккаунтам на Boosty и PulseSync.",
+            "subscribe": "Подписаться",
+            "ok": "Ясно"
+        }
     },
     "layout": {
         "downloadProgress": "Прогресс загрузки: {{progress}}%",
