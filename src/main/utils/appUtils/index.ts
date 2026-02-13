@@ -170,8 +170,8 @@ export async function copyFile(target: string, dest: string): Promise<void> {
         if (isLinuxAccessError(error)) {
             try {
                 await runPkexecCandidates([
-                    ['/usr/bin/env', 'LANG=C.UTF-8', 'LC_ALL=C.UTF-8', 'LC_CTYPE=C.UTF-8', '/bin/cp', '--', target, dest],
-                    ['env', 'LANG=C.UTF-8', 'LC_ALL=C.UTF-8', 'LC_CTYPE=C.UTF-8', 'cp', '--', target, dest],
+                    ['/bin/cp', '--', target, dest],
+                    ['cp', '--', target, dest],
                 ])
                 return
             } catch (pkexecError: any) {
