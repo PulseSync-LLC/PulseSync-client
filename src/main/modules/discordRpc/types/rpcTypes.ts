@@ -2,7 +2,6 @@ export enum DiscordState {
     CLOSED = 'closed',
     ADMINISTRATOR = 'administrator',
     SNAP = 'snap',
-    FLATPAK = 'flatpak',
     SUCCESS = 'success',
 }
 

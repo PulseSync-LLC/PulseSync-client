@@ -58,7 +58,6 @@
             "states": {
                 "administrator": "Discord appears to be running as administrator. Please run PulseSync as administrator.",
                 "closed": "Could not detect a running Discord instance!",
-                "flatpak": "Discord appears to be running from the Flatpak package. This likely prevents RPC connection.",
                 "snap": "Discord appears to be running from the Snap package. This likely prevents RPC connection.",
                 "success": ""
             },
