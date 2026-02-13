@@ -18,8 +18,6 @@ export async function checkDiscordStateLinux(): Promise<DiscordState> {
             return DiscordState.CLOSED
         } else if (lines.toLowerCase().includes('/snap/discord')) {
             return DiscordState.SNAP
-        } else if (lines.toLowerCase().includes('/app/com.discordapp.discord')) {
-            return DiscordState.FLATPAK
         } else {
             return DiscordState.SUCCESS
         }
