@@ -93,15 +93,15 @@ const PulseSyncDialog: React.FC = () => {
             subText={subText}
             buttons={[
                 {
-                    text: isAdding ? t('pulseSyncDialog.addingButton') : t('pulseSyncDialog.confirmButton'),
-                    onClick: handleConfirm,
-                    variant: 'primary',
-                    disabled: isAdding,
-                },
-                {
                     text: t('pulseSyncDialog.cancelButton'),
                     onClick: handleClose,
                     variant: 'secondary',
+                    disabled: isAdding,
+                },
+                {
+                    text: isAdding ? t('pulseSyncDialog.addingButton') : t('pulseSyncDialog.confirmButton'),
+                    onClick: handleConfirm,
+                    variant: 'primary',
                     disabled: isAdding,
                 },
             ]}
