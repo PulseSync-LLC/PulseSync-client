@@ -23,8 +23,7 @@ import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 import Image from '../../components/PSUI/Image'
-import { useDispatch } from 'react-redux'
-import { openPremiumPromoModal } from '../../api/store/modalSlice'
+import { useModalContext } from '../../api/context/modal'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -40,8 +39,8 @@ type FormValues = {
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const { Modals, openModal } = useModalContext()
     const { t } = useTranslation()
-    const dispatch = useDispatch()
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
     const fallbackLogo = staticAsset('assets/logo/logoapp.png')
@@ -171,8 +170,8 @@ export default function TrackInfoPage() {
     }, [app, setApp])
 
     const openPremiumPromo = useCallback(() => {
-        dispatch(openPremiumPromoModal())
-    }, [dispatch])
+        openModal(Modals.PREMMIUM_PROMO)
+    }, [Modals.PREMMIUM_PROMO, openModal])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedAddon = useMemo(() => ({ charCount: inputStyle.charCount }), [])
@@ -469,4 +468,3 @@ export default function TrackInfoPage() {
         </PageLayout>
     )
 }
-

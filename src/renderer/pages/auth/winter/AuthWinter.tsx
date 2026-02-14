@@ -10,15 +10,12 @@ import AppNameLogo from '../../../assets/icon/AppName.svg'
 
 import Snowfall from './Snowfall'
 import * as pageStyles from './winter_auth.module.scss'
-import { useSelector } from 'react-redux'
-import { RootState } from '../../../api/store/store'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { user } = useContext(userContext)
-    const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
+    const { user, isAppDeprecated } = useContext(userContext)
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)
@@ -94,7 +91,7 @@ export default function AuthPage() {
                         <AppNameLogo />
                         <img className={pageStyles.hat} src={staticAsset('assets/images/winter/hat.png')} />
                     </div>
-                    {isDeprecated ? (
+                    {isAppDeprecated ? (
                         <>
                             <button className={pageStyles.discordAuth} onClick={checkUpdate}>
                                 {t('auth.checkUpdates')}
@@ -125,4 +122,3 @@ export default function AuthPage() {
         </>
     )
 }
-

@@ -9,8 +9,7 @@ import { MdFolderOpen } from 'react-icons/md'
 
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
-import store from '../../api/store/store'
-import { openModal, setLinuxAsarPath } from '../../api/store/modalSlice'
+import { useModalContext } from '../../api/context/modal'
 import { useTranslation } from 'react-i18next'
 
 interface ContextMenuProps {
@@ -36,6 +35,7 @@ interface SectionConfig {
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
+    const { Modals, openModal, setLinuxAsarPath } = useModalContext()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
 
     const openUpdateModal = () => {
@@ -51,7 +51,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const resetAsarPath = () => {
         if (!window.electron.isLinux()) return
         window.electron.store.set('settings.modSavePath', '')
-        store.dispatch(setLinuxAsarPath(null))
+        setLinuxAsarPath(null)
         toast.custom('success', t('common.doneTitle'), t('contextMenu.mod.resetAsarPathSuccess'))
     }
 
@@ -383,7 +383,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     app.mod.installed && app.mod.version
                         ? `${app.mod.name || t('contextMenu.mod.defaultName')} v${app.mod.version}`
                         : t('contextMenu.mod.notInstalled'),
-                onClick: () => store.dispatch(openModal()),
+                onClick: () => openModal(Modals.MOD_CHANGELOG),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
@@ -393,7 +393,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             {
                 label: t('contextMenu.mod.checkUpdates'),
-                onClick: () => window.getModInfo(app, { manual: true }),
+                onClick: () => (window as any).getModInfo(app, { manual: true }),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
@@ -501,4 +501,3 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 }
 
 export default ContextMenu
-

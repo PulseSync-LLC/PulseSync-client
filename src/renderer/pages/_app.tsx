@@ -45,8 +45,6 @@ import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
-import { useDispatch } from 'react-redux'
-import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
 import { useTranslation } from 'react-i18next'
@@ -69,10 +67,10 @@ function App() {
     const [musicVersion, setMusicVersion] = useState<string | null>(null)
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
+    const [isAppDeprecated, setIsAppDeprecated] = useState(false)
     const toastReference = useRef<string | null>(null)
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
-    const dispatch = useDispatch()
 
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -334,7 +332,7 @@ function App() {
                     10000,
                 )
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
-                dispatch(setAppDeprecatedStatus(true))
+                setIsAppDeprecated(true)
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
                     await router.navigate('/auth', { replace: true })
@@ -348,7 +346,7 @@ function App() {
         toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
         setLoading(false)
-    }, [meError, dispatch])
+    }, [meError])
 
     const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
@@ -439,7 +437,7 @@ function App() {
                                 10000,
                             )
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
-                            dispatch(setAppDeprecatedStatus(true))
+                            setIsAppDeprecated(true)
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
@@ -493,7 +491,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }, [dispatch, refetchMe, router])
+    }, [refetchMe, router])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -889,6 +887,8 @@ function App() {
                 setWidgetInstalled={setWidgetInstalled}
                 app={app}
                 setApp={setApp}
+                isAppDeprecated={isAppDeprecated}
+                setIsAppDeprecated={setIsAppDeprecated}
                 updateAvailable={updateAvailable}
                 setUpdate={setUpdate}
                 appInfo={appInfo}
@@ -919,6 +919,8 @@ function AppProviders({
     setWidgetInstalled,
     app,
     setApp,
+    isAppDeprecated,
+    setIsAppDeprecated,
     updateAvailable,
     setUpdate,
     appInfo,
@@ -961,6 +963,8 @@ function AppProviders({
             socketConnected,
             app,
             setApp: setAppWithSocket,
+            isAppDeprecated,
+            setIsAppDeprecated,
             updateAvailable,
             setUpdate,
             appInfo,
@@ -980,6 +984,7 @@ function AppProviders({
             authorize,
             emitGateway,
             features,
+            isAppDeprecated,
             loading,
             meLoading,
             modInfo,
@@ -987,6 +992,7 @@ function AppProviders({
             musicInstalled,
             musicVersion,
             setAppWithSocket,
+            setIsAppDeprecated,
             socket,
             socketConnected,
             updateAvailable,
@@ -1197,4 +1203,3 @@ const Player: React.FC<PlayerProps> = ({ children }) => {
 }
 
 export default App
-

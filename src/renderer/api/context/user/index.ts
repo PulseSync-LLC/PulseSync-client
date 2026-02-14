@@ -24,6 +24,8 @@ const defaultUserContextValue: UserContextValue = {
     socketConnected: false,
     app: settingsInitials,
     setApp: () => void 0,
+    isAppDeprecated: false,
+    setIsAppDeprecated: () => void 0,
     addons: AddonInitials,
     setAddons: () => void 0,
     setUpdate: () => void 0,
