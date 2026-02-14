@@ -35,7 +35,7 @@ interface SectionConfig {
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
-    const { Modals, openModal, setLinuxAsarPath } = useModalContext()
+    const { Modals, openModal } = useModalContext()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
 
     const openUpdateModal = () => {
@@ -51,7 +51,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const resetAsarPath = () => {
         if (!window.electron.isLinux()) return
         window.electron.store.set('settings.modSavePath', '')
-        setLinuxAsarPath(null)
         toast.custom('success', t('common.doneTitle'), t('contextMenu.mod.resetAsarPathSuccess'))
     }
 
@@ -62,6 +61,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             toast.custom('error', t('common.somethingWrongTitle'), t('mod.removeError', { message: args.error }), {
                 id: toastId,
             })
+            if (args?.type === 'linux_permissions_required' && window.electron.isLinux()) {
+                openModal(Modals.LINUX_PERMISSIONS_MODAL)
+            }
         }
 
         const handleSuccess = (event: any, args: any) => {

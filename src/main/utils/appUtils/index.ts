@@ -19,7 +19,7 @@ import asar from '@electron/asar'
 import { nativeFileExists } from '../../modules/nativeModules'
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
-import { isLinuxAccessError, runPkexecCandidates } from './elevation'
+import { isLinuxAccessError } from './elevation'
 import { runPowerShell } from './powershell'
 
 const execAsync = promisify(exec)
@@ -168,22 +168,13 @@ export async function copyFile(target: string, dest: string): Promise<void> {
         await fsp.copyFile(target, dest)
     } catch (error: any) {
         if (isLinuxAccessError(error)) {
-            try {
-                await runPkexecCandidates([
-                    ['/bin/cp', '--', target, dest],
-                    ['cp', '--', target, dest],
-                ])
-                return
-            } catch (pkexecError: any) {
-                logger.modManager.error('Elevated file copy via pkexec failed:', {
-                    source: target,
-                    destination: dest,
-                    code: pkexecError?.code,
-                    message: pkexecError?.message,
-                    stderr: pkexecError?.stderr,
-                })
-                throw pkexecError
-            }
+            logger.modManager.warn('File copying requires permissions on Linux:', {
+                source: target,
+                destination: dest,
+                code: error?.code,
+                message: error?.message,
+            })
+            throw error
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
@@ -197,20 +188,12 @@ export async function createDirIfNotExist(target: string): Promise<void> {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
             if (isLinuxAccessError(error)) {
-                try {
-                    await runPkexecCandidates([
-                        ['/bin/mkdir', '-p', '--', target],
-                        ['mkdir', '-p', '--', target],
-                    ])
-                } catch (pkexecError: any) {
-                    logger.modManager.error('Elevated directory create via pkexec failed:', {
-                        target,
-                        code: pkexecError?.code,
-                        message: pkexecError?.message,
-                        stderr: pkexecError?.stderr,
-                    })
-                    throw pkexecError
-                }
+                logger.modManager.warn('Directory creation requires permissions on Linux:', {
+                    target,
+                    code: error?.code,
+                    message: error?.message,
+                })
+                throw error
             } else {
                 logger.modManager.error('Directory creation failed:', error)
                 throw error

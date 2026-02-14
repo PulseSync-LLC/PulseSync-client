@@ -170,8 +170,8 @@ export default function TrackInfoPage() {
     }, [app, setApp])
 
     const openPremiumPromo = useCallback(() => {
-        openModal(Modals.PREMMIUM_PROMO)
-    }, [Modals.PREMMIUM_PROMO, openModal])
+        openModal(Modals.PREMIUM_PROMO)
+    }, [Modals.PREMIUM_PROMO, openModal])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedAddon = useMemo(() => ({ charCount: inputStyle.charCount }), [])

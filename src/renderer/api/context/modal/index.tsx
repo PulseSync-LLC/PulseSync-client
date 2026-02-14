@@ -13,6 +13,7 @@ const initialModalsState: ModalsState = {
     [Modals.PREMIUM_PROMO]: false,
     [Modals.MAC_PERMISSIONS_MODAL]: false,
     [Modals.PREMIUM_UNLOCKED]: false,
+    [Modals.LINUX_PERMISSIONS_MODAL]: false,
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({

@@ -18,6 +18,7 @@ import {
     downloadToTempWithProgress,
     DownloadError,
 } from '../download.helpers'
+import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
 import type { DownloadProgress, ModCompatibilityResult } from './types'
 import {
     decompressArchive,
@@ -130,6 +131,14 @@ export async function downloadAndUpdateFile(
         })
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
 
+        if (isLinuxAccessError(err)) {
+            sendFailure(window, {
+                error: t('main.modManager.linuxPermissionsRequired'),
+                type: 'linux_permissions_required',
+            })
+            return false
+        }
+
         if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
             sendFailure(window, {
                 error: t('main.modNetwork.integrityError'),
@@ -234,6 +243,10 @@ export async function downloadAndExtractUnpacked(
 
         const moved = await tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
         if (isReplaceDirFailure(moved)) {
+            if (isLinuxAccessError(moved.error)) {
+                sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+                return false
+            }
             const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
             logger.modManager.error('Failed to replace unpacked dir:', moved.error)
             sendFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' })
@@ -250,6 +263,10 @@ export async function downloadAndExtractUnpacked(
         return true
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)
+        if (isLinuxAccessError(err)) {
+            sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+            return false
+        }
         sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedDownloadError'), type: 'download_unpacked_error' })
         return false
     } finally {

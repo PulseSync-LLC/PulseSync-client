@@ -436,6 +436,21 @@
                 "selectFolder": "Выбрать папку"
             }
         },
+        "linuxPermissions": {
+            "title": "Недостаточно прав",
+            "description": "Нужен доступ к папке Яндекс Музыки.",
+            "subText": "Нажмите «Исправить права» и подтвердите запрос.",
+            "buttons": {
+                "cancel": "Отмена",
+                "fixPermissions": "Исправить права"
+            },
+            "toasts": {
+                "successTitle": "Права обновлены",
+                "successDescription": "Повторите установку или удаление мода.",
+                "errorTitle": "Не удалось обновить права",
+                "applyFailed": "Ошибка: {{message}}"
+            }
+        },
         "macPermissions": {
             "title": "Требуются дополнительные права",
             "description": "На macOS для корректной работы патчера нужно выдать приложению разрешение App Management или Full disk access.",

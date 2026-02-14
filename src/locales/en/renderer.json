@@ -436,6 +436,21 @@
                 "selectFolder": "Select folder"
             }
         },
+        "linuxPermissions": {
+            "title": "Not enough permissions",
+            "description": "Access to the Yandex Music folder is required.",
+            "subText": "Click \"Fix permissions\" and approve the prompt.",
+            "buttons": {
+                "cancel": "Cancel",
+                "fixPermissions": "Fix permissions"
+            },
+            "toasts": {
+                "successTitle": "Permissions updated",
+                "successDescription": "Retry installing or removing the mod.",
+                "errorTitle": "Failed to update permissions",
+                "applyFailed": "Error: {{message}}"
+            }
+        },
         "macPermissions": {
             "title": "Additional permissions required",
             "description": "On macOS, the patcher needs either App Management or Full disk access.",
