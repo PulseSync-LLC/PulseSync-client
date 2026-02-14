@@ -1,30 +1,27 @@
 import React, { useEffect, useState } from 'react'
 import path from 'path'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
 import MainEvents from '../../../../common/types/mainEvents'
 import RendererEvents from '../../../../common/types/rendererEvents'
-import { closeLinuxAsarModal, setLinuxAsarPath } from '../../../api/store/modalSlice'
-import { RootState } from '../../../api/store/store'
+import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 import toast from '../../toast'
 
 const LinuxAsarPathDialog: React.FC = () => {
     const { t } = useTranslation()
-    const dispatch = useDispatch()
-    const isOpen = useSelector((state: RootState) => state.modal.linuxAsarOpen)
+    const { Modals, closeModal, isModalOpen, setLinuxAsarPath } = useModalContext()
     const [isSaving, setIsSaving] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
     useEffect(() => {
-        if (isOpen) {
+        if (isModalOpen(Modals.LINUX_ASAR_PATH)) {
             setErrorMessage(null)
         }
-    }, [isOpen])
+    }, [Modals.LINUX_ASAR_PATH, isModalOpen])
 
     const handleClose = () => {
         if (isSaving) return
-        dispatch(closeLinuxAsarModal())
+        closeModal(Modals.LINUX_ASAR_PATH)
     }
 
     const handleSelectPath = async () => {
@@ -53,8 +50,8 @@ const LinuxAsarPathDialog: React.FC = () => {
                 }
                 const resolvedPath = path.dirname(asarCandidates[foundIndex])
                 window.electron?.store?.set?.('settings.modSavePath', resolvedPath)
-                dispatch(setLinuxAsarPath(resolvedPath))
-                dispatch(closeLinuxAsarModal())
+                setLinuxAsarPath(resolvedPath)
+                closeModal(Modals.LINUX_ASAR_PATH)
             }
         } finally {
             setIsSaving(false)
@@ -64,7 +61,7 @@ const LinuxAsarPathDialog: React.FC = () => {
     return (
         <CustomModalPS
             allowNoChoice={false}
-            isOpen={isOpen}
+            isOpen={isModalOpen(Modals.LINUX_ASAR_PATH)}
             onClose={handleClose}
             title={t('modals.linuxAsarPath.title')}
             text={t('modals.linuxAsarPath.description')}

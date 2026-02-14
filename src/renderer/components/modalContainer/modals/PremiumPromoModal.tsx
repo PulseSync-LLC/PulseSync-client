@@ -1,27 +1,24 @@
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
-import { closePremiumPromoModal } from '../../../api/store/modalSlice'
-import { RootState } from '../../../api/store/store'
+import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 
 const boostyUrl = 'https://boosty.to/evt/purchase/2634425'
 const PremiumPromoModal: React.FC = () => {
     const { t } = useTranslation()
-    const dispatch = useDispatch()
-    const isOpen = useSelector((state: RootState) => state.modal.premiumPromoModalOpen)
+    const { Modals, closeModal, isModalOpen } = useModalContext()
 
     const handleClose = () => {
-        dispatch(closePremiumPromoModal())
+        closeModal(Modals.PREMMIUM_PROMO)
     }
 
     const openBoosty = () => {
-        window.open(boostyUrl);
+        window.open(boostyUrl)
     }
 
     return (
         <CustomModalPS
-            isOpen={isOpen}
+            isOpen={isModalOpen(Modals.PREMMIUM_PROMO)}
             onClose={handleClose}
             title={t('modals.premiumPromo.title')}
             text={t('modals.premiumPromo.description')}

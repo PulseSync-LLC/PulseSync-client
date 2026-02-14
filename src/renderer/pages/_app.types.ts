@@ -26,6 +26,8 @@ export type AppProvidersProps = {
     setWidgetInstalled: (value: boolean) => void
     app: SettingsInterface
     setApp: Dispatch<SetStateAction<SettingsInterface>>
+    isAppDeprecated: boolean
+    setIsAppDeprecated: (value: boolean) => void
     updateAvailable: boolean
     setUpdate: (state: boolean) => void
     appInfo: AppInfoInterface[]

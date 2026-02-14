@@ -25,6 +25,8 @@ export type UserContextValue = {
     socketConnected: boolean
     app: SettingsInterface
     setApp: (settingsData: any) => void
+    isAppDeprecated: boolean
+    setIsAppDeprecated: (value: boolean) => void
     setUpdate: (state: boolean) => void
     addons: Addon[]
     setAddons: Dispatch<SetStateAction<Addon[]>>
