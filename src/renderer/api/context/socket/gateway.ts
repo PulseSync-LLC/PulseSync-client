@@ -7,6 +7,8 @@ import { parseGatewayFrame } from '../../socket/realtimeSocket'
 import { applySubscriptionUpdate, applyUserUpdate, SubscriptionUpdatePayload, UserUpdatePayload } from '../../socket/realtimeUserEvents'
 import type UserInterface from '../../interfaces/user.interface'
 import { clearDiscordRpcActivity, getGatewayErrorMessage } from './utils'
+import RendererEvents from '@common/types/rendererEvents'
+import { Modals } from '../modal/modals'
 
 type CreateGatewayHandlerParams = {
     t: (key: string, options?: any) => string
@@ -42,9 +44,11 @@ export function createGatewayHandler({
 
         switch (gatewayEvent) {
             case IncomingGatewayEvents.FEATURE_TOGGLES:
+                console.debug("Gateway feature toggles", gatewayPayload)
                 setFeatures((gatewayPayload || {}) as Record<string, boolean>)
                 break
             case IncomingGatewayEvents.DEPRECATED_VERSION:
+                console.debug("Gateway deprecated version")
                 toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
                 window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                     title: t('common.attentionTitle'),
@@ -54,6 +58,7 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.UPDATE_FEATURES_ACK:
                 break
             case IncomingGatewayEvents.ERROR_MESSAGE: {
+                console.debug("Gateway error message", gatewayPayload)
                 const message = getGatewayErrorMessage(gatewayPayload)
                 if (message) {
                     toast.custom('error', t('common.errorTitleShort'), message, null, null, 15000)
@@ -61,6 +66,7 @@ export function createGatewayHandler({
                 break
             }
             case IncomingGatewayEvents.LOGOUT:
+                console.debug("Gateway logout")
                 setSocket(null)
                 setSocketConnected(false)
                 resetSocketFailures()
@@ -68,14 +74,18 @@ export function createGatewayHandler({
                 await onLogout()
                 break
             case IncomingGatewayEvents.USER_UPDATE:
+                console.debug("Gateway user update", gatewayPayload)
                 setUser(prev => applyUserUpdate(prev, gatewayPayload as UserUpdatePayload))
                 break
             case IncomingGatewayEvents.SUBSCRIPTION_UPDATE:
                 setUser(prev => applySubscriptionUpdate(prev, gatewayPayload as SubscriptionUpdatePayload))
+                console.debug('Gateway subscription update', gatewayPayload)
+                if (gatewayPayload?.hasSupporterBadge) {
+                    window?.desktopEvents?.emit(RendererEvents.OPEN_MODAL, null, Modals.PREMIUM_UNLOCKED)
+                }
                 break
             default:
                 break
         }
     }
 }
-

@@ -9,7 +9,7 @@ const PremiumPromoModal: React.FC = () => {
     const { Modals, closeModal, isModalOpen } = useModalContext()
 
     const handleClose = () => {
-        closeModal(Modals.PREMMIUM_PROMO)
+        closeModal(Modals.PREMIUM_PROMO)
     }
 
     const openBoosty = () => {
@@ -18,7 +18,7 @@ const PremiumPromoModal: React.FC = () => {
 
     return (
         <CustomModalPS
-            isOpen={isModalOpen(Modals.PREMMIUM_PROMO)}
+            isOpen={isModalOpen(Modals.PREMIUM_PROMO)}
             onClose={handleClose}
             title={t('modals.premiumPromo.title')}
             text={t('modals.premiumPromo.description')}
