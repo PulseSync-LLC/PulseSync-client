@@ -40,7 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
         useContext(userContext)
     const { t } = useTranslation()
-    const { Modals, openModal, linuxAsarPath, setLinuxAsarPath } = useModalContext()
+    const { Modals, openModal } = useModalContext()
 
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
@@ -53,7 +53,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
-    const pendingLinuxUpdateRef = useRef<{ force?: boolean } | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
@@ -172,6 +171,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: error.url,
                 })
             }
+            if (error.type === 'linux_permissions_required' && window.electron.isLinux()) {
+                openModal(Modals.LINUX_PERMISSIONS_MODAL)
+            }
             setIsUpdating(false)
         }
 
@@ -185,7 +187,19 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
             ;(window as any).__listenersAdded = false
         }
-    }, [app.mod.installed, app.settings.showModModalAfterInstall, Modals.MOD_CHANGELOG, modInfo, openModal, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])
+    }, [
+        app.mod.installed,
+        app.settings.showModModalAfterInstall,
+        Modals.LINUX_PERMISSIONS_MODAL,
+        Modals.MOD_CHANGELOG,
+        modInfo,
+        openModal,
+        setApp,
+        setMusicInstalled,
+        setMusicVersion,
+        setUpdate,
+        t,
+    ])
 
     useEffect(() => {
         if ((window as any).__musicEventListeners) return
@@ -295,7 +309,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (window.electron.isLinux()) {
                 const savedPath = window.electron.store.get('settings.modSavePath')
                 if (!savedPath) {
-                    pendingLinuxUpdateRef.current = { force }
                     openModal(Modals.LINUX_ASAR_PATH)
                     return
                 }
@@ -371,15 +384,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             document.body.style.borderRadius = ''
         }
     }, [isDevmark])
-
-    useEffect(() => {
-        if (!linuxAsarPath) return
-        const pending = pendingLinuxUpdateRef.current
-        if (!pending) return
-        pendingLinuxUpdateRef.current = null
-        setLinuxAsarPath(null)
-        startUpdate(pending.force)
-    }, [linuxAsarPath, setLinuxAsarPath, startUpdate])
 
     if (!modInfoFetched) {
         return <Preloader />

@@ -133,6 +133,7 @@
             "closingMusic": "Closing Yandex Music...",
             "fullDiskAccessRequired": "Please grant full disk access to the app.",
             "incompatibleMod": "The mod is not compatible with the current Yandex Music version.",
+            "linuxPermissionsRequired": "Not enough permissions to modify Yandex Music files. Grant access and retry.",
             "modAlreadyInstalled": "Mod is already installed.",
             "modAsarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
             "usingCache": "Using mod cache..."

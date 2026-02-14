@@ -5,13 +5,14 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isMac, isWindows } from '../../utils/appUtils'
+import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../../utils/appUtils'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
 import { nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
+import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../../utils/appUtils/elevation'
 import {
     clearCacheOnVersionChange,
     cleanupModArtifacts,
@@ -31,6 +32,30 @@ const PROGRESS_UNPACKED = { base: 0.6, scale: 0.4, resetOnComplete: true }
 clearCacheOnVersionChange()
 
 export const modManager = (window: BrowserWindow): void => {
+    ipcMain.handle(MainEvents.FIX_LINUX_MUSIC_PERMISSIONS, async () => {
+        if (!isLinux()) {
+            return { success: false, error: 'Linux only' }
+        }
+        try {
+            const paths = await ensureLinuxModPath(await resolveBasePaths())
+            const targets = Array.from(new Set([paths.music, path.dirname(paths.modAsar)].filter(Boolean))).map(target => path.resolve(target))
+            const forbiddenTargets = new Set(['/', '/opt', '/home'])
+            for (const target of targets) {
+                if (forbiddenTargets.has(target)) {
+                    throw new Error(`Refusing to change ownership for unsafe path: ${target}`)
+                }
+                await grantLinuxOwnershipWithPkexec(target)
+            }
+            return { success: true, targets }
+        } catch (error: any) {
+            logger.modManager.error('Failed to fix Linux permissions:', error)
+            return {
+                success: false,
+                error: formatPkexecError(error),
+            }
+        }
+    })
+
     ipcMain.on(
         MainEvents.INSTALL_MOD,
         async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, force, spoof }) => {
@@ -74,6 +99,10 @@ export const modManager = (window: BrowserWindow): void => {
                             type: 'file_not_found',
                         })
                         await downloadYandexMusic('reinstall')
+                        return
+                    }
+                    if (isLinuxAccessError(e)) {
+                        sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
                         return
                     }
                     sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
@@ -172,6 +201,10 @@ export const modManager = (window: BrowserWindow): void => {
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
             } catch (error: any) {
                 logger.modManager.error('Unexpected error:', error)
+                if (isLinuxAccessError(error)) {
+                    sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+                    return
+                }
                 sendFailure(window, { error: error.message, type: 'unexpected_error' })
             }
         },
@@ -204,6 +237,14 @@ export const modManager = (window: BrowserWindow): void => {
             await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.REMOVE_MOD_SUCCESS, { success: true })
         } catch (error: any) {
             logger.modManager.error('Failed to remove mod:', error)
+            if (isLinuxAccessError(error)) {
+                sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, {
+                    success: false,
+                    error: t('main.modManager.linuxPermissionsRequired'),
+                    type: 'linux_permissions_required',
+                })
+                return
+            }
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })
         }
     })

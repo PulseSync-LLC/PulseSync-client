@@ -80,6 +80,7 @@ export const errorTypesToShow = new Set([
     'download_outer_error',
     'backup_not_found',
     'remove_mod_error',
+    'linux_permissions_required',
 ])
 
 export function getCoverImage(t: Track): string {
@@ -239,4 +240,3 @@ export function areTracksEqual(a: Track, b: Track): boolean {
     const bArtist = (b.artists || []).map(x => x.name).join(',')
     return aArtist === bArtist
 }
-
