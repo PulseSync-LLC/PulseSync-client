@@ -152,6 +152,7 @@ const Events = {
     PULSESYNC_DISMISS: 'PULSESYNC_DISMISS',
 
     CLEAR_MOD_CACHE: 'CLEAR_MOD_CACHE',
+    OPEN_MODAL: 'OPEN_MODAL',
 
 } as const
 

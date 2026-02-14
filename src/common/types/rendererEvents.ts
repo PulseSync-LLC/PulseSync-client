@@ -53,6 +53,7 @@ const Events = {
 
     CLEAR_MOD_CACHE_SUCCESS: 'CLEAR_MOD_CACHE_SUCCESS',
     CLEAR_MOD_CACHE_FAILURE: 'CLEAR_MOD_CACHE_FAILURE',
+    OPEN_MODAL: 'OPEN_MODAL',
 } as const
 
 export default Events

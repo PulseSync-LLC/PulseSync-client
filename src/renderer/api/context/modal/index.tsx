@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import RendererEvents from '../../../../common/types/rendererEvents'
 import { Modals } from './modals'
 import type { ModalName, ModalProviderProps, ModalsContextValue, ModalsState } from './types'
 
@@ -35,6 +36,33 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     }, [])
 
     const isModalOpen = useCallback((modal: ModalName) => openedModals[modal], [openedModals])
+
+    const openModalByName = useCallback(
+        (modalName: string) => {
+            const modalValues = Object.values(Modals) as string[]
+            if (!modalValues.includes(modalName)) {
+                return false
+            }
+            openModal(modalName as ModalName)
+            return true
+        },
+        [openModal],
+    )
+
+    useEffect(() => {
+        const unsubscribe = window.desktopEvents?.on(RendererEvents.OPEN_MODAL, (_event, modalName: string) => {
+            const ok = openModalByName(modalName)
+            if (!ok) {
+                console.warn('[ModalProvider] Unknown modal name for open:', modalName)
+            }
+        })
+
+        return () => {
+            if (typeof unsubscribe === 'function') {
+                unsubscribe()
+            }
+        }
+    }, [openModalByName])
 
     const value = useMemo<ModalsContextValue>(
         () => ({
