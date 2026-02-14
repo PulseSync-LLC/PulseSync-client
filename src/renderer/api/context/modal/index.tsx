@@ -12,6 +12,7 @@ const initialModalsState: ModalsState = {
     [Modals.YANDEX_MUSIC_UPDATE_DIALOG]: false,
     [Modals.PREMIUM_PROMO]: false,
     [Modals.MAC_PERMISSIONS_MODAL]: false,
+    [Modals.PREMIUM_UNLOCKED]: false,
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({
@@ -19,13 +20,10 @@ export const ModalsContext = createContext<ModalsContextValue>({
     openModal: () => void 0,
     closeModal: () => void 0,
     isModalOpen: () => false,
-    linuxAsarPath: null,
-    setLinuxAsarPath: () => void 0,
 })
 
 export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     const [openedModals, setOpenedModals] = useState<ModalsState>(initialModalsState)
-    const [linuxAsarPath, setLinuxAsarPath] = useState<string | null>(null)
 
     const openModal = useCallback((modal: ModalName) => {
         setOpenedModals(prev => ({ ...prev, [modal]: true }))
@@ -70,10 +68,8 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
             openModal,
             closeModal,
             isModalOpen,
-            linuxAsarPath,
-            setLinuxAsarPath,
         }),
-        [closeModal, isModalOpen, linuxAsarPath, openModal],
+        [closeModal, isModalOpen, openModal],
     )
 
     return <ModalsContext.Provider value={value}>{children}</ModalsContext.Provider>

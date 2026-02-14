@@ -9,8 +9,6 @@ export type ModalsContextValue = {
     openModal: (modal: ModalName) => void
     closeModal: (modal: ModalName) => void
     isModalOpen: (modal: ModalName) => boolean
-    linuxAsarPath: string | null
-    setLinuxAsarPath: (path: string | null) => void
 }
 
 export type ModalProviderProps = {

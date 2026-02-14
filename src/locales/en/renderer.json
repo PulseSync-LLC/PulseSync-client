@@ -463,6 +463,11 @@
             "subscribe": "Subscribe",
             "ok": "Got it"
         },
+        "premiumUnlocked": {
+            "title": "Premium unlocked",
+            "description": "You've unlocked premium features. Enjoy the enhanced experience.\nThank you for your support",
+            "ok": "Got it"
+        },
         "pulseSync": {
             "title": "Detected running zapret",
             "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",

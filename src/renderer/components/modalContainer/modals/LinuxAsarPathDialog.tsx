@@ -9,7 +9,7 @@ import toast from '../../toast'
 
 const LinuxAsarPathDialog: React.FC = () => {
     const { t } = useTranslation()
-    const { Modals, closeModal, isModalOpen, setLinuxAsarPath } = useModalContext()
+    const { Modals, closeModal, isModalOpen } = useModalContext()
     const [isSaving, setIsSaving] = useState(false)
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
@@ -50,7 +50,6 @@ const LinuxAsarPathDialog: React.FC = () => {
                 }
                 const resolvedPath = path.dirname(asarCandidates[foundIndex])
                 window.electron?.store?.set?.('settings.modSavePath', resolvedPath)
-                setLinuxAsarPath(resolvedPath)
                 closeModal(Modals.LINUX_ASAR_PATH)
             }
         } finally {
