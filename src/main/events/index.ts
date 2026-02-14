@@ -239,6 +239,13 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         tryOpenPendingAddon()
         get_current_track()
     })
+    ipcMain.handle(MainEvents.OPEN_MODAL, async (_event, modalName: string) => {
+        if (!mainWindow || mainWindow.isDestroyed()) {
+            return { ok: false, error: 'MAIN_WINDOW_NOT_READY' }
+        }
+        mainWindow.webContents.send(RendererEvents.OPEN_MODAL, modalName)
+        return { ok: true, modalName }
+    })
 }
 
 const registerFileOperations = (window: BrowserWindow): void => {
