@@ -138,14 +138,35 @@ export function mapAlbums(albums: any[] | undefined) {
     }))
 }
 
+function resolveTrackCoverUri(track: any): string {
+    const directCoverUri = typeof track?.coverUri === 'string' ? track.coverUri.trim() : ''
+    if (directCoverUri) return directCoverUri
+
+    const albumCoverUri = typeof track?.albums?.[0]?.coverUri === 'string' ? track.albums[0].coverUri.trim() : ''
+    return albumCoverUri
+}
+
 export function normalizeTrack(prev: Track, payload: any): Track {
     if (!payload) return prev
     if (payload?.type === 'refresh') return trackInitials
     const t = payload?.track || {}
-    const coverImg = t?.coverUri ? `https://${String(t.coverUri).replace('%%', '1000x1000')}` : prev.albumArt
+    const nextId = t?.id ?? prev.id
+    const nextRealId = t?.realId ?? prev.realId
+    const hasTrackChanged = nextId !== prev.id || nextRealId !== prev.realId
+    const incomingCoverUri = resolveTrackCoverUri(t)
+    const nextCoverUri = incomingCoverUri || (hasTrackChanged ? '' : prev.coverUri)
+
+    let nextAlbumArt = prev.albumArt
+    if (nextCoverUri) {
+        nextAlbumArt = `https://${nextCoverUri.replace('%%', '1000x1000')}`
+    } else if (hasTrackChanged) {
+        nextAlbumArt = ''
+    }
+
     return {
         ...prev,
-        albumArt: coverImg ?? prev.albumArt,
+        albumArt: nextAlbumArt,
+        coverUri: nextCoverUri,
         isPlaying: payload?.isPlaying ?? prev.isPlaying,
         canMoveBackward: payload?.canMoveBackward ?? prev.canMoveBackward,
         canMoveForward: payload?.canMoveForward ?? prev.canMoveForward,
