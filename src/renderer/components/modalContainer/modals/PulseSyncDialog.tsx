@@ -46,17 +46,17 @@ const PulseSyncDialog: React.FC = () => {
         if (isAdding) return
 
         setIsAdding(true)
-        const toastId = toast.custom('loading', t('pulseSyncDialog.addingTitle'), t('common.pleaseWait'), { duration: Infinity })
+        const toastId = toast.custom('loading', t('modals.pulseSync.toasts.addingTitle'), t('modals.pulseSync.toasts.pleaseWait'), { duration: Infinity })
 
         try {
             const res = (await window.desktopEvents?.invoke(MainEvents.PULSESYNC_ADD_ENTRY as any)) as PulseSyncAddResult | undefined
 
             const ok = Boolean(res && (res as any).ok)
-            const message = (res as any)?.message ?? (ok ? t('common.doneTitle') : t('pulseSyncDialog.addFailed'))
+            const message = (res as any)?.message ?? (ok ? t('modals.pulseSync.toasts.successTitle') : t('modals.pulseSync.toasts.addFailed'))
 
             toast.update(toastId, {
                 kind: ok ? 'success' : 'error',
-                title: ok ? t('common.doneTitle') : t('pulseSyncDialog.addFailedTitle'),
+                title: ok ? t('modals.pulseSync.toasts.successTitle') : t('modals.pulseSync.toasts.addFailedTitle'),
                 msg: message,
                 sticky: false,
                 value: undefined,
@@ -64,8 +64,8 @@ const PulseSyncDialog: React.FC = () => {
         } catch (e: any) {
             toast.update(toastId, {
                 kind: 'error',
-                title: t('common.errorTitle'),
-                msg: e?.message ? String(e.message) : t('pulseSyncDialog.addFailed'),
+                title: t('modals.pulseSync.toasts.errorTitle'),
+                msg: e?.message ? String(e.message) : t('modals.pulseSync.toasts.addFailed'),
                 sticky: false,
                 value: undefined,
             })
@@ -76,32 +76,32 @@ const PulseSyncDialog: React.FC = () => {
         }
     }
 
-    const text = t('pulseSyncDialog.description')
+    const text = t('modals.pulseSync.description')
 
     const wrapPath = (path: string) => path.replace(/[\\/]/g, match => `${match}\u200B`)
 
     const subText = dialogPath
-        ? t('pulseSyncDialog.subTextWithPath', { path: wrapPath(dialogPath) })
-        : t('pulseSyncDialog.subText')
+        ? t('modals.pulseSync.subTextWithPath', { path: wrapPath(dialogPath) })
+        : t('modals.pulseSync.subText')
 
     return (
         <CustomModalPS
             isOpen={showDialog}
             onClose={handleClose}
-            title={t('pulseSyncDialog.title')}
+            title={t('modals.pulseSync.title')}
             text={text}
             subText={subText}
             buttons={[
                 {
-                    text: isAdding ? t('pulseSyncDialog.addingButton') : t('pulseSyncDialog.confirmButton'),
-                    onClick: handleConfirm,
-                    variant: 'primary',
+                    text: t('modals.pulseSync.buttons.cancel'),
+                    onClick: handleClose,
+                    variant: 'secondary',
                     disabled: isAdding,
                 },
                 {
-                    text: t('pulseSyncDialog.cancelButton'),
-                    onClick: handleClose,
-                    variant: 'secondary',
+                    text: isAdding ? t('modals.pulseSync.buttons.adding') : t('modals.pulseSync.buttons.confirm'),
+                    onClick: handleConfirm,
+                    variant: 'primary',
                     disabled: isAdding,
                 },
             ]}

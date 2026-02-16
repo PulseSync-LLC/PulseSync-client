@@ -23,9 +23,14 @@ declare const SETTINGS_WINDOW_VITE_NAME: string
 export let mainWindow: BrowserWindow
 export let settingsWindow: BrowserWindow
 export let inSleepMode = false
+let isAppQuitting = false
 
 const minMain = { width: 1157, height: 750 }
 const preloaderSize = { width: 250, height: 271 }
+
+app.on('before-quit', () => {
+    isAppQuitting = true
+})
 
 const loadRendererWindow = (
     window: BrowserWindow,
@@ -218,7 +223,13 @@ export async function createWindow(): Promise<void> {
         State.set('settings.windowPosition', { x, y })
     })
 
-    mainWindow.on('close', () => {
+    mainWindow.on('close', event => {
+        if (!isAppQuitting && State.get('settings.closeAppInTray')) {
+            event.preventDefault()
+            mainWindow.hide()
+            return
+        }
+
         const bounds = mainWindow.getBounds()
         const disp = screen.getDisplayNearestPoint({ x: bounds.x, y: bounds.y })
         State.set('settings.lastDisplayId', disp.id)
@@ -271,4 +282,3 @@ export function createSettingsWindow() {
         settingsWindow = null
     })
 }
-

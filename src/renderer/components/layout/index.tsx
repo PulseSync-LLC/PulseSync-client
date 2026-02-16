@@ -17,20 +17,18 @@ import Header from './header'
 import NavButtonPulse from '../PSUI/NavButton'
 import DiscordIcon from '../../assets/icons/discord.svg'
 import Preloader from '../preloader'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import SettingsInterface from '../../api/interfaces/settings.interface'
 import toast from '../toast'
 import * as pageStyles from './layout.module.scss'
 import { isDev, isDevmark } from '@common/appConfig'
 import TooltipButton from '../tooltip_button'
-import { RootState } from '../../api/store/store'
-import { openModal, openLinuxAsarModal, setLinuxAsarPath } from '../../api/store/modalSlice'
+import { useModalContext } from '../../api/context/modal'
 import { errorTypesToShow } from '../../utils/utils'
 import { staticAsset } from '../../utils/staticAssets'
 import * as semver from 'semver'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { useDispatch, useSelector } from 'react-redux'
 
 interface LayoutProps {
     title: string
@@ -42,8 +40,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
         useContext(userContext)
     const { t } = useTranslation()
-    const dispatch = useDispatch()
-    const linuxAsarPath = useSelector((state: RootState) => state.modal.linuxAsarPath)
+    const { Modals, openModal } = useModalContext()
 
     const [isUpdating, setIsUpdating] = useState(false)
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
@@ -56,7 +53,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
-    const pendingLinuxUpdateRef = useRef<{ force?: boolean } | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
@@ -129,7 +125,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     },
                 }))
                 if (modInfo[0].showModal || app.settings.showModModalAfterInstall) {
-                    dispatch(openModal())
+                    openModal(Modals.MOD_CHANGELOG)
                 }
                 setForceInstallEnabled(false)
                 Promise.all([
@@ -175,6 +171,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     updateUrl: error.url,
                 })
             }
+            if (error.type === 'linux_permissions_required' && window.electron.isLinux()) {
+                openModal(Modals.LINUX_PERMISSIONS_MODAL)
+            }
             setIsUpdating(false)
         }
 
@@ -188,7 +187,19 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
             ;(window as any).__listenersAdded = false
         }
-    }, [app.mod.installed, app.settings.showModModalAfterInstall, dispatch, modInfo, setApp, setMusicInstalled, setMusicVersion, setUpdate, t])
+    }, [
+        app.mod.installed,
+        app.settings.showModModalAfterInstall,
+        Modals.LINUX_PERMISSIONS_MODAL,
+        Modals.MOD_CHANGELOG,
+        modInfo,
+        openModal,
+        setApp,
+        setMusicInstalled,
+        setMusicVersion,
+        setUpdate,
+        t,
+    ])
 
     useEffect(() => {
         if ((window as any).__musicEventListeners) return
@@ -292,13 +303,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         setIsMusicUpdating(true)
     }, [isMusicUpdating, modUpdateState.updateUrl, t])
 
+
     const startUpdate = useCallback(
         (force?: boolean) => {
             if (window.electron.isLinux()) {
                 const savedPath = window.electron.store.get('settings.modSavePath')
                 if (!savedPath) {
-                    pendingLinuxUpdateRef.current = { force }
-                    dispatch(openLinuxAsarModal())
+                    openModal(Modals.LINUX_ASAR_PATH)
                     return
                 }
             }
@@ -337,7 +348,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 spoof: spoof || false,
             })
         },
-        [app.mod.installed, dispatch, isUpdating, modInfo, t],
+        [app.mod.installed, isUpdating, Modals.LINUX_ASAR_PATH, modInfo, openModal, t],
     )
 
     useEffect(() => {
@@ -373,15 +384,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             document.body.style.borderRadius = ''
         }
     }, [isDevmark])
-
-    useEffect(() => {
-        if (!linuxAsarPath) return
-        const pending = pendingLinuxUpdateRef.current
-        if (!pending) return
-        pendingLinuxUpdateRef.current = null
-        dispatch(setLinuxAsarPath(null))
-        startUpdate(pending.force)
-    }, [dispatch, linuxAsarPath, startUpdate])
 
     if (!modInfoFetched) {
         return <Preloader />
@@ -478,4 +480,3 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 }
 
 export default Layout
-

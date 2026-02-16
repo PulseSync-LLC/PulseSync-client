@@ -1,6 +1,6 @@
 import React, { useContext, useRef } from 'react'
 import * as menuStyles from './context_menu.module.scss'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
@@ -9,8 +9,7 @@ import { MdFolderOpen } from 'react-icons/md'
 
 import toast from '../toast'
 import SettingsInterface from '../../api/interfaces/settings.interface'
-import store from '../../api/store/store'
-import { openModal, setLinuxAsarPath } from '../../api/store/modalSlice'
+import { useModalContext } from '../../api/context/modal'
 import { useTranslation } from 'react-i18next'
 
 interface ContextMenuProps {
@@ -36,6 +35,7 @@ interface SectionConfig {
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
+    const { Modals, openModal } = useModalContext()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
 
     const openUpdateModal = () => {
@@ -51,7 +51,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const resetAsarPath = () => {
         if (!window.electron.isLinux()) return
         window.electron.store.set('settings.modSavePath', '')
-        store.dispatch(setLinuxAsarPath(null))
         toast.custom('success', t('common.doneTitle'), t('contextMenu.mod.resetAsarPathSuccess'))
     }
 
@@ -62,6 +61,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             toast.custom('error', t('common.somethingWrongTitle'), t('mod.removeError', { message: args.error }), {
                 id: toastId,
             })
+            if (args?.type === 'linux_permissions_required' && window.electron.isLinux()) {
+                openModal(Modals.LINUX_PERMISSIONS_MODAL)
+            }
         }
 
         const handleSuccess = (event: any, args: any) => {
@@ -383,7 +385,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     app.mod.installed && app.mod.version
                         ? `${app.mod.name || t('contextMenu.mod.defaultName')} v${app.mod.version}`
                         : t('contextMenu.mod.notInstalled'),
-                onClick: () => store.dispatch(openModal()),
+                onClick: () => openModal(Modals.MOD_CHANGELOG),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
@@ -393,7 +395,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             },
             {
                 label: t('contextMenu.mod.checkUpdates'),
-                onClick: () => window.getModInfo(app),
+                onClick: () => (window as any).getModInfo(app, { manual: true }),
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
@@ -431,10 +433,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton(t('contextMenu.windowSettings.saveWindowPosition'), app.settings.saveWindowPositionOnRestart, () =>
                 toggleSetting('saveWindowPositionOnRestart', !app.settings.saveWindowPositionOnRestart),
             ),
-            createToggleButton(t('contextMenu.windowSettings.autoTray'), app.settings.autoStartInTray, () =>
+        ]),
+        createButtonSection(t('contextMenu.traySettings.title'), [
+            createToggleButton(t('contextMenu.traySettings.autoTray'), app.settings.autoStartInTray, () =>
                 toggleSetting('autoTray', !app.settings.autoStartInTray),
             ),
-            createToggleButton(t('contextMenu.windowSettings.hideOnClose'), app.settings.closeAppInTray, () =>
+            createToggleButton(t('contextMenu.traySettings.hideOnClose'), app.settings.closeAppInTray, () =>
                 toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
@@ -446,7 +450,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
             {
                 label: t('contextMenu.misc.checkUpdates'),
-                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE),
+                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
             },
             {
                 label: t('contextMenu.misc.collectLogs'),

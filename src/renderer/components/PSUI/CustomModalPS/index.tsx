@@ -1,4 +1,5 @@
-import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
+import cn from 'clsx'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ButtonV2 from '../../buttonV2'
@@ -14,10 +15,11 @@ export interface ModalButton {
 
 export interface CustomModalPSProps {
     isOpen: boolean
+    allowNoChoice?: boolean
     onClose: () => void
-    title?: string
-    text?: string
-    subText?: string
+    title?: ReactNode
+    text?: ReactNode
+    subText?: ReactNode
     children?: ReactNode
     buttons?: ModalButton[]
 }
@@ -51,7 +53,7 @@ const modalVariants = {
     },
 } as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, buttons = [] }) => {
+const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, allowNoChoice = true, buttons = [] }) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return null
     }
@@ -60,15 +62,22 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
 
     const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
     const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
+    const lastOpenTimeRef = useRef<number>(0);
 
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
+
+    const protectedOnClose = useCallback(() => {
+        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 500) {
+            onClose()
+        }
+    }, [allowNoChoice, buttons.length, onClose]);
 
     useEffect(() => {
         if (!isOpen) return
 
         const onKeyDown = (e: KeyboardEvent) => {
             if (e.key === 'Escape') {
-                onClose()
+                protectedOnClose()
             }
         }
 
@@ -77,25 +86,22 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
         return () => {
             document.removeEventListener('keydown', onKeyDown)
         }
-    }, [isOpen, onClose])
+    }, [isOpen, protectedOnClose])
 
     useEffect(() => {
         if (!isOpen) return
-        if (!buttons.length) return
-
-        const timer = window.setTimeout(() => {
-            firstBtnRef.current?.focus()
-        }, 0)
-
-        return () => {
-            window.clearTimeout(timer)
-        }
-    }, [isOpen, buttons.length])
+        lastOpenTimeRef.current = Date.now();
+    }, [isOpen])
 
     const renderButtons = () => {
         if (!buttons.length) return null
 
-        const wrapperClass = `${styles.buttonsWrapper} ${isVertical ? styles.buttonsVertical : styles.buttonsHorizontal}`
+        const wrapperClass =  cn(
+            styles.buttonsWrapper, {
+                [styles.buttonsVertical]: isVertical,
+                [styles.buttonsHorizontal]: !isVertical,
+            }
+        );
 
         return (
             <div className={wrapperClass}>
@@ -109,7 +115,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                             key={`${btnText}-${index}`}
                             onClick={onClick}
                             disabled={disabled}
-                            className={`${styles.btnBase} ${variantClass}${className ? ` ${className}` : ''}`}
+                            className={cn(styles.btnBase, variantClass, className)}
                             {...refProp}
                         >
                             {btnText}
@@ -130,7 +136,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    onClick={onClose}
+                    onClick={protectedOnClose}
                     aria-hidden="true"
                 >
                     <motion.div

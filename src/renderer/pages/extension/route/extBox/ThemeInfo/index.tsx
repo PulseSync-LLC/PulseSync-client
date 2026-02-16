@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
 import AddonInterface from '../../../../../api/interfaces/addon.interface'
@@ -198,10 +199,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                 </div>
 
                 <div className={s.actions} ref={actionsRef}>
-                    <Button
-                        className={`${s.toggleButton} ${isEnabled ? s.enabledState : s.disabledState}`}
-                        onClick={() => onToggleEnabled(!isEnabled)}
-                    >
+                    <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
                         {isEnabled ? t('common.disable') : t('common.enable')}
                     </Button>
 
@@ -235,4 +233,3 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
 }
 
 export default ThemeInfo
-

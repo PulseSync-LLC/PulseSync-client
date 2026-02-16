@@ -1,4 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { MdOpenInNew } from 'react-icons/md'
 import { getStatus, getStatusColor } from '../../../../utils/userStatus'
@@ -69,9 +70,10 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
                     cursor: canOpenTrack ? 'pointer' : 'default',
                 } as React.CSSProperties
             }
-            className={`${styles.userStatusInfo} ${
-                userProfile.currentTrack && userProfile.currentTrack.status === 'playing' ? styles.hoverEffect : ''
-            }`}
+            className={cn(
+                styles.userStatusInfo,
+                userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && styles.hoverEffect,
+            )}
         >
             {statusText}
             {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && <MdOpenInNew size={20} />}

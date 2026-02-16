@@ -6,11 +6,11 @@ import { t } from '../i18n'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch('https://www.google.com', {
-            method: 'HEAD',
-            mode: 'no-cors',
+        const response = await fetch(`${config.SERVER_URL}`, {
+            method: 'GET',
+            cache: 'no-store',
         })
-        return response.ok || response.type === 'opaque'
+        return response.ok
     } catch (error) {
         console.error(t('utils.internetCheckError'), error)
         return false
@@ -80,6 +80,7 @@ export const errorTypesToShow = new Set([
     'download_outer_error',
     'backup_not_found',
     'remove_mod_error',
+    'linux_permissions_required',
 ])
 
 export function getCoverImage(t: Track): string {
@@ -137,14 +138,35 @@ export function mapAlbums(albums: any[] | undefined) {
     }))
 }
 
+function resolveTrackCoverUri(track: any): string {
+    const directCoverUri = typeof track?.coverUri === 'string' ? track.coverUri.trim() : ''
+    if (directCoverUri) return directCoverUri
+
+    const albumCoverUri = typeof track?.albums?.[0]?.coverUri === 'string' ? track.albums[0].coverUri.trim() : ''
+    return albumCoverUri
+}
+
 export function normalizeTrack(prev: Track, payload: any): Track {
     if (!payload) return prev
     if (payload?.type === 'refresh') return trackInitials
     const t = payload?.track || {}
-    const coverImg = t?.coverUri ? `https://${String(t.coverUri).replace('%%', '1000x1000')}` : prev.albumArt
+    const nextId = t?.id ?? prev.id
+    const nextRealId = t?.realId ?? prev.realId
+    const hasTrackChanged = nextId !== prev.id || nextRealId !== prev.realId
+    const incomingCoverUri = resolveTrackCoverUri(t)
+    const nextCoverUri = incomingCoverUri || (hasTrackChanged ? '' : prev.coverUri)
+
+    let nextAlbumArt = prev.albumArt
+    if (nextCoverUri) {
+        nextAlbumArt = `https://${nextCoverUri.replace('%%', '1000x1000')}`
+    } else if (hasTrackChanged) {
+        nextAlbumArt = ''
+    }
+
     return {
         ...prev,
-        albumArt: coverImg ?? prev.albumArt,
+        albumArt: nextAlbumArt,
+        coverUri: nextCoverUri,
         isPlaying: payload?.isPlaying ?? prev.isPlaying,
         canMoveBackward: payload?.canMoveBackward ?? prev.canMoveBackward,
         canMoveForward: payload?.canMoveForward ?? prev.canMoveForward,
@@ -239,4 +261,3 @@ export function areTracksEqual(a: Track, b: Track): boolean {
     const bArtist = (b.artists || []).map(x => x.name).join(',')
     return aArtist === bArtist
 }
-

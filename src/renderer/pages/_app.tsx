@@ -17,10 +17,11 @@ import StorePage from './store'
 
 import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
-import { io, Socket } from 'socket.io-client'
 import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
-import UserContext from '../api/context/user.context'
+import UserContext from '../api/context/user'
+import type { SettingsUpdater, UserContextValue } from '../api/context/user/types'
+import { SocketProvider, useSocketContext } from '../api/context/socket'
 import toast from '../components/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -43,55 +44,33 @@ import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
-import * as Sentry from '@sentry/electron/renderer'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
-import { useDispatch } from 'react-redux'
-import { setAppDeprecatedStatus } from '../api/store/appSlice'
 import ProfilePage from './profile/[username]'
 import { buildDiscordActivity } from '../utils/formatRpc'
 import { useTranslation } from 'react-i18next'
-
-type GetMeData = {
-    getMe: Partial<UserInterface> | null
-}
-type GetMeVars = Record<string, never>
+import OutgoingGatewayEvents from '../api/socket/enums/outgoingGatewayEvents'
+import type { AppProvidersProps, GetMeData, GetMeVars, PlayerProps } from './_app.types'
 
 function App() {
     const { t } = useTranslation()
     const tRef = useRef(t)
-    const [realtimeSocket, setRealtimeSocket] = useState<Socket | null>(null)
-    const [connectionErrorCode, setConnectionErrorCode] = useState(-1)
-    const [isConnected, setIsConnected] = useState(false)
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
-    const [features, setFeatures] = useState<any>({})
+    const [features, setFeatures] = useState<Record<string, boolean>>({})
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
     const [musicInstalled, setMusicInstalled] = useState(false)
-    const [musicVersion, setMusicVersion] = useState<any>(null)
+    const [musicVersion, setMusicVersion] = useState<string | null>(null)
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
+    const [isAppDeprecated, setIsAppDeprecated] = useState(false)
     const toastReference = useRef<string | null>(null)
-    const realtimeSocketRef = useRef<Socket | null>(null)
-    const socketReconnectAttemptsRef = useRef(0)
-    const socketReconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const socketActivityClearedRef = useRef(false)
-    const zstdRef = useRef<any>(null)
-    const websocketStartedRef = useRef(false)
-    const [zstdReady, setZstdReady] = useState(false)
-    const connectionErrorAttemptsRef = useRef(0)
-    const connectionErrorToastThreshold = 3
-
-    const socketOfflineSinceRef = useRef<number | null>(null)
-    const socketOfflineClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const socketOfflineClearAfterMs = 15000
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
-    const dispatch = useDispatch()
 
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
@@ -126,10 +105,6 @@ function App() {
 
         const formatLogArgs = (args: any[]) => args.map(formatLogValue).join(' ')
 
-        const isIgnoredFetchUrl = (url: string) => {
-            return url.startsWith('sentry-ipc://')
-        }
-
         const originalConsoleError = console.error.bind(console)
         let isLoggingConsoleError = false
         console.error = (...args: any[]) => {
@@ -152,10 +127,6 @@ function App() {
                 const [input] = args
                 const url =
                     typeof input === 'string' ? input : input instanceof URL ? input.toString() : input instanceof Request ? input.url : 'unknown'
-
-                if (typeof url === 'string' && isIgnoredFetchUrl(url)) {
-                    return originalFetch(...args)
-                }
 
                 try {
                     const response = await originalFetch(...args)
@@ -204,25 +175,6 @@ function App() {
         }
         return () => {
             mounted = false
-        }
-    }, [])
-
-    useEffect(() => {
-        let cancelled = false
-        ;(async () => {
-            try {
-                const mod = await import('zstd-codec')
-                await new Promise<void>(resolve => {
-                    ;(mod as any).ZstdCodec.run((z: any) => {
-                        zstdRef.current = new z.Streaming()
-                        if (!cancelled) setZstdReady(true)
-                        resolve()
-                    })
-                })
-            } catch {}
-        })()
-        return () => {
-            cancelled = true
         }
     }, [])
 
@@ -380,7 +332,7 @@ function App() {
                     10000,
                 )
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
-                dispatch(setAppDeprecatedStatus(true))
+                setIsAppDeprecated(true)
                 window.electron.store.delete('tokens.token')
                 ;(async () => {
                     await router.navigate('/auth', { replace: true })
@@ -391,11 +343,10 @@ function App() {
                 return
             }
         }
-        Sentry.captureException(meError)
         toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
         setLoading(false)
-    }, [meError, dispatch])
+    }, [meError])
 
     const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
@@ -451,8 +402,8 @@ function App() {
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         return false
                     }
-                } catch (e: unknown) {
-                    const err = e as unknown
+                } catch (authorizationError: unknown) {
+                    const err = authorizationError as unknown
 
                     if ((ServerError as any)?.is?.(err) || (err as any)?.name === 'TypeError') {
                         if (retryCount > 0) {
@@ -486,21 +437,19 @@ function App() {
                                 10000,
                             )
                             window.desktopEvents?.send(MainEvents.UPDATER_START)
-                            dispatch(setAppDeprecatedStatus(true))
+                            setIsAppDeprecated(true)
                             window.electron.store.delete('tokens.token')
                             await router.navigate('/auth', { replace: true })
                             setUser(userInitials)
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             return false
                         } else {
-                            Sentry.captureException(err)
                             toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                             window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                             setLoading(false)
                             return false
                         }
                     } else {
-                        Sentry.captureException(err)
                         toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
                         setLoading(false)
@@ -542,33 +491,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }, [dispatch, refetchMe, router])
-
-    const emitGateway = useCallback(
-        (event: string, data: any) => {
-            const s = realtimeSocketRef.current
-            if (!s) return
-            if (!zstdReady || !zstdRef.current || !s.connected) return
-            try {
-                const frame = new TextEncoder().encode(JSON.stringify({ e: event, d: data }))
-                const compressed: Uint8Array = zstdRef.current.compress(frame, 3)
-                s.emit('gw', compressed)
-                return
-            } catch {}
-        },
-        [zstdReady],
-    )
-
-    useEffect(() => {
-        if (typeof window === 'undefined') return
-
-        if (!websocketStartedRef.current) {
-            websocketStartedRef.current = true
-            window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
-        }
-
-        return () => {}
-    }, [])
+    }, [refetchMe, router])
 
     useEffect(() => {
         if (typeof window === 'undefined') return
@@ -612,232 +535,8 @@ function App() {
         }
     }, [authorize, user.id])
 
-    useEffect(() => {
-        if (!zstdReady) return
-        const page = (() => {
-            const rawHash = window.location?.hash || ''
-            return rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
-        })()
-        const version = (app.info?.version || '0.0.0').split('-')[0]
-        if (!realtimeSocketRef.current) {
-            const socket = io(config.SOCKET_URL, {
-                path: '/ws',
-                autoConnect: false,
-                reconnection: true,
-                reconnectionAttempts: Infinity,
-                reconnectionDelay: 1000,
-                reconnectionDelayMax: 10000,
-                auth: {
-                    page,
-                    token: getUserToken(),
-                    version,
-                    compression: 'zstd-stream',
-                    inboundCompression: 'zstd-stream',
-                },
-                transports: ['websocket'],
-            })
-            realtimeSocketRef.current = socket
-            setRealtimeSocket(socket)
-        } else {
-            const socket = realtimeSocketRef.current
-            if (socket) {
-                socket.auth = {
-                    page,
-                    token: getUserToken(),
-                    version,
-                    compression: 'zstd-stream',
-                    inboundCompression: 'zstd-stream',
-                }
-            }
-        }
-    }, [app.info.version, zstdReady])
-
-    useEffect(() => {
-        if (user.id !== '-1' && realtimeSocketRef.current) {
-            const newToken = getUserToken()
-            if (newToken && realtimeSocketRef.current.auth) {
-                const wasConnected = realtimeSocketRef.current.connected
-
-                realtimeSocketRef.current.auth = {
-                    ...realtimeSocketRef.current.auth,
-                    token: newToken,
-                }
-
-                if (wasConnected) {
-                    realtimeSocketRef.current.disconnect()
-                    realtimeSocketRef.current.connect()
-                }
-            }
-        }
-    }, [user.id])
-
-    useEffect(() => {
-        const socket = realtimeSocketRef.current
-        if (!socket) return
-
-        const clearOfflineTimer = () => {
-            if (socketOfflineClearTimerRef.current) {
-                clearTimeout(socketOfflineClearTimerRef.current)
-                socketOfflineClearTimerRef.current = null
-            }
-        }
-
-        const resetSocketFailures = () => {
-            socketReconnectAttemptsRef.current = 0
-            socketActivityClearedRef.current = false
-            if (socketReconnectTimerRef.current) {
-                clearTimeout(socketReconnectTimerRef.current)
-                socketReconnectTimerRef.current = null
-            }
-
-            socketOfflineSinceRef.current = null
-            clearOfflineTimer()
-        }
-
-        const recordSocketFailure = (attempt?: number) => {
-            socketReconnectAttemptsRef.current = Math.max(socketReconnectAttemptsRef.current, attempt ?? socketReconnectAttemptsRef.current + 1)
-        }
-
-        const scheduleReconnect = () => {
-            if (socket.connected || socketReconnectTimerRef.current) return
-            const delay = Math.min(1000 * Math.pow(2, Math.max(socketReconnectAttemptsRef.current - 1, 0)), 10000)
-            socketReconnectTimerRef.current = setTimeout(() => {
-                socketReconnectTimerRef.current = null
-                if (!socket.connected) {
-                    socket.connect()
-                }
-            }, delay)
-        }
-
-        const scheduleRpcClearIfOfflineTooLong = () => {
-            if (socket.connected) return
-            if (!socketOfflineSinceRef.current) socketOfflineSinceRef.current = Date.now()
-            if (socketOfflineClearTimerRef.current) return
-
-            socketOfflineClearTimerRef.current = setTimeout(() => {
-                socketOfflineClearTimerRef.current = null
-                if (!socket.connected && !socketActivityClearedRef.current) {
-                    socketActivityClearedRef.current = true
-                    if ((window as any)?.discordRpc?.clearActivity) {
-                        ;(window as any).discordRpc.clearActivity()
-                    }
-                }
-            }, socketOfflineClearAfterMs)
-        }
-
-        const onConnect = () => {
-            resetSocketFailures()
-
-            toast.custom('success', t('common.connectionEstablished'))
-            connectionErrorAttemptsRef.current = 0
-            setRealtimeSocket(socket)
-            setIsConnected(true)
-            setConnectionErrorCode(-1)
-            setLoading(false)
-        }
-
-        const onDisconnect = () => {
-            connectionErrorAttemptsRef.current += 1
-            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
-                setConnectionErrorCode(1)
-            }
-            setRealtimeSocket(null)
-            setIsConnected(false)
-
-            scheduleRpcClearIfOfflineTooLong()
-        }
-
-        const onConnectError = (_err: any) => {
-            connectionErrorAttemptsRef.current += 1
-            if (connectionErrorAttemptsRef.current >= connectionErrorToastThreshold) {
-                setConnectionErrorCode(1)
-            }
-            setRealtimeSocket(null)
-            setIsConnected(false)
-
-            scheduleRpcClearIfOfflineTooLong()
-        }
-
-        const onReconnectAttempt = (attempt: number) => {
-            recordSocketFailure(attempt)
-        }
-
-        const onLogout = async () => {
-            await client.clearStore()
-            setUser(userInitials)
-            setConnectionErrorCode(1)
-            setRealtimeSocket(null)
-            setIsConnected(false)
-            resetSocketFailures()
-            await router.navigate('/auth', { replace: true })
-        }
-        const onFeatures = (data: any) => {
-            setFeatures(data)
-        }
-        const onDeprecated = () => {
-            toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
-            window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
-                title: t('common.attentionTitle'),
-                body: t('auth.deprecatedSoon'),
-            })
-        }
-
-        const onGatewayMessage = (buf: ArrayBuffer | Uint8Array) => {
-            if (!zstdReady || !zstdRef.current) return
-            try {
-                const u8 = buf instanceof ArrayBuffer ? new Uint8Array(buf) : buf instanceof Uint8Array ? buf : new Uint8Array(buf as any)
-                const out: Uint8Array = zstdRef.current.decompress(u8)
-                const msg = JSON.parse(new TextDecoder().decode(out))
-                const e = msg?.e
-                const d = msg?.d
-                switch (e) {
-                    case 'feature_toggles':
-                        onFeatures(d)
-                        break
-                    case 'deprecated_version':
-                        onDeprecated()
-                        break
-                    case 'update_features_ack':
-                        break
-                    case 'error_message':
-                        if (d?.message) toast.custom('error', t('common.errorTitleShort'), d.message, null, null, 15000)
-                        break
-                    case 'logout':
-                        onLogout()
-                        break
-                    default:
-                        break
-                }
-            } catch {}
-        }
-
-        socket.on('connect', onConnect)
-        socket.on('disconnect', onDisconnect)
-        socket.on('connect_error', onConnectError)
-        socket.on('gw', onGatewayMessage)
-        socket.io.on('reconnect_attempt', onReconnectAttempt)
-        socket.io.on('reconnect', resetSocketFailures)
-
-        return () => {
-            resetSocketFailures()
-            socket.off('connect', onConnect)
-            socket.off('disconnect', onDisconnect)
-            socket.off('connect_error', onConnectError)
-            socket.off('gw', onGatewayMessage)
-            socket.io.off('reconnect_attempt', onReconnectAttempt)
-            socket.io.off('reconnect', resetSocketFailures)
-        }
-    }, [router, zstdReady])
-
-    useEffect(() => {
-        if (connectionErrorCode === 1 || connectionErrorCode === 0) {
-            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
-        } else if (isConnected && connectionErrorCode !== -1) {
-            toast.custom('success', t('common.connectionRestored'))
-        }
-    }, [connectionErrorCode, isConnected])
-
-    const fetchModInfo = useCallback(async (app: SettingsInterface) => {
+    const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean }) => {
+        const isManualCheck = !!options?.manual
         try {
             const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
@@ -866,11 +565,12 @@ function App() {
                     })
                     localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
                 }
-            } else {
+            } else if (isManualCheck) {
                 toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
-        } catch (e) {
-            console.error('Failed to fetch mod info:', e)
+        } catch (modFetchError) {
+            console.error('Failed to fetch mod info:', modFetchError)
+            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
         } finally {
             setModInfoFetched(true)
         }
@@ -885,19 +585,6 @@ function App() {
     useEffect(() => {
         if (user.id !== '-1') {
             const initializeApp = async () => {
-                if (!realtimeSocketRef.current?.connected && zstdReady) {
-                    if (realtimeSocketRef.current) {
-                        const s = realtimeSocketRef.current
-                        s.auth = {
-                            ...(s.auth || {}),
-                            token: getUserToken(),
-                            compression: 'zstd-stream',
-                            inboundCompression: 'zstd-stream',
-                        }
-                    }
-                    realtimeSocketRef.current?.connect()
-                }
-
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
                 window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
                 window.desktopEvents?.send(MainEvents.UI_READY)
@@ -942,7 +629,7 @@ function App() {
         } else {
             router.navigate('/auth', { replace: true })
         }
-    }, [fetchModInfo, router, user.id, zstdReady])
+    }, [fetchModInfo, router, user.id])
 
     const invokeFileEvent = useCallback(
         async (eventType: string, filePath: string, data?: any) => {
@@ -1030,8 +717,8 @@ function App() {
             }))
         }
 
-        const handleModUpdateCheck = async () => {
-            await fetchModInfo(appRef.current)
+        const handleModUpdateCheck = async (_event: any, data?: { manual?: boolean }) => {
+            await fetchModInfo(appRef.current, { manual: !!data?.manual })
         }
 
         const handleClientReady = () => {
@@ -1040,23 +727,29 @@ function App() {
         }
 
         const handleCheckUpdate = (_event: any, data: any) => {
-            if (!toastReference.current) {
+            const isManualCheck = !!data?.manual
+            if (isManualCheck && !toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
             if (!data.updateAvailable) {
-                toast.update(toastReference.current!, {
-                    kind: 'info',
-                    title: t('updates.notFoundTitle'),
-                    msg: t('updates.notFoundMessage'),
-                    sticky: false,
-                    duration: 5000,
-                })
+                if (isManualCheck && toastReference.current) {
+                    toast.update(toastReference.current, {
+                        kind: 'info',
+                        title: t('updates.notFoundTitle'),
+                        msg: t('updates.notFoundMessage'),
+                        sticky: false,
+                        duration: 5000,
+                    })
+                }
                 toastReference.current = null
             }
         }
 
-        const onDownloadProgress = (_e: any, value: number) => {
-            toast.update(toastReference.current!, {
+        const onDownloadProgress = (_event: any, value: number) => {
+            if (!toastReference.current) {
+                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'))
+            }
+            toast.update(toastReference.current, {
                 kind: 'loading',
                 title: t('updates.downloadingTitle'),
                 msg: (
@@ -1070,23 +763,29 @@ function App() {
         }
 
         const onDownloadFailed = () => {
-            toast.update(toastReference.current!, {
-                kind: 'error',
-                title: t('common.errorTitle'),
-                msg: t('updates.downloadError'),
-                sticky: false,
-            })
+            if (toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'error',
+                    title: t('common.errorTitle'),
+                    msg: t('updates.downloadError'),
+                    sticky: false,
+                })
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('updates.downloadError'))
+            }
             toastReference.current = null
         }
 
         const onDownloadFinished = () => {
-            toast.update(toastReference.current!, {
-                kind: 'success',
-                title: t('common.successTitle'),
-                msg: t('updates.downloaded'),
-                sticky: false,
-                duration: 5000,
-            })
+            if (toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'success',
+                    title: t('common.successTitle'),
+                    msg: t('updates.downloaded'),
+                    sticky: false,
+                    duration: 5000,
+                })
+            }
             toastReference.current = null
             setUpdate(true)
         }
@@ -1140,24 +839,6 @@ function App() {
         }
     }, [fetchModInfo, onRpcLog])
 
-    const setAppWithSocket = useCallback(
-        (updater: (prev: SettingsInterface) => SettingsInterface) => {
-            setApp(prevSettings => {
-                const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
-
-                if (realtimeSocketRef.current && realtimeSocketRef.current.connected) {
-                    const socketInfo = { ...updatedSettings }
-                    delete (socketInfo as any).tokens
-                    delete (socketInfo as any).info
-                    emitGateway('user_settings_update', socketInfo)
-                }
-
-                return updatedSettings
-            })
-        },
-        [emitGateway],
-    )
-
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         ;(window as any).setToken = async (args: any) => {
@@ -1172,46 +853,158 @@ function App() {
                 router.navigate('/extension', { replace: true })
             })
         }
-        ;(window as any).getModInfo = async (currentApp: SettingsInterface) => {
-            await fetchModInfo(currentApp)
+        ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean }) => {
+            await fetchModInfo(currentApp, options)
         }
     }, [authorize, fetchModInfo, router])
+
+    const handleSocketLogout = useCallback(async () => {
+        await client.clearStore()
+        setUser(userInitials)
+        await router.navigate('/auth', { replace: true })
+    }, [router])
+
+    return (
+        <SocketProvider
+            userId={user.id}
+            appVersion={app.info.version}
+            setUser={setUser}
+            setFeatures={setFeatures}
+            setLoading={setLoading}
+            onLogout={handleSocketLogout}
+        >
+            <AppProviders
+                user={user}
+                setUser={setUser}
+                authorize={authorize}
+                loading={loading}
+                meLoading={meLoading}
+                musicInstalled={musicInstalled}
+                setMusicInstalled={setMusicInstalled}
+                musicVersion={musicVersion}
+                setMusicVersion={setMusicVersion}
+                widgetInstalled={widgetInstalled}
+                setWidgetInstalled={setWidgetInstalled}
+                app={app}
+                setApp={setApp}
+                isAppDeprecated={isAppDeprecated}
+                setIsAppDeprecated={setIsAppDeprecated}
+                updateAvailable={updateAvailable}
+                setUpdate={setUpdate}
+                appInfo={appInfo}
+                setAddons={setAddons}
+                addons={addons}
+                setMod={setMod}
+                modInfo={modInfo}
+                modInfoFetched={modInfoFetched}
+                features={features}
+                setFeatures={setFeatures}
+                router={router}
+            />
+        </SocketProvider>
+    )
+}
+
+function AppProviders({
+    user,
+    setUser,
+    authorize,
+    loading,
+    meLoading,
+    musicInstalled,
+    setMusicInstalled,
+    musicVersion,
+    setMusicVersion,
+    widgetInstalled,
+    setWidgetInstalled,
+    app,
+    setApp,
+    isAppDeprecated,
+    setIsAppDeprecated,
+    updateAvailable,
+    setUpdate,
+    appInfo,
+    setAddons,
+    addons,
+    setMod,
+    modInfo,
+    modInfoFetched,
+    features,
+    setFeatures,
+    router,
+}: AppProvidersProps) {
+    const { socket, socketConnected, emitGateway } = useSocketContext()
+
+    const setAppWithSocket = useCallback(
+        (updater: SettingsUpdater) => {
+            setApp(prevSettings => {
+                const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
+                const { tokens: _tokens, info: _info, ...socketInfo } = updatedSettings
+                emitGateway(OutgoingGatewayEvents.USER_SETTINGS_UPDATE, socketInfo)
+                return updatedSettings
+            })
+        },
+        [emitGateway, setApp],
+    )
+
+    const userContextValue = useMemo<UserContextValue>(
+        () => ({
+            user,
+            setUser,
+            authorize,
+            loading: loading || meLoading,
+            musicInstalled,
+            setMusicInstalled,
+            musicVersion,
+            setMusicVersion,
+            widgetInstalled,
+            setWidgetInstalled,
+            socket,
+            socketConnected,
+            app,
+            setApp: setAppWithSocket,
+            isAppDeprecated,
+            setIsAppDeprecated,
+            updateAvailable,
+            setUpdate,
+            appInfo,
+            setAddons,
+            addons,
+            setMod,
+            modInfo,
+            modInfoFetched,
+            features,
+            setFeatures,
+            emitGateway,
+        }),
+        [
+            addons,
+            app,
+            appInfo,
+            authorize,
+            emitGateway,
+            features,
+            isAppDeprecated,
+            loading,
+            meLoading,
+            modInfo,
+            modInfoFetched,
+            musicInstalled,
+            musicVersion,
+            setAppWithSocket,
+            setIsAppDeprecated,
+            socket,
+            socketConnected,
+            updateAvailable,
+            user,
+            widgetInstalled,
+        ],
+    )
 
     return (
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />
-            <UserContext.Provider
-                value={
-                    {
-                        user,
-                        setUser,
-                        authorize,
-                        loading: loading || meLoading,
-                        musicInstalled,
-                        setMusicInstalled,
-                        musicVersion,
-                        setMusicVersion,
-                        widgetInstalled,
-                        setWidgetInstalled,
-                        socket: realtimeSocket,
-                        socketConnected: isConnected,
-                        app,
-                        setApp: setAppWithSocket,
-                        updateAvailable,
-                        setUpdate,
-                        appInfo,
-                        setAddons,
-                        addons,
-                        setMod: setMod,
-                        modInfo: modInfo,
-                        modInfoFetched,
-                        features,
-                        setFeatures,
-                        emitGateway,
-                        emitGw: emitGateway,
-                    } as any
-                }
-            >
+            <UserContext.Provider value={userContextValue}>
                 <Player>
                     <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
                         <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
@@ -1222,10 +1015,8 @@ function App() {
     )
 }
 
-const Player: React.FC<any> = ({ children }) => {
-    const userCtx = useContext(UserContext) as any
-    const { user, app, socket, features } = userCtx
-    const emitGateway: (e: string, d: any) => void = userCtx.emitGateway || userCtx.emitGw
+const Player: React.FC<PlayerProps> = ({ children }) => {
+    const { user, app, socket, features, emitGateway } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
@@ -1242,10 +1033,10 @@ const Player: React.FC<any> = ({ children }) => {
     const refreshGraceMs = 15000
 
     const handleSendTrackPlayedEnough = useCallback(
-        (_e: any, data: any) => {
+        (_event: any, data: any) => {
             if (!data) return
             if (socket && socket.connected) {
-                emitGateway('track_played_enough', { track: { id: data.realId } })
+                emitGateway(OutgoingGatewayEvents.TRACK_PLAYED_ENOUGH, { track: { id: data.realId } })
             }
         },
         [socket, emitGateway],
@@ -1377,7 +1168,7 @@ const Player: React.FC<any> = ({ children }) => {
         const last = lastSentTrack.current
         if (last.title === title && last.status === status && last.progressPlayed === progressPlayed) return
 
-        emitGateway('send_track', track)
+        emitGateway(OutgoingGatewayEvents.SEND_TRACK, track)
 
         lastSentTrack.current = { title, status, progressPlayed }
         lastSendAt.current = now
@@ -1390,7 +1181,7 @@ const Player: React.FC<any> = ({ children }) => {
             if (!features.sendMetrics) return
             const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
             const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
-            emitGateway('send_metrics', { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
+            emitGateway(OutgoingGatewayEvents.SEND_METRICS, { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
         }
 
         send()
@@ -1412,4 +1203,3 @@ const Player: React.FC<any> = ({ children }) => {
 }
 
 export default App
-

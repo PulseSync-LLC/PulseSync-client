@@ -5,7 +5,7 @@ import UserStatus from './UserStatus'
 import ProfileHeader from './ProfileHeader'
 import FriendButton from './FriendButton'
 import AchievementsSection from './AchievementsSection'
-import userContext from '../../../../api/context/user.context'
+import userContext from '../../../../api/context/user'
 import { useTranslation } from 'react-i18next'
 
 interface ProfileTabProps {
@@ -41,3 +41,4 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, us
 }
 
 export default ProfileTab
+

@@ -2,15 +2,13 @@ import { app, BrowserWindow } from 'electron'
 import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import crypto from 'crypto'
-import AdmZip from 'adm-zip'
-import logger from '../logger'
+import logger from '../../logger'
 import config from '@common/appConfig'
-import RendererEvents from '../../../common/types/rendererEvents'
-import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
-import { gunzipAsync, isCompressedArchiveLink, writePatchedAsarAndPatchBundle, zstdDecompressAsync } from './mod-files'
-import { t } from '../../i18n'
-import { copyFile } from '../../utils/appUtils'
+import RendererEvents from '../../../../common/types/rendererEvents'
+import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
+import { isCompressedArchiveLink, writePatchedAsarAndPatchBundle } from '../mod-files'
+import { t } from '../../../i18n'
+import { copyFile } from '../../../utils/appUtils'
 import {
     sendToRenderer,
     resetProgress,
@@ -19,111 +17,29 @@ import {
     restoreBackupIfExists,
     downloadToTempWithProgress,
     DownloadError,
-} from './download.helpers'
-
-const UNPACKED_MARKER_FILE = '.pulsesync_unpacked_checksum'
+} from '../download.helpers'
+import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
+import type { DownloadProgress, ModCompatibilityResult } from './types'
+import {
+    decompressArchive,
+    ensureDir,
+    extractZipBuffer,
+    isReplaceDirFailure,
+    pruneCacheFiles,
+    readCachedArchive,
+    readUnpackedMarker,
+    resolveExtractedRoot,
+    sha256Hex,
+    tryReplaceDir,
+    writeUnpackedMarker,
+} from './helpers'
 const USER_AGENT = () =>
     `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
-
-function sha256Hex(buf: Buffer): string {
-    return crypto.createHash('sha256').update(buf).digest('hex')
-}
-
-async function ensureDir(dir: string): Promise<void> {
-    try {
-        await fs.promises.mkdir(dir, { recursive: true })
-    } catch (err) {
-        logger.modManager.warn('Failed to create cache dir:', err)
-    }
-}
-
-async function pruneCacheFiles(cacheDir: string, keepFile: string, matcher: (file: string) => boolean, warnLabel: string) {
-    try {
-        const files = await fs.promises.readdir(cacheDir)
-        const keepName = path.basename(keepFile)
-        for (const file of files) {
-            if (file === keepName) continue
-            if (!matcher(file)) continue
-            try {
-                await fs.promises.unlink(path.join(cacheDir, file))
-            } catch (e) {
-                logger.modManager.warn(warnLabel, file, e)
-            }
-        }
-    } catch (e) {
-        logger.modManager.warn('Failed to cleanup cache:', e)
-    }
-}
-
-function readCachedArchive(cacheFile: string, checksum?: string): Buffer | null {
-    if (!fs.existsSync(cacheFile)) return null
-    try {
-        const cached = fs.readFileSync(cacheFile)
-        if (checksum) {
-            const cachedHash = sha256Hex(cached)
-            if (cachedHash !== checksum) {
-                logger.modManager.warn('Cached archive hash mismatch, redownloading')
-                try {
-                    fs.rmSync(cacheFile, { force: true })
-                } catch {}
-                return null
-            }
-        }
-        return cached
-    } catch (e) {
-        logger.modManager.warn('Failed to read cached archive, redownloading:', e)
-        return null
-    }
-}
-
-async function decompressArchive(rawArchive: Buffer, extLower: string): Promise<Buffer> {
-    if (extLower === '.zst' || extLower === '.zstd') {
-        return (await zstdDecompressAsync(rawArchive as any)) as Buffer
-    }
-    if (extLower === '.gz') {
-        return await gunzipAsync(rawArchive)
-    }
-    return rawArchive
-}
-
-function tryReplaceDir(
-    sourceDir: string,
-    targetDir: string,
-    tempExtractPath: string,
-): { ok: true } | { ok: false; error: any; stage: 'move' | 'copy' } {
-    try {
-        fs.renameSync(sourceDir, targetDir)
-
-        if (sourceDir !== tempExtractPath) {
-            fs.rmSync(tempExtractPath, { recursive: true, force: true })
-        }
-        return { ok: true }
-    } catch (err: any) {
-        if (err?.code !== 'EXDEV') {
-            return { ok: false, error: err, stage: 'move' }
-        }
-    }
-
-    try {
-        fs.cpSync(sourceDir, targetDir, { recursive: true })
-        fs.rmSync(tempExtractPath, { recursive: true, force: true })
-        return { ok: true }
-    } catch (copyErr: any) {
-        return { ok: false, error: copyErr, stage: 'copy' }
-    }
-}
 
 export async function checkModCompatibility(
     modVersion: string,
     ymVersion: string,
-): Promise<{
-    success: boolean
-    message?: string
-    code?: string
-    url?: string
-    requiredVersion?: string
-    recommendedVersion?: string
-}> {
+): Promise<ModCompatibilityResult> {
     try {
         const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
             params: { yandexVersion: ymVersion, modVersion },
@@ -144,82 +60,6 @@ export async function checkModCompatibility(
     }
 }
 
-function isZipBuffer(buf: Buffer): boolean {
-    return (
-        !!buf &&
-        buf.length >= 4 &&
-        buf[0] === 0x50 &&
-        buf[1] === 0x4b &&
-        ((buf[2] === 0x03 && buf[3] === 0x04) || (buf[2] === 0x05 && buf[3] === 0x06) || (buf[2] === 0x07 && buf[3] === 0x08))
-    )
-}
-
-function extractZipBuffer(zipBuffer: Buffer, destination: string): void {
-    fs.rmSync(destination, { recursive: true, force: true })
-    fs.mkdirSync(destination, { recursive: true })
-
-    if (!zipBuffer || zipBuffer.length < 4) {
-        throw new Error('Invalid ZIP buffer')
-    }
-
-    if (!isZipBuffer(zipBuffer)) {
-        throw new Error('Expected ZIP archive')
-    }
-
-    try {
-        const zip = new AdmZip(zipBuffer)
-        zip.extractAllTo(destination, true)
-    } catch (e: any) {
-        throw new Error('Failed to extract ZIP archive')
-    }
-}
-
-function resolveExtractedRoot(extractDir: string, targetPath: string): string {
-    const expectedRootName = path.basename(targetPath)
-
-    let entries: fs.Dirent[]
-    try {
-        entries = fs.readdirSync(extractDir, { withFileTypes: true })
-    } catch {
-        return extractDir
-    }
-
-    const meaningful = entries.filter(e => {
-        const n = e.name
-        if (!n) return false
-        if (n === '__MACOSX') return false
-        return n !== '.DS_Store'
-    })
-
-    if (meaningful.length !== 1) return extractDir
-
-    const only = meaningful[0]
-    if (!only.isDirectory()) return extractDir
-    if (only.name !== expectedRootName) return extractDir
-
-    return path.join(extractDir, only.name)
-}
-
-function readUnpackedMarker(targetPath: string): string | null {
-    try {
-        const markerPath = path.join(targetPath, UNPACKED_MARKER_FILE)
-        if (!fs.existsSync(markerPath)) return null
-        const v = fs.readFileSync(markerPath, 'utf8').trim()
-        return v || null
-    } catch {
-        return null
-    }
-}
-
-function writeUnpackedMarker(targetPath: string, checksum: string): void {
-    try {
-        const markerPath = path.join(targetPath, UNPACKED_MARKER_FILE)
-        fs.writeFileSync(markerPath, `${checksum}\n`, 'utf8')
-    } catch (e) {
-        logger.modManager.warn('Failed to write unpacked marker:', e)
-    }
-}
-
 export async function downloadAndUpdateFile(
     window: BrowserWindow,
     link: string,
@@ -228,7 +68,7 @@ export async function downloadAndUpdateFile(
     backupPath: string,
     checksum?: string,
     cacheDir?: string,
-    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
+    progress?: DownloadProgress,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
@@ -263,12 +103,7 @@ export async function downloadAndUpdateFile(
                 const cacheFile = path.join(cacheDir, `${checksum}.asar`)
                 await ensureDir(cacheDir)
                 await copyFile(tempFilePath, cacheFile)
-                await pruneCacheFiles(
-                    cacheDir,
-                    cacheFile,
-                    file => file.toLowerCase().endsWith('.asar'),
-                    'Failed to remove old asar cache:',
-                )
+                await pruneCacheFiles(cacheDir, cacheFile, file => file.toLowerCase().endsWith('.asar'), 'Failed to remove old asar cache:')
             } catch (e: any) {
                 logger.modManager.warn('Failed to cache mod:', e)
             }
@@ -296,6 +131,14 @@ export async function downloadAndUpdateFile(
         })
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
 
+        if (isLinuxAccessError(err)) {
+            sendFailure(window, {
+                error: t('main.modManager.linuxPermissionsRequired'),
+                type: 'linux_permissions_required',
+            })
+            return false
+        }
+
         if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
             sendFailure(window, {
                 error: t('main.modNetwork.integrityError'),
@@ -316,7 +159,7 @@ export async function downloadAndExtractUnpacked(
     targetPath: string,
     checksum?: string,
     cacheDir?: string,
-    progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
+    progress?: DownloadProgress,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(targetPath)) {
@@ -396,16 +239,16 @@ export async function downloadAndExtractUnpacked(
 
         const extractedRoot = resolveExtractedRoot(tempExtractPath, targetPath)
 
-        fs.rmSync(targetPath, { recursive: true, force: true })
         fs.mkdirSync(path.dirname(targetPath), { recursive: true })
 
-        const moved = tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
-        if (!moved.ok) {
-            //@ts-ignore
+        const moved = await tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
+        if (isReplaceDirFailure(moved)) {
+            if (isLinuxAccessError(moved.error)) {
+                sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+                return false
+            }
             const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
-            //@ts-ignore
             logger.modManager.error('Failed to replace unpacked dir:', moved.error)
-            //@ts-ignore
             sendFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' })
             return false
         }
@@ -420,6 +263,10 @@ export async function downloadAndExtractUnpacked(
         return true
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)
+        if (isLinuxAccessError(err)) {
+            sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+            return false
+        }
         sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedDownloadError'), type: 'download_unpacked_error' })
         return false
     } finally {
@@ -427,4 +274,3 @@ export async function downloadAndExtractUnpacked(
         fs.rmSync(tempExtractPath, { recursive: true, force: true })
     }
 }
-

@@ -95,7 +95,6 @@ out/
 .idea
 yarn.lock
 
-appConfig.ts
 release
 
 
@@ -109,9 +108,6 @@ ReactDevTools
 src/main/modules/YMusic-DRPC.code-workspace
 uploadToS3.ts
 pnpm-lock.yaml
-
-# Sentry Config File
-.env.sentry-build-plugin
 
 Release
 Debug

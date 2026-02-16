@@ -2,20 +2,17 @@ import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user.context'
+import userContext from '../../../api/context/user'
 import { staticAsset } from '../../../utils/staticAssets'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import * as pageStyles from './summer_auth.module.scss'
-import { RootState } from '../../../api/store/store'
-import { useSelector } from 'react-redux'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthSummer() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { user } = useContext(userContext)
-    const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
+    const { user, isAppDeprecated } = useContext(userContext)
     const img1Ref = useRef(null)
     const img2Ref = useRef(null)
     const img3Ref = useRef(null)
@@ -183,7 +180,7 @@ export default function AuthSummer() {
                         <img className={pageStyles.imgLogo} src={staticAsset('assets/images/LogoName3D.png')} alt="LogoName" />
                     </div>
 
-                    {isDeprecated ? (
+                    {isAppDeprecated ? (
                         <>
                             <button className={pageStyles.discordAuth} onClick={checkUpdate}>
                                 {t('auth.checkUpdates')}

@@ -5,7 +5,7 @@ import * as inputStyle from './oldInput.module.scss'
 import * as themeV2 from './trackinfo.module.scss'
 
 import { useCallback, useContext, useRef, useState, useMemo, useEffect } from 'react'
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import trackInitials from '../../api/initials/track.initials'
 import Skeleton from 'react-loading-skeleton'
 import { Cubic } from '../../components/PSUI/Cubic'
@@ -23,6 +23,7 @@ import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 import Image from '../../components/PSUI/Image'
+import { useModalContext } from '../../api/context/modal'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
 
@@ -38,11 +39,12 @@ type FormValues = {
 export default function TrackInfoPage() {
     const { user, app, setApp } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
+    const { Modals, openModal } = useModalContext()
     const { t } = useTranslation()
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
-    const fallbackLogo = staticAsset('assets/logo/logoapp.png')
-    const hasSupporter = user?.badges?.some((badge: any) => badge.type === 'supporter')
+    const fallbackLogo = 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
+    const hasSupporter = Boolean(user?.hasSupporterBadge || user?.badges?.some((badge: any) => badge.type === 'supporter'))
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
         appId: app.discordRpc.appId || '',
@@ -166,6 +168,10 @@ export default function TrackInfoPage() {
             },
         })
     }, [app, setApp])
+
+    const openPremiumPromo = useCallback(() => {
+        openModal(Modals.PREMIUM_PROMO)
+    }, [Modals.PREMIUM_PROMO, openModal])
 
     const containerRef = useRef<HTMLDivElement>(null)
     const fixedAddon = useMemo(() => ({ charCount: inputStyle.charCount }), [])
@@ -322,7 +328,7 @@ export default function TrackInfoPage() {
                                         ? t('trackInfo.special.supporterHideBrandingDescription')
                                         : t('trackInfo.special.supporterHideBrandingLockedDescription')
                                 }
-                                disabled={!hasSupporter}
+                                onClick={!hasSupporter && openPremiumPromo}
                             />
                         </div>
                     </div>

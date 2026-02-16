@@ -1,11 +1,12 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import { useLocation, useParams } from 'react-router'
 import semver from 'semver'
 
 import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
 import stringSimilarity from 'string-similarity'
 
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import Addon from '../../api/interfaces/addon.interface'
 import { AddonWhitelistItem } from '../../api/interfaces/addonWhitelist.interface'
 
@@ -18,7 +19,7 @@ import OptionMenu from '../../components/PSUI/OptionMenu'
 import Loader from '../../components/PSUI/Loader'
 
 import ExtensionView from './route/extensionview'
-import { preloadAddonFiles } from './route/extBox/hooks'
+import { clearAddonFilesCache, preloadAddonFiles } from './route/extBox/hooks'
 
 import * as extensionStylesV2 from './extension.module.scss'
 import addonInitials from '../../api/initials/addon.initials'
@@ -393,6 +394,7 @@ export default function ExtensionPage() {
 
     const handleReloadAddons = useCallback(async () => {
         try {
+            clearAddonFilesCache()
             window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
             await loadAddons(true)
             setSelectedAddonId(null)
@@ -621,7 +623,7 @@ export default function ExtensionPage() {
                         </div>
                         <button
                             ref={optionButtonRef}
-                            className={`${extensionStylesV2.optionsButton} ${optionMenu ? extensionStylesV2.optionsButtonActive : ''}`}
+                            className={cn(extensionStylesV2.optionsButton, optionMenu && extensionStylesV2.optionsButtonActive)}
                             style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
                             onClick={toggleOptionMenu}
                             aria-label={t('extensions.optionsLabel')}
@@ -634,15 +636,17 @@ export default function ExtensionPage() {
                             {enabledAddons.map(addon => (
                                 <div
                                     key={addon.directoryName}
-                                    className={`${extensionStylesV2.addonCard} ${
-                                        selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
-                                    }`}
+                                    className={cn(
+                                        extensionStylesV2.addonCard,
+                                        selectedAddon?.directoryName === addon.directoryName && extensionStylesV2.addonCardSelected,
+                                    )}
                                     onClick={() => handleAddonClick(addon)}
                                 >
                                     <div
-                                        className={`${extensionStylesV2.checkSelect} ${
-                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
-                                        }`}
+                                        className={cn(
+                                            extensionStylesV2.checkSelect,
+                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
+                                        )}
                                         style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
                                         onClick={e => {
                                             e.stopPropagation()
@@ -685,15 +689,17 @@ export default function ExtensionPage() {
                             {disabledAddons.map(addon => (
                                 <div
                                     key={addon.directoryName}
-                                    className={`${extensionStylesV2.addonCard} ${
-                                        selectedAddon?.directoryName === addon.directoryName ? extensionStylesV2.addonCardSelected : ''
-                                    }`}
+                                    className={cn(
+                                        extensionStylesV2.addonCard,
+                                        selectedAddon?.directoryName === addon.directoryName && extensionStylesV2.addonCardSelected,
+                                    )}
                                     onClick={() => handleAddonClick(addon)}
                                 >
                                     <div
-                                        className={`${extensionStylesV2.checkSelect} ${
-                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript
-                                        }`}
+                                        className={cn(
+                                            extensionStylesV2.checkSelect,
+                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
+                                        )}
                                         style={{ color: '#565F77' }}
                                         onClick={e => {
                                             e.stopPropagation()
@@ -749,4 +755,5 @@ export default function ExtensionPage() {
         </PageLayout>
     )
 }
+
 

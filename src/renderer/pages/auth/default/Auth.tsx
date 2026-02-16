@@ -2,21 +2,18 @@ import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
 import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user.context'
+import userContext from '../../../api/context/user'
 import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
 
 import AppNameLogo from '../../../assets/icon/AppName.svg'
 
 import * as pageStyles from './auth.module.scss'
-import { useSelector } from 'react-redux'
-import { RootState } from '../../../api/store/store'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { user } = useContext(userContext)
-    const isDeprecated = useSelector((state: RootState) => state.app.isAppDeprecated)
+    const { user, isAppDeprecated } = useContext(userContext)
     const containerRef = useRef<HTMLDivElement>(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
@@ -83,7 +80,7 @@ export default function AuthPage() {
                         </div>
                     </div>
 
-                    {isDeprecated ? (
+                    {isAppDeprecated ? (
                         <>
                             <button className={pageStyles.authButton} onClick={checkUpdate}>
                                 {t('auth.checkUpdates')}

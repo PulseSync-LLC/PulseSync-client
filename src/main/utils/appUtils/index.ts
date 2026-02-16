@@ -4,24 +4,30 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import fso, { promises as fsp } from 'original-fs'
-import { asarBackup, musicPath } from '../../index'
+import { asarBackup, musicPath } from '../../../index'
 import { app, dialog, shell } from 'electron'
-import RendererEvents from '../../common/types/rendererEvents'
+import RendererEvents from '../../../common/types/rendererEvents'
 import axios from 'axios'
 import * as plist from 'plist'
-import { mainWindow } from '../modules/createWindow'
-import logger from '../modules/logger'
-import { getState } from '../modules/state'
-import { t } from '../i18n'
+import { mainWindow } from '../../modules/createWindow'
+import logger from '../../modules/logger'
+import { getState } from '../../modules/state'
+import { t } from '../../i18n'
 import * as yaml from 'yaml'
-import { YM_RELEASE_METADATA_URL } from '../constants/urls'
+import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
 import asar from '@electron/asar'
-import { nativeFileExists } from '../modules/nativeModules'
+import { nativeFileExists } from '../../modules/nativeModules'
+import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
+import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+import { isLinuxAccessError } from './elevation'
+import { runPowerShell } from './powershell'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
 
 const State = getState()
+
+export type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
 export const normalizeModSaveDir = (customPath?: string): string | null => {
     if (!customPath) return null
@@ -34,54 +40,6 @@ export const normalizeModSaveDir = (customPath?: string): string | null => {
 export const resolveModAsarPath = (musicPath: string, customPath?: string): string => {
     const baseDir = normalizeModSaveDir(customPath) || musicPath
     return path.join(baseDir, 'app.asar')
-}
-
-interface ProcessInfo {
-    pid: number
-}
-
-export interface AppxPackage {
-    Name: string
-    PackageFullName: string
-    PackageFamilyName: string
-    Version: string
-    [key: string]: any
-}
-
-const splitNonEmptyLines = (output: string): string[] =>
-    output
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean)
-
-const parsePid = (value: string): number | null => {
-    const pid = parseInt(value, 10)
-    return Number.isNaN(pid) ? null : pid
-}
-
-const parseMacPgrep = (stdout: string): ProcessInfo[] =>
-    splitNonEmptyLines(stdout)
-        .map(line => parsePid(line))
-        .filter((pid): pid is number => pid !== null)
-        .map(pid => ({ pid }))
-
-const parseLinuxPgrep = (stdout: string): ProcessInfo[] =>
-    splitNonEmptyLines(stdout)
-        .map(line => parsePid(line.split(' ')[0]))
-        .filter((pid): pid is number => pid !== null)
-        .map(pid => ({ pid }))
-
-const parseWindowsTasklist = (stdout: string): ProcessInfo[] => {
-    const processes = splitNonEmptyLines(stdout)
-    const parsed: ProcessInfo[] = []
-    processes.forEach(line => {
-        const parts = line.split('","')
-        if (parts.length <= 1) return
-        const pidStr = parts[1].replace(/"/g, '').trim()
-        const pid = parsePid(pidStr)
-        if (pid !== null) parsed.push({ pid })
-    })
-    return parsed
 }
 
 const terminateProcess = (pid: number): void => {
@@ -209,11 +167,14 @@ export async function copyFile(target: string, dest: string): Promise<void> {
     try {
         await fsp.copyFile(target, dest)
     } catch (error: any) {
-        if (process.platform === 'linux' && error.code === 'EACCES') {
-            await execFileAsync('pkexec', ['cp', `"${target}"`, `"${dest}"`])
-            const encodedTarget = target.replaceAll("'", "\\'")
-            const encodedDest = dest.replaceAll("'", "\\'")
-            await execFileAsync('pkexec', ['bash', '-c', `cp '${encodedTarget}' '${encodedDest}'`])
+        if (isLinuxAccessError(error)) {
+            logger.modManager.warn('File copying requires permissions on Linux:', {
+                source: target,
+                destination: dest,
+                code: error?.code,
+                message: error?.message,
+            })
+            throw error
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
@@ -226,10 +187,13 @@ export async function createDirIfNotExist(target: string): Promise<void> {
         try {
             await fsp.mkdir(target, { recursive: true })
         } catch (error: any) {
-            if (process.platform === 'linux' && error.code === 'EACCES') {
-                await execFileAsync('pkexec', ['mkdir', '-p', target])
-                const encodedTarget = target.replaceAll("'", "\\'")
-                await execFileAsync('pkexec', ['bash', '-c', `mkdir -p '${encodedTarget}'`])
+            if (isLinuxAccessError(error)) {
+                logger.modManager.warn('Directory creation requires permissions on Linux:', {
+                    target,
+                    code: error?.code,
+                    message: error?.message,
+                })
+                throw error
             } else {
                 logger.modManager.error('Directory creation failed:', error)
                 throw error
@@ -430,8 +394,6 @@ export const downloadYandexMusic = async (type?: string) => {
     }, 100)
 }
 
-export type PatchCallback = (progress: number, message: string) => void
-
 export async function updateIntegrityHashInExe(exePath: string, newHash: string): Promise<void> {
     try {
         const rawBuf = await fsp.readFile(exePath)
@@ -590,15 +552,6 @@ export async function clearDirectory(directoryPath: string): Promise<void> {
     }
 }
 
-const runPowerShell = async (script: string, args: string[] = []): Promise<string> => {
-    const psArgs = ['-NoProfile', '-NonInteractive', '-Command', script, ...args]
-    const { stdout } = (await execFileAsync('powershell.exe', psArgs, {
-        windowsHide: true,
-        timeout: 10000,
-    })) as { stdout: string }
-    return stdout ?? ''
-}
-
 export async function findAppByName(namePart: string): Promise<AppxPackage | null> {
     const psScript = [
         '& {',
@@ -632,47 +585,6 @@ export async function getLinuxInstallerUrl(): Promise<string> {
     if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
     const version = match[1]
     return `https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_${version}.deb`
-}
-
-function sleep(ms: number) {
-    return new Promise(resolve => setTimeout(resolve, ms))
-}
-
-function stripBomAndControls(s: string): string {
-    return s
-        .replace(/^\uFEFF/, '')
-        .replace(/\u0000/g, '')
-        .trim()
-}
-
-function tryParseJsonLoose(s: string): any {
-    const cleaned = stripBomAndControls(s)
-    try {
-        return JSON.parse(cleaned)
-    } catch {}
-    const noLineComments = cleaned.replace(/^\s*\/\/.*$/gm, '')
-    const noBlockComments = noLineComments.replace(/\/\*[^]*?\*\//g, '')
-    const noTrailingCommas = noBlockComments.replace(/,\s*([}\]])/g, '$1')
-    return JSON.parse(noTrailingCommas)
-}
-
-async function extractJsonFromAsarWithRetry(asarPath: string, innerPath: string, opts?: { attempts?: number; delayMs?: number }) {
-    const attempts = opts?.attempts ?? 40
-    const delayMs = opts?.delayMs ?? 120
-    let lastErr: any = null
-    for (let i = 0; i < attempts; i++) {
-        try {
-            const buff = asar.extractFile(asarPath, innerPath)
-            if (!buff || buff.length === 0) throw new Error('empty buffer')
-            const rawText = buff.toString('utf-8')
-            const obj = tryParseJsonLoose(rawText)
-            return obj
-        } catch (e) {
-            lastErr = e
-            await sleep(delayMs)
-        }
-    }
-    throw lastErr ?? new Error('failed to extract json from asar')
 }
 
 export async function getInstalledYmMetadata() {

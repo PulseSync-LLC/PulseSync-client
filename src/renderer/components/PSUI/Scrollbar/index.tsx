@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import cn from 'clsx'
 import * as styles from './Scrollbar.module.scss'
 
 interface ScrollbarProps {
@@ -173,9 +174,9 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     }, [duration])
 
     return (
-        <div className={`${className || ''} ${styles.scrollWrapper}`} style={className ? {} : { height: '100%', width: '100%' }}>
+        <div className={cn(className, styles.scrollWrapper)} style={className ? {} : { height: '100%', width: '100%' }}>
             <div
-                className={`${classNameInner || ''} ${styles.scrollContent}`}
+                className={cn(classNameInner, styles.scrollContent)}
                 style={className ? {} : { height: '100%', width: '100%' }}
                 ref={containerRef}
                 onScroll={e => {

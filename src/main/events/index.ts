@@ -14,7 +14,6 @@ import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { execFile } from 'child_process'
 import axios from 'axios'
-import * as Sentry from '@sentry/electron/main'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import {
     checkMusic,
@@ -178,8 +177,12 @@ const registerWindowEvents = (): void => {
         mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_CLOSE, (_event, val: boolean) => {
-        if (!val) app.quit()
-        mainWindow.hide()
+        if (val) {
+            mainWindow.hide()
+            return
+        }
+
+        app.quit()
     })
 }
 
@@ -317,6 +320,12 @@ const registerFileOperations = (window: BrowserWindow): void => {
             case 'obsWidgetPath': {
                 const widgetPath = path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
                 await shell.openPath(widgetPath)
+                break
+            }
+            case 'privacySettings': {
+                if (isMac()) {
+                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy')
+                }
                 break
             }
         }
@@ -515,8 +524,8 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
         updater.install()
     })
 
-    ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean }) => {
-        await checkOrFindUpdate(args?.hard)
+    ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
+        await checkOrFindUpdate(args?.hard, args?.manual)
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
@@ -586,11 +595,6 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         }
         authorized = data.status
         tryOpenPendingAddon()
-        if (data?.user) {
-            Sentry.setUser({ id: data.user.id, username: data.user.username, email: data.user.email })
-        } else {
-            Sentry.setUser(null)
-        }
     })
 
     ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {
@@ -837,13 +841,13 @@ export const handleEvents = (window: BrowserWindow): void => {
     obsWidgetManager(window, app)
 }
 
-export const checkOrFindUpdate = async (hard?: boolean) => {
+export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
             const macUpdaterInstance = await macUpdater?.checkForUpdates()
             if (macUpdaterInstance) {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
                 updateAvailable = true
                 try {
                     await macUpdater?.downloadUpdate(macUpdaterInstance)
@@ -861,22 +865,21 @@ export const checkOrFindUpdate = async (hard?: boolean) => {
                     } catch {}
                 }
             } else {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false })
+                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
             }
         } catch (e: any) {
             logger.updater.error(`macOS check error: ${e?.message || e}`)
         }
         return
     }
-    const status = await updater.check()
+    const status = await updater.check(manual)
     if (status === UpdateStatus.DOWNLOADING) {
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         updateAvailable = true
     } else if (status === UpdateStatus.DOWNLOADED) {
         if (hard) updater.install()
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
+        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         updateAvailable = true
         mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
     }
 }
-

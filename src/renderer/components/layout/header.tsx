@@ -1,4 +1,5 @@
 import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 
@@ -7,7 +8,7 @@ import Minimize from '../../assets/icons/minimize.svg'
 import Close from '../../assets/icons/close.svg'
 import ArrowDown from '../../assets/icons/arrowDown.svg'
 
-import userContext from '../../api/context/user.context'
+import userContext from '../../api/context/user'
 import ContextMenu from '../context_menu'
 import Modal from '../PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
@@ -22,16 +23,13 @@ import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
 import axios from 'axios'
-import * as Sentry from '@sentry/electron/renderer'
 import { motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
 import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
 import { staticAsset } from '../../utils/staticAssets'
 import GetModUpdates from '../../api/queries/getModChangelogEntries.query'
-import { useDispatch, useSelector } from 'react-redux'
-import { RootState } from '../../api/store/store'
-import { closeModal, openModal } from '../../api/store/modalSlice'
+import { useModalContext } from '../../api/context/modal'
 import { Track } from '../../api/interfaces/track.interface'
 import playerContext from '../../api/context/player.context'
 import { MdSettings } from 'react-icons/md'
@@ -81,8 +79,8 @@ const Header: React.FC<p> = () => {
         closeModal: () => void
     }>(null)
 
-    const dispatch = useDispatch()
-    const isModModalOpen = useSelector((state: RootState) => state.modal.isOpen)
+    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
+    const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
     const nav = useNavigate()
@@ -94,8 +92,8 @@ const Header: React.FC<p> = () => {
     const openUpdateModal = useCallback(() => setModal(true), [])
     const closeUpdateModal = useCallback(() => setModal(false), [])
 
-    const openModModal = useCallback(() => dispatch(openModal()), [dispatch])
-    const closeModModal = useCallback(() => dispatch(closeModal()), [dispatch])
+    const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
+    const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
     modModalRef.current = {
         openModal: openModModal,
@@ -286,7 +284,6 @@ const Header: React.FC<p> = () => {
                     break
                 default:
                     toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadRetry'))
-                    Sentry.captureException(error)
                     break
             }
             setAvatarProgress(-1)
@@ -333,7 +330,6 @@ const Header: React.FC<p> = () => {
                 toast.custom('error', t('header.accessDeniedTitle'), t('header.bannerUploadForbidden'))
             } else {
                 toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadRetry'))
-                Sentry.captureException(error)
             }
             setBannerProgress(-1)
             console.error('Error uploading banner:', error)
@@ -453,7 +449,7 @@ const Header: React.FC<p> = () => {
                             )}
                             <div className={styles.line} />
                             <button
-                                className={`${styles.logoplace} ${isMenuOpen ? styles.active : ''}`}
+                                className={cn(styles.logoplace, isMenuOpen && styles.active)}
                                 onClick={toggleMenu}
                                 disabled={user.id === '-1'}
                             >

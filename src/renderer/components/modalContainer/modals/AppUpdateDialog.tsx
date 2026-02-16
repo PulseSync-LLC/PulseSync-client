@@ -1,7 +1,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import MainEvents from '../../../../common/types/mainEvents'
-import UserContext from '../../../api/context/user.context'
+import UserContext from '../../../api/context/user'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 
 const AppUpdateDialog: React.FC = () => {
@@ -28,18 +28,18 @@ const AppUpdateDialog: React.FC = () => {
         <CustomModalPS
             isOpen={Boolean(updateAvailable && !isDismissed)}
             onClose={handleClose}
-            title={t('updates.readyTitle')}
-            text={t('updates.readyDescription')}
+            title={t('modals.appUpdate.title')}
+            text={t('modals.appUpdate.description')}
             buttons={[
                 {
-                    text: t('updates.installButton'),
-                    onClick: handleInstall,
-                    variant: 'primary',
-                },
-                {
-                    text: t('common.thinkLater'),
+                    text: t('modals.appUpdate.buttons.later'),
                     onClick: handleClose,
                     variant: 'secondary',
+                },
+                {
+                    text: t('modals.appUpdate.buttons.install'),
+                    onClick: handleInstall,
+                    variant: 'primary',
                 },
             ]}
         />
@@ -47,3 +47,4 @@ const AppUpdateDialog: React.FC = () => {
 }
 
 export default AppUpdateDialog
+

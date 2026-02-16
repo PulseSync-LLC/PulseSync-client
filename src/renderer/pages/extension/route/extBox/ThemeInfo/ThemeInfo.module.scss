@@ -193,6 +193,9 @@
     &:hover {
         background: rgba(99, 106, 130, 0.75);
     }
+    &:disabled {
+        background: rgba(99, 106, 130, 0.75);
+    }
 }
 
 .authorLink {

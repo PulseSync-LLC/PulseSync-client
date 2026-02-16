@@ -283,7 +283,10 @@ const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.Serv
             }
             res.writeHead(200, {
                 'Content-Type': mimes[ext] || 'application/octet-stream',
-                'Cache-Control': 'public, max-age=31536000, immutable',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0',
+                'Surrogate-Control': 'no-store',
             })
             return fs.createReadStream(targetPath).pipe(res)
         } else {
@@ -335,7 +338,7 @@ const initializeServer = () => {
         res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
         res.setHeader(
             'Access-Control-Allow-Headers',
-            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, sentry-trace, baggage',
+            'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers',
         )
 
         if (method === 'OPTIONS') {
@@ -363,7 +366,7 @@ const initializeServer = () => {
         cors: {
             origin: allowedOrigins,
             methods: ['GET', 'POST'],
-            allowedHeaders: ['Content-Type', 'sentry-trace'],
+            allowedHeaders: ['Content-Type'],
         },
     })
 
@@ -391,6 +394,11 @@ const initializeServer = () => {
                     sendDataToMusic({ targetSocket: socket })
                 }
             }
+        })
+
+        socket.on('IS_DRPCV2_SUPPORTED', () => {
+            logger.http.log('IS_DRPCV2_SUPPORTED received, responding with support status.')
+            socket.emit('DRPCV2_SUPPORTED')
         })
 
         socket.on('BROWSER_AUTH', (args: any) => {
@@ -776,4 +784,3 @@ const updateData = (newData: any) => {
 
 export const getTrackInfo = () => data
 export default server
-

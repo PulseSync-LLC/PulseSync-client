@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react'
+import cn from 'clsx'
 import * as styles from './userCard.module.scss'
 import TooltipButton from '../tooltip_button'
 import { getStatusColor } from '../../utils/userStatus'
@@ -52,7 +53,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
         <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!isVisible}>
             {isVisible ? (
                 <div
-                    className={`${styles.container} ${styles.visible}`}
+                    className={cn(styles.container, styles.visible)}
                     onClick={() => onClick(user.username!)}
                     style={
                         {
