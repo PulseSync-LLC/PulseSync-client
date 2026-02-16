@@ -188,9 +188,12 @@
             "installed": "installed",
             "notInstalled": "not installed"
         },
+        "traySettings": {
+            "autoTray": "Start app in tray",
+            "hideOnClose": "Close button minimizes to tray",
+            "title": "Tray behavior"
+        },
         "windowSettings": {
-            "autoTray": "Auto tray",
-            "hideOnClose": "Hide window on close",
             "saveWindowDimensions": "Save window size",
             "saveWindowPosition": "Save window position",
             "title": "Window settings"

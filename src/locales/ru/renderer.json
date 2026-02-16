@@ -188,9 +188,12 @@
             "installed": "установлен",
             "notInstalled": "не установлен"
         },
+        "traySettings": {
+            "autoTray": "Запускать приложение в трее",
+            "hideOnClose": "При закрытии сворачивать в трей",
+            "title": "Поведение в трее"
+        },
         "windowSettings": {
-            "autoTray": "Автотрей",
-            "hideOnClose": "Скрыть окно при нажатии на «X»",
             "saveWindowDimensions": "Сохранять размер окна",
             "saveWindowPosition": "Сохранять положение окна",
             "title": "Настройки окна приложения"

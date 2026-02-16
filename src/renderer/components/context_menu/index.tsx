@@ -433,10 +433,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             createToggleButton(t('contextMenu.windowSettings.saveWindowPosition'), app.settings.saveWindowPositionOnRestart, () =>
                 toggleSetting('saveWindowPositionOnRestart', !app.settings.saveWindowPositionOnRestart),
             ),
-            createToggleButton(t('contextMenu.windowSettings.autoTray'), app.settings.autoStartInTray, () =>
+        ]),
+        createButtonSection(t('contextMenu.traySettings.title'), [
+            createToggleButton(t('contextMenu.traySettings.autoTray'), app.settings.autoStartInTray, () =>
                 toggleSetting('autoTray', !app.settings.autoStartInTray),
             ),
-            createToggleButton(t('contextMenu.windowSettings.hideOnClose'), app.settings.closeAppInTray, () =>
+            createToggleButton(t('contextMenu.traySettings.hideOnClose'), app.settings.closeAppInTray, () =>
                 toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
             ),
         ]),
