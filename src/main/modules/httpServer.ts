@@ -396,6 +396,11 @@ const initializeServer = () => {
             }
         })
 
+        socket.on('IS_DRPCV2_SUPPORTED', () => {
+            logger.http.log('IS_DRPCV2_SUPPORTED received, responding with support status.')
+            socket.emit('DRPCV2_SUPPORTED')
+        })
+
         socket.on('BROWSER_AUTH', (args: any) => {
             logger.http.log('BROWSER_AUTH received:', args)
             handleBrowserAuth(args, socket)
@@ -779,4 +784,3 @@ const updateData = (newData: any) => {
 
 export const getTrackInfo = () => data
 export default server
-
