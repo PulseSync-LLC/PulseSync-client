@@ -43,7 +43,7 @@ export default function TrackInfoPage() {
     const { t } = useTranslation()
     const [rickRollClick, setRickRoll] = useState(false)
     const fallbackAvatar = staticAsset('assets/images/undef.png')
-    const fallbackLogo = staticAsset('assets/logo/logoapp.png')
+    const fallbackLogo = 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     const hasSupporter = Boolean(user?.hasSupporterBadge || user?.badges?.some((badge: any) => badge.type === 'supporter'))
 
     const [previousValues, setPreviousValues] = useState<FormValues>(() => ({
