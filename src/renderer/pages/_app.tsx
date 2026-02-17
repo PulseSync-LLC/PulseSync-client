@@ -38,6 +38,7 @@ import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 import Preloader from '../components/preloader'
 import { fetchSettings } from '../api/settings'
 import { areTracksEqual, checkInternetAccess, compareVersions, normalizeTrack, notifyUserRetries } from '../utils/utils'
+import { usePextDnDImport } from '../utils/usePextDnDImport'
 import Addon from '../api/interfaces/addon.interface'
 import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
@@ -637,6 +638,7 @@ function App() {
         },
         [t],
     )
+    usePextDnDImport()
 
     const handleOpenAddon = useCallback(
         (_event: any, data: string) => {
