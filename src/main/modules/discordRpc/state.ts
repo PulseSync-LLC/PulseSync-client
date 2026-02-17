@@ -10,17 +10,23 @@ const execAsync = promisify(exec)
 export async function checkDiscordStateLinux(): Promise<DiscordState> {
     try {
         const { stdout } = await execAsync('ps xo user:30,command')
-        const lines = stdout
+        const clientMatchers = [/\bdiscord\b/, /\bvesktop\b/]
+        const snapMarkers = ['/snap/discord', '/snap/vesktop', 'snap run discord', 'snap run vesktop']
+        const clientLines = stdout
             .split('\n')
-            .filter(line => line.toLowerCase().includes('/discord'))
-            .join('\n')
-        if (!lines.trim()) {
+            .map(line => line.toLowerCase())
+            .filter(line => clientMatchers.some(matcher => matcher.test(line)))
+
+        if (clientLines.length === 0) {
             return DiscordState.CLOSED
-        } else if (lines.toLowerCase().includes('/snap/discord')) {
-            return DiscordState.SNAP
-        } else {
-            return DiscordState.SUCCESS
         }
+
+        const isSnapClient = clientLines.some(line => snapMarkers.some(marker => line.includes(marker)))
+        if (isSnapClient) {
+            return DiscordState.SNAP
+        }
+
+        return DiscordState.SUCCESS
     } catch (error) {
         logger.discordRpc.error('Error executing process command:', error)
         return DiscordState.CLOSED
