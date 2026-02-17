@@ -158,13 +158,23 @@ export default function TrackInfoPage() {
     )
 
     const toggleRpcStatus = useCallback(() => {
+        const nextStatus = !app.discordRpc.status
+        if (nextStatus) {
+            const lockedByDrpcV2 = Boolean(window.electron.store.get('discordRpc.lockedByDrpcV2'))
+            if (lockedByDrpcV2) {
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+                window.discordRpc.discordRpc(nextStatus)
+                return
+            }
+        }
+
         window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-        window.discordRpc.discordRpc(!app.discordRpc.status)
+        window.discordRpc.discordRpc(nextStatus)
         setApp({
             ...app,
             discordRpc: {
                 ...app.discordRpc,
-                status: !app.discordRpc.status,
+                status: nextStatus,
             },
         })
     }, [app, setApp])

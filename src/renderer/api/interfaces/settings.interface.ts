@@ -31,6 +31,7 @@ export interface Tokens {
 export interface discordRpc {
     appId: string
     status: boolean
+    lockedByDrpcV2: boolean
     details: string
     state: string
     button: string

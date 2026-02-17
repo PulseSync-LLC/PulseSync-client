@@ -88,6 +88,11 @@ const schema = {
                 description: t('main.storage.discordRpc.statusLanguage'),
                 default: 'en',
             },
+            lockedByDrpcV2: {
+                type: 'boolean',
+                description: t('main.storage.discordRpc.lockedByDrpcV2'),
+                default: false,
+            },
         },
         required: [
             'appId',
@@ -104,6 +109,7 @@ const schema = {
             'enableWebsiteButton',
             'statusDisplayType',
             'statusLanguage',
+            'lockedByDrpcV2',
         ],
         additionalProperties: true,
         default: {
@@ -121,6 +127,7 @@ const schema = {
             enableWebsiteButton: true,
             statusDisplayType: 1,
             statusLanguage: 'en',
+            lockedByDrpcV2: false,
         },
     },
 

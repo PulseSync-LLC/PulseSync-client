@@ -106,9 +106,7 @@ function isConnectionError(error: any) {
         return true
     }
     const msg = String(error?.message ?? '')
-    return /connection.*(ended|timed out)|could not connect|no connection|socket|pipe|ECONNRESET|ECONNREFUSED|EPIPE|closed by discord/i.test(
-        msg
-    )
+    return /connection.*(ended|timed out)|could not connect|no connection|socket|pipe|ECONNRESET|ECONNREFUSED|EPIPE|closed by discord/i.test(msg)
 }
 
 function scheduleReconnect(activity: SetActivity, reason: string) {
@@ -128,15 +126,18 @@ function scheduleActivityCooldown(activity: SetActivity, reason: string, backoff
     clearActivityCooldownTimer()
     logger.discordRpc.warn(reason)
     const delay = activityCooldownUntil - now
-    activityCooldownTimer = setTimeout(() => {
-        activityCooldownTimer = undefined
-        if (!rpcConnected || !client || !client.user) return
-        const next = pendingActivity
-        pendingActivity = undefined
-        if (next) {
-            void sendActivity(next)
-        }
-    }, Math.max(0, delay))
+    activityCooldownTimer = setTimeout(
+        () => {
+            activityCooldownTimer = undefined
+            if (!rpcConnected || !client || !client.user) return
+            const next = pendingActivity
+            pendingActivity = undefined
+            if (next) {
+                void sendActivity(next)
+            }
+        },
+        Math.max(0, delay),
+    )
 }
 
 async function sendActivity(activity: SetActivity): Promise<boolean> {
@@ -156,9 +157,7 @@ async function sendActivity(activity: SetActivity): Promise<boolean> {
     try {
         await Promise.race([
             client.user.setActivity(activity),
-            new Promise<void>((_, reject) =>
-                setTimeout(() => reject(new Error('setActivity timed out')), ACTIVITY_TIMEOUT_MS)
-            ),
+            new Promise<void>((_, reject) => setTimeout(() => reject(new Error('setActivity timed out')), ACTIVITY_TIMEOUT_MS)),
         ])
         previousActivity = activity
         return true
@@ -171,11 +170,7 @@ async function sendActivity(activity: SetActivity): Promise<boolean> {
         if (isConnectionError(e)) {
             scheduleReconnect(activity, 'Activity update failed, reconnecting')
         } else if (isRateLimitError(e)) {
-            scheduleActivityCooldown(
-                activity,
-                'Activity update rate-limited by Discord RPC, backing off',
-                ACTIVITY_RATE_LIMIT_BACKOFF_MS
-            )
+            scheduleActivityCooldown(activity, 'Activity update rate-limited by Discord RPC, backing off', ACTIVITY_RATE_LIMIT_BACKOFF_MS)
         } else {
             previousActivity = activity
         }
@@ -460,6 +455,17 @@ function updateAppId(newAppId: string) {
 }
 
 export const setRpcStatus = (status: boolean) => {
+    if (status && State.get('discordRpc.lockedByDrpcV2')) {
+        logger.discordRpc.info('Built-in Discord RPC enable request ignored: DRPCV2 client is active.')
+        State.set('discordRpc.status', false)
+        mainWindow?.webContents?.send(RendererEvents.DISCORD_RPC_STATE, false)
+        mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
+            message: t('main.discordRpc.blockedByDrpcV2'),
+            type: 'warn',
+        })
+        return
+    }
+
     logger.discordRpc.info('discordRpc state: ' + status)
     State.set('discordRpc.status', status)
     mainWindow?.webContents?.send(RendererEvents.DISCORD_RPC_STATE, status)

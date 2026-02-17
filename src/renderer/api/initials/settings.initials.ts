@@ -33,6 +33,7 @@ const settingsInitials: SettingsInterface = {
     },
     discordRpc: {
         appId: '',
+        lockedByDrpcV2: false,
         displayPause: false,
         enableRpcButtonListen: false,
         enableWebsiteButton: true,
