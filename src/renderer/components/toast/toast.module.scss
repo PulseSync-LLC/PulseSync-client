@@ -3,35 +3,7 @@
     bottom: -20px;
     width: 500px;
     pointer-events: auto;
-}
-
-.collapsed {
-    cursor: pointer;
-    animation: pulse 2s infinite ease-in-out;
-}
-
-.expanded {
     cursor: default;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scale(1);
-    }
-    50% {
-        transform: scale(1.02);
-    }
-    100% {
-        transform: scale(1);
-    }
-}
-
-.stack:hover.collapsed {
-    transform: scale(1.03);
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.3);
-    transition:
-        transform 0.2s,
-        box-shadow 0.2s;
 }
 
 .card {

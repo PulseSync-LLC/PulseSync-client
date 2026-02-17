@@ -20,6 +20,7 @@ interface ToastData {
 
 const STICKY_KINDS: Kind[] = ['loading', 'download', 'export', 'import']
 const STICKY_SET = new Set<Kind>(STICKY_KINDS)
+const MAX_VISIBLE_TOASTS = 3
 
 let queue: ToastData[] = []
 const subs = new Set<(s: ToastData[]) => void>()
@@ -65,6 +66,10 @@ function clearAll() {
 
 const closeAllSubs = new Set<() => void>()
 function requestCloseAll() {
+    if (queue.length > MAX_VISIBLE_TOASTS) {
+        queue = queue.slice(0, MAX_VISIBLE_TOASTS)
+        emit()
+    }
     closeAllSubs.forEach(fn => fn())
 }
 
@@ -134,7 +139,6 @@ export const iToast = {
 
 const ToastStack: React.FC = () => {
     const [toasts, setToasts] = useState<ToastData[]>(queue)
-    const [open, setOpen] = useState(false)
     const [closingAll, setClosingAll] = useState(false)
 
     useEffect(() => {
@@ -164,8 +168,8 @@ const ToastStack: React.FC = () => {
         return () => window.removeEventListener('keydown', onKey)
     }, [])
 
-    const list = [...toasts].slice(-7).reverse()
-    const renderList = open || list.length === 1 ? list : [list[0]]
+    const list = toasts.slice(0, MAX_VISIBLE_TOASTS)
+    const renderList = list
 
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
     const nodeRefs = useRef(new Map<string, React.RefObject<HTMLDivElement>>())
@@ -180,7 +184,7 @@ const ToastStack: React.FC = () => {
 
     const [offsets, setOffsets] = useState<number[]>([])
     useLayoutEffect(() => {
-        if (open && cardRefs.current.length) {
+        if (cardRefs.current.length) {
             let acc = 0
             const arr: number[] = []
             for (let i = 0; i < list.length; ++i) {
@@ -192,23 +196,19 @@ const ToastStack: React.FC = () => {
         } else {
             setOffsets(Array(list.length).fill(0))
         }
-    }, [open, list.length, toasts.map(t => t.id).join('|')])
+    }, [list.length, toasts.map(t => t.id).join('|')])
 
     if (!toasts.length) return null
 
     return (
         <div
-            className={cn(styles.stack, open || list.length === 1 ? styles.expanded : styles.collapsed)}
+            className={styles.stack}
             onMouseDown={e => {
                 if (e.button === 1) {
                     e.preventDefault()
                     e.stopPropagation()
                     requestCloseAll()
                 }
-            }}
-            onClick={(e: React.MouseEvent<HTMLDivElement>) => {
-                if (typeof e.button === 'number' && e.button !== 0) return
-                if (list.length > 1) setOpen(o => !o)
             }}
             onAuxClick={(e: React.MouseEvent<HTMLDivElement>) => {
                 if (e.button === 1) {
@@ -243,8 +243,7 @@ const ToastStack: React.FC = () => {
                                 data={td}
                                 index={idx}
                                 stackSize={renderList.length}
-                                open={open || list.length === 1}
-                                offset={open ? offsets[idx] : 0}
+                                offset={offsets[idx] ?? 0}
                                 closingAll={closingAll}
                                 ref={el => {
                                     cardRefs.current[idx] = el
@@ -264,13 +263,12 @@ interface CardProps {
     data: ToastData
     index: number
     stackSize: number
-    open: boolean
     offset: number
     closingAll: boolean
     onDismiss: () => void
 }
 
-const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, open, offset, closingAll, onDismiss }, ref) => {
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, offset, closingAll, onDismiss }, ref) => {
     const { kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
