@@ -20,6 +20,7 @@ import { sanitizeScript } from '../utils/addonUtils'
 import axios from 'axios'
 import { resolveBasePaths } from './mod/mod-files'
 import crypto from 'node:crypto'
+import { setRpcStatus } from './discordRpc'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -399,6 +400,10 @@ const initializeServer = () => {
         socket.on('IS_DRPCV2_SUPPORTED', () => {
             logger.http.log('IS_DRPCV2_SUPPORTED received, responding with support status.')
             socket.emit('DRPCV2_SUPPORTED')
+            if (State.get('discordRpc.status')) {
+                logger.http.log('DRPCV2 is supported by client, disabling built-in Discord RPC.')
+                setRpcStatus(false)
+            }
         })
 
         socket.on('BROWSER_AUTH', (args: any) => {
