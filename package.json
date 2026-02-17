@@ -143,8 +143,8 @@
     },
     "buildInfo": {
         "VERSION": "2.10.4-beta",
-        "BRANCH": "139cfb0",
-        "BUILD_TIME": "18.02.2026, 00:03:19"
+        "BRANCH": "6c1c740",
+        "BUILD_TIME": "18.02.2026, 00:42:08"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

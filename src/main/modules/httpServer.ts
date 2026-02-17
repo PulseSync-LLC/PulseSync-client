@@ -21,6 +21,7 @@ import axios from 'axios'
 import { resolveBasePaths } from './mod/mod-files'
 import crypto from 'node:crypto'
 import { setRpcStatus } from './discordRpc'
+import { t } from '../i18n'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -28,6 +29,8 @@ let io: IOServer | null = null
 let attempt = 0
 let isStarting = false
 const State = getState()
+let drpcV2SupportedSocketId: string | null = null
+State.set('discordRpc.lockedByDrpcV2', false)
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 
@@ -39,6 +42,10 @@ const closeServer = async (): Promise<void> => {
         if (oldIO) {
             oldIO.close()
             io = null
+        }
+        if (drpcV2SupportedSocketId !== null) {
+            drpcV2SupportedSocketId = null
+            State.set('discordRpc.lockedByDrpcV2', false)
         }
         if (oldServer) {
             oldServer.close(() => {
@@ -400,8 +407,16 @@ const initializeServer = () => {
         socket.on('IS_DRPCV2_SUPPORTED', () => {
             logger.http.log('IS_DRPCV2_SUPPORTED received, responding with support status.')
             socket.emit('DRPCV2_SUPPORTED')
+
+            drpcV2SupportedSocketId = socket.id
+            State.set('discordRpc.lockedByDrpcV2', true)
+
             if (State.get('discordRpc.status')) {
                 logger.http.log('DRPCV2 is supported by client, disabling built-in Discord RPC.')
+                mainWindow.webContents.send(RendererEvents.RPC_LOG, {
+                    message: t('main.discordRpc.disabledByDrpcV2'),
+                    type: 'info',
+                })
                 setRpcStatus(false)
             }
         })
@@ -436,6 +451,10 @@ const initializeServer = () => {
 
         socket.on('disconnect', () => {
             logger.http.log('Client disconnected')
+            if (drpcV2SupportedSocketId === socket.id) {
+                drpcV2SupportedSocketId = null
+                State.set('discordRpc.lockedByDrpcV2', false)
+            }
             mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
                 type: 'refresh',
             })

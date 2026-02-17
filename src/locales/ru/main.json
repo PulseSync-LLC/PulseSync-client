@@ -53,6 +53,8 @@
             "disconnectError": "Ошибка отключения клиента",
             "disconnected": "Отключение RPC",
             "genericConnectError": "Ошибка подключения",
+            "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключен.",
+            "blockedByDrpcV2": "Пока мод подключен, встроенный Discord RPC в PulseSync включить нельзя.",
             "stateRetry": "{{state}} Следующая попытка через несколько секунд.",
             "states": {
                 "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.",
@@ -180,7 +182,8 @@
                 "state": "Текущее состояние для Rich Presence",
                 "status": "Включен ли статус Rich Presence",
                 "statusDisplayType": "Тип отображения активности в RPC",
-                "statusLanguage": "Язык для отображения статуса в RPC"
+                "statusLanguage": "Язык для отображения статуса в RPC",
+                "lockedByDrpcV2": "Временная блокировка встроенного RPC при активном DRPCV2-моде"
             },
             "mod": {
                 "checksum": "Контрольная сумма мода",

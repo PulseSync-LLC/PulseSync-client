@@ -89,6 +89,16 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
         }
         if (disabled) return
         const newValue = !isActive
+
+        if (checkType === 'toggleRpcStatus' && newValue) {
+            const lockedByDrpcV2 = Boolean(window.electron.store.get('discordRpc.lockedByDrpcV2'))
+            if (lockedByDrpcV2) {
+                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+                window.discordRpc.discordRpc(newValue)
+                return
+            }
+        }
+
         setIsActive(newValue)
 
         if (onChange) {
@@ -245,4 +255,3 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
 }
 
 export default ButtonInput
-
