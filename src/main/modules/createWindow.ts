@@ -46,14 +46,12 @@ const loadRendererWindow = (
     }
     const basePath = path.join(app.getAppPath(), '.vite', 'renderer', rendererName)
     const normalizedProdHtmlFile = prodHtmlFile.replace(/\\/g, '/')
-    const candidates: string[] = []
+    const candidates = [path.join(basePath, prodHtmlFile)]
 
     if (normalizedProdHtmlFile.startsWith('src/renderer/')) {
         const trimmedHtmlFile = normalizedProdHtmlFile.replace(/^src\/renderer\//, '')
         candidates.push(path.join(basePath, trimmedHtmlFile))
-        candidates.push(path.join(basePath, prodHtmlFile))
     } else {
-        candidates.push(path.join(basePath, prodHtmlFile))
         candidates.push(path.join(basePath, 'src', 'renderer', prodHtmlFile))
     }
 
