@@ -39,6 +39,7 @@ import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
+import { importPextFile, isPextFilePath } from '../modules/pextImporter'
 
 const updater = getUpdater()
 const State = getState()
@@ -776,6 +777,23 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         } catch (error: any) {
             logger.main.error(t('main.events.createArchiveError'), error.message)
             return false
+        }
+    })
+
+    ipcMain.handle(MainEvents.IMPORT_PEXT_FILE, async (_event, rawPath: string) => {
+        try {
+            if (!isPextFilePath(rawPath)) {
+                return { success: false, reason: 'INVALID_FILE' }
+            }
+            const addonName = await importPextFile(rawPath)
+            if (!addonName) {
+                return { success: false, reason: 'IMPORT_FAILED' }
+            }
+            queueAddonOpen(addonName)
+            return { success: true, addonName }
+        } catch (error: any) {
+            logger.main.error('Failed to import .pext from renderer drop:', error)
+            return { success: false, reason: error?.message || 'IMPORT_FAILED' }
         }
     })
 }

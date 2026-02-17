@@ -3,7 +3,7 @@ import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
 import createTray from './main/modules/tray'
-import { checkForSingleInstance } from './main/modules/singleInstance'
+import { checkForSingleInstance, isFirstInstance } from './main/modules/singleInstance'
 import { setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
@@ -94,8 +94,11 @@ app.on('ready', async () => {
         await initializeMusicPath()
 
         updated = checkCLIArguments(isAppDev)
-        await createWindow()
         await checkForSingleInstance()
+        if (!isFirstInstance) {
+            return
+        }
+        await createWindow()
         handleEvents(mainWindow)
         if (isWindows()) {
             await checkOldYandexMusic()

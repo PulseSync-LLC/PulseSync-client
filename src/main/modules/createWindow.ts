@@ -2,7 +2,7 @@ import { app, BrowserWindow, shell, powerMonitor, screen } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
 import isAppDev from 'electron-is-dev'
 import { getUpdater } from './updater/updater'
-import { updateAvailable } from '../events'
+import { queueAddonOpen, updateAvailable } from '../events'
 import { isWindows } from '../utils/appUtils'
 import { isDevmark } from '@common/appConfig'
 import path from 'path'
@@ -10,6 +10,8 @@ import fs from 'original-fs'
 import logger from './logger'
 import { getState } from './state'
 import { t } from '../i18n'
+import { fileURLToPath } from 'node:url'
+import { importPextFile, isPextFilePath } from './pextImporter'
 
 declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string
 declare const MAIN_WINDOW_VITE_NAME: string
@@ -44,12 +46,14 @@ const loadRendererWindow = (
     }
     const basePath = path.join(app.getAppPath(), '.vite', 'renderer', rendererName)
     const normalizedProdHtmlFile = prodHtmlFile.replace(/\\/g, '/')
-    const candidates = [path.join(basePath, prodHtmlFile)]
+    const candidates: string[] = []
 
     if (normalizedProdHtmlFile.startsWith('src/renderer/')) {
         const trimmedHtmlFile = normalizedProdHtmlFile.replace(/^src\/renderer\//, '')
         candidates.push(path.join(basePath, trimmedHtmlFile))
+        candidates.push(path.join(basePath, prodHtmlFile))
     } else {
+        candidates.push(path.join(basePath, prodHtmlFile))
         candidates.push(path.join(basePath, 'src', 'renderer', prodHtmlFile))
     }
 
@@ -60,6 +64,17 @@ const loadRendererWindow = (
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
     const area = display.workArea
     return pos.x >= area.x && pos.y >= area.y && pos.x < area.x + area.width && pos.y < area.y + area.height
+}
+
+const resolveDroppedPextPath = (navigationUrl: string): string | null => {
+    try {
+        const parsed = new URL(navigationUrl)
+        if (parsed.protocol !== 'file:') return null
+        const filePath = path.normalize(fileURLToPath(parsed))
+        return isPextFilePath(filePath) ? filePath : null
+    } catch {
+        return null
+    }
 }
 
 export async function createWindow(): Promise<void> {
@@ -185,6 +200,19 @@ export async function createWindow(): Promise<void> {
         if (input.control && (input.key === '+' || input.key === '-')) {
             e.preventDefault()
         }
+    })
+
+    mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        const droppedPextPath = resolveDroppedPextPath(navigationUrl)
+        if (!droppedPextPath) return
+
+        event.preventDefault()
+        void (async () => {
+            const addonName = await importPextFile(droppedPextPath)
+            if (addonName) {
+                queueAddonOpen(addonName)
+            }
+        })()
     })
 
     mainWindow.webContents.setWindowOpenHandler(data => {
