@@ -91,6 +91,23 @@ body {
     bottom: 0;
 }
 
+body.devmark-border {
+    border-radius: 10px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+body.devmark-border::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    border: 3px solid #fff34c;
+    border-radius: 10px;
+    box-sizing: border-box;
+    pointer-events: none;
+    z-index: 100000;
+}
+
 .app-wrapper {
     display: flex;
     flex-direction: column;
