@@ -78,14 +78,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'loading',
-                    title: t('layout.downloadProgress', { progress }),
+                    title: t('layout.downloadProgressLabel'),
                     msg: t('layout.downloading'),
                     value: progress,
                 })
             } else {
                 const id = toast.custom(
                     'loading',
-                    t('layout.downloadProgress', { progress }),
+                    t('layout.downloadProgressLabel'),
                     t('layout.downloading'),
                     { duration: Infinity },
                     progress,
@@ -209,15 +209,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'loading',
-                    title: t('layout.musicDownloadProgress', { progress }),
-                    msg: t('layout.downloadProgressLabel'),
+                    title: t('layout.downloadProgressLabel'),
+                    msg: t('layout.downloading'),
                     value: progress,
                 })
             } else {
                 const id = toast.custom(
                     'loading',
-                    t('layout.musicDownloadProgress', { progress }),
                     t('layout.downloadProgressLabel'),
+                    t('layout.downloading'),
                     { duration: Infinity },
                     progress,
                 )
@@ -373,15 +373,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
 
     useEffect(() => {
         if (isDevmark) {
-            document.body.style.border = '3px solid #fff34c'
-            document.body.style.borderRadius = '10px'
+            document.body.classList.add('devmark-border')
         } else {
-            document.body.style.border = ''
-            document.body.style.borderRadius = ''
+            document.body.classList.remove('devmark-border')
         }
         return () => {
-            document.body.style.border = ''
-            document.body.style.borderRadius = ''
+            document.body.classList.remove('devmark-border')
         }
     }, [isDevmark])
 

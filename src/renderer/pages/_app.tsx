@@ -754,12 +754,7 @@ function App() {
             toast.update(toastReference.current, {
                 kind: 'loading',
                 title: t('updates.downloadingTitle'),
-                msg: (
-                    <>
-                        {t('updates.downloadingLabel')}&nbsp;
-                        <b>{Math.floor(value)}%</b>
-                    </>
-                ),
+                msg: t('updates.downloadingLabel'),
                 value,
             })
         }
