@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import CustomModalPS from '../CustomModalPS'
 import * as st from './AddonUploadModal.module.scss'
@@ -37,71 +37,107 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
     const [running, setRunning] = useState(false)
     const [errText, setErrText] = useState<string | null>(null)
     const abortRef = useRef<AbortController | null>(null)
+    const runIdRef = useRef(0)
 
-    useEffect(() => {
+    const buildInitialState = useCallback(() => {
         const s: Record<string, StepStatus> = {}
         const p: Record<string, number> = {}
         steps.forEach(x => {
             s[x.key] = 'idle'
             p[x.key] = 0
         })
+        return { s, p }
+    }, [steps])
+
+    const reset = useCallback(() => {
+        const { s, p } = buildInitialState()
         setStatuses(s)
         setProgress(p)
         setNotes({})
         setErrText(null)
-    }, [steps, isOpen])
+    }, [buildInitialState])
+
+    const stepKeysSignature = useMemo(() => steps.map(s => s.key).join('|'), [steps])
+
+    useEffect(() => {
+        if (!isOpen) {
+            abortRef.current?.abort()
+            setRunning(false)
+            return
+        }
+
+        reset()
+    }, [isOpen, stepKeysSignature, reset])
+
+    useEffect(() => {
+        return () => abortRef.current?.abort()
+    }, [])
 
     const allDone = useMemo(() => steps.length > 0 && steps.every(s => statuses[s.key] === 'done'), [steps, statuses])
     const hasError = useMemo(() => Object.values(statuses).some(s => s === 'error'), [statuses])
 
     const start = async () => {
         if (running) return
-        setErrText(null)
-        setRunning(true)
-        abortRef.current = new AbortController()
-
-        try {
-            for (const step of steps) {
-                if (abortRef.current.signal.aborted) throw new Error(t('common.operationCancelled'))
-                setStatuses(prev => ({ ...prev, [step.key]: 'running' }))
-                setProgress(prev => ({ ...prev, [step.key]: 0 }))
-
-                const report = (pct: number, note?: string) => {
-                    setProgress(prev => ({ ...prev, [step.key]: clamp(pct) }))
-                    if (note !== undefined) setNotes(prev => ({ ...prev, [step.key]: note }))
-                }
-
-                try {
-                    await step.run({ report, signal: abortRef.current.signal })
-                    setStatuses(prev => ({ ...prev, [step.key]: 'done' }))
-                    setProgress(prev => ({ ...prev, [step.key]: 100 }))
-                } catch (e: any) {
-                    setStatuses(prev => ({ ...prev, [step.key]: 'error' }))
-                    setErrText(e?.message || t('common.errorTitle'))
-                    break
-                }
-            }
-        } finally {
-            setRunning(false)
-        }
-    }
-
-    const cancel = () => {
-        abortRef.current?.abort()
-        setRunning(false)
-    }
-
-    const reset = () => {
-        const s: Record<string, StepStatus> = {}
-        const p: Record<string, number> = {}
-        steps.forEach(x => {
-            s[x.key] = 'idle'
-            p[x.key] = 0
-        })
+        const { s, p } = buildInitialState()
         setStatuses(s)
         setProgress(p)
         setNotes({})
         setErrText(null)
+        setRunning(true)
+        const controller = new AbortController()
+        abortRef.current = controller
+        const runId = ++runIdRef.current
+        let activeStepKey: string | null = null
+
+        try {
+            for (const step of steps) {
+                if (controller.signal.aborted) throw new Error(t('common.operationCancelled'))
+                activeStepKey = step.key
+
+                if (runIdRef.current !== runId) return
+                setStatuses(prev => ({ ...prev, [step.key]: 'running' }))
+                setProgress(prev => ({ ...prev, [step.key]: 0 }))
+                setNotes(prev => ({ ...prev, [step.key]: undefined }))
+
+                const report = (pct: number, note?: string) => {
+                    if (runIdRef.current !== runId) return
+                    setProgress(prev => ({ ...prev, [step.key]: clamp(pct) }))
+                    if (note !== undefined) setNotes(prev => ({ ...prev, [step.key]: note }))
+                }
+
+                await step.run({ report, signal: controller.signal })
+                if (runIdRef.current !== runId) return
+                setStatuses(prev => ({ ...prev, [step.key]: 'done' }))
+                setProgress(prev => ({ ...prev, [step.key]: 100 }))
+                activeStepKey = null
+            }
+        } catch (e: any) {
+            if (runIdRef.current !== runId) return
+
+            const isCancelled = controller.signal.aborted
+            if (isCancelled) {
+                if (activeStepKey) {
+                    const key = activeStepKey
+                    setStatuses(prev => ({ ...prev, [key]: 'idle' }))
+                    setProgress(prev => ({ ...prev, [key]: 0 }))
+                    setNotes(prev => ({ ...prev, [key]: undefined }))
+                }
+                setErrText(t('common.operationCancelled'))
+            } else {
+                if (activeStepKey) {
+                    const key = activeStepKey
+                    setStatuses(prev => ({ ...prev, [key]: 'error' }))
+                }
+                setErrText(e?.message || t('common.errorTitle'))
+            }
+        } finally {
+            if (runIdRef.current === runId) setRunning(false)
+        }
+    }
+
+    const cancel = () => {
+        if (!running) return
+        abortRef.current?.abort()
     }
 
     const buttons = useMemo(() => {
@@ -156,7 +192,7 @@ const AddonUploadModal: React.FC<AddonUploadModalProps> = ({ isOpen, onClose, ad
                             <div className={st.rowTextWrap}>
                                 <div className={st.rowLabel}>{step.label}</div>
 
-                                {state === 'running' && (
+                                {(state === 'running' || state === 'done') && (
                                     <div className={st.progress}>
                                         <div className={st.progressFill} style={{ width: `${pct}%` }} />
                                     </div>
