@@ -8,6 +8,7 @@
     padding: 16px;
     background: #1e222fe6;
     backdrop-filter: blur(4px);
+    will-change: opacity;
 }
 
 .modal {
@@ -17,21 +18,25 @@
     align-items: center;
     min-width: 600px;
     max-width: 600px;
-    padding: 20px 35px;
+    padding: 35px;
     gap: 20px;
     position: relative;
-    background: #3b435c;
-    border-radius: 16px;
+    background: #1e2027;
+    border: 1px solid #363944;
+    border-radius: 10px;
     box-shadow:
         0 10px 30px rgba(0, 0, 0, 0.35),
         0 0 0 1px rgba(255, 255, 255, 0.03);
+    will-change: transform, opacity;
+    -webkit-font-smoothing: antialiased;
 }
 
-form {
+.form {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 20px;
+    width: 100%;
 }
 
 .textBlock {
@@ -42,7 +47,7 @@ form {
     font-family: 'Nunito';
     font-style: normal;
     font-weight: 800;
-    font-size: 24px;
+    font-size: 30px;
     line-height: 140%;
     color: #ffffff;
 }
@@ -51,12 +56,19 @@ form {
     margin: 0 0 8px 0;
     color: #ffffff;
     align-self: stretch;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-line;
+    font-size: 18px;
 }
 
 .subText {
     margin: 0;
     color: #ffffff;
     align-self: stretch;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-line;
 }
 
 .input {
@@ -64,9 +76,9 @@ form {
     padding: 12px 14px;
     margin: 4px 0 12px 0;
 
-    border: 1px solid #3f4863;
-    border-radius: 10px;
-    background-color: #2a2f3d;
+    border: 1px solid #363944;
+    border-radius: 8px;
+    background-color: #292c36;
     color: #fff;
     font-size: 16px;
     outline: none;
@@ -80,7 +92,7 @@ form {
 
     &:focus {
         border-color: #6a8dff;
-        box-shadow: 0 0 0 3px rgba(106, 141, 255, 0.25);
+        box-shadow: 0 0 0 3px rgba(106, 141, 255, 0.3);
     }
 }
 .hiddenSubmit {
@@ -94,12 +106,7 @@ form {
 
 .buttonsHorizontal {
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    direction: rtl;
     width: -webkit-fill-available;
-}
-
-.buttonsHorizontal > * {
-    direction: ltr;
 }
 
 .buttonsVertical {
@@ -109,7 +116,8 @@ form {
 
 .btnBase {
     border: 0;
-    border-radius: 9999px;
+    align-items: center;
+    border-radius: 8px;
     font-size: 16px;
     font-weight: 700;
     cursor: pointer;
@@ -119,13 +127,13 @@ form {
         opacity 0.15s ease,
         box-shadow 0.15s ease;
 
-    &:active {
+    &:not(:disabled):active {
         transform: translateY(1px);
     }
 
     &:disabled {
         opacity: 0.6;
-        cursor: not-allowed;
+        cursor: default;
     }
 
     &:focus-visible {
@@ -135,22 +143,30 @@ form {
 }
 
 .btn_primary {
-    background: #ffffff;
-    color: #1e2230;
+    background: #577eff;
+    color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
-        background: #cfdaff;
+    &:not(:disabled):hover {
+        background: #7999ff;
+    }
+
+    &:not(:disabled):active {
+        background: #7999ff;
     }
 }
 
 .btn_secondary {
-    background: #1f2535;
+    background: #454545;
     color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
-        background: #303546;
+    &:not(:disabled):hover {
+        background: #595959;
+    }
+
+    &:not(:disabled):active {
+        background: #595959;
     }
 }
 
@@ -159,7 +175,11 @@ form {
     color: #ffffff;
     box-shadow: inset 0 0 0 1px rgba(30, 34, 47, 0.08);
 
-    &:hover:not(:disabled) {
+    &:not(:disabled):hover {
+        background: #d93939;
+    }
+
+    &:not(:disabled):active {
         background: #d93939;
     }
 }
