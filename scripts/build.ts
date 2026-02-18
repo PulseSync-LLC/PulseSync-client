@@ -19,6 +19,7 @@ const buildApplication = process.argv.includes('--application') || process.argv.
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
+const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -247,7 +248,7 @@ async function main(): Promise<void> {
                     provider: 'generic',
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
-                    updaterCacheDirName: 'pulsesyncapp-updater',
+                    updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
                     useMultipleRangeRequest: true,
                 }
                 const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
@@ -307,7 +308,7 @@ async function main(): Promise<void> {
                     provider: 'generic',
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
-                    updaterCacheDirName: 'pulsesyncapp-updater',
+                    updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
                     useMultipleRangeRequest: true,
                 },
             ]
