@@ -1,4 +1,4 @@
-import React, { ReactNode, useEffect, useMemo, useRef } from 'react'
+import React, { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
 import cn from 'clsx'
 import ReactDOM from 'react-dom'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -17,10 +17,11 @@ export interface ModalButton {
 
 export interface CustomFormikModalPSProps {
     isOpen: boolean
+    allowNoChoice?: boolean
     onClose: () => void
-    title?: string
-    text?: string
-    subText?: string
+    title?: ReactNode
+    text?: ReactNode
+    subText?: ReactNode
     children?: ReactNode
     buttons?: ModalButton[]
     initialInputValue?: string
@@ -30,23 +31,36 @@ export interface CustomFormikModalPSProps {
 
 const backdropVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1, transition: { duration: 0.15 } },
-    exit: { opacity: 0, transition: { duration: 0.15 } },
+    visible: {
+        opacity: 1,
+        transition: { duration: 0.15, ease: 'easeOut' },
+    },
+    exit: {
+        opacity: 0,
+        transition: { duration: 0.15, ease: 'easeIn' },
+    },
 } as const
 
 const modalVariants = {
-    hidden: { opacity: 0, scale: 0.96, y: -12 },
+    hidden: {
+        opacity: 0,
+        y: -8,
+    },
     visible: {
         opacity: 1,
-        scale: 1,
         y: 0,
-        transition: { duration: 0.22, type: 'spring', stiffness: 300, damping: 24 },
+        transition: { duration: 0.2, ease: 'easeOut' },
     },
-    exit: { opacity: 0, scale: 0.96, y: -12, transition: { duration: 0.15 } },
+    exit: {
+        opacity: 0,
+        y: -8,
+        transition: { duration: 0.15, ease: 'easeIn' },
+    },
 } as const
 
 const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
     isOpen,
+    allowNoChoice = true,
     onClose,
     title,
     text,
@@ -57,23 +71,35 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
     onSubmit,
     inputPlaceholder = 'Enter text',
 }) => {
-    if (typeof window === 'undefined') return null
+    if (typeof window === 'undefined' || typeof document === 'undefined') return null
 
     const isVertical = buttons.length > 2
 
     const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
     const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
+    const lastOpenTimeRef = useRef<number>(0)
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
     const inputRef = useRef<HTMLInputElement | null>(null)
+
+    const protectedOnClose = useCallback(() => {
+        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 500) {
+            onClose()
+        }
+    }, [allowNoChoice, buttons.length, onClose])
 
     useEffect(() => {
         if (!isOpen) return
         const onKey = (e: KeyboardEvent) => {
-            if (e.key === 'Escape') onClose()
+            if (e.key === 'Escape') protectedOnClose()
         }
         document.addEventListener('keydown', onKey)
         return () => document.removeEventListener('keydown', onKey)
-    }, [isOpen, onClose])
+    }, [isOpen, protectedOnClose])
+
+    useEffect(() => {
+        if (!isOpen) return
+        lastOpenTimeRef.current = Date.now()
+    }, [isOpen])
 
     useEffect(() => {
         if (!isOpen) return
@@ -90,7 +116,10 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
     const renderButtons = (values: { input: string }) => {
         if (!buttons.length) return null
 
-        const wrapperClass = [styles.buttonsWrapper, isVertical ? styles.buttonsVertical : styles.buttonsHorizontal].join(' ')
+        const wrapperClass = cn(styles.buttonsWrapper, {
+            [styles.buttonsVertical]: isVertical,
+            [styles.buttonsHorizontal]: !isVertical,
+        })
 
         return (
             <div className={wrapperClass}>
@@ -124,7 +153,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                     initial="hidden"
                     animate="visible"
                     exit="exit"
-                    onClick={onClose}
+                    onClick={protectedOnClose}
                     aria-hidden="true"
                 >
                     <motion.div
@@ -142,7 +171,7 @@ const CustomFormikModalPS: React.FC<CustomFormikModalPSProps> = ({
                     >
                         <Formik initialValues={{ input: initialInputValue }} onSubmit={onSubmit}>
                             {({ values }) => (
-                                <Form>
+                                <Form className={styles.form}>
                                     {title && (
                                         <div id={titleId} className={styles.title}>
                                             {title}
