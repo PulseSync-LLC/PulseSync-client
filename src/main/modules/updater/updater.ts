@@ -46,7 +46,7 @@ class Updater {
             logger.updater.log('Checking for update')
         })
 
-        autoUpdater.on(RendererEvents.DOWNLOAD_PROGRESS, (info: ProgressInfo) => {
+        autoUpdater.on('download-progress', (info: ProgressInfo) => {
             this.setProgressBar(info.percent / 100)
             logger.updater.log('Download progress', info.percent)
             this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, info.percent)

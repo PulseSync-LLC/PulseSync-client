@@ -421,6 +421,15 @@ const initializeServer = () => {
             }
         })
 
+        socket.on('IS_PREMIUM_USER', async (args: any) => {
+            logger.http.log('IS_PREMIUM_USER received')
+            if (!authorized) {
+                logger.http.warn('Unauthorized IS_PREMIUM_USER request, ignoring.')
+            } else {
+                mainWindow.webContents.send(RendererEvents.IS_PREMIUM_USER)
+            }
+        })
+
         socket.on('BROWSER_AUTH', (args: any) => {
             logger.http.log('BROWSER_AUTH received:', args)
             handleBrowserAuth(args, socket)
@@ -781,11 +790,26 @@ ipcMain.on(MainEvents.REFRESH_MOD_INFO, () => {
 ipcMain.on(MainEvents.REFRESH_EXTENSIONS, async () => {
     await sendExtensions()
 })
+ipcMain.on(MainEvents.SEND_PREMIUM_USER, (_event, args) => {
+    logger.http.log('SEND_PREMIUM_USER received:', args.ok)
+    if(!args.ok) return
+    io?.sockets.sockets.forEach(client => {
+        const socket = client as any
+        if (socket.clientType === 'yaMusic' && authorized && socket.hasPong) {
+            logger.http.log('Emitting PREMIUM_CHECK_TOKEN')
+            client.emit(RendererEvents.PREMIUM_CHECK_TOKEN, {
+                ok: true,
+                token: args.token,
+                expiresAt: args.expiresAt,
+            })
+        }
+    })
+})
 
 export const get_current_track = () => {
     io?.sockets.sockets.forEach(sock => {
-        const s = sock as any
-        if (s.clientType === 'yaMusic' && authorized && s.hasPong) {
+        const socket = sock as any
+        if (socket.clientType === 'yaMusic' && authorized && socket.hasPong) {
             sock.emit(MainEvents.GET_TRACK_INFO)
         }
     })

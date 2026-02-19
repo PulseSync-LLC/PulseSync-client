@@ -54,7 +54,6 @@
             "disconnected": "Отключение RPC",
             "genericConnectError": "Ошибка подключения",
             "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключен.",
-            "blockedByDrpcV2": "Пока мод подключен, встроенный Discord RPC в PulseSync включить нельзя.",
             "stateRetry": "{{state}} Следующая попытка через несколько секунд.",
             "states": {
                 "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.",

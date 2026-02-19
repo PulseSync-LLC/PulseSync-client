@@ -154,6 +154,8 @@ const Events = {
 
     CLEAR_MOD_CACHE: 'CLEAR_MOD_CACHE',
     FIX_LINUX_MUSIC_PERMISSIONS: 'FIX_LINUX_MUSIC_PERMISSIONS',
+
+    SEND_PREMIUM_USER: 'SEND_PREMIUM_USER',
 } as const
 
 export default Events

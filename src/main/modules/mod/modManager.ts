@@ -136,7 +136,7 @@ export const modManager = (window: BrowserWindow): void => {
                         logger.modManager.info('app.asar hash matches, skipping download')
                         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
                         if (hasUnpacked) {
-                            setProgressPercent(window, PROGRESS_UNPACKED.base)
+                            setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
                         } else {
                             resetProgress(window)
                         }
@@ -145,14 +145,14 @@ export const modManager = (window: BrowserWindow): void => {
                     }
                 } else {
                     if (
-                        !(await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR, asarProgress))
+                        !(await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR, asarProgress, 'app.asar'))
                     ) {
                         return
                     }
                 }
 
                 if (unpackLink) {
-                    setProgressPercent(window, PROGRESS_UNPACKED.base)
+                    setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
 
                     const unpackName = path.basename(new URL(unpackLink).pathname)
                     const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')

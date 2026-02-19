@@ -74,7 +74,7 @@ export async function tryUseCacheOrDownload(
             resetProgress(window)
         }
     }
-    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress)
+    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress, 'app.asar')
 }
 
 export function readChecksum(filePath: string): string | null {
@@ -114,9 +114,9 @@ export async function cleanupModArtifacts(paths: Paths): Promise<void> {
     }
 }
 
-export function setProgressPercent(window: BrowserWindow, progressBase: number): void {
+export function setProgressPercent(window: BrowserWindow, progressBase: number, name: string): void {
     setProgress(window, progressBase)
-    sendProgress(window, Math.round(progressBase * 100))
+    sendProgress(window, Math.round(progressBase * 100), name)
 }
 
 export async function sendSuccessAfterLaunch(

@@ -55,7 +55,6 @@
             "disconnected": "RPC disconnected",
             "genericConnectError": "Connection error",
             "disabledByDrpcV2": "The mod now supports Discord RPC on its own. PulseSync built-in RPC has been disabled.",
-            "blockedByDrpcV2": "Built-in Discord RPC in PulseSync cannot be enabled while the mod is connected.",
             "stateRetry": "{{state}} Next retry in a few seconds.",
             "states": {
                 "administrator": "Discord appears to be running as administrator. Please run PulseSync as administrator.",

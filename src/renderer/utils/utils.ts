@@ -6,11 +6,11 @@ import { t } from '../i18n'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch(`${config.SERVER_URL}`, {
+        const response = await fetch(`${config.SERVER_URL}/api/v2/health`, {
             method: 'GET',
             cache: 'no-store',
         })
-        return response.ok
+        return response.status === 200
     } catch (error) {
         console.error(t('utils.internetCheckError'), error)
         return false
