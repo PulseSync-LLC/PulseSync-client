@@ -22,8 +22,8 @@ export function resetProgress(window: BrowserWindow | null | undefined) {
     setProgress(window, -1)
 }
 
-export function sendProgress(window: BrowserWindow | null | undefined, progress: number) {
-    sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, { progress })
+export function sendProgress(window: BrowserWindow | null | undefined, progress: number, name: string) {
+    sendToRenderer(window, RendererEvents.DOWNLOAD_PROGRESS, { progress, name })
 }
 
 export function sendFailure(
@@ -61,8 +61,9 @@ export async function downloadToTempWithProgress(args: {
     progressBase?: number
     userAgent: string
     rejectUnauthorized?: boolean
+    name: string
 }): Promise<{ totalBytes: number; computedHash?: string }> {
-    const { window, url, tempFilePath, expectedChecksum, progressScale = 0.6, progressBase = 0, userAgent, rejectUnauthorized = true } = args
+    const { window, url, tempFilePath, expectedChecksum, progressScale = 0.6, progressBase = 0, userAgent, rejectUnauthorized = true, name } = args
 
     const headers: Record<string, string> = {
         'User-Agent': userAgent,
@@ -85,7 +86,7 @@ export async function downloadToTempWithProgress(args: {
                 const scaled = Math.min(frac * progressScale, progressScale)
                 const combined = Math.min(progressBase + scaled, progressBase + progressScale)
                 setProgress(window, combined)
-                sendProgress(window, Math.round(Math.min(progressBase + Math.min(frac, 1) * progressScale, 1) * 100))
+                sendProgress(window, Math.round(Math.min(progressBase + Math.min(frac, 1) * progressScale, 1) * 100), name)
             }
             if (hasher) hasher.update(chunk)
             this.push(chunk)

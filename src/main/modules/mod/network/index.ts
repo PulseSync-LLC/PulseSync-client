@@ -69,6 +69,7 @@ export async function downloadAndUpdateFile(
     checksum?: string,
     cacheDir?: string,
     progress?: DownloadProgress,
+    name?: string
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
@@ -94,6 +95,7 @@ export async function downloadAndUpdateFile(
             progressScale: progress?.scale ?? 1,
             progressBase: progress?.base ?? 0,
             rejectUnauthorized: false,
+            name
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)
@@ -214,6 +216,7 @@ export async function downloadAndExtractUnpacked(
                 progressBase: progress?.base ?? 0,
                 rejectUnauthorized: false,
                 expectedChecksum: checksum,
+                name: 'app.asar.unpacked'
             })
 
             rawArchive = fs.readFileSync(tempArchivePath)

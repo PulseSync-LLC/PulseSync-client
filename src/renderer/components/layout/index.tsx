@@ -74,12 +74,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
-        const handleProgress = (_: any, { progress }: { progress: number }) => {
+        const handleProgress = (_: any, { progress, name }: { progress: number, name: string }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'loading',
                     title: t('layout.downloadProgressLabel'),
-                    msg: t('layout.downloading'),
+                    msg: t('layout.downloading', { name }),
                     value: progress,
                 })
             } else {

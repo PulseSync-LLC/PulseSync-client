@@ -460,7 +460,7 @@ export const setRpcStatus = (status: boolean) => {
         State.set('discordRpc.status', false)
         mainWindow?.webContents?.send(RendererEvents.DISCORD_RPC_STATE, false)
         mainWindow?.webContents?.send(RendererEvents.RPC_LOG, {
-            message: t('main.discordRpc.blockedByDrpcV2'),
+            message: t('main.discordRpc.disabledByDrpcV2'),
             type: 'warn',
         })
         return

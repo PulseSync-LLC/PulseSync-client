@@ -526,8 +526,8 @@
     },
     "layout": {
         "downloadProgress": "Прогресс загрузки: {{progress}}%",
-        "downloadProgressLabel": "Прогресс загрузки",
-        "downloading": "Загружаю",
+        "downloadProgressLabel": "Установка мода",
+        "downloading": "Загружаю {{name}}...",
         "errorOccurred": "Произошла ошибка",
         "errorWithMessage": "Ошибка: {{message}}",
         "forceInstallAction": "Все равно установить",

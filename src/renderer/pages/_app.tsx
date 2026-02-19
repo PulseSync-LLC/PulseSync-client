@@ -728,6 +728,24 @@ function App() {
             window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
         }
 
+        const premiumUserCheck = async () => {
+            const response = await fetch(`${config.SERVER_URL}/user/subscription/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${getUserToken()}`,
+                }
+            })
+            const data = await response.json()
+            if(data.ok) {
+                window.desktopEvents?.send(MainEvents.SEND_PREMIUM_USER, {
+                    ok: true,
+                    token: data.token,
+                    expiresAt: data.expiresAt,
+                })
+            }
+        }
+
         const handleCheckUpdate = (_event: any, data: any) => {
             const isManualCheck = !!data?.manual
             if (isManualCheck && !toastReference.current) {
@@ -795,6 +813,7 @@ function App() {
         window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
         window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
         window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
+        window.desktopEvents?.on(RendererEvents.IS_PREMIUM_USER, premiumUserCheck)
 
         window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
             setApp(prevSettings => ({
