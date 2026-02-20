@@ -22,7 +22,7 @@
                 display: flex;
                 align-items: center;
                 -webkit-app-region: no-drag;
-                cursor: not-allowed;
+                cursor: default;
             }
 
             .settingsButton {
@@ -42,7 +42,7 @@
                 &:disabled {
                     opacity: 0.5;
                     background: transparent;
-                    cursor: not-allowed;
+                    cursor: default;
                     pointer-events: none;
 
                     &:hover {
@@ -599,7 +599,7 @@
 
                             &:disabled {
                                 opacity: 0.2;
-                                cursor: not-allowed;
+                                cursor: default;
 
                                 &:hover {
                                     background: transparent;

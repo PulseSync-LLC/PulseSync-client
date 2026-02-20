@@ -246,7 +246,7 @@
 
     &:disabled {
         opacity: 0.3;
-        cursor: not-allowed;
+        cursor: default;
 
         &:hover {
             background: rgba(255, 255, 255, 0.08);
