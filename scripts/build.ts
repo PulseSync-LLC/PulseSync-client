@@ -171,15 +171,6 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
-function applyConfigFromEnv() {
-    const configSource = process.env.APP_CONFIG
-    if (configSource) {
-        const appConfigPath = path.resolve(__dirname, '../src/common/appConfig.ts')
-        fs.writeFileSync(appConfigPath, configSource, 'utf-8')
-        log(LogLevel.SUCCESS, `Wrote ${appConfigPath}`)
-    }
-}
-
 function ensureNodeHeapForMac(): void {
     if (os.platform() !== 'darwin') return
     const currentOptions = process.env.NODE_OPTIONS ?? ''
@@ -219,8 +210,6 @@ async function main(): Promise<void> {
         return
     }
     ensureNodeHeapForMac()
-    log(LogLevel.INFO, `APP_CONFIG length: ${process.env.APP_CONFIG?.length}`)
-    applyConfigFromEnv()
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
