@@ -60,6 +60,11 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                 },
             },
         },
+        css: {
+            modules: {
+                generateScopedName: isDevMode ? '[name]__[local]' : '[hash:base64:8]',
+            },
+        },
         plugins: [
             nodePolyfills(),
             svgr({
