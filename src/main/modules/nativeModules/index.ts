@@ -1,19 +1,11 @@
 import isAppDev from 'electron-is-dev'
 import path from 'path'
 import fs from 'fs'
-import { isWindows } from '../../utils/appUtils'
 import logger from '../logger'
 import { app } from 'electron'
 import { sendAddon } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
-
-interface CheckAccessAddon {
-    isDiscordRunning(): boolean
-    isAnyDiscordElevated(): boolean
-    isProcessRunning(target: string): boolean
-    isProcessElevated(target: string): boolean
-}
 
 interface FileOperationsAddon {
     watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
@@ -25,13 +17,11 @@ interface FileOperationsAddon {
 }
 
 interface NativeModules {
-    checkAccess?: CheckAccessAddon
     fileOperations?: FileOperationsAddon
     [addonName: string]: any
 }
 
 const loadNativeModules = (): NativeModules => {
-    const loadCheckAccess = isWindows()
     const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
 
     logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
@@ -48,11 +38,6 @@ const loadNativeModules = (): NativeModules => {
                 const relative = path.relative(baseDir, fullPath)
                 const parts = relative.split(path.sep)
                 const addonName = parts[0]
-
-                if (addonName === 'checkAccess' && !loadCheckAccess) {
-                    logger.nativeModuleManager.info(`Skipping native module '${addonName}' on non-Windows.`)
-                    return
-                }
 
                 logger.nativeModuleManager.info(`Native module found: ${relative}`)
                 try {
@@ -71,7 +56,7 @@ const loadNativeModules = (): NativeModules => {
         logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
     }
 
-    if (loadCheckAccess && Object.keys(modules).length === 0) {
+    if (Object.keys(modules).length === 0) {
         logger.nativeModuleManager.warn('No native modules available.')
     }
 
@@ -79,62 +64,6 @@ const loadNativeModules = (): NativeModules => {
 }
 
 const nativeModules = loadNativeModules()
-
-export const isDiscordRunning = (): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('checkAccess addon not loaded. isDiscordRunning will return false.')
-        return false
-    }
-    try {
-        return addon.isDiscordRunning()
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error in isDiscordRunning: ${err}`)
-        return false
-    }
-}
-
-export const isAnyDiscordElevated = (): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('checkAccess addon not loaded. isAnyDiscordElevated will return false.')
-        return false
-    }
-    try {
-        return addon.isAnyDiscordElevated()
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error in isAnyDiscordElevated: ${err}`)
-        return false
-    }
-}
-
-export const isProcessElevated = (name: string): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('checkAccess addon not loaded. isProcessElevated will return false.')
-        return false
-    }
-    try {
-        return addon.isProcessElevated(name)
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error checking process elevation: ${err}`)
-        return false
-    }
-}
-
-export const isProcessRunning = (name: string): boolean => {
-    const addon = nativeModules['checkAccess'] as CheckAccessAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('checkAccess addon not loaded. isProcessRunning will return false.')
-        return false
-    }
-    try {
-        return addon.isProcessRunning(name)
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error checking process running: ${err}`)
-        return false
-    }
-}
 
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
     const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined

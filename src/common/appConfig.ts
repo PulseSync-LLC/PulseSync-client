@@ -7,10 +7,6 @@ const MAIN_PORT = 2007
 
 const config = {
     PORT,
-    CLIENT_ID: '1270726237605855395',
-    ENG_CLIENT_ID: '1270726237605855395',
-    RU_CLIENT_ID: '1290778445370097674',
-    RESERVE_CLIENT_ID: '1256145977056821248',
     UPDATE_URL: 'https://s3.pulsesync.dev',
     SERVER_URL: isDev ? 'http://localhost:4000' : 'https://ru-node-1.pulsesync.dev',
     WEBSITE_URL: isDev ? 'http://localhost:3100' : 'https://pulsesync.dev',

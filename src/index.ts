@@ -119,7 +119,6 @@ app.on('ready', async () => {
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
-        ipcMain.emit(MainEvents.DISCORDRPC_CLEARSTATE)
         app.quit()
     }
 })
@@ -441,9 +440,6 @@ export async function prestartCheck() {
         asarBackup = path.join(musicPath, asarFilename)
     }
 
-    if (!State.get('discordRpc.appId')) {
-        State.set('discordRpc.appId', '')
-    }
     if (!State.get('settings.closeAppInTray')) {
         State.set('settings.closeAppInTray', true)
     }

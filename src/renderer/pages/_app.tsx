@@ -9,7 +9,6 @@ import RendererEvents from '../../common/types/rendererEvents'
 import Dev from './dev'
 import AuthPage from './auth'
 import CallbackPage from './auth/callback'
-import TrackInfoPage from './trackinfo'
 import UsersPage from './users'
 import ExtensionPage from './extension'
 import JointPage from './joint'
@@ -47,7 +46,6 @@ import GetModQuery from '../api/queries/getMod.query'
 import { Track } from '../api/interfaces/track.interface'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import ProfilePage from './profile/[username]'
-import { buildDiscordActivity } from '../utils/formatRpc'
 import { useTranslation } from 'react-i18next'
 import OutgoingGatewayEvents from '../api/socket/enums/outgoingGatewayEvents'
 import type { AppProvidersProps, GetMeData, GetMeVars, PlayerProps } from './_app.types'
@@ -229,14 +227,6 @@ function App() {
                     element: (
                         <ErrorBoundary>
                             <UsersPage />
-                        </ErrorBoundary>
-                    ),
-                },
-                {
-                    path: '/trackinfo',
-                    element: (
-                        <ErrorBoundary>
-                            <TrackInfoPage />
                         </ErrorBoundary>
                     ),
                 },
@@ -516,23 +506,17 @@ function App() {
             }
         }
 
-        const handleBeforeunload = (_event: BeforeUnloadEvent) => {
-            window.desktopEvents?.send(MainEvents.DISCORDRPC_RESET_ACTIVITY)
-        }
-
         const handleAuthStatus = async () => {
             await authorize()
         }
 
         window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
         window.addEventListener('mouseup', handleMouseButton)
-        window.addEventListener('beforeunload', handleBeforeunload)
 
         return () => {
             clearInterval(intervalId)
             window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
             window.removeEventListener('mouseup', handleMouseButton)
-            window.removeEventListener('beforeunload', handleBeforeunload)
         }
     }, [authorize, user.id])
 
@@ -692,39 +676,9 @@ function App() {
         }
     }, [navigateTo, navigateState, router])
 
-    const onRpcLog = useCallback(
-        (_: any, data: any) => {
-            switch (data.type) {
-                case 'error':
-                    toast.custom('error', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
-                    break
-                case 'success':
-                    toast.custom('success', t('common.discordRpc'), t('rpc.message', { message: data.message }), null, null, 15000)
-                    break
-                case 'info':
-                    toast.custom('info', t('common.discordRpc'), t('rpc.message', { message: data.message }))
-                    break
-                case 'warn':
-                    toast.custom('warning', t('common.discordRpc'), t('rpc.message', { message: data.message }))
-                    break
-            }
-        },
-        [t],
-    )
-
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         if (!window.desktopEvents) return
-
-        const handleRpcState = (_event: any, data: any) => {
-            setApp(prevSettings => ({
-                ...prevSettings,
-                discordRpc: {
-                    ...prevSettings.discordRpc,
-                    status: data,
-                },
-            }))
-        }
 
         const handleModUpdateCheck = async (_event: any, data?: { manual?: boolean }) => {
             await fetchModInfo(appRef.current, { manual: !!data?.manual })
@@ -816,10 +770,8 @@ function App() {
             setUpdate(true)
         }
 
-        window.desktopEvents?.on(RendererEvents.DISCORD_RPC_STATE, handleRpcState)
         window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
         window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
-        window.desktopEvents?.on(RendererEvents.RPC_LOG, onRpcLog)
         window.desktopEvents?.on(RendererEvents.IS_PREMIUM_USER, premiumUserCheck)
 
         window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
@@ -845,8 +797,6 @@ function App() {
 
         return () => {
             const cleanupEvents = [
-                RendererEvents.RPC_LOG,
-                RendererEvents.DISCORD_RPC_STATE,
                 RendererEvents.CHECK_MOD_UPDATE,
                 RendererEvents.CLIENT_READY,
                 RendererEvents.DOWNLOAD_UPDATE_PROGRESS,
@@ -860,7 +810,7 @@ function App() {
                 window.desktopEvents?.removeAllListeners(event)
             })
         }
-    }, [fetchModInfo, onRpcLog])
+    }, [fetchModInfo])
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
@@ -1039,21 +989,10 @@ function AppProviders({
 }
 
 const Player: React.FC<PlayerProps> = ({ children }) => {
-    const { user, app, socket, features, emitGateway } = useContext(UserContext)
+    const { user, socket, features, emitGateway } = useContext(UserContext)
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
-
-    const lastValidActivityRef = useRef<ReturnType<typeof buildDiscordActivity>>(null)
-    const lastValidActivityAtRef = useRef(0)
-
-    const rpcClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-    const rpcStatusLostAtRef = useRef<number | null>(null)
-    const rpcClearDebounceMs = 10000 // 10s
-
-    const holdLastActivityMs = 30000 // 30s
-
-    const refreshGraceMs = 15000
 
     const handleSendTrackPlayedEnough = useCallback(
         (_event: any, data: any) => {
@@ -1074,12 +1013,7 @@ const Player: React.FC<PlayerProps> = ({ children }) => {
     }, [])
 
     useEffect(() => {
-        if (user.id === '-1') {
-            if ((window as any)?.discordRpc?.clearActivity) {
-                ;(window as any).discordRpc.clearActivity()
-            }
-            return
-        }
+        if (user.id === '-1') return
         if (typeof window === 'undefined' || !(window as any).desktopEvents) return
 
         const de = (window as any).desktopEvents
@@ -1096,87 +1030,6 @@ const Player: React.FC<PlayerProps> = ({ children }) => {
         if (user.id !== '-1') return
         setTrack(trackInitials)
     }, [user.id])
-
-    useEffect(() => {
-        if (user.id === '-1') return
-
-        const rpcEnabled = !!app?.discordRpc?.status
-
-        if (rpcEnabled) {
-            rpcStatusLostAtRef.current = null
-            if (rpcClearTimerRef.current) {
-                clearTimeout(rpcClearTimerRef.current)
-                rpcClearTimerRef.current = null
-            }
-            return
-        }
-
-        if (!rpcStatusLostAtRef.current) {
-            rpcStatusLostAtRef.current = Date.now()
-        }
-        if (!rpcClearTimerRef.current) {
-            rpcClearTimerRef.current = setTimeout(() => {
-                rpcClearTimerRef.current = null
-                if (!app?.discordRpc?.status && (window as any)?.discordRpc?.clearActivity) {
-                    ;(window as any).discordRpc.clearActivity()
-                }
-            }, rpcClearDebounceMs)
-        }
-
-        return () => {
-            if (rpcClearTimerRef.current) {
-                clearTimeout(rpcClearTimerRef.current)
-                rpcClearTimerRef.current = null
-            }
-        }
-    }, [app?.discordRpc?.status, user.id])
-
-    useEffect(() => {
-        if (user.id === '-1') {
-            if ((window as any)?.discordRpc?.clearActivity) {
-                ;(window as any).discordRpc.clearActivity()
-            }
-            return
-        }
-
-        if (!app.discordRpc.status) {
-            return
-        }
-
-        const activity = buildDiscordActivity(track, app, user)
-
-        if (!activity) {
-            if (track.status === 'paused' && !app.discordRpc.displayPause) {
-                if ((window as any)?.discordRpc?.clearActivity) {
-                    ;(window as any).discordRpc.clearActivity()
-                }
-                lastValidActivityRef.current = null
-                lastValidActivityAtRef.current = 0
-                return
-            }
-            const isRefreshTrack = track.realId === trackInitials.realId
-            const now = Date.now()
-
-            if (isRefreshTrack && lastValidActivityRef.current && now - lastValidActivityAtRef.current < refreshGraceMs) {
-                return
-            }
-
-            if (lastValidActivityRef.current && now - lastValidActivityAtRef.current < holdLastActivityMs) {
-                return
-            }
-
-            // if ((window as any)?.discordRpc?.clearActivity) {
-            //     ;(window as any).discordRpc.clearActivity()
-            // }
-            return
-        }
-
-        lastValidActivityRef.current = activity
-        lastValidActivityAtRef.current = Date.now()
-        // if ((window as any)?.discordRpc?.setActivity) {
-        //     ;(window as any).discordRpc.setActivity(activity)
-        // }
-    }, [app, user.id, track, user])
 
     useEffect(() => {
         if (!socket || !features.sendTrack) return

@@ -31,24 +31,6 @@ const settingsInitials: SettingsInterface = {
     tokens: {
         token: '',
     },
-    discordRpc: {
-        appId: '',
-        lockedByDrpcV2: false,
-        displayPause: false,
-        enableRpcButtonListen: false,
-        enableWebsiteButton: true,
-        enableDeepLink: false,
-        showVersionOrDevice: false,
-        showSmallIcon: true,
-        showTrackVersion: false,
-        supporterHideBranding: false,
-        statusLanguage: 'en',
-        statusDisplayType: 1,
-        status: true,
-        details: '',
-        state: '',
-        button: '',
-    },
 }
 
 export default settingsInitials

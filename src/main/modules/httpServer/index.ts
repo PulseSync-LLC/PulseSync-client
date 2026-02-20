@@ -13,8 +13,6 @@ import config from '@common/appConfig'
 import { getState } from '../state'
 import axios from 'axios'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { setRpcStatus } from '../discordRpc'
-import { t } from '../../i18n'
 import { registerSocketClientEvents } from './events/registerSocketClientEvents'
 import { registerServerIpcEvents } from './events/registerServerIpcEvents'
 import { createHttpRequestHandler } from './httpRequestHandler'
@@ -26,8 +24,6 @@ let io: IOServer | null = null
 let attempt = 0
 let isStarting = false
 const State = getState()
-let drpcV2SupportedSocketId: string | null = null
-State.set('discordRpc.lockedByDrpcV2', false)
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 
@@ -47,10 +43,6 @@ const closeServer = async (): Promise<void> => {
         if (oldIO) {
             oldIO.close()
             io = null
-        }
-        if (drpcV2SupportedSocketId !== null) {
-            drpcV2SupportedSocketId = null
-            State.set('discordRpc.lockedByDrpcV2', false)
         }
         if (oldServer) {
             oldServer.close(() => {
@@ -89,17 +81,11 @@ const initializeServer = () => {
             state: State,
             logger,
             mainWindow,
-            t,
-            setRpcStatus,
             getAuthorized: () => authorized,
             getTrackData: () => data,
             sendDataToMusic: addonService.sendDataToMusic,
             updateData,
             handleBrowserAuth,
-            getDrpcV2SupportedSocketId: () => drpcV2SupportedSocketId,
-            setDrpcV2SupportedSocketId: id => {
-                drpcV2SupportedSocketId = id
-            },
         })
     })
 

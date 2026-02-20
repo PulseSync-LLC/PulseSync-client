@@ -6,7 +6,7 @@ import IncomingGatewayEvents from '../../socket/enums/incomingGatewayEvents'
 import { parseGatewayFrame } from '../../socket/realtimeSocket'
 import { applySubscriptionUpdate, applyUserUpdate, SubscriptionUpdatePayload, UserUpdatePayload } from '../../socket/realtimeUserEvents'
 import type UserInterface from '../../interfaces/user.interface'
-import { clearDiscordRpcActivity, getGatewayErrorMessage } from './utils'
+import { getGatewayErrorMessage } from './utils'
 import RendererEvents from '@common/types/rendererEvents'
 import { Modals } from '../modal/modals'
 
@@ -70,7 +70,6 @@ export function createGatewayHandler({
                 setSocket(null)
                 setSocketConnected(false)
                 resetSocketFailures()
-                clearDiscordRpcActivity()
                 await onLogout()
                 break
             case IncomingGatewayEvents.USER_UPDATE:

@@ -1,5 +1,4 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import { DesktopEvents } from './src/main/mainWindowPreload'
 import { Track } from './src/renderer/api/interfaces/track.interface'
 
@@ -41,11 +40,6 @@ declare global {
         }
         refreshAddons: () => void
         getModInfo: (args?: any) => void
-        discordRpc: {
-            discordRpc: (val: boolean) => void
-            setActivity: (props: SetActivity) => void
-            clearActivity: () => void
-        }
         desktopEvents: DesktopEvents
         appInfo: {
             getBranch: () => string

@@ -26,15 +26,11 @@ interface RegisterSocketClientEventsOptions {
     state: StateLike
     logger: LoggerLike
     mainWindow: MainWindowLike
-    t: (key: string) => string
-    setRpcStatus: (status: boolean) => void
     getAuthorized: () => boolean
     getTrackData: () => Track
     sendDataToMusic: (options?: { targetSocket?: Socket }) => void
     updateData: (newData: any) => void
     handleBrowserAuth: (payload: any, client: Socket) => void
-    getDrpcV2SupportedSocketId: () => string | null
-    setDrpcV2SupportedSocketId: (id: string | null) => void
 }
 
 export const registerSocketClientEvents = ({
@@ -42,15 +38,11 @@ export const registerSocketClientEvents = ({
     state,
     logger,
     mainWindow,
-    t,
-    setRpcStatus,
     getAuthorized,
     getTrackData,
     sendDataToMusic,
     updateData,
     handleBrowserAuth,
-    getDrpcV2SupportedSocketId,
-    setDrpcV2SupportedSocketId,
 }: RegisterSocketClientEventsOptions) => {
     const version = (socket.handshake.query.v as string) || state.get('mod.version')
     const clientType = (socket.handshake.query.type as string) || 'yaMusic'
@@ -68,23 +60,6 @@ export const registerSocketClientEvents = ({
         ;(socket as any).hasPong = true
         if (getAuthorized()) {
             sendDataToMusic({ targetSocket: socket })
-        }
-    })
-
-    socket.on('IS_DRPCV2_SUPPORTED', () => {
-        logger.http.log('IS_DRPCV2_SUPPORTED received, responding with support status.')
-        socket.emit('DRPCV2_SUPPORTED')
-
-        setDrpcV2SupportedSocketId(socket.id)
-        state.set('discordRpc.lockedByDrpcV2', true)
-
-        if (state.get('discordRpc.status')) {
-            logger.http.log('DRPCV2 is supported by client, disabling built-in Discord RPC.')
-            mainWindow.webContents.send(RendererEvents.RPC_LOG, {
-                message: t('main.discordRpc.disabledByDrpcV2'),
-                type: 'info',
-            })
-            setRpcStatus(false)
         }
     })
 
@@ -127,10 +102,6 @@ export const registerSocketClientEvents = ({
 
     socket.on('disconnect', () => {
         logger.http.log('Client disconnected')
-        if (getDrpcV2SupportedSocketId() === socket.id) {
-            setDrpcV2SupportedSocketId(null)
-            state.set('discordRpc.lockedByDrpcV2', false)
-        }
         mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
             type: 'refresh',
         })
