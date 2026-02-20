@@ -68,6 +68,17 @@ function generateBuildInfo(): { version: string } {
     const raw = fs.readFileSync(pkgPath, 'utf-8')
     const pkg = JSON.parse(raw) as { version: string; buildInfo?: any; [key: string]: any }
 
+    const buildVersionRaw = process.env.BUILD_VERSION?.trim()
+    if (buildVersionRaw) {
+        const normalizedVersion = buildVersionRaw.replace(/^v(?=\d)/u, '')
+        if (!/^[0-9A-Za-z][0-9A-Za-z.+-]*$/u.test(normalizedVersion)) {
+            log(LogLevel.ERROR, `Invalid BUILD_VERSION value: ${buildVersionRaw}`)
+            process.exit(1)
+        }
+        pkg.version = normalizedVersion
+        log(LogLevel.SUCCESS, `Overrode package version from BUILD_VERSION=${normalizedVersion}`)
+    }
+
     let branchHash = 'unknown'
     try {
         branchHash = execSync('git rev-parse --short HEAD', { cwd: process.cwd() }).toString().trim()
@@ -75,17 +86,18 @@ function generateBuildInfo(): { version: string } {
         log(LogLevel.WARN, 'Failed to get Git hash')
     }
 
+    const currentVersion = pkg.version
+    let newVersion = currentVersion
+    if (publishBranch) {
+        const baseVersion = currentVersion.split('-')[0]
+        newVersion = `${baseVersion}-${publishBranch}`
+        pkg.version = newVersion
+    }
+
     pkg.buildInfo = {
         VERSION: pkg.version,
         BRANCH: branchHash,
         BUILD_TIME: new Date().toLocaleString(),
-    }
-
-    let baseVersion = pkg.version.split('-')[0]
-    let newVersion = baseVersion
-    if (publishBranch) {
-        newVersion = `${baseVersion}-${publishBranch}`
-        pkg.version = newVersion
     }
 
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 4), 'utf-8')
