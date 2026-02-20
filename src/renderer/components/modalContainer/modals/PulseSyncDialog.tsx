@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import MainEvents from '../../../../common/types/mainEvents'
 import RendererEvents from '../../../../common/types/rendererEvents'
+import { useModalContext } from '../../../api/context/modal'
 import toast from '../../toast'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +10,7 @@ type PulseSyncAddResult = { ok: true; message: string } | { ok: false; message: 
 
 const PulseSyncDialog: React.FC = () => {
     const { t } = useTranslation()
-    const [showDialog, setShowDialog] = useState(false)
+    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const [dialogPath, setDialogPath] = useState<string | null>(null)
     const [isAdding, setIsAdding] = useState(false)
 
@@ -17,7 +18,7 @@ const PulseSyncDialog: React.FC = () => {
         const handleShowDialog = (_: any, data: { listGeneralPath?: string }) => {
             if (data?.listGeneralPath) {
                 setDialogPath(data.listGeneralPath)
-                setShowDialog(true)
+                openModal(Modals.PULSE_SYNC_DIALOG)
                 setIsAdding(false)
             }
         }
@@ -28,15 +29,17 @@ const PulseSyncDialog: React.FC = () => {
             ;(window as any).__pendingPulseSyncData = null
         }
 
-        window.desktopEvents?.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, handleShowDialog)
+        const unsubscribe = window.desktopEvents?.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, handleShowDialog)
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG)
+            if (typeof unsubscribe === 'function') {
+                unsubscribe()
+            }
         }
-    }, [])
+    }, [Modals.PULSE_SYNC_DIALOG, openModal])
 
     const handleClose = () => {
-        setShowDialog(false)
+        closeModal(Modals.PULSE_SYNC_DIALOG)
         setIsAdding(false)
         setDialogPath(null)
         window.desktopEvents?.send(MainEvents.PULSESYNC_DISMISS as any)
@@ -71,7 +74,7 @@ const PulseSyncDialog: React.FC = () => {
             })
         } finally {
             setIsAdding(false)
-            setShowDialog(false)
+            closeModal(Modals.PULSE_SYNC_DIALOG)
             setDialogPath(null)
         }
     }
@@ -86,7 +89,7 @@ const PulseSyncDialog: React.FC = () => {
 
     return (
         <CustomModalPS
-            isOpen={showDialog}
+            isOpen={isModalOpen(Modals.PULSE_SYNC_DIALOG)}
             onClose={handleClose}
             title={t('modals.pulseSync.title')}
             text={text}

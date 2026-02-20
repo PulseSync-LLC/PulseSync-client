@@ -2,8 +2,8 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
+import config from '@common/appConfig'
 
-const boostyUrl = 'https://boosty.to/evt/purchase/2634425'
 const PremiumPromoModal: React.FC = () => {
     const { t } = useTranslation()
     const { Modals, closeModal, isModalOpen } = useModalContext()
@@ -13,7 +13,7 @@ const PremiumPromoModal: React.FC = () => {
     }
 
     const openBoosty = () => {
-        window.open(boostyUrl)
+        window.open(config.BOOSTY_PURCHASE_URL)
     }
 
     return (
