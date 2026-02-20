@@ -15,7 +15,6 @@ import {
 } from 'react-icons/md'
 import Header from './header'
 import NavButtonPulse from '../PSUI/NavButton'
-import DiscordIcon from '../../assets/icons/discord.svg'
 import Preloader from '../preloader'
 import userContext from '../../api/context/user'
 import SettingsInterface from '../../api/interfaces/settings.interface'
@@ -401,9 +400,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/trackinfo" text={t('layout.nav.trackInfo')} disabled={!features?.trackInfo}>
-                                <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!features?.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />

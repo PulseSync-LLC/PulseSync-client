@@ -9,7 +9,6 @@ import { v4 } from 'uuid'
 import { musicPath, readBufResilient, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
-import { rpc_connect, rpcConnected, updateAppId } from '../modules/discordRpc'
 import AdmZip from 'adm-zip'
 import isAppDev from 'electron-is-dev'
 import { execFile } from 'child_process'
@@ -552,7 +551,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
+const registerLoggingEvents = (window: BrowserWindow): void => {
     const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
         const text = payload?.text ?? payload?.message ?? ''
         const details: string[] = []
@@ -564,36 +563,7 @@ const registerDiscordAndLoggingEvents = (window: BrowserWindow): void => {
         return `[${prefix}] ${text}${detailText}`.trim()
     }
 
-    ipcMain.on(MainEvents.UPDATE_RPC_SETTINGS, async (_event, data: any) => {
-        switch (Object.keys(data)[0]) {
-            case 'appId':
-                updateAppId(data.appId)
-                break
-            case 'details':
-                State.set('discordRpc.details', data.details)
-                break
-            case 'state':
-                State.set('discordRpc.state', data.state)
-                break
-            case 'button':
-                State.set('discordRpc.button', data.button)
-                break
-            case 'statusDisplayType':
-                State.set('discordRpc.statusDisplayType', data.statusDisplayType)
-                break
-            case 'statusLanguage': {
-                State.set('discordRpc.statusLanguage', data.statusLanguage)
-                const currentAppId = String(State.get('discordRpc.appId') || '')
-                updateAppId(currentAppId)
-                break
-            }
-        }
-    })
-
-    ipcMain.on(MainEvents.AUTH_STATUS, async (_event, data: any) => {
-        if (data?.status && State.get('discordRpc.status') && rpcConnected) {
-            await rpc_connect()
-        }
+    ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
         tryOpenPendingAddon()
     })
@@ -850,7 +820,7 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerMediaEvents(window)
     registerDeviceEvents(window)
     registerUpdateEvents(window)
-    registerDiscordAndLoggingEvents(window)
+    registerLoggingEvents(window)
     registerNotificationEvents(window)
     registerLogArchiveEvent(window)
     registerSleepModeEvent(window)

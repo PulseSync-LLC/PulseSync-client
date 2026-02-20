@@ -65,10 +65,6 @@ log4js.configure({
             maxLogSize: 1024 * 1024 * 20,
             backups: 3,
         },
-        discordRpc: {
-            type: 'file',
-            filename: path.join(LOG_PATH, 'discordRpc.log'),
-        },
         error: {
             type: 'logLevelFilter',
             level: 'error',
@@ -108,10 +104,6 @@ log4js.configure({
             appenders: ['out', 'updaterLog'],
             level: 'debug',
         },
-        discordRpc: {
-            appenders: ['out', 'discordRpc'],
-            level: 'debug',
-        },
         default: {
             appenders: ['out', 'alldateFileLog'],
             level: 'debug',
@@ -127,5 +119,4 @@ export default {
     nativeModuleManager: log4js.getLogger('nativeModuleManager'),
     updater: log4js.getLogger('updater'),
     renderer: log4js.getLogger('renderer'),
-    discordRpc: log4js.getLogger('discordRpc'),
 }

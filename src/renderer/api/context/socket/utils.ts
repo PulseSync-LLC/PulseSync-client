@@ -24,12 +24,6 @@ export function buildRealtimeSocketAuth(appVersion: string): RealtimeSocketAuth 
     }
 }
 
-export function clearDiscordRpcActivity() {
-    if ((window as any)?.discordRpc?.clearActivity) {
-        ;(window as any).discordRpc.clearActivity()
-    }
-}
-
 export function getGatewayErrorMessage(payload: unknown): string | null {
     if (!payload || typeof payload !== 'object') return null
     const value = (payload as { message?: unknown }).message

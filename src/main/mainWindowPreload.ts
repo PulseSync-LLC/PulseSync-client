@@ -1,5 +1,4 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import { SetActivity } from '@xhayper/discord-rpc/dist/structures/ClientUser'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
 import RendererEvents from '../common/types/rendererEvents'
@@ -67,17 +66,6 @@ contextBridge.exposeInMainWorld('electron', {
 contextBridge.exposeInMainWorld('appInfo', {
     getBranch: () => ipcRenderer.sendSync(MainEvents.GET_LAST_BRANCH),
     getVersion: () => packageJson.version,
-})
-contextBridge.exposeInMainWorld('discordRpc', {
-    async setActivity(presence: SetActivity) {
-        ipcRenderer.send(MainEvents.DISCORDRPC_SETSTATE, presence)
-    },
-    async clearActivity() {
-        ipcRenderer.send(MainEvents.DISCORDRPC_CLEARSTATE)
-    },
-    async discordRpc(val: boolean) {
-        ipcRenderer.send(MainEvents.DISCORDRPC_DISCORDRPC, val)
-    },
 })
 const desktopEvents: DesktopEvents = {
     emit: (channel, ...args) => {

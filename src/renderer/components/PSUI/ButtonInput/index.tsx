@@ -1,10 +1,8 @@
-import React, { useState, useContext, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import * as styles from './ButtonInput.module.scss'
 import clsx from 'clsx'
 import TooltipButton from '../../tooltip_button'
 import { MdHelp } from 'react-icons/md'
-import userContext from '../../../api/context/user'
-import MainEvents from '../../../../common/types/mainEvents'
 import { useTranslation } from 'react-i18next'
 
 interface ButtonInputProps {
@@ -33,52 +31,11 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
     onClick,
 }) => {
     const { t } = useTranslation()
-    const { app, setApp } = useContext(userContext)
-    const [isActive, setIsActive] = useState<boolean>(defaultValue ?? false)
+    const [isActive, setIsActive] = useState<boolean>(Boolean(defaultValue))
 
     useEffect(() => {
-        if (!checkType) return
-
-        if (checkType.startsWith('config-')) return
-
-        switch (checkType) {
-            case 'toggleRpcStatus':
-                setIsActive(app.discordRpc.status)
-                break
-            case 'enableRpcButtonListen':
-                setIsActive(app.discordRpc.enableRpcButtonListen)
-                break
-            case 'enableWebsiteButton':
-                setIsActive(app.discordRpc.enableWebsiteButton)
-                break
-            case 'enableDeepLink':
-                setIsActive(app.discordRpc.enableDeepLink)
-                break
-            case 'displayPause':
-                setIsActive(app.discordRpc.displayPause)
-                break
-            case 'showVersionOrDevice':
-                setIsActive(app.discordRpc.showVersionOrDevice)
-                break
-            case 'showSmallIcon':
-                setIsActive(app.discordRpc.showSmallIcon)
-                break
-            case 'showTrackVersion':
-                setIsActive(app.discordRpc.showTrackVersion)
-                break
-            case 'supporterHideBranding':
-                setIsActive(app.discordRpc.supporterHideBranding)
-                break
-            default:
-                break
-        }
-    }, [checkType, app.discordRpc])
-
-    useEffect(() => {
-        if (!checkType || checkType.startsWith('config-')) {
-            setIsActive(Boolean(defaultValue))
-        }
-    }, [defaultValue, checkType])
+        setIsActive(Boolean(defaultValue))
+    }, [defaultValue])
 
     const toggleState = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -88,120 +45,10 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
             return
         }
         if (disabled) return
+
         const newValue = !isActive
-
-        if (checkType === 'toggleRpcStatus' && newValue) {
-            const lockedByDrpcV2 = Boolean(window.electron.store.get('discordRpc.lockedByDrpcV2'))
-            if (lockedByDrpcV2) {
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.discordRpc.discordRpc(newValue)
-                return
-            }
-        }
-
         setIsActive(newValue)
-
-        if (onChange) {
-            onChange(newValue)
-            return
-        }
-
-        switch (checkType) {
-            case 'toggleRpcStatus':
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.discordRpc.discordRpc(newValue)
-                setApp({
-                    ...app,
-                    discordRpc: { ...app.discordRpc, status: newValue },
-                })
-                break
-            case 'enableRpcButtonListen':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.enableRpcButtonListen', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: { ...app.discordRpc, enableRpcButtonListen: newValue },
-                })
-                break
-            case 'enableWebsiteButton':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.enableWebsiteButton', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: {
-                        ...app.discordRpc,
-                        enableWebsiteButton: newValue,
-                    },
-                })
-                break
-            case 'enableDeepLink':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.enableDeepLink', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: {
-                        ...app.discordRpc,
-                        enableDeepLink: newValue,
-                    },
-                })
-                break
-            case 'displayPause':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.displayPause', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: { ...app.discordRpc, displayPause: newValue },
-                })
-                break
-            case 'showVersionOrDevice':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.showVersionOrDevice', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: { ...app.discordRpc, showVersionOrDevice: newValue },
-                })
-                break
-            case 'showSmallIcon':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.showSmallIcon', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: { ...app.discordRpc, showSmallIcon: newValue },
-                })
-                break
-            case 'showTrackVersion':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.showTrackVersion', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: {
-                        ...app.discordRpc,
-                        showTrackVersion: newValue,
-                    },
-                })
-                break
-            case 'supporterHideBranding':
-                window.discordRpc.clearActivity()
-                window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
-                window.electron.store.set('discordRpc.supporterHideBranding', newValue)
-                setApp({
-                    ...app,
-                    discordRpc: {
-                        ...app.discordRpc,
-                        supporterHideBranding: newValue,
-                    },
-                })
-                break
-            default:
-                break
-        }
+        onChange?.(newValue)
     }
 
     return (

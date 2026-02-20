@@ -11,10 +11,8 @@ import type { SocketContextValue, SocketProviderProps } from './types'
 import { createGatewayHandler } from './gateway'
 import {
     buildRealtimeSocketAuth,
-    clearDiscordRpcActivity,
     CONNECTION_ERROR_TOAST_THRESHOLD,
     emitCompressedGateway,
-    SOCKET_OFFLINE_CLEAR_AFTER_MS,
 } from './utils'
 import { useZstdCodec } from './useZstdCodec'
 
@@ -47,8 +45,6 @@ export function SocketProvider({
     const { zstdReady, zstdRef } = useZstdCodec()
 
     const socketRef = useRef<Socket | null>(null)
-    const socketActivityClearedRef = useRef(false)
-    const socketOfflineClearTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const websocketStartedRef = useRef(false)
     const connectionErrorAttemptsRef = useRef(0)
     const unavailableToastShownRef = useRef(false)
@@ -111,29 +107,8 @@ export function SocketProvider({
         const currentSocket = socketRef.current
         if (!currentSocket) return
 
-        const clearOfflineTimer = () => {
-            if (socketOfflineClearTimerRef.current) {
-                clearTimeout(socketOfflineClearTimerRef.current)
-                socketOfflineClearTimerRef.current = null
-            }
-        }
-
         const resetSocketFailures = () => {
-            socketActivityClearedRef.current = false
-            clearOfflineTimer()
             unavailableToastShownRef.current = false
-        }
-
-        const scheduleRpcClearIfOfflineTooLong = () => {
-            if (currentSocket.connected || socketOfflineClearTimerRef.current) return
-
-            socketOfflineClearTimerRef.current = setTimeout(() => {
-                socketOfflineClearTimerRef.current = null
-                if (!currentSocket.connected && !socketActivityClearedRef.current) {
-                    socketActivityClearedRef.current = true
-                    clearDiscordRpcActivity()
-                }
-            }, SOCKET_OFFLINE_CLEAR_AFTER_MS)
         }
 
         const notifyUnavailableIfNeeded = () => {
@@ -170,7 +145,6 @@ export function SocketProvider({
             notifyUnavailableIfNeeded()
             setSocket(null)
             setSocketConnected(false)
-            scheduleRpcClearIfOfflineTooLong()
         }
 
         currentSocket.on(IncomingSocketEvents.CONNECT, onConnect)
@@ -220,4 +194,3 @@ export function SocketProvider({
 }
 
 export default SocketContext
-
