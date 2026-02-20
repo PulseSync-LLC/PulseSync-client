@@ -12,7 +12,7 @@ import toast from '../../components/toast'
 import UserCardV2 from '../../components/userCardV2'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
-import MediaImage from '../../components/PSUI/Image'
+import { Banner } from '../../components/PSUI/Image'
 import { getBannerMediaUrls } from '../../utils/mediaVariants'
 
 const PER_PAGE = 51
@@ -44,6 +44,7 @@ export default function UsersPage() {
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
+    const [isHeaderHovered, setIsHeaderHovered] = useState(false)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
@@ -346,16 +347,21 @@ export default function UsersPage() {
     return (
         <PageLayout title={t('users.pageTitle')}>
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
-                <div style={defaultBackground} className={s.headerSection}>
+                <div
+                    style={defaultBackground}
+                    className={s.headerSection}
+                    onMouseEnter={() => setIsHeaderHovered(true)}
+                    onMouseLeave={() => setIsHeaderHovered(false)}
+                >
                     {bannerUser && (
                         <>
-                            <MediaImage
+                            <Banner
                                 className={s.headerBannerImage}
-                                type="banner"
                                 hash={bannerUser.bannerHash}
                                 ext={bannerUser.bannerType}
                                 sizes="100vw"
                                 alt=""
+                                allowAnimate={isHeaderHovered}
                             />
                             <div className={s.headerBannerGradient} />
                         </>

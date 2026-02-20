@@ -1,12 +1,11 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import TooltipButton from '../../../tooltip_button'
 import LevelBadge from '../../../LevelBadge'
 import * as styles from '../../userProfileModal.module.scss'
 import { staticAsset } from '../../../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
-import Image from '../../../PSUI/Image'
-
-const fallbackAvatar = staticAsset('assets/images/undef.png')
+import { Avatar, Banner } from '../../../PSUI/Image'
+import * as scrollbarStyles from '../../../PSUI/Scrollbar/Scrollbar.module.scss'
 
 interface ProfileHeaderProps {
     userProfile: any
@@ -16,30 +15,73 @@ interface ProfileHeaderProps {
 
 const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
     const { t, i18n } = useTranslation()
+    const headerRef = useRef<HTMLDivElement>(null)
+    const [allowAnimate, setAllowAnimate] = useState(true)
+
+    useEffect(() => {
+        const threshold = 380
+        const header = headerRef.current
+        if (!header) return
+
+        const getScrollContainer = () => {
+            let current: HTMLElement | null = header.parentElement
+            while (current) {
+                if (current.classList.contains(scrollbarStyles.scrollContent)) {
+                    return current
+                }
+                current = current.parentElement
+            }
+
+            return null
+        }
+
+        const scrollContainer = getScrollContainer()
+        const useWindowScroll = !scrollContainer
+
+        const updateAllowAnimate = () => {
+            const scrollTop = useWindowScroll
+                ? window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
+                : scrollContainer.scrollTop
+
+            setAllowAnimate(scrollTop < threshold)
+        }
+
+        updateAllowAnimate()
+
+        if (useWindowScroll) {
+            window.addEventListener('scroll', updateAllowAnimate, { passive: true })
+            return () => {
+                window.removeEventListener('scroll', updateAllowAnimate)
+            }
+        }
+
+        scrollContainer.addEventListener('scroll', updateAllowAnimate, { passive: true })
+        return () => {
+            scrollContainer.removeEventListener('scroll', updateAllowAnimate)
+        }
+    }, [])
+
     return (
-        <div className={styles.bannerBackground}>
-            <Image
+        <div className={styles.bannerBackground} ref={headerRef}>
+            <Banner
                 className={styles.bannerImage}
-                type="banner"
                 hash={userProfile.bannerHash}
                 ext={userProfile.bannerType}
                 sizes="(max-width: 1024px) 100vw, 1010px"
                 alt=""
-                fallbackHash="default_banner"
-                fallbackExt="webp"
+                allowAnimate={allowAnimate}
             />
             <div className={styles.bannerGradient} />
             <div className={styles.userImage}>
-                <Image
+                <Avatar
                     className={styles.avatarWrapper}
-                    type="avatar"
                     hash={userProfile.avatarHash}
                     ext={userProfile.avatarType}
                     sizes="84px"
                     alt="Avatar"
                     width="84"
                     height="84"
-                    fallbackSrc={fallbackAvatar}
+                    allowAnimate={allowAnimate}
                 />
                 <div className={styles.userInfo}>
                     <div className={styles.dateCreate}>

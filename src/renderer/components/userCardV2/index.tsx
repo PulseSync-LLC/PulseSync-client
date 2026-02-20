@@ -8,9 +8,7 @@ import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
 import { staticAsset } from '../../utils/staticAssets'
 import { useTranslation } from 'react-i18next'
-import Image from '../PSUI/Image'
-
-const fallbackAvatar = staticAsset('assets/images/undef.png')
+import { Avatar, Banner } from '../PSUI/Image'
 
 interface UserCardProps {
     user: Partial<UserInterface>
@@ -43,6 +41,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
+    const [isHovered, setIsHovered] = useState(false)
 
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
@@ -55,6 +54,8 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                 <div
                     className={cn(styles.container, styles.visible)}
                     onClick={() => onClick(user.username!)}
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
                     style={
                         {
                             '--statusColorProfile': statusColor,
@@ -63,26 +64,23 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                     }
                 >
                     <div className={styles.topSection}>
-                        <Image
+                        <Banner
                             className={styles.bannerImage}
-                            type="banner"
                             hash={(user as UserInterface).bannerHash}
                             ext={(user as UserInterface).bannerType}
                             sizes="360px"
                             alt=""
-                            fallbackHash="default_banner"
-                            fallbackExt="webp"
+                            allowAnimate={isHovered}
                         />
                         <div className={styles.bannerGradient} />
-                        <Image
+                        <Avatar
                             loading="lazy"
                             className={styles.userAvatar}
-                            type="avatar"
                             hash={(user as UserInterface).avatarHash}
                             ext={(user as UserInterface).avatarType}
                             sizes="60px"
                             alt={user.username}
-                            fallbackSrc={fallbackAvatar}
+                            allowAnimate={isHovered}
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>
