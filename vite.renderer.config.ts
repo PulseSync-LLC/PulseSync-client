@@ -62,7 +62,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         },
         css: {
             modules: {
-                generateScopedName: isDevMode ? '[name]__[local]' : '[hash:base64:8]',
+                generateScopedName: isDevMode ? '[name]__[local]' : '[name]__[local]__[hash:base64:6]',
             },
         },
         plugins: [
