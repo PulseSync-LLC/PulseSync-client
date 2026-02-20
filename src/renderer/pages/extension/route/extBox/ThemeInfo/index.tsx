@@ -113,7 +113,7 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         <>
             <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
                 <div className={s.content}>
-                    <div className={s.libraryLogo} onClick={() => nav(`/extension/${encodeURIComponent(addon.directoryName)}`)}>
+                    <div className={s.libraryLogo} onClick={() => nav(`/${encodeURIComponent(addon.directoryName)}`)}>
                         {logoUrl ? (
                             <img className={s.libraryLogoImg} src={logoUrl} alt="Library Logo" />
                         ) : (
