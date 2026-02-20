@@ -10,12 +10,14 @@ interface NavButtonPulseProps {
     disabled?: boolean
     onClick?: () => void
     tipEnabled?: boolean
+    end?: boolean
 }
 
-const NavButtonPulse: React.FC<NavButtonPulseProps> = ({ to, text, children, disabled = false, onClick, tipEnabled }) => {
+const NavButtonPulse: React.FC<NavButtonPulseProps> = ({ to, text, children, disabled = false, onClick, tipEnabled, end = false }) => {
     return (
         <NavLink
             onClick={onClick}
+            end={end}
             to={disabled ? null : to}
             className={({ isActive, isPending }) => (disabled ? 'disabled' : isPending ? 'pending' : isActive ? 'active' : '')}
         >

@@ -196,7 +196,7 @@ function App() {
                     path: '/',
                     element: (
                         <ErrorBoundary>
-                            <TrackInfoPage />
+                            <ExtensionPage />
                         </ErrorBoundary>
                     ),
                 },
@@ -229,6 +229,14 @@ function App() {
                     element: (
                         <ErrorBoundary>
                             <UsersPage />
+                        </ErrorBoundary>
+                    ),
+                },
+                {
+                    path: '/trackinfo',
+                    element: (
+                        <ErrorBoundary>
+                            <TrackInfoPage />
                         </ErrorBoundary>
                     ),
                 },
@@ -866,7 +874,7 @@ function App() {
         ;(window as any).refreshAddons = async (_args: any) => {
             window.desktopEvents.invoke(MainEvents.GET_ADDONS).then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/extension', { replace: true })
+                router.navigate('/', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean }) => {
@@ -1158,17 +1166,17 @@ const Player: React.FC<PlayerProps> = ({ children }) => {
                 return
             }
 
-            if ((window as any)?.discordRpc?.clearActivity) {
-                ;(window as any).discordRpc.clearActivity()
-            }
+            // if ((window as any)?.discordRpc?.clearActivity) {
+            //     ;(window as any).discordRpc.clearActivity()
+            // }
             return
         }
 
         lastValidActivityRef.current = activity
         lastValidActivityAtRef.current = Date.now()
-        if ((window as any)?.discordRpc?.setActivity) {
-            ;(window as any).discordRpc.setActivity(activity)
-        }
+        // if ((window as any)?.discordRpc?.setActivity) {
+        //     ;(window as any).discordRpc.setActivity(activity)
+        // }
     }, [app, user.id, track, user])
 
     useEffect(() => {

@@ -384,13 +384,13 @@ function Dev() {
                         {t('dev.navigationHint')}
                     </p>
                     <div className={styles.navigationGrid}>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/trackinfo')}>
                             {t('dev.navigation.trackInfo')}
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
                             {t('dev.navigation.users')}
                         </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extension')}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
                             {t('dev.navigation.extension')}
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>

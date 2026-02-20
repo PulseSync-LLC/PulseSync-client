@@ -396,14 +396,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/" text={t('layout.nav.trackInfo')}>
-                                <DiscordIcon height={24} width={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse to="/extension" text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
+                            <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/trackinfo" text={t('layout.nav.trackInfo')} disabled={!features?.trackInfo}>
+                                <DiscordIcon height={24} width={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!features?.storePage || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
