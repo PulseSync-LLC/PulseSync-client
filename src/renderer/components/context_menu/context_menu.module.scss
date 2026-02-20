@@ -40,12 +40,12 @@
     }
 
     &:disabled {
-        cursor: not-allowed;
+        cursor: default;
         opacity: 0.5 !important;
 
         &:hover {
             background: transparent !important;
-            cursor: not-allowed;
+            cursor: default;
 
             .showButtons {
                 display: none;
@@ -110,12 +110,12 @@
     min-width: -webkit-fill-available;
 
     &:disabled {
-        cursor: not-allowed !important;
+        cursor: default !important;
         opacity: 0.5 !important;
 
         &:hover {
             background: transparent !important;
-            cursor: not-allowed;
+            cursor: default;
         }
     }
 

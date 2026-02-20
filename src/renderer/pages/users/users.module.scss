@@ -212,7 +212,7 @@
         opacity: 0.5;
 
         &:hover {
-            cursor: not-allowed;
+            cursor: default;
             color: #959dba;
         }
     }
@@ -428,7 +428,7 @@
 
     &:disabled {
         opacity: 0.5;
-        cursor: not-allowed;
+        cursor: default;
         &:hover {
             color: #959dba;
         }
@@ -472,7 +472,7 @@
 
     &:disabled {
         opacity: 0.4;
-        cursor: not-allowed;
+        cursor: default;
     }
 }
 

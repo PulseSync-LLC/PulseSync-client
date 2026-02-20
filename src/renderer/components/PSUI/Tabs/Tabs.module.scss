@@ -67,7 +67,7 @@
         opacity: 0.5;
 
         &:hover {
-            cursor: not-allowed;
+            cursor: default;
             color: #89b4a3;
 
             &::after {
