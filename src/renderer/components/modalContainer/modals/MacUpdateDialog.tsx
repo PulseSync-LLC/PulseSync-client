@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RendererEvents from '../../../../common/types/rendererEvents'
+import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 import MainEvents from '../../../../common/types/mainEvents'
 
@@ -12,24 +13,26 @@ type MacUpdateInfo = {
 
 const MacUpdateDialog: React.FC = () => {
     const { t } = useTranslation()
-    const [showDialog, setShowDialog] = useState(false)
+    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const [updateInfo, setUpdateInfo] = useState<MacUpdateInfo | null>(null)
 
     useEffect(() => {
         const handleMacUpdateReady = (_: any, data: MacUpdateInfo) => {
             setUpdateInfo(data)
-            setShowDialog(true)
+            openModal(Modals.MAC_UPDATE_DIALOG)
         }
 
-        window.desktopEvents?.on(RendererEvents.MAC_UPDATE_READY, handleMacUpdateReady)
+        const unsubscribe = window.desktopEvents?.on(RendererEvents.MAC_UPDATE_READY, handleMacUpdateReady)
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.MAC_UPDATE_READY)
+            if (typeof unsubscribe === 'function') {
+                unsubscribe()
+            }
         }
-    }, [])
+    }, [Modals.MAC_UPDATE_DIALOG, openModal])
 
     const handleClose = () => {
-        setShowDialog(false)
+        closeModal(Modals.MAC_UPDATE_DIALOG)
         setUpdateInfo(null)
     }
 
@@ -40,7 +43,7 @@ const MacUpdateDialog: React.FC = () => {
 
     return (
         <CustomModalPS
-            isOpen={showDialog}
+            isOpen={isModalOpen(Modals.MAC_UPDATE_DIALOG)}
             onClose={handleClose}
             title={t('modals.macUpdate.title')}
             text={description}

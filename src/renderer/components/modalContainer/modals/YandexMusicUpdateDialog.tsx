@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react'
+import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 import toast from '../../toast'
 import { useTranslation } from 'react-i18next'
 
 const YandexMusicUpdateDialog: React.FC = () => {
     const { t } = useTranslation()
-    const [showDialog, setShowDialog] = useState(false)
+    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const [isDismissed, setIsDismissed] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
 
@@ -13,14 +14,14 @@ const YandexMusicUpdateDialog: React.FC = () => {
         if (isDismissed) return
 
         const handleShowDialog = () => {
-            setShowDialog(true)
+            openModal(Modals.YANDEX_MUSIC_UPDATE_DIALOG)
         }
 
         const checkYandexMusic = () => {
             handleShowDialog()
         }
 
-        window.desktopEvents?.on('SHOW_YANDEX_MUSIC_UPDATE_DIALOG', checkYandexMusic)
+        const unsubscribeShowDialog = window.desktopEvents?.on('SHOW_YANDEX_MUSIC_UPDATE_DIALOG', checkYandexMusic)
 
         const handleDeleteResult = (event: any, data: any) => {
             if (data.success) {
@@ -31,16 +32,20 @@ const YandexMusicUpdateDialog: React.FC = () => {
             setIsDeleting(false)
         }
 
-        window.desktopEvents?.on('DELETE_YANDEX_MUSIC_RESULT', handleDeleteResult)
+        const unsubscribeDeleteResult = window.desktopEvents?.on('DELETE_YANDEX_MUSIC_RESULT', handleDeleteResult)
 
         return () => {
-            window.desktopEvents?.removeAllListeners('SHOW_YANDEX_MUSIC_UPDATE_DIALOG')
-            window.desktopEvents?.removeAllListeners('DELETE_YANDEX_MUSIC_RESULT')
+            if (typeof unsubscribeShowDialog === 'function') {
+                unsubscribeShowDialog()
+            }
+            if (typeof unsubscribeDeleteResult === 'function') {
+                unsubscribeDeleteResult()
+            }
         }
-    }, [isDismissed])
+    }, [Modals.YANDEX_MUSIC_UPDATE_DIALOG, isDismissed, openModal])
 
     const handleClose = () => {
-        setShowDialog(false)
+        closeModal(Modals.YANDEX_MUSIC_UPDATE_DIALOG)
         setIsDismissed(true)
     }
 
@@ -65,7 +70,7 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
     return (
         <CustomModalPS
-            isOpen={showDialog}
+            isOpen={isModalOpen(Modals.YANDEX_MUSIC_UPDATE_DIALOG)}
             onClose={handleClose}
             title={t('modals.yandexMusicUpdate.title')}
             text={t('modals.yandexMusicUpdate.description')}

@@ -266,12 +266,21 @@ function App() {
         [],
     )
 
+    const shouldRedirectToHomeAfterAuth = useCallback(() => {
+        if (typeof window === 'undefined') return false
+        const rawHash = window.location?.hash || ''
+        const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+        return path === '/auth' || path === '/auth/callback' || path === ''
+    }, [])
+
     useEffect(() => {
         if (!meData || !tokenReady) return
         if (meData.getMe && meData.getMe.id) {
             setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
             ;(async () => {
-                await router.navigate('/', { replace: true })
+                if (shouldRedirectToHomeAfterAuth()) {
+                    await router.navigate('/', { replace: true })
+                }
                 window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                     status: true,
                     user: {
@@ -294,7 +303,7 @@ function App() {
                 status: false,
             })
         }
-    }, [meData, tokenReady, router])
+    }, [meData, tokenReady, router, shouldRedirectToHomeAfterAuth])
 
     useEffect(() => {
         if (!meError) return
@@ -374,7 +383,9 @@ function App() {
 
                     if (data?.getMe && data.getMe.id) {
                         setUser(prev => ({ ...prev, ...data.getMe }) as UserInterface)
-                        await router.navigate('/', { replace: true })
+                        if (shouldRedirectToHomeAfterAuth()) {
+                            await router.navigate('/', { replace: true })
+                        }
                         window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                             status: true,
                             user: {
@@ -482,7 +493,7 @@ function App() {
                 await retryAuthorization()
             }
         })
-    }, [refetchMe, router])
+    }, [refetchMe, router, shouldRedirectToHomeAfterAuth])
 
     useEffect(() => {
         if (typeof window === 'undefined') return

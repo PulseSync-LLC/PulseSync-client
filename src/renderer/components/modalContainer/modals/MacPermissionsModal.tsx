@@ -1,45 +1,41 @@
-import React, { useCallback, useEffect, useState } from 'react'
+import React, { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import RendererEvents from '../../../../common/types/rendererEvents'
+import { useModalContext } from '../../../api/context/modal'
 import CustomModalPS from '../../PSUI/CustomModalPS'
 import MainEvents from '@common/types/mainEvents'
 
 const MacPermissionsModal: React.FC = () => {
     const { t } = useTranslation()
-    const [isModalOpen, setModalOpen] = useState(false)
-    const isModalOpenRef = React.useRef(isModalOpen)
+    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
 
     useEffect(() => {
         const handleRequestMacPermissions = (_: any) => {
-            if (!isModalOpenRef.current) {
-                setModalOpen(true)
-            }
+            openModal(Modals.MAC_PERMISSIONS_MODAL)
         }
 
-        window.desktopEvents?.on(RendererEvents.REQUEST_MAC_PERMISSIONS, handleRequestMacPermissions)
+        const unsubscribe = window.desktopEvents?.on(RendererEvents.REQUEST_MAC_PERMISSIONS, handleRequestMacPermissions)
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.REQUEST_MAC_PERMISSIONS)
+            if (typeof unsubscribe === 'function') {
+                unsubscribe()
+            }
         }
-    }, [])
-
-    useEffect(() => {
-        isModalOpenRef.current = isModalOpen
-    }, [isModalOpen])
+    }, [Modals.MAC_PERMISSIONS_MODAL, openModal])
 
     const handleClose = useCallback(() => {
-        setModalOpen(false)
-    }, [])
+        closeModal(Modals.MAC_PERMISSIONS_MODAL)
+    }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 
     const handleOpenSettings = useCallback(() => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, 'privacySettings')
-        setModalOpen(false)
-    }, [])
+        closeModal(Modals.MAC_PERMISSIONS_MODAL)
+    }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 
     return (
         <CustomModalPS
             allowNoChoice={false}
-            isOpen={isModalOpen}
+            isOpen={isModalOpen(Modals.MAC_PERMISSIONS_MODAL)}
             onClose={handleClose}
             title={t('modals.macPermissions.title')}
             text={t('modals.macPermissions.description')}
