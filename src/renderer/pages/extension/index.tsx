@@ -355,7 +355,6 @@ export default function ExtensionPage() {
 
         setSelectedAddonId(prevSelectedAddonId => {
             if (prevSelectedAddonId === matched.directoryName) return prevSelectedAddonId
-            if (prevSelectedAddonId && mergedAddons.some(addon => addon.directoryName === prevSelectedAddonId)) return prevSelectedAddonId
             return matched.directoryName
         })
     }, [mergedAddons, requestedAddonId])

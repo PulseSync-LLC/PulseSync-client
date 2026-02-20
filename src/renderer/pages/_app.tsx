@@ -241,15 +241,7 @@ function App() {
                     ),
                 },
                 {
-                    path: '/extension',
-                    element: (
-                        <ErrorBoundary>
-                            <ExtensionPage />
-                        </ErrorBoundary>
-                    ),
-                },
-                {
-                    path: '/extension/:contactId',
+                    path: '/:contactId',
                     element: (
                         <ErrorBoundary>
                             <ExtensionPage />
@@ -653,14 +645,21 @@ function App() {
             window.desktopEvents
                 ?.invoke(MainEvents.GET_ADDONS)
                 .then((fetchedAddons: Addon[]) => {
-                    const foundAddon = fetchedAddons.find(t => t.name === data)
+                    const requested = String(data || '').toLowerCase()
+                    const foundAddon = fetchedAddons.find(
+                        addon =>
+                            addon.name === data ||
+                            addon.directoryName === data ||
+                            addon.name.toLowerCase() === requested ||
+                            addon.directoryName.toLowerCase() === requested,
+                    )
                     if (foundAddon) {
                         if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
                             toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), null, null, 15000)
                             return
                         }
                         setAddons(fetchedAddons)
-                        setNavigateTo(`/extension/${encodeURIComponent(foundAddon.directoryName)}`)
+                        setNavigateTo(`/${encodeURIComponent(foundAddon.directoryName)}`)
                         setNavigateState(foundAddon)
                     }
                 })
