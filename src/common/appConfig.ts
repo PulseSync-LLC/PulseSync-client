@@ -15,6 +15,7 @@ const config = {
     RETRY_INTERVAL_MS: 15000,
     MAX_RETRY_COUNT: 15,
     MAIN_PORT,
+    BOOSTY_PURCHASE_URL: 'https://boosty.to/evt/purchase/2634425',
 }
 
 export default config

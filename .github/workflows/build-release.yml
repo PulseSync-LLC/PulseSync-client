@@ -37,7 +37,6 @@ jobs:
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
         env:
-          APP_CONFIG: ${{ secrets.APP_CONFIG }}
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
 
@@ -61,3 +60,15 @@ jobs:
             --dir "release" \
             --prefix "$PREFIX" \
             --mac-manifest
+
+      - name: Publish changelog (single-run on ubuntu)
+        if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'dev') }}
+        shell: bash
+        run: |
+          VERSION_ARGS=()
+          if [[ "${{ startsWith(github.ref, 'refs/tags/') }}" == "true" ]]; then
+            VERSION_ARGS=(--version "${{ github.ref_name }}")
+          fi
+
+          yarn publish:api "${VERSION_ARGS[@]}"
+          yarn publish:discord "${VERSION_ARGS[@]}"

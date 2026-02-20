@@ -85,8 +85,6 @@ jobs:
 
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
-        env:
-          APP_CONFIG: ${{ secrets.APP_CONFIG }}
 
       - name: Show release contents (debug)
         shell: bash

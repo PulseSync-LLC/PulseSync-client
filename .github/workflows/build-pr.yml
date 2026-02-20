@@ -35,8 +35,6 @@ jobs:
 
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
-        env:
-          APP_CONFIG: ${{ (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository) && secrets.APP_CONFIG || '' }}
 
       - name: Show release contents (debug)
         shell: bash
