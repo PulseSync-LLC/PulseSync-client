@@ -25,6 +25,7 @@ const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes(
 
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
+let publishBranchTagSource: string | null = null
 if (publishIndex !== -1) {
     if (process.argv.length > publishIndex + 1) {
         const candidate = process.argv[publishIndex + 1].trim().toLowerCase()
@@ -39,6 +40,38 @@ if (publishIndex !== -1) {
     } else {
         console.error(chalk.red('[ERROR] No branch specified after --publish'))
         process.exit(1)
+    }
+}
+
+function parsePublishBranchFromTag(tagValue: string): string | null {
+    const tag = tagValue.trim().replace(/^refs\/tags\//u, '').replace(/^v(?=\d)/u, '')
+    if (!tag.includes('-')) {
+        return null
+    }
+
+    const prereleasePart = tag.split('-').slice(1).join('-')
+    if (!prereleasePart) {
+        return null
+    }
+
+    const candidate = prereleasePart.split('.')[0]?.trim().toLowerCase()
+    if (!candidate) {
+        return null
+    }
+    if (!/^[a-z0-9][a-z0-9-]*$/u.test(candidate)) {
+        return null
+    }
+    return candidate
+}
+
+if (!publishBranch) {
+    const tagSourceRaw = process.env.PUBLISH_BRANCH_FROM_TAG?.trim() || process.env.BUILD_VERSION?.trim()
+    if (tagSourceRaw) {
+        const parsedBranch = parsePublishBranchFromTag(tagSourceRaw)
+        if (parsedBranch) {
+            publishBranch = parsedBranch
+            publishBranchTagSource = tagSourceRaw
+        }
     }
 }
 
@@ -196,6 +229,9 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Build native modules: ${buildNativeModules ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
+    if (publishBranch && publishBranchTagSource) {
+        log(LogLevel.INFO, `Publish branch resolved from tag "${publishBranchTagSource}"`)
+    }
     if (os.platform() === 'darwin') {
         log(LogLevel.INFO, `Mac target arch: ${macX64Build ? 'x64' : 'arm64'}`)
     }
