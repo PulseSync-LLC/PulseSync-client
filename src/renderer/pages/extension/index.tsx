@@ -351,10 +351,14 @@ export default function ExtensionPage() {
     useEffect(() => {
         if (!requestedAddonId || !mergedAddons.length) return
         const matched = mergedAddons.find(addon => addon.directoryName === requestedAddonId || addon.name === requestedAddonId)
-        if (matched && selectedAddonId !== matched.directoryName) {
-            setSelectedAddonId(matched.directoryName)
-        }
-    }, [mergedAddons, requestedAddonId, selectedAddonId])
+        if (!matched) return
+
+        setSelectedAddonId(prevSelectedAddonId => {
+            if (prevSelectedAddonId === matched.directoryName) return prevSelectedAddonId
+            if (prevSelectedAddonId && mergedAddons.some(addon => addon.directoryName === prevSelectedAddonId)) return prevSelectedAddonId
+            return matched.directoryName
+        })
+    }, [mergedAddons, requestedAddonId])
 
     useEffect(() => {
         if (selectedAddonId && !mergedAddons.some(addon => addon.directoryName === selectedAddonId)) {

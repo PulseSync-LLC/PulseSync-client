@@ -4,7 +4,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 
 import * as pageStyles from './callback.module.scss'
 
-import DiscordAuthIcon from '../../assets/icons/discordAuth.svg'
+import AppIcon from '../../assets/icon/App.svg'
 import HandBlockIcon from '../../assets/icons/handBlock.svg'
 import UserBlockIcon from '../../assets/icons/userBlock.svg'
 
@@ -42,7 +42,7 @@ export default function CallbackPage() {
             <div className={pageStyles.main_window}>
                 <div>
                     <div className={pageStyles.container}>
-                        {!banReason && <DiscordAuthIcon />}
+                        {!banReason && <AppIcon width="100" height="100" />}
                         {banReason && (
                             <div className={pageStyles.animBan}>
                                 <HandBlockIcon className={pageStyles.svg1} />
