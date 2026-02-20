@@ -36,7 +36,7 @@ import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
-import Image from '../PSUI/Image'
+import { Avatar, Banner } from '../PSUI/Image'
 
 interface p {
     goBack?: boolean
@@ -53,8 +53,6 @@ type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
-const fallbackAvatar = staticAsset('assets/images/undef.png')
-
 const Header: React.FC<p> = () => {
     const openSettings = useCallback(() => {
         window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
@@ -64,6 +62,7 @@ const Header: React.FC<p> = () => {
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
     const [bannerProgress, setBannerProgress] = useState(-1)
+    const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, appInfo, app, setUser, modInfo } = useContext(userContext)
@@ -448,11 +447,7 @@ const Header: React.FC<p> = () => {
                                 </button>
                             )}
                             <div className={styles.line} />
-                            <button
-                                className={cn(styles.logoplace, isMenuOpen && styles.active)}
-                                onClick={toggleMenu}
-                                disabled={user.id === '-1'}
-                            >
+                            <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
@@ -469,7 +464,12 @@ const Header: React.FC<p> = () => {
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
-                                    <div className={styles.user_container} onClick={toggleUserContainer}>
+                                    <div
+                                        className={styles.user_container}
+                                        onClick={toggleUserContainer}
+                                        onMouseEnter={() => setIsCompactAvatarHovered(true)}
+                                        onMouseLeave={() => setIsCompactAvatarHovered(false)}
+                                    >
                                         <input
                                             ref={avatarInputRef}
                                             type={'file'}
@@ -485,14 +485,13 @@ const Header: React.FC<p> = () => {
                                             onChange={handleBannerChange}
                                         />
                                         <div className={styles.user_avatar}>
-                                            <Image
+                                            <Avatar
                                                 className={styles.avatar}
-                                                type="avatar"
                                                 hash={user.avatarHash}
                                                 ext={user.avatarType}
                                                 sizes="38px"
                                                 alt=""
-                                                fallbackSrc={fallbackAvatar}
+                                                allowAnimate={isCompactAvatarHovered}
                                             />
                                             <div className={styles.status}>
                                                 <div className={styles.dot}></div>
@@ -502,16 +501,17 @@ const Header: React.FC<p> = () => {
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
                                             <div className={styles.user_info}>
-                                                <div className={styles.user_banner} ref={bannerRef}>
-                                                    <Image
+                                                <div
+                                                    className={styles.user_banner}
+                                                    ref={bannerRef}
+                                                >
+                                                    <Banner
                                                         className={styles.banner_image}
-                                                        type="banner"
                                                         hash={user.bannerHash}
                                                         ext={user.bannerType}
                                                         sizes="390px"
                                                         alt=""
-                                                        fallbackHash="default_banner"
-                                                        fallbackExt="webp"
+                                                        allowAnimate={isUserCardOpen}
                                                     />
                                                     <div className={styles.banner_gradient} />
                                                     <motion.div
@@ -555,15 +555,16 @@ const Header: React.FC<p> = () => {
                                                                 ))}
                                                     </div>
                                                 </div>
-                                                <div className={styles.user_avatar}>
-                                                    <Image
+                                                <div
+                                                    className={styles.user_avatar}
+                                                >
+                                                    <Avatar
                                                         className={styles.avatar}
-                                                        type="avatar"
                                                         hash={user.avatarHash}
                                                         ext={user.avatarType}
                                                         sizes="85px"
                                                         alt="card_avatar"
-                                                        fallbackSrc={fallbackAvatar}
+                                                        allowAnimate={isUserCardOpen}
                                                     />
                                                     <motion.div
                                                         className={styles.overlay}

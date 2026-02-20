@@ -14,7 +14,6 @@ import { object, string } from 'yup'
 import { useFormik } from 'formik'
 import { buildActivityButtons as buildActivityButtonsRpc, fixStrings, replaceParams } from '../../utils/formatRpc'
 import { useCharCount } from '../../utils/useCharCount'
-import { staticAsset } from '../../utils/staticAssets'
 import ContainerV2 from '../../components/containerV2'
 import PlayerTimeline from '../../components/PSUI/PlayerTimeline'
 import SelectInput from '../../components/PSUI/SelectInput'
@@ -22,7 +21,7 @@ import TextInput from '../../components/PSUI/TextInput'
 import ButtonInput from '../../components/PSUI/ButtonInput'
 import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
-import Image from '../../components/PSUI/Image'
+import { Avatar, Banner } from '../../components/PSUI/Image'
 import { useModalContext } from '../../api/context/modal'
 
 import statusDisplayTip from '../../../../static/assets/tips/statusDisplayType.gif?url'
@@ -42,7 +41,7 @@ export default function TrackInfoPage() {
     const { Modals, openModal } = useModalContext()
     const { t } = useTranslation()
     const [rickRollClick, setRickRoll] = useState(false)
-    const fallbackAvatar = staticAsset('assets/images/undef.png')
+    const [isPreviewHovered, setIsPreviewHovered] = useState(false)
     const fallbackLogo = 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
     const hasSupporter = Boolean(user?.hasSupporterBadge || user?.badges?.some((badge: any) => badge.type === 'supporter'))
 
@@ -344,26 +343,27 @@ export default function TrackInfoPage() {
                     </div>
                 </div>
 
-                <div className={themeV2.discordRpc}>
-                    <Image
+                <div
+                    className={themeV2.discordRpc}
+                    onMouseEnter={() => setIsPreviewHovered(true)}
+                    onMouseLeave={() => setIsPreviewHovered(false)}
+                >
+                    <Banner
                         className={themeV2.userBanner}
-                        type="banner"
                         hash={user.bannerHash}
                         ext={user.bannerType}
                         sizes="420px"
                         alt={user.bannerHash}
-                        fallbackHash="default_banner"
-                        fallbackExt="webp"
+                        allowAnimate={isPreviewHovered}
                     />
                     <div className={themeV2.userInfo}>
-                        <Image
+                        <Avatar
                             className={themeV2.userAvatar}
-                            type="avatar"
                             hash={user.avatarHash}
                             ext={user.avatarType}
                             sizes="90px"
                             alt={user.avatarHash}
-                            fallbackSrc={fallbackAvatar}
+                            allowAnimate={isPreviewHovered}
                         />
                         <div className={themeV2.userInfoContainer}>
                             <div className={themeV2.userName}>{user.username}</div>
