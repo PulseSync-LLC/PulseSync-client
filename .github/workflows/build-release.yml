@@ -39,6 +39,7 @@ jobs:
         env:
           APP_CONFIG: ${{ secrets.APP_CONFIG }}
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
 
       - name: Show release contents (debug)
         shell: bash
