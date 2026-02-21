@@ -1,6 +1,17 @@
 import { Track } from './track.interface'
 import SubscriptionInterface from './subscription.interface'
 
+export type LevelInfo = {
+    totalPoints: number
+    currentLevel: number
+    currentLevelThreshold: number
+    progressInCurrentLevel: number
+}
+
+export type LevelInfoV2 = {
+    totalPoints: number
+}
+
 export default interface UserInterface {
     id: string
     avatar: string
@@ -19,12 +30,7 @@ export default interface UserInterface {
     perms: string
     isFriend: boolean
     isFollowing: boolean
-    levelInfo: {
-        totalPoints: number
-        currentLevel: number
-        currentLevelThreshold: number
-        progressInCurrentLevel: number
-    }
+    levelInfoV2?: LevelInfoV2 | null
     userAchievements: any[]
     badges: any[]
     subscription: SubscriptionInterface | null

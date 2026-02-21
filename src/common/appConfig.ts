@@ -9,6 +9,7 @@ const config = {
     PORT,
     UPDATE_URL: 'https://s3.pulsesync.dev',
     SERVER_URL: isDev ? 'http://localhost:4000' : 'https://ru-node-1.pulsesync.dev',
+    SERVER_v2_URL: 'https://ru-node-1.pulsesync.dev',
     WEBSITE_URL: isDev ? 'http://localhost:3100' : 'https://pulsesync.dev',
     S3_URL: 'https://s3.pulsesync.dev',
     SOCKET_URL: isDev ? 'http://localhost:1337/' : 'https://ru-node-1.pulsesync.dev/',

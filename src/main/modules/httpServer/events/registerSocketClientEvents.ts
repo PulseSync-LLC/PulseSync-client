@@ -1,6 +1,8 @@
 import RendererEvents from '../../../../common/types/rendererEvents'
 import { Track } from '../../../../renderer/api/interfaces/track.interface'
+import { BrowserWindow } from 'electron'
 import { Socket } from 'socket.io'
+import { extractInstallModUpdateFromPayload, installModUpdateFromAsar } from '../../mod/installModUpdateFrom'
 
 interface StateLike {
     get: (key: string) => any
@@ -15,17 +17,11 @@ interface LoggerLike {
     }
 }
 
-interface MainWindowLike {
-    webContents: {
-        send: (channel: string, ...args: any[]) => void
-    }
-}
-
 interface RegisterSocketClientEventsOptions {
     socket: Socket
     state: StateLike
     logger: LoggerLike
-    mainWindow: MainWindowLike
+    mainWindow: BrowserWindow
     getAuthorized: () => boolean
     getTrackData: () => Track
     sendDataToMusic: (options?: { targetSocket?: Socket }) => void
@@ -92,6 +88,21 @@ export const registerSocketClientEvents = ({
         if (!getAuthorized()) return
         logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
         mainWindow.webContents.send(RendererEvents.TRACK_INFO, getTrackData())
+    })
+
+    socket.on('INSTALL_MOD_UPDATE_FROM', async (payload: any) => {
+        if (!getAuthorized()) return
+        logger.http.log('INSTALL_MOD_UPDATE_FROM received:', payload)
+        const asarPath = extractInstallModUpdateFromPayload(payload)
+        if (!asarPath) {
+            logger.http.warn('INSTALL_MOD_UPDATE_FROM ignored: invalid payload')
+            return
+        }
+
+        const result = await installModUpdateFromAsar(asarPath, mainWindow, 'socket')
+        if (!result.success) {
+            logger.http.warn('INSTALL_MOD_UPDATE_FROM failed:', result)
+        }
     })
 
     socket.on(RendererEvents.SEND_TRACK, (payload: any) => {

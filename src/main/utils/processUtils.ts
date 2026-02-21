@@ -5,7 +5,11 @@ import { t } from '../i18n'
 export function checkCLIArguments(isAppDev: boolean): boolean {
     const args = process.argv.slice(1)
     if (args.length > 0 && !isAppDev) {
-        if (args.some(arg => arg.startsWith('pulsesync://') || arg.endsWith('.pext'))) {
+        if (
+            args.some(arg => {
+                return arg.startsWith('pulsesync://') || arg.endsWith('.pext')
+            })
+        ) {
             return false
         }
         if (args.includes('--updated')) {

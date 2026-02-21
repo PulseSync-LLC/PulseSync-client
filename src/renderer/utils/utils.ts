@@ -6,7 +6,7 @@ import { t } from '../i18n'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch(`${config.SERVER_URL}/api/v2/health`, {
+        const response = await fetch(`${config.SERVER_v2_URL}/api/v2/health`, {
             method: 'GET',
             cache: 'no-store',
         })

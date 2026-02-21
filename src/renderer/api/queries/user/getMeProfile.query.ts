@@ -2,7 +2,7 @@ import { gql } from '@apollo/client'
 
 const GET_ME_PROFILE_QUERY = gql`
     query GetMeProfile($page: Int!, $pageSize: Int!, $search: String, $sortOptions: [SortOptionInput!]) {
-        getMeProfile {
+        getMeProfile(newCalc: true) {
             id
             username
             nickname
@@ -11,11 +11,8 @@ const GET_ME_PROFILE_QUERY = gql`
             bannerType
             avatarHash
             avatarType
-            levelInfo {
+            levelInfoV2 {
                 totalPoints
-                currentLevel
-                progressInCurrentLevel
-                currentLevelThreshold
             }
             badges {
                 uuid

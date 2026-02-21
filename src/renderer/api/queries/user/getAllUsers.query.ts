@@ -2,7 +2,7 @@ import gql from 'graphql-tag'
 
 export default gql`
     query GetAllUsers($page: Int!, $perPage: Int!, $sorting: [SortOptionInput!], $search: String) {
-        getUsersWithPagination(page: $page, pageSize: $perPage, sortOptions: $sorting, search: $search) {
+        getUsersWithPagination(newCalc: true, page: $page, pageSize: $perPage, sortOptions: $sorting, search: $search) {
             totalCount
             totalPages
 
@@ -29,11 +29,8 @@ export default gql`
                     level
                     createdAt
                 }
-                levelInfo {
+                levelInfoV2 {
                     totalPoints
-                    currentLevel
-                    progressInCurrentLevel
-                    currentLevelThreshold
                 }
             }
         }

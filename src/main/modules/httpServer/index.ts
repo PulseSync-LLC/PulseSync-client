@@ -11,12 +11,12 @@ import { Track } from '../../../renderer/api/interfaces/track.interface'
 import { mainWindow } from '../createWindow'
 import config from '@common/appConfig'
 import { getState } from '../state'
-import axios from 'axios'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { registerSocketClientEvents } from './events/registerSocketClientEvents'
 import { registerServerIpcEvents } from './events/registerServerIpcEvents'
 import { createHttpRequestHandler } from './httpRequestHandler'
 import { createAddonService } from './addonService'
+import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -130,36 +130,13 @@ const stopSocketServer = async () => {
 }
 
 const handleBrowserAuth = async (payload: any, client: Socket) => {
-    const { userId, token } = payload.args
-
-    if (!userId || !token) {
+    const credentials = extractBrowserAuthFromPayload(payload)
+    if (!credentials) {
         logger.socketManager.error('Invalid authentication data received from browser.')
-        return app.quit()
-    }
-
-    try {
-        if (isAppDev) {
-            State.set('tokens.token', token)
-            mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
-            mainWindow.show()
-            return
-        }
-
-        const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
-        if (!data.ok || !data.access) {
-            logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
-            return app.quit()
-        }
-
-        State.set('tokens.token', token)
-        logger.socketManager.info(`Access confirmed for user ${userId}.`)
-        mainWindow.webContents.send(RendererEvents.AUTH_SUCCESS)
-        client.send(RendererEvents.AUTH_SUCCESS)
-        mainWindow.show()
-    } catch (error) {
-        logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)
         app.quit()
+        return
     }
+    await processBrowserAuth(credentials, { window: mainWindow, client })
 }
 
 const handlePortInUse = () => {
