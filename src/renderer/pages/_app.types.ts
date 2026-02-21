@@ -38,6 +38,8 @@ export type AppProvidersProps = {
     modInfoFetched: boolean
     features: Record<string, boolean>
     setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
+    allAchievements: any[]
+    setAllAchievements: Dispatch<SetStateAction<any[]>>
     router: ReturnType<typeof createHashRouter>
 }
 

@@ -24,7 +24,7 @@ const ProfilePage: React.FC = () => {
     const { username: raw } = useParams()
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
-    const { user } = useContext(userContext)
+    const { user, allAchievements } = useContext(userContext)
     const { t } = useTranslation()
 
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
@@ -37,19 +37,7 @@ const ProfilePage: React.FC = () => {
 
     const queryDoc = useMemo(() => (isSelf ? getMeProfileQuery : getUserProfileQuery), [isSelf])
 
-    const variables = useMemo(
-        () =>
-            isSelf
-                ? { page: 1, pageSize: 50 }
-                : {
-                      name: username,
-                      page: 1,
-                      pageSize: 50,
-                      search: '',
-                      sortOptions: [] as Array<unknown>,
-                  },
-        [isSelf, username],
-    )
+    const variables = useMemo(() => (isSelf ? undefined : { name: username }), [isSelf, username])
 
     const { data, loading, error } = useQuery<any>(queryDoc, {
         variables,
@@ -66,9 +54,9 @@ const ProfilePage: React.FC = () => {
         if (!payload) return userInitials
         return {
             ...payload,
-            allAchievements: data?.getAchievements?.achievements || [],
+            allAchievements: allAchievements || [],
         }
-    }, [payload, data])
+    }, [allAchievements, payload])
 
     const normalizedError: string | null = useMemo(() => {
         if (error) return error.message || t('profile.errors.loadFailed')

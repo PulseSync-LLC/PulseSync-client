@@ -43,12 +43,38 @@ import AddonInitials from '../api/initials/addon.initials'
 import { ModInterface } from '../api/interfaces/modInterface'
 import modInitials from '../api/initials/mod.initials'
 import GetModQuery from '../api/queries/getMod.query'
+import GetAchievementsQuery from '../api/queries/user/getAchievements.query'
 import { Track } from '../api/interfaces/track.interface'
 import ErrorBoundary from '../components/errorBoundary/errorBoundary'
 import ProfilePage from './profile/[username]'
 import { useTranslation } from 'react-i18next'
 import OutgoingGatewayEvents from '../api/socket/enums/outgoingGatewayEvents'
 import type { AppProvidersProps, GetMeData, GetMeVars, PlayerProps } from './_app.types'
+
+type AchievementCatalogItem = {
+    id: string
+    title: string
+    description: string
+    imageUrl: string
+    progressTotal: number
+    points: number
+    difficulty: string
+    hint: string
+}
+
+type GetAchievementsData = {
+    getAchievements?: {
+        achievements?: AchievementCatalogItem[]
+        totalPages?: number
+    } | null
+}
+
+type GetAchievementsVars = {
+    page: number
+    pageSize: number
+    search?: string
+    sortOptions?: Array<unknown>
+}
 
 function App() {
     const { t } = useTranslation()
@@ -59,6 +85,7 @@ function App() {
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
     const [features, setFeatures] = useState<Record<string, boolean>>({})
+    const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
@@ -572,6 +599,82 @@ function App() {
         }
     }, [])
 
+    const fetchAchievements = useCallback(async () => {
+        try {
+            const pageSize = 100
+            const baseVars = {
+                pageSize,
+                search: '',
+                sortOptions: [] as Array<unknown>,
+            }
+
+            const firstPage = await apolloClient.query<GetAchievementsData, GetAchievementsVars>({
+                query: GetAchievementsQuery,
+                variables: {
+                    ...baseVars,
+                    page: 1,
+                },
+                fetchPolicy: 'no-cache',
+            })
+
+            const firstAchievements = firstPage.data?.getAchievements?.achievements || []
+            const totalPages = Math.max(1, Number(firstPage.data?.getAchievements?.totalPages || 1))
+
+            if (totalPages <= 1) {
+                setAllAchievements(firstAchievements)
+                return
+            }
+
+            const pageRequests = Array.from({ length: totalPages - 1 }, (_, index) =>
+                apolloClient.query<GetAchievementsData, GetAchievementsVars>({
+                    query: GetAchievementsQuery,
+                    variables: {
+                        ...baseVars,
+                        page: index + 2,
+                    },
+                    fetchPolicy: 'no-cache',
+                }),
+            )
+
+            const otherPages = await Promise.all(pageRequests)
+            const merged = [...firstAchievements, ...otherPages.flatMap(page => page.data?.getAchievements?.achievements || [])]
+            const unique = Array.from(new Map(merged.map(item => [item.id, item])).values())
+            setAllAchievements(unique)
+        } catch (achievementsError) {
+            console.error('Failed to fetch achievements:', achievementsError)
+        }
+    }, [])
+
+    const handleSocketAchievementsUpdate = useCallback(
+        async (payload: unknown) => {
+            await fetchAchievements()
+
+            if (!payload || typeof payload !== 'object') return
+
+            const {
+                userId: incomingUserId,
+                userAchievements: incomingUserAchievements,
+                levelInfoV2: incomingLevelInfo,
+            } = payload as {
+                userId?: string
+                userAchievements?: unknown
+                levelInfoV2?: unknown
+            }
+
+            if (!incomingUserId || !Array.isArray(incomingUserAchievements)) return
+
+            setUser(prev => {
+                if (prev.id !== incomingUserId) return prev
+                return {
+                    ...prev,
+                    userAchievements: incomingUserAchievements,
+                    levelInfoV2: incomingLevelInfo && typeof incomingLevelInfo === 'object' ? (incomingLevelInfo as UserInterface['levelInfoV2']) : prev.levelInfoV2,
+                }
+            })
+        },
+        [fetchAchievements],
+    )
+
     useEffect(() => {
         if (user.id === '-1') {
             setModInfoFetched(false)
@@ -612,7 +715,7 @@ function App() {
                     console.error('Failed to fetch app info:', error)
                 }
 
-                await fetchModInfo(app)
+                await Promise.all([fetchModInfo(app), fetchAchievements()])
             }
 
             initializeApp()
@@ -623,9 +726,10 @@ function App() {
                 clearInterval(modCheckId)
             }
         } else {
+            setAllAchievements([])
             router.navigate('/auth', { replace: true })
         }
-    }, [fetchModInfo, router, user.id])
+    }, [fetchAchievements, fetchModInfo, router, user.id])
 
     const invokeFileEvent = useCallback(
         async (eventType: string, filePath: string, data?: any) => {
@@ -845,6 +949,7 @@ function App() {
     const handleSocketLogout = useCallback(async () => {
         await client.clearStore()
         setUser(userInitials)
+        setAllAchievements([])
         await router.navigate('/auth', { replace: true })
     }, [router])
 
@@ -856,6 +961,7 @@ function App() {
             setFeatures={setFeatures}
             setLoading={setLoading}
             onLogout={handleSocketLogout}
+            onAchievementsUpdate={handleSocketAchievementsUpdate}
         >
             <AppProviders
                 user={user}
@@ -883,6 +989,8 @@ function App() {
                 modInfoFetched={modInfoFetched}
                 features={features}
                 setFeatures={setFeatures}
+                allAchievements={allAchievements}
+                setAllAchievements={setAllAchievements}
                 router={router}
             />
         </SocketProvider>
@@ -915,6 +1023,8 @@ function AppProviders({
     modInfoFetched,
     features,
     setFeatures,
+    allAchievements,
+    setAllAchievements,
     router,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
@@ -959,6 +1069,8 @@ function AppProviders({
             modInfoFetched,
             features,
             setFeatures,
+            allAchievements,
+            setAllAchievements,
             emitGateway,
         }),
         [
@@ -970,12 +1082,14 @@ function AppProviders({
             features,
             isAppDeprecated,
             loading,
+            allAchievements,
             meLoading,
             modInfo,
             modInfoFetched,
             musicInstalled,
             musicVersion,
             setAppWithSocket,
+            setAllAchievements,
             setIsAppDeprecated,
             socket,
             socketConnected,

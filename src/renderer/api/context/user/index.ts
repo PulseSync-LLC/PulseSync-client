@@ -36,6 +36,8 @@ const defaultUserContextValue: UserContextValue = {
     setMod: () => void 0,
     features: {},
     setFeatures: () => void 0,
+    allAchievements: [],
+    setAllAchievements: () => void 0,
     emitGateway: (_event: OutgoingGatewayEvent, _payload: unknown) => void 0,
 }
 

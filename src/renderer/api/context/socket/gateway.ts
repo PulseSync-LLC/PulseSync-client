@@ -19,6 +19,7 @@ type CreateGatewayHandlerParams = {
     setSocketConnected: Dispatch<SetStateAction<boolean>>
     setUser: Dispatch<SetStateAction<UserInterface>>
     onLogout: () => Promise<void>
+    onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
     resetSocketFailures: () => void
 }
 
@@ -31,6 +32,7 @@ export function createGatewayHandler({
     setSocketConnected,
     setUser,
     onLogout,
+    onAchievementsUpdate,
     resetSocketFailures,
 }: CreateGatewayHandlerParams) {
     return async (buf: ArrayBuffer | Uint8Array) => {
@@ -82,6 +84,10 @@ export function createGatewayHandler({
                 if (gatewayPayload?.hasSupporterBadge) {
                     window?.desktopEvents?.emit(RendererEvents.OPEN_MODAL, null, Modals.PREMIUM_UNLOCKED)
                 }
+                break
+            case IncomingGatewayEvents.ACHIEVEMENTS_UPDATE:
+                console.debug('Gateway achievements update', gatewayPayload)
+                await onAchievementsUpdate?.(gatewayPayload)
                 break
             default:
                 break
