@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import MainEvents from '../../common/types/mainEvents'
+import { useModalContext } from '../api/context/modal'
 
 const PEXT_EXT = '.pext'
 
@@ -49,29 +50,38 @@ const setDropEffect = (event: DragEvent, effect: DataTransfer['dropEffect']): vo
 }
 
 export function usePextDnDImport(): void {
+    const {Modals, openModal, closeModal, setModalState} = useModalContext()
+
     useEffect(() => {
         if (typeof window === 'undefined' || !window.desktopEvents) return
 
         const onDrag = (event: DragEvent): void => {
             if (!hasFilePayload(event)) return
-            setDropEffect(event, isUnsupportedPayload(event) ? 'none' : 'copy')
+            setDropEffect(event, isUnsupportedPayload(event) ? 'none' : 'copy');
+            setModalState(Modals.PEXT_DND_MODAL, { isValidFileType: !isUnsupportedPayload(event) })
+            openModal(Modals.PEXT_DND_MODAL);
+        }
+
+        const onDragEnd = (): void => {
+            closeModal(Modals.PEXT_DND_MODAL);
         }
 
         const onDrop = async (event: DragEvent): Promise<void> => {
+            closeModal(Modals.PEXT_DND_MODAL);
             if (!hasFilePayload(event)) return
             if (isUnsupportedPayload(event)) {
-                setDropEffect(event, 'none')
+                setDropEffect(event, 'none');
                 return
             }
 
-            const pextPath = getPextPath(event)
+            const pextPath = getPextPath(event);
             if (!pextPath) return
-            setDropEffect(event, 'copy')
+            setDropEffect(event, 'copy');
 
             try {
-                await window.desktopEvents.invoke(MainEvents.IMPORT_PEXT_FILE, pextPath)
+                await window.desktopEvents.invoke(MainEvents.IMPORT_PEXT_FILE, pextPath);
             } catch (error) {
-                console.error('Failed to import dropped .pext file:', error)
+                console.error('Failed to import dropped .pext file:', error);
             }
         }
 
@@ -82,6 +92,7 @@ export function usePextDnDImport(): void {
                 target[method]('dragenter', onDrag as EventListener, true)
                 target[method]('dragover', onDrag as EventListener, true)
                 target[method]('drop', onDrop as EventListener, true)
+                target[method]('dragleave', onDragEnd as EventListener, true)
             })
         }
 

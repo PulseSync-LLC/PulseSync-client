@@ -14,6 +14,7 @@ export interface ModalButton {
 }
 
 export interface CustomModalPSProps {
+    className?: string
     isOpen: boolean
     allowNoChoice?: boolean
     onClose: () => void
@@ -53,7 +54,7 @@ const modalVariants = {
     },
 } as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, text, subText, children, allowNoChoice = true, buttons = [] }) => {
+const CustomModalPS: React.FC<CustomModalPSProps> = ({ className, isOpen, onClose, title, text, subText, children, allowNoChoice = true, buttons = [] }) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return null
     }
@@ -67,10 +68,10 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
     const protectedOnClose = useCallback(() => {
-        if ((allowNoChoice || buttons.length === 0) && Date.now() - lastOpenTimeRef.current > 500) {
+        if (allowNoChoice && Date.now() - lastOpenTimeRef.current > 500) {
             onClose()
         }
-    }, [allowNoChoice, buttons.length, onClose]);
+    }, [allowNoChoice, onClose]);
 
     useEffect(() => {
         if (!isOpen) return
@@ -141,7 +142,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ isOpen, onClose, title, t
                 >
                     <motion.div
                         key="modal"
-                        className={styles.modal}
+                        className={cn(styles.modal, className)}
                         variants={modalVariants}
                         initial="hidden"
                         animate="visible"
