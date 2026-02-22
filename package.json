@@ -55,7 +55,8 @@
         "@types/yazl": "^3.3.0",
         "@typescript-eslint/eslint-plugin": "^8.56.0",
         "@typescript-eslint/parser": "^8.56.0",
-        "@vitejs/plugin-react-swc": "^4.2.3",
+        "@vitejs/plugin-react": "^5.1.4",
+        "babel-plugin-react-compiler": "^1.0.0",
         "electron": "40.6.0",
         "electron-builder": "^26.8.1",
         "eslint": "^10.0.1",
@@ -141,9 +142,9 @@
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
-        "VERSION": "2.11.0-beta",
-        "BRANCH": "a2d7b99",
-        "BUILD_TIME": "21.02.2026, 04:45:29"
+        "VERSION": "2.11.1-beta",
+        "BRANCH": "ef9ca56",
+        "BUILD_TIME": "22.02.2026, 03:47:25"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",
