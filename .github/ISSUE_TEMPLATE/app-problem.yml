@@ -1,0 +1,84 @@
+name: Проблема в приложении
+description: Сообщить о проблеме, которая относится именно к приложению PulseSync
+title: "[App Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Если проблема связана с приложением **PulseSync**, заполните форму ниже.
+
+        Если ошибка возникает в моде [**PulseSync-mod**](https://github.com/PulseSync-LLC/PulseSync-mod), пожалуйста, создайте issue в репозитории мода.
+
+  - type: checkboxes
+    id: confirmation
+    attributes:
+      label: Подтверждение
+      options:
+        - label: Я подтверждаю, что проблема относится к приложению PulseSync, а не к PulseSync-mod
+          required: true
+        - label: Я использую актуальную версию PulseSync
+          required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Описание проблемы
+      description: Опишите, что работает не так
+      placeholder: Например: приложение не запускается, не обновляет статус или показывает ошибку
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Как воспроизвести
+      description: Расскажите, что нужно сделать, чтобы ошибка появилась
+      placeholder: |
+        1. Открыть PulseSync
+        2. Нажать ...
+        3. Получить ошибку ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Ожидаемое поведение
+      placeholder: Что вы ожидали увидеть?
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Фактическое поведение
+      placeholder: Что произошло на самом деле?
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Версия PulseSync
+      placeholder: Например, 2.3.1
+    validations:
+      required: true
+
+  - type: input
+    id: os
+    attributes:
+      label: Операционная система
+      placeholder: Например, Windows 11 24H2
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Скриншоты или логи
+      description: Если есть, приложите скриншоты, текст ошибки или логи
+      placeholder: Это поможет быстрее понять причину проблемы
+    validations:
+      required: false
