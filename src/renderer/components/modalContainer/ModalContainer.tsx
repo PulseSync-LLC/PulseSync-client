@@ -8,6 +8,7 @@ import PremiumPromoModal from './modals/PremiumPromoModal'
 import MacPermissionsModal from './modals/MacPermissionsModal'
 import PremiumUnlockedModal from './modals/PremiumUnlockedModal'
 import LinuxPermissionsModal from './modals/LinuxPermissionsModal'
+import PextDNDModal from './modals/PextDNDModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -21,6 +22,7 @@ const ModalContainer: React.FC = () => {
             <LinuxPermissionsModal />
             <PremiumPromoModal />
             <PremiumUnlockedModal />
+            <PextDNDModal />
         </>
     )
 }

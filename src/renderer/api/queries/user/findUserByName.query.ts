@@ -2,7 +2,7 @@ import gql from 'graphql-tag'
 
 export default gql`
     query findUserByName($name: String!) {
-        findUserByName(name: $name) {
+        findUserByName(name: $name, newCalc: true) {
             id
             avatarHash
             avatarType
@@ -31,11 +31,8 @@ export default gql`
 
             isFriend
 
-            levelInfo {
+            levelInfoV2 {
                 totalPoints
-                currentLevel
-                progressInCurrentLevel
-                currentLevelThreshold
             }
 
             userAchievements {

@@ -1,8 +1,8 @@
 import { gql } from '@apollo/client'
 
 const GET_USER_PROFILE_QUERY = gql`
-    query GetUserProfile($name: String!, $page: Int!, $pageSize: Int!, $search: String, $sortOptions: [SortOptionInput!]) {
-        findUserByName(name: $name) {
+    query GetUserProfile($name: String!) {
+        findUserByName(name: $name, newCalc: true) {
             id
             username
             nickname
@@ -11,11 +11,8 @@ const GET_USER_PROFILE_QUERY = gql`
             bannerType
             avatarHash
             avatarType
-            levelInfo {
+            levelInfoV2 {
                 totalPoints
-                currentLevel
-                progressInCurrentLevel
-                currentLevelThreshold
             }
             badges {
                 uuid
@@ -41,18 +38,6 @@ const GET_USER_PROFILE_QUERY = gql`
             currentTrack
             isFriend
             isFollowing
-        }
-        getAchievements(page: $page, pageSize: $pageSize, search: $search, sortOptions: $sortOptions) {
-            achievements {
-                id
-                title
-                description
-                imageUrl
-                progressTotal
-                points
-                difficulty
-                hint
-            }
         }
     }
 `

@@ -18,5 +18,6 @@ export type SocketProviderProps = {
     setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     setLoading: Dispatch<SetStateAction<boolean>>
     onLogout: () => Promise<void>
+    onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
     children: ReactNode
 }

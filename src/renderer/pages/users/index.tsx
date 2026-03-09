@@ -14,24 +14,25 @@ import Scrollbar from '../../components/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 import { Banner } from '../../components/PSUI/Image'
 import { getBannerMediaUrls } from '../../utils/mediaVariants'
+import { getEffectiveLevelInfo } from '../../utils/levelInfo'
 
 const PER_PAGE = 51
 const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
 
 type SortState = { id: (typeof SORT_FIELDS)[number]; desc: boolean }[]
 
-const SAFE_LEVEL = {
+const SAFE_LEVEL_V2 = {
     totalPoints: 0,
-    currentLevel: 1,
-    progressInCurrentLevel: 0,
-    currentLevelThreshold: 100,
 }
 
 function normalizeUser(u: any): UserInterface {
+    const levelInfoV2 =
+        u?.levelInfoV2 && typeof u.levelInfoV2 === 'object' ? { ...SAFE_LEVEL_V2, ...u.levelInfoV2 } : SAFE_LEVEL_V2
+
     return {
         ...u,
         badges: Array.isArray(u?.badges) ? u.badges : [],
-        levelInfo: u?.levelInfo && typeof u.levelInfo === 'object' ? u.levelInfo : SAFE_LEVEL,
+        levelInfoV2,
     }
 }
 
@@ -113,8 +114,8 @@ export default function UsersPage() {
 
         if (id === 'level') {
             return [...arr].sort((a, b) => {
-                const aPts = a.levelInfo?.totalPoints ?? 0
-                const bPts = b.levelInfo?.totalPoints ?? 0
+                const aPts = getEffectiveLevelInfo(a).totalPoints
+                const bPts = getEffectiveLevelInfo(b).totalPoints
                 return desc ? bPts - aPts : aPts - bPts
             })
         }
@@ -215,7 +216,7 @@ export default function UsersPage() {
             display: 'flex',
             alignItems: 'stretch',
             padding: `${pt}px 40px 12px 40px`,
-            backgroundImage: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%), url(image.png)',
+            backgroundImage: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%)',
             backgroundColor: '#1D202B',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center center',

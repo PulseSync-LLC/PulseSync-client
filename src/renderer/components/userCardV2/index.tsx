@@ -7,6 +7,7 @@ import UserInterface from '../../api/interfaces/user.interface'
 import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
 import LevelBadge from '../LevelBadge'
 import { staticAsset } from '../../utils/staticAssets'
+import { getEffectiveLevelInfo } from '../../utils/levelInfo'
 import { useTranslation } from 'react-i18next'
 import { Avatar, Banner } from '../PSUI/Image'
 
@@ -45,6 +46,8 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
 
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
+    const typedUser = user as UserInterface
+    const levelInfo = useMemo(() => getEffectiveLevelInfo(typedUser), [typedUser.levelInfoV2])
 
     const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
 
@@ -66,8 +69,8 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                     <div className={styles.topSection}>
                         <Banner
                             className={styles.bannerImage}
-                            hash={(user as UserInterface).bannerHash}
-                            ext={(user as UserInterface).bannerType}
+                            hash={typedUser.bannerHash}
+                            ext={typedUser.bannerType}
                             sizes="360px"
                             alt=""
                             allowAnimate={isHovered}
@@ -76,8 +79,8 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         <Avatar
                             loading="lazy"
                             className={styles.userAvatar}
-                            hash={(user as UserInterface).avatarHash}
-                            ext={(user as UserInterface).avatarType}
+                            hash={typedUser.avatarHash}
+                            ext={typedUser.avatarType}
                             sizes="60px"
                             alt={user.username}
                             allowAnimate={isHovered}
@@ -85,10 +88,10 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>
                                 <TooltipButton
-                                    tooltipText={t('profile.level', { level: (user as UserInterface).levelInfo.currentLevel })}
+                                    tooltipText={t('profile.level', { level: levelInfo.currentLevel })}
                                     side="bottom"
                                 >
-                                    <LevelBadge level={(user as UserInterface).levelInfo.currentLevel} />
+                                    <LevelBadge level={levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(b => (
                                     <TooltipButton key={`${b.type}-${b.level}`} tooltipText={b.name} side="bottom">
@@ -110,13 +113,13 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         >
                             {isInactive(Number(user.lastOnline))
                                 ? t('userStatus.inactive')
-                                : (user as UserInterface).status === 'online'
+                                : typedUser.status === 'online'
                                   ? t('userStatus.online')
                                   : t('userStatus.offline')}
                         </div>
                         {isInactive(Number(user.lastOnline)) ? (
                             <MdNightsStay className={styles.statusIcon} style={{ color: '#9885A9' }} />
-                        ) : (user as UserInterface).status === 'online' ? (
+                        ) : typedUser.status === 'online' ? (
                             <MdPower className={styles.statusIcon} />
                         ) : (
                             <MdPowerOff className={styles.statusIcon} />
@@ -128,4 +131,4 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
     )
 }
 
-export default UserCardV2
+export default React.memo(UserCardV2)

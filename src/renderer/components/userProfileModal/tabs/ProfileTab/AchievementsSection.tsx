@@ -4,6 +4,7 @@ import LevelProgress from '../../../LevelProgress'
 import AchievementList from './AchievementList'
 import * as styles from '../../userProfileModal.module.scss'
 import userContext from '../../../../api/context/user'
+import { getEffectiveLevelInfo } from '../../../../utils/levelInfo'
 
 interface AchievementsSectionProps {
     userProfile: any
@@ -23,6 +24,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const { user, features } = useContext(userContext)
     const canViewDetails = useMemo(() => user.username === username, [user.username, username])
+    const levelInfo = useMemo(() => getEffectiveLevelInfo(userProfile), [userProfile?.levelInfoV2])
     const { t } = useTranslation()
 
     const toggleExpand = useCallback((id: number) => {
@@ -93,10 +95,10 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                     <div className={styles.descriptionHeader}>{t('profile.achievements.subtitle')}</div>
                 </div>
                 <LevelProgress
-                    totalPoints={userProfile.levelInfo.totalPoints}
-                    currentLevel={userProfile.levelInfo.currentLevel}
-                    progressInCurrentLevel={userProfile.levelInfo.progressInCurrentLevel}
-                    currentLevelThreshold={userProfile.levelInfo.currentLevelThreshold}
+                    totalPoints={levelInfo.totalPoints}
+                    currentLevel={levelInfo.currentLevel}
+                    progressInCurrentLevel={levelInfo.progressInCurrentLevel}
+                    currentLevelThreshold={levelInfo.currentLevelThreshold}
                 />
                 {userProfile.allAchievements && userProfile.allAchievements.length > 0 ? (
                     <>

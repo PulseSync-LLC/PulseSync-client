@@ -134,6 +134,13 @@ export async function loadAddons(): Promise<Addon[]> {
                 metadata.path = addonFolderPath
                 metadata.size = formatSizeUnits(folderSize)
                 metadata.directoryName = folder
+                try {
+                    const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
+                    metadata.rootFiles = rootEntries.filter(entry => entry.isFile()).map(entry => entry.name)
+                } catch (err) {
+                    logger.main.error(`Addons: error reading addon root files in theme ${folder}:`, err)
+                    metadata.rootFiles = []
+                }
 
                 availableAddons.push(metadata)
             } catch (err) {

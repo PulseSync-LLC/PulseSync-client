@@ -6,6 +6,7 @@ const IncomingGatewayEvents = {
     LOGOUT: 'logout',
     USER_UPDATE: 'user_update',
     SUBSCRIPTION_UPDATE: 'subscription_update',
+    ACHIEVEMENTS_UPDATE: 'achievements_update',
 } as const
 
 export type IncomingGatewayEvent = (typeof IncomingGatewayEvents)[keyof typeof IncomingGatewayEvents]

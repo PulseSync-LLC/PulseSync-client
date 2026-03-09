@@ -2,7 +2,7 @@ import { gql } from '@apollo/client'
 
 const GET_USER_PROFILE_QUERY = gql`
     query GetUserProfile($name: String!, $page: Int!, $pageSize: Int!, $search: String, $sortOptions: [SortOptionInput!]) {
-        findUserByName(name: $name) {
+        findUserByName(name: $name, newCalc: true) {
             id
             username
             nickname
@@ -11,11 +11,8 @@ const GET_USER_PROFILE_QUERY = gql`
             bannerType
             avatarHash
             avatarType
-            levelInfo {
+            levelInfoV2 {
                 totalPoints
-                currentLevel
-                progressInCurrentLevel
-                currentLevelThreshold
             }
             badges {
                 uuid

@@ -28,10 +28,13 @@ function normalizeIncomingUser(
     return {
         ...userInitials,
         ...incoming,
-        levelInfo: {
-            ...userInitials.levelInfo,
-            ...(incoming.levelInfo || {}),
-        },
+        levelInfoV2:
+            incoming.levelInfoV2 && typeof incoming.levelInfoV2 === 'object'
+                ? {
+                      ...userInitials.levelInfoV2,
+                      ...incoming.levelInfoV2,
+                  }
+                : userInitials.levelInfoV2,
         badges: Array.isArray(incoming.badges) ? incoming.badges : [],
         userAchievements: Array.isArray(incoming.userAchievements) ? incoming.userAchievements : [],
         subscription:

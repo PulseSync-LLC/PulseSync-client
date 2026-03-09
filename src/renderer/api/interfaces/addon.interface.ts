@@ -25,4 +25,5 @@ export default interface Addon {
     allowedUrls?: string[]
 
     supportedVersions?: string[]
+    rootFiles?: string[]
 }

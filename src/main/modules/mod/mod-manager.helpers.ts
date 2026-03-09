@@ -37,7 +37,7 @@ export function clearCacheOnVersionChange(): void {
     }
 }
 
-export async function closeMusicIfRunning(window: BrowserWindow): Promise<boolean> {
+export async function closeMusicIfRunning(window: BrowserWindow | null | undefined): Promise<boolean> {
     if (await isYandexMusicRunning()) {
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
         await closeYandexMusic()
@@ -120,7 +120,7 @@ export function setProgressPercent(window: BrowserWindow, progressBase: number, 
 }
 
 export async function sendSuccessAfterLaunch(
-    window: BrowserWindow,
+    window: BrowserWindow | null | undefined,
     wasClosed: boolean,
     channel: RendererEvent,
     payload: { success: true },

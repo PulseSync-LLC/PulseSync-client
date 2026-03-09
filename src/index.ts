@@ -3,7 +3,12 @@ import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
 import createTray from './main/modules/tray'
-import { checkForSingleInstance, isFirstInstance } from './main/modules/singleInstance'
+import {
+    checkForSingleInstance,
+    consumePendingBrowserAuthFromDeepLink,
+    consumePendingInstallModUpdateFromPath,
+    isFirstInstance,
+} from './main/modules/singleInstance'
 import { setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
@@ -25,6 +30,8 @@ import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'
 import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
+import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
+import { processBrowserAuth } from './main/modules/auth/browserAuth'
 
 export let updated = false
 export let hardwareAcceleration = false
@@ -100,6 +107,18 @@ app.on('ready', async () => {
         }
         await createWindow()
         handleEvents(mainWindow)
+        const pendingBrowserAuth = consumePendingBrowserAuthFromDeepLink()
+        if (pendingBrowserAuth) {
+            void processBrowserAuth(pendingBrowserAuth, { window: mainWindow }).catch(err => {
+                logger.main.error('Failed to process pending BROWSER_AUTH deeplink:', err)
+            })
+        }
+        const pendingInstallModUpdateFrom = consumePendingInstallModUpdateFromPath()
+        if (pendingInstallModUpdateFrom) {
+            void installModUpdateFromAsar(pendingInstallModUpdateFrom.path, mainWindow, pendingInstallModUpdateFrom.source).catch(err => {
+                logger.main.error('Failed to apply pending INSTALL_MOD_UPDATE_FROM:', err)
+            })
+        }
         if (isWindows()) {
             await checkOldYandexMusic()
         }

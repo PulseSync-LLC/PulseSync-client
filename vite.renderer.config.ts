@@ -1,4 +1,4 @@
-import react from '@vitejs/plugin-react-swc'
+import react from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
@@ -70,7 +70,11 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             svgr({
                 include: 'src/**/*.svg',
             }),
-            react(),
+            react({
+                babel: {
+                    plugins: ['babel-plugin-react-compiler'],
+                },
+            }),
             ...(!isDevMode
                 ? [
                       {
@@ -91,6 +95,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                 : []),
         ],
         resolve: {
+            preserveSymlinks: true,
             alias: {
                 '@': path.resolve(__dirname, 'static'),
                 '@common': path.resolve(__dirname, 'src/common'),
