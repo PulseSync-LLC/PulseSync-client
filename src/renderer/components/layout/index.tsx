@@ -85,7 +85,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 const id = toast.custom(
                     'loading',
                     t('layout.downloadProgressLabel'),
-                    t('layout.downloading'),
+                    t('layout.downloading', { name }),
                     { duration: Infinity },
                     progress,
                 )
@@ -208,15 +208,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'loading',
-                    title: t('layout.downloadProgressLabel'),
-                    msg: t('layout.downloading'),
+                    title: t('layout.musicDownloadProgressLabel'),
+                    msg: t('layout.downloading', { name: t('layout.musicAppName') }),
                     value: progress,
                 })
             } else {
                 const id = toast.custom(
                     'loading',
-                    t('layout.downloadProgressLabel'),
-                    t('layout.downloading'),
+                    t('layout.musicDownloadProgressLabel'),
+                    t('layout.downloading', { name: t('layout.musicAppName') }),
                     { duration: Infinity },
                     progress,
                 )

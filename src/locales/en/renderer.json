@@ -527,7 +527,7 @@
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
         "downloadProgressLabel": "Download progress",
-        "downloading": "Downloading",
+        "downloading": "Downloading {{name}}...",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
         "forceInstallAction": "Install anyway",
@@ -553,7 +553,9 @@
         "modUpdateStart": "Starting update download...",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",
+        "musicAppName": "Yandex Music",
         "musicDownloadProgress": "Downloading: {{progress}}%",
+        "musicDownloadProgressLabel": "Yandex Music installation",
         "musicInstallFailed": "Failed to install Yandex Music",
         "musicInstallSuccess": "Yandex Music installed successfully.",
         "musicUpdateFailed": "Failed to update Yandex Music",
