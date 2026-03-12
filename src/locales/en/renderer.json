@@ -752,7 +752,7 @@
         },
         "fallbackAlbumTitle": "PulseSync {{version}}",
         "fields": {
-            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence.",
+            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence",
             "appIdLabel": "App ID",
             "detailsDescription": "Details description",
             "detailsLabel": "Details",
@@ -763,7 +763,7 @@
             "statusDisplayTypeAria": "Status display type",
             "statusDisplayTypeDescription": "Changes how activity is shown after “Listen”.",
             "statusDisplayTypeLabel": "Change activity status display type",
-            "statusLanguage": "Change the language in which the app name will be displayed in RPC.",
+            "statusLanguage": "Change the language in which the app name will be displayed in RPC",
             "textPlaceholder": "enter text"
         },
         "listeningStatus": "Listening to PulseSync",
