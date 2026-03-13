@@ -9,13 +9,13 @@ export default defineConfig(({ mode }) => {
     return {
         build: {
             sourcemap: isDevMode,
+            target: 'node24.14',
             outDir: path.resolve(__dirname, `.vite/main`),
-            rollupOptions: {
+            rolldownOptions: {
                 external: ['electron', 'original-fs'],
                 output: {
                     format: 'cjs',
                     preserveModules: false,
-                    interop: 'auto',
                 },
             },
         },

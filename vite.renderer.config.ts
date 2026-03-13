@@ -1,4 +1,5 @@
-import react from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
@@ -42,20 +43,27 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         },
         build: {
             sourcemap: isDevSourceMapMode,
+            target: 'chrome146',
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: '../assets',
             emptyOutDir: true,
-            rollupOptions: {
+            rolldownOptions: {
                 input: path.resolve(__dirname, htmlEntry),
                 output: {
                     entryFileNames: 'renderer.js',
                     chunkFileNames: '[name].js',
                     assetFileNames: '[name].[ext]',
-                    manualChunks: id => {
-                        if (id.includes('node_modules')) {
-                            return 'vendor'
-                        }
-                        return undefined
+                    codeSplitting: {
+                        groups: [
+                            {
+                                name: moduleId => {
+                                    if (moduleId.includes('node_modules')) {
+                                        return 'vendor'
+                                    }
+                                    return null
+                                },
+                            },
+                        ],
                     },
                 },
             },
@@ -71,10 +79,10 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                 include: 'src/**/*.svg',
             }),
             react({
-                babel: {
-                    plugins: ['babel-plugin-react-compiler'],
-                },
             }),
+            babel({
+                presets: [reactCompilerPreset()],
+            } as Parameters<typeof babel>[0]),
             ...(!isDevMode
                 ? [
                       {

@@ -134,7 +134,6 @@ export async function createWindow(): Promise<void> {
         transparent: false,
         roundedCorners: true,
         webPreferences: {
-            preload: path.join(__dirname, 'preloaderPreload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         },
