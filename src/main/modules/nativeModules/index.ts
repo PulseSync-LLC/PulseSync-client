@@ -3,7 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import logger from '../logger'
 import { app } from 'electron'
-import { sendAddon } from '../httpServer'
+import { sendAddon, sendAddonSettings, sendAllAddonSettings } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
 
@@ -65,6 +65,22 @@ const loadNativeModules = (): NativeModules => {
 
 const nativeModules = loadNativeModules()
 
+const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+
+const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
+    if (!filename) return null
+
+    const normalized = path.normalize(filename)
+    if (path.basename(normalized).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+        return null
+    }
+
+    const parts = normalized.split(/[\\/]+/).filter(Boolean)
+    if (parts.length < 2) return null
+
+    return parts[parts.length - 2] || null
+}
+
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
     const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
     if (!addon) {
@@ -73,6 +89,16 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
     }
     logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
     addon.watch(themesPath, intervalMs, (eventType, filename) => {
+        const watchedAddonName = tryExtractAddonNameFromWatchPath(filename)
+        if (watchedAddonName) {
+            sendAddonSettings({ addonName: watchedAddonName, force: true })
+            return
+        }
+        if (path.basename(path.normalize(filename)).toLowerCase() === HANDLE_EVENTS_FILENAME.toLowerCase()) {
+            sendAllAddonSettings({ force: true })
+            return
+        }
+
         switch (eventType) {
             case 'add':
                 logger.main.info(`File ${filename} has been added`)

@@ -13,9 +13,9 @@
     "gypfile": true,
     "dependencies": {
         "bindings": "^1.5.0",
-        "node-addon-api": "^8.5.0"
+        "node-addon-api": "^8.6.0"
     },
     "devDependencies": {
-        "node-gyp": "^12.1.0"
+        "node-gyp": "^12.2.0"
     }
 }

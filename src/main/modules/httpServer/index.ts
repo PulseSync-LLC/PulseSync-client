@@ -182,6 +182,8 @@ export const getAllAllowedUrls = addonService.getAllAllowedUrls
 export const setAddon = addonService.setAddon
 export const sendAddon = addonService.sendAddon
 export const sendExtensions = addonService.sendExtensions
+export const sendAddonSettings = addonService.sendAddonSettings
+export const sendAllAddonSettings = addonService.sendAllAddonSettings
 export const get_current_track = addonService.getCurrentTrack
 export const getTrackInfo = () => data
 

@@ -9,7 +9,7 @@ import {
     consumePendingInstallModUpdateFromPath,
     isFirstInstance,
 } from './main/modules/singleInstance'
-import { setAddon } from './main/modules/httpServer'
+import { sendAddonSettings, sendAllAddonSettings, setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from 'electron-is-dev'
@@ -246,6 +246,33 @@ const mimeFromExt = (p: string) => {
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
 }
 
+const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+
+const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
+    if (!writtenPath) return
+
+    const normalizedPath = path.normalize(writtenPath)
+    if (path.basename(normalizedPath).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+        return
+    }
+
+    const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const relativePath = path.relative(addonsRoot, normalizedPath)
+    const isOutsideAddonsRoot = relativePath.startsWith('..') || path.isAbsolute(relativePath)
+    if (isOutsideAddonsRoot) {
+        return
+    }
+
+    const parts = relativePath.split(path.sep).filter(Boolean)
+    const addonName = parts[0]
+    if (!addonName) {
+        sendAllAddonSettings({ force: true })
+        return
+    }
+
+    sendAddonSettings({ addonName, force: true })
+}
+
 ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) => {
     try {
         switch (eventType) {
@@ -282,6 +309,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const content = typeof data === 'string' ? data : typeof data?.content === 'string' ? data.content : safeJson(data)
                     await ensureDir(p)
                     await fsp.writeFile(p, content, enc)
+                    emitAddonSettingsWriteIfNeeded(p)
                     return { success: true }
                 } catch (error: any) {
                     logger?.main?.error?.('[file-event:write-file]', error)
@@ -361,6 +389,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     await ensureDir(p)
                     await fsp.writeFile(p, safeJson(data), 'utf8')
+                    emitAddonSettingsWriteIfNeeded(p)
                     return { success: true }
                 } catch (error: any) {
                     logger?.main?.error?.('[file-event:create-config-file]', error)

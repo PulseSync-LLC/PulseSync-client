@@ -153,7 +153,6 @@ export async function loadAddons(): Promise<Addon[]> {
 
     let selectedTheme = State.get('addons.theme') ?? 'Default'
     let selectedScripts = State.get('addons.scripts') ?? []
-    logger.main.log(selectedScripts)
 
     const themeAddonExists = availableAddons.some(addon => addon.type === 'theme' && addon.directoryName === selectedTheme)
     if (!themeAddonExists) {

@@ -27,7 +27,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1008.0",
+        "@aws-sdk/client-s3": "^3.1009.0",
         "@babel/core": "7.29.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
