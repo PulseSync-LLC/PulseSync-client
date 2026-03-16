@@ -54,6 +54,14 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const toastReference = useRef<string | null>(null)
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
+    const readInstalledModFromStore = useCallback(() => {
+        const version = String(window.electron.store.get('mod.version') || '')
+        const name = String(window.electron.store.get('mod.name') || '')
+        const musicVersion = String(window.electron.store.get('mod.musicVersion') || '')
+        const installed = Boolean(window.electron.store.get('mod.installed'))
+
+        return { version, name, musicVersion, installed }
+    }, [])
 
     const isUserDeveloper = useCallback(() => {
         return user?.perms === 'developer' || isDev
@@ -73,7 +81,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
-        const handleProgress = (_: any, { progress, name }: { progress: number, name: string }) => {
+        const handleProgress = (_: any, { progress, name }: { progress: number; name: string }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'loading',
@@ -94,6 +102,9 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         }
 
         const handleSuccess = (_: any, data: any) => {
+            const installedMod = readInstalledModFromStore()
+            const installedEntry = modInfo.find(mod => mod.modVersion === installedMod.version)
+
             if (downloadToastIdRef.current) {
                 toast.custom(
                     'success',
@@ -109,34 +120,35 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     t('common.doneTitle'),
                 )
             }
-            if (modInfo.length > 0) {
-                setApp((prevApp: SettingsInterface) => ({
-                    ...prevApp,
-                    mod: {
-                        ...prevApp.mod,
-                        ...(prevApp.mod.installed
-                            ? { updated: true, version: modInfo[0].modVersion, name: modInfo[0].name }
-                            : {
-                                  installed: true,
-                                  version: modInfo[0].modVersion,
-                                  name: modInfo[0].name,
-                              }),
-                    },
-                }))
-                if (modInfo[0].showModal || app.settings.showModModalAfterInstall) {
-                    openModal(Modals.MOD_CHANGELOG)
-                }
-                setForceInstallEnabled(false)
-                Promise.all([
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
-                ]).then(([status, version]) => {
+            if (!installedMod.installed || !installedMod.version) {
+                toast.custom('error', t('common.somethingWrongTitle'), t('layout.modInstallUpdateError'))
+                setIsUpdating(false)
+                return
+            }
+
+            setApp((prevApp: SettingsInterface) => ({
+                ...prevApp,
+                mod: {
+                    ...prevApp.mod,
+                    installed: installedMod.installed,
+                    version: installedMod.version,
+                    name: installedMod.name,
+                    musicVersion: installedMod.musicVersion,
+                    updated: prevApp.mod.installed ? true : prevApp.mod.updated,
+                },
+            }))
+
+            if (installedEntry?.showModal || app.settings.showModModalAfterInstall) {
+                openModal(Modals.MOD_CHANGELOG)
+            }
+
+            setForceInstallEnabled(false)
+            Promise.all([window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS), window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION)]).then(
+                ([status, version]) => {
                     setMusicInstalled(Boolean(status))
                     setMusicVersion(version ?? null)
-                })
-            } else {
-                toast.custom('error', t('common.somethingWrongTitle'), t('layout.modInstallUpdateError'))
-            }
+                },
+            )
             setIsUpdating(false)
         }
 
@@ -193,6 +205,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         Modals.MOD_CHANGELOG,
         modInfo,
         openModal,
+        readInstalledModFromStore,
         setApp,
         setMusicInstalled,
         setMusicVersion,
@@ -301,7 +314,6 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         window.desktopEvents?.send(MainEvents.DOWNLOAD_YANDEX_MUSIC, modUpdateState.updateUrl)
         setIsMusicUpdating(true)
     }, [isMusicUpdating, modUpdateState.updateUrl, t])
-
 
     const startUpdate = useCallback(
         (force?: boolean) => {

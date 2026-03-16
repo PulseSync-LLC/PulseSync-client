@@ -6,12 +6,11 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { t } from '../../i18n'
 import { isLinuxAccessError } from '../../utils/appUtils/elevation'
 import logger from '../logger'
-import { getState } from '../state'
 import { sendToRenderer } from './download.helpers'
-import { closeMusicIfRunning, readChecksum, sendSuccessAfterLaunch } from './mod-manager.helpers'
+import { closeMusicIfRunning, persistInstalledModState, readChecksum, sendSuccessAfterLaunch } from './mod-manager.helpers'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, writePatchedAsarAndPatchBundle } from './mod-files'
+import { resolveInstallModMatch } from './network/modCatalog'
 
-const State = getState()
 const ACTION_PATCH = 'PATCH'
 const PATCH_TYPE_FROM_MOD = 'FROM_MOD'
 
@@ -167,11 +166,18 @@ export const installModUpdateFromAsar = async (
     let wasClosed = false
 
     try {
+        const { incomingAsar, incomingChecksum, matchedMod } = await resolveInstallModMatch(asarPath)
+
+        if (!matchedMod) {
+            const error = t('main.modManager.modVersionNotFoundByChecksum')
+            sendInstallFailure(window, { error, type: 'unknown_checksum' })
+            return { success: false, type: 'unknown_checksum', error }
+        }
+
         const paths = await ensureLinuxModPath(await resolveBasePaths())
         wasClosed = await closeMusicIfRunning(window)
         await ensureBackup(paths)
 
-        const incomingAsar = await fs.promises.readFile(asarPath)
         const sourceUrl = pathToFileURL(asarPath).toString()
         const patched = await writePatchedAsarAndPatchBundle(paths.modAsar, incomingAsar, sourceUrl, paths.backupAsar)
 
@@ -182,15 +188,13 @@ export const installModUpdateFromAsar = async (
         }
 
         const checksum = readChecksum(paths.modAsar)
-        const prevMod = (State.get('mod') as Record<string, unknown> | undefined) ?? {}
-        State.set('mod', {
-            ...prevMod,
-            installed: true,
-            ...(checksum ? { checksum } : {}),
-        })
+        const resolvedChecksum = checksum ?? incomingChecksum
+        await persistInstalledModState(paths, matchedMod, resolvedChecksum)
 
         await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })
-        logger.modManager.info(`[INSTALL_MOD_UPDATE_FROM:${source}] Installed from ${asarPath} -> ${paths.modAsar}`)
+        logger.modManager.info(
+            `[INSTALL_MOD_UPDATE_FROM:${source}] Installed from ${asarPath} -> ${paths.modAsar} as mod ${matchedMod.modVersion} (${resolvedChecksum})`,
+        )
         return { success: true, path: asarPath }
     } catch (error: any) {
         logger.modManager.error(`[INSTALL_MOD_UPDATE_FROM:${source}] Failed to install ${asarPath}`, error)

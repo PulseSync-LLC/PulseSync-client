@@ -2,7 +2,6 @@ import isAppDev from 'electron-is-dev'
 import path from 'path'
 import fs from 'fs'
 import logger from '../logger'
-import { app } from 'electron'
 import { sendAddon, sendAddonSettings, sendAllAddonSettings } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
@@ -22,11 +21,13 @@ interface NativeModules {
 }
 
 const loadNativeModules = (): NativeModules => {
-    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
-
-    logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
+    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(process.resourcesPath, 'modules')
 
     const modules: NativeModules = {}
+
+    if (!fs.existsSync(baseDir)) {
+        return modules
+    }
 
     const scanDir = (dir: string) => {
         fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
@@ -54,10 +55,6 @@ const loadNativeModules = (): NativeModules => {
         scanDir(baseDir)
     } catch (err) {
         logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
-    }
-
-    if (Object.keys(modules).length === 0) {
-        logger.nativeModuleManager.warn('No native modules available.')
     }
 
     return modules

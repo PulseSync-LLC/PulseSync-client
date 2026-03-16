@@ -5,6 +5,50 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 import path from 'path'
 import fs from 'fs'
 
+const collectNativeNodeFiles = (dir: string): string[] => {
+    if (!fs.existsSync(dir)) return []
+
+    const entries = fs.readdirSync(dir, { withFileTypes: true })
+    const files: string[] = []
+
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name)
+        if (entry.isDirectory()) {
+            files.push(...collectNativeNodeFiles(fullPath))
+            continue
+        }
+        if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
+            files.push(fullPath)
+        }
+    }
+
+    return files
+}
+
+const copyNativeModules = (resourcesPath: string): void => {
+    const nativeModulesRoot = path.resolve(__dirname, 'nativeModules')
+    const modulesDestination = path.join(resourcesPath, 'modules')
+
+    if (!fs.existsSync(nativeModulesRoot)) return
+
+    fs.mkdirSync(modulesDestination, { recursive: true })
+
+    for (const addonName of fs.readdirSync(nativeModulesRoot)) {
+        const addonPath = path.join(nativeModulesRoot, addonName)
+        if (!fs.statSync(addonPath).isDirectory()) continue
+
+        const nodeFiles = collectNativeNodeFiles(addonPath)
+        if (nodeFiles.length === 0) continue
+
+        const addonDestination = path.join(modulesDestination, addonName)
+        fs.mkdirSync(addonDestination, { recursive: true })
+
+        for (const nodeFile of nodeFiles) {
+            fs.copyFileSync(nodeFile, path.join(addonDestination, path.basename(nodeFile)))
+        }
+    }
+}
+
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
         icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
@@ -91,6 +135,7 @@ const forgeConfig: ForgeConfig = {
             const pextIconDestination = path.join(resourcesPath, 'assets', 'pext')
             fs.mkdirSync(pextIconDestination, { recursive: true })
             fs.cpSync(pextIconSource, pextIconDestination, { recursive: true })
+            copyNativeModules(resourcesPath)
             console.log(`Built app ${platform}-${arch} with Electron ${electronVersion}`)
         },
     },

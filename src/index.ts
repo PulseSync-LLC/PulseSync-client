@@ -61,6 +61,21 @@ const mimeByExt: Record<string, string> = {
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
 }
+
+const registerPulseSyncProtocol = (): void => {
+    try {
+        const entryFile = process.argv[1]
+        const isDevProtocolRegistration = Boolean(process.defaultApp || (isAppDev && entryFile))
+        isDevProtocolRegistration
+            ? app.setAsDefaultProtocolClient('pulsesync', process.execPath, entryFile ? [path.resolve(entryFile)] : [])
+            : app.setAsDefaultProtocolClient('pulsesync')
+    } catch (error) {
+        logger.main.warn('Failed to register pulsesync:// protocol handler:', error)
+    }
+}
+
+registerPulseSyncProtocol()
+
 const checkOldYandexMusic = async () => {
     try {
         const namePart = 'Yandex.Music'
