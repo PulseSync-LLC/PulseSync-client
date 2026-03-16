@@ -22,7 +22,7 @@ export const ModalsContext = createContext<ModalsContextValue>({
     openModal: <T extends ModalName>(_modal: T, _state?: ModalStatePatch<T>) => void 0,
     closeModal: () => void 0,
     isModalOpen: () => false,
-    getModalState: <T extends ModalName>(_modal: T) => ({ isOpen: false } as ModalState<T>),
+    getModalState: <T extends ModalName>(_modal: T) => ({ isOpen: false }) as ModalState<T>,
     setModalState: <T extends ModalName>(_modal: T, _state: Partial<ModalState<T>>) => void 0,
 })
 

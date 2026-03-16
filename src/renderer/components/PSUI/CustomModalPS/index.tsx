@@ -54,7 +54,17 @@ const modalVariants = {
     },
 } as const
 
-const CustomModalPS: React.FC<CustomModalPSProps> = ({ className, isOpen, onClose, title, text, subText, children, allowNoChoice = true, buttons = [] }) => {
+const CustomModalPS: React.FC<CustomModalPSProps> = ({
+    className,
+    isOpen,
+    onClose,
+    title,
+    text,
+    subText,
+    children,
+    allowNoChoice = true,
+    buttons = [],
+}) => {
     if (typeof window === 'undefined' || typeof document === 'undefined') {
         return null
     }
@@ -63,7 +73,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ className, isOpen, onClos
 
     const titleId = useMemo(() => `modal-title-${Math.random().toString(36).slice(2)}`, [])
     const descId = useMemo(() => `modal-desc-${Math.random().toString(36).slice(2)}`, [])
-    const lastOpenTimeRef = useRef<number>(0);
+    const lastOpenTimeRef = useRef<number>(0)
 
     const firstBtnRef = useRef<HTMLButtonElement | null>(null)
 
@@ -71,7 +81,7 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ className, isOpen, onClos
         if (allowNoChoice && Date.now() - lastOpenTimeRef.current > 500) {
             onClose()
         }
-    }, [allowNoChoice, onClose]);
+    }, [allowNoChoice, onClose])
 
     useEffect(() => {
         if (!isOpen) return
@@ -91,18 +101,16 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({ className, isOpen, onClos
 
     useEffect(() => {
         if (!isOpen) return
-        lastOpenTimeRef.current = Date.now();
+        lastOpenTimeRef.current = Date.now()
     }, [isOpen])
 
     const renderButtons = () => {
         if (!buttons.length) return null
 
-        const wrapperClass =  cn(
-            styles.buttonsWrapper, {
-                [styles.buttonsVertical]: isVertical,
-                [styles.buttonsHorizontal]: !isVertical,
-            }
-        );
+        const wrapperClass = cn(styles.buttonsWrapper, {
+            [styles.buttonsVertical]: isVertical,
+            [styles.buttonsHorizontal]: !isVertical,
+        })
 
         return (
             <div className={wrapperClass}>

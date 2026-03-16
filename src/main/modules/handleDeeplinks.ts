@@ -10,7 +10,10 @@ let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null
 const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/g, '')
 
 const transformUrl = (url: string): string[] => {
-    return url.replace(/^pulsesync:\/\//i, '').split('/').filter(Boolean)
+    return url
+        .replace(/^pulsesync:\/\//i, '')
+        .split('/')
+        .filter(Boolean)
 }
 
 export const checkIsDeeplink = (value: string): boolean => /^pulsesync:\/\/.*/i.test(value)

@@ -5,14 +5,7 @@ export type CdnAnimatedImageProps = CdnImageBaseProps & {
     allowAnimate?: boolean
 }
 
-export default function CdnAnimatedImage({
-    type,
-    hash,
-    ext,
-    allowAnimate = false,
-    onError,
-    ...imgProps
-}: CdnAnimatedImageProps) {
+export default function CdnAnimatedImage({ type, hash, ext, allowAnimate = false, onError, ...imgProps }: CdnAnimatedImageProps) {
     const media = useMemo(() => resolveCdnMedia(type, hash, ext, allowAnimate), [allowAnimate, ext, hash, type])
 
     if (!media?.src) return null

@@ -49,4 +49,3 @@ const OptionHeader: React.FC<p> = () => {
 }
 
 export default OptionHeader
-

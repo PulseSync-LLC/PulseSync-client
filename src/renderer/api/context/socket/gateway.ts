@@ -46,11 +46,11 @@ export function createGatewayHandler({
 
         switch (gatewayEvent) {
             case IncomingGatewayEvents.FEATURE_TOGGLES:
-                console.debug("Gateway feature toggles", gatewayPayload)
+                console.debug('Gateway feature toggles', gatewayPayload)
                 setFeatures((gatewayPayload || {}) as Record<string, boolean>)
                 break
             case IncomingGatewayEvents.DEPRECATED_VERSION:
-                console.debug("Gateway deprecated version")
+                console.debug('Gateway deprecated version')
                 toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
                 window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                     title: t('common.attentionTitle'),
@@ -60,7 +60,7 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.UPDATE_FEATURES_ACK:
                 break
             case IncomingGatewayEvents.ERROR_MESSAGE: {
-                console.debug("Gateway error message", gatewayPayload)
+                console.debug('Gateway error message', gatewayPayload)
                 const message = getGatewayErrorMessage(gatewayPayload)
                 if (message) {
                     toast.custom('error', t('common.errorTitleShort'), message, null, null, 15000)
@@ -68,14 +68,14 @@ export function createGatewayHandler({
                 break
             }
             case IncomingGatewayEvents.LOGOUT:
-                console.debug("Gateway logout")
+                console.debug('Gateway logout')
                 setSocket(null)
                 setSocketConnected(false)
                 resetSocketFailures()
                 await onLogout()
                 break
             case IncomingGatewayEvents.USER_UPDATE:
-                console.debug("Gateway user update", gatewayPayload)
+                console.debug('Gateway user update', gatewayPayload)
                 setUser(prev => applyUserUpdate(prev, gatewayPayload as UserUpdatePayload))
                 break
             case IncomingGatewayEvents.SUBSCRIPTION_UPDATE:

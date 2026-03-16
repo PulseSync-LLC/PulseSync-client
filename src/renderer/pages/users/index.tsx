@@ -26,8 +26,7 @@ const SAFE_LEVEL_V2 = {
 }
 
 function normalizeUser(u: any): UserInterface {
-    const levelInfoV2 =
-        u?.levelInfoV2 && typeof u.levelInfoV2 === 'object' ? { ...SAFE_LEVEL_V2, ...u.levelInfoV2 } : SAFE_LEVEL_V2
+    const levelInfoV2 = u?.levelInfoV2 && typeof u.levelInfoV2 === 'object' ? { ...SAFE_LEVEL_V2, ...u.levelInfoV2 } : SAFE_LEVEL_V2
 
     return {
         ...u,

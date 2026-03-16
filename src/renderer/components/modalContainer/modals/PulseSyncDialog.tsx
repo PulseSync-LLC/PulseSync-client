@@ -49,7 +49,9 @@ const PulseSyncDialog: React.FC = () => {
         if (isAdding) return
 
         setIsAdding(true)
-        const toastId = toast.custom('loading', t('modals.pulseSync.toasts.addingTitle'), t('modals.pulseSync.toasts.pleaseWait'), { duration: Infinity })
+        const toastId = toast.custom('loading', t('modals.pulseSync.toasts.addingTitle'), t('modals.pulseSync.toasts.pleaseWait'), {
+            duration: Infinity,
+        })
 
         try {
             const res = (await window.desktopEvents?.invoke(MainEvents.PULSESYNC_ADD_ENTRY as any)) as PulseSyncAddResult | undefined
@@ -83,9 +85,7 @@ const PulseSyncDialog: React.FC = () => {
 
     const wrapPath = (path: string) => path.replace(/[\\/]/g, match => `${match}\u200B`)
 
-    const subText = dialogPath
-        ? t('modals.pulseSync.subTextWithPath', { path: wrapPath(dialogPath) })
-        : t('modals.pulseSync.subText')
+    const subText = dialogPath ? t('modals.pulseSync.subTextWithPath', { path: wrapPath(dialogPath) }) : t('modals.pulseSync.subText')
 
     return (
         <CustomModalPS

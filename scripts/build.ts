@@ -44,7 +44,10 @@ if (publishIndex !== -1) {
 }
 
 function parsePublishBranchFromTag(tagValue: string): string | null {
-    const tag = tagValue.trim().replace(/^refs\/tags\//u, '').replace(/^v(?=\d)/u, '')
+    const tag = tagValue
+        .trim()
+        .replace(/^refs\/tags\//u, '')
+        .replace(/^v(?=\d)/u, '')
     if (!tag.includes('-')) {
         return null
     }

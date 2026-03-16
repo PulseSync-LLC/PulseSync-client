@@ -145,7 +145,17 @@ export const modManager = (window: BrowserWindow): void => {
                     }
                 } else {
                     if (
-                        !(await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, CACHE_DIR, asarProgress, 'app.asar'))
+                        !(await downloadAndUpdateFile(
+                            window,
+                            link,
+                            tempFilePath,
+                            paths.modAsar,
+                            paths.backupAsar,
+                            checksum,
+                            CACHE_DIR,
+                            asarProgress,
+                            'app.asar',
+                        ))
                     ) {
                         return
                     }

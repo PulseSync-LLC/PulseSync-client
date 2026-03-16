@@ -668,7 +668,10 @@ function App() {
                 return {
                     ...prev,
                     userAchievements: incomingUserAchievements,
-                    levelInfoV2: incomingLevelInfo && typeof incomingLevelInfo === 'object' ? (incomingLevelInfo as UserInterface['levelInfoV2']) : prev.levelInfoV2,
+                    levelInfoV2:
+                        incomingLevelInfo && typeof incomingLevelInfo === 'object'
+                            ? (incomingLevelInfo as UserInterface['levelInfoV2'])
+                            : prev.levelInfoV2,
                 }
             })
         },
@@ -810,10 +813,10 @@ function App() {
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${getUserToken()}`,
-                }
+                },
             })
             const data = await response.json()
-            if(data.ok) {
+            if (data.ok) {
                 window.desktopEvents?.send(MainEvents.SEND_PREMIUM_USER, {
                     ok: true,
                     token: data.token,

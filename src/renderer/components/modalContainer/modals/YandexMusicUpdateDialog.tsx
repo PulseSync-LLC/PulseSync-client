@@ -25,9 +25,16 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
         const handleDeleteResult = (event: any, data: any) => {
             if (data.success) {
-                toast.custom('success', t('modals.yandexMusicUpdate.toasts.successTitle'), t('modals.yandexMusicUpdate.toasts.deleteSuccess'), { duration: 3000 })
+                toast.custom('success', t('modals.yandexMusicUpdate.toasts.successTitle'), t('modals.yandexMusicUpdate.toasts.deleteSuccess'), {
+                    duration: 3000,
+                })
             } else {
-                toast.custom('error', t('modals.yandexMusicUpdate.toasts.errorTitle'), data.message || t('modals.yandexMusicUpdate.toasts.deleteFailed'), { duration: 3000 })
+                toast.custom(
+                    'error',
+                    t('modals.yandexMusicUpdate.toasts.errorTitle'),
+                    data.message || t('modals.yandexMusicUpdate.toasts.deleteFailed'),
+                    { duration: 3000 },
+                )
             }
             setIsDeleting(false)
         }
@@ -51,7 +58,12 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
     const handleDelete = async () => {
         setIsDeleting(true)
-        const toastId = toast.custom('loading', t('modals.yandexMusicUpdate.toasts.deletingTitle'), t('modals.yandexMusicUpdate.toasts.deletingDescription'), { duration: 3000 })
+        const toastId = toast.custom(
+            'loading',
+            t('modals.yandexMusicUpdate.toasts.deletingTitle'),
+            t('modals.yandexMusicUpdate.toasts.deletingDescription'),
+            { duration: 3000 },
+        )
 
         try {
             window.desktopEvents?.send('DELETE_YANDEX_MUSIC_APP')

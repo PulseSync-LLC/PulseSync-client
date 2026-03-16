@@ -21,11 +21,7 @@ const LinuxPermissionsModal: React.FC = () => {
         try {
             const result = await window.desktopEvents?.invoke(MainEvents.FIX_LINUX_MUSIC_PERMISSIONS)
             if (result?.success) {
-                toast.custom(
-                    'success',
-                    t('modals.linuxPermissions.toasts.successTitle'),
-                    t('modals.linuxPermissions.toasts.successDescription'),
-                )
+                toast.custom('success', t('modals.linuxPermissions.toasts.successTitle'), t('modals.linuxPermissions.toasts.successDescription'))
                 closeModal(Modals.LINUX_PERMISSIONS_MODAL)
                 return
             }

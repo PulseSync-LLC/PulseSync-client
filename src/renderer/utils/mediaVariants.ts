@@ -35,7 +35,7 @@ const normalizeExt = (value?: Nullable<string>): string | null => {
 
 const withS3 = (path: string) => `${config.S3_URL}/${path}`
 
-const buildSrcSet = ({basePath, ext, sizes}: {basePath: string, ext?: string | null, sizes: number[]}) =>
+const buildSrcSet = ({ basePath, ext, sizes }: { basePath: string; ext?: string | null; sizes: number[] }) =>
     sizes.map(size => `${withS3(`${basePath}_${size}.${ext || 'webp'}`)} ${size}w`).join(', ')
 
 const appendSrcSetCandidate = (srcSet: string | undefined, src: string, descriptor: string): string | undefined => {

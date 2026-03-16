@@ -501,10 +501,7 @@ const Header: React.FC<p> = () => {
                                     {isUserCardOpen && (
                                         <div className={styles.user_menu}>
                                             <div className={styles.user_info}>
-                                                <div
-                                                    className={styles.user_banner}
-                                                    ref={bannerRef}
-                                                >
+                                                <div className={styles.user_banner} ref={bannerRef}>
                                                     <Banner
                                                         className={styles.banner_image}
                                                         hash={user.bannerHash}
@@ -555,9 +552,7 @@ const Header: React.FC<p> = () => {
                                                                 ))}
                                                     </div>
                                                 </div>
-                                                <div
-                                                    className={styles.user_avatar}
-                                                >
+                                                <div className={styles.user_avatar}>
                                                     <Avatar
                                                         className={styles.avatar}
                                                         hash={user.avatarHash}

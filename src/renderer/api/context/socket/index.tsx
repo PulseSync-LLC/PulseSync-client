@@ -9,11 +9,7 @@ import IncomingSocketEvents from '../../socket/enums/incomingSocketEvents'
 import type { OutgoingGatewayEvent } from '../../socket/enums/outgoingGatewayEvents'
 import type { SocketContextValue, SocketProviderProps } from './types'
 import { createGatewayHandler } from './gateway'
-import {
-    buildRealtimeSocketAuth,
-    CONNECTION_ERROR_TOAST_THRESHOLD,
-    emitCompressedGateway,
-} from './utils'
+import { buildRealtimeSocketAuth, CONNECTION_ERROR_TOAST_THRESHOLD, emitCompressedGateway } from './utils'
 import { useZstdCodec } from './useZstdCodec'
 
 const noopEmitGateway = (_event: OutgoingGatewayEvent, _payload: unknown): void => {}

@@ -83,11 +83,7 @@ export default function AddonFilters({
             <div className={styles.filterGroup}>
                 {renderTitle(t('filters.sort.title'), resetSort, sort !== 'type' || sortOrder !== 'desc')}
                 {['type', 'alphabet', 'date', 'size', 'author'].map(opt => (
-                    <div
-                        key={opt}
-                        className={cn(styles.radioLabel, sort === opt && styles.selected)}
-                        onClick={() => handleSortClick(opt as any)}
-                    >
+                    <div key={opt} className={cn(styles.radioLabel, sort === opt && styles.selected)} onClick={() => handleSortClick(opt as any)}>
                         <div className={cn(styles.customRadio, sort === opt && styles.selected)} />
                         <div className={styles.textGroup}>
                             <div className={styles.text}>

@@ -47,7 +47,10 @@ export function restoreBackupIfExists(savePath: string, backupPath: string) {
 }
 
 export class DownloadError extends Error {
-    constructor(message: string, public code: 'network' | 'checksum_mismatch' | 'writer_error' | 'unknown' = 'unknown') {
+    constructor(
+        message: string,
+        public code: 'network' | 'checksum_mismatch' | 'writer_error' | 'unknown' = 'unknown',
+    ) {
         super(message)
     }
 }

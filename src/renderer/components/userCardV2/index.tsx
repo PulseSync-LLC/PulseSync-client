@@ -87,10 +87,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
                         />
                         <div className={styles.userInfo}>
                             <div className={styles.badges}>
-                                <TooltipButton
-                                    tooltipText={t('profile.level', { level: levelInfo.currentLevel })}
-                                    side="bottom"
-                                >
+                                <TooltipButton tooltipText={t('profile.level', { level: levelInfo.currentLevel })} side="bottom">
                                     <LevelBadge level={levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(b => (

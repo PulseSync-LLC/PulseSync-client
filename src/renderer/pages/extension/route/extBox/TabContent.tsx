@@ -339,4 +339,3 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 }
 
 export default TabContent
-

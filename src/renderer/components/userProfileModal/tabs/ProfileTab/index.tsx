@@ -41,4 +41,3 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, us
 }
 
 export default ProfileTab
-

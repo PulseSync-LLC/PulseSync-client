@@ -29,14 +29,5 @@ export default function Avatar({ hash, ext, allowAnimate = false, onError, ...im
         return <img {...imgProps} src={FALLBACK_AVATAR_SRC} onError={onError} />
     }
 
-    return (
-        <CdnAnimatedImage
-            type="avatar"
-            hash={resolvedHash}
-            ext={ext}
-            allowAnimate={allowAnimate}
-            onError={handleCdnError}
-            {...imgProps}
-        />
-    )
+    return <CdnAnimatedImage type="avatar" hash={resolvedHash} ext={ext} allowAnimate={allowAnimate} onError={handleCdnError} {...imgProps} />
 }

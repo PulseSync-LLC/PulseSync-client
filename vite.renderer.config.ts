@@ -78,8 +78,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             svgr({
                 include: 'src/**/*.svg',
             }),
-            react({
-            }),
+            react({}),
             babel({
                 presets: [reactCompilerPreset()],
             } as Parameters<typeof babel>[0]),

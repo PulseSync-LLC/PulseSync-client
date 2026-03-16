@@ -59,4 +59,3 @@ const AppUpdateDialog: React.FC = () => {
 }
 
 export default AppUpdateDialog
-

@@ -70,10 +70,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
                     cursor: canOpenTrack ? 'pointer' : 'default',
                 } as React.CSSProperties
             }
-            className={cn(
-                styles.userStatusInfo,
-                userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && styles.hoverEffect,
-            )}
+            className={cn(styles.userStatusInfo, userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && styles.hoverEffect)}
         >
             {statusText}
             {userProfile.currentTrack && userProfile.currentTrack.status === 'playing' && <MdOpenInNew size={20} />}

@@ -135,4 +135,3 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 }
 
 export default AchievementsSection
-

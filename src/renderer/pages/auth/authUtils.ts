@@ -31,4 +31,3 @@ export const readAndSendTerms = async () => {
     const fileContent = await response.text()
     window.desktopEvents?.send(MainEvents.OPEN_FILE, fileContent)
 }
-

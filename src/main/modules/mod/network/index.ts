@@ -36,10 +36,7 @@ import {
 const USER_AGENT = () =>
     `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
 
-export async function checkModCompatibility(
-    modVersion: string,
-    ymVersion: string,
-): Promise<ModCompatibilityResult> {
+export async function checkModCompatibility(modVersion: string, ymVersion: string): Promise<ModCompatibilityResult> {
     try {
         const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
             params: { yandexVersion: ymVersion, modVersion },
@@ -69,7 +66,7 @@ export async function downloadAndUpdateFile(
     checksum?: string,
     cacheDir?: string,
     progress?: DownloadProgress,
-    name?: string
+    name?: string,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
@@ -95,7 +92,7 @@ export async function downloadAndUpdateFile(
             progressScale: progress?.scale ?? 1,
             progressBase: progress?.base ?? 0,
             rejectUnauthorized: false,
-            name
+            name,
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)
@@ -216,7 +213,7 @@ export async function downloadAndExtractUnpacked(
                 progressBase: progress?.base ?? 0,
                 rejectUnauthorized: false,
                 expectedChecksum: checksum,
-                name: 'app.asar.unpacked'
+                name: 'app.asar.unpacked',
             })
 
             rawArchive = fs.readFileSync(tempArchivePath)

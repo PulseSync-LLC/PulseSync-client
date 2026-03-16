@@ -758,5 +758,3 @@ export default function ExtensionPage() {
         </PageLayout>
     )
 }
-
-

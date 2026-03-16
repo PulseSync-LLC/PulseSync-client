@@ -225,4 +225,3 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
 
     return { docs, config, configExists }
 }
-

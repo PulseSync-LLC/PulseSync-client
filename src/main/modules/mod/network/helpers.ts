@@ -162,11 +162,7 @@ export function isReplaceDirFailure(result: ReplaceDirResult): result is Replace
     return result.ok === false
 }
 
-async function runReplaceStageWithRetries(
-    runStage: () => void,
-    maxAttempts: number,
-    retryDelayStepMs: number,
-): Promise<RetryStageResult> {
+async function runReplaceStageWithRetries(runStage: () => void, maxAttempts: number, retryDelayStepMs: number): Promise<RetryStageResult> {
     let lastErr: any
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
@@ -189,10 +185,14 @@ async function runReplaceStageWithRetries(
 export async function tryReplaceDir(sourceDir: string, targetDir: string, tempExtractPath: string): Promise<ReplaceDirResult> {
     const maxAttempts = process.platform === 'win32' ? 5 : 2
 
-    const moveResult = await runReplaceStageWithRetries(() => {
-        fs.rmSync(targetDir, { recursive: true, force: true })
-        fs.renameSync(sourceDir, targetDir)
-    }, maxAttempts, 120)
+    const moveResult = await runReplaceStageWithRetries(
+        () => {
+            fs.rmSync(targetDir, { recursive: true, force: true })
+            fs.renameSync(sourceDir, targetDir)
+        },
+        maxAttempts,
+        120,
+    )
 
     if (!isRetryStageFailure(moveResult)) {
         cleanupTempExtractPath(sourceDir, tempExtractPath)
@@ -202,10 +202,14 @@ export async function tryReplaceDir(sourceDir: string, targetDir: string, tempEx
         return { ok: false, error: moveResult.error, stage: 'move' }
     }
 
-    const copyResult = await runReplaceStageWithRetries(() => {
-        fs.rmSync(targetDir, { recursive: true, force: true })
-        fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
-    }, maxAttempts, 150)
+    const copyResult = await runReplaceStageWithRetries(
+        () => {
+            fs.rmSync(targetDir, { recursive: true, force: true })
+            fs.cpSync(sourceDir, targetDir, { recursive: true, force: true })
+        },
+        maxAttempts,
+        150,
+    )
 
     if (!isRetryStageFailure(copyResult)) {
         fs.rmSync(tempExtractPath, { recursive: true, force: true })

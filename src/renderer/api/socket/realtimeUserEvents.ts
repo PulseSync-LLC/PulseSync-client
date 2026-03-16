@@ -38,17 +38,12 @@ function normalizeIncomingUser(
         badges: Array.isArray(incoming.badges) ? incoming.badges : [],
         userAchievements: Array.isArray(incoming.userAchievements) ? incoming.userAchievements : [],
         subscription:
-            patch && Object.prototype.hasOwnProperty.call(patch, 'subscription')
-                ? patch.subscription ?? null
-                : incoming.subscription ?? null,
+            patch && Object.prototype.hasOwnProperty.call(patch, 'subscription') ? (patch.subscription ?? null) : (incoming.subscription ?? null),
         hasSupporterBadge:
             patch && Object.prototype.hasOwnProperty.call(patch, 'hasSupporterBadge')
                 ? Boolean(patch.hasSupporterBadge)
                 : Boolean(incoming.hasSupporterBadge),
-        active:
-            patch && Object.prototype.hasOwnProperty.call(patch, 'active')
-                ? Boolean(patch.active)
-                : Boolean(incoming.active),
+        active: patch && Object.prototype.hasOwnProperty.call(patch, 'active') ? Boolean(patch.active) : Boolean(incoming.active),
     }
 }
 
@@ -62,10 +57,7 @@ export function applyUserUpdate(currentUser: UserInterface, payload: UserUpdateP
     return usersAreEqual(currentUser, nextUser) ? currentUser : nextUser
 }
 
-export function applySubscriptionUpdate(
-    currentUser: UserInterface,
-    payload: SubscriptionUpdatePayload | null | undefined,
-): UserInterface {
+export function applySubscriptionUpdate(currentUser: UserInterface, payload: SubscriptionUpdatePayload | null | undefined): UserInterface {
     if (!payload?.userId || payload.userId !== currentUser.id || !payload.user?.id) {
         return currentUser
     }

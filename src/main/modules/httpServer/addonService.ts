@@ -307,15 +307,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         })
     }
 
-    const sendAddonSettings = ({
-        addonName,
-        targetSocket,
-        force = false,
-    }: {
-        addonName: string
-        targetSocket?: Socket
-        force?: boolean
-    }): void => {
+    const sendAddonSettings = ({ addonName, targetSocket, force = false }: { addonName: string; targetSocket?: Socket; force?: boolean }): void => {
         if (!addonName) return
         if (!getEnabledAddonNames().includes(addonName)) {
             return
