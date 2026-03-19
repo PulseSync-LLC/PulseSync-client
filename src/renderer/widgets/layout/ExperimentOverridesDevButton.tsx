@@ -15,12 +15,7 @@ const ExperimentOverridesDevButton: React.FC = () => {
 
     return (
         <TooltipButton tooltipText={label} side="bottom" as="div" className={styles.devOverridesTrigger}>
-            <button
-                type="button"
-                className={styles.headerIconButton}
-                aria-label={label}
-                onClick={() => openModal(Modals.EXPERIMENT_OVERRIDES_DEV)}
-            >
+            <button type="button" className={styles.headerIconButton} aria-label={label} onClick={() => openModal(Modals.EXPERIMENT_OVERRIDES_DEV)}>
                 <MdScience size={18} />
             </button>
             {activeOverrideCount > 0 && <span className={styles.devOverridesBadge}>{activeOverrideCount}</span>}

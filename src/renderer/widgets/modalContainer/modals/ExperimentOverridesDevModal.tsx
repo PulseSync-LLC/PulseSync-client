@@ -219,17 +219,13 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                 <div className={styles.formTop}>
                                     <div>
                                         <div className={styles.formTitle}>{selectedExperiment.key}</div>
-                                        {selectedExperiment.description && (
-                                            <p className={styles.formDescription}>{selectedExperiment.description}</p>
-                                        )}
+                                        {selectedExperiment.description && <p className={styles.formDescription}>{selectedExperiment.description}</p>}
                                     </div>
                                     <div className={styles.metaRow}>
                                         <span className={styles.metaChip}>
                                             {t('header.devOverrides.rollout', { percentage: selectedExperiment.rollout?.percentage ?? 0 })}
                                         </span>
-                                        {selectedOverride && (
-                                            <span className={styles.metaChipActive}>{t('header.devOverrides.overrideActive')}</span>
-                                        )}
+                                        {selectedOverride && <span className={styles.metaChipActive}>{t('header.devOverrides.overrideActive')}</span>}
                                     </div>
                                 </div>
 

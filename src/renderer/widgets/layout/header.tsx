@@ -10,11 +10,6 @@ import ArrowDown from '@shared/assets/icons/arrowDown.svg'
 
 import userContext from '@entities/user/model/context'
 import ContextMenu from '@features/context_menu'
-import Modal from '@shared/ui/PSUI/Modal'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '@shared/ui/toast'
@@ -22,7 +17,6 @@ import config, { isDev, isDevmark } from '@common/appConfig'
 import getUserToken from '@shared/lib/auth/getUserToken'
 import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
-import axios from 'axios'
 import { AnimatePresence, motion } from 'framer-motion'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { useNavigate } from 'react-router-dom'
@@ -30,25 +24,20 @@ import client from '@shared/api/apolloClient'
 import { staticAsset } from '@shared/lib/staticAssets'
 import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
 import { useModalContext } from '@app/providers/modal'
-import { Track } from '@entities/track/model/track.interface'
 import playerContext from '@entities/track/model/player.context'
 import { MdSettings } from 'react-icons/md'
-import Loader from '@shared/ui/PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout/model/playStatus'
+import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
+import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
+import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
 
 interface p {
     goBack?: boolean
-}
-
-type ModChangelogEntry = {
-    id: string
-    version: string
-    createdAt: number
-    description: string | string[]
 }
 
 type GetModUpdatesResponse = {
@@ -59,7 +48,7 @@ const Header: React.FC<p> = () => {
     const openSettings = useCallback(() => {
         window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
     }, [])
-    const [settingsAvailable, setSettingsAvailable] = useState(false)
+    const settingsAvailable = false
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
@@ -67,17 +56,13 @@ const Header: React.FC<p> = () => {
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app, setUser, modInfo } = useContext(userContext)
+    const { user, appInfo, app, setUser } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
         closeUpdateModal: () => void
-    }>(null)
-    const modModalRef = useRef<{
-        openModal: () => void
-        closeModal: () => void
     }>(null)
 
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
@@ -88,7 +73,7 @@ const Header: React.FC<p> = () => {
 
     const fixedAddon = { charCount: inputStyle.charCount }
 
-    const [playStatus, setPlayStatus] = useState<'playing' | 'pause' | 'null'>('null')
+    const [playStatus, setPlayStatus] = useState<PlayStatus>('null')
 
     const openUpdateModal = useCallback(() => setModal(true), [])
     const closeUpdateModal = useCallback(() => setModal(false), [])
@@ -96,10 +81,6 @@ const Header: React.FC<p> = () => {
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
     const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
-    modModalRef.current = {
-        openModal: openModModal,
-        closeModal: closeModModal,
-    }
     updateModalRef.current = { openUpdateModal, closeUpdateModal }
     const toggleMenu = useCallback(() => {
         setIsUserCardOpen(false)
@@ -150,29 +131,12 @@ const Header: React.FC<p> = () => {
         }
     }, [isUserCardOpen])
 
-    const statusColors = {
-        playing: '#62FF79',
-        pause: '#60C2FF',
-        null: '#FFD562',
-    }
     useEffect(() => {
-        const handleDataUpdate = (data: Track) => {
-            if (data) {
-                if (data.status === 'playing') {
-                    setPlayStatus('playing')
-                } else if (data.status === 'paused' || data.status === 'idle') {
-                    setPlayStatus('pause')
-                } else {
-                    setPlayStatus('null')
-                }
-            }
-        }
-        handleDataUpdate(currentTrack)
+        setPlayStatus(getPlayStatus(currentTrack))
     }, [currentTrack])
 
     useEffect(() => {
-        const color = statusColors[playStatus] || statusColors.null
-        document.documentElement.style.setProperty('--statusColor', color)
+        applyPlayStatusColor(playStatus)
     }, [playStatus])
 
     useEffect(() => {
@@ -218,140 +182,41 @@ const Header: React.FC<p> = () => {
         })
     }, [])
 
-    const LinkRenderer = useCallback((props: any) => {
-        return (
-            <a href={props.href} target="_blank" rel="noreferrer">
-                {props.children}
-            </a>
-        )
-    }, [])
-
-    const markdownComponents = useMemo(() => ({ a: LinkRenderer }), [LinkRenderer])
-    const updateMarkdownComponents = useMemo(
-        () => ({
-            a: ({ href, children }: { href?: string; children: React.ReactNode }) => (
-                <a href={href as string} target="_blank" rel="noopener noreferrer">
-                    {children}
-                </a>
-            ),
-        }),
-        [],
-    )
     useCharCount(containerRef, fixedAddon)
 
-    const handleAvatarChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            const selectedFile = event.target.files[0]
-            setAvatarProgress(-1)
-            handleAvatarUpload(selectedFile)
-        }
-    }, [])
-
-    const handleBannerChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files) {
-            const selectedFile = event.target.files[0]
-            setBannerProgress(-1)
-            handleBannerUpload(selectedFile)
-        }
-    }, [])
-
-    const handleAvatarUpload = async (file: File) => {
-        if (!file) return
-
-        const formData = new FormData()
-        formData.append('file', file)
-
-        try {
-            const response = await axios.post(`${config.SERVER_URL}/cdn/avatar/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
-                },
-                onUploadProgress: progressEvent => {
-                    const { loaded, total } = progressEvent
-                    const percentCompleted = Math.floor((loaded * 100) / (total || 1))
-                    setAvatarProgress(percentCompleted)
-                },
-            })
-
-            const data = response.data
-
-            if (data && data.ok) {
+    const handleAvatarChange = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (event.target.files) {
+                const selectedFile = event.target.files[0]
                 setAvatarProgress(-1)
-                setUser((prev: any) => ({
-                    ...prev,
-                    avatarHash: data.hash,
-                    avatarType: data.type,
-                }))
-                toast.custom('success', t('common.doneTitle'), t('header.avatarUploadSuccess'))
-            } else {
-                setAvatarProgress(-1)
-                toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadUnknownError'))
+                void uploadProfileMedia({
+                    kind: 'avatar',
+                    file: selectedFile,
+                    setProgress: setAvatarProgress,
+                    setUser,
+                    t,
+                })
             }
-        } catch (error: any) {
-            switch (error.response?.data?.message) {
-                case 'FILE_TOO_LARGE':
-                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
-                    break
-                case 'FILE_NOT_ALLOWED':
-                    toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileNotImage'))
-                    break
-                case 'UPLOAD_FORBIDDEN':
-                    toast.custom('error', t('header.accessDeniedTitle'), t('header.avatarUploadForbidden'))
-                    break
-                default:
-                    toast.custom('error', t('common.oopsTitle'), t('header.avatarUploadRetry'))
-                    break
-            }
-            setAvatarProgress(-1)
-        }
-    }
+        },
+        [setUser, t],
+    )
 
-    const handleBannerUpload = async (file: File) => {
-        if (!file) return
-
-        const formData = new FormData()
-        formData.append('file', file)
-
-        try {
-            const response = await axios.post(`${config.SERVER_URL}/cdn/banner/upload`, formData, {
-                headers: {
-                    'Content-Type': 'multipart/form-data',
-                    Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
-                },
-                onUploadProgress: progressEvent => {
-                    const { loaded, total } = progressEvent
-                    const percentCompleted = Math.floor((loaded * 100) / (total || 1))
-                    setBannerProgress(percentCompleted)
-                },
-            })
-
-            const data = response.data
-
-            if (data && data.ok) {
+    const handleBannerChange = useCallback(
+        (event: React.ChangeEvent<HTMLInputElement>) => {
+            if (event.target.files) {
+                const selectedFile = event.target.files[0]
                 setBannerProgress(-1)
-                setUser((prev: any) => ({
-                    ...prev,
-                    bannerHash: data.hash,
-                    bannerType: data.type,
-                }))
-                toast.custom('success', t('common.doneTitle'), t('header.bannerUploadSuccess'))
-            } else {
-                setBannerProgress(-1)
-                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadUnknownError'))
+                void uploadProfileMedia({
+                    kind: 'banner',
+                    file: selectedFile,
+                    setProgress: setBannerProgress,
+                    setUser,
+                    t,
+                })
             }
-        } catch (error: any) {
-            if (error.response?.data?.message === 'FILE_TOO_LARGE') {
-                toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
-            } else if (error.response?.data?.message === 'UPLOAD_FORBIDDEN') {
-                toast.custom('error', t('header.accessDeniedTitle'), t('header.bannerUploadForbidden'))
-            } else {
-                toast.custom('error', t('common.oopsTitle'), t('header.bannerUploadRetry'))
-            }
-            setBannerProgress(-1)
-            console.error('Error uploading banner:', error)
-        }
-    }
+        },
+        [setUser, t],
+    )
 
     const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
 
@@ -394,61 +259,24 @@ const Header: React.FC<p> = () => {
         }
     }, [shouldFetchModChanges, app.mod.version, refetchModChanges])
 
-    const bannerRef = useRef<HTMLDivElement>(null)
-
     const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
 
     return (
         <>
-            <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
-                <div className={modalStyles.updateModal}>
-                    {loadingAppUpdates && <Loader text={t('common.loading')} />}
-                    {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
-                    {!loadingAppUpdates &&
-                        !appError &&
-                        appUpdatesInfo
-                            .filter(info => info.version <= app.info.version)
-                            .map(info => (
-                                <div key={info.id} className={modalStyles.updateItem}>
-                                    <div className={modalStyles.version_info}>
-                                        <h3>{info.version}</h3>
-                                        <span>{formatDate(info.createdAt)}</span>
-                                    </div>
-                                    <div className={modalStyles.remerkStyle}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownComponents}>
-                                            {info.changelog}
-                                        </ReactMarkdown>
-                                    </div>
-                                </div>
-                            ))}
-                    {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= app.info.version).length === 0 && (
-                        <p>{t('header.noChangelogFound')}</p>
-                    )}
-                </div>
-            </Modal>
-            <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
-                <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Loader text={t('common.loading')} />}
-                    {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
-                    {!loadingModChanges &&
-                        !modError &&
-                        modChangesInfoRaw.length > 0 &&
-                        modChangesInfoRaw.map(info => (
-                            <div key={info.id} className={modalStyles.updateItem}>
-                                <div className={modalStyles.version_info}>
-                                    <h3>{info.version}</h3>
-                                    <span>{formatDate(info.createdAt)}</span>
-                                </div>
-                                <div className={modalStyles.remerkStyle}>
-                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={updateMarkdownComponents}>
-                                        {Array.isArray(info.description) ? info.description.join('\n') : info.description || ''}
-                                    </ReactMarkdown>
-                                </div>
-                            </div>
-                        ))}
-                    {!loadingModChanges && !modError && modChangesInfoRaw.length === 0 && <p>{t('header.noChangelogFound')}</p>}
-                </div>
-            </Modal>
+            <HeaderModals
+                appError={appError}
+                appUpdatesInfo={appUpdatesInfo}
+                appVersion={app.info.version}
+                closeModModal={closeModModal}
+                closeUpdateModal={closeUpdateModal}
+                formatDate={formatDate}
+                isModModalOpen={isModModalOpen}
+                loadingAppUpdates={loadingAppUpdates}
+                loadingModChanges={loadingModChanges}
+                modal={modal}
+                modChangesInfo={modChangesInfoRaw}
+                modError={modError}
+            />
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
@@ -520,136 +348,17 @@ const Header: React.FC<p> = () => {
                                     </div>
                                     <AnimatePresence>
                                         {isUserCardOpen && (
-                                            <motion.div
-                                                className={styles.user_menu}
-                                                initial={{ opacity: 0, y: -8, scale: 0.985 }}
-                                                animate={{ opacity: 1, y: 0, scale: 1 }}
-                                                exit={{ opacity: 0, y: -6, scale: 0.985 }}
-                                                transition={{ duration: 0.18, ease: 'easeOut' }}
-                                            >
-                                            <div className={styles.user_info}>
-                                                <div className={styles.user_banner} ref={bannerRef}>
-                                                    <Banner
-                                                        className={styles.banner_image}
-                                                        hash={user.bannerHash}
-                                                        ext={user.bannerType}
-                                                        sizes="390px"
-                                                        alt=""
-                                                        allowAnimate={isUserCardOpen}
-                                                    />
-                                                    <div className={styles.banner_gradient} />
-                                                    <motion.div
-                                                        className={styles.banner_overlay}
-                                                        initial={{
-                                                            width: '0%',
-                                                        }}
-                                                        animate={{
-                                                            width: bannerProgress !== -1 ? `${bannerProgress}%` : '0%',
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.3,
-                                                            ease: 'linear',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={styles.banner_loader}
-                                                            style={
-                                                                {
-                                                                    '--progress': `${bannerProgress}%`,
-                                                                } as CSSProperties
-                                                            }
-                                                        />
-                                                    </motion.div>
-                                                    <div className={styles.hoverUpload} onClick={() => bannerInputRef.current!.showPicker()}>
-                                                        {t('header.uploadBanner')}
-                                                    </div>
-                                                    <div className={styles.badges_container}>
-                                                        {user.badges.length > 0 &&
-                                                            user.badges
-                                                                .sort((a, b) => b.level - a.level)
-                                                                .map(_badge => (
-                                                                    <TooltipButton tooltipText={_badge.name} side="bottom" key={_badge.type}>
-                                                                        <div className={styles.badge}>
-                                                                            <img
-                                                                                src={staticAsset(`assets/badges/${_badge.type}.svg`)}
-                                                                                alt={_badge.type}
-                                                                            />
-                                                                        </div>
-                                                                    </TooltipButton>
-                                                                ))}
-                                                    </div>
-                                                </div>
-                                                <div className={styles.user_avatar}>
-                                                    <Avatar
-                                                        className={styles.avatar}
-                                                        hash={user.avatarHash}
-                                                        ext={user.avatarType}
-                                                        sizes="85px"
-                                                        alt="card_avatar"
-                                                        allowAnimate={isUserCardOpen}
-                                                    />
-                                                    <motion.div
-                                                        className={styles.overlay}
-                                                        initial={{ opacity: 0 }}
-                                                        transition={{
-                                                            duration: 0.3,
-                                                            ease: 'linear',
-                                                        }}
-                                                        animate={{
-                                                            opacity: avatarProgress !== -1 ? `${avatarProgress}` : '0',
-                                                        }}
-                                                    >
-                                                        <div
-                                                            className={styles.loader}
-                                                            style={
-                                                                {
-                                                                    '--progress': `${avatarProgress}%`,
-                                                                } as CSSProperties
-                                                            }
-                                                        />
-                                                    </motion.div>
-                                                    <div className={styles.hoverUpload} onClick={() => avatarInputRef.current!.showPicker()}>
-                                                        {t('header.uploadAvatar')}
-                                                    </div>
-                                                    <div className={styles.status}>
-                                                        <div className={styles.dot}></div>
-                                                    </div>
-                                                </div>
-                                                <div className={styles.user_details}>
-                                                    <div className={styles.user_info}>
-                                                        <div
-                                                            onClick={() => {
-                                                                nav(`/profile/${encodeURIComponent(user.username)}`)
-                                                                setIsUserCardOpen(false)
-                                                            }}
-                                                            key={user.username}
-                                                            className={styles.username}
-                                                        >
-                                                            {user.nickname}
-                                                        </div>
-                                                        <div className={styles.usertag}>@{user.username}</div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className={styles.user_menu_buttons}>
-                                                <button
-                                                    onClick={() => nav(`/profile/${encodeURIComponent(user.username)}`)}
-                                                    key={user.id}
-                                                    className={styles.menu_button}
-                                                >
-                                                    {t('header.myProfile')}
-                                                </button>
-                                                <button className={styles.menu_button} disabled>
-                                                    {t('header.friends')}
-                                                </button>
-                                                <button className={styles.menu_button} disabled>
-                                                    {t('header.settings')}
-                                                </button>
-                                                <button className={styles.menu_button} onClick={logout}>
-                                                    {t('header.logout')}
-                                                </button>
-                                            </div>
-                                            </motion.div>
+                                            <UserMenuCard
+                                                avatarInputRef={avatarInputRef}
+                                                avatarProgress={avatarProgress}
+                                                bannerInputRef={bannerInputRef}
+                                                bannerProgress={bannerProgress}
+                                                isOpen={isUserCardOpen}
+                                                logout={logout}
+                                                onClose={() => setIsUserCardOpen(false)}
+                                                t={t}
+                                                user={user}
+                                            />
                                         )}
                                     </AnimatePresence>
                                 </>

@@ -232,7 +232,17 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
             setLocalOverride,
             clearLocalOverride,
         }),
-        [checkExperiment, clearLocalOverride, experiments, getEnabledFlags, getExperiment, isExperimentEnabled, loading, localOverrides, setLocalOverride],
+        [
+            checkExperiment,
+            clearLocalOverride,
+            experiments,
+            getEnabledFlags,
+            getExperiment,
+            isExperimentEnabled,
+            loading,
+            localOverrides,
+            setLocalOverride,
+        ],
     )
 
     return <ExperimentsContext.Provider value={value}>{children}</ExperimentsContext.Provider>

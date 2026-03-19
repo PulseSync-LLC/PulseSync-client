@@ -4,32 +4,17 @@ import userContext from '@entities/user/model/context'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
-import ArrowContext from '@shared/assets/icons/arrowContext.svg'
-import { MdFolderOpen } from 'react-icons/md'
-
 import toast from '@shared/ui/toast'
 import SettingsInterface from '@entities/settings/model/settings.interface'
 import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
+import { buildContextMenuSections, renderContextMenuSections } from '@features/context_menu/model/contextMenuSections'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{
         openUpdateModal: () => void
         closeUpdateModal: () => void
     }>
-}
-
-interface SectionItem {
-    label: React.ReactNode
-    onClick?: (event: any) => void
-    disabled?: boolean
-    isDev?: boolean
-}
-
-interface SectionConfig {
-    title?: string
-    buttons?: SectionItem[]
-    content?: React.ReactNode
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
@@ -301,207 +286,34 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         }))
     }
 
-    function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
-        return { title, buttons }
+    const collectLogs = () => {
+        window.desktopEvents?.send(MainEvents.GET_LOG_ARCHIVE)
+        toast.custom('success', t('common.doneTitle'), t('contextMenu.misc.logsReady'))
     }
 
-    function createContentSection(content: React.ReactNode): SectionConfig {
-        return { content }
-    }
+    const buttonConfigs = buildContextMenuSections({
+        app,
+        canResetAsarPath,
+        clearModCache,
+        collectLogs,
+        copyWidgetPath,
+        deleteMod,
+        downloadObsWidget,
+        openAppDirectory,
+        openModal,
+        openUpdateModal,
+        removeObsWidget,
+        resetAsarPath,
+        setLanguage,
+        t,
+        toggleSetting,
+        widgetInstalled,
+        modals: {
+            MOD_CHANGELOG: Modals.MOD_CHANGELOG,
+        },
+    })
 
-    function createToggleSection(title: string, checked: boolean, onToggle: () => void): SectionConfig {
-        return createContentSection(
-            <button
-                className={menuStyles.contextButton}
-                onClick={() => {
-                    onToggle()
-                }}
-            >
-                <span>{title}</span>
-                <div className={menuStyles.custom_checkbox_menu}>
-                    <div
-                        className={checked ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}` : menuStyles.custom_checkbox_menu_dot}
-                    ></div>
-                </div>
-            </button>,
-        )
-    }
-
-    function createToggleButton(title: string, checked: boolean, onToggle: () => void, isDev?: boolean): SectionItem {
-        if (isDev && !window.electron.isAppDev()) {
-            return null
-        }
-        return {
-            label: (
-                <>
-                    <span>{title}</span>
-                    <div className={menuStyles.custom_checkbox_menu}>
-                        <div
-                            className={checked ? `${menuStyles.custom_checkbox_menu_dot} ${menuStyles.active}` : menuStyles.custom_checkbox_menu_dot}
-                        ></div>
-                    </div>
-                </>
-            ),
-            onClick: event => {
-                onToggle()
-            },
-        }
-    }
-
-    const buttonConfigs: SectionConfig[] = [
-        createContentSection(
-            <button className={menuStyles.contextButton} onClick={openAppDirectory}>
-                <span>{t('contextMenu.appDirectory')}</span>
-                <MdFolderOpen size={18} />
-            </button>,
-        ),
-        createButtonSection(t('contextMenu.obsWidget.title'), [
-            {
-                label: t('contextMenu.obsWidget.download', {
-                    status: widgetInstalled ? t('contextMenu.status.installed') : t('contextMenu.status.notInstalled'),
-                }),
-                onClick: downloadObsWidget,
-                disabled: widgetInstalled,
-            },
-            {
-                label: t('contextMenu.obsWidget.openFolder'),
-                onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' }),
-                disabled: !widgetInstalled,
-            },
-            {
-                label: t('contextMenu.obsWidget.copyPath'),
-                onClick: copyWidgetPath,
-                disabled: !widgetInstalled,
-            },
-            {
-                label: t('contextMenu.obsWidget.remove'),
-                onClick: removeObsWidget,
-                disabled: !widgetInstalled,
-            },
-        ]),
-        createButtonSection(t('contextMenu.mod.title'), [
-            {
-                label:
-                    app.mod.installed && app.mod.version
-                        ? `${app.mod.name || t('contextMenu.mod.defaultName')} v${app.mod.version}`
-                        : t('contextMenu.mod.notInstalled'),
-                onClick: () => openModal(Modals.MOD_CHANGELOG),
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            {
-                label: t('contextMenu.mod.remove'),
-                onClick: deleteMod,
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            {
-                label: t('contextMenu.mod.checkUpdates'),
-                onClick: () => (window as any).getModInfo(app, { manual: true }),
-                disabled: !app.mod.installed || !app.mod.version,
-            },
-            {
-                label: t('contextMenu.mod.clearCache'),
-                onClick: clearModCache,
-            },
-            ...(window.electron.isLinux()
-                ? [
-                      {
-                          label: t('contextMenu.mod.resetAsarPath'),
-                          onClick: resetAsarPath,
-                          disabled: !canResetAsarPath,
-                      },
-                  ]
-                : []),
-            createToggleButton(t('contextMenu.mod.showChangelog'), app.settings.showModModalAfterInstall, () =>
-                toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
-            ),
-        ]),
-        createButtonSection(t('contextMenu.appSettings.title'), [
-            createToggleButton(t('contextMenu.appSettings.autoStartApp'), app.settings.autoStartApp, () =>
-                toggleSetting('autoStart', !app.settings.autoStartApp),
-            ),
-            createToggleButton(t('contextMenu.appSettings.hardwareAcceleration'), app.settings.hardwareAcceleration, () =>
-                toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
-            ),
-            createToggleButton(t('contextMenu.appSettings.deletePextAfterImport'), app.settings.deletePextAfterImport, () =>
-                toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
-            ),
-        ]),
-        createButtonSection(t('contextMenu.windowSettings.title'), [
-            createToggleButton(t('contextMenu.windowSettings.saveWindowDimensions'), app.settings.saveWindowDimensionsOnRestart, () =>
-                toggleSetting('saveWindowDimensionsOnRestart', !app.settings.saveWindowDimensionsOnRestart),
-            ),
-            createToggleButton(t('contextMenu.windowSettings.saveWindowPosition'), app.settings.saveWindowPositionOnRestart, () =>
-                toggleSetting('saveWindowPositionOnRestart', !app.settings.saveWindowPositionOnRestart),
-            ),
-        ]),
-        createButtonSection(t('contextMenu.traySettings.title'), [
-            createToggleButton(t('contextMenu.traySettings.autoTray'), app.settings.autoStartInTray, () =>
-                toggleSetting('autoTray', !app.settings.autoStartInTray),
-            ),
-            createToggleButton(t('contextMenu.traySettings.hideOnClose'), app.settings.closeAppInTray, () =>
-                toggleSetting('closeAppInTray', !app.settings.closeAppInTray),
-            ),
-        ]),
-        createButtonSection(t('contextMenu.language.title'), [
-            createToggleButton(t('contextMenu.language.russian'), app.settings.language === 'ru', () => setLanguage('ru')),
-            createToggleButton(t('contextMenu.language.english'), app.settings.language === 'en', () => setLanguage('en')),
-        ]),
-        createButtonSection(t('contextMenu.misc.title'), [
-            { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
-            {
-                label: t('contextMenu.misc.checkUpdates'),
-                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
-            },
-            {
-                label: t('contextMenu.misc.collectLogs'),
-                onClick: () => {
-                    window.desktopEvents?.send(MainEvents.GET_LOG_ARCHIVE)
-                    toast.custom('success', t('common.doneTitle'), t('contextMenu.misc.logsReady'))
-                },
-            },
-            createToggleButton(
-                t('contextMenu.misc.websocketStatus'),
-                app.settings.devSocket,
-                () => {
-                    toggleSetting('devSocket', !app.settings.devSocket)
-                },
-                true,
-            ),
-        ]),
-    ]
-
-    return (
-        <div className={menuStyles.modMenu}>
-            {buttonConfigs.map((section, index) => (
-                <React.Fragment key={index}>
-                    {section.content ? (
-                        <div>{section.content}</div>
-                    ) : (
-                        <div className={menuStyles.innerFunction}>
-                            {section.title && (
-                                <>
-                                    {section.title}
-                                    <ArrowContext />
-                                </>
-                            )}
-                            {section.buttons && (
-                                <div className={menuStyles.showButtons}>
-                                    {section.buttons
-                                        ?.filter(Boolean)
-                                        .filter(button => !button.isDev || (button.isDev && window.electron.isAppDev()))
-                                        .map((button, i) => (
-                                            <button key={i} className={menuStyles.contextButton} onClick={button.onClick} disabled={button.disabled}>
-                                                {button.label}
-                                            </button>
-                                        ))}
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </React.Fragment>
-            ))}
-        </div>
-    )
+    return <div className={menuStyles.modMenu}>{renderContextMenuSections(buttonConfigs)}</div>
 }
 
 export default ContextMenu

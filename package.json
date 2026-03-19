@@ -73,7 +73,6 @@
         "ts-node": "^10.9.2",
         "typescript": "^5.9.3",
         "vite": "^8.0.1",
-        "vite-plugin-node-polyfills": "^0.25.0",
         "vite-plugin-svgr": "^4.5.0"
     },
     "dependencies": {
@@ -103,10 +102,11 @@
         "glob": "^13.0.6",
         "graphql": "^16.13.1",
         "graphql-ws": "^6.0.7",
-        "i18next": "^25.8.19",
+        "i18next": "^25.8.20",
         "lodash.debounce": "^4.0.8",
         "log4js": "^6.9.1",
         "net": "^1.0.2",
+        "path-browserify": "^1.0.1",
         "plist": "^3.1.0",
         "react": "^19.2.4",
         "react-chartjs-2": "^5.3.1",

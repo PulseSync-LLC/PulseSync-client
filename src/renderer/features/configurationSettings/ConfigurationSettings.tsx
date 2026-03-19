@@ -1,6 +1,16 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
 import clsx from 'clsx'
-import { AddonConfig, Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, ButtonAction } from '@features/configurationSettings/types'
+import {
+    AddonConfig,
+    Item,
+    ButtonItem,
+    SliderItem,
+    ColorItem,
+    FileItem,
+    SelectorItem,
+    TextItem,
+    ButtonAction,
+} from '@features/configurationSettings/types'
 
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
 import TextInput from '@shared/ui/PSUI/TextInput'

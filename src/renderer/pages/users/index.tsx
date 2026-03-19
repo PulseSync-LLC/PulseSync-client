@@ -14,26 +14,7 @@ import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
 import { Banner } from '@shared/ui/PSUI/Image'
 import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
-import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
-
-const PER_PAGE = 51
-const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
-
-type SortState = { id: (typeof SORT_FIELDS)[number]; desc: boolean }[]
-
-const SAFE_LEVEL_V2 = {
-    totalPoints: 0,
-}
-
-function normalizeUser(u: any): UserInterface {
-    const levelInfoV2 = u?.levelInfoV2 && typeof u.levelInfoV2 === 'object' ? { ...SAFE_LEVEL_V2, ...u.levelInfoV2 } : SAFE_LEVEL_V2
-
-    return {
-        ...u,
-        badges: Array.isArray(u?.badges) ? u.badges : [],
-        levelInfoV2,
-    }
-}
+import { PER_PAGE, SORT_FIELDS, SortState, sortUsers } from '@pages/users/model/userList'
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
@@ -79,49 +60,6 @@ export default function UsersPage() {
         }
     }, [])
 
-    const processUsers = useCallback((rawUsers: UserInterface[], sortingState: SortState): UserInterface[] => {
-        const id = sortingState[0].id
-        const desc = sortingState[0].desc
-        const arr = rawUsers.map(normalizeUser)
-
-        if (id === 'lastOnline') {
-            return [...arr].sort((a, b) => {
-                const aOnline = a.status === 'online'
-                const bOnline = b.status === 'online'
-                if (aOnline !== bOnline) return aOnline ? -1 : 1
-                const aT = a.lastOnline ? Number(a.lastOnline) : 0
-                const bT = b.lastOnline ? Number(b.lastOnline) : 0
-                if (aT === bT) return 0
-                return desc ? bT - aT : aT - bT
-            })
-        }
-
-        if (id === 'createdAt') {
-            return [...arr].sort((a, b) => {
-                const aT = a.createdAt ? Number(a.createdAt) : 0
-                const bT = b.createdAt ? Number(b.createdAt) : 0
-                return desc ? bT - aT : aT - bT
-            })
-        }
-
-        if (id === 'username') {
-            return [...arr].sort((a, b) => {
-                const r = (a.username || '').localeCompare(b.username || '', undefined, { sensitivity: 'base' })
-                return desc ? -r : r
-            })
-        }
-
-        if (id === 'level') {
-            return [...arr].sort((a, b) => {
-                const aPts = getEffectiveLevelInfo(a).totalPoints
-                const bPts = getEffectiveLevelInfo(b).totalPoints
-                return desc ? bPts - aPts : aPts - bPts
-            })
-        }
-
-        return arr
-    }, [])
-
     const fetchUsers = useCallback(
         (page_: number, perPage_: number, sorting_: SortState, search_: string) => {
             setLoading(true)
@@ -137,7 +75,7 @@ export default function UsersPage() {
                     if (payload) {
                         const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
                         const totalPages: number = payload.totalPages || 1
-                        setUsers(processUsers(raw, sorting_))
+                        setUsers(sortUsers(raw, sorting_))
                         setMaxPages(totalPages)
                     } else {
                         setUsers([])
@@ -151,7 +89,7 @@ export default function UsersPage() {
                     setLoading(false)
                 })
         },
-        [processUsers, t],
+        [t],
     )
 
     const debouncedFetchUsers = useMemo(() => debounce(fetchUsers, 300), [fetchUsers])

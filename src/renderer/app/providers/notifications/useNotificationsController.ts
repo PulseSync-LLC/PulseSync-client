@@ -56,7 +56,7 @@ export function useNotificationsController(userId: string): NotificationsControl
     const [notificationsLoading, setNotificationsLoading] = useState(false)
     const [notificationsUnreadCount, setNotificationsUnreadCount] = useState(0)
 
-    const requestNotifications = useCallback(async <T,>(path: string, init?: RequestInit): Promise<T> => {
+    const requestNotifications = useCallback(async <T>(path: string, init?: RequestInit): Promise<T> => {
         const token = getUserToken()
         if (!token) {
             throw new Error('Session token is missing')

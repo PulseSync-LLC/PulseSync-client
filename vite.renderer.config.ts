@@ -3,7 +3,6 @@ import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
 
 const rendererHtmlEntries: Record<string, string> = {
@@ -74,7 +73,6 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             },
         },
         plugins: [
-            nodePolyfills(),
             svgr({
                 include: 'src/**/*.svg',
             }),
@@ -112,6 +110,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                 '@features': path.resolve(__dirname, 'src/renderer/features'),
                 '@entities': path.resolve(__dirname, 'src/renderer/entities'),
                 '@shared': path.resolve(__dirname, 'src/renderer/shared'),
+                path: 'path-browserify',
                 '/assets': path.resolve(__dirname, 'static/assets'),
             },
         },

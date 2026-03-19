@@ -165,7 +165,18 @@ export function SocketProvider({
             currentSocket.off(IncomingSocketEvents.GATEWAY, onGatewayMessage)
             currentSocket.io.off(IncomingSocketEvents.RECONNECT, resetSocketFailures)
         }
-    }, [onAchievementsUpdate, onLogout, onNotificationCreated, onNotificationRead, onNotificationsReadAll, setFeatures, setLoading, setUser, t, zstdReady])
+    }, [
+        onAchievementsUpdate,
+        onLogout,
+        onNotificationCreated,
+        onNotificationRead,
+        onNotificationsReadAll,
+        setFeatures,
+        setLoading,
+        setUser,
+        t,
+        zstdReady,
+    ])
 
     useEffect(() => {
         if (userId === '-1' || !zstdReady) return
