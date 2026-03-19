@@ -34,6 +34,9 @@ export function SocketProvider({
     setLoading,
     onLogout,
     onAchievementsUpdate,
+    onNotificationCreated,
+    onNotificationRead,
+    onNotificationsReadAll,
     children,
 }: SocketProviderProps) {
     const { t } = useTranslation()
@@ -127,6 +130,9 @@ export function SocketProvider({
             setUser,
             onLogout,
             onAchievementsUpdate,
+            onNotificationCreated,
+            onNotificationRead,
+            onNotificationsReadAll,
             resetSocketFailures,
         })
 
@@ -159,7 +165,7 @@ export function SocketProvider({
             currentSocket.off(IncomingSocketEvents.GATEWAY, onGatewayMessage)
             currentSocket.io.off(IncomingSocketEvents.RECONNECT, resetSocketFailures)
         }
-    }, [onAchievementsUpdate, onLogout, setFeatures, setLoading, setUser, t, zstdReady])
+    }, [onAchievementsUpdate, onLogout, onNotificationCreated, onNotificationRead, onNotificationsReadAll, setFeatures, setLoading, setUser, t, zstdReady])
 
     useEffect(() => {
         if (userId === '-1' || !zstdReady) return

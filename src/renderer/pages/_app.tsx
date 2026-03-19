@@ -20,7 +20,10 @@ import UserInterface from '../api/interfaces/user.interface'
 import userInitials from '../api/initials/user.initials'
 import UserContext from '../api/context/user'
 import type { SettingsUpdater, UserContextValue } from '../api/context/user/types'
+import { NotificationsProvider } from '../api/context/notifications'
+import { useNotificationsController } from '../api/context/notifications/useNotificationsController'
 import { SocketProvider, useSocketContext } from '../api/context/socket'
+import { ExperimentsProvider } from '../api/context/experiments'
 import toast from '../components/toast'
 import { SkeletonTheme } from 'react-loading-skeleton'
 import 'react-loading-skeleton/dist/skeleton.css'
@@ -35,6 +38,7 @@ import config from '@common/appConfig'
 import { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 
 import Preloader from '../components/preloader'
+import ExperimentOverridesDevModal from '../components/modalContainer/modals/ExperimentOverridesDevModal'
 import { fetchSettings } from '../api/settings'
 import { areTracksEqual, checkInternetAccess, compareVersions, normalizeTrack, notifyUserRetries } from '../utils/utils'
 import { usePextDnDImport } from '../utils/usePextDnDImport'
@@ -203,6 +207,8 @@ function App() {
             mounted = false
         }
     }, [])
+
+    const { notificationsValue, handleNotificationCreated, handleNotificationRead, handleNotificationsReadAll } = useNotificationsController(user.id)
 
     const {
         data: meData,
@@ -965,6 +971,9 @@ function App() {
             setLoading={setLoading}
             onLogout={handleSocketLogout}
             onAchievementsUpdate={handleSocketAchievementsUpdate}
+            onNotificationCreated={handleNotificationCreated}
+            onNotificationRead={handleNotificationRead}
+            onNotificationsReadAll={handleNotificationsReadAll}
         >
             <AppProviders
                 user={user}
@@ -994,6 +1003,7 @@ function App() {
                 setFeatures={setFeatures}
                 allAchievements={allAchievements}
                 setAllAchievements={setAllAchievements}
+                notificationsValue={notificationsValue}
                 router={router}
             />
         </SocketProvider>
@@ -1028,6 +1038,7 @@ function AppProviders({
     setFeatures,
     allAchievements,
     setAllAchievements,
+    notificationsValue,
     router,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
@@ -1106,11 +1117,16 @@ function AppProviders({
         <div className="app-wrapper">
             <Toaster position="top-center" reverseOrder={false} />
             <UserContext.Provider value={userContextValue}>
-                <Player>
-                    <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                        <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
-                    </SkeletonTheme>
-                </Player>
+                <ExperimentsProvider userId={user.id}>
+                    <ExperimentOverridesDevModal />
+                    <NotificationsProvider value={notificationsValue}>
+                        <Player>
+                            <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
+                                <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
+                            </SkeletonTheme>
+                        </Player>
+                    </NotificationsProvider>
+                </ExperimentsProvider>
             </UserContext.Provider>
         </div>
     )

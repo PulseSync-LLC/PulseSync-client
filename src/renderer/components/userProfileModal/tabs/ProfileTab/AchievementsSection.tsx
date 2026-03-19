@@ -4,6 +4,7 @@ import LevelProgress from '../../../LevelProgress'
 import AchievementList from './AchievementList'
 import * as styles from '../../userProfileModal.module.scss'
 import userContext from '../../../../api/context/user'
+import { CLIENT_EXPERIMENTS, useExperiments } from '../../../../api/context/experiments'
 import { getEffectiveLevelInfo } from '../../../../utils/levelInfo'
 
 interface AchievementsSectionProps {
@@ -23,9 +24,11 @@ const difficultyPriority: Record<Difficulty, number> = {
 const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, username }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const { user, features } = useContext(userContext)
+    const { isExperimentEnabled } = useExperiments()
     const canViewDetails = useMemo(() => user.username === username, [user.username, username])
     const levelInfo = useMemo(() => getEffectiveLevelInfo(userProfile), [userProfile?.levelInfoV2])
     const { t } = useTranslation()
+    const achievementsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAchievements, Boolean(features?.achievements))
 
     const toggleExpand = useCallback((id: number) => {
         setExpandedIndexes(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]))
@@ -79,7 +82,7 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
 
     return (
         <div className={styles.userPageDown}>
-            {!features?.achievements && (
+            {!achievementsEnabled && (
                 <div className={styles.warning}>
                     <span className={styles.title}>
                         <span className={styles.warnDot}></span>

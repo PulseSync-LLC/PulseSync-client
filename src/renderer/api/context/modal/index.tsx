@@ -15,6 +15,7 @@ const initialModalsState: ModalsState = {
     [Modals.PREMIUM_UNLOCKED]: { isOpen: false },
     [Modals.LINUX_PERMISSIONS_MODAL]: { isOpen: false },
     [Modals.PEXT_DND_MODAL]: { isOpen: false, isValidFileType: true },
+    [Modals.EXPERIMENT_OVERRIDES_DEV]: { isOpen: false },
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({

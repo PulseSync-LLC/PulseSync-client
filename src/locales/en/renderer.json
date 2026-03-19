@@ -410,6 +410,56 @@
         "logoutTitle": "See you, {{name}}",
         "myProfile": "My profile",
         "noChangelogFound": "Changelog not found.",
+        "notifications": {
+            "open": "Open notifications",
+            "title": "Notifications",
+            "unreadCount": "Unread: {{count}}",
+            "markAllRead": "Mark all read",
+            "loading": "Loading notifications...",
+            "empty": "There are no important notifications yet",
+            "read": "Read",
+            "openItem": "Open",
+            "categories": {
+                "localization": "Localization",
+                "subscription": "Subscription",
+                "security": "Security",
+                "system": "System"
+            },
+            "items": {
+                "localizationApprovedTitle": "Localization suggestion approved",
+                "localizationApprovedBody": "Your changes passed review and are already published.",
+                "localizationRejectedTitle": "Localization suggestion rejected",
+                "localizationRejectedBody": "Open the notification to review the feedback.",
+                "genericTitle": "New notification",
+                "genericBody": "Open the notification to view details."
+            }
+        },
+        "devOverrides": {
+            "open": "Open local experiment overrides",
+            "title": "Experiments",
+            "loading": "Loading experiments...",
+            "empty": "No experiments are available yet.",
+            "selectExperiment": "Select an experiment on the left.",
+            "overrideBadge": "override",
+            "overrideActive": "Override active",
+            "group": "Group",
+            "groupPlaceholder": "on / variant_name",
+            "enabledLabel": "State",
+            "valueLabel": "Value (JSON)",
+            "enabled": {
+                "inherit": "Inherit",
+                "on": "On",
+                "off": "Off"
+            },
+            "noGroup": "No group",
+            "rollout": "Rollout: {{percentage}}%",
+            "apply": "Apply",
+            "clear": "Clear override",
+            "applied": "Override applied",
+            "cleared": "Override cleared",
+            "invalidJson": "The value field must contain valid JSON",
+            "valueObjectError": "Value must be a JSON object"
+        },
         "settings": "Settings",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Heads up",

@@ -410,6 +410,56 @@
         "logoutTitle": "До встречи {{name}}",
         "myProfile": "Мой профиль",
         "noChangelogFound": "Список изменений не найден.",
+        "notifications": {
+            "open": "Открыть уведомления",
+            "title": "Уведомления",
+            "unreadCount": "Непрочитанных: {{count}}",
+            "markAllRead": "Прочитать все",
+            "loading": "Загружаю уведомления...",
+            "empty": "Пока нет важных уведомлений",
+            "read": "Прочитано",
+            "openItem": "Открыть",
+            "categories": {
+                "localization": "Локализация",
+                "subscription": "Подписка",
+                "security": "Безопасность",
+                "system": "Система"
+            },
+            "items": {
+                "localizationApprovedTitle": "Предложение по локализации принято",
+                "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
+                "localizationRejectedTitle": "Предложение по локализации отклонено",
+                "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "genericTitle": "Новое уведомление",
+                "genericBody": "Открой уведомление, чтобы посмотреть подробности."
+            }
+        },
+        "devOverrides": {
+            "open": "Локальные overrides experiments",
+            "title": "Experiments",
+            "loading": "Загружаю experiments...",
+            "empty": "Пока нет доступных experiments.",
+            "selectExperiment": "Выбери experiment слева.",
+            "overrideBadge": "override",
+            "overrideActive": "Override активен",
+            "group": "Группа",
+            "groupPlaceholder": "on / variant_name",
+            "enabledLabel": "Состояние",
+            "valueLabel": "Value (JSON)",
+            "enabled": {
+                "inherit": "Наследовать",
+                "on": "Включено",
+                "off": "Выключено"
+            },
+            "noGroup": "Без группы",
+            "rollout": "Rollout: {{percentage}}%",
+            "apply": "Применить",
+            "clear": "Очистить override",
+            "applied": "Override применён",
+            "cleared": "Override очищен",
+            "invalidJson": "В поле value должен быть валидный JSON",
+            "valueObjectError": "Value должен быть JSON-объектом"
+        },
         "settings": "Настройки",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Так-так",

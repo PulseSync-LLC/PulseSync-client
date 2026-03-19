@@ -1,0 +1,312 @@
+.notificationTrigger {
+    position: relative;
+    display: flex;
+    -webkit-app-region: no-drag;
+}
+
+.iconButton {
+    -webkit-app-region: no-drag;
+    width: 35px;
+    height: 35px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 10px;
+    background: #20232c;
+    color: #fff;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover {
+        background: #2a2e3b;
+    }
+}
+
+.notificationBadgeCount {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #ff5b6e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #16181f;
+    pointer-events: none;
+}
+
+.notificationsPanel {
+    position: absolute;
+    top: 46px;
+    right: 0;
+    z-index: 99998;
+    width: 420px;
+    min-width: 420px;
+    max-width: calc(100vw - 40px);
+    max-height: 560px;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    border-radius: 16px;
+    border: 1px solid #3b4155;
+    background: #2b3040;
+    box-shadow: #0000009c 1px 2px 20px 1px;
+    overflow: hidden;
+    -webkit-app-region: no-drag;
+}
+
+.notificationsHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid #3b4155;
+}
+
+.notificationsHeaderCopy {
+    display: grid;
+    gap: 4px;
+}
+
+.notificationsTitle {
+    font-size: 16px;
+    font-weight: 900;
+    color: #fff;
+}
+
+.notificationsSubtitle {
+    color: #c3c8d8;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.notificationsAction {
+    border: 0;
+    background: transparent;
+    color: #8dc4ff;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover:not(:disabled) {
+        color: #c0e1ff;
+    }
+
+    &:disabled {
+        opacity: 0.45;
+        cursor: default;
+    }
+}
+
+.notificationsList {
+    min-height: 0;
+    overflow: auto;
+    padding: 12px;
+    display: grid;
+    gap: 10px;
+    align-content: start;
+}
+
+.notificationItem,
+.notificationItemUnread,
+.notificationItemSuccess,
+.notificationItemUnreadSuccess,
+.notificationItemError,
+.notificationItemUnreadError,
+.notificationItemWarning,
+.notificationItemUnreadWarning {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    border: 1px solid #3b4155;
+    background: #232837;
+    transition:
+        transform 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+}
+
+.notificationItem:hover,
+.notificationItemUnread:hover,
+.notificationItemSuccess:hover,
+.notificationItemUnreadSuccess:hover,
+.notificationItemError:hover,
+.notificationItemUnreadError:hover,
+.notificationItemWarning:hover,
+.notificationItemUnreadWarning:hover {
+    transform: translateY(-1px);
+    border-color: #4d5570;
+}
+
+.notificationItemUnread,
+.notificationItemUnreadWarning {
+    border-color: rgba(255, 213, 98, 0.38);
+    background: rgba(255, 213, 98, 0.08);
+}
+
+.notificationItemSuccess,
+.notificationItemUnreadSuccess {
+    border-color: rgba(98, 255, 121, 0.24);
+}
+
+.notificationItemUnreadSuccess {
+    background: rgba(98, 255, 121, 0.08);
+}
+
+.notificationItemError,
+.notificationItemUnreadError {
+    border-color: rgba(255, 119, 119, 0.24);
+}
+
+.notificationItemUnreadError {
+    background: rgba(255, 119, 119, 0.08);
+}
+
+.notificationItemHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.notificationTone {
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.notificationItemMain {
+    display: grid;
+    gap: 8px;
+}
+
+.notificationItemTitleRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.notificationItemTitle {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+}
+
+.notificationItemBody {
+    color: #d1d5e5;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.notificationItemMeta {
+    color: #aab1c5;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.notificationUnreadDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #8dc4ff;
+    flex: 0 0 auto;
+}
+
+.notificationItemActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.notificationActionPrimary,
+.notificationActionSecondary {
+    border: 0;
+    border-radius: 10px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.notificationActionPrimary {
+    background: #4c79ff;
+    color: #fff;
+
+    &:hover {
+        background: #5c86ff;
+    }
+}
+
+.notificationActionSecondary {
+    background: #20232c;
+    color: #dbe2ff;
+
+    &:hover {
+        background: #2a2e3b;
+    }
+}
+
+.notificationItemUnreadSuccess .notificationTone,
+.notificationItemSuccess .notificationTone {
+    color: #87ff77;
+}
+
+.notificationItemUnreadError .notificationTone,
+.notificationItemError .notificationTone {
+    color: #ff8f8f;
+}
+
+.notificationItemUnreadWarning .notificationTone,
+.notificationItemWarning .notificationTone,
+.notificationItemUnread .notificationTone,
+.notificationItem .notificationTone {
+    color: #ffe688;
+}
+
+.notificationItemUnreadSuccess .notificationUnreadDot {
+    background: #87ff77;
+}
+
+.notificationItemUnreadError .notificationUnreadDot {
+    background: #ff8f8f;
+}
+
+.notificationsEmpty {
+    display: grid;
+    place-items: center;
+    min-height: 180px;
+    padding: 24px;
+    text-align: center;
+    color: #c3c8d8;
+    gap: 10px;
+}
+
+.notificationsEmptyIcon {
+    width: 34px;
+    height: 34px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #20232c;
+    color: #8dc4ff;
+}
+
+.notificationsEmptyTitle {
+    font-size: 14px;
+    font-weight: 700;
+}

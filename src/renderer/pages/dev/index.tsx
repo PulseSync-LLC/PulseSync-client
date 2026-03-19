@@ -393,6 +393,9 @@ function Dev() {
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
                             {t('dev.navigation.joint')}
                         </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/store')}>
+                            {t('dev.navigation.store')}
+                        </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
                             {t('dev.navigation.auth')}
                         </ButtonV2>

@@ -5,6 +5,7 @@ import type SettingsInterface from '../api/interfaces/settings.interface'
 import type { AppInfoInterface } from '../api/interfaces/appinfo.interface'
 import type Addon from '../api/interfaces/addon.interface'
 import type { ModInterface } from '../api/interfaces/modInterface'
+import type { NotificationsContextValue } from '../api/context/notifications/types'
 
 export type GetMeData = {
     getMe: Partial<UserInterface> | null
@@ -40,6 +41,7 @@ export type AppProvidersProps = {
     setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
+    notificationsValue: NotificationsContextValue
     router: ReturnType<typeof createHashRouter>
 }
 

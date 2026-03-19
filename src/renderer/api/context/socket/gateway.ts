@@ -20,6 +20,9 @@ type CreateGatewayHandlerParams = {
     setUser: Dispatch<SetStateAction<UserInterface>>
     onLogout: () => Promise<void>
     onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
+    onNotificationCreated?: (payload: unknown) => Promise<void> | void
+    onNotificationRead?: (payload: unknown) => Promise<void> | void
+    onNotificationsReadAll?: (payload: unknown) => Promise<void> | void
     resetSocketFailures: () => void
 }
 
@@ -33,6 +36,9 @@ export function createGatewayHandler({
     setUser,
     onLogout,
     onAchievementsUpdate,
+    onNotificationCreated,
+    onNotificationRead,
+    onNotificationsReadAll,
     resetSocketFailures,
 }: CreateGatewayHandlerParams) {
     return async (buf: ArrayBuffer | Uint8Array) => {
@@ -88,6 +94,18 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.ACHIEVEMENTS_UPDATE:
                 console.debug('Gateway achievements update', gatewayPayload)
                 await onAchievementsUpdate?.(gatewayPayload)
+                break
+            case IncomingGatewayEvents.NOTIFICATION_CREATED:
+                console.debug('Gateway notification created', gatewayPayload)
+                await onNotificationCreated?.(gatewayPayload)
+                break
+            case IncomingGatewayEvents.NOTIFICATION_READ:
+                console.debug('Gateway notification read', gatewayPayload)
+                await onNotificationRead?.(gatewayPayload)
+                break
+            case IncomingGatewayEvents.NOTIFICATIONS_READ_ALL:
+                console.debug('Gateway notifications read all', gatewayPayload)
+                await onNotificationsReadAll?.(gatewayPayload)
                 break
             default:
                 break

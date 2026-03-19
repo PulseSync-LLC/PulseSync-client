@@ -18,7 +18,7 @@ import * as modalStyles from '../PSUI/Modal/modal.module.scss'
 import * as styles from './header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import toast from '../toast'
-import config, { isDevmark } from '@common/appConfig'
+import config, { isDev, isDevmark } from '@common/appConfig'
 import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
@@ -36,6 +36,8 @@ import { MdSettings } from 'react-icons/md'
 import Loader from '../PSUI/Loader'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
+import ExperimentOverridesDevButton from './ExperimentOverridesDevButton'
+import NotificationsBell from './NotificationsBell'
 import { Avatar, Banner } from '../PSUI/Image'
 
 interface p {
@@ -464,6 +466,8 @@ const Header: React.FC<p> = () => {
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
+                                    {(user.perms === 'developer' || isDev) && <ExperimentOverridesDevButton />}
+                                    <NotificationsBell />
                                     <div
                                         className={styles.user_container}
                                         onClick={toggleUserContainer}

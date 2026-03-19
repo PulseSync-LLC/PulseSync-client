@@ -44,7 +44,6 @@ type SortKey = keyof typeof defaultOrder
 
 function safeStoreGet<T>(path: string, fallback: T): T {
     try {
-        // @ts-ignore
         const val = window?.electron?.store?.get?.(path)
         return (val ?? fallback) as T
     } catch {
