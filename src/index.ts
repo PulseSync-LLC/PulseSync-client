@@ -24,7 +24,7 @@ import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './ma
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import { initMainI18n, t } from './main/i18n'
-import Addon from './renderer/api/interfaces/addon.interface'
+import Addon from '@entities/addon/model/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'

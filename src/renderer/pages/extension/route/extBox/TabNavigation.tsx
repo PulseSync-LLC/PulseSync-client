@@ -1,7 +1,7 @@
 import React from 'react'
 import { MdConstruction, MdSettings, MdStickyNote2 } from 'react-icons/md'
-import { ActiveTab, DocTab } from './types'
-import PSUITabNavigation, { TabItem } from '../../../../components/PSUI/Tabs'
+import { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
+import PSUITabNavigation, { TabItem } from '@shared/ui/PSUI/Tabs'
 
 interface Props {
     active: ActiveTab

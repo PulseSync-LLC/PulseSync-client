@@ -3,7 +3,7 @@ import * as fs from 'original-fs'
 import * as path from 'path'
 import { app } from 'electron'
 import { parse } from 'url'
-import { Track } from '../../../renderer/api/interfaces/track.interface'
+import { Track } from '@entities/track/model/track.interface'
 
 interface LoggerLike {
     http: {

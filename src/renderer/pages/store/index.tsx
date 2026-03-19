@@ -1,7 +1,7 @@
-import PageLayout from '../PageLayout'
-import * as st from './store.module.scss'
+import PageLayout from '@widgets/layout/PageLayout'
+import * as st from '@pages/store/store.module.scss'
 
-import ExtensionCardStore from '../../components/PSUI/ExtensionCardStore'
+import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import { useTranslation } from 'react-i18next'
 
 export default function StorePage() {

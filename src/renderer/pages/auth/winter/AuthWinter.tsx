@@ -1,15 +1,15 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
-import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user'
-import { staticAsset } from '../../../utils/staticAssets'
-import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
+import Header from '@widgets/layout/header'
+import userContext from '@entities/user/model/context'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 
-import AppNameLogo from '../../../assets/icon/AppName.svg'
+import AppNameLogo from '@shared/assets/icon/AppName.svg'
 
-import Snowfall from './Snowfall'
-import * as pageStyles from './winter_auth.module.scss'
+import Snowfall from '@pages/auth/winter/Snowfall'
+import * as pageStyles from '@pages/auth/winter/winter_auth.module.scss'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {

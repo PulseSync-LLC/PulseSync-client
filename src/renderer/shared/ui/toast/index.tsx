@@ -1,0 +1,391 @@
+import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, JSX } from 'react'
+import cn from 'clsx'
+import toast, { Renderable, ToastOptions } from 'react-hot-toast'
+import { CSSTransition, TransitionGroup } from 'react-transition-group'
+import * as styles from '@shared/ui/toast/toast.module.scss'
+import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
+
+type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
+
+interface ToastData {
+    id: string
+    kind: Kind
+    title: string
+    msg: Renderable
+    value?: number
+    sticky: boolean
+    duration: number
+    ts: number
+}
+
+const STICKY_KINDS: Kind[] = ['loading', 'download', 'export', 'import']
+const STICKY_SET = new Set<Kind>(STICKY_KINDS)
+const MAX_VISIBLE_TOASTS = 3
+
+let queue: ToastData[] = []
+const subs = new Set<(s: ToastData[]) => void>()
+const emit = () => subs.forEach(fn => fn(queue))
+
+function sortQueue() {
+    queue.sort((a, b) => {
+        const ap = STICKY_SET.has(a.kind) ? 1 : 0
+        const bp = STICKY_SET.has(b.kind) ? 1 : 0
+        if (ap !== bp) return ap - bp
+        return a.ts - b.ts
+    })
+}
+
+function remove(id: string) {
+    queue = queue.filter(t => t.id !== id)
+    if (queue.length) emit()
+    else {
+        toast.dismiss('android-stack')
+        stackShown = false
+    }
+}
+
+let stackShown = false
+function ensureStack(opts?: ToastOptions) {
+    if (stackShown) return
+    toast.custom(() => <ToastStack />, {
+        id: 'android-stack',
+        duration: Infinity,
+        position: 'top-center',
+        ...opts,
+    })
+    stackShown = true
+}
+
+function clearAll() {
+    if (!queue.length) return
+    queue = []
+    emit()
+    toast.dismiss('android-stack')
+    stackShown = false
+}
+
+const closeAllSubs = new Set<() => void>()
+function requestCloseAll() {
+    if (queue.length > MAX_VISIBLE_TOASTS) {
+        queue = queue.slice(0, MAX_VISIBLE_TOASTS)
+        emit()
+    }
+    closeAllSubs.forEach(fn => fn())
+}
+
+export const iToast = {
+    custom(kind: Kind, title: string, msg?: Renderable, options?: ToastOptions, value?: number, duration = 5000) {
+        const sticky = STICKY_SET.has(kind)
+        const now = Date.now()
+        const optionId = typeof options?.id === 'string' ? options.id : null
+
+        if (optionId) {
+            const existing = queue.find(t => t.id === optionId)
+            if (existing) {
+                Object.assign(existing, { kind, title, msg, value, duration, sticky, ts: now })
+                sortQueue()
+                emit()
+                ensureStack(options)
+                return existing.id
+            }
+        }
+        if (sticky) {
+            const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
+            if (existing) {
+                Object.assign(existing, { title, msg, value, duration, ts: now })
+                sortQueue()
+                emit()
+                return existing.id
+            }
+        }
+
+        const id = optionId ?? `t-${now}-${Math.random()}`
+        queue.push({
+            id,
+            kind,
+            title,
+            msg,
+            value,
+            sticky,
+            duration,
+            ts: now,
+        })
+        sortQueue()
+        emit()
+        ensureStack(options)
+        return id
+    },
+
+    update(id: string, patch: Partial<Omit<ToastData, 'id' | 'ts'>>) {
+        const t = queue.find(x => x.id === id)
+        if (!t) return
+        const nextPatch = { ...patch }
+        if (typeof patch.kind !== 'undefined' && typeof patch.sticky === 'undefined') {
+            nextPatch.sticky = STICKY_SET.has(patch.kind)
+        }
+        Object.assign(t, nextPatch, { ts: Date.now() })
+        sortQueue()
+        emit()
+    },
+
+    dismiss(id: string) {
+        remove(id)
+    },
+
+    dismissAll() {
+        requestCloseAll()
+    },
+}
+
+const ToastStack: React.FC = () => {
+    const [toasts, setToasts] = useState<ToastData[]>(queue)
+    const [closingAll, setClosingAll] = useState(false)
+
+    useEffect(() => {
+        const sub = (s: ToastData[]) => setToasts([...s])
+        subs.add(sub)
+        return () => {
+            subs.delete(sub)
+        }
+    }, [])
+
+    useEffect(() => {
+        const onReq = () => {
+            setClosingAll(true)
+            setTimeout(() => setClosingAll(false), 260)
+        }
+        closeAllSubs.add(onReq)
+        return () => {
+            closeAllSubs.delete(onReq)
+        }
+    }, [])
+
+    useEffect(() => {
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') requestCloseAll()
+        }
+        window.addEventListener('keydown', onKey)
+        return () => window.removeEventListener('keydown', onKey)
+    }, [])
+
+    const list = toasts.slice(0, MAX_VISIBLE_TOASTS)
+    const renderList = list
+
+    const cardRefs = useRef<(HTMLDivElement | null)[]>([])
+    const nodeRefs = useRef(new Map<string, React.RefObject<HTMLDivElement>>())
+    const getNodeRef = (id: string) => {
+        let r = nodeRefs.current.get(id)
+        if (!r) {
+            r = React.createRef<HTMLDivElement>()
+            nodeRefs.current.set(id, r)
+        }
+        return r
+    }
+
+    const [offsets, setOffsets] = useState<number[]>([])
+    useLayoutEffect(() => {
+        if (cardRefs.current.length) {
+            let acc = 0
+            const arr: number[] = []
+            for (let i = 0; i < list.length; ++i) {
+                arr[i] = acc
+                const h = cardRefs.current[i]?.getBoundingClientRect().height ?? 64
+                acc += h + 10
+            }
+            setOffsets(arr)
+        } else {
+            setOffsets(Array(list.length).fill(0))
+        }
+    }, [list.length, toasts.map(t => t.id).join('|')])
+
+    if (!toasts.length) return null
+
+    return (
+        <div
+            className={styles.stack}
+            onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onAuxClick={(e: React.MouseEvent<HTMLDivElement>) => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onWheel={() => {
+                requestCloseAll()
+            }}
+        >
+            <TransitionGroup component={null}>
+                {renderList.map((td, idx) => {
+                    const handleDismiss = () => {
+                        nodeRefs.current.delete(td.id)
+                        remove(td.id)
+                    }
+                    return (
+                        <CSSTransition
+                            key={td.id}
+                            timeout={320}
+                            nodeRef={getNodeRef(td.id)}
+                            classNames={{
+                                enter: styles.fadeEnter,
+                                enterActive: styles.fadeEnterActive,
+                                exit: styles.fadeExit,
+                                exitActive: styles.fadeExitActive,
+                            }}
+                        >
+                            <Card
+                                data={td}
+                                index={idx}
+                                stackSize={renderList.length}
+                                offset={offsets[idx] ?? 0}
+                                closingAll={closingAll}
+                                ref={el => {
+                                    cardRefs.current[idx] = el
+                                    getNodeRef(td.id).current = el
+                                }}
+                                onDismiss={handleDismiss}
+                            />
+                        </CSSTransition>
+                    )
+                })}
+            </TransitionGroup>
+        </div>
+    )
+}
+
+interface CardProps {
+    data: ToastData
+    index: number
+    stackSize: number
+    offset: number
+    closingAll: boolean
+    onDismiss: () => void
+}
+
+const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, offset, closingAll, onDismiss }, ref) => {
+    const { kind, title, msg, value, sticky, duration } = data
+    const [show, setShow] = useState(false)
+
+    const memoizedOnDismiss = useCallback(onDismiss, [data.id])
+
+    useEffect(() => {
+        const t = setTimeout(() => setShow(true), 60)
+        return () => clearTimeout(t)
+    }, [])
+
+    useEffect(() => {
+        if (!sticky && show) {
+            const t = setTimeout(() => {
+                setShow(false)
+                setTimeout(memoizedOnDismiss, 280)
+            }, duration)
+            return () => clearTimeout(t)
+        }
+    }, [show, sticky, duration, memoizedOnDismiss])
+
+    useEffect(() => {
+        if (closingAll) {
+            setShow(false)
+            const t = setTimeout(memoizedOnDismiss, 220)
+            return () => clearTimeout(t)
+        }
+    }, [closingAll, memoizedOnDismiss])
+
+    const zIndex = stackSize - index
+
+    return (
+        <div
+            ref={ref}
+            className={cn(styles.card, show ? styles.cardIn : styles.cardOut, styles[kind])}
+            style={
+                {
+                    transform: `translateY(${offset}px) scale(1)`,
+                    zIndex,
+                    color: palette(kind),
+                } as React.CSSProperties
+            }
+            onMouseDown={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onAuxClick={e => {
+                if (e.button === 1) {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    requestCloseAll()
+                }
+            }}
+            onWheel={() => {
+                requestCloseAll()
+            }}
+        >
+            <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
+            <div className={styles.text}>
+                <div className={styles.title}>{title}</div>
+                <div className={styles.msg}>{msg}</div>
+            </div>
+            <button
+                className={styles.hide}
+                onClick={e => {
+                    e.stopPropagation()
+                    setShow(false)
+                    setTimeout(onDismiss, 220)
+                }}
+            >
+                <MdClose size={18} />
+            </button>
+        </div>
+    )
+})
+
+const Progress: React.FC<{ val?: number }> = ({ val = 0 }) => (
+    <div className={styles.progressContainer}>
+        <div className={styles.progressText}>{Math.round(val)}%</div>
+        <svg viewBox="0 0 36 36" className={styles.prog}>
+            <path className={styles.bg} d="M18 2.1a15.9 15.9 0 1 1 0 31.8 15.9 15.9 0 0 1 0-31.8" fill="none" strokeWidth="3" />
+            <path
+                className={styles.fg}
+                strokeDasharray={`${val},100`}
+                d="M18 2.1a15.9 15.9 0 1 1 0 31.8 15.9 15.9 0 0 1 0-31.8"
+                fill="none"
+                strokeWidth="3"
+            />
+        </svg>
+    </div>
+)
+
+const palette = (k: Kind) =>
+    ({
+        success: '#87FF77',
+        error: '#FF7777',
+        warning: '#FFEF77',
+        info: '#77FFC9',
+        download: '#87FF77',
+        loading: '#FFEF77',
+        export: '#77F1FF',
+        import: '#77F1FF',
+        default: '#87FF77',
+    })[k]
+
+const icons: Record<Kind, JSX.Element> = {
+    success: <MdCheckCircle size={22} />,
+    error: <MdError size={22} />,
+    info: <MdInfo size={22} />,
+    warning: <MdWarning size={22} />,
+    download: <MdDownload size={22} />,
+    loading: <MdLoop size={22} />,
+    export: <MdImportExport size={22} />,
+    import: <MdImportExport size={22} />,
+    default: <MdInfo size={22} />,
+}
+
+export default iToast

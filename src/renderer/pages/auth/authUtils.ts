@@ -1,8 +1,8 @@
 import { useEffect } from 'react'
 import type { NavigateFunction } from 'react-router-dom'
-import MainEvents from '../../../common/types/mainEvents'
+import MainEvents from '@common/types/mainEvents'
 import config from '@common/appConfig'
-import { staticAsset } from '../../utils/staticAssets'
+import { staticAsset } from '@shared/lib/staticAssets'
 
 export const isDevModeEnabled = () => {
     const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || '')

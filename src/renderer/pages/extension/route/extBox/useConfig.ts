@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
 import path from 'path'
-import MainEvents from '../../../../../common/types/mainEvents'
-import RendererEvents from '../../../../../common/types/rendererEvents'
+import MainEvents from '@common/types/mainEvents'
+import RendererEvents from '@common/types/rendererEvents'
 
-import { AddonConfig, ButtonAction, TextItem } from '../../../../components/сonfigurationSettings/types'
+import { AddonConfig, ButtonAction, TextItem } from '@features/configurationSettings/types'
 
 type UseConfigResult = {
     configExists: boolean | null

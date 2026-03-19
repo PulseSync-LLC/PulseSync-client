@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import path from 'path'
 
 import appConfig from '@common/appConfig'
-import { DocTab } from './types'
-import AddonInterface from '../../../../api/interfaces/addon.interface'
-import { AddonConfig } from '../../../../components/сonfigurationSettings/types'
+import { DocTab } from '@pages/extension/route/extBox/types'
+import AddonInterface from '@entities/addon/model/addon.interface'
+import { AddonConfig } from '@features/configurationSettings/types'
 
 interface HookResult {
     docs: DocTab[]

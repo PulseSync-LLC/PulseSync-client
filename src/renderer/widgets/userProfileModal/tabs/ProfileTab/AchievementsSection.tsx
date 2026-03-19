@@ -1,0 +1,140 @@
+import React, { useCallback, useContext, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import LevelProgress from '@entities/user/ui/LevelProgress'
+import AchievementList from '@widgets/userProfileModal/tabs/ProfileTab/AchievementList'
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
+import userContext from '@entities/user/model/context'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+
+interface AchievementsSectionProps {
+    userProfile: any
+    username: string
+}
+
+type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
+
+const difficultyPriority: Record<Difficulty, number> = {
+    EASY: 1,
+    NORMAL: 2,
+    HARD: 3,
+    EXTREME: 4,
+}
+
+const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, username }) => {
+    const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
+    const { user, features } = useContext(userContext)
+    const { isExperimentEnabled } = useExperiments()
+    const canViewDetails = useMemo(() => user.username === username, [user.username, username])
+    const levelInfo = useMemo(() => getEffectiveLevelInfo(userProfile), [userProfile?.levelInfoV2])
+    const { t } = useTranslation()
+    const achievementsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAchievements, Boolean(features?.achievements))
+
+    const toggleExpand = useCallback((id: number) => {
+        setExpandedIndexes(prev => (prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]))
+    }, [])
+
+    const completedAchievements = useMemo(
+        () =>
+            userProfile.allAchievements.filter((ach: any) => {
+                const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
+                return userAch?.status?.toLowerCase() === 'completed'
+            }),
+        [userProfile.allAchievements, userProfile.userAchievements],
+    )
+
+    const notReceivedAchievements = useMemo(
+        () =>
+            userProfile.allAchievements.filter((ach: any) => {
+                const userAch = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === ach.id)
+                return !userAch || userAch?.status?.toLowerCase() === 'not_started' || userAch?.status?.toLowerCase() === 'in_progress'
+            }),
+        [userProfile.allAchievements, userProfile.userAchievements],
+    )
+
+    const sortedCompletedAchievements = useMemo(
+        () =>
+            [...completedAchievements].sort((a: any, b: any) => {
+                const keyA = (a.difficulty as string).toUpperCase() as Difficulty
+                const keyB = (b.difficulty as string).toUpperCase() as Difficulty
+                return difficultyPriority[keyA] - difficultyPriority[keyB]
+            }),
+        [completedAchievements],
+    )
+
+    const sortedNotReceivedAchievements = useMemo(
+        () =>
+            [...notReceivedAchievements].sort((a: any, b: any) => {
+                const userAchA = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === a.id)
+                const userAchB = userProfile.userAchievements?.find((ua: any) => ua.achievement.id === b.id)
+                const keyA = (a.difficulty as string).toUpperCase() as Difficulty
+                const keyB = (b.difficulty as string).toUpperCase() as Difficulty
+                if (userAchA?.status?.toLowerCase() === 'in_progress' && userAchB?.status?.toLowerCase() !== 'in_progress') {
+                    return -1
+                }
+                if (userAchB?.status?.toLowerCase() === 'in_progress' && userAchA?.status?.toLowerCase() !== 'in_progress') {
+                    return 1
+                }
+                return difficultyPriority[keyA] - difficultyPriority[keyB]
+            }),
+        [notReceivedAchievements, userProfile.userAchievements],
+    )
+
+    return (
+        <div className={styles.userPageDown}>
+            {!achievementsEnabled && (
+                <div className={styles.warning}>
+                    <span className={styles.title}>
+                        <span className={styles.warnDot}></span>
+                        <span className={styles.pulsingDot}></span>
+                        {t('profile.achievements.warningTitle')}
+                    </span>
+                    <span className={styles.description}>{t('profile.achievements.warningDescription')}</span>
+                </div>
+            )}
+            <div className={styles.achievementsSection}>
+                <div>
+                    <div className={styles.titleHeader}>{t('profile.achievements.title')}</div>
+                    <div className={styles.descriptionHeader}>{t('profile.achievements.subtitle')}</div>
+                </div>
+                <LevelProgress
+                    totalPoints={levelInfo.totalPoints}
+                    currentLevel={levelInfo.currentLevel}
+                    progressInCurrentLevel={levelInfo.progressInCurrentLevel}
+                    currentLevelThreshold={levelInfo.currentLevelThreshold}
+                />
+                {userProfile.allAchievements && userProfile.allAchievements.length > 0 ? (
+                    <>
+                        <div className={styles.achievementsListContainer}>
+                            <div className={styles.achievementsListTitle}>{t('profile.achievements.completed')}</div>
+                            <AchievementList
+                                achievements={sortedCompletedAchievements}
+                                userAchievements={userProfile.userAchievements}
+                                toggleExpand={toggleExpand}
+                                expandedIndexes={expandedIndexes}
+                                canViewDetails={canViewDetails}
+                            />
+                            {completedAchievements.length === 0 && (
+                                <div className={styles.noAchievementsMessage}>{t('profile.achievements.noCompleted')}</div>
+                            )}
+                        </div>
+                        <div className={styles.achievementsListContainer}>
+                            <div className={styles.achievementsListTitle}>{t('profile.achievements.notReceived')}</div>
+                            <AchievementList
+                                achievements={sortedNotReceivedAchievements}
+                                userAchievements={userProfile.userAchievements}
+                                toggleExpand={toggleExpand}
+                                expandedIndexes={expandedIndexes}
+                                canViewDetails={canViewDetails}
+                            />
+                        </div>
+                    </>
+                ) : (
+                    <p>{t('profile.achievements.none')}</p>
+                )}
+            </div>
+        </div>
+    )
+}
+
+export default AchievementsSection

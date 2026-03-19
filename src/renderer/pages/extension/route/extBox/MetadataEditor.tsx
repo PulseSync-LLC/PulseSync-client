@@ -1,15 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
-import MainEvents from '../../../../../common/types/mainEvents'
-import RendererEvents from '../../../../../common/types/rendererEvents'
+import MainEvents from '@common/types/mainEvents'
+import RendererEvents from '@common/types/rendererEvents'
 import semver from 'semver'
 
-import TextInput from '../../../../components/PSUI/TextInput'
-import SelectInput from '../../../../components/PSUI/SelectInput'
-import FileInput from '../../../../components/PSUI/FileInput'
-import ChangesBar from '../../../../components/PSUI/ChangesBar'
+import TextInput from '@shared/ui/PSUI/TextInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
+import FileInput from '@shared/ui/PSUI/FileInput'
+import ChangesBar from '@shared/ui/PSUI/ChangesBar'
 
-import * as css from './MetadataEditor.module.scss'
+import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
 
 type Metadata = {

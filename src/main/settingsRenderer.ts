@@ -1,2 +1,2 @@
-import '../renderer/Settings'
+import '../renderer/app/settings'
 import '../styles/globals.css'

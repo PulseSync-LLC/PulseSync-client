@@ -25,7 +25,7 @@ import {
     isMac,
     uninstallApp,
 } from '../utils/appUtils'
-import Addon from '../../renderer/api/interfaces/addon.interface'
+import Addon from '@entities/addon/model/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'

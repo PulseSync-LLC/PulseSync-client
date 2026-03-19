@@ -106,6 +106,12 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             alias: {
                 '@': path.resolve(__dirname, 'static'),
                 '@common': path.resolve(__dirname, 'src/common'),
+                '@app': path.resolve(__dirname, 'src/renderer/app'),
+                '@pages': path.resolve(__dirname, 'src/renderer/pages'),
+                '@widgets': path.resolve(__dirname, 'src/renderer/widgets'),
+                '@features': path.resolve(__dirname, 'src/renderer/features'),
+                '@entities': path.resolve(__dirname, 'src/renderer/entities'),
+                '@shared': path.resolve(__dirname, 'src/renderer/shared'),
                 '/assets': path.resolve(__dirname, 'static/assets'),
             },
         },

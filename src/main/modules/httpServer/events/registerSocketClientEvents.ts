@@ -1,5 +1,5 @@
 import RendererEvents from '../../../../common/types/rendererEvents'
-import { Track } from '../../../../renderer/api/interfaces/track.interface'
+import { Track } from '@entities/track/model/track.interface'
 import { BrowserWindow } from 'electron'
 import { Socket } from 'socket.io'
 import { extractInstallModUpdateFromPayload, installModUpdateFromAsar } from '../../mod/installModUpdateFrom'

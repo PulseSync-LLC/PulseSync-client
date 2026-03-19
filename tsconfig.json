@@ -25,7 +25,13 @@
         "paths": {
             "*": ["node_modules/*"],
             "@/*": ["static/*"],
-            "@common/*": ["src/common/*"]
+            "@common/*": ["src/common/*"],
+            "@app/*": ["src/renderer/app/*"],
+            "@pages/*": ["src/renderer/pages/*"],
+            "@widgets/*": ["src/renderer/widgets/*"],
+            "@features/*": ["src/renderer/features/*"],
+            "@entities/*": ["src/renderer/entities/*"],
+            "@shared/*": ["src/renderer/shared/*"]
         }
     },
     "include": [

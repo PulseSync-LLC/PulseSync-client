@@ -1,9 +1,9 @@
 import React from 'react'
-import Container from '../../components/containerV2'
-import OpitonLayout from '../../components/optionLayout/optionLayout'
+import Container from '@shared/ui/containerV2'
+import OpitonLayout from '@shared/ui/optionLayout/optionLayout'
 import { useTranslation } from 'react-i18next'
 
-import pageStyles from '../pageStyles'
+import pageStyles from '@widgets/layout/pageStyles'
 
 function SettingsPage() {
     const { t } = useTranslation()

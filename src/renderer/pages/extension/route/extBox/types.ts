@@ -1,4 +1,4 @@
-import AddonInterface from '../../../../api/interfaces/addon.interface'
+import AddonInterface from '@entities/addon/model/addon.interface'
 
 export interface DocTab {
     title: string
