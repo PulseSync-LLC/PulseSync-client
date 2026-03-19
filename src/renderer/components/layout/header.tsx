@@ -23,7 +23,7 @@ import getUserToken from '../../api/getUserToken'
 import userInitials from '../../api/initials/user.initials'
 import { useCharCount } from '../../utils/useCharCount'
 import axios from 'axios'
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import TooltipButton from '../tooltip_button'
 import { useNavigate } from 'react-router-dom'
 import client from '../../api/apolloClient'
@@ -102,37 +102,53 @@ const Header: React.FC<p> = () => {
     }
     updateModalRef.current = { openUpdateModal, closeUpdateModal }
     const toggleMenu = useCallback(() => {
-        if (isUserCardOpen) {
-            setIsUserCardOpen(false)
-        }
-        setIsMenuOpen(!isMenuOpen)
-    }, [isMenuOpen, isUserCardOpen])
+        setIsUserCardOpen(false)
+        setIsMenuOpen(current => !current)
+    }, [])
 
     const toggleUserContainer = useCallback(() => {
-        if (isMenuOpen) {
-            setIsMenuOpen(false)
-        }
-        setIsUserCardOpen(!isUserCardOpen)
-    }, [isMenuOpen, isUserCardOpen])
+        setIsMenuOpen(false)
+        setIsUserCardOpen(current => !current)
+    }, [])
 
     useEffect(() => {
-        function handleClickOutside(event: MouseEvent) {
+        const handlePointerDown = (event: PointerEvent) => {
             const target = event.target as Node
 
             if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
                 setIsMenuOpen(false)
             }
+        }
 
-            if (isUserCardOpen && userCardRef.current && !userCardRef.current.contains(target)) {
+        document.addEventListener('pointerdown', handlePointerDown)
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown)
+        }
+    }, [isMenuOpen])
+
+    useEffect(() => {
+        if (!isUserCardOpen) return
+
+        const handlePointerDown = (event: PointerEvent) => {
+            const target = event.target as Node
+            if (userCardRef.current && !userCardRef.current.contains(target)) {
                 setIsUserCardOpen(false)
             }
         }
 
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside)
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') {
+                setIsUserCardOpen(false)
+            }
         }
-    }, [isMenuOpen, isUserCardOpen])
+
+        document.addEventListener('pointerdown', handlePointerDown)
+        document.addEventListener('keydown', handleKeyDown)
+        return () => {
+            document.removeEventListener('pointerdown', handlePointerDown)
+            document.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [isUserCardOpen])
 
     const statusColors = {
         playing: '#62FF79',
@@ -502,8 +518,15 @@ const Header: React.FC<p> = () => {
                                             </div>
                                         </div>
                                     </div>
-                                    {isUserCardOpen && (
-                                        <div className={styles.user_menu}>
+                                    <AnimatePresence>
+                                        {isUserCardOpen && (
+                                            <motion.div
+                                                className={styles.user_menu}
+                                                initial={{ opacity: 0, y: -8, scale: 0.985 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: -6, scale: 0.985 }}
+                                                transition={{ duration: 0.18, ease: 'easeOut' }}
+                                            >
                                             <div className={styles.user_info}>
                                                 <div className={styles.user_banner} ref={bannerRef}>
                                                     <Banner
@@ -626,8 +649,9 @@ const Header: React.FC<p> = () => {
                                                     {t('header.logout')}
                                                 </button>
                                             </div>
-                                        </div>
-                                    )}
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
                                 </>
                             )}
                         </div>
