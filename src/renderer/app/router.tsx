@@ -1,6 +1,7 @@
 import React from 'react'
-import { createHashRouter } from 'react-router'
+import { Navigate, createHashRouter } from 'react-router'
 
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import Dev from '@pages/dev'
 import AuthPage from '@pages/auth'
 import CallbackPage from '@pages/auth/callback'
@@ -15,6 +16,17 @@ function withErrorBoundary(node: React.ReactNode) {
     return <ErrorBoundary>{node}</ErrorBoundary>
 }
 
+function StoreRoute() {
+    const { isExperimentEnabled } = useExperiments()
+    const storeEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
+
+    if (!storeEnabled) {
+        return <Navigate to="/" replace />
+    }
+
+    return <StorePage />
+}
+
 export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: withErrorBoundary(<ExtensionPage />) },
@@ -23,7 +35,7 @@ export function createAppRouter() {
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },
         { path: '/users', element: withErrorBoundary(<UsersPage />) },
         { path: '/:contactId', element: withErrorBoundary(<ExtensionPage />) },
-        { path: '/store', element: withErrorBoundary(<StorePage />) },
+        { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
         { path: '/profile/:username', element: withErrorBoundary(<ProfilePage />) },
     ])

@@ -1,8 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
+import { MdCloudUpload, MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
 import AddonInterface from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
 import ViewModal from '@features/context_menu_themes/viewModal'
 import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
@@ -10,13 +11,18 @@ import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scs
 import config from '@common/appConfig'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { useTranslation } from 'react-i18next'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
 interface Props {
     addon: AddonInterface
     isEnabled: boolean
     themeActive: boolean
     onToggleEnabled: (enabled: boolean) => void
-
+    publication?: StoreAddon | null
+    canManagePublication?: boolean
+    publicationBusy?: boolean
+    onPublishAddon?: () => void
+    onUpdateAddon?: () => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
@@ -48,18 +54,39 @@ function useResolvedImage(url: string | null, fallback: string | null) {
     return resolved
 }
 
-const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
-    const { t } = useTranslation()
+function normalizeAuthorNames(author: AddonInterface['author']): string[] {
+    if (typeof author === 'string') {
+        return author
+            .split(',')
+            .map(name => name.trim())
+            .filter(Boolean)
+    }
+
+    return author.map(name => String(name).trim()).filter(Boolean)
+}
+
+const ThemeInfo: React.FC<Props> = ({
+    addon,
+    isEnabled,
+    themeActive,
+    onToggleEnabled,
+    publication,
+    canManagePublication = false,
+    publicationBusy = false,
+    onPublishAddon,
+    onUpdateAddon,
+    setSelectedTags,
+    setShowFilters,
+}) => {
+    const { t, i18n } = useTranslation()
+    const { isExperimentEnabled } = useExperiments()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
     const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
 
-    const authorNames =
-        typeof addon.author === 'string'
-            ? addon.author.split(', ').map(name => name.trim().toLowerCase())
-            : addon.author.map(name => name.toLowerCase())
+    const authorNames = normalizeAuthorNames(addon.author)
 
     const MAX_VISIBLE = 1
     const visibleAuthors = authorNames.slice(0, MAX_VISIBLE)
@@ -109,6 +136,33 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
 
+    const publicationStatusLabel = publication
+        ? publication.status === 'accepted'
+            ? t('store.status.accepted')
+            : publication.status === 'rejected'
+              ? t('store.status.rejected')
+              : t('store.status.pending')
+        : t('store.status.notPublished')
+
+    const publicationStatusClassName = publication
+        ? publication.status === 'accepted'
+            ? s.statusAccepted
+            : publication.status === 'rejected'
+              ? s.statusRejected
+              : s.statusPending
+        : s.statusUnpublished
+
+    const publicationDate = publication?.updatedAt
+        ? new Intl.DateTimeFormat(i18n.language, {
+              day: '2-digit',
+              month: 'short',
+              year: 'numeric',
+          }).format(new Date(publication.updatedAt))
+        : null
+
+    const authorsDisplay = authorNames.join(', ')
+    const canAccessStore = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
+
     return (
         <>
             <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
@@ -126,18 +180,18 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             <div className={s.topTags}>
                 {addon.tags &&
                     addon.tags.length > 0 &&
-                    addon.tags.map(t => (
+                    addon.tags.map(tag => (
                         <Button
-                            key={t}
+                            key={tag}
                             className={s.tag}
                             onClick={() => {
                                 if (setSelectedTags && setShowFilters) {
-                                    setSelectedTags(prev => new Set([...prev, t]))
+                                    setSelectedTags(prev => new Set([...prev, tag]))
                                     setShowFilters(false)
                                 }
                             }}
                         >
-                            {t}
+                            {tag}
                         </Button>
                     ))}
             </div>
@@ -196,37 +250,65 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         <span className={s.label}>{t('extensions.meta.updated')}</span>
                         <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
                     </div>
+
+                    <div className={cn(s.metaItem, s.publicationMetaItem)}>
+                        <div className={s.publicationInfo}>
+                            <span className={s.label}>{t('extensions.publication.statusLabel')}</span>
+                            <span className={cn(s.statusBadge, publicationStatusClassName)}>{publicationStatusLabel}</span>
+                            {publicationDate ? <span className={s.statusMeta}>{t('extensions.publication.statusDate', { date: publicationDate })}</span> : null}
+                            {publication?.moderationNote ? <span className={s.statusMeta}>{publication.moderationNote}</span> : null}
+                        </div>
+                    </div>
                 </div>
 
-                <div className={s.actions} ref={actionsRef}>
-                    <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
-                        {isEnabled ? t('common.disable') : t('common.enable')}
-                    </Button>
+                <div className={s.sideActions} ref={actionsRef}>
+                    <div className={s.actions}>
+                        {canManagePublication && !publication && (
+                            <Button className={s.actionButton} disabled={publicationBusy} onClick={onPublishAddon} title={authorsDisplay}>
+                                <MdCloudUpload size={18} />
+                                <span>{publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish')}</span>
+                            </Button>
+                        )}
 
-                    <Button className={s.miniButton} title={t('extensions.actions.store')} disabled>
-                        <MdStoreMallDirectory size={20} />
-                    </Button>
+                        {canManagePublication && publication && (
+                            <Button className={s.actionButton} disabled={publicationBusy} onClick={onUpdateAddon} title={authorsDisplay}>
+                                <MdSync size={18} />
+                                <span>{publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update')}</span>
+                            </Button>
+                        )}
 
-                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
-                        <MdMoreHoriz size={20} />
-                    </Button>
+                        <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
+                            {isEnabled ? t('common.disable') : t('common.enable')}
+                        </Button>
 
-                    {menuOpen && (
-                        <ViewModal
-                            items={createContextMenuActions(
-                                undefined,
-                                themeActive,
-                                {
-                                    showCheck: false,
-                                    showDirectory: true,
-                                    showExport: true,
-                                    showDelete: true,
-                                },
-                                addon,
-                            )}
-                        />
-                    )}
+                        {canAccessStore && (
+                            <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>
+                                <MdStoreMallDirectory size={20} />
+                            </Button>
+                        )}
+
+                        <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
+                            <MdMoreHoriz size={20} />
+                        </Button>
+
+                        {menuOpen && (
+                            <ViewModal
+                                items={createContextMenuActions(
+                                    undefined,
+                                    themeActive,
+                                    {
+                                        showCheck: false,
+                                        showDirectory: true,
+                                        showExport: true,
+                                        showDelete: true,
+                                    },
+                                    addon,
+                                )}
+                            />
+                        )}
+                    </div>
                 </div>
+
             </div>
         </>
     )

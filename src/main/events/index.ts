@@ -38,7 +38,7 @@ import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
-import { importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
 
 const updater = getUpdater()
 const State = getState()
@@ -750,6 +750,30 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 
+    ipcMain.handle(MainEvents.PACKAGE_ADDON_ARCHIVE, async (_event, data: { name?: string; path?: string }) => {
+        try {
+            if (!data?.path || !fs.existsSync(data.path)) {
+                return { success: false, reason: 'ADDON_PATH_NOT_FOUND' }
+            }
+
+            const zip = new AdmZip()
+            zip.addLocalFolder(data.path, '', relativePath => {
+                if (!relativePath) return true
+                const parts = relativePath.split(path.sep)
+                return !parts.some(part => part.startsWith('.'))
+            })
+
+            return {
+                success: true,
+                fileName: `${(data.name || path.basename(data.path)).replace(/[^\w.-]+/g, '_') || 'addon'}.zip`,
+                base64: zip.toBuffer().toString('base64'),
+            }
+        } catch (error: any) {
+            logger.main.error('Failed to package addon archive:', error)
+            return { success: false, reason: error?.message || 'PACKAGE_FAILED' }
+        }
+    })
+
     ipcMain.handle(MainEvents.IMPORT_PEXT_FILE, async (_event, rawPath: string) => {
         try {
             if (!isPextFilePath(rawPath)) {
@@ -764,6 +788,50 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         } catch (error: any) {
             logger.main.error('Failed to import .pext from renderer drop:', error)
             return { success: false, reason: error?.message || 'IMPORT_FAILED' }
+        }
+    })
+
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { downloadUrl?: string; title?: string }) => {
+        let tempArchivePath = ''
+
+        try {
+            const downloadUrl = payload?.downloadUrl?.trim()
+            if (!downloadUrl) {
+                return { success: false, reason: 'DOWNLOAD_URL_MISSING' }
+            }
+
+            const parsedUrl = new URL(downloadUrl)
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                return { success: false, reason: 'INVALID_PROTOCOL' }
+            }
+
+            const ext = path.extname(parsedUrl.pathname).toLowerCase() === '.pext' ? '.pext' : '.zip'
+            tempArchivePath = path.join(app.getPath('temp'), `store-addon-${v4()}${ext}`)
+
+            const response = await axios.get<ArrayBuffer>(downloadUrl, {
+                responseType: 'arraybuffer',
+            })
+
+            await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
+
+            const addonName = await importAddonArchive(tempArchivePath)
+            if (!addonName) {
+                return { success: false, reason: 'IMPORT_FAILED' }
+            }
+
+            queueAddonOpen(addonName)
+            return { success: true, addonName }
+        } catch (error: any) {
+            logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
+            return { success: false, reason: error?.message || 'INSTALL_FAILED' }
+        } finally {
+            if (tempArchivePath) {
+                try {
+                    await fsp.rm(tempArchivePath, { force: true })
+                } catch (cleanupError) {
+                    logger.main.warn(`Unable to remove temporary store addon archive: ${String(cleanupError)}`)
+                }
+            }
         }
     })
 }

@@ -12,6 +12,7 @@ import { isDevmark } from '@common/appConfig'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { useModalContext } from '@app/providers/modal'
 import { staticAsset } from '@shared/lib/staticAssets'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
@@ -28,6 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
+    const { isExperimentEnabled } = useExperiments()
     const { isForceInstallEnabled, isModUpdateAvailable, modUpdateState, startUpdate, updateYandexMusic, isUserDeveloper } = useLayoutInstallers({
         app,
         modInfo,
@@ -45,6 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             MOD_CHANGELOG: Modals.MOD_CHANGELOG,
         },
     })
+    const storePageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
 
     if (!modInfoFetched) {
         return <Preloader />
@@ -66,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!features?.usersPage || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!features?.storePage || !musicInstalled}>
+                            <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                         </div>

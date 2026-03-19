@@ -334,6 +334,18 @@
             "updated": "Обновлено",
             "version": "Версия"
         },
+        "publication": {
+            "statusLabel": "Публикация",
+            "statusDate": "Обновлено {{date}}",
+            "publish": "Опубликовать",
+            "update": "Обновить",
+            "uploading": "Отправляю...",
+            "successTitle": "Отправлено на проверку",
+            "publishSuccess": "Аддон отправлен на модерацию.",
+            "updateSuccess": "Обновление аддона отправлено на модерацию.",
+            "publishError": "Не удалось опубликовать аддон.",
+            "updateError": "Не удалось отправить обновление аддона."
+        },
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
@@ -420,12 +432,19 @@
             "read": "Прочитано",
             "openItem": "Открыть",
             "categories": {
+                "addon": "Аддоны",
                 "localization": "Локализация",
                 "subscription": "Подписка",
                 "security": "Безопасность",
                 "system": "Система"
             },
             "items": {
+                "addonPendingTitle": "Аддон отправлен на проверку",
+                "addonPendingBody": "{{name}} сейчас ожидает модерацию.",
+                "addonAcceptedTitle": "Аддон принят",
+                "addonAcceptedBody": "{{name}} теперь доступен в магазине.",
+                "addonRejectedTitle": "Аддон отклонён",
+                "addonRejectedBody": "{{name}} не прошёл модерацию.",
                 "localizationApprovedTitle": "Предложение по локализации принято",
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
@@ -869,14 +888,25 @@
     },
     "store": {
         "download": "Скачать",
+        "loading": "Загружаю аддоны магазина...",
+        "empty": "Пока нет опубликованных аддонов.",
+        "approvedAt": "Проверено {{date}}",
+        "installed": "Уже установлен",
+        "installComplete": "Аддон {{title}} установлен.",
+        "installFailed": "Не удалось установить аддон {{title}}.",
+        "unknownAddon": "Аддон",
         "logs": {
             "downloadComplete": "[Store] Завершено скачивание. Начинаем установку.",
             "downloadStart": "[Store] Начинаем скачивание {{title}}",
             "installComplete": "[Store] Установлено {{title}}!"
         },
         "status": {
+            "accepted": "Принят",
             "active": "Активно",
-            "deprecated": "Устарело"
+            "deprecated": "Устарело",
+            "notPublished": "Не опубликован",
+            "pending": "На проверке",
+            "rejected": "Отклонён"
         },
         "type": {
             "both": "CSS + JS",

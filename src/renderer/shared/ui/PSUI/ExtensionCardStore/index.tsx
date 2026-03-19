@@ -1,12 +1,12 @@
-import React, { useState, useCallback } from 'react'
+import React from 'react'
+import cn from 'clsx'
 import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 import { t } from '@app/i18n'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
-type ExtensionStatus = 'active' | 'deprecated'
+type ExtensionStatus = 'accepted' | 'active' | 'deprecated' | 'pending' | 'rejected'
 type ExtensionType = 'css' | 'js' | 'both'
-type ButtonState = 'initial' | 'downloading' | 'installing' | 'installed'
 
 export interface ExtensionCardStoreProps {
     title: string
@@ -22,7 +22,10 @@ export interface ExtensionCardStoreProps {
     status?: ExtensionStatus
     type?: ExtensionType
     onDownloadClick?: () => void
-    onAuthorsClick?: () => void
+    onAuthorClick?: (author: string) => void
+    downloadLabel?: string
+    downloadDisabled?: boolean
+    downloadInstalled?: boolean
     isPreInstalled?: boolean
 }
 
@@ -39,7 +42,7 @@ const DownloadIcon = () => (
     </svg>
 )
 
-const CheckIcon = () => (
+const InstalledIcon = () => (
     <svg className={st.download_icon} width={20} height={20} viewBox="0 0 16 16" aria-hidden="true">
         <path
             d="M12.7803 4.21967C13.0732 4.51256 13.0732 4.98744 12.7803 5.28033L7.28033 10.7803C6.98744 11.0732 6.51256 11.0732 6.21967 10.7803L3.21967 7.78033C2.92678 7.48744 2.92678 7.01256 3.21967 6.71967C3.51256 6.42678 3.98744 6.42678 4.28033 6.71967L6.75 9.18934L11.7197 4.21967C12.0126 3.92678 12.4874 3.92678 12.7803 4.21967Z"
@@ -48,21 +51,24 @@ const CheckIcon = () => (
     </svg>
 )
 
-const SpinnerIcon = () => (
-    <svg className={[st.download_icon, st.spinner].join(' ')} width={20} height={20} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" className={st.spinner_circle_bg} />
-        {}
-        <path
-            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0112 4.417v3.013a5 5 0 00-4 4.883H6v2.981z"
-            className={st.spinner_path}
-            fill="currentColor"
-        />
-    </svg>
-)
-
 const StatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
-    const text = status === 'active' ? t('store.status.active') : t('store.status.deprecated')
-    const className = status === 'active' ? st.badge_active : st.badge_deprecated
+    const normalized = status === 'active' ? 'accepted' : status
+    const text =
+        normalized === 'accepted'
+            ? t('store.status.accepted')
+            : normalized === 'pending'
+              ? t('store.status.pending')
+              : normalized === 'rejected'
+                ? t('store.status.rejected')
+                : t('store.status.deprecated')
+    const className =
+        normalized === 'accepted'
+            ? st.badge_active
+            : normalized === 'pending'
+              ? st.badge_pending
+              : normalized === 'rejected'
+                ? st.badge_rejected
+                : st.badge_deprecated
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
 
@@ -94,98 +100,30 @@ const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     </div>
 )
 
-const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
-    const {
-        title,
-        subtitle,
-        version,
-        authors,
-        downloads,
-        theme = 'purple',
-        size = 'default',
-        iconImage,
-        backgroundImage,
-        className,
-        status,
-        type,
-        onAuthorsClick,
-        isPreInstalled = false,
-    } = props
-
-    const [buttonState, setButtonState] = useState<ButtonState>(isPreInstalled ? 'installed' : 'initial')
-    const [progress, setProgress] = useState<number>(0)
-
-    const handleDownloadClick = useCallback(() => {
-        if (buttonState !== 'initial') return
-
-        console.log(t('store.logs.downloadStart', { title }))
-
-        setButtonState('downloading')
-        setProgress(0)
-
-        let downloadInterval = setInterval(() => {
-            setProgress(prev => {
-                if (prev >= 100) {
-                    clearInterval(downloadInterval)
-                    return 100
-                }
-                return Math.min(100, prev + Math.floor(Math.random() * 15) + 5)
-            })
-        }, 200)
-
-        setTimeout(() => {
-            clearInterval(downloadInterval)
-            setButtonState('installing')
-            console.log(t('store.logs.downloadComplete'))
-
-            setTimeout(() => {
-                setButtonState('installed')
-                console.log(t('store.logs.installComplete', { title }))
-
-                if (props.onDownloadClick) {
-                    props.onDownloadClick()
-                }
-            }, 1500)
-        }, 2500)
-    }, [buttonState, title, props])
-
-    let buttonText
-    let buttonIcon
-    let buttonClass = st.download_button
-
-    switch (buttonState) {
-        case 'initial':
-            buttonText = t('store.download')
-            buttonIcon = <DownloadIcon />
-            break
-        case 'downloading':
-            buttonText = `${Math.floor(progress)}%`
-            buttonIcon = <SpinnerIcon />
-            buttonClass = [st.download_button, st.button_downloading].join(' ')
-            break
-        case 'installing':
-            buttonIcon = <SpinnerIcon />
-            buttonClass = [st.download_button, st.button_installing].join(' ')
-            break
-        case 'installed':
-            buttonIcon = <CheckIcon />
-            buttonClass = [st.download_button, st.button_installed].join(' ')
-            break
-    }
-
+const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
+    title,
+    subtitle,
+    version,
+    authors,
+    downloads,
+    theme = 'purple',
+    size = 'default',
+    iconImage,
+    backgroundImage,
+    className,
+    status,
+    type,
+    onAuthorClick,
+    onDownloadClick,
+    downloadLabel,
+    downloadDisabled = false,
+    downloadInstalled = false,
+}) => {
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
-
     const sizeClass = size === 'large' ? st.card_large : ''
-
     const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, sizeClass, className ? className : '']
         .filter(Boolean)
         .join(' ')
-
-    const handleAuthorsClick = () => {
-        if (onAuthorsClick) {
-            onAuthorsClick()
-        }
-    }
 
     const backgroundStyle = backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
 
@@ -193,7 +131,6 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
         <article className={rootClassName} style={backgroundStyle}>
             {backgroundImage && <div className={st.card_overlay} />}
 
-            {}
             <div className={st.card_header_badges}>
                 {status && <StatusBadge status={status} />}
                 {type && <TypeBadge type={type} />}
@@ -211,25 +148,31 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = props => {
                     <div className={st.card_meta}>
                         <span className={st.card_version}>{version}</span>
                         <span className={st.card_dot} />
-                        <button type="button" className={st.card_authors} onClick={handleAuthorsClick}>
-                            By&nbsp;
-                            {authors.join(', ')}
-                        </button>
+                        <span className={st.card_authors}>
+                            <span className={st.card_authors_label}>Авторы:</span>
+                            {authors.map(author => (
+                                <span key={author} className={st.card_author_item}>
+                                    <button type="button" className={st.card_author_link} onClick={() => onAuthorClick?.(author)}>
+                                        {author}
+                                    </button>
+                                </span>
+                            ))}
+                        </span>
                     </div>
+
+                    {downloads ? <div className={st.card_downloads}>{downloads}</div> : null}
                 </div>
             </div>
 
-            {}
-            <button type="button" className={buttonClass} onClick={handleDownloadClick}>
-                {}
-                {buttonState === 'downloading' && <div className={st.download_progress_bar} style={{ width: `${progress}%` }} />}
-
-                {}
+            <button
+                type="button"
+                className={cn(st.download_button, downloadInstalled && st.download_button_installed)}
+                onClick={onDownloadClick}
+                disabled={downloadDisabled}
+            >
                 <span className={st.download_content}>
-                    {buttonIcon}
-                    <span className={st.download_count}>
-                        {buttonText === t('store.download') ? downloads || t('common.notAvailable') : buttonText}
-                    </span>
+                    {downloadInstalled ? <InstalledIcon /> : <DownloadIcon />}
+                    <span className={st.download_count}>{downloadLabel || t('store.download')}</span>
                 </span>
             </button>
         </article>

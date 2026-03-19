@@ -13,7 +13,18 @@ import { useTranslation } from 'react-i18next'
 
 import * as s from '@pages/extension/route/extensionview.module.scss'
 
-const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
+const ExtensionView: React.FC<ExtensionViewProps> = ({
+    addon,
+    isEnabled,
+    setSelectedTags,
+    setShowFilters,
+    onToggleEnabled,
+    publication,
+    canManagePublication,
+    publicationBusy,
+    onPublishAddon,
+    onUpdateAddon,
+}) => {
     const { t } = useTranslation()
     const { docs } = useAddonFiles(addon)
     const { configExists, config, configApi } = useConfig(addon.path)
@@ -51,6 +62,11 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                     isEnabled={isEnabled}
                     themeActive={themeActive}
                     onToggleEnabled={toggleWithToast}
+                    publication={publication}
+                    canManagePublication={canManagePublication}
+                    publicationBusy={publicationBusy}
+                    onPublishAddon={onPublishAddon}
+                    onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
                     setShowFilters={setShowFilters}
                 />

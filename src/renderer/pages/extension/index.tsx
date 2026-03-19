@@ -4,6 +4,7 @@ import { useLocation, useParams } from 'react-router'
 import userContext from '@entities/user/model/context'
 import Addon from '@entities/addon/model/addon.interface'
 import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 
 import toast from '@shared/ui/toast'
 
@@ -36,10 +37,13 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import apolloClient from '@shared/api/apolloClient'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import { useTranslation } from 'react-i18next'
+import { fetchOwnStoreAddons, submitAddonForStore } from '@entities/addon/api/storeAddons'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
 export default function ExtensionPage() {
     const { t } = useTranslation()
-    const { addons, setAddons, musicVersion } = useContext(userContext)
+    const { addons, setAddons, musicVersion, user } = useContext(userContext)
+    const { isExperimentEnabled } = useExperiments()
     const { contactId } = useParams()
     const location = useLocation()
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
@@ -52,6 +56,8 @@ export default function ExtensionPage() {
     const [modalOpen, setModalOpen] = useState(false)
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
+    const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
+    const [publicationBusy, setPublicationBusy] = useState(false)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -112,6 +118,25 @@ export default function ExtensionPage() {
 
         fetchAddonWhitelist()
     }, [])
+
+    const refreshOwnPublications = useCallback(async () => {
+        if (!user?.id || user.id === '-1') {
+            setStorePublications([])
+            return
+        }
+
+        try {
+            const ownAddons = await fetchOwnStoreAddons()
+            setStorePublications(ownAddons)
+        } catch (error) {
+            console.error('[ExtensionPage] failed to load own store addons', error)
+            setStorePublications([])
+        }
+    }, [user?.id])
+
+    useEffect(() => {
+        void refreshOwnPublications()
+    }, [refreshOwnPublications])
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -333,6 +358,73 @@ export default function ExtensionPage() {
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
 
+    const selectedAddonAuthors = useMemo(() => {
+        if (!selectedAddon) return []
+        if (typeof selectedAddon.author === 'string') {
+            return selectedAddon.author
+                .split(',')
+                .map(name => name.trim())
+                .filter(Boolean)
+        }
+        return selectedAddon.author.map(name => String(name).trim()).filter(Boolean)
+    }, [selectedAddon])
+
+    const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, true)
+
+    const canManagePublication = useMemo(() => {
+        if (!storePublishingEnabled || !selectedAddon || !user) return false
+
+        const me = [user.username, user.nickname]
+            .map(value => String(value || '').trim().toLowerCase())
+            .filter(Boolean)
+
+        if (!me.length) return false
+
+        return selectedAddonAuthors.some(authorName => me.includes(authorName.toLowerCase()))
+    }, [selectedAddon, selectedAddonAuthors, storePublishingEnabled, user])
+
+    const selectedPublication = useMemo(() => {
+        if (!selectedAddon) return null
+
+        const addonName = selectedAddon.name.trim().toLowerCase()
+        const exactVersion = selectedAddon.version?.trim().toLowerCase()
+
+        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName)
+        if (!sameName.length) return null
+
+        return (
+            sameName.find(item => item.version.trim().toLowerCase() === exactVersion) ||
+            sameName.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+        )
+    }, [selectedAddon, storePublications])
+
+    const handleSubmitAddon = useCallback(
+        async (mode: 'create' | 'update') => {
+            if (!selectedAddon || !storePublishingEnabled) return
+
+            setPublicationBusy(true)
+            try {
+                await submitAddonForStore(selectedAddon, mode === 'update' ? selectedPublication?.id : undefined)
+                await refreshOwnPublications()
+                toast.custom(
+                    'success',
+                    t('extensions.publication.successTitle'),
+                    mode === 'update' ? t('extensions.publication.updateSuccess') : t('extensions.publication.publishSuccess'),
+                )
+            } catch (error) {
+                console.error('[ExtensionPage] failed to submit addon', error)
+                toast.custom(
+                    'error',
+                    t('common.errorTitle'),
+                    mode === 'update' ? t('extensions.publication.updateError') : t('extensions.publication.publishError'),
+                )
+            } finally {
+                setPublicationBusy(false)
+            }
+        },
+        [refreshOwnPublications, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+    )
+
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 
     useEffect(() => {
@@ -461,6 +553,15 @@ export default function ExtensionPage() {
                                     ? selectedAddon.directoryName === currentTheme
                                     : enabledScripts.includes(selectedAddon.directoryName)
                             }
+                            publication={selectedPublication}
+                            canManagePublication={canManagePublication}
+                            publicationBusy={publicationBusy}
+                            onPublishAddon={() => {
+                                void handleSubmitAddon('create')
+                            }}
+                            onUpdateAddon={() => {
+                                void handleSubmitAddon('update')
+                            }}
                             onToggleEnabled={enabled => {
                                 if (enabled) {
                                     handleEnableAddon(selectedAddon)

@@ -47,6 +47,40 @@ const NotificationsBell: React.FC = () => {
 
     const getNotificationCopy = useCallback(
         (notification: NotificationItem) => {
+            if (notification.type === 'addon.review.pending') {
+                return {
+                    tone: 'warning' as NotificationTone,
+                    title: t('header.notifications.items.addonPendingTitle'),
+                    body: t('header.notifications.items.addonPendingBody', {
+                        name: String(notification.payload?.['name'] || t('store.unknownAddon')),
+                    }),
+                }
+            }
+
+            if (notification.type === 'addon.review.accepted') {
+                return {
+                    tone: 'success' as NotificationTone,
+                    title: t('header.notifications.items.addonAcceptedTitle'),
+                    body: t('header.notifications.items.addonAcceptedBody', {
+                        name: String(notification.payload?.['name'] || t('store.unknownAddon')),
+                    }),
+                }
+            }
+
+            if (notification.type === 'addon.review.rejected') {
+                const reviewNoteValue = notification.payload?.['moderationNote']
+                const reviewNote = typeof reviewNoteValue === 'string' ? reviewNoteValue.trim() : ''
+                return {
+                    tone: 'error' as NotificationTone,
+                    title: t('header.notifications.items.addonRejectedTitle'),
+                    body:
+                        reviewNote ||
+                        t('header.notifications.items.addonRejectedBody', {
+                            name: String(notification.payload?.['name'] || t('store.unknownAddon')),
+                        }),
+                }
+            }
+
             if (notification.type === 'localization.suggestion.approved') {
                 return {
                     tone: 'success' as NotificationTone,
@@ -76,6 +110,10 @@ const NotificationsBell: React.FC = () => {
 
     const getNotificationToneLabel = useCallback(
         (notification: NotificationItem) => {
+            if (notification.category === 'addon') {
+                return t('header.notifications.categories.addon')
+            }
+
             if (notification.category === 'localization') {
                 return t('header.notifications.categories.localization')
             }

@@ -84,9 +84,9 @@
 .bottomBar {
     width: 100%;
     display: flex;
-    flex-direction: row;
     align-items: flex-start;
-    padding: 10px 40px;
+    gap: 16px 24px;
+    padding: 10px 460px 10px 40px;
     margin: 0 auto;
     background: linear-gradient(180deg, hsl(226deg 19% 27% / 80%) 0%, #383e52f0 100%);
     backdrop-filter: blur(50px);
@@ -95,19 +95,42 @@
     z-index: 11;
     top: 0px;
     color: #fff;
-    justify-content: space-between;
-    align-items: center;
 }
 
 .meta {
     display: flex;
-    gap: 20px;
+    flex: 1 1 auto;
     flex-wrap: wrap;
+    gap: 16px 20px;
+    min-width: 0;
 }
 
 .metaItem {
     display: flex;
     flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+    flex: 0 0 auto;
+}
+
+.publicationMetaItem {
+    flex-basis: 100%;
+}
+
+.publicationInfo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.sideActions {
+    position: absolute;
+    top: 10px;
+    right: 40px;
+    display: flex;
+    align-items: flex-start;
+    z-index: 2;
 }
 
 .label {
@@ -122,15 +145,58 @@
     font-size: 12px;
     line-height: 16px;
     color: #a3accb;
+    min-width: 0;
 }
 
 .actions {
     display: flex;
+    flex-wrap: nowrap;
     gap: 0.5rem;
-    margin-top: 1rem;
+    align-items: flex-start;
+    justify-content: flex-end;
 
-    @media (min-width: 768px) {
-        margin-top: 0;
+    > * {
+        flex-shrink: 0;
+    }
+}
+
+.actionButton {
+    cursor: pointer;
+    transition: var(--transition);
+    box-sizing: border-box;
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center !important;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-width: 168px;
+    height: 46px;
+    white-space: nowrap;
+    padding: 12px 16px;
+    gap: 8px;
+    background: rgba(132, 221, 255, 0.16);
+    border-radius: 8px;
+    color: #dff8ff;
+    line-height: 1;
+
+    svg {
+        flex-shrink: 0;
+        display: block;
+    }
+
+    span {
+        display: block;
+        white-space: nowrap;
+        line-height: 1;
+    }
+
+    &:hover:not(:disabled) {
+        background: rgba(132, 221, 255, 0.24);
+    }
+
+    &:disabled {
+        opacity: 0.7;
+        cursor: default;
     }
 }
 
@@ -206,6 +272,44 @@
     }
 }
 
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    padding: 4px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.statusAccepted {
+    background: rgba(168, 255, 102, 0.2);
+    color: #d4ffb6;
+}
+
+.statusPending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #ffd790;
+}
+
+.statusRejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffb0b0;
+}
+
+.statusUnpublished {
+    background: rgba(148, 163, 184, 0.2);
+    color: #d8e1f0;
+}
+
+.statusMeta {
+    font-size: 11px;
+    line-height: 14px;
+    color: #aeb7d6;
+    max-width: 320px;
+}
+
 .moreBox {
     display: inline-flex;
     align-items: center;
@@ -245,5 +349,53 @@
     &:hover {
         background: rgba(99, 106, 130, 0.75);
         color: #fff;
+    }
+}
+
+@media (max-width: 900px) {
+    .bottomBar {
+        padding: 10px 40px;
+        flex-direction: column;
+    }
+
+    .actions {
+        position: static;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+    }
+
+    .sideActions {
+        position: static;
+        align-items: flex-start;
+        width: 100%;
+    }
+}
+
+@media (max-width: 960px) {
+    .meta {
+        gap: 12px 16px;
+    }
+}
+
+@media (max-width: 640px) {
+    .bottomBar {
+        padding: 10px 20px;
+    }
+
+    .meta {
+        grid-template-columns: 1fr;
+    }
+
+    .actions {
+        width: 100%;
+    }
+
+    .actionButton,
+    .toggleButton {
+        flex: 1 1 180px;
+    }
+
+    .actionButton {
+        min-width: 0;
     }
 }

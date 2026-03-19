@@ -1,19 +1,166 @@
+import { useContext, useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import PageLayout from '@widgets/layout/PageLayout'
 import * as st from '@pages/store/store.module.scss'
-
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import { useTranslation } from 'react-i18next'
+import apolloClient from '@shared/api/apolloClient'
+import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
+import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import Loader from '@shared/ui/PSUI/Loader'
+import MainEvents from '@common/types/mainEvents'
+import toast from '@shared/ui/toast'
+import UserContext from '@entities/user/model/context'
+
+type StoreAddonsQuery = {
+    getStoreAddons: StoreAddonsPayload
+}
+
+function resolveTheme(index: number): 'purple' | 'red' | 'wave' {
+    const themes: Array<'purple' | 'red' | 'wave'> = ['purple', 'red', 'wave']
+    return themes[index % themes.length]
+}
+
+function resolveType(type: StoreAddon['type']): 'css' | 'js' {
+    return type === 'script' ? 'js' : 'css'
+}
+
+function formatDate(value: string, locale?: string): string {
+    const date = new Date(value)
+    if (Number.isNaN(date.getTime())) {
+        return value
+    }
+
+    return new Intl.DateTimeFormat(locale, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(date)
+}
+
+function normalizeAddonKey(type: 'theme' | 'script', name: string): string {
+    return `${type}:${name.trim().toLowerCase()}`
+}
 
 export default function StorePage() {
-    const { t } = useTranslation()
-    const iconMusicPlayer = 'https://i.ibb.co/L5Q2Zf8/betterplayer-icon.png'
-    const bgAbstractPurple = 'https://i.ibb.co/X3S2nJj/abstract-purple-bg.jpg'
-    const iconLyrics = 'https://i.ibb.co/6P6XyRj/lyrics-icon.png'
-    const bgRedWave = 'https://i.ibb.co/hR4y5T0/red-soundwave-bg.jpg'
-    const iconPalette = 'https://i.ibb.co/B3T5G1L/colorize-icon.png'
-    const bgNeonWave = 'https://i.ibb.co/JzG9g8Z/neon-wave-bg.jpg'
-    const iconDeprecated = 'https://i.ibb.co/k5Vp9XF/deprecated-icon.png'
-    const iconVolume = 'https://i.ibb.co/h5P0L0R/volume-icon.png'
+    const { t, i18n } = useTranslation()
+    const navigate = useNavigate()
+    const { addons: installedAddons } = useContext(UserContext)
+    const [addons, setAddons] = useState<StoreAddon[]>([])
+    const [loading, setLoading] = useState(true)
+    const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
+
+    useEffect(() => {
+        let active = true
+
+        const loadAddons = async () => {
+            setLoading(true)
+            try {
+                const response = await apolloClient.query<StoreAddonsQuery>({
+                    query: GetStoreAddonsQuery,
+                    variables: {
+                        page: 1,
+                        pageSize: 50,
+                    },
+                    fetchPolicy: 'no-cache',
+                })
+
+                if (!active) return
+                setAddons(Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : [])
+            } catch (error) {
+                console.error('[Store] failed to load addons', error)
+                if (active) {
+                    setAddons([])
+                }
+            } finally {
+                if (active) {
+                    setLoading(false)
+                }
+            }
+        }
+
+        void loadAddons()
+
+        return () => {
+            active = false
+        }
+    }, [])
+
+    const installedAddonKeys = useMemo(
+        () => new Set(installedAddons.map(addon => normalizeAddonKey(addon.type, addon.name))),
+        [installedAddons],
+    )
+
+    const content = useMemo(() => {
+        if (loading) {
+            return (
+                <div className={st.store_state}>
+                    <Loader text={t('store.loading')} />
+                </div>
+            )
+        }
+
+        if (!addons.length) {
+            return <div className={st.store_state}>{t('store.empty')}</div>
+        }
+
+        return (
+            <div className={st.store_grid}>
+                {addons.map((addon, index) => {
+                    const isInstalled = installedAddonKeys.has(normalizeAddonKey(addon.type, addon.name))
+
+                    return (
+                        <ExtensionCardStore
+                            key={addon.id}
+                            theme={resolveTheme(index)}
+                            title={addon.name}
+                            subtitle={addon.description}
+                            version={`v${addon.version}`}
+                            authors={addon.authors}
+                            downloads={t('store.approvedAt', {
+                                date: formatDate(addon.approvedAt || addon.updatedAt, i18n.language),
+                            })}
+                            status={addon.status}
+                            type={resolveType(addon.type)}
+                            backgroundImage={addon.bannerUrl || undefined}
+                            iconImage={addon.avatarUrl || undefined}
+                            downloadInstalled={isInstalled}
+                            downloadDisabled={isInstalled || installingAddonId === addon.id}
+                            downloadLabel={isInstalled ? t('store.installed') : installingAddonId === addon.id ? t('common.importing') : t('store.download')}
+                            onDownloadClick={async () => {
+                                if (isInstalled || installingAddonId === addon.id || !window.desktopEvents) return
+
+                                setInstallingAddonId(addon.id)
+                                const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
+
+                                try {
+                                    const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                                        downloadUrl: addon.downloadUrl,
+                                        title: addon.name,
+                                    })
+
+                                    if (!result?.success) {
+                                        throw new Error(result?.reason || 'INSTALL_FAILED')
+                                    }
+
+                                    toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
+                                } catch (error: any) {
+                                    toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: addon.name }), { id: toastId })
+                                    console.error('[Store] failed to install addon', error)
+                                } finally {
+                                    setInstallingAddonId(current => (current === addon.id ? null : current))
+                                }
+                            }}
+                            onAuthorClick={author => {
+                                if (!author) return
+                                navigate(`/profile/${encodeURIComponent(author)}`)
+                            }}
+                        />
+                    )
+                })}
+            </div>
+        )
+    }, [addons, i18n.language, installedAddonKeys, installingAddonId, loading, navigate, t])
 
     return (
         <PageLayout title={t('pages.store.title')}>
@@ -23,131 +170,7 @@ export default function StorePage() {
                     <div className={st.store_subtitle}>{t('pages.store.headerSubtitle')}</div>
                 </header>
 
-                <div className={st.store_grid}>
-                    {}
-                    <ExtensionCardStore
-                        theme="purple"
-                        title="BetterPlayer"
-                        subtitle={t('pages.store.cards.betterPlayer')}
-                        version="v1.4.0"
-                        authors={['WolfySoCute']}
-                        downloads="1.2K"
-                        status="active"
-                        type="js"
-                        backgroundImage="https://embed.pixiv.net/artwork.php?illust_id=93909354&mdate=1635997641"
-                        iconImage="https://images.steamusercontent.com/ugc/2042985641591101872/327A7E5C36F308E8D31EBFFFA2E8EFF6E5FB19D1/?imw=5000&imh=5000&ima=fit&impolicy=Letterbox&imcolor=%23000000&letterbox=false"
-                        onDownloadClick={() => {
-                            console.log('[Store] download BetterPlayer')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors BetterPlayer')
-                        }}
-                    />
-
-                    {}
-                    <ExtensionCardStore
-                        theme="red"
-                        title="Reachtext"
-                        subtitle={t('pages.store.cards.reachtext')}
-                        version="v2.2.2"
-                        authors={['Hazzz895']}
-                        downloads="3.5K"
-                        status="active"
-                        type="js"
-                        iconImage={iconLyrics}
-                        backgroundImage={bgRedWave}
-                        onDownloadClick={() => {
-                            console.log('[Store] download Reachtext')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors Reachtext')
-                        }}
-                    />
-
-                    {}
-                    <ExtensionCardStore
-                        theme="wave"
-                        title="Colorize 2"
-                        subtitle={t('pages.store.cards.colorize')}
-                        version="v1.1.3"
-                        authors={['maks1mio', 'imperiadicks']}
-                        downloads="1.2K"
-                        status="active"
-                        type="css"
-                        iconImage={iconPalette}
-                        backgroundImage={bgNeonWave}
-                        onDownloadClick={() => {
-                            console.log('[Store] download Colorize 2 #1')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors Colorize 2')
-                        }}
-                    />
-
-                    {}
-                    <ExtensionCardStore
-                        theme="purple"
-                        title="Custom UI"
-                        subtitle={t('pages.store.cards.customUi')}
-                        version="v1.0.0"
-                        authors={['WolfySoCute']}
-                        downloads="800"
-                        status="active"
-                        iconImage={iconPalette}
-                        backgroundImage={bgNeonWave}
-                        type="both"
-                        onDownloadClick={() => {
-                            console.log('[Store] download Custom UI')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors Custom UI')
-                        }}
-                    />
-
-                    {}
-                    <ExtensionCardStore
-                        theme="wave"
-                        title="Theme Generator"
-                        subtitle={t('pages.store.cards.themeGenerator')}
-                        version="v0.9.0"
-                        authors={['maks1mio']}
-                        downloads="300"
-                        status="active"
-                        iconImage={iconPalette}
-                        backgroundImage={bgNeonWave}
-                        type="js"
-                        onDownloadClick={() => {
-                            console.log('[Store] download Theme Generator')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors Theme Generator')
-                        }}
-                    />
-
-                    {}
-                    <ExtensionCardStore
-                        theme="red"
-                        title="Volume Control"
-                        subtitle={t('pages.store.cards.volumeControl')}
-                        version="v1.0.5"
-                        authors={['imperiadicks']}
-                        downloads="500"
-                        status="deprecated"
-                        type="js"
-                        iconImage={iconPalette}
-                        backgroundImage={bgNeonWave}
-                        onDownloadClick={() => {
-                            console.log('[Store] download Volume Control')
-                        }}
-                        onAuthorsClick={() => {
-                            console.log('[Store] authors Volume Control')
-                        }}
-                    />
-
-                    {}
-                    <div className={st.placeholder_card} />
-                    <div className={st.placeholder_card} />
-                </div>
+                {content}
             </section>
         </PageLayout>
     )

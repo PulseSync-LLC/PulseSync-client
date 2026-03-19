@@ -334,6 +334,18 @@
             "updated": "Updated",
             "version": "Version"
         },
+        "publication": {
+            "statusLabel": "Publication",
+            "statusDate": "Updated {{date}}",
+            "publish": "Publish",
+            "update": "Update",
+            "uploading": "Sending...",
+            "successTitle": "Sent for review",
+            "publishSuccess": "The add-on has been submitted for moderation.",
+            "updateSuccess": "The add-on update has been submitted for moderation.",
+            "publishError": "Failed to publish the add-on.",
+            "updateError": "Failed to send the add-on update."
+        },
         "reloadFailed": "Reload failed",
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
@@ -420,12 +432,19 @@
             "read": "Read",
             "openItem": "Open",
             "categories": {
+                "addon": "Add-ons",
                 "localization": "Localization",
                 "subscription": "Subscription",
                 "security": "Security",
                 "system": "System"
             },
             "items": {
+                "addonPendingTitle": "Add-on sent for review",
+                "addonPendingBody": "{{name}} is now waiting for moderation.",
+                "addonAcceptedTitle": "Add-on accepted",
+                "addonAcceptedBody": "{{name}} is now available in the store.",
+                "addonRejectedTitle": "Add-on rejected",
+                "addonRejectedBody": "{{name}} was rejected during moderation.",
                 "localizationApprovedTitle": "Localization suggestion approved",
                 "localizationApprovedBody": "Your changes passed review and are already published.",
                 "localizationRejectedTitle": "Localization suggestion rejected",
@@ -869,14 +888,25 @@
     },
     "store": {
         "download": "Download",
+        "loading": "Loading store add-ons...",
+        "empty": "No published add-ons are available yet.",
+        "approvedAt": "Reviewed {{date}}",
+        "installed": "Installed",
+        "installComplete": "Add-on {{title}} was installed.",
+        "installFailed": "Failed to install add-on {{title}}.",
+        "unknownAddon": "Add-on",
         "logs": {
             "downloadComplete": "[Store] Download complete. Starting installation.",
             "downloadStart": "[Store] Starting download {{title}}",
             "installComplete": "[Store] Installed {{title}}!"
         },
         "status": {
+            "accepted": "Accepted",
             "active": "Active",
-            "deprecated": "Deprecated"
+            "deprecated": "Deprecated",
+            "notPublished": "Not published",
+            "pending": "Pending review",
+            "rejected": "Rejected"
         },
         "type": {
             "both": "CSS + JS",
