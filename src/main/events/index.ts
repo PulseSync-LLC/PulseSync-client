@@ -666,6 +666,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         try {
             const defaultAdd: Partial<Addon> = {
                 name: t('main.events.newExtensionName'),
+                installSource: 'local',
                 image: '',
                 banner: '',
                 author: t('main.events.newExtensionAuthor'),
@@ -791,7 +792,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { downloadUrl?: string; title?: string }) => {
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { id?: string; downloadUrl?: string; title?: string }) => {
         let tempArchivePath = ''
 
         try {
@@ -814,7 +815,10 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 
             await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
 
-            const addonName = await importAddonArchive(tempArchivePath)
+            const addonName = await importAddonArchive(tempArchivePath, {
+                installSource: 'store',
+                storeAddonId: payload?.id || null,
+            })
             if (!addonName) {
                 return { success: false, reason: 'IMPORT_FAILED' }
             }

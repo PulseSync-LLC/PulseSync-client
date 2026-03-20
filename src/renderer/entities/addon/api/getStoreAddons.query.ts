@@ -12,6 +12,7 @@ export default gql`
                 type
                 version
                 authors
+                changelog
                 avatarUrl
                 bannerUrl
                 downloadUrl

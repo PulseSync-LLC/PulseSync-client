@@ -121,6 +121,42 @@
                 }
             }
 
+            .changelogPanel {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .changelogTitle {
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: 800;
+            }
+
+            .changelogList {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .changelogItem {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                padding: 14px 16px;
+                border-radius: 12px;
+                background: rgba(129, 141, 179, 0.12);
+                color: #e7edff;
+                line-height: 1.55;
+            }
+
+            .changelogBullet {
+                flex: 0 0 auto;
+                color: #8fffd4;
+                font-size: 18px;
+                line-height: 1.2;
+            }
+
             & > div {
                 width: -webkit-fill-available;
             }

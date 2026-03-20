@@ -11,6 +11,10 @@ import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
+type ImportAddonArchiveOptions = {
+    installSource?: 'store' | 'local'
+    storeAddonId?: string | null
+}
 
 export const normalizePextPath = (rawPath: string): string => {
     if (!rawPath) return ''
@@ -45,7 +49,7 @@ const removeSourcePextIfNeeded = async (filePath: string): Promise<void> => {
     }
 }
 
-export const importAddonArchive = async (rawPath: string): Promise<string | null> => {
+export const importAddonArchive = async (rawPath: string, options: ImportAddonArchiveOptions = {}): Promise<string | null> => {
     const filePath = normalizePextPath(rawPath)
     if (!isAddonArchivePath(filePath)) return null
     if (!fs.existsSync(filePath)) {
@@ -69,6 +73,12 @@ export const importAddonArchive = async (rawPath: string): Promise<string | null
 
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
         metadata.fromPext = true
+        metadata.installSource = options.installSource === 'store' ? 'store' : 'local'
+        if (options.storeAddonId) {
+            metadata.storeAddonId = options.storeAddonId
+        } else {
+            delete metadata.storeAddonId
+        }
         const addonName = typeof metadata.name === 'string' ? metadata.name.trim() : ''
         if (!addonName) {
             logger.main.error('Theme name missing in metadata.json')
@@ -109,5 +119,5 @@ export const importAddonArchive = async (rawPath: string): Promise<string | null
 export const importPextFile = async (rawPath: string): Promise<string | null> => {
     const filePath = normalizePextPath(rawPath)
     if (!isPextFilePath(filePath)) return null
-    return importAddonArchive(filePath)
+    return importAddonArchive(filePath, { installSource: 'local' })
 }

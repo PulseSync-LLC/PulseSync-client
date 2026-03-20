@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import { MdCloudUpload, MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
@@ -12,15 +12,21 @@ import config from '@common/appConfig'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { useTranslation } from 'react-i18next'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
 
 interface Props {
     addon: AddonInterface
     isEnabled: boolean
+    hasStoreUpdate?: boolean
+    storeUpdateBusy?: boolean
+    onStoreUpdate?: () => void
     themeActive: boolean
     onToggleEnabled: (enabled: boolean) => void
     publication?: StoreAddon | null
+    publicationChangelogText?: string
     canManagePublication?: boolean
     publicationBusy?: boolean
+    onPublicationChangelogChange?: (value: string) => void
     onPublishAddon?: () => void
     onUpdateAddon?: () => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
@@ -68,18 +74,24 @@ function normalizeAuthorNames(author: AddonInterface['author']): string[] {
 const ThemeInfo: React.FC<Props> = ({
     addon,
     isEnabled,
+    hasStoreUpdate = false,
+    storeUpdateBusy = false,
+    onStoreUpdate,
     themeActive,
     onToggleEnabled,
     publication,
+    publicationChangelogText = '',
     canManagePublication = false,
     publicationBusy = false,
+    onPublicationChangelogChange,
     onPublishAddon,
     onUpdateAddon,
     setSelectedTags,
     setShowFilters,
 }) => {
-    const { t, i18n } = useTranslation()
+    const { t } = useTranslation()
     const { isExperimentEnabled } = useExperiments()
+    const { Modals, openModal } = useModalContext()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -135,30 +147,6 @@ const ThemeInfo: React.FC<Props> = ({
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
-
-    const publicationStatusLabel = publication
-        ? publication.status === 'accepted'
-            ? t('store.status.accepted')
-            : publication.status === 'rejected'
-              ? t('store.status.rejected')
-              : t('store.status.pending')
-        : t('store.status.notPublished')
-
-    const publicationStatusClassName = publication
-        ? publication.status === 'accepted'
-            ? s.statusAccepted
-            : publication.status === 'rejected'
-              ? s.statusRejected
-              : s.statusPending
-        : s.statusUnpublished
-
-    const publicationDate = publication?.updatedAt
-        ? new Intl.DateTimeFormat(i18n.language, {
-              day: '2-digit',
-              month: 'short',
-              year: 'numeric',
-          }).format(new Date(publication.updatedAt))
-        : null
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
@@ -251,35 +239,49 @@ const ThemeInfo: React.FC<Props> = ({
                         <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
                     </div>
 
-                    <div className={cn(s.metaItem, s.publicationMetaItem)}>
-                        <div className={s.publicationInfo}>
-                            <span className={s.label}>{t('extensions.publication.statusLabel')}</span>
-                            <span className={cn(s.statusBadge, publicationStatusClassName)}>{publicationStatusLabel}</span>
-                            {publicationDate ? <span className={s.statusMeta}>{t('extensions.publication.statusDate', { date: publicationDate })}</span> : null}
-                            {publication?.moderationNote ? <span className={s.statusMeta}>{publication.moderationNote}</span> : null}
-                        </div>
+                    <div className={s.metaItem}>
+                        <span className={s.label}>{t('extensions.meta.source')}</span>
+                        <span className={s.value}>{addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}</span>
                     </div>
+
                 </div>
 
                 <div className={s.sideActions} ref={actionsRef}>
                     <div className={s.actions}>
-                        {canManagePublication && !publication && (
-                            <Button className={s.actionButton} disabled={publicationBusy} onClick={onPublishAddon} title={authorsDisplay}>
-                                <MdCloudUpload size={18} />
-                                <span>{publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish')}</span>
-                            </Button>
-                        )}
-
-                        {canManagePublication && publication && (
-                            <Button className={s.actionButton} disabled={publicationBusy} onClick={onUpdateAddon} title={authorsDisplay}>
+                        {canManagePublication && (
+                            <Button
+                                className={s.actionButton}
+                                onClick={() =>
+                                    openModal(Modals.EXTENSION_PUBLICATION_MODAL, {
+                                        addon,
+                                        authorsDisplay,
+                                        publication: publication ?? null,
+                                        publicationBusy,
+                                        changelogText: publicationChangelogText,
+                                        onChangeChangelog: onPublicationChangelogChange ?? null,
+                                        onPublish: onPublishAddon ?? null,
+                                        onUpdate: onUpdateAddon ?? null,
+                                    })
+                                }
+                                title={authorsDisplay}
+                            >
                                 <MdSync size={18} />
-                                <span>{publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update')}</span>
+                                <span>{t('extensions.publication.statusLabel')}</span>
                             </Button>
                         )}
 
-                        <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
-                            {isEnabled ? t('common.disable') : t('common.enable')}
-                        </Button>
+                        {hasStoreUpdate ? (
+                            <Button className={cn(s.toggleButton, s.updateState)} onClick={onStoreUpdate} disabled={storeUpdateBusy}>
+                                {storeUpdateBusy ? t('common.importing') : t('layout.updateAction')}
+                            </Button>
+                        ) : (
+                            <Button
+                                className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
+                                onClick={() => onToggleEnabled(!isEnabled)}
+                            >
+                                {isEnabled ? t('common.disable') : t('common.enable')}
+                            </Button>
+                        )}
 
                         {canAccessStore && (
                             <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>

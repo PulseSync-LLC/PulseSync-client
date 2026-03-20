@@ -1,5 +1,6 @@
-import React from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
+import { MdDeleteForever } from 'react-icons/md'
 import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 import { t } from '@app/i18n'
 
@@ -7,6 +8,8 @@ type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
 type ExtensionStatus = 'accepted' | 'active' | 'deprecated' | 'pending' | 'rejected'
 type ExtensionType = 'css' | 'js' | 'both'
+type DownloadVariant = 'default' | 'installed' | 'remove'
+type AddonKind = 'theme' | 'script'
 
 export interface ExtensionCardStoreProps {
     title: string
@@ -21,11 +24,13 @@ export interface ExtensionCardStoreProps {
     className?: string
     status?: ExtensionStatus
     type?: ExtensionType
+    kind?: AddonKind
     onDownloadClick?: () => void
     onAuthorClick?: (author: string) => void
     downloadLabel?: string
     downloadDisabled?: boolean
     downloadInstalled?: boolean
+    downloadVariant?: DownloadVariant
     isPreInstalled?: boolean
 }
 
@@ -51,24 +56,9 @@ const InstalledIcon = () => (
     </svg>
 )
 
-const StatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
-    const normalized = status === 'active' ? 'accepted' : status
-    const text =
-        normalized === 'accepted'
-            ? t('store.status.accepted')
-            : normalized === 'pending'
-              ? t('store.status.pending')
-              : normalized === 'rejected'
-                ? t('store.status.rejected')
-                : t('store.status.deprecated')
-    const className =
-        normalized === 'accepted'
-            ? st.badge_active
-            : normalized === 'pending'
-              ? st.badge_pending
-              : normalized === 'rejected'
-                ? st.badge_rejected
-                : st.badge_deprecated
+const StatusBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
+    const text = kind === 'script' ? t('store.kind.script') : t('store.kind.theme')
+    const className = kind === 'script' ? st.badge_script : st.badge_theme
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
 
@@ -100,6 +90,24 @@ const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     </div>
 )
 
+const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: IntersectionObserverInit) => {
+    const [isIntersecting, setIsIntersecting] = useState(false)
+
+    useEffect(() => {
+        if (!ref.current) return
+
+        const observer = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
+            ...options,
+            rootMargin: '50%',
+        })
+
+        observer.observe(ref.current)
+        return () => observer.disconnect()
+    }, [ref, options])
+
+    return isIntersecting
+}
+
 const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     title,
     subtitle,
@@ -113,12 +121,16 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     className,
     status,
     type,
+    kind,
     onAuthorClick,
     onDownloadClick,
     downloadLabel,
     downloadDisabled = false,
     downloadInstalled = false,
+    downloadVariant = 'default',
 }) => {
+    const containerRef = useRef<HTMLDivElement>(null)
+    const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
     const sizeClass = size === 'large' ? st.card_large : ''
     const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, sizeClass, className ? className : '']
@@ -128,54 +140,72 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     const backgroundStyle = backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
 
     return (
-        <article className={rootClassName} style={backgroundStyle}>
-            {backgroundImage && <div className={st.card_overlay} />}
+        <div ref={containerRef} className={st.card_mount} aria-hidden={!isVisible}>
+            {isVisible ? (
+                <article className={rootClassName} style={backgroundStyle}>
+                    {backgroundImage && <div className={st.card_overlay} />}
 
-            <div className={st.card_header_badges}>
-                {status && <StatusBadge status={status} />}
-                {type && <TypeBadge type={type} />}
-            </div>
-
-            <div className={st.card_main}>
-                <div className={st.card_icon_wrapper}>
-                    <ExtensionIcon imageSrc={iconImage} />
-                </div>
-
-                <div className={st.card_text}>
-                    <h3 className={st.card_title}>{title}</h3>
-                    <p className={st.card_subtitle}>{subtitle}</p>
-
-                    <div className={st.card_meta}>
-                        <span className={st.card_version}>{version}</span>
-                        <span className={st.card_dot} />
-                        <span className={st.card_authors}>
-                            <span className={st.card_authors_label}>Авторы:</span>
-                            {authors.map(author => (
-                                <span key={author} className={st.card_author_item}>
-                                    <button type="button" className={st.card_author_link} onClick={() => onAuthorClick?.(author)}>
-                                        {author}
-                                    </button>
-                                </span>
-                            ))}
-                        </span>
+                    <div className={st.card_header_badges}>
+                        {kind && <StatusBadge kind={kind} />}
+                        {type && <TypeBadge type={type} />}
                     </div>
 
-                    {downloads ? <div className={st.card_downloads}>{downloads}</div> : null}
-                </div>
-            </div>
+                    <div className={st.card_content}>
+                        <div className={st.card_title_row}>
+                            <h3 className={st.card_title}>{title}</h3>
+                            <span className={st.card_title_version}>{version}</span>
+                        </div>
 
-            <button
-                type="button"
-                className={cn(st.download_button, downloadInstalled && st.download_button_installed)}
-                onClick={onDownloadClick}
-                disabled={downloadDisabled}
-            >
-                <span className={st.download_content}>
-                    {downloadInstalled ? <InstalledIcon /> : <DownloadIcon />}
-                    <span className={st.download_count}>{downloadLabel || t('store.download')}</span>
-                </span>
-            </button>
-        </article>
+                        <div className={st.card_main}>
+                            <div className={st.card_icon_wrapper}>
+                                <ExtensionIcon imageSrc={iconImage} />
+                            </div>
+
+                            <div className={st.card_text}>
+                                <p className={st.card_subtitle}>{subtitle}</p>
+
+                                <div className={st.card_meta}>
+                                    <span className={st.card_authors}>
+                                        <span className={st.card_authors_label}>Авторы:</span>
+                                        {authors.map(author => (
+                                            <span key={author} className={st.card_author_item}>
+                                                <button type="button" className={st.card_author_link} onClick={() => onAuthorClick?.(author)}>
+                                                    {author}
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </span>
+                                </div>
+
+                                {downloads ? <div className={st.card_downloads}>{downloads}</div> : null}
+                            </div>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        className={cn(
+                            st.download_button,
+                            downloadInstalled && st.download_button_installed,
+                            downloadVariant === 'remove' && st.download_button_remove,
+                        )}
+                        onClick={onDownloadClick}
+                        disabled={downloadDisabled}
+                    >
+                        <span className={st.download_content}>
+                            {downloadVariant === 'remove' ? (
+                                <MdDeleteForever className={st.download_icon} size={20} />
+                            ) : downloadInstalled ? (
+                                <InstalledIcon />
+                            ) : (
+                                <DownloadIcon />
+                            )}
+                            <span className={st.download_count}>{downloadLabel || t('store.download')}</span>
+                        </span>
+                    </button>
+                </article>
+            ) : null}
+        </div>
     )
 }
 

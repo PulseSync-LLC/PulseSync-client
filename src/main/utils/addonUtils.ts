@@ -11,6 +11,7 @@ import { simple as walkSimple } from 'acorn-walk'
 const State = getState()
 const defaultAddon: Partial<Addon> = {
     name: 'Default',
+    installSource: 'local',
     image: 'url',
     author: 'Your Name',
     description: 'Default theme.',
@@ -129,6 +130,8 @@ export async function loadAddons(): Promise<Addon[]> {
                 } else {
                     metadata.version = versionMatch[0]
                 }
+
+                metadata.installSource = metadata.installSource === 'store' ? 'store' : 'local'
 
                 metadata.lastModified = diffString
                 metadata.path = addonFolderPath

@@ -8,6 +8,7 @@ export interface StoreAddon {
     type: StoreAddonKind
     version: string
     authors: string[]
+    changelog?: string[] | null
     avatarUrl?: string | null
     bannerUrl?: string | null
     downloadUrl: string

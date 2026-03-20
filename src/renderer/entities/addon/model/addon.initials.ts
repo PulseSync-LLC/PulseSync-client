@@ -9,6 +9,7 @@ const AddonInitials: Addon[] = [
         banner: '',
         libraryLogo: '',
         directoryName: 'default',
+        installSource: 'local',
         description: 'Default theme.',
         version: '1.0.0',
         path: 'local',

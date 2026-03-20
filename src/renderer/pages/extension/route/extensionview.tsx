@@ -16,12 +16,18 @@ import * as s from '@pages/extension/route/extensionview.module.scss'
 const ExtensionView: React.FC<ExtensionViewProps> = ({
     addon,
     isEnabled,
+    hasStoreUpdate,
+    storeUpdateBusy,
+    onStoreUpdate,
     setSelectedTags,
     setShowFilters,
     onToggleEnabled,
     publication,
+    publicationChangelog = [],
+    publicationChangelogText = '',
     canManagePublication,
     publicationBusy,
+    onPublicationChangelogChange,
     onPublishAddon,
     onUpdateAddon,
 }) => {
@@ -60,11 +66,16 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                 <ThemeInfo
                     addon={addon}
                     isEnabled={isEnabled}
+                    hasStoreUpdate={hasStoreUpdate}
+                    storeUpdateBusy={storeUpdateBusy}
+                    onStoreUpdate={onStoreUpdate}
                     themeActive={themeActive}
                     onToggleEnabled={toggleWithToast}
                     publication={publication}
+                    publicationChangelogText={publicationChangelogText}
                     canManagePublication={canManagePublication}
                     publicationBusy={publicationBusy}
+                    onPublicationChangelogChange={onPublicationChangelogChange}
                     onPublishAddon={onPublishAddon}
                     onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
@@ -72,7 +83,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                 />
 
                 <div className={s.extensionContent}>
-                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
+                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationChangelog.length > 0} />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
@@ -82,6 +93,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
+                        publicationChangelog={publicationChangelog}
                     />
                 </div>
             </Scrollbar>

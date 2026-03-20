@@ -17,9 +17,11 @@ import { compareVersions } from '@shared/lib/utils'
 import { usePextDnDImport } from '@shared/lib/usePextDnDImport'
 import Addon from '@entities/addon/model/addon.interface'
 import AddonInitials from '@entities/addon/model/addon.initials'
+import type { StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import { ModInterface } from '@entities/mod/model/modInterface'
 import modInitials from '@entities/mod/model/mod.initials'
 import GetModQuery from '@entities/mod/api/getMod.query'
+import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
 import { useTranslation } from 'react-i18next'
 import { createAppRouter } from '@app/router'
@@ -52,6 +54,10 @@ type GetAchievementsVars = {
     pageSize: number
     search?: string
     sortOptions?: Array<unknown>
+}
+
+type GetStoreAddonsData = {
+    getStoreAddons: StoreAddonsPayload
 }
 
 function App() {
@@ -186,6 +192,50 @@ function App() {
         }
     }, [])
 
+    const notifyAddonUpdates = useCallback(
+        async (installedAddons: Addon[]) => {
+            const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
+            if (!storeInstalledAddons.length) {
+                return
+            }
+
+            try {
+                const response = await apolloClient.query<GetStoreAddonsData>({
+                    query: GetStoreAddonsQuery,
+                    variables: {
+                        page: 1,
+                        pageSize: 100,
+                    },
+                    fetchPolicy: 'no-cache',
+                })
+
+                const catalog = Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : []
+
+                storeInstalledAddons.forEach(addon => {
+                    const publishedAddon = catalog.find(item => item.id === addon.storeAddonId)
+                    if (!publishedAddon) return
+                    if (compareVersions(publishedAddon.version, addon.version) <= 0) return
+
+                    const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
+                    if (localStorage.getItem(notificationKey) === publishedAddon.version) return
+
+                    const title = tRef.current('extensions.storeUpdateAvailableTitle')
+                    const body = tRef.current('extensions.storeUpdateAvailableMessage', {
+                        name: publishedAddon.name,
+                        version: publishedAddon.version,
+                    })
+
+                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                    toast.custom('info', title, body)
+                    localStorage.setItem(notificationKey, publishedAddon.version)
+                })
+            } catch (error) {
+                console.error('Failed to check store addon updates:', error)
+            }
+        },
+        [],
+    )
+
     const handleSocketAchievementsUpdate = useCallback(
         async (payload: unknown) => {
             await fetchAchievements()
@@ -218,6 +268,11 @@ function App() {
         },
         [fetchAchievements],
     )
+
+    useEffect(() => {
+        if (!addons.length) return
+        void notifyAddonUpdates(addons)
+    }, [addons, notifyAddonUpdates])
 
     useAppInitialization({
         app,

@@ -9,6 +9,8 @@ import MacPermissionsModal from '@widgets/modalContainer/modals/MacPermissionsMo
 import PremiumUnlockedModal from '@widgets/modalContainer/modals/PremiumUnlockedModal'
 import LinuxPermissionsModal from '@widgets/modalContainer/modals/LinuxPermissionsModal'
 import PextDNDModal from '@widgets/modalContainer/modals/PextDNDModal'
+import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
+import UntrustedLocalAddonModal from '@widgets/modalContainer/modals/UntrustedLocalAddonModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -23,6 +25,8 @@ const ModalContainer: React.FC = () => {
             <PremiumPromoModal />
             <PremiumUnlockedModal />
             <PextDNDModal />
+            <ExtensionPublicationModal />
+            <UntrustedLocalAddonModal />
         </>
     )
 }

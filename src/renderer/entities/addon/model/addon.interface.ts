@@ -1,6 +1,8 @@
 export default interface Addon {
     name: string
     directoryName: string
+    installSource?: 'store' | 'local'
+    storeAddonId?: string
     description: string
     version: string
     author: string | string[]

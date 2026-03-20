@@ -13,7 +13,7 @@ import ConfigurationSettings from '@features/configurationSettings/Configuration
 import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
 import { AddonConfig } from '@features/configurationSettings/types'
 
-import { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
+import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/route/extBox/types'
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
@@ -31,6 +31,7 @@ interface Props {
     }
     editMode: boolean
     addon: Addon
+    publicationChangelog?: string[]
 }
 
 const slug = (t: string) =>
@@ -231,7 +232,7 @@ const defaultTemplate: AddonConfig = {
     ],
 }
 
-const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon }) => {
+const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationChangelog = [] }) => {
     const { t } = useTranslation()
     const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
@@ -298,6 +299,28 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     }
 
     if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
+
+    if (active === PUBLICATION_CHANGELOG_TAB) {
+        return (
+            <div className={styles.galleryContainer}>
+                <div className={styles.changelogPanel}>
+                    <div className={styles.changelogTitle}>{t('extensions.publication.changelogTabTitle')}</div>
+                    {publicationChangelog.length ? (
+                        <div className={styles.changelogList}>
+                            {publicationChangelog.map((item, index) => (
+                                <div key={`${item}-${index}`} className={styles.changelogItem}>
+                                    <span className={styles.changelogBullet}>•</span>
+                                    <span>{item}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                    )}
+                </div>
+            </div>
+        )
+    }
 
     const doc = docs.find(d => d.title === active)
     if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>

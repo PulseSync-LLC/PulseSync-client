@@ -330,12 +330,28 @@
         "loadFailed": "Load failed",
         "meta": {
             "author": "Author",
+            "authors": "Authors:",
+            "source": "Source",
             "size": "Size",
             "updated": "Updated",
             "version": "Version"
         },
+        "source": {
+            "local": "Local",
+            "store": "Store"
+        },
         "publication": {
             "statusLabel": "Publication",
+            "modalTitle": "Add-on publication",
+            "noteLabel": "Moderator note",
+            "changelogLabel": "Changelog",
+            "changelogPlaceholder": "- Fixed the player bug\n- Updated card styles\n- Added a new setting",
+            "changelogHint": "One change per line. This list will be shown to users in the add-on tab.",
+            "changelogRequired": "Add a changelog before publishing.",
+            "changelogTabTitle": "Changes in this version",
+            "changelogEmpty": "No changelog was added for this version yet.",
+            "cooldownLabel": "Resubmission",
+            "cooldownMessage": "After rejection, the add-on can be submitted again only after 3 days. Available {{date}}.",
             "statusDate": "Updated {{date}}",
             "publish": "Publish",
             "update": "Update",
@@ -346,6 +362,19 @@
             "publishError": "Failed to publish the add-on.",
             "updateError": "Failed to send the add-on update."
         },
+        "untrustedLocal": {
+            "title": "Untrusted add-on",
+            "description": "The add-on {{name}} was loaded from an untrusted source and was not found in the catalog. We do not guarantee its safety, stability, or the safety of your data.",
+            "caption": "Enable it only if you trust the source and understand the risks.",
+            "confirm": "Enable anyway"
+        },
+        "tabs": {
+            "metadata": "Metadata"
+        },
+        "storeUpdateAvailableTitle": "Add-on update available",
+        "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
+        "storeUpdateComplete": "Add-on {{name}} was updated.",
+        "storeUpdateFailed": "Failed to update add-on {{name}}.",
         "reloadFailed": "Reload failed",
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
@@ -890,10 +919,15 @@
         "download": "Download",
         "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",
+        "noResults": "Nothing was found.",
+        "searchPlaceholder": "Find an add-on...",
         "approvedAt": "Reviewed {{date}}",
         "installed": "Installed",
         "installComplete": "Add-on {{title}} was installed.",
         "installFailed": "Failed to install add-on {{title}}.",
+        "remove": "Remove",
+        "removeComplete": "Add-on {{title}} was removed.",
+        "removeFailed": "Failed to remove add-on {{title}}.",
         "unknownAddon": "Add-on",
         "logs": {
             "downloadComplete": "[Store] Download complete. Starting installation.",
@@ -907,6 +941,10 @@
             "notPublished": "Not published",
             "pending": "Pending review",
             "rejected": "Rejected"
+        },
+        "kind": {
+            "theme": "Theme",
+            "script": "Script"
         },
         "type": {
             "both": "CSS + JS",

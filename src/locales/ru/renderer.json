@@ -316,7 +316,7 @@
     },
     "extensions": {
         "actions": {
-            "store": "Магазин"
+            "store": "Каталог"
         },
         "addonCreatedMessage": "Аддон {{name}} успешно создан",
         "addonCreatedTitle": "Аддон создан",
@@ -330,12 +330,28 @@
         "loadFailed": "Ошибка загрузки",
         "meta": {
             "author": "Автор",
+            "authors": "Авторы:",
+            "source": "Источник",
             "size": "Размер",
             "updated": "Обновлено",
             "version": "Версия"
         },
+        "source": {
+            "local": "Локально",
+            "store": "Каталог"
+        },
         "publication": {
             "statusLabel": "Публикация",
+            "modalTitle": "Публикация аддона",
+            "noteLabel": "Заметка модератора",
+            "changelogLabel": "Список изменений",
+            "changelogPlaceholder": "- Исправил баг с плеером\n- Обновил стили карточек\n- Добавил новую настройку",
+            "changelogHint": "По одному изменению на строку. Этот список будет показан пользователям в табе аддона.",
+            "changelogRequired": "Добавь список изменений перед публикацией.",
+            "changelogTabTitle": "Изменения этой версии",
+            "changelogEmpty": "Для этой версии список изменений пока не добавлен.",
+            "cooldownLabel": "Повторная отправка",
+            "cooldownMessage": "После отклонения аддон можно отправить снова только через 3 дня. Доступно {{date}}.",
             "statusDate": "Обновлено {{date}}",
             "publish": "Опубликовать",
             "update": "Обновить",
@@ -346,6 +362,19 @@
             "publishError": "Не удалось опубликовать аддон.",
             "updateError": "Не удалось отправить обновление аддона."
         },
+        "untrustedLocal": {
+            "title": "Непроверенный аддон",
+            "description": "Аддон {{name}} загружен из непроверенного источника и не найден в каталоге. Мы не гарантируем его безопасность, стабильность и сохранность ваших данных.",
+            "caption": "Включайте его только если доверяете источнику и понимаете возможные риски.",
+            "confirm": "Включить всё равно"
+        },
+        "tabs": {
+            "metadata": "Metadata"
+        },
+        "storeUpdateAvailableTitle": "Доступно обновление аддона",
+        "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
+        "storeUpdateComplete": "Аддон {{name}} обновлён.",
+        "storeUpdateFailed": "Не удалось обновить аддон {{name}}.",
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
@@ -442,7 +471,7 @@
                 "addonPendingTitle": "Аддон отправлен на проверку",
                 "addonPendingBody": "{{name}} сейчас ожидает модерацию.",
                 "addonAcceptedTitle": "Аддон принят",
-                "addonAcceptedBody": "{{name}} теперь доступен в магазине.",
+                "addonAcceptedBody": "{{name}} теперь доступен в каталоге.",
                 "addonRejectedTitle": "Аддон отклонён",
                 "addonRejectedBody": "{{name}} не прошёл модерацию.",
                 "localizationApprovedTitle": "Предложение по локализации принято",
@@ -632,7 +661,7 @@
         "nav": {
             "addonsBeta": "Аддоны Бета",
             "development": "Development",
-            "extensionsStore": "Магазин расширений",
+            "extensionsStore": "Каталог расширений",
             "trackInfo": "Информация о треке",
             "users": "Пользователи"
         },
@@ -735,7 +764,7 @@
                 "volumeControl": "Контроль громкости"
             },
             "headerSubtitle": "Обновляйте интерфейс, открывайте новые возможности",
-            "headerTitle": "Магазин расширений",
+            "headerTitle": "Каталог расширений",
             "title": "Store"
         }
     },
@@ -888,12 +917,17 @@
     },
     "store": {
         "download": "Скачать",
-        "loading": "Загружаю аддоны магазина...",
+        "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
+        "noResults": "Ничего не найдено.",
+        "searchPlaceholder": "Найти аддон...",
         "approvedAt": "Проверено {{date}}",
         "installed": "Уже установлен",
         "installComplete": "Аддон {{title}} установлен.",
         "installFailed": "Не удалось установить аддон {{title}}.",
+        "remove": "Удалить",
+        "removeComplete": "Аддон {{title}} удалён.",
+        "removeFailed": "Не удалось удалить аддон {{title}}.",
         "unknownAddon": "Аддон",
         "logs": {
             "downloadComplete": "[Store] Завершено скачивание. Начинаем установку.",
@@ -907,6 +941,10 @@
             "notPublished": "Не опубликован",
             "pending": "На проверке",
             "rejected": "Отклонён"
+        },
+        "kind": {
+            "theme": "Тема",
+            "script": "Скрипт"
         },
         "type": {
             "both": "CSS + JS",

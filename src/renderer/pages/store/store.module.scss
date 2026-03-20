@@ -1,13 +1,33 @@
+:root {
+    --scrollWStore: 100%;
+    --scrollHStore: 100%;
+}
+
+.containerFix {
+    width: var(--scrollWStore);
+    height: var(--scrollHStore);
+}
+
+.containerFixInner {
+    overflow: overlay;
+    width: var(--scrollWStore);
+    height: var(--scrollHStore);
+    background: #2c303f;
+}
+
 .store {
     width: 100%;
     padding: 48px 0 34px;
     color: #f9fafb;
-    overflow: auto;
 }
 
 .store_header {
     text-align: center;
     margin-bottom: 40px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
 }
 
 .store_title {
@@ -24,13 +44,63 @@
     color: #ffffff;
 }
 
+.store_search {
+    width: min(520px, calc(100vw - 32px));
+    margin-top: 10px;
+    padding: 0 14px 0 16px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 14px;
+    background: rgba(18, 21, 31, 0.72);
+    border: 1px solid rgba(105, 115, 148, 0.32);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.store_search_input {
+    width: 100%;
+    flex: 1 1 auto;
+    min-width: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none;
+    outline: none;
+    color: #f8faff;
+    font-size: 15px;
+    font-weight: 600;
+    padding: 0;
+    margin: 0;
+
+    &::placeholder {
+        color: #8e98ba;
+    }
+
+    &:focus,
+    &:focus-visible,
+    &:active {
+        border: none;
+        box-shadow: none;
+        outline: none;
+    }
+}
+
+.store_search_icon {
+    flex: 0 0 auto;
+    color: #98a3c8;
+    font-size: 22px;
+}
+
 .store_grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 0.47fr));
     grid-auto-rows: auto;
     column-gap: 16px;
     row-gap: 16px;
-    align-items: flex-start;
+    align-items: stretch;
     justify-content: center;
     max-width: 1200px;
     margin: auto;
@@ -59,6 +129,11 @@
         font-size: 14px;
     }
 
+    .store_search {
+        height: 46px;
+        margin-top: 6px;
+    }
+
     .store_grid {
         grid-template-columns: minmax(0, 1fr);
         row-gap: 16px;
@@ -81,5 +156,16 @@
 
     .store_subtitle {
         font-size: 13px;
+    }
+
+    .store_search {
+        width: calc(100vw - 24px);
+        height: 44px;
+        padding: 0 12px 0 14px;
+        border-radius: 12px;
+    }
+
+    .store_search_input {
+        font-size: 14px;
     }
 }

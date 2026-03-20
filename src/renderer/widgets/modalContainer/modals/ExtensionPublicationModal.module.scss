@@ -1,0 +1,185 @@
+.publicationModal {
+    min-width: 0;
+    width: min(640px, calc(100vw - 32px));
+    max-width: 640px;
+    align-items: stretch;
+    padding: 28px;
+    gap: 22px;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.header {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.eyebrow {
+    font-size: 13px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #8fffd4;
+}
+
+.headlineRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.identity {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.addonName {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 900;
+    color: #f6f8ff;
+}
+
+.authors {
+    margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 14px;
+    line-height: 1.45;
+    color: #d6dcf0;
+}
+
+.authorsLabel {
+    color: #9ea9cb;
+    font-weight: 800;
+}
+
+.infoGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.infoCard,
+.noteCard,
+.cooldownCard {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 0;
+}
+
+.noteCard,
+.cooldownCard {
+    gap: 10px;
+    padding-top: 2px;
+}
+
+.cooldownCard {
+    color: #ffcc8a;
+}
+
+.label {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #98a3c8;
+}
+
+.value {
+    font-size: 16px;
+    font-weight: 800;
+    color: #f4f7ff;
+}
+
+.subValue {
+    font-size: 14px;
+    line-height: 1.55;
+    color: #d6def7;
+    white-space: pre-wrap;
+}
+
+.changelogInput {
+    width: 100%;
+    min-height: 118px;
+    resize: vertical;
+    padding: 14px 16px;
+    border: 1px solid rgba(146, 157, 190, 0.2);
+    border-radius: 14px;
+    background: rgba(18, 20, 28, 0.42);
+    color: #f4f7ff;
+    font: inherit;
+    line-height: 1.5;
+    outline: none;
+
+    &::placeholder {
+        color: #7f8bad;
+    }
+
+    &:focus {
+        border-color: rgba(104, 137, 255, 0.75);
+    }
+}
+
+.statusBadge {
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    flex: 0 0 auto;
+    padding: 8px 12px;
+    border-radius: 999px;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.statusAccepted {
+    background: rgba(168, 255, 102, 0.2);
+    color: #d4ffb6;
+}
+
+.statusPending {
+    background: rgba(245, 158, 11, 0.2);
+    color: #ffd790;
+}
+
+.statusRejected {
+    background: rgba(239, 68, 68, 0.2);
+    color: #ffb0b0;
+}
+
+.statusUnpublished {
+    background: rgba(148, 163, 184, 0.2);
+    color: #d8e1f0;
+}
+
+@media (max-width: 640px) {
+    .publicationModal {
+        width: min(100%, calc(100vw - 24px));
+        padding: 22px;
+    }
+
+    .headlineRow {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .addonName {
+        font-size: 24px;
+    }
+
+    .infoGrid {
+        grid-template-columns: 1fr;
+    }
+}

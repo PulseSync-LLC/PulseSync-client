@@ -238,6 +238,15 @@
     }
 }
 
+.updateState {
+    background: rgba(168, 255, 102, 0.18);
+    color: #dff7c7;
+
+    &:hover:not(:disabled) {
+        background: rgba(168, 255, 102, 0.28);
+    }
+}
+
 .miniButton {
     cursor: pointer;
     transition: var(--transition);

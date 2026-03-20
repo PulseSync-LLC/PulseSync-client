@@ -65,11 +65,12 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
-export async function submitAddonForStore(addon: Addon, existingAddonId?: string): Promise<void> {
+export async function submitAddonForStore(addon: Addon, changelog: string[], existingAddonId?: string): Promise<void> {
     const { blob, fileName } = await packageAddon(addon)
     const formData = new FormData()
     formData.append('name', addon.name)
     formData.append('description', addon.description || '')
+    formData.append('changelog', JSON.stringify(changelog))
     formData.append('zipFile', blob, fileName)
 
     const targetUrl = existingAddonId
