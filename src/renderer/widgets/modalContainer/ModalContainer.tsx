@@ -1,5 +1,4 @@
 import React from 'react'
-import PulseSyncDialog from '@widgets/modalContainer/modals/PulseSyncDialog'
 import YandexMusicUpdateDialog from '@widgets/modalContainer/modals/YandexMusicUpdateDialog'
 import MacUpdateDialog from '@widgets/modalContainer/modals/MacUpdateDialog'
 import AppUpdateDialog from '@widgets/modalContainer/modals/AppUpdateDialog'
@@ -18,7 +17,6 @@ const ModalContainer: React.FC = () => {
             <MacUpdateDialog />
             <LinuxAsarPathDialog />
             <AppUpdateDialog />
-            <PulseSyncDialog />
             <YandexMusicUpdateDialog />
             <MacPermissionsModal />
             <LinuxPermissionsModal />

@@ -20,7 +20,6 @@ import * as dns from 'node:dns'
 import { checkCLIArguments } from './main/utils/processUtils'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
-import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import { initMainI18n, t } from './main/i18n'
@@ -136,12 +135,6 @@ app.on('ready', async () => {
         }
         if (isWindows()) {
             await checkOldYandexMusic()
-        }
-        setupPulseSyncDialogHandler()
-        if (isWindows()) {
-            checkAndAddPulseSyncOnStartup(mainWindow).catch(err => {
-                logger.main.warn('Failed to check pulsesync on startup:', err)
-            })
         }
         modManager(mainWindow)
         createTray()

@@ -95,13 +95,6 @@
             "internalError": "Ошибка внутри ErrorService.handleError:",
             "writeCrashLogError": "Ошибка записи в crash.log:"
         },
-        "hostFile": {
-            "entriesAddError": "Произошла ошибка при добавлении записей",
-            "entriesAddFailed": "Не удалось добавить записи в список",
-            "entriesAdded": "Записи успешно добавлены в список",
-            "invalidListGeneralPath": "Некорректный путь list-general.txt",
-            "noPendingListGeneralPath": "Нет ожидающего пути list-general.txt для этого окна"
-        },
         "index": {
             "appStartupError": "Ошибка при запуске приложения:",
             "musicPathError": "Ошибка при получении пути:"

@@ -8,7 +8,6 @@ const initialModalsState: ModalsState = {
     [Modals.MAC_UPDATE_DIALOG]: { isOpen: false },
     [Modals.LINUX_ASAR_PATH]: { isOpen: false },
     [Modals.APP_UPDATE_DIALOG]: { isOpen: false },
-    [Modals.PULSE_SYNC_DIALOG]: { isOpen: false },
     [Modals.YANDEX_MUSIC_UPDATE_DIALOG]: { isOpen: false },
     [Modals.PREMIUM_PROMO]: { isOpen: false },
     [Modals.MAC_PERMISSIONS_MODAL]: { isOpen: false },

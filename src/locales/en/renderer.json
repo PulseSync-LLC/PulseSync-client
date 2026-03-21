@@ -584,25 +584,6 @@
             "description": "You've unlocked premium features. Enjoy the enhanced experience.\nThank you for your support",
             "ok": "Got it"
         },
-        "pulseSync": {
-            "title": "Detected running zapret",
-            "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
-            "subText": "The pulsesync.dev entry is missing. Add automatically?",
-            "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
-            "buttons": {
-                "cancel": "No",
-                "confirm": "Yes, add",
-                "adding": "Adding…"
-            },
-            "toasts": {
-                "addingTitle": "Adding entries...",
-                "pleaseWait": "Please wait",
-                "successTitle": "Done",
-                "addFailedTitle": "Couldn't complete",
-                "addFailed": "Failed to add entries",
-                "errorTitle": "Error"
-            }
-        },
         "yandexMusicUpdate": {
             "title": "Remove Yandex Music",
             "description": "You have an outdated Microsoft Store version of Yandex Music installed. It will be removed to ensure full functionality.",

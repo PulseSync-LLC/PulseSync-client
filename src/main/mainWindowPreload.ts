@@ -1,7 +1,6 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
-import RendererEvents from '../common/types/rendererEvents'
 
 export interface DesktopEvents {
     emit(channel: string, ...args: any[]): void
@@ -95,7 +94,3 @@ const desktopEvents: DesktopEvents = {
     },
 }
 contextBridge.exposeInMainWorld('desktopEvents', desktopEvents)
-
-ipcRenderer.on(RendererEvents.SHOW_ADD_PULSESYNC_DIALOG, (event, data) => {
-    ;(window as any).__pendingPulseSyncData = data
-})
