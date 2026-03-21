@@ -27,8 +27,8 @@ interface Props {
     canManagePublication?: boolean
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
-    onPublishAddon?: () => void
-    onUpdateAddon?: () => void
+    onPublishAddon?: (changelogText: string) => void
+    onUpdateAddon?: (changelogText: string) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }

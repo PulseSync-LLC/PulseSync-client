@@ -153,13 +153,39 @@
 
             .changelogItem {
                 display: flex;
-                align-items: flex-start;
-                gap: 10px;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
                 padding: 14px 16px;
                 border-radius: 12px;
                 background: rgba(129, 141, 179, 0.12);
                 color: #e7edff;
                 line-height: 1.55;
+            }
+
+            .changelogVersionRow {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            .changelogVersion {
+                color: #ffffff;
+                font-size: 15px;
+                font-weight: 800;
+            }
+
+            .changelogDate {
+                color: rgba(231, 237, 255, 0.6);
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .changelogEntry {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
             }
 
             .changelogBullet {

@@ -38,7 +38,7 @@ import apolloClient from '@shared/api/apolloClient'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import { useTranslation } from 'react-i18next'
-import { fetchOwnStoreAddons, submitAddonForStore } from '@entities/addon/api/storeAddons'
+import { AddonStoreSubmitError, fetchOwnStoreAddons, submitAddonForStore } from '@entities/addon/api/storeAddons'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
@@ -58,10 +58,10 @@ function normalizeChangelogInput(value: string): string[] {
 }
 
 export default function ExtensionPage() {
-    const { t } = useTranslation()
+    const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user } = useContext(userContext)
     const { isExperimentEnabled } = useExperiments()
-    const { Modals, openModal } = useModalContext()
+    const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
@@ -450,8 +450,8 @@ export default function ExtensionPage() {
         if (!sameName.length) return null
 
         return (
-            sameName.find(item => item.version.trim().toLowerCase() === exactVersion) ||
-            sameName.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())[0]
+            sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
+            sameName.sort((a, b) => new Date(b.currentRelease?.updatedAt || b.updatedAt).getTime() - new Date(a.currentRelease?.updatedAt || a.updatedAt).getTime())[0]
         )
     }, [selectedAddon, storePublications])
 
@@ -461,11 +461,11 @@ export default function ExtensionPage() {
         }
 
         const publishedAddon = storeCatalog.find(item => item.id === selectedAddon.storeAddonId)
-        if (!publishedAddon) {
+        if (!publishedAddon?.currentRelease) {
             return null
         }
 
-        return compareVersions(publishedAddon.version, selectedAddon.version) > 0 ? publishedAddon : null
+        return compareVersions(publishedAddon.currentRelease.version, selectedAddon.version) > 0 ? publishedAddon : null
     }, [selectedAddon, storeCatalog])
 
     const selectedPublishedAddon = useMemo(() => {
@@ -480,9 +480,24 @@ export default function ExtensionPage() {
         return selectedPublication
     }, [selectedAddon, selectedPublication, storeCatalog])
 
+    const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
+
     useEffect(() => {
-        setPublicationChangelogText(Array.isArray(selectedPublishedAddon?.changelog) ? selectedPublishedAddon.changelog.join('\n') : '')
-    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.updatedAt])
+        setPublicationChangelogText(
+            Array.isArray(selectedPublishedAddon?.currentRelease?.changelog) ? selectedPublishedAddon.currentRelease.changelog.join('\n') : '',
+        )
+    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.updatedAt])
+
+    useEffect(() => {
+        if (!isPublicationModalOpen) {
+            return
+        }
+
+        setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
+            publication: selectedPublication ?? null,
+            publicationBusy,
+        })
+    }, [Modals.EXTENSION_PUBLICATION_MODAL, isPublicationModalOpen, publicationBusy, selectedPublication, setModalState])
 
     const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
         if (!selectedAddon) {
@@ -494,10 +509,10 @@ export default function ExtensionPage() {
         }
 
         const localVersion = selectedAddon.version?.trim().toLowerCase()
-        const publishedVersion = selectedPublication.version?.trim().toLowerCase()
+        const publishedVersion = selectedPublication.currentRelease?.version?.trim().toLowerCase()
 
-        if (selectedPublication.status === 'rejected') {
-            const rejectedAt = new Date(selectedPublication.updatedAt).getTime()
+        if (selectedPublication.currentRelease?.status === 'rejected') {
+            const rejectedAt = new Date(selectedPublication.currentRelease.updatedAt).getTime()
             if (Number.isFinite(rejectedAt) && Date.now() < rejectedAt + REPUBLISH_COOLDOWN_MS) {
                 return 'none'
             }
@@ -513,10 +528,10 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedPublication])
 
     const handleSubmitAddon = useCallback(
-        async (mode: 'create' | 'update') => {
+        async (mode: 'create' | 'update', changelogTextOverride?: string) => {
             if (!selectedAddon || !storePublishingEnabled) return
 
-            const changelog = normalizeChangelogInput(publicationChangelogText)
+            const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
             if (!changelog.length) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.changelogRequired'))
                 return
@@ -533,16 +548,27 @@ export default function ExtensionPage() {
                 )
             } catch (error) {
                 console.error('[ExtensionPage] failed to submit addon', error)
-                toast.custom(
-                    'error',
-                    t('common.errorTitle'),
-                    mode === 'update' ? t('extensions.publication.updateError') : t('extensions.publication.publishError'),
-                )
+                const defaultMessage = mode === 'update' ? t('extensions.publication.updateError') : t('extensions.publication.publishError')
+                let message = defaultMessage
+
+                if (error instanceof AddonStoreSubmitError) {
+                    if (error.code === 'ADDON_REPUBLISH_COOLDOWN_ACTIVE' && error.availableAt) {
+                        message = t('extensions.publication.cooldownMessage', {
+                            date: new Date(error.availableAt).toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US'),
+                        })
+                    } else {
+                        const translationKey = `extensions.publication.errors.${error.code}`
+                        const translatedMessage = t(translationKey)
+                        message = translatedMessage !== translationKey ? translatedMessage : error.message || defaultMessage
+                    }
+                }
+
+                toast.custom('error', t('common.errorTitle'), message)
             } finally {
                 setPublicationBusy(false)
             }
         },
-        [publicationChangelogText, refreshOwnPublications, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+        [i18n.language, publicationChangelogText, refreshOwnPublications, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
     )
 
     const handleStoreAddonUpdate = useCallback(async () => {
@@ -556,7 +582,7 @@ export default function ExtensionPage() {
         try {
             const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
                 id: selectedStoreUpdate.id,
-                downloadUrl: selectedStoreUpdate.downloadUrl,
+                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl,
                 title: selectedStoreUpdate.name,
             })
 
@@ -745,25 +771,25 @@ export default function ExtensionPage() {
                                 void handleStoreAddonUpdate()
                             }}
                             publication={selectedPublication}
-                            publicationChangelog={selectedPublishedAddon?.changelog ?? []}
+                            publicationReleases={selectedPublishedAddon?.releases ?? []}
                             publicationChangelogText={publicationChangelogText}
                             canManagePublication={canManagePublication}
                             publicationBusy={publicationBusy}
                             onPublicationChangelogChange={setPublicationChangelogText}
                             onPublishAddon={
-                                publicationActionMode === 'publish'
-                                    ? () => {
-                                          void handleSubmitAddon('create')
-                                      }
-                                    : undefined
-                            }
-                            onUpdateAddon={
-                                publicationActionMode === 'update'
-                                    ? () => {
-                                          void handleSubmitAddon('update')
-                                      }
-                                    : undefined
-                            }
+                                        publicationActionMode === 'publish'
+                                            ? changelogText => {
+                                                  void handleSubmitAddon('create', changelogText)
+                                              }
+                                            : undefined
+                                    }
+                                    onUpdateAddon={
+                                        publicationActionMode === 'update'
+                                            ? changelogText => {
+                                                  void handleSubmitAddon('update', changelogText)
+                                              }
+                                            : undefined
+                                    }
                             onToggleEnabled={enabled => {
                                 if (enabled) {
                                     handleEnableAddon(selectedAddon)

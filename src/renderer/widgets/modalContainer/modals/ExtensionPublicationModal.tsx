@@ -12,6 +12,7 @@ const ExtensionPublicationModal: React.FC = () => {
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
     const { addon, authorsDisplay, publication, publicationBusy, changelogText, onChangeChangelog, onPublish, onUpdate } =
         getModalState(Modals.EXTENSION_PUBLICATION_MODAL)
+    const publicationRelease = publication?.currentRelease
 
     const handleClose = () => {
         closeModal(Modals.EXTENSION_PUBLICATION_MODAL)
@@ -24,33 +25,33 @@ const ExtensionPublicationModal: React.FC = () => {
         onChangeChangelog?.(value)
     }
 
-    const statusLabel = publication
-        ? publication.status === 'accepted'
+    const statusLabel = publicationRelease
+        ? publicationRelease.status === 'accepted'
             ? t('store.status.accepted')
-            : publication.status === 'rejected'
+            : publicationRelease.status === 'rejected'
               ? t('store.status.rejected')
               : t('store.status.pending')
         : t('store.status.notPublished')
 
-    const statusClassName = publication
-        ? publication.status === 'accepted'
+    const statusClassName = publicationRelease
+        ? publicationRelease.status === 'accepted'
             ? styles.statusAccepted
-            : publication.status === 'rejected'
+            : publicationRelease.status === 'rejected'
               ? styles.statusRejected
               : styles.statusPending
         : styles.statusUnpublished
 
-    const publicationDate = publication?.updatedAt
+    const publicationDate = publicationRelease?.updatedAt
         ? new Intl.DateTimeFormat(i18n.language, {
               day: '2-digit',
               month: 'short',
               year: 'numeric',
-          }).format(new Date(publication.updatedAt))
+          }).format(new Date(publicationRelease.updatedAt))
         : null
 
     const republishAvailableAtTimestamp =
-        publication?.status === 'rejected' && publication?.updatedAt
-            ? new Date(publication.updatedAt).getTime() + REPUBLISH_COOLDOWN_MS
+        publicationRelease?.status === 'rejected' && publicationRelease?.updatedAt
+            ? new Date(publicationRelease.updatedAt).getTime() + REPUBLISH_COOLDOWN_MS
             : null
 
     const republishAvailableAt =
@@ -77,7 +78,7 @@ const ExtensionPublicationModal: React.FC = () => {
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate()
+                  onUpdate(changelogText)
               },
               disabled: !canSubmit,
           }
@@ -85,7 +86,7 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish()
+                    onPublish(changelogText)
                 },
                 disabled: !canSubmit,
             }
@@ -125,14 +126,8 @@ const ExtensionPublicationModal: React.FC = () => {
                 <div className={styles.infoGrid}>
                     <div className={styles.infoCard}>
                         <span className={styles.label}>{t('extensions.meta.version')}</span>
-                        <span className={styles.value}>{addon?.version || t('common.emDash')}</span>
+                        <span className={styles.value}>{addon?.version || publicationRelease?.version || t('common.emDash')}</span>
                     </div>
-
-                    <div className={styles.infoCard}>
-                        <span className={styles.label}>{t('extensions.meta.source')}</span>
-                        <span className={styles.value}>{addon?.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}</span>
-                    </div>
-
                     {publicationDate ? (
                         <div className={styles.infoCard}>
                             <span className={styles.label}>{t('extensions.meta.updated')}</span>
@@ -141,10 +136,10 @@ const ExtensionPublicationModal: React.FC = () => {
                     ) : null}
                 </div>
 
-                {publication?.moderationNote ? (
+                {publicationRelease?.moderationNote ? (
                     <div className={styles.noteCard}>
                         <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
-                        <span className={styles.subValue}>{publication.moderationNote}</span>
+                        <span className={styles.subValue}>{publicationRelease.moderationNote}</span>
                     </div>
                 ) : publicationDate ? (
                     <div className={styles.noteCard}>
@@ -170,7 +165,6 @@ const ExtensionPublicationModal: React.FC = () => {
                             placeholder={t('extensions.publication.changelogPlaceholder')}
                             rows={5}
                         />
-                        <span className={styles.subValue}>{t('extensions.publication.changelogHint')}</span>
                     </div>
                 ) : null}
             </div>

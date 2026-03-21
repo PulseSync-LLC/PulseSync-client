@@ -16,6 +16,75 @@ type PackageArchiveResponse = {
     success?: boolean
 }
 
+type AddonStoreErrorPayload = {
+    error?: string | { error?: string; availableAt?: string; message?: string }
+    availableAt?: string
+    message?: string | string[] | { error?: string; availableAt?: string; message?: string }
+    ok?: boolean
+    statusCode?: number
+}
+
+export class AddonStoreSubmitError extends Error {
+    code: string
+    availableAt?: string
+    statusCode?: number
+
+    constructor(code: string, options?: { message?: string; availableAt?: string; statusCode?: number }) {
+        super(options?.message || code)
+        this.name = 'AddonStoreSubmitError'
+        this.code = code
+        this.availableAt = options?.availableAt
+        this.statusCode = options?.statusCode
+    }
+}
+
+const GENERIC_HTTP_ERROR_LABELS = new Set(['Bad Request', 'Unauthorized', 'Forbidden', 'Not Found', 'Internal Server Error'])
+
+function normalizeAddonStoreErrorCode(raw: string | undefined): string {
+    const normalized = String(raw || '').trim()
+    if (!normalized) {
+        return ''
+    }
+
+    if (normalized === 'Authenticated user id is required') {
+        return 'AUTHENTICATED_USER_ID_REQUIRED'
+    }
+
+    return normalized
+}
+
+function pickErrorCode(payload: AddonStoreErrorPayload | null): { code: string; availableAt?: string; message?: string } {
+    const messageValue = payload?.message
+    const errorValue = payload?.error
+
+    const messageObject = typeof messageValue === 'object' && !Array.isArray(messageValue) && messageValue ? messageValue : null
+    const errorObject = typeof errorValue === 'object' && errorValue ? errorValue : null
+
+    const messageString = Array.isArray(messageValue)
+        ? messageValue.find(item => typeof item === 'string' && item.trim())
+        : typeof messageValue === 'string'
+          ? messageValue
+          : undefined
+
+    const errorString =
+        typeof errorValue === 'string' && !GENERIC_HTTP_ERROR_LABELS.has(errorValue.trim()) && errorValue.trim() ? errorValue : undefined
+
+    const code =
+        normalizeAddonStoreErrorCode(messageObject?.error) ||
+        normalizeAddonStoreErrorCode(errorObject?.error) ||
+        normalizeAddonStoreErrorCode(messageString) ||
+        normalizeAddonStoreErrorCode(errorString) ||
+        'ADDON_UPLOAD_FAILED'
+
+    return {
+        code,
+        availableAt: payload?.availableAt || messageObject?.availableAt || errorObject?.availableAt,
+        message:
+            (typeof messageObject?.message === 'string' && messageObject.message.trim() ? messageObject.message : undefined) ||
+            (typeof messageString === 'string' && !GENERIC_HTTP_ERROR_LABELS.has(messageString.trim()) ? messageString : undefined),
+    }
+}
+
 function getAuthHeaders(extra?: HeadersInit): HeadersInit {
     const token = getUserToken()
     return {
@@ -40,7 +109,7 @@ async function packageAddon(addon: Addon): Promise<{ blob: Blob; fileName: strin
     })) as PackageArchiveResponse | undefined
 
     if (!packaged?.success || !packaged.base64 || !packaged.fileName) {
-        throw new Error(packaged?.reason || 'PACKAGE_FAILED')
+        throw new AddonStoreSubmitError(packaged?.reason || 'PACKAGE_FAILED')
     }
 
     return {
@@ -83,8 +152,13 @@ export async function submitAddonForStore(addon: Addon, changelog: string[], exi
         body: formData,
     })
 
-    const payload = await response.json().catch((): null => null)
+    const payload = (await response.json().catch((): null => null)) as AddonStoreErrorPayload | null
     if (!response.ok || payload?.ok === false) {
-        throw new Error(payload?.message || payload?.error || 'ADDON_UPLOAD_FAILED')
+        const resolvedError = pickErrorCode(payload)
+        throw new AddonStoreSubmitError(resolvedError.code, {
+            message: resolvedError.message,
+            availableAt: resolvedError.availableAt,
+            statusCode: payload?.statusCode ?? response.status,
+        })
     }
 }

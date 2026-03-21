@@ -8,17 +8,40 @@ export default gql`
             addons {
                 id
                 name
-                description
                 type
-                version
-                authors
-                changelog
-                avatarUrl
-                bannerUrl
-                downloadUrl
-                approvedAt
-                status
-                moderationNote
+                submittedById
+                submittedByUsername
+                submittedByNickname
+                currentRelease {
+                    id
+                    version
+                    description
+                    authors
+                    changelog
+                    avatarUrl
+                    bannerUrl
+                    downloadUrl
+                    approvedAt
+                    status
+                    moderationNote
+                    createdAt
+                    updatedAt
+                }
+                releases {
+                    id
+                    version
+                    description
+                    authors
+                    changelog
+                    avatarUrl
+                    bannerUrl
+                    downloadUrl
+                    approvedAt
+                    status
+                    moderationNote
+                    createdAt
+                    updatedAt
+                }
                 createdAt
                 updatedAt
             }

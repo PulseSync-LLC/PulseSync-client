@@ -120,7 +120,18 @@ export default function AppProviders({
 
     return (
         <div className="app-wrapper">
-            <Toaster position="top-center" reverseOrder={false} />
+            <Toaster
+                position="top-center"
+                reverseOrder={false}
+                containerStyle={{
+                    zIndex: 100050,
+                }}
+                toastOptions={{
+                    style: {
+                        zIndex: 100050,
+                    },
+                }}
+            />
             <UserContext.Provider value={userContextValue}>
                 <ExperimentsProvider userId={user.id}>
                     <ExperimentOverridesDevModal />

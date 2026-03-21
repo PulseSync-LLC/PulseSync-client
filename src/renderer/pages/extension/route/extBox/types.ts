@@ -1,5 +1,5 @@
 import AddonInterface from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
 
@@ -19,13 +19,13 @@ export interface ExtensionViewProps {
     storeUpdateBusy?: boolean
     onStoreUpdate?: () => void
     publication?: StoreAddon | null
-    publicationChangelog?: string[]
+    publicationReleases?: StoreAddonRelease[]
     publicationChangelogText?: string
     canManagePublication?: boolean
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
-    onPublishAddon?: () => void
-    onUpdateAddon?: () => void
+    onPublishAddon?: (changelogText: string) => void
+    onUpdateAddon?: (changelogText: string) => void
 
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void

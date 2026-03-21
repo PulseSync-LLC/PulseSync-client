@@ -17,6 +17,7 @@ import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/r
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 import { t as i18nT } from '@app/i18n'
 import { useTranslation } from 'react-i18next'
 
@@ -31,7 +32,7 @@ interface Props {
     }
     editMode: boolean
     addon: Addon
-    publicationChangelog?: string[]
+    publicationReleases?: StoreAddonRelease[]
 }
 
 const slug = (t: string) =>
@@ -232,7 +233,7 @@ const defaultTemplate: AddonConfig = {
     ],
 }
 
-const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationChangelog = [] }) => {
+const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationReleases = [] }) => {
     const { t } = useTranslation()
     const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
@@ -305,12 +306,26 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
             <div className={styles.galleryContainer}>
                 <div className={styles.changelogPanel}>
                     <div className={styles.changelogTitle}>{t('extensions.publication.changelogTabTitle')}</div>
-                    {publicationChangelog.length ? (
+                    {publicationReleases.length ? (
                         <div className={styles.changelogList}>
-                            {publicationChangelog.map((item, index) => (
-                                <div key={`${item}-${index}`} className={styles.changelogItem}>
-                                    <span className={styles.changelogBullet}>•</span>
-                                    <span>{item}</span>
+                            {publicationReleases.map(release => (
+                                <div key={release.id} className={styles.changelogItem}>
+                                    <div className={styles.changelogVersionRow}>
+                                        <span className={styles.changelogVersion}>v{release.version}</span>
+                                        <span className={styles.changelogDate}>
+                                            {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    {release.changelog?.length ? (
+                                        release.changelog.map((item, index) => (
+                                            <div key={`${release.id}-${index}`} className={styles.changelogEntry}>
+                                                <span className={styles.changelogBullet}>•</span>
+                                                <span>{item}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                                    )}
                                 </div>
                             ))}
                         </div>

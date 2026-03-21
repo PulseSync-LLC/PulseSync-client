@@ -30,6 +30,10 @@ type Metadata = {
     supportedVersions: string[]
 }
 
+type MetadataFileShape = Omit<Metadata, 'author'> & {
+    author: string | string[]
+}
+
 type Props = {
     addonPath: string
     filePreviewSrc?: (rel: string) => string
@@ -123,6 +127,30 @@ function deepEqual(a: any, b: any): boolean {
     return false
 }
 
+function normalizeAuthorInput(value: unknown): string {
+    if (Array.isArray(value)) {
+        return value
+            .map(author => String(author).trim())
+            .filter(Boolean)
+            .join(', ')
+    }
+
+    return typeof value === 'string' ? value : ''
+}
+
+function serializeAuthorField(value: string): string | string[] {
+    const authors = value
+        .split(',')
+        .map(author => author.trim())
+        .filter(Boolean)
+
+    if (authors.length <= 1) {
+        return authors[0] ?? ''
+    }
+
+    return authors
+}
+
 const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     const { t } = useTranslation()
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
@@ -152,6 +180,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 const meta: Metadata = {
                     ...DEFAULT_META,
                     ...parsed,
+                    author: normalizeAuthorInput(parsed?.author),
                     tags: Array.isArray(parsed?.tags) ? parsed.tags : [],
                     type: parsed?.type ?? 'theme',
                 }
@@ -251,8 +280,13 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
             if (draft.css) next.css = await resolveRelIfNeeded(draft.css, 'style', '.css')
             if (draft.script) next.script = await resolveRelIfNeeded(draft.script, 'script', '.js')
 
+            const metadataToSave: MetadataFileShape = {
+                ...next,
+                author: serializeAuthorField(next.author),
+            }
+
             const file = path.join(addonPath, 'metadata.json')
-            await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(next, null, 2))
+            await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(metadataToSave, null, 2))
 
             baseRef.current = next
             setDraft(next)

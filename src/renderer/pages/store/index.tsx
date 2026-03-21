@@ -102,7 +102,15 @@ export default function StorePage() {
         }
 
         return addons.filter(addon => {
-            const haystack = [addon.name, addon.description, addon.type, addon.version, ...addon.authors].join(' ').toLowerCase()
+            const haystack = [
+                addon.name,
+                addon.currentRelease?.description || '',
+                addon.type,
+                addon.currentRelease?.version || '',
+                ...(addon.currentRelease?.authors || []),
+            ]
+                .join(' ')
+                .toLowerCase()
             return haystack.includes(query)
         })
     }, [addons, searchQuery])
@@ -127,6 +135,8 @@ export default function StorePage() {
         return (
             <div className={st.store_grid}>
                 {filteredAddons.map((addon, index) => {
+                    const release = addon.currentRelease
+                    if (!release) return null
                     const installedStoreAddon = installedStoreAddons.get(addon.id)
                     const isInstalledFromStore = !!installedStoreAddon
 
@@ -135,16 +145,16 @@ export default function StorePage() {
                             key={addon.id}
                             theme={resolveTheme(index)}
                             title={addon.name}
-                            subtitle={addon.description}
-                            version={`v${addon.version}`}
-                            authors={addon.authors}
+                            subtitle={release.description}
+                            version={`v${release.version}`}
+                            authors={release.authors}
                             downloads={t('store.approvedAt', {
-                                date: formatDate(addon.approvedAt || addon.updatedAt, i18n.language),
+                                date: formatDate(release.approvedAt || release.updatedAt, i18n.language),
                             })}
                             type={resolveType(addon.type)}
                             kind={addon.type}
-                            backgroundImage={addon.bannerUrl || undefined}
-                            iconImage={addon.avatarUrl || undefined}
+                            backgroundImage={release.bannerUrl || undefined}
+                            iconImage={release.avatarUrl || undefined}
                             downloadInstalled={isInstalledFromStore}
                             downloadVariant={isInstalledFromStore ? 'remove' : 'default'}
                             downloadDisabled={installingAddonId === addon.id}
@@ -171,7 +181,7 @@ export default function StorePage() {
 
                                     const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
                                         id: addon.id,
-                                        downloadUrl: addon.downloadUrl,
+                                        downloadUrl: release.downloadUrl,
                                         title: addon.name,
                                     })
 

@@ -213,21 +213,21 @@ function App() {
 
                 storeInstalledAddons.forEach(addon => {
                     const publishedAddon = catalog.find(item => item.id === addon.storeAddonId)
-                    if (!publishedAddon) return
-                    if (compareVersions(publishedAddon.version, addon.version) <= 0) return
+                    if (!publishedAddon?.currentRelease) return
+                    if (compareVersions(publishedAddon.currentRelease.version, addon.version) <= 0) return
 
                     const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
-                    if (localStorage.getItem(notificationKey) === publishedAddon.version) return
+                    if (localStorage.getItem(notificationKey) === publishedAddon.currentRelease.version) return
 
                     const title = tRef.current('extensions.storeUpdateAvailableTitle')
                     const body = tRef.current('extensions.storeUpdateAvailableMessage', {
                         name: publishedAddon.name,
-                        version: publishedAddon.version,
+                        version: publishedAddon.currentRelease.version,
                     })
 
                     window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, { title, body })
                     toast.custom('info', title, body)
-                    localStorage.setItem(notificationKey, publishedAddon.version)
+                    localStorage.setItem(notificationKey, publishedAddon.currentRelease.version)
                 })
             } catch (error) {
                 console.error('Failed to check store addon updates:', error)

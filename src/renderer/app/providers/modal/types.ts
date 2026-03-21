@@ -16,8 +16,8 @@ export type ModalAdditionalStateMap = {
         publicationBusy: boolean
         changelogText: string
         onChangeChangelog?: ((value: string) => void) | null
-        onPublish?: (() => void) | null
-        onUpdate?: (() => void) | null
+        onPublish?: ((changelogText: string) => void) | null
+        onUpdate?: ((changelogText: string) => void) | null
     }
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string

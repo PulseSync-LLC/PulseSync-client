@@ -23,7 +23,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     setShowFilters,
     onToggleEnabled,
     publication,
-    publicationChangelog = [],
+    publicationReleases = [],
     publicationChangelogText = '',
     canManagePublication,
     publicationBusy,
@@ -83,7 +83,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                 />
 
                 <div className={s.extensionContent}>
-                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationChangelog.length > 0} />
+                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationReleases.length > 0} />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
@@ -93,7 +93,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
-                        publicationChangelog={publicationChangelog}
+                        publicationReleases={publicationReleases}
                     />
                 </div>
             </Scrollbar>

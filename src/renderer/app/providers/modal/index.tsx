@@ -72,14 +72,22 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
 
     const setModalState = useCallback(<T extends ModalName>(modal: T, state: Partial<ModalState<T>>) => {
         setOpenedModals(
-            prev =>
-                ({
+            prev => {
+                const currentState = prev[modal] as ModalState<T>
+                const hasChanges = Object.entries(state).some(([key, value]) => currentState[key as keyof ModalState<T>] !== value)
+
+                if (!hasChanges) {
+                    return prev
+                }
+
+                return {
                     ...prev,
                     [modal]: {
-                        ...prev[modal],
+                        ...currentState,
                         ...state,
                     },
-                }) as ModalsState,
+                } as ModalsState
+            },
         )
     }, [])
 
