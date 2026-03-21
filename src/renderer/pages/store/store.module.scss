@@ -115,6 +115,13 @@
     color: #d8def1;
 }
 
+.store_loading {
+    width: 100%;
+    display: flex;
+    align-items: stretch;
+    justify-content: stretch;
+}
+
 @media (max-width: 1024px) {
     .store {
         padding-top: 32px;

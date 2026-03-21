@@ -298,7 +298,9 @@ const Header: React.FC<p> = () => {
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
                             </button>
-                            {isMenuOpen && <ContextMenu modalRef={updateModalRef} />}
+                            <AnimatePresence>
+                                {isMenuOpen && <ContextMenu modalRef={updateModalRef} />}
+                            </AnimatePresence>
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>

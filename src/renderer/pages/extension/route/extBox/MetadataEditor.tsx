@@ -8,6 +8,7 @@ import TextInput from '@shared/ui/PSUI/TextInput'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import FileInput from '@shared/ui/PSUI/FileInput'
 import ChangesBar from '@shared/ui/PSUI/ChangesBar'
+import Loader from '@shared/ui/PSUI/Loader'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -267,7 +268,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setDraft(baseRef.current)
     }, [])
 
-    if (loading) return <div className={css.alert}>{t('common.loading')}</div>
+    if (loading) return <div className={css.alert}><Loader variant="panel" /></div>
     if (error) return <div className={css.alert}>{error}</div>
 
     return (

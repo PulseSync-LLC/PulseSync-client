@@ -110,8 +110,8 @@ export default function StorePage() {
     const content = useMemo(() => {
         if (loading) {
             return (
-                <div className={st.store_state}>
-                    <Loader text={t('store.loading')} />
+                <div className={st.store_loading}>
+                    <Loader variant="store" />
                 </div>
             )
         }

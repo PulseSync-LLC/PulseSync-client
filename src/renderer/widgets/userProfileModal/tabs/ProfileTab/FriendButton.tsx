@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useCallback, useState } from 'react'
 import cn from 'clsx'
 import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
 import { useMutation } from '@apollo/client/react'
@@ -6,6 +6,7 @@ import Button from '@shared/ui/buttonV2'
 import toggleFollowMutation from '@features/toggleFollow/api/toggleFollow.query'
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 import { useTranslation } from 'react-i18next'
+import config from '@common/appConfig'
 
 interface FriendButtonProps {
     userProfile: any
@@ -35,7 +36,7 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
         },
     })
 
-    const handleToggleFollow = async () => {
+    const handleToggleFollow = useCallback(async () => {
         try {
             await runToggleFollow({
                 variables: { targetId: userProfile.id as string },
@@ -43,16 +44,15 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
         } catch (e) {
             console.error(t('profile.friendButton.requestError'), e)
         }
-    }
-
+    }, [userProfile])
+    const openProfileSettings = useCallback(() => {
+        window.open(config.WEBSITE_URL + '/settings')
+    }, [])
     if ((user?.username || '').toLowerCase() === (username || '').toLowerCase()) {
         return (
             <>
-                <Button className={styles.buttonAddFriend} disabled>
-                    <MdPersonAdd size={20} /> {t('profile.friendButton.editProfile')}
-                </Button>
-                <Button className={styles.buttonPersonal} disabled>
-                    <MdSettings size={20} />
+                <Button className={styles.buttonAddFriend} onClick={() => openProfileSettings()}>
+                    <MdSettings size={20} /> {t('profile.friendButton.editProfile')}
                 </Button>
             </>
         )

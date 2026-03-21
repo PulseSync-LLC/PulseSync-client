@@ -1,18 +1,11 @@
 import React from 'react'
-import { useTranslation } from 'react-i18next'
+import Loader from '@shared/ui/PSUI/Loader'
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 const LoadingIndicator: React.FC = () => {
-    const { t } = useTranslation()
-
     return (
-        <div className={styles.loadingContainer}>
-            <div className={styles.loader}>
-                <div className={styles.dot} />
-                <div className={styles.dot} />
-                <div className={styles.dot} />
-            </div>
-            <div>{t('common.loading')}</div>
+        <div className={styles.profileLoadingContainer}>
+            <Loader variant="profile" />
         </div>
     )
 }

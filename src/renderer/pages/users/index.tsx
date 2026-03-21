@@ -11,6 +11,7 @@ import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeybo
 import toast from '@shared/ui/toast'
 import UserCardV2 from '@entities/user/ui/userCardV2'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+import Loader from '@shared/ui/PSUI/Loader'
 import { useTranslation } from 'react-i18next'
 import { Banner } from '@shared/ui/PSUI/Image'
 import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
@@ -346,7 +347,9 @@ export default function UsersPage() {
                     </div>
                 </div>
                 <div className={s.userPage}>
-                    {users.length > 0 ? (
+                    {loading ? (
+                        <Loader variant="users" />
+                    ) : users.length > 0 ? (
                         <div className={s.userGrid}>
                             {users.map(user => (
                                 <UserCardV2 key={user.id} user={user} onClick={openProfile} />

@@ -730,7 +730,7 @@ export default function ExtensionPage() {
                 />
                 <div className={extensionStylesV2.rightSide}>
                     {!isLoaded ? (
-                        <Loader text={t('extensions.analyzingAddons')} />
+                        <Loader variant="extension" />
                     ) : selectedAddon ? (
                         <ExtensionView
                             addon={selectedAddon}

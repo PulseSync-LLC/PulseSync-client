@@ -66,7 +66,7 @@ export default function HeaderModals({
         <>
             <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingAppUpdates && <Loader text={t('common.loading')} />}
+                    {loadingAppUpdates && <Loader variant="panel" />}
                     {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
@@ -92,7 +92,7 @@ export default function HeaderModals({
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Loader text={t('common.loading')} />}
+                    {loadingModChanges && <Loader variant="panel" />}
                     {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&

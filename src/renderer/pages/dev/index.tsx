@@ -10,6 +10,7 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
 import AddonUploadModal, { UploadStep } from '@shared/ui/PSUI/AddonUploadModal'
+import Loader from '@shared/ui/PSUI/Loader'
 import { Line } from 'react-chartjs-2'
 import { useTranslation } from 'react-i18next'
 import {
@@ -284,8 +285,7 @@ function Dev() {
                     <div className={styles.chartCard}>
                         {loading ? (
                             <div className={styles.loadingState}>
-                                <div className={styles.loadingSpinner} />
-                                <p>{t('dev.loadingAnalytics')}</p>
+                                <Loader variant="panel" />
                             </div>
                         ) : formatted.length ? (
                             <div className={styles.chartWrapper}>

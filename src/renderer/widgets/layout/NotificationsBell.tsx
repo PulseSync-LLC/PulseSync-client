@@ -6,6 +6,7 @@ import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
 import { useNotifications } from '@app/providers/notifications'
 import type { NotificationItem } from '@app/providers/notifications/types'
+import Loader from '@shared/ui/PSUI/Loader'
 import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
 
@@ -244,7 +245,9 @@ const NotificationsBell: React.FC = () => {
 
                         <div className={styles.notificationsList}>
                             {notificationsContext.loading ? (
-                                <div className={styles.notificationsEmpty}>{t('header.notifications.loading')}</div>
+                                <div className={styles.notificationsEmpty}>
+                                    <Loader variant="panel" />
+                                </div>
                             ) : notificationItems.length ? (
                                 notificationItems.map(item => {
                                     const copy = getNotificationCopy(item)

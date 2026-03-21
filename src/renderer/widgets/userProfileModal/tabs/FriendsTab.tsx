@@ -2,6 +2,7 @@ import React from 'react'
 import { useTranslation } from 'react-i18next'
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 import { ExtendedUser } from '@entities/user/model/extendUser.interface'
+import Loader from '@shared/ui/PSUI/Loader'
 
 interface FriendsTabProps {
     userProfile: ExtendedUser
@@ -15,12 +16,7 @@ const FriendsTab: React.FC<FriendsTabProps> = ({ userProfile, loading, error }) 
     if (loading) {
         return (
             <div className={styles.loadingContainer}>
-                <div className={styles.loader}>
-                    <div className={styles.dot} />
-                    <div className={styles.dot} />
-                    <div className={styles.dot} />
-                </div>
-                <div>{t('common.loading')}</div>
+                <Loader variant="panel" />
             </div>
         )
     }

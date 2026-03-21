@@ -541,6 +541,17 @@
     font-weight: 700;
 }
 
+.profileLoadingContainer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow: hidden;
+}
+
 .loader {
     display: flex;
     gap: 8px;

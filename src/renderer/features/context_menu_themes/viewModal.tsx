@@ -1,12 +1,9 @@
 import * as cm from '@features/context_menu_themes/viewModal.module.scss'
 import { MenuItem } from '@features/context_menu_themes/sectionConfig'
 import React from 'react'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import cn from 'clsx'
-
-interface ContextMenuProps {
-    items: MenuItem[]
-}
 
 interface ContextMenuProps {
     items: MenuItem[]
@@ -15,7 +12,12 @@ interface ContextMenuProps {
 const viewModal: React.FC<ContextMenuProps> = ({ items }) => {
     const { t } = useTranslation()
     return (
-        <div className={cn(cm.contextMenu)}>
+        <motion.div
+            className={cn(cm.contextMenu)}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
             <div className={cm.title}>{t('contextMenuThemes.title')}</div>
             {items
                 .filter(item => item.show)
@@ -29,7 +31,7 @@ const viewModal: React.FC<ContextMenuProps> = ({ items }) => {
                         )}
                     </div>
                 ))}
-        </div>
+        </motion.div>
     )
 }
 

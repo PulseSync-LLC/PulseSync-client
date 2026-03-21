@@ -1,4 +1,5 @@
 import React, { useContext, useRef } from 'react'
+import { motion } from 'framer-motion'
 import * as menuStyles from '@features/context_menu/context_menu.module.scss'
 import userContext from '@entities/user/model/context'
 import MainEvents from '@common/types/mainEvents'
@@ -313,7 +314,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         },
     })
 
-    return <div className={menuStyles.modMenu}>{renderContextMenuSections(buttonConfigs)}</div>
+    return (
+        <motion.div
+            className={menuStyles.modMenu}
+            initial={{ opacity: 0, y: -8, scale: 0.98 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -6, scale: 0.985 }}
+            transition={{ duration: 0.18, ease: 'easeOut' }}
+        >
+            {renderContextMenuSections(buttonConfigs)}
+        </motion.div>
+    )
 }
 
 export default ContextMenu

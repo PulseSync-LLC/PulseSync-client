@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
+import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 import { useExperiments } from '@app/providers/experiments'
 import type { DesktopExperiment } from '@app/providers/experiments/types'
@@ -183,7 +184,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
             }
         >
             {loading ? (
-                <div className={styles.empty}>{t('header.devOverrides.loading')}</div>
+                <div className={styles.empty}>
+                    <Loader variant="panel" />
+                </div>
             ) : sortedExperiments.length === 0 ? (
                 <div className={styles.empty}>{t('header.devOverrides.empty')}</div>
             ) : (
