@@ -1,0 +1,287 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: transparent;
+}
+
+.statusBar {
+    @include shimmer.surface(#a2ff58);
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 14px 0 18px;
+}
+
+.statusText {
+    @include shimmer.text-surface(rgba(47, 56, 29, 0.22));
+    width: 320px;
+    height: 14px;
+}
+
+.statusIcon {
+    @include shimmer.surface(rgba(47, 56, 29, 0.22));
+    width: 18px;
+    height: 18px;
+    border-radius: 4px;
+}
+
+.banner {
+    @include shimmer.surface(rgba(129, 141, 179, 0.14));
+    height: 350px;
+    min-height: 350px;
+    padding: 15px 40px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 15px;
+}
+
+.identity {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 15px;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+}
+
+.avatar {
+    @include shimmer.surface;
+    width: 84px;
+    height: 84px;
+    border-radius: 16px;
+}
+
+.identityText {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    min-width: 0;
+    align-items: flex-start;
+}
+
+.dateLine {
+    @include shimmer.text-surface;
+    width: 92px;
+    height: 12px;
+}
+
+.nameRow {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-width: 0;
+    flex-wrap: wrap;
+}
+
+.nameLine {
+    @include shimmer.text-surface;
+    width: 172px;
+    height: 22px;
+    flex: 0 0 auto;
+}
+
+.badgesRow {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+
+.badgeWide {
+    @include shimmer.surface;
+    width: 40px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.badgeSmall {
+    @include shimmer.surface;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.usernameLine {
+    @include shimmer.text-surface;
+    width: 98px;
+    height: 14px;
+}
+
+.buttons {
+    display: flex;
+    gap: 10px;
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.buttonFull {
+    @include shimmer.surface;
+    width: 100%;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.section {
+    @include shimmer.surface(#292c36);
+    min-height: 240px;
+    padding: 20px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.sectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sectionTitle {
+    @include shimmer.text-surface;
+    width: min(185px, 34%);
+    height: 18px;
+}
+
+.sectionSubtitle {
+    @include shimmer.text-surface;
+    width: min(255px, 44%);
+    height: 14px;
+}
+
+.progressCard {
+    @include shimmer.surface;
+    min-height: 96px;
+    border-radius: 18px;
+    padding: 8px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.progressHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.progressLabel {
+    @include shimmer.text-surface;
+    width: 92px;
+    height: 16px;
+}
+
+.progressLabelShort {
+    @include shimmer.text-surface;
+    width: 210px;
+    height: 16px;
+}
+
+.progressBar {
+    @include shimmer.surface(rgba(154, 165, 200, 0.5));
+    position: relative;
+    height: 45px;
+    border-radius: 8px;
+}
+
+.progressFill {
+    @include shimmer.surface(rgba(151, 169, 255, 0.32));
+    position: absolute;
+    left: 4px;
+    top: 4px;
+    bottom: 4px;
+    width: 30%;
+    border-radius: 8px;
+}
+
+.progressLevelLeft,
+.progressLevelRight {
+    @include shimmer.surface(rgba(184, 195, 230, 0.24));
+    position: absolute;
+    top: 8px;
+    width: 29px;
+    height: 29px;
+    border-radius: 4px;
+}
+
+.progressLevelLeft {
+    left: 8px;
+}
+
+.progressLevelRight {
+    right: 8px;
+}
+
+.progressValue {
+    @include shimmer.text-surface(rgba(70, 78, 104, 0.24));
+    position: absolute;
+    left: 50%;
+    top: 13px;
+    transform: translateX(-50%);
+    width: 108px;
+    height: 16px;
+}
+
+.achievementList {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.achievementListTitle {
+    @include shimmer.text-surface;
+    width: 110px;
+    height: 16px;
+}
+
+.achievementRow {
+    @include shimmer.surface(#474c5c);
+    height: 58px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 10px;
+}
+
+.achievementThumb {
+    @include shimmer.surface;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+}
+
+.achievementContent {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.achievementTitle {
+    @include shimmer.text-surface;
+    width: min(230px, 62%);
+    height: 14px;
+}
+
+.achievementSubtitle {
+    @include shimmer.text-surface;
+    width: min(150px, 38%);
+    height: 12px;
+}
+
+.achievementMeta {
+    @include shimmer.surface;
+    width: 28px;
+    height: 28px;
+    border-radius: 999px;
+}

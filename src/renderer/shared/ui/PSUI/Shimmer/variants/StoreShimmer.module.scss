@@ -1,0 +1,131 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    @include shimmer.shell;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 0.47fr));
+    grid-auto-rows: auto;
+    column-gap: 16px;
+    row-gap: 16px;
+    align-items: stretch;
+    justify-content: center;
+    max-width: 1200px;
+    margin: 0 auto;
+    width: 100%;
+}
+
+.card {
+    @include shimmer.surface;
+    min-height: 220px;
+    border-radius: 10px;
+    padding: 52px 14px 14px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: start;
+    gap: 12px;
+}
+
+.badges {
+    display: flex;
+    gap: 6px;
+    position: absolute;
+    top: 14px;
+    left: 14px;
+}
+
+.badge {
+    @include shimmer.surface;
+    width: 60px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.badgeSmall {
+    @include shimmer.surface;
+    width: 40px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    z-index: 2;
+}
+
+.titleRow {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+}
+
+.version {
+    @include shimmer.text-surface;
+    width: 44px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+.main {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+.icon {
+    @include shimmer.surface;
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+}
+
+.text {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.authors {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.button {
+    @include shimmer.surface;
+    align-self: center;
+    flex: 0 0 154px;
+    min-width: 154px;
+    height: 52px;
+    border-radius: 10px;
+    z-index: 2;
+}
+
+@media (max-width: 1024px) {
+    .grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 720px) {
+    .card {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .button {
+        justify-self: stretch;
+        flex-basis: 140px;
+        min-width: 140px;
+        height: 48px;
+    }
+}

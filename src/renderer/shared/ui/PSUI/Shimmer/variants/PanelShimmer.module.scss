@@ -1,0 +1,22 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    @include shimmer.shell;
+    min-height: 180px;
+}
+
+.header {
+    @include shimmer.text-surface;
+    width: min(180px, 48%);
+    height: 20px;
+}
+
+.block {
+    @include shimmer.surface;
+    min-height: 78px;
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}

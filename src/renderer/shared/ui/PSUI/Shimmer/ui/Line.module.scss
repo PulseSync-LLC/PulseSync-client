@@ -1,0 +1,15 @@
+@use '../styles/skeleton' as shimmer;
+
+.line {
+    @include shimmer.text-surface();
+    height: 14px;
+    width: 100%;
+}
+
+.short {
+    width: 58%;
+}
+
+.wide {
+    width: 82%;
+}

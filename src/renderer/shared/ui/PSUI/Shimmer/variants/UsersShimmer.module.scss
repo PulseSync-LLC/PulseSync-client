@@ -1,0 +1,107 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    width: 100%;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 10px;
+    width: 100%;
+}
+
+.card {
+    @include shimmer.surface(#00000033);
+    height: 150px;
+    border-radius: 10px;
+    padding: 2px;
+    display: flex;
+    flex-direction: column;
+}
+
+.topSection {
+    position: relative;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    flex: 1;
+    padding: 10px;
+    overflow: hidden;
+    border-radius: 9px;
+}
+
+.banner {
+    @include shimmer.surface;
+    position: absolute;
+    inset: 0;
+    border-radius: 9px;
+}
+
+.bannerGradient {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    background: linear-gradient(0deg, #2c303f 0%, rgba(55, 60, 80, 0.3) 100%);
+}
+
+.avatar {
+    @include shimmer.surface;
+    width: 60px;
+    height: 60px;
+    border-radius: 9px;
+    z-index: 2;
+    flex: 0 0 auto;
+}
+
+.cardBody {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    height: 60px;
+    justify-content: center;
+    z-index: 2;
+    min-width: 0;
+}
+
+.badgesRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    height: 20px;
+}
+
+.badge {
+    @include shimmer.surface;
+    width: 32px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.badgeSmall {
+    @include shimmer.surface;
+    width: 20px;
+    height: 20px;
+    border-radius: 6px;
+}
+
+.bottomSection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    height: 26px;
+    padding: 3px 10px;
+}
+
+.statusLine {
+    @include shimmer.text-surface;
+    flex: 1 1 auto;
+    height: 12px;
+}
+
+.statusIcon {
+    @include shimmer.surface;
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+}
