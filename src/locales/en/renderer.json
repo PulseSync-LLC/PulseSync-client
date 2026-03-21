@@ -316,7 +316,7 @@
     },
     "extensions": {
         "actions": {
-            "store": "Store"
+            "store": "Catalog"
         },
         "addonCreatedMessage": "Addon {{name}} created successfully",
         "addonCreatedTitle": "Addon created",
@@ -338,7 +338,7 @@
         },
         "source": {
             "local": "Local",
-            "store": "Store"
+            "store": "Catalog"
         },
         "publication": {
             "statusLabel": "Publication",
@@ -764,8 +764,8 @@
                 "volumeControl": "Volume control"
             },
             "headerSubtitle": "Refresh the interface and unlock new features",
-            "headerTitle": "Extension store",
-            "title": "Store"
+            "headerTitle": "Add-on catalog",
+            "title": "Catalog"
         }
     },
     "profile": {
