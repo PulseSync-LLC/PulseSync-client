@@ -5,6 +5,7 @@ import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import Dev from '@pages/dev'
 import AuthPage from '@pages/auth'
 import CallbackPage from '@pages/auth/callback'
+import HomePage from '@pages/home'
 import UsersPage from '@pages/users'
 import ExtensionPage from '@pages/extension'
 import JointPage from '@pages/joint'
@@ -30,6 +31,7 @@ function StoreRoute() {
 export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: withErrorBoundary(<ExtensionPage />) },
+        { path: '/home', element: withErrorBoundary(<HomePage />) },
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },

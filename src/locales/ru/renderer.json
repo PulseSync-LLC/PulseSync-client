@@ -665,6 +665,7 @@
             "addonsBeta": "Аддоны Бета",
             "development": "Development",
             "extensionsStore": "Каталог расширений",
+            "home": "Главная",
             "trackInfo": "Информация о треке",
             "users": "Пользователи"
         },
@@ -749,6 +750,18 @@
         "title": "Опции"
     },
     "pages": {
+        "home": {
+            "title": "Главная",
+            "mainComponents": "Основные компоненты",
+            "auxiliaryComponents": "Вспомогательные компоненты",
+            "news": "Новости",
+            "whatsNew": "Что нового?",
+            "installed": "Установлено",
+            "onDemandInstallHint": "Этот компонент устанавливается автоматически из самой Яндекс Музыки при необходимости.",
+            "musicName": "Яндекс Музыка",
+            "modName": "PulseSync Mod",
+            "clientName": "PulseSync Клиент"
+        },
         "joint": {
             "comingSoon": "Скоро",
             "title": "Joint"
