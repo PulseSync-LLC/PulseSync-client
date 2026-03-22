@@ -714,6 +714,7 @@
             "addonsBeta": "Add-ons",
             "development": "Development",
             "extensionsStore": "Extension store",
+            "home": "Home",
             "trackInfo": "Track info",
             "users": "Users"
         },
@@ -812,6 +813,18 @@
         "title": "Options"
     },
     "pages": {
+        "home": {
+            "title": "Home",
+            "mainComponents": "Primary components",
+            "auxiliaryComponents": "Secondary components",
+            "news": "News",
+            "whatsNew": "What's new?",
+            "installed": "Installed",
+            "onDemandInstallHint": "This component installs automatically by Yandex Music when needed.",
+            "musicName": "Yandex Music",
+            "modName": "PulseSync Mod",
+            "clientName": "PulseSync Client"
+        },
         "joint": {
             "comingSoon": "Coming soon",
             "title": "Joint"
