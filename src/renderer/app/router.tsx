@@ -17,8 +17,12 @@ function withErrorBoundary(node: React.ReactNode) {
 }
 
 function StoreRoute() {
-    const { isExperimentEnabled } = useExperiments()
-    const storeEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
+    const { isExperimentEnabled, loading } = useExperiments()
+    const storeEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
+
+    if (loading) {
+        return null
+    }
 
     if (!storeEnabled) {
         return <Navigate to="/" replace />

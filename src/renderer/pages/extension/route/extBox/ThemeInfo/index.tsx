@@ -90,7 +90,7 @@ const ThemeInfo: React.FC<Props> = ({
     setShowFilters,
 }) => {
     const { t } = useTranslation()
-    const { isExperimentEnabled } = useExperiments()
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal } = useModalContext()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
@@ -149,7 +149,7 @@ const ThemeInfo: React.FC<Props> = ({
     }, [menuOpen])
 
     const authorsDisplay = authorNames.join(', ')
-    const canAccessStore = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
+    const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
 
     return (
         <>

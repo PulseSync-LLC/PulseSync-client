@@ -21,6 +21,7 @@ import {
     filterAndSortAddons,
     getUniqueAddonCreators,
     getUniqueAddonTags,
+    isAddonWhitelisted,
     safeStoreGet,
     SortKey,
     useDebouncedValue,
@@ -426,7 +427,7 @@ export default function ExtensionPage() {
         return selectedAddon.author.map(name => String(name).trim()).filter(Boolean)
     }, [selectedAddon])
 
-    const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, true)
+    const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, false)
 
     const canManagePublication = useMemo(() => {
         if (!storePublishingEnabled || !selectedAddon || !user) return false
@@ -671,10 +672,11 @@ export default function ExtensionPage() {
         (addon: Addon) => {
             if (addon.installSource === 'store') return false
             if (!storeCatalogLoaded) return false
+            if (isAddonWhitelisted(addon, whitelistedAddonNames)) return false
             if (isAddonInStoreCatalog(addon)) return false
             return window.localStorage.getItem(getUntrustedAddonWarningKey(addon)) !== '1'
         },
-        [isAddonInStoreCatalog, storeCatalogLoaded],
+        [isAddonInStoreCatalog, storeCatalogLoaded, whitelistedAddonNames],
     )
 
     const handleEnableAddon = useCallback(
