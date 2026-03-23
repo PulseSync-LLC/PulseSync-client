@@ -29,7 +29,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
-    const { isExperimentEnabled } = useExperiments()
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { isForceInstallEnabled, isModUpdateAvailable, modUpdateState, startUpdate, updateYandexMusic, isUserDeveloper } = useLayoutInstallers({
         app,
         modInfo,
@@ -47,7 +47,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             MOD_CHANGELOG: Modals.MOD_CHANGELOG,
         },
     })
-    const storePageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, true)
+    const storePageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
 
     if (!modInfoFetched) {
         return <Preloader />
