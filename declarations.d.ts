@@ -15,3 +15,13 @@ declare module '*.gif' {
 }
 
 declare module '*.md'
+
+declare module 'js-yaml'
+declare module 'zstd-codec'
+
+declare namespace Electron {
+    interface FileFilter {
+        name: string
+        extensions: string[]
+    }
+}

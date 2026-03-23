@@ -61,7 +61,7 @@ export function useAppDesktopBindings({
                     if (!foundAddon) return
 
                     if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
-                        toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), null, null, 15000)
+                        toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), undefined, undefined, 15000)
                         return
                     }
 

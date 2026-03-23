@@ -16,18 +16,18 @@ export type UserContextValue = {
     authorize: () => Promise<void>
     loading: boolean
     musicInstalled: boolean
-    setMusicInstalled: (value: boolean) => void
+    setMusicInstalled: Dispatch<SetStateAction<boolean>>
     musicVersion: string | null
-    setMusicVersion: (version: string | null) => void
+    setMusicVersion: Dispatch<SetStateAction<string | null>>
     widgetInstalled: boolean
-    setWidgetInstalled: (value: boolean) => void
+    setWidgetInstalled: Dispatch<SetStateAction<boolean>>
     socket: Socket | null
     socketConnected: boolean
     app: SettingsInterface
-    setApp: (settingsData: any) => void
+    setApp: Dispatch<SetStateAction<SettingsInterface>>
     isAppDeprecated: boolean
-    setIsAppDeprecated: (value: boolean) => void
-    setUpdate: (state: boolean) => void
+    setIsAppDeprecated: Dispatch<SetStateAction<boolean>>
+    setUpdate: Dispatch<SetStateAction<boolean>>
     addons: Addon[]
     setAddons: Dispatch<SetStateAction<Addon[]>>
     updateAvailable: boolean

@@ -53,5 +53,5 @@ if (!i18next.isInitialized) {
     })
 }
 
-export const t = (key: string, options?: TOptions): string => i18next.t(key, options)
+export const t = (key: string, options?: TOptions): string => i18next.t(key, options as any) as string
 export default i18next

@@ -10,6 +10,7 @@ const formatTime = (seconds: number): string => {
 
 const PlayerTimeline: React.FC = () => {
     const { currentTrack } = useContext(PlayerContext)
+    const track = currentTrack
     const [currentTime, setCurrentTime] = useState<number>(0)
     const animationFrameRef = useRef<number | null>(null)
     const lastTimestampRef = useRef<number>(performance.now())
@@ -17,10 +18,10 @@ const PlayerTimeline: React.FC = () => {
     const playingRef = useRef<boolean>(false)
 
     useEffect(() => {
-        setCurrentTime(currentTrack?.progress?.position || 0)
-        playingRef.current = currentTrack.status === 'playing'
+        setCurrentTime(track?.progress?.position || 0)
+        playingRef.current = track?.status === 'playing'
         lastTimestampRef.current = performance.now()
-    }, [currentTrack])
+    }, [track])
 
     useEffect(() => {
         const updateTime = (timestamp: number) => {
@@ -30,7 +31,7 @@ const PlayerTimeline: React.FC = () => {
 
                 setCurrentTime(prevTime => {
                     const newTime = prevTime + elapsed
-                    return newTime < (currentTrack.progress?.duration || 0) ? newTime : prevTime
+                    return newTime < (track?.progress?.duration || 0) ? newTime : prevTime
                 })
             } else {
                 lastTimestampRef.current = timestamp
@@ -46,9 +47,9 @@ const PlayerTimeline: React.FC = () => {
                 cancelAnimationFrame(animationFrameRef.current)
             }
         }
-    }, [currentTrack.progress?.duration, currentTrack.status])
+    }, [track?.progress?.duration, track?.status])
 
-    const progressPercent = currentTrack.progress?.duration && currentTime ? (currentTime / currentTrack.progress.duration) * 100 : 0
+    const progressPercent = track?.progress?.duration && currentTime ? (currentTime / track.progress.duration) * 100 : 0
 
     return (
         <div className={styles.timelineContainer}>
@@ -58,7 +59,7 @@ const PlayerTimeline: React.FC = () => {
                 <div className={styles.progress} style={{ width: `${progressPercent}%` }}></div>
             </div>
 
-            <div className={styles.timestamp}>{currentTrack.progress?.duration ? formatTime(currentTrack.progress.duration) : '00:00'}</div>
+            <div className={styles.timestamp}>{track?.progress?.duration ? formatTime(track.progress.duration) : '00:00'}</div>
         </div>
     )
 }

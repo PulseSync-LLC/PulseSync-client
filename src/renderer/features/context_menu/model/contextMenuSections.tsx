@@ -4,6 +4,7 @@ import { MdFolderOpen } from 'react-icons/md'
 import MainEvents from '@common/types/mainEvents'
 import ArrowContext from '@shared/assets/icons/arrowContext.svg'
 import * as menuStyles from '@features/context_menu/context_menu.module.scss'
+import type { ModalName } from '@app/providers/modal/types'
 
 export interface SectionItem {
     label: React.ReactNode
@@ -57,7 +58,7 @@ type Params = {
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
     openAppDirectory: () => void
-    openModal: (modal: string) => void
+    openModal: (modal: ModalName) => void
     openUpdateModal: () => void
     removeObsWidget: () => void
     resetAsarPath: () => void
@@ -66,7 +67,7 @@ type Params = {
     toggleSetting: (type: string, status: boolean) => void
     widgetInstalled: boolean
     modals: {
-        MOD_CHANGELOG: string
+        MOD_CHANGELOG: ModalName
     }
 }
 

@@ -1,4 +1,4 @@
-import React, { CSSProperties, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
@@ -45,9 +45,6 @@ type GetModUpdatesResponse = {
 }
 
 const Header: React.FC<p> = () => {
-    const openSettings = useCallback(() => {
-        window.desktopEvents.send(MainEvents.OPEN_SETTINGS_WINDOW)
-    }, [])
     const settingsAvailable = false
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
@@ -281,17 +278,11 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            {!settingsAvailable ? (
-                                <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
-                                    <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
-                                        <MdSettings size={22} />
-                                    </button>
-                                </TooltipButton>
-                            ) : (
-                                <button className={styles.settingsButton} onClick={openSettings} disabled={!settingsAvailable}>
+                            <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
+                                <button className={styles.settingsButton} disabled={!settingsAvailable}>
                                     <MdSettings size={22} />
                                 </button>
-                            )}
+                            </TooltipButton>
                             <div className={styles.line} />
                             <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />

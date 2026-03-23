@@ -6,10 +6,10 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 type Props = {
     addon: Addon | null
     isOpen: boolean
-    musicVersion: string | undefined
+    musicVersion: string | null | undefined
     onClose: () => void
     onConfirm: (addon: Addon) => void
-    getAddonModalText: (addon: Addon, musicVersion: string | undefined) => string
+    getAddonModalText: (addon: Addon, musicVersion: string | null | undefined) => string
 }
 
 export default function EnableAddonModal({ addon, isOpen, musicVersion, onClose, onConfirm, getAddonModalText }: Props) {

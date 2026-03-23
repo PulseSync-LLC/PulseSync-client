@@ -90,10 +90,6 @@ const forgeConfig: ForgeConfig = {
                     name: 'main_window',
                     config: 'vite.renderer.config.ts',
                 },
-                {
-                    name: 'settings_window',
-                    config: 'vite.renderer.config.ts',
-                },
             ],
         }),
         new FusesPlugin({

@@ -27,7 +27,7 @@ import {
 } from '../utils/appUtils'
 import Addon from '@entities/addon/model/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
+import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 import config, { branch, isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
@@ -186,22 +186,6 @@ const registerWindowEvents = (): void => {
     })
 }
 
-const registerSettingsEvents = (): void => {
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MINIMIZE, () => {
-        settingsWindow.minimize()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_EXIT, () => {
-        logger.main.info(t('main.events.exitApp'))
-        app.quit()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MAXIMIZE, () => {
-        settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_CLOSE, (event, val) => {
-        if (!val) settingsWindow.close()
-        else settingsWindow.hide()
-    })
-}
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
@@ -659,9 +643,6 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             logger.main.error(t('main.events.addonsLoadError'), error)
         }
     })
-    ipcMain.on(MainEvents.OPEN_SETTINGS_WINDOW, () => {
-        createSettingsWindow()
-    })
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
@@ -885,7 +866,6 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
 
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
-    registerSettingsEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)
     registerFileOperations(window)

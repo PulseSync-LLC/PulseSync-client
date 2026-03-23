@@ -69,7 +69,7 @@ export function createGatewayHandler({
                 console.debug('Gateway error message', gatewayPayload)
                 const message = getGatewayErrorMessage(gatewayPayload)
                 if (message) {
-                    toast.custom('error', t('common.errorTitleShort'), message, null, null, 15000)
+                    toast.custom('error', t('common.errorTitleShort'), message, undefined, undefined, 15000)
                 }
                 break
             }

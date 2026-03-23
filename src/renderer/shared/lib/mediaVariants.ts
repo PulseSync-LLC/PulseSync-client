@@ -14,7 +14,7 @@ interface BannerMediaOptions {
     animated?: boolean
 }
 
-interface MediaUrls {
+export interface MediaUrls {
     src: string
     srcSet?: string
 }

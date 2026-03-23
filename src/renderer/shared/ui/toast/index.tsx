@@ -11,7 +11,7 @@ interface ToastData {
     id: string
     kind: Kind
     title: string
-    msg: Renderable
+    msg?: Renderable
     value?: number
     sticky: boolean
     duration: number
@@ -176,7 +176,7 @@ const ToastStack: React.FC = () => {
     const getNodeRef = (id: string) => {
         let r = nodeRefs.current.get(id)
         if (!r) {
-            r = React.createRef<HTMLDivElement>()
+            r = React.createRef<HTMLDivElement>() as React.RefObject<HTMLDivElement>
             nodeRefs.current.set(id, r)
         }
         return r
@@ -223,6 +223,7 @@ const ToastStack: React.FC = () => {
         >
             <TransitionGroup component={null}>
                 {renderList.map((td, idx) => {
+                    const nodeRef = getNodeRef(td.id)
                     const handleDismiss = () => {
                         nodeRefs.current.delete(td.id)
                         remove(td.id)
@@ -231,7 +232,7 @@ const ToastStack: React.FC = () => {
                         <CSSTransition
                             key={td.id}
                             timeout={320}
-                            nodeRef={getNodeRef(td.id)}
+                            nodeRef={nodeRef}
                             classNames={{
                                 enter: styles.fadeEnter,
                                 enterActive: styles.fadeEnterActive,
@@ -247,7 +248,7 @@ const ToastStack: React.FC = () => {
                                 closingAll={closingAll}
                                 ref={el => {
                                     cardRefs.current[idx] = el
-                                    getNodeRef(td.id).current = el
+                                    ;(nodeRef as React.MutableRefObject<HTMLDivElement | null>).current = el
                                 }}
                                 onDismiss={handleDismiss}
                             />
@@ -331,7 +332,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>
                 <div className={styles.title}>{title}</div>
-                <div className={styles.msg}>{msg}</div>
+                <div className={styles.msg}>{msg ?? ''}</div>
             </div>
             <button
                 className={styles.hide}

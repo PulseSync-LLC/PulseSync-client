@@ -23,7 +23,7 @@ export const getStatus = (user: UserInterface): { text: string; detail: string }
     if (user.status === 'online') {
         return {
             text: t('userStatus.online'),
-            detail: null,
+            detail: '',
         }
     }
     if (user.lastOnline) {

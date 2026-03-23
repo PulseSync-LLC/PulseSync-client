@@ -16,7 +16,7 @@ interface UserCardProps {
     onClick: (username: string) => void
 }
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: IntersectionObserverInit) => {
+const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) => {
     const [isIntersecting, setIsIntersecting] = useState(false)
     useEffect(() => {
         if (!ref.current) return

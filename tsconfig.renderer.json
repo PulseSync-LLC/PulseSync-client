@@ -1,10 +1,17 @@
 {
     "extends": "./tsconfig.json",
     "compilerOptions": {
-        "module": "ESNext"
+        "allowJs": false,
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "types": ["node", "react", "react-dom", "vite/client"]
     },
     "include": [
         "src/renderer/**/*",
+        "src/common/**/*",
+        "src/locales/**/*",
+        "src/locales/**/*.json",
+        "package.json",
         "styles.d.ts",
         "window.d.ts",
         "declarations.d.ts",

@@ -90,7 +90,7 @@ const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     </div>
 )
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement>, options?: IntersectionObserverInit) => {
+const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) => {
     const [isIntersecting, setIsIntersecting] = useState(false)
 
     useEffect(() => {

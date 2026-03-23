@@ -38,20 +38,6 @@ contextBridge.exposeInMainWorld('electron', {
             ipcRenderer.send(MainEvents.ELECTRON_WINDOW_EXIT)
         },
     },
-    settings: {
-        minimize() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MINIMIZE)
-        },
-        maximize() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_MAXIMIZE)
-        },
-        close(val: boolean) {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_CLOSE, val)
-        },
-        exit() {
-            ipcRenderer.send(MainEvents.ELECTRON_SETTINGS_EXIT)
-        },
-    },
     isAppDev() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)
     },

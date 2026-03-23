@@ -8,22 +8,23 @@ import toast from '@shared/ui/toast'
 import { errorTypesToShow } from '@shared/lib/utils'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
+import type { ModalName } from '@app/providers/modal/types'
 
 type Params = {
     app: SettingsInterface
     modInfo: ModInterface[]
     modInfoFetched: boolean
     musicInstalled: boolean
-    openModal: (modal: string) => void
+    openModal: (modal: ModalName) => void
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
     setMusicInstalled: React.Dispatch<React.SetStateAction<boolean>>
     setMusicVersion: React.Dispatch<React.SetStateAction<string | null>>
     setUpdate: React.Dispatch<React.SetStateAction<boolean>>
     t: (key: string, options?: any) => string
     modals: {
-        LINUX_ASAR_PATH: string
-        LINUX_PERMISSIONS_MODAL: string
-        MOD_CHANGELOG: string
+        LINUX_ASAR_PATH: ModalName
+        LINUX_PERMISSIONS_MODAL: ModalName
+        MOD_CHANGELOG: ModalName
     }
 }
 
@@ -373,7 +374,7 @@ export function useLayoutInstallers({
                 'info',
                 t('layout.installedVersionOutdated', { version: app.mod.version }),
                 t('layout.newVersionFound', { version: latestVersion }),
-                null,
+                undefined,
                 15000,
             )
             startUpdate()

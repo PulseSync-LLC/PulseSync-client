@@ -2,36 +2,35 @@
     "compilerOptions": {
         "target": "ES2022",
         "lib": [
-            "ES2016.Array.Include",
             "ES2021",
             "DOM",
             "DOM.Iterable",
             "ScriptHost"
         ],
+        "composite": true,
         "allowJs": true,
         "maxNodeModuleJsDepth": 10,
-        "module": "commonjs",
         "skipLibCheck": true,
         "noImplicitAny": true,
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "inlineSources": true,
-        "baseUrl": ".",
         "outDir": "dist",
-        "moduleResolution": "node",
+        "module": "Node16",
+        "moduleResolution": "node16",
+        "types": ["node"],
         "jsx": "react-jsx",
         "resolveJsonModule": true,
         "esModuleInterop": true,
         "paths": {
-            "*": ["node_modules/*"],
-            "@/*": ["static/*"],
-            "@common/*": ["src/common/*"],
-            "@app/*": ["src/renderer/app/*"],
-            "@pages/*": ["src/renderer/pages/*"],
-            "@widgets/*": ["src/renderer/widgets/*"],
-            "@features/*": ["src/renderer/features/*"],
-            "@entities/*": ["src/renderer/entities/*"],
-            "@shared/*": ["src/renderer/shared/*"]
+            "@/*": ["./static/*"],
+            "@common/*": ["./src/common/*"],
+            "@app/*": ["./src/renderer/app/*"],
+            "@pages/*": ["./src/renderer/pages/*"],
+            "@widgets/*": ["./src/renderer/widgets/*"],
+            "@features/*": ["./src/renderer/features/*"],
+            "@entities/*": ["./src/renderer/entities/*"],
+            "@shared/*": ["./src/renderer/shared/*"]
         }
     },
     "include": [
