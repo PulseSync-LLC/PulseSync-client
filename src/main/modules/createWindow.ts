@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, powerMonitor, screen } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../utils/isAppDev'
 import { getUpdater } from './updater/updater'
 import { queueAddonOpen, updateAvailable } from '../events'
 import { isWindows } from '../utils/appUtils'

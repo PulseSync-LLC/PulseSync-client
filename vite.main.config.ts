@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite'
 import path from 'path'
 import packageJson from './package.json'
-import nodeExternals from 'rollup-plugin-node-externals'
 
 export default defineConfig(({ mode }) => {
     const isDevMode = mode === 'development'
@@ -34,15 +33,5 @@ export default defineConfig(({ mode }) => {
                 '@common': path.resolve(__dirname, 'src/common'),
             },
         },
-
-        plugins: [
-            nodeExternals({
-                builtins: true,
-                deps: false,
-                peerDeps: false,
-                optDeps: false,
-                devDeps: false,
-            }),
-        ],
     }
 })

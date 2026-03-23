@@ -1,4 +1,4 @@
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import path from 'path'
 import fs from 'fs'
 import logger from '../logger'

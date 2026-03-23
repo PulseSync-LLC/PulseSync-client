@@ -8,6 +8,7 @@
     "allowSyntheticDefaultImports": true
   },
   "files": [
+    "declarations.d.ts",
     "vite.main.config.ts",
     "vite.preload.config.ts",
     "vite.renderer.config.ts",
