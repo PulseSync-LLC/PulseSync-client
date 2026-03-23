@@ -12,7 +12,7 @@ import {
 import { sendAddonSettings, sendAllAddonSettings, setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
-import isAppDev from 'electron-is-dev'
+import isAppDev from './main/utils/isAppDev'
 import { modManager } from './main/modules/mod/modManager'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
 import * as dns from 'node:dns'

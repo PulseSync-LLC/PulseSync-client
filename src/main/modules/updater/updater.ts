@@ -6,7 +6,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import { mainWindow } from '../createWindow'
 import { t } from '../../i18n'
 

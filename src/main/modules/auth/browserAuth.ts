@@ -1,5 +1,5 @@
 import { BrowserWindow, app } from 'electron'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import axios from 'axios'
 import config from '@common/appConfig'
 import RendererEvents from '../../../common/types/rendererEvents'
