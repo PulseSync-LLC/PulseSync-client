@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdScience } from 'react-icons/md'
+import { MdOutlineScience } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import { useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
@@ -16,7 +16,7 @@ const ExperimentOverridesDevButton: React.FC = () => {
     return (
         <TooltipButton tooltipText={label} side="bottom" as="div" className={styles.devOverridesTrigger}>
             <button type="button" className={styles.headerIconButton} aria-label={label} onClick={() => openModal(Modals.EXPERIMENT_OVERRIDES_DEV)}>
-                <MdScience size={18} />
+                <MdOutlineScience size={18} />
             </button>
             {activeOverrideCount > 0 && <span className={styles.devOverridesBadge}>{activeOverrideCount}</span>}
         </TooltipButton>

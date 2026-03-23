@@ -210,12 +210,57 @@
     padding: 2px 0 0;
 }
 
+.formHeading {
+    display: grid;
+    gap: 8px;
+}
+
+.formTitleRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
 .formDescription {
     margin: 8px 0 0;
     color: #b6bfd4;
     line-height: 1.5;
     max-width: 560px;
     overflow-wrap: anywhere;
+}
+
+.copyButton {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid #3a3f4b;
+    border-radius: 10px;
+    background: #2b303b;
+    color: #dbe2ff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease;
+}
+
+.copyButton:hover {
+    border-color: #577eff;
+    background: rgba(87, 126, 255, 0.14);
+    color: #ffffff;
+    transform: translateY(-1px);
+}
+
+.copyButton:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(87, 126, 255, 0.14);
 }
 
 .editorSection {

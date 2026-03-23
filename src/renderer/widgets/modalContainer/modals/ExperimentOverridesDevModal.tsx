@@ -8,6 +8,7 @@ import type { DesktopExperiment } from '@app/providers/experiments/types'
 import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
 import { IoCloseSharp } from 'react-icons/io5'
+import { MdContentCopy } from 'react-icons/md'
 import * as styles from '@widgets/modalContainer/modals/ExperimentOverridesDevModal.module.scss'
 
 type EnabledMode = 'inherit' | 'true' | 'false'
@@ -151,6 +152,19 @@ const ExperimentOverridesDevModal: React.FC = () => {
         toast.custom('success', t('common.successTitleShort'), t('header.devOverrides.cleared'))
     }, [clearLocalOverride, localOverrides, selectedKey, t])
 
+    const handleCopyExperimentKey = useCallback(async () => {
+        if (!selectedExperiment?.key) {
+            return
+        }
+
+        try {
+            await navigator.clipboard.writeText(selectedExperiment.key)
+            toast.custom('success', t('common.successTitleShort'), t('header.devOverrides.copyNameSuccess'))
+        } catch {
+            toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.copyNameError'))
+        }
+    }, [selectedExperiment?.key, t])
+
     return (
         <CustomModalPS
             className={styles.modal}
@@ -220,8 +234,20 @@ const ExperimentOverridesDevModal: React.FC = () => {
                         {selectedExperiment ? (
                             <>
                                 <div className={styles.formTop}>
-                                    <div>
-                                        <div className={styles.formTitle}>{selectedExperiment.key}</div>
+                                    <div className={styles.formHeading}>
+                                        <div className={styles.formTitleRow}>
+                                            <div className={styles.formTitle}>{selectedExperiment.key}</div>
+                                            <button
+                                                type="button"
+                                                className={styles.copyButton}
+                                                onClick={handleCopyExperimentKey}
+                                                title={t('header.devOverrides.copyName')}
+                                                aria-label={t('header.devOverrides.copyName')}
+                                            >
+                                                <MdContentCopy size={16} />
+                                                <span>{t('header.devOverrides.copyName')}</span>
+                                            </button>
+                                        </div>
                                         {selectedExperiment.description && <p className={styles.formDescription}>{selectedExperiment.description}</p>}
                                     </div>
                                     <div className={styles.metaRow}>
