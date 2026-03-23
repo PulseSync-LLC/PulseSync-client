@@ -1,6 +1,7 @@
 import React from 'react'
 import Modal from '@shared/ui/PSUI/Modal'
 import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
@@ -30,7 +31,7 @@ type Props = {
     modError?: Error
 }
 
-function LinkRenderer(props: any) {
+const LinkRenderer: Components['a'] = props => {
     return (
         <a href={props.href} target="_blank" rel="noreferrer">
             {props.children}
@@ -38,9 +39,9 @@ function LinkRenderer(props: any) {
     )
 }
 
-function UpdateLinkRenderer({ href, children }: { href?: string; children: React.ReactNode }) {
+const UpdateLinkRenderer: Components['a'] = ({ href, children }) => {
     return (
-        <a href={href as string} target="_blank" rel="noopener noreferrer">
+        <a href={href ?? '#'} target="_blank" rel="noopener noreferrer">
             {children}
         </a>
     )

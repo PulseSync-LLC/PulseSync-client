@@ -149,6 +149,9 @@ function resolveTrackCoverUri(track: any): string {
 export function normalizeTrack(prev: Track, payload: any): Track {
     if (!payload) return prev
     if (payload?.type === 'refresh') return trackInitials
+    const prevProgress = prev.progress ?? trackInitials.progress!
+    const prevAvailableActions = prev.availableActions ?? trackInitials.availableActions!
+    const prevActionsStore = prev.actionsStore ?? trackInitials.actionsStore!
     const t = payload?.track || {}
     const nextId = t?.id ?? prev.id
     const nextRealId = t?.realId ?? prev.realId
@@ -174,23 +177,23 @@ export function normalizeTrack(prev: Track, payload: any): Track {
         sourceType: t?.sourceType ?? prev.sourceType,
         ynisonProgress: payload?.ynisonProgress ?? prev.ynisonProgress,
         progress: {
-            duration: payload?.progress?.duration ?? prev.progress.duration,
-            loaded: payload?.progress?.loaded ?? prev.progress.loaded,
-            position: payload?.progress?.position ?? prev.progress.position,
-            played: payload?.progress?.played ?? prev.progress.played,
+            duration: payload?.progress?.duration ?? prevProgress.duration,
+            loaded: payload?.progress?.loaded ?? prevProgress.loaded,
+            position: payload?.progress?.position ?? prevProgress.position,
+            played: payload?.progress?.played ?? prevProgress.played,
         },
         availableActions: {
-            moveBackward: payload?.availableActions?.moveBackward ?? prev.availableActions.moveBackward,
-            moveForward: payload?.availableActions?.moveForward ?? prev.availableActions.moveForward,
-            repeat: payload?.availableActions?.repeat ?? prev.availableActions.repeat,
-            shuffle: payload?.availableActions?.shuffle ?? prev.availableActions.shuffle,
-            speed: payload?.availableActions?.speed ?? prev.availableActions.speed,
+            moveBackward: payload?.availableActions?.moveBackward ?? prevAvailableActions.moveBackward,
+            moveForward: payload?.availableActions?.moveForward ?? prevAvailableActions.moveForward,
+            repeat: payload?.availableActions?.repeat ?? prevAvailableActions.repeat,
+            shuffle: payload?.availableActions?.shuffle ?? prevAvailableActions.shuffle,
+            speed: payload?.availableActions?.speed ?? prevAvailableActions.speed,
         },
         actionsStore: {
-            repeat: payload?.actionsStore?.repeat ?? prev.actionsStore.repeat,
-            shuffle: payload?.actionsStore?.shuffle ?? prev.actionsStore.shuffle,
-            isLiked: payload?.actionsStore?.isLiked ?? prev.actionsStore.isLiked,
-            isDisliked: payload?.actionsStore?.isDisliked ?? prev.actionsStore.isDisliked,
+            repeat: payload?.actionsStore?.repeat ?? prevActionsStore.repeat,
+            shuffle: payload?.actionsStore?.shuffle ?? prevActionsStore.shuffle,
+            isLiked: payload?.actionsStore?.isLiked ?? prevActionsStore.isLiked,
+            isDisliked: payload?.actionsStore?.isDisliked ?? prevActionsStore.isDisliked,
         },
         currentDevice: payload?.currentDevice ?? prev.currentDevice,
         downloadInfo: payload?.downloadInfo ?? prev.downloadInfo,

@@ -22,7 +22,7 @@ interface ActionVisibility {
 }
 
 export const createContextMenuActions = (
-    handleToggleCheck: (themeName: string, isChecked: boolean) => void,
+    handleToggleCheck: ((themeName: string, isChecked: boolean) => void) | undefined,
     checkedState: boolean = false,
     actionVisibility: ActionVisibility = {},
     currentAddon: Addon,

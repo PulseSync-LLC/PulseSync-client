@@ -15,7 +15,7 @@ interface ContextMenuProps {
     modalRef: React.RefObject<{
         openUpdateModal: () => void
         closeUpdateModal: () => void
-    }>
+    } | null>
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
@@ -60,6 +60,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 const updatedApp = {
                     ...prevApp,
                     mod: {
+                        ...prevApp.mod,
                         installed: false,
                         version: '',
                     },

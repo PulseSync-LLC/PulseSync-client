@@ -271,7 +271,9 @@ class Store {
             logger.main.error('Error initializing ElectronStore:', error)
         }
 
-        if (!this.store.get('settings.hardwareAcceleration', true)) {
+        // Electron applies this only during startup, before the app becomes ready.
+        const hardwareAccelerationEnabled = this.store?.get('settings.hardwareAcceleration', true) ?? true
+        if (!hardwareAccelerationEnabled) {
             app.disableHardwareAcceleration()
         }
     }

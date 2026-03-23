@@ -85,14 +85,20 @@ export function usePextDnDImport(): void {
             }
         }
 
+        const onDragListener: EventListener = event => onDrag(event as DragEvent)
+        const onDropListener: EventListener = event => {
+            void onDrop(event as DragEvent)
+        }
+        const onDragEndListener: EventListener = () => onDragEnd()
+
         const bind = (mode: 'add' | 'remove') => {
             const targets: Array<Document | Window> = [document, window]
             const method = mode === 'add' ? 'addEventListener' : 'removeEventListener'
             targets.forEach(target => {
-                target[method]('dragenter', onDrag as EventListener, true)
-                target[method]('dragover', onDrag as EventListener, true)
-                target[method]('drop', onDrop as EventListener, true)
-                target[method]('dragleave', onDragEnd as EventListener, true)
+                target[method]('dragenter', onDragListener, true)
+                target[method]('dragover', onDragListener, true)
+                target[method]('drop', onDropListener, true)
+                target[method]('dragleave', onDragEndListener, true)
             })
         }
 

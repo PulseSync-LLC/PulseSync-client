@@ -1,6 +1,15 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
-import { DesktopEvents } from './src/main/mainWindowPreload'
 import { Track } from './src/renderer/api/interfaces/track.interface'
+
+interface DesktopEvents {
+    emit(channel: string, ...args: any[]): void
+    send(channel: string, ...args: any[]): void
+    on(channel: string, listener: (event: any, ...args: any[]) => void): () => void
+    once(channel: string, listener: (event: any, ...args: any[]) => void): void
+    removeListener(channel: string, listener: (event: any, ...args: any[]) => void): void
+    removeAllListeners(channel: string): void
+    invoke(channel: string, ...args: any[]): Promise<any>
+}
 
 declare global {
     interface Window {
@@ -16,13 +25,6 @@ declare global {
                 minimize: () => void
                 close: (val: boolean) => void
                 exit: () => void
-            }
-            settings: {
-                maximize: () => void
-                minimize: () => void
-                close: (val: boolean) => void
-                exit: () => void
-                isMac: () => boolean
             }
             player: {
                 setTrack: (track: Track, currentPercent: number) => void

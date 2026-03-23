@@ -1,4 +1,5 @@
 import UserInterface from '@entities/user/model/user.interface'
+import trackInitials from '@entities/track/model/track.initials'
 
 const UserInitials: UserInterface = {
     id: '-1',
@@ -8,7 +9,7 @@ const UserInitials: UserInterface = {
     email: '',
     createdAt: 0,
     lastOnline: '',
-    currentTrack: null,
+    currentTrack: trackInitials,
     status: '',
     banner: '',
     bannerHash: '',

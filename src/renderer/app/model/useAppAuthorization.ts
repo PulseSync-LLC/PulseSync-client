@@ -97,7 +97,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         ;(async () => {
             await redirectToAuth()
         })()
-        toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.failedToFetchUser'), null, null, 10000)
+        toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.failedToFetchUser'), undefined, undefined, 10000)
     }, [meData, redirectToAuth, router, sendAuthStatus, setLoading, setUser, shouldRedirectToHomeAfterAuth, tRef, tokenReady])
 
     useEffect(() => {
@@ -109,7 +109,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
 
             if (isForbidden) {
-                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.sessionExpired'), null, null, 10000)
+                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.sessionExpired'), undefined, undefined, 10000)
                 ;(async () => {
                     await redirectToAuth()
                 })()
@@ -122,8 +122,8 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                     'error',
                     tRef.current('auth.appVersionDeprecatedTitle'),
                     tRef.current('auth.appVersionDeprecatedMessage'),
-                    null,
-                    null,
+                    undefined,
+                    undefined,
                     10000,
                 )
                 window.desktopEvents?.send(MainEvents.UPDATER_START)
@@ -168,7 +168,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             }
 
             const sendErrorAuthNotify = (message: string, title?: string) => {
-                toast.custom('error', tRef.current('common.errorTitle'), message, null, null, 10000)
+                toast.custom('error', tRef.current('common.errorTitle'), message, undefined, undefined, 10000)
                 window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
                     title: tRef.current('auth.authErrorTitle', { title }),
                     body: message,
@@ -224,8 +224,8 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                             'error',
                             tRef.current('auth.appVersionDeprecatedTitle'),
                             tRef.current('auth.appVersionDeprecatedMessage'),
-                            null,
-                            null,
+                            undefined,
+                            undefined,
                             10000,
                         )
                         window.desktopEvents?.send(MainEvents.UPDATER_START)

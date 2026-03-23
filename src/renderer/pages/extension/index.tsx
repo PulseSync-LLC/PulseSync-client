@@ -629,7 +629,7 @@ export default function ExtensionPage() {
     )
 
     const getAddonModalText = useCallback(
-        (addon: Addon, musicVersion: string | undefined) => {
+        (addon: Addon, musicVersion: string | null | undefined) => {
             const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : t('extensions.supportedVersionsUnknown')
 
             const isSupported = isAddonVersionSupported(addon, musicVersion)

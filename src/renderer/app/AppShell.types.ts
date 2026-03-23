@@ -20,17 +20,17 @@ export type AppProvidersProps = {
     loading: boolean
     meLoading: boolean
     musicInstalled: boolean
-    setMusicInstalled: (value: boolean) => void
+    setMusicInstalled: Dispatch<SetStateAction<boolean>>
     musicVersion: string | null
-    setMusicVersion: (version: string | null) => void
+    setMusicVersion: Dispatch<SetStateAction<string | null>>
     widgetInstalled: boolean
-    setWidgetInstalled: (value: boolean) => void
+    setWidgetInstalled: Dispatch<SetStateAction<boolean>>
     app: SettingsInterface
     setApp: Dispatch<SetStateAction<SettingsInterface>>
     isAppDeprecated: boolean
-    setIsAppDeprecated: (value: boolean) => void
+    setIsAppDeprecated: Dispatch<SetStateAction<boolean>>
     updateAvailable: boolean
-    setUpdate: (state: boolean) => void
+    setUpdate: Dispatch<SetStateAction<boolean>>
     appInfo: AppInfoInterface[]
     setAddons: Dispatch<SetStateAction<Addon[]>>
     addons: Addon[]

@@ -56,9 +56,10 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
     useEffect(() => {
         if (!socket || !features.sendTrack) return
-        const { title, status, sourceType, progress } = track
-
-        const progressPlayed = progress?.position
+        const title = track.title
+        const status = track.status ?? ''
+        const sourceType = track.sourceType
+        const progressPlayed = track.progress?.position ?? null
         if (!title || sourceType === 'ynison' || !['playing', 'paused'].includes(status)) return
 
         const now = Date.now()

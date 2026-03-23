@@ -16,10 +16,10 @@ export default function AuthPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, isAppDeprecated } = useContext(userContext)
-    const img1Ref = useRef(null)
-    const img2Ref = useRef(null)
-    const img3Ref = useRef(null)
-    const imgLogo = useRef(null)
+    const img1Ref = useRef<HTMLImageElement | null>(null)
+    const img2Ref = useRef<HTMLImageElement | null>(null)
+    const img3Ref = useRef<HTMLImageElement | null>(null)
+    const imgLogo = useRef<HTMLDivElement | null>(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
     const checkUpdate = () => checkUpdateHard()
@@ -33,7 +33,7 @@ export default function AuthPage() {
 
     useAuthRedirect(user.id, navigate)
     useEffect(() => {
-        const handleMouseMove = (e: { clientX: any; clientY: any }) => {
+        const handleMouseMove = (e: MouseEvent) => {
             const { innerWidth, innerHeight } = window
             const mouseX = e.clientX
             const mouseY = e.clientY

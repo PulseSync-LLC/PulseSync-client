@@ -12,7 +12,7 @@ class ErrorBoundary extends React.Component<
     ErrorBoundaryProps,
     {
         hasError: boolean
-        error: Error
+        error: Error | null
     }
 > {
     constructor(props: ErrorBoundaryProps) {

@@ -5,7 +5,7 @@ interface Addon {
     charCount: string
 }
 
-export function useCharCount(containerRef: React.RefObject<HTMLDivElement>, theme: Addon) {
+export function useCharCount(containerRef: React.RefObject<HTMLDivElement | null>, theme: Addon) {
     useEffect(() => {
         const container = containerRef.current
 

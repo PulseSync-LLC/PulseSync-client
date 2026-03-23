@@ -33,7 +33,6 @@ import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFro
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
 
 export let updated = false
-export let hardwareAcceleration = false
 export let musicPath: string
 export let asarFilename = 'app.backup.asar'
 export let asarBackup: string
@@ -41,9 +40,6 @@ export let selectedAddon: string
 
 registerSchemes()
 initMainI18n()
-
-dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
-app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
 if (isWindows()) {
     app.setAppUserModelId('pulsesync.app')
