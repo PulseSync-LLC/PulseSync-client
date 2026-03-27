@@ -27,7 +27,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1017.0",
+        "@aws-sdk/client-s3": "^3.1018.0",
         "@babel/core": "7.29.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -62,7 +62,7 @@
         "@typescript-eslint/parser": "^8.57.2",
         "@vitejs/plugin-react": "^6.0.1",
         "babel-plugin-react-compiler": "^1.0.0",
-        "electron": "41.0.4",
+        "electron": "41.1.0",
         "electron-builder": "^26.8.1",
         "eslint": "^10.1.0",
         "eslint-plugin-import": "^2.32.0",
@@ -78,7 +78,7 @@
         "@apollo/client": "^4.1.6",
         "@dr.pogodin/react-helmet": "^3.1.1",
         "@electron-forge/plugin-fuses": "^7.11.1",
-        "@electron/fuses": "2.1.0",
+        "@electron/fuses": "2.1.1",
         "@emotion/react": "^11.14.0",
         "@emotion/styled": "^11.14.1",
         "@mui/joy": "^5.0.0-beta.52",
@@ -99,8 +99,8 @@
         "fs-extra": "^11.3.4",
         "glob": "^13.0.6",
         "graphql": "^16.13.2",
-        "graphql-ws": "^6.0.7",
-        "i18next": "^25.10.9",
+        "graphql-ws": "^6.0.8",
+        "i18next": "^25.10.10",
         "lodash.debounce": "^4.0.8",
         "log4js": "^6.9.1",
         "net": "^1.0.2",
@@ -146,8 +146,8 @@
     },
     "buildInfo": {
         "VERSION": "2.12.0-beta",
-        "BRANCH": "bb8b3fd",
-        "BUILD_TIME": "23.03.2026, 21:57:35"
+        "BRANCH": "3eb488d",
+        "BUILD_TIME": "26.03.2026, 14:31:45"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

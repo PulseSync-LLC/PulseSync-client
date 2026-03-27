@@ -15,7 +15,6 @@ export type SocketProviderProps = {
     userId: string
     appVersion: string
     setUser: Dispatch<SetStateAction<UserInterface>>
-    setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     setLoading: Dispatch<SetStateAction<boolean>>
     onLogout: () => Promise<void>
     onAchievementsUpdate?: (payload: unknown) => Promise<void> | void

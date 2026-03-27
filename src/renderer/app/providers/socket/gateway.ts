@@ -14,7 +14,6 @@ type CreateGatewayHandlerParams = {
     t: (key: string, options?: any) => string
     zstdReady: boolean
     zstdRef: MutableRefObject<any>
-    setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     setSocket: Dispatch<SetStateAction<Socket | null>>
     setSocketConnected: Dispatch<SetStateAction<boolean>>
     setUser: Dispatch<SetStateAction<UserInterface>>
@@ -30,7 +29,6 @@ export function createGatewayHandler({
     t,
     zstdReady,
     zstdRef,
-    setFeatures,
     setSocket,
     setSocketConnected,
     setUser,
@@ -51,10 +49,6 @@ export function createGatewayHandler({
         const gatewayPayload = msg.d
 
         switch (gatewayEvent) {
-            case IncomingGatewayEvents.FEATURE_TOGGLES:
-                console.debug('Gateway feature toggles', gatewayPayload)
-                setFeatures((gatewayPayload || {}) as Record<string, boolean>)
-                break
             case IncomingGatewayEvents.DEPRECATED_VERSION:
                 console.debug('Gateway deprecated version')
                 toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
@@ -62,8 +56,6 @@ export function createGatewayHandler({
                     title: t('common.attentionTitle'),
                     body: t('auth.deprecatedSoon'),
                 })
-                break
-            case IncomingGatewayEvents.UPDATE_FEATURES_ACK:
                 break
             case IncomingGatewayEvents.ERROR_MESSAGE: {
                 console.debug('Gateway error message', gatewayPayload)

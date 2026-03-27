@@ -237,26 +237,22 @@ const Header: React.FC<p> = () => {
             })
     }, [memoizedAppInfo])
 
-    const shouldFetchModChanges = isModModalOpen && app.mod.installed && !!app.mod.version
+    const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
     const {
         data: modData,
         loading: loadingModChanges,
         error: modError,
-        refetch: refetchModChanges,
     } = useQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
         variables: { modVersion: app.mod.version || '' },
         skip: !shouldFetchModChanges,
-        notifyOnNetworkStatusChange: true,
+        fetchPolicy: 'no-cache',
     })
 
-    useEffect(() => {
-        if (shouldFetchModChanges) {
-            refetchModChanges()
-        }
-    }, [shouldFetchModChanges, app.mod.version, refetchModChanges])
-
-    const modChangesInfoRaw: ModChangelogEntry[] = Array.isArray(modData?.getChangelogEntries) ? modData!.getChangelogEntries : []
+    const modChangesInfoRaw: ModChangelogEntry[] =
+        shouldFetchModChanges && Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []
+    const modChangesLoading = shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
+    const modChangesError = shouldFetchModChanges ? modError : undefined
 
     return (
         <>
@@ -269,10 +265,10 @@ const Header: React.FC<p> = () => {
                 formatDate={formatDate}
                 isModModalOpen={isModModalOpen}
                 loadingAppUpdates={loadingAppUpdates}
-                loadingModChanges={loadingModChanges}
+                loadingModChanges={modChangesLoading}
                 modal={modal}
                 modChangesInfo={modChangesInfoRaw}
-                modError={modError}
+                modError={modChangesError}
             />
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>

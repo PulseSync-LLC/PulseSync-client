@@ -9,21 +9,26 @@ import RendererEvents from '@common/types/rendererEvents'
 import { areTracksEqual, normalizeTrack } from '@shared/lib/utils'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import type { PlayerProps } from '@app/AppShell.types'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
 export default function PlayerProvider({ children }: PlayerProps) {
-    const { user, socket, features, emitGateway } = useContext(UserContext)
+    const { user, socket, emitGateway } = useContext(UserContext)
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSendAt = useRef(0)
+    const trackSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientTrackSending, false)
+    const metricsSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientMetricsSending, false)
 
     const handleSendTrackPlayedEnough = useCallback(
         (_event: any, data: any) => {
             if (!data) return
+            if (!trackSendingEnabled) return
             if (socket && socket.connected) {
                 emitGateway(OutgoingGatewayEvents.TRACK_PLAYED_ENOUGH, { track: { id: data.realId } })
             }
         },
-        [socket, emitGateway],
+        [socket, emitGateway, trackSendingEnabled],
     )
 
     const handleTrackInfo = useCallback((_: any, data: any) => {
@@ -55,7 +60,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
     }, [user.id])
 
     useEffect(() => {
-        if (!socket || !features.sendTrack) return
+        if (!socket || !trackSendingEnabled) return
         const title = track.title
         const status = track.status ?? ''
         const sourceType = track.sourceType
@@ -72,13 +77,12 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
         lastSentTrack.current = { title, status, progressPlayed }
         lastSendAt.current = now
-    }, [socket, track, features.sendTrack, emitGateway])
+    }, [socket, track, emitGateway, trackSendingEnabled])
 
     useEffect(() => {
-        if (!socket) return
+        if (!socket || !metricsSendingEnabled) return
 
         const send = () => {
-            if (!features.sendMetrics) return
             const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
             const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
             emitGateway(OutgoingGatewayEvents.SEND_METRICS, { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
@@ -88,7 +92,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
         const id = setInterval(send, 15 * 60 * 1000)
         return () => clearInterval(id)
-    }, [socket, features.sendMetrics, emitGateway])
+    }, [socket, emitGateway, metricsSendingEnabled])
 
     return (
         <PlayerContext.Provider

@@ -1,7 +1,5 @@
 const IncomingGatewayEvents = {
-    FEATURE_TOGGLES: 'feature_toggles',
     DEPRECATED_VERSION: 'deprecated_version',
-    UPDATE_FEATURES_ACK: 'update_features_ack',
     ERROR_MESSAGE: 'error_message',
     LOGOUT: 'logout',
     USER_UPDATE: 'user_update',

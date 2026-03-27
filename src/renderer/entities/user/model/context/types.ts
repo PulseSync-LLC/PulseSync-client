@@ -35,8 +35,6 @@ export type UserContextValue = {
     modInfo: ModInterface[]
     modInfoFetched: boolean
     setMod: Dispatch<SetStateAction<ModInterface[]>>
-    features: Record<string, boolean>
-    setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     emitGateway: EmitGateway
