@@ -32,6 +32,21 @@ function StoreRoute() {
     return <StorePage />
 }
 
+function UsersRoute() {
+    const { isExperimentEnabled, loading } = useExperiments()
+    const usersPageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
+
+    if (loading) {
+        return null
+    }
+
+    if (!usersPageEnabled) {
+        return <Navigate to="/" replace />
+    }
+
+    return <UsersPage />
+}
+
 export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: withErrorBoundary(<ExtensionPage />) },
@@ -39,7 +54,7 @@ export function createAppRouter() {
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },
-        { path: '/users', element: withErrorBoundary(<UsersPage />) },
+        { path: '/users', element: withErrorBoundary(<UsersRoute />) },
         { path: '/:contactId', element: withErrorBoundary(<ExtensionPage />) },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },

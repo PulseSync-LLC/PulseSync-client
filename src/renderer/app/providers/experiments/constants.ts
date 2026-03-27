@@ -2,6 +2,9 @@ export const CLIENT_EXPERIMENTS = {
     ClientAchievements: 'ClientAchievements',
     ClientExtensionStoreAccess: 'ClientExtensionStoreAccess',
     ClientExtensionStorePublishing: 'ClientExtensionStorePublishing',
+    ClientUsersPageAccess: 'ClientUsersPageAccess',
+    ClientTrackSending: 'ClientTrackSending',
+    ClientMetricsSending: 'ClientMetricsSending',
     WebLocalizationContribution: 'WebLocalizationContribution',
     WebHomeSections: 'WebHomeSections',
 } as const

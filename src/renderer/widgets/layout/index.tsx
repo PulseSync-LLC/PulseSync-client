@@ -25,7 +25,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, features, musicInstalled, setMusicInstalled, setMusicVersion } =
+    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion } =
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
@@ -48,6 +48,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         },
     })
     const storePageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
+    const usersPageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
 
     if (!modInfoFetched) {
         return <Preloader />
@@ -69,7 +70,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!features?.usersPage || !musicInstalled}>
+                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>

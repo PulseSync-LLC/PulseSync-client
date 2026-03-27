@@ -6,6 +6,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 import Loader from '@shared/ui/PSUI/Loader'
+import Shimmer from '@shared/ui/PSUI/Shimmer'
 import { useTranslation } from 'react-i18next'
 import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
@@ -93,7 +94,7 @@ export default function HeaderModals({
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Loader variant="panel" />}
+                    {loadingModChanges && <Shimmer variant="mod-changelog" />}
                     {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&

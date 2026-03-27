@@ -1,0 +1,50 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    @include shimmer.shell;
+}
+
+.item {
+    display: grid;
+    grid-template-columns: 122px minmax(0, 1fr);
+    gap: 24px;
+    padding: 24px;
+    outline: 1px solid var(--modal-border);
+    border-radius: 18px;
+    background: linear-gradient(90deg, #577eff16 0%, rgba(87, 126, 255, 0.03) 100%);
+}
+
+.meta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.version {
+    @include shimmer.text-surface;
+    width: 54px;
+    height: 20px;
+    border-radius: 33px;
+}
+
+.date {
+    @include shimmer.text-surface(rgba(129, 141, 179, 0.12));
+    width: 96px;
+    height: 11px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+@media (max-width: 720px) {
+    .item {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+}

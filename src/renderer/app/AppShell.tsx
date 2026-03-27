@@ -68,7 +68,6 @@ function App() {
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
-    const [features, setFeatures] = useState<Record<string, boolean>>({})
     const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
@@ -324,7 +323,6 @@ function App() {
             userId={user.id}
             appVersion={app.info.version}
             setUser={setUser}
-            setFeatures={setFeatures}
             setLoading={setLoading}
             onLogout={handleSocketLogout}
             onAchievementsUpdate={handleSocketAchievementsUpdate}
@@ -356,8 +354,6 @@ function App() {
                 setMod={setMod}
                 modInfo={modInfo}
                 modInfoFetched={modInfoFetched}
-                features={features}
-                setFeatures={setFeatures}
                 allAchievements={allAchievements}
                 setAllAchievements={setAllAchievements}
                 notificationsValue={notificationsValue}

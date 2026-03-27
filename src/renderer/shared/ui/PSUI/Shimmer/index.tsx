@@ -7,6 +7,7 @@ import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
 import ExtensionShimmer from '@shared/ui/PSUI/Shimmer/variants/ExtensionShimmer'
 import ProfileShimmer from '@shared/ui/PSUI/Shimmer/variants/ProfileShimmer'
 import PanelShimmer from '@shared/ui/PSUI/Shimmer/variants/PanelShimmer'
+import ModChangelogShimmer from '@shared/ui/PSUI/Shimmer/variants/ModChangelogShimmer'
 
 export type { ShimmerProps, ShimmerVariant }
 
@@ -16,6 +17,7 @@ const VARIANT_COMPONENTS: Record<ShimmerVariant, React.FC> = {
     extension: ExtensionShimmer,
     profile: ProfileShimmer,
     panel: PanelShimmer,
+    'mod-changelog': ModChangelogShimmer,
 }
 
 export default function Shimmer({ variant = 'store', className }: ShimmerProps) {

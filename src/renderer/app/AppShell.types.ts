@@ -37,8 +37,6 @@ export type AppProvidersProps = {
     setMod: Dispatch<SetStateAction<ModInterface[]>>
     modInfo: ModInterface[]
     modInfoFetched: boolean
-    features: Record<string, boolean>
-    setFeatures: Dispatch<SetStateAction<Record<string, boolean>>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     notificationsValue: NotificationsContextValue
