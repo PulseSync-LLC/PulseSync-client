@@ -7,7 +7,7 @@ import UserInterface from '@entities/user/model/user.interface'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
 import apolloClient from '@shared/api/apolloClient'
 import debounce from 'lodash.debounce'
-import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
 import toast from '@shared/ui/toast'
 import UserCardV2 from '@entities/user/ui/userCardV2'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
@@ -19,6 +19,8 @@ import { PER_PAGE, SORT_FIELDS, SortState, sortUsers } from '@pages/users/model/
 
 export default function UsersPage() {
     const [loading, setLoading] = useState(true)
+    const [isFetchingMore, setIsFetchingMore] = useState(false)
+    const [hasLoadMoreError, setHasLoadMoreError] = useState(false)
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
@@ -30,7 +32,10 @@ export default function UsersPage() {
 
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const loadMoreRef = useRef<HTMLDivElement>(null)
     const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
+    const queryKeyRef = useRef(0)
+    const nextPagePendingRef = useRef(false)
     const nav = useNavigate()
     const { t } = useTranslation()
 
@@ -62,33 +67,58 @@ export default function UsersPage() {
     }, [])
 
     const fetchUsers = useCallback(
-        (page_: number, perPage_: number, sorting_: SortState, search_: string) => {
-            setLoading(true)
-            apolloClient
-                .query({
+        async (page_: number, perPage_: number, sorting_: SortState, search_: string, mode: 'replace' | 'append', queryKey: number) => {
+            if (mode === 'append') {
+                setIsFetchingMore(true)
+            } else {
+                setLoading(true)
+            }
+
+            try {
+                const result = await apolloClient.query({
                     query: GetAllUsersQuery,
                     variables: { perPage: perPage_, page: page_, sorting: sorting_, search: search_ },
                     fetchPolicy: 'no-cache',
                 })
-                .then(result => {
-                    const data: any = result.data || {}
-                    const payload = data.getUsersWithPagination || null
-                    if (payload) {
-                        const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
-                        const totalPages: number = payload.totalPages || 1
-                        setUsers(sortUsers(raw, sorting_))
-                        setMaxPages(totalPages)
-                    } else {
-                        setUsers([])
-                        setMaxPages(1)
-                    }
+
+                if (queryKey !== queryKeyRef.current) return
+
+                const data: any = result.data || {}
+                const payload = data.getUsersWithPagination || null
+
+                if (payload) {
+                    const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
+                    const totalPages: number = payload.totalPages || 1
+                    const nextUsers = sortUsers(raw, sorting_)
+
+                    setUsers(prevUsers => {
+                        if (mode !== 'append') return nextUsers
+
+                        const knownIds = new Set(prevUsers.map(user => user.id))
+                        return [...prevUsers, ...nextUsers.filter(user => !knownIds.has(user.id))]
+                    })
+                    setMaxPages(totalPages)
+                    if (mode === 'append') setHasLoadMoreError(false)
+                } else {
+                    if (mode !== 'append') setUsers([])
+                    setMaxPages(1)
+                }
+            } catch (e) {
+                if (queryKey !== queryKeyRef.current) return
+                console.error(e)
+                if (mode === 'append') {
+                    setHasLoadMoreError(true)
+                    setPage(prevPage => (prevPage >= page_ ? Math.max(1, page_ - 1) : prevPage))
+                }
+                toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
+            } finally {
+                if (mode === 'append') {
+                    nextPagePendingRef.current = false
+                    if (queryKey === queryKeyRef.current) setIsFetchingMore(false)
+                } else if (queryKey === queryKeyRef.current) {
                     setLoading(false)
-                })
-                .catch(e => {
-                    console.error(e)
-                    toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
-                    setLoading(false)
-                })
+                }
+            }
         },
         [t],
     )
@@ -109,8 +139,24 @@ export default function UsersPage() {
     }, [search])
 
     useEffect(() => {
-        debouncedFetchUsers(page, PER_PAGE, sorting, debouncedSearch)
-    }, [sorting, page, debouncedSearch, debouncedFetchUsers])
+        const nextQueryKey = queryKeyRef.current + 1
+        queryKeyRef.current = nextQueryKey
+        nextPagePendingRef.current = false
+
+        setPage(1)
+        setMaxPages(1)
+        setUsers([])
+        setLoading(true)
+        setIsFetchingMore(false)
+        setHasLoadMoreError(false)
+
+        debouncedFetchUsers(1, PER_PAGE, sorting, debouncedSearch, 'replace', nextQueryKey)
+    }, [sorting, debouncedSearch, debouncedFetchUsers])
+
+    useEffect(() => {
+        if (page === 1) return
+        fetchUsers(page, PER_PAGE, sorting, debouncedSearch, 'append', queryKeyRef.current)
+    }, [page, sorting, debouncedSearch, fetchUsers])
 
     useLayoutEffect(() => {
         const activeIndex = SORT_FIELDS.indexOf(sorting[0].id)
@@ -135,6 +181,38 @@ export default function UsersPage() {
         window.addEventListener('resize', onResize)
         return () => window.removeEventListener('resize', onResize)
     }, [getPT])
+
+    useEffect(() => {
+        const root = containerRef.current
+        const target = loadMoreRef.current
+
+        if (!root || !target || loading || isFetchingMore || hasLoadMoreError || page >= maxPages) return
+
+        const observer = new IntersectionObserver(
+            entries => {
+                const entry = entries[0]
+                if (!entry?.isIntersecting || nextPagePendingRef.current) return
+
+                nextPagePendingRef.current = true
+                setPage(prevPage => {
+                    if (prevPage >= maxPages) {
+                        nextPagePendingRef.current = false
+                        return prevPage
+                    }
+
+                    return prevPage + 1
+                })
+            },
+            {
+                root,
+                rootMargin: '0px 0px 320px 0px',
+                threshold: 0.1,
+            },
+        )
+
+        observer.observe(target)
+        return () => observer.disconnect()
+    }, [hasLoadMoreError, isFetchingMore, loading, maxPages, page])
 
     const handleSort = useCallback((field: string) => {
         setPage(1)
@@ -225,64 +303,6 @@ export default function UsersPage() {
         }
     }, [users])
 
-    const handlePageChange = useCallback((newPage: number) => {
-        setPage(newPage)
-        setTimeout(() => {
-            containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-        }, 0)
-    }, [])
-
-    const pagination = useMemo(() => {
-        if (maxPages <= 1) return null
-
-        const maxVisibleButtons = 5
-        let startPage = Math.max(1, page - Math.floor(maxVisibleButtons / 2))
-        let endPage = Math.min(maxPages, startPage + maxVisibleButtons - 1)
-
-        if (endPage - startPage + 1 < maxVisibleButtons) {
-            startPage = Math.max(1, endPage - maxVisibleButtons + 1)
-        }
-
-        return (
-            <div className={s.paginationContainer}>
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1} className={s.paginationNavButton}>
-                    <MdKeyboardArrowLeft />
-                </button>
-                {startPage > 1 && (
-                    <>
-                        <button onClick={() => handlePageChange(1)} className={s.paginationPageButton}>
-                            1
-                        </button>
-                        {startPage > 2 && <span className={s.paginationEllipsis}>...</span>}
-                    </>
-                )}
-                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
-                    const pageNum = startPage + i
-                    return (
-                        <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={cn(s.paginationPageButton, pageNum === page && s.activePage)}
-                        >
-                            {pageNum}
-                        </button>
-                    )
-                })}
-                {endPage < maxPages && (
-                    <>
-                        {endPage < maxPages - 1 && <span className={s.paginationEllipsis}>...</span>}
-                        <button onClick={() => handlePageChange(maxPages)} className={s.paginationPageButton}>
-                            {maxPages}
-                        </button>
-                    </>
-                )}
-                <button onClick={() => handlePageChange(page + 1)} disabled={page === maxPages} className={s.paginationNavButton}>
-                    <MdKeyboardArrowRight />
-                </button>
-            </div>
-        )
-    }, [handlePageChange, maxPages, page])
-
     return (
         <PageLayout title={t('users.pageTitle')}>
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
@@ -315,7 +335,6 @@ export default function UsersPage() {
                                 value={search}
                                 onChange={e => {
                                     setSearch(e.target.value)
-                                    setPage(1)
                                 }}
                                 className={s.searchInput}
                             />
@@ -350,16 +369,30 @@ export default function UsersPage() {
                     {loading ? (
                         <Loader variant="users" />
                     ) : users.length > 0 ? (
-                        <div className={s.userGrid}>
-                            {users.map(user => (
-                                <UserCardV2 key={user.id} user={user} onClick={openProfile} />
-                            ))}
-                        </div>
+                        <>
+                            <div className={s.userGrid}>
+                                {users.map(user => (
+                                    <UserCardV2 key={user.id} user={user} onClick={openProfile} />
+                                ))}
+                            </div>
+                            <div ref={loadMoreRef} className={s.loadMoreSentinel} aria-hidden="true" />
+                            {maxPages > 1 && (
+                                <div className={s.paginationStatus}>
+                                    <span>
+                                        {page} / {maxPages}
+                                    </span>
+                                </div>
+                            )}
+                            {isFetchingMore && (
+                                <div className={s.loadMoreShimmer}>
+                                    <Loader variant="users" />
+                                </div>
+                            )}
+                        </>
                     ) : (
                         !loading && <div className={s.noResults}>{t('users.noResults')}</div>
                     )}
                 </div>
-                {pagination}
             </Scrollbar>
         </PageLayout>
     )
