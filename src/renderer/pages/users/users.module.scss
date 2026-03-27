@@ -496,3 +496,27 @@
     padding-bottom: 0;
     margin-bottom: 0;
 }
+
+.loadMoreSentinel {
+    width: 100%;
+    height: 1px;
+}
+
+.paginationStatus {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 25px 0;
+    color: #959dba;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+}
+
+.loadMoreShimmer {
+    max-height: 165px;
+    overflow: hidden;
+    padding: 0 0 25px 0;
+    pointer-events: none;
+}
