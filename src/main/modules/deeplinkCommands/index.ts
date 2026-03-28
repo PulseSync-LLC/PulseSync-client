@@ -1,10 +1,13 @@
 import { BrowserWindow } from 'electron'
+import type { BrowserAuthCredentials } from '../auth/browserAuth'
+import auth from './auth'
 import patch from './patch'
 
 export interface DeeplinkCommandContext {
     rawUrl: string
     args: string[]
     window?: BrowserWindow
+    handleBrowserAuth: (credentials: BrowserAuthCredentials, window?: BrowserWindow) => Promise<void>
     handleInstallModUpdateFrom: (asarPath: string, window?: BrowserWindow) => Promise<void>
 }
 
@@ -15,13 +18,21 @@ const normalizeCommandName = (value: string): string => value.trim().replace(/-/
 
 export default class deeplinkCommands {
     private readonly commands: DeeplinkCommandEntry[]
+    private readonly handleBrowserAuth: (credentials: BrowserAuthCredentials, window?: BrowserWindow) => Promise<void>
     private readonly handleInstallModUpdateFrom: (asarPath: string, window?: BrowserWindow) => Promise<void>
 
     static loadCommands(): DeeplinkCommandEntry[] {
-        return [{ name: 'patch', run: patch }]
+        return [
+            { name: 'browser_auth', run: auth },
+            { name: 'patch', run: patch },
+        ]
     }
 
-    constructor(deps: { handleInstallModUpdateFrom: (asarPath: string, window?: BrowserWindow) => Promise<void> }) {
+    constructor(deps: {
+        handleBrowserAuth: (credentials: BrowserAuthCredentials, window?: BrowserWindow) => Promise<void>
+        handleInstallModUpdateFrom: (asarPath: string, window?: BrowserWindow) => Promise<void>
+    }) {
+        this.handleBrowserAuth = deps.handleBrowserAuth
         this.handleInstallModUpdateFrom = deps.handleInstallModUpdateFrom
         this.commands = deeplinkCommands.loadCommands()
     }
@@ -34,6 +45,7 @@ export default class deeplinkCommands {
             rawUrl,
             args,
             window,
+            handleBrowserAuth: this.handleBrowserAuth,
             handleInstallModUpdateFrom: this.handleInstallModUpdateFrom,
         })
     }

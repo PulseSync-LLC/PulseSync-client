@@ -10,10 +10,20 @@ let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null
 const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/g, '')
 
 const transformUrl = (url: string): string[] => {
-    return url
-        .replace(/^pulsesync:\/\//i, '')
-        .split('/')
-        .filter(Boolean)
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'pulsesync:') return []
+
+        return [parsed.hostname, ...parsed.pathname.split('/')]
+            .map(part => trimQuotes(part || ''))
+            .filter(Boolean)
+    } catch {
+        return url
+            .replace(/^pulsesync:\/\//i, '')
+            .split('/')
+            .map(part => trimQuotes(part.split(/[?#]/, 1)[0] || ''))
+            .filter(Boolean)
+    }
 }
 
 export const checkIsDeeplink = (value: string): boolean => /^pulsesync:\/\/.*/i.test(value)
@@ -64,10 +74,10 @@ const handleBrowserAuthDeepLink = async (credentials: BrowserAuthCredentials, wi
 }
 
 export const createDeeplinkCommandsHandler = async (): Promise<deeplinkCommands> => {
-    const deeplinkCommandsHandler = await new deeplinkCommands({
+    return new deeplinkCommands({
+        handleBrowserAuth: handleBrowserAuthDeepLink,
         handleInstallModUpdateFrom,
     })
-    return deeplinkCommandsHandler
 }
 
 export const navigateToDeeplink = async (url: string, deeplinkCommandsHandler: deeplinkCommands, window?: BrowserWindow): Promise<void> => {
