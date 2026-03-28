@@ -1,7 +1,5 @@
 import { BrowserWindow, app } from 'electron'
 import isAppDev from '../../utils/isAppDev'
-import axios from 'axios'
-import config from '@common/appConfig'
 import RendererEvents from '../../../common/types/rendererEvents'
 import logger from '../logger'
 import { getState } from '../state'
@@ -37,11 +35,32 @@ const pickAuthCredentials = (raw: unknown): BrowserAuthCredentials | null => {
     return { userId, token }
 }
 
-const readAuthFromParams = (params: URLSearchParams): BrowserAuthCredentials | null => {
+export const readBrowserAuthFromParams = (params: URLSearchParams): BrowserAuthCredentials | null => {
     const userId = params.get('userId') || params.get('userID') || params.get('user_id') || params.get('id')
     const token = params.get('token') || params.get('accessToken') || params.get('access_token')
     if (!userId || !token) return null
     return { userId: trimQuotes(userId), token: trimQuotes(token) }
+}
+
+export const extractBrowserAuthCredentialsFromUrl = (rawUrl: string): BrowserAuthCredentials | null => {
+    if (!rawUrl || !rawUrl.toLowerCase().startsWith('pulsesync://')) return null
+
+    try {
+        const parsed = new URL(rawUrl)
+        if (parsed.protocol !== 'pulsesync:') return null
+
+        const queryCredentials = readBrowserAuthFromParams(parsed.searchParams)
+        if (queryCredentials) return queryCredentials
+
+        if (parsed.hash?.startsWith('#')) {
+            const hashCredentials = readBrowserAuthFromParams(new URLSearchParams(parsed.hash.slice(1)))
+            if (hashCredentials) return hashCredentials
+        }
+    } catch {
+        return null
+    }
+
+    return null
 }
 
 export const extractBrowserAuthFromPayload = (payload: unknown): BrowserAuthCredentials | null => {
@@ -67,11 +86,11 @@ export const extractBrowserAuthFromDeepLink = (rawUrl: string): BrowserAuthCrede
         const hasAction = isBrowserAuthAction(parsed.hostname) || pathParts.some(isBrowserAuthAction)
         if (!hasAction) return null
 
-        const queryCredentials = readAuthFromParams(parsed.searchParams)
+        const queryCredentials = readBrowserAuthFromParams(parsed.searchParams)
         if (queryCredentials) return queryCredentials
 
         if (parsed.hash?.startsWith('#')) {
-            const hashCredentials = readAuthFromParams(new URLSearchParams(parsed.hash.slice(1)))
+            const hashCredentials = readBrowserAuthFromParams(new URLSearchParams(parsed.hash.slice(1)))
             if (hashCredentials) return hashCredentials
         }
     } catch {
@@ -105,12 +124,6 @@ export const processBrowserAuth = async (
     }
 
     try {
-        if (isAppDev) {
-            State.set('tokens.token', token)
-            notifyAuthSuccess(window, client)
-            return true
-        }
-
         const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
         if (!data.ok || !data.access) {
             logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
@@ -119,7 +132,7 @@ export const processBrowserAuth = async (
         }
 
         State.set('tokens.token', token)
-        logger.socketManager.info(`Access confirmed for user ${userId}.`)
+        logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${userId}.`)
         notifyAuthSuccess(window, client)
         return true
     } catch (error) {
