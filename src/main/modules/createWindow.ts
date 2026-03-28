@@ -156,7 +156,7 @@ export async function createWindow(): Promise<void> {
         trafficLightPosition: { x: 16, y: 10 },
         icon,
         webPreferences: {
-            preload: path.join(__dirname, 'mainWindowPreload.js'),
+            preload: path.join(__dirname, 'mainWindowPreload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
             devTools: isAppDev || isDevmark,

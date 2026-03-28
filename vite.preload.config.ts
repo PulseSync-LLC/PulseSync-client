@@ -1,8 +1,12 @@
 import { defineConfig } from 'vite'
 import path from 'path'
+import { fileURLToPath } from 'node:url'
 
-export default defineConfig(({ mode }) => {
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevMode = mode === 'development'
+    const entry = forgeConfigSelf?.entry ?? 'src/main/mainWindowPreload.ts'
 
     return {
         plugins: [
@@ -30,8 +34,11 @@ export default defineConfig(({ mode }) => {
             target: 'node24.14',
             outDir: path.resolve(__dirname, `.vite/main`),
             rolldownOptions: {
+                input: entry,
                 output: {
                     codeSplitting: false,
+                    entryFileNames: '[name].cjs',
+                    chunkFileNames: '[name].cjs',
                 },
             },
         },

@@ -4,6 +4,9 @@ import { FusesPlugin } from '@electron-forge/plugin-fuses'
 import { FuseV1Options, FuseVersion } from '@electron/fuses'
 import path from 'path'
 import fs from 'fs'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const collectNativeNodeFiles = (dir: string): string[] => {
     if (!fs.existsSync(dir)) return []

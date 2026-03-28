@@ -4,6 +4,9 @@ import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
 import fs from 'fs'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',

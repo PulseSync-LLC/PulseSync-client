@@ -2,6 +2,9 @@ import 'dotenv/config'
 import fs from 'fs'
 import path from 'path'
 import chalk from 'chalk'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 enum LogLevel {
     INFO = 'INFO',
@@ -400,7 +403,9 @@ async function cli() {
     }
 }
 
-if (require.main === module) {
+const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+
+if (isDirectRun) {
     cli().catch(err => {
         log(LogLevel.ERROR, `Unexpected error: ${err?.message || err}`)
         process.exit(1)

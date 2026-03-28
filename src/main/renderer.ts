@@ -1,2 +1,2 @@
-import '../renderer/app/index.tsx'
+import '../renderer/app/index'
 import '../styles/globals.css'

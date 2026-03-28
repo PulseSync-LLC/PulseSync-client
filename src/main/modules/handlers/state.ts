@@ -1,6 +1,6 @@
 export let state: {
     lastWindowBlurredOrHiddenTime: number
-    deeplink: string
+    deeplink: string | null
     willQuit: boolean
 }
 state = {
