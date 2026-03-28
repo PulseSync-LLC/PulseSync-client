@@ -8,8 +8,11 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload'
-import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
+import { fileURLToPath } from 'node:url'
+import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
+import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const exec = promisify(_exec)
 

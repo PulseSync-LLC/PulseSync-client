@@ -4,6 +4,8 @@ import { app } from 'electron'
 import en from '../locales/en/main.json'
 import ru from '../locales/ru/main.json'
 
+type MainTranslateOptions = Omit<TOptions, 'defaultValue'>
+
 const normalizeLocale = (locale?: string): string => {
     if (!locale) return 'ru'
     return locale.split('-')[0].toLowerCase()
@@ -27,4 +29,4 @@ export const initMainI18n = (): typeof i18next => {
     return i18next
 }
 
-export const t = (key: string, options?: TOptions): string => i18next.t(key, options)
+export const t = (key: string, options?: MainTranslateOptions): string => (options ? i18next.t(key, options) : i18next.t(key))

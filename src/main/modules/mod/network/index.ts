@@ -92,7 +92,7 @@ export async function downloadAndUpdateFile(
             progressScale: progress?.scale ?? 1,
             progressBase: progress?.base ?? 0,
             rejectUnauthorized: false,
-            name,
+            name: name ?? 'app.asar',
         })
 
         const fileBuffer = fs.readFileSync(tempFilePath)

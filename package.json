@@ -5,29 +5,30 @@
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
     "version": "2.12.0-beta",
-    "main": ".vite/main/index.js",
+    "main": ".vite/main/index.cjs",
     "scripts": {
         "start": "electron-forge start",
-        "build:package": "ts-node scripts/build.ts --application --debug",
-        "build:installer": "ts-node scripts/build.ts --installer --debug",
-        "build:nativeModules": "ts-node scripts/build.ts --nativeModules --debug",
-        "publish:api": "ts-node scripts/changelog-publish.ts --api",
-        "publish:discord": "ts-node scripts/changelog-publish.ts --discord",
-        "publish:beta": "ts-node scripts/build.ts --application --publish beta --debug",
-        "publish:alpha": "ts-node scripts/build.ts --application --publish alpha --debug",
-        "publish:dev": "ts-node scripts/build.ts --application --publish dev --debug",
+        "build:package": "tsx scripts/build.ts --application --debug",
+        "build:installer": "tsx scripts/build.ts --installer --debug",
+        "build:nativeModules": "tsx scripts/build.ts --nativeModules --debug",
+        "publish:api": "tsx scripts/changelog-publish.ts --api",
+        "publish:discord": "tsx scripts/changelog-publish.ts --discord",
+        "publish:beta": "tsx scripts/build.ts --application --publish beta --debug",
+        "publish:alpha": "tsx scripts/build.ts --application --publish alpha --debug",
+        "publish:dev": "tsx scripts/build.ts --application --publish dev --debug",
+        "typecheck": "tsc -b --noEmit",
         "lint": "eslint --ext .ts,.tsx .",
         "format": "prettier --write .",
         "updateDeps": "ncu -u"
     },
-    "type": "commonjs",
+    "type": "module",
     "engines": {
         "node": "^20.19.0 || >=22.12.0"
     },
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1018.0",
+        "@aws-sdk/client-s3": "^3.1019.0",
         "@babel/core": "7.29.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -70,9 +71,10 @@
         "prettier": "^3.8.1",
         "sass": "^1.98.0",
         "ts-node": "^10.9.2",
+        "tsx": "4.21.0",
         "typescript": "^6.0.2",
         "vite": "^8.0.3",
-        "vite-plugin-svgr": "^4.5.0"
+        "vite-plugin-svgr": "^5.0.0"
     },
     "dependencies": {
         "@apollo/client": "^4.1.6",
@@ -86,7 +88,7 @@
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
         "adm-zip": "^0.5.16",
-        "axios": "^1.13.6",
+        "axios": "^1.14.0",
         "browserify-fs": "^1.0.0",
         "browserify-sign": "^4.2.5",
         "chart.js": "^4.5.1",
@@ -100,7 +102,7 @@
         "glob": "^13.0.6",
         "graphql": "^16.13.2",
         "graphql-ws": "^6.0.8",
-        "i18next": "^25.10.10",
+        "i18next": "^26.0.1",
         "lodash.debounce": "^4.0.8",
         "log4js": "^6.9.1",
         "net": "^1.0.2",
@@ -110,7 +112,7 @@
         "react-chartjs-2": "^5.3.1",
         "react-dom": "^19.2.4",
         "react-hot-toast": "^2.6.0",
-        "react-i18next": "^16.6.6",
+        "react-i18next": "^17.0.1",
         "react-icons": "^5.6.0",
         "react-loading-skeleton": "^3.5.0",
         "react-markdown": "^10.1.0",
@@ -146,8 +148,8 @@
     },
     "buildInfo": {
         "VERSION": "2.12.0-beta",
-        "BRANCH": "3eb488d",
-        "BUILD_TIME": "26.03.2026, 14:31:45"
+        "BRANCH": "2e61c0f",
+        "BUILD_TIME": "28.03.2026, 23:53:05"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

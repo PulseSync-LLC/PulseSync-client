@@ -244,8 +244,6 @@ class Updater {
     }
 }
 
-exports.Updater = Updater
-
 export const getUpdater = (() => {
     let updater: Updater | undefined
     return () => {

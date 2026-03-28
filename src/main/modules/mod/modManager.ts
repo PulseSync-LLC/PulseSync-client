@@ -71,8 +71,14 @@ export const modManager = (window: BrowserWindow): void => {
                 const wasClosed = await closeMusicIfRunning(window)
 
                 const ymMetadata = await getInstalledYmMetadata()
+                const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
                 if (!force && !spoof) {
-                    const comp = await checkModCompatibility(version, ymMetadata?.version)
+                    if (!resolvedMusicVersion) {
+                        sendFailure(window, { error: t('main.modNetwork.compatibilityCheckError'), type: 'compatibility_error' })
+                        return
+                    }
+
+                    const comp = await checkModCompatibility(version, resolvedMusicVersion)
                     if (!comp.success) {
                         const type =
                             comp.code === 'YANDEX_VERSION_OUTDATED'
@@ -199,13 +205,17 @@ export const modManager = (window: BrowserWindow): void => {
 
                 const versionFilePath = path.join(paths.music, 'version.bin')
                 const tempVersionFilePath = path.join(TEMP_DIR, `version.${Date.now()}.${process.pid}.bin`)
-                await fs.promises.writeFile(tempVersionFilePath, musicVersion)
-                try {
-                    await copyFile(tempVersionFilePath, versionFilePath)
-                } finally {
+                if (resolvedMusicVersion) {
+                    await fs.promises.writeFile(tempVersionFilePath, resolvedMusicVersion)
                     try {
-                        await fs.promises.unlink(tempVersionFilePath)
-                    } catch {}
+                        await copyFile(tempVersionFilePath, versionFilePath)
+                    } finally {
+                        try {
+                            await fs.promises.unlink(tempVersionFilePath)
+                        } catch {}
+                    }
+                } else {
+                    logger.modManager.warn('Skipping version.bin update because no Yandex Music version was resolved')
                 }
 
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return

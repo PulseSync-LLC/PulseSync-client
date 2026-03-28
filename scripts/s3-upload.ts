@@ -7,6 +7,9 @@ import yaml from 'js-yaml'
 import chalk from 'chalk'
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
 import https from 'https'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 enum LogLevel {
     INFO = 'INFO',
@@ -286,7 +289,7 @@ async function cli(): Promise<void> {
     if (!branch) {
         log(
             LogLevel.ERROR,
-            'Usage: ts-node scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
         )
         process.exit(1)
     }
@@ -307,7 +310,9 @@ async function cli(): Promise<void> {
     }
 }
 
-if (require.main === module) {
+const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+
+if (isDirectRun) {
     cli().catch(err => {
         log(LogLevel.ERROR, `Unexpected error: ${err.message || err}`)
         if (err && err.stack) {
