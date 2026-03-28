@@ -124,13 +124,6 @@ export const processBrowserAuth = async (
     }
 
     try {
-        const { data } = await axios.get(`${config.SERVER_URL}/api/v1/user/${userId}/access`)
-        if (!data.ok || !data.access) {
-            logger.socketManager.error(`Access denied for user ${userId}, quitting application.`)
-            app.quit()
-            return false
-        }
-
         State.set('tokens.token', token)
         logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${userId}.`)
         notifyAuthSuccess(window, client)
