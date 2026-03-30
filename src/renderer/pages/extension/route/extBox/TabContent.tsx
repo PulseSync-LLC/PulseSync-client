@@ -301,7 +301,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 
     if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
 
-    if (active === PUBLICATION_CHANGELOG_TAB) {
+    if (active === PUBLICATION_CHANGELOG_TAB && addon.installSource === 'store' && publicationReleases.length > 0) {
         return (
             <div className={styles.galleryContainer}>
                 <div className={styles.changelogPanel}>

@@ -691,12 +691,26 @@
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru/*",
-            "supportedVersions": "2024.06.01",
+            "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Fix errors",
+        "listEditor": {
+            "title": "Allowed URLs and versions",
+            "description": "URLs the add-on can access and Yandex Music versions it supports.",
+            "allowedUrlsTitle": "Allowed URLs",
+            "supportedVersionsTitle": "Supported Yandex Music versions",
+            "add": "Add",
+            "edit": "Configure",
+            "allowedUrlsHint": "One URL per line. You can paste multiple entries at once.",
+            "supportedVersionsHint": "Semver ranges such as ^5.75.0 or >=5.75 <5.80.",
+            "allowedUrlsSummary": "URLs added: {{count}}",
+            "supportedVersionsSummary": "{{value}}",
+            "invalidSupportedVersions": "Invalid version ranges: {{versions}}",
+            "previewEmpty": "Not set"
+        },
         "labels": {
-            "allowedUrls": "Allowed URLs (comma-separated)",
+            "allowedUrls": "Allowed URLs",
             "author": "Author",
             "banner": "Banner",
             "css": "CSS",
@@ -706,7 +720,7 @@
             "libraryLogo": "Library logo",
             "name": "Name",
             "script": "Script",
-            "supportedVersions": "Supported Versions (comma-separated)",
+            "supportedVersions": "Supported versions",
             "tags": "Tags (comma-separated)",
             "type": "Type",
             "version": "Version"

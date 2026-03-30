@@ -8,6 +8,27 @@
     z-index: 1;
 }
 
+.themeInfo::before,
+.themeInfo::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.themeInfo::before {
+    z-index: 0;
+    background:
+        linear-gradient(180deg, rgba(16, 18, 28, 0.04) 0%, rgba(16, 18, 28, 0.14) 100%),
+        radial-gradient(circle at 20% 84%, rgba(14, 16, 25, 0.2) 0%, rgba(14, 16, 25, 0.08) 28%, transparent 52%),
+        linear-gradient(90deg, rgba(18, 20, 31, 0.14) 0%, rgba(18, 20, 31, 0.04) 38%, rgba(18, 20, 31, 0) 64%);
+}
+
+.themeInfo::after {
+    z-index: 1;
+    background: linear-gradient(180deg, rgba(10, 12, 18, 0) 58%, rgba(10, 12, 18, 0.12) 100%);
+}
+
 .content {
     z-index: 25;
     display: flex;
@@ -61,16 +82,26 @@
     align-items: flex-end;
     justify-content: flex-start;
     padding: 10px 40px;
+    position: relative;
+    z-index: 2;
 }
 
 .libraryLogoImg {
     width: 140px;
+    filter: drop-shadow(0 10px 24px rgba(8, 10, 18, 0.38)) drop-shadow(0 2px 8px rgba(8, 10, 18, 0.5));
+    position: relative;
+    z-index: 1;
 }
 
 .libraryLogoText {
     font-size: 50px;
     font-weight: bold;
     transition: var(--transition);
+    position: relative;
+    z-index: 1;
+    text-shadow:
+        0 2px 8px rgba(8, 10, 18, 0.5),
+        0 12px 32px rgba(8, 10, 18, 0.38);
 }
 
 .invisible {

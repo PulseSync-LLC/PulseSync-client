@@ -691,12 +691,26 @@
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru/*",
-            "supportedVersions": "2024.06.01",
+            "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Исправьте ошибки",
+        "listEditor": {
+            "title": "Разрешённые URL и версии",
+            "description": "URL, к которым может обращаться аддон, и версии Яндекс Музыки, с которыми он совместим.",
+            "allowedUrlsTitle": "Разрешённые URL",
+            "supportedVersionsTitle": "Поддерживаемые версии Яндекс Музыки",
+            "add": "Добавить",
+            "edit": "Настроить",
+            "allowedUrlsHint": "По одному URL в строке. Можно вставить несколько адресов сразу.",
+            "supportedVersionsHint": "Semver-диапазоны, например ^5.75.0 или >=5.75 <5.80.",
+            "allowedUrlsSummary": "Добавлено URL: {{count}}",
+            "supportedVersionsSummary": "{{value}}",
+            "invalidSupportedVersions": "Некорректные диапазоны версий: {{versions}}",
+            "previewEmpty": "Не задано"
+        },
         "labels": {
-            "allowedUrls": "Разрешенные URL (через запятую)",
+            "allowedUrls": "Разрешённые URL",
             "author": "Автор",
             "banner": "Баннер",
             "css": "CSS",
@@ -706,7 +720,7 @@
             "libraryLogo": "Логотип библиотеки",
             "name": "Название",
             "script": "Скрипт",
-            "supportedVersions": "Поддерживаемые версии (через запятую)",
+            "supportedVersions": "Поддерживаемые версии",
             "tags": "Теги (через запятую)",
             "type": "Тип",
             "version": "Версия"

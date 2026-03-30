@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
+import { MdAdd, MdClose } from 'react-icons/md'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 import semver from 'semver'
@@ -9,6 +10,8 @@ import SelectInput from '@shared/ui/PSUI/SelectInput'
 import FileInput from '@shared/ui/PSUI/FileInput'
 import ChangesBar from '@shared/ui/PSUI/ChangesBar'
 import Loader from '@shared/ui/PSUI/Loader'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import ButtonV2 from '@shared/ui/buttonV2'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -158,6 +161,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
+    const [isListEditorOpen, setIsListEditorOpen] = useState(false)
+    const [modalAllowedUrlsDraft, setModalAllowedUrlsDraft] = useState<string[]>([])
+    const [modalSupportedVersionsDraft, setModalSupportedVersionsDraft] = useState<string[]>([])
+    const [modalAllowedUrlsInput, setModalAllowedUrlsInput] = useState('')
+    const [modalSupportedVersionsInput, setModalSupportedVersionsInput] = useState('')
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
@@ -228,32 +236,79 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         [setField],
     )
 
-    const allowedUrlsAsString = useMemo(() => draft.allowedUrls.join(', '), [draft.allowedUrls])
-    const setAllowedUrlsFromString = useCallback(
-        (v: string) => {
-            const next = v
-                .split(',')
-                .map(s => s.trim())
-                .filter(Boolean)
-            setField('allowedUrls', next)
-        },
-        [setField],
+    const parseListEntries = useCallback((value: string) => {
+        return value
+            .split(/\r?\n/)
+            .flatMap(line => line.split(','))
+            .map(entry => entry.trim())
+            .filter(Boolean)
+    }, [])
+
+    const invalidModalSupportedVersions = useMemo(
+        () => modalSupportedVersionsDraft.filter(version => !semver.validRange(version)),
+        [modalSupportedVersionsDraft],
+    )
+    const invalidPendingSupportedVersions = useMemo(
+        () => parseListEntries(modalSupportedVersionsInput).filter(version => !semver.validRange(version)),
+        [modalSupportedVersionsInput, parseListEntries],
     )
 
-    const supportedVersionsAsString = useMemo(() => draft.supportedVersions.join(', '), [draft.supportedVersions])
-    const setSupportedVersionsFromString = useCallback(
-        (v: string) => {
-            const next = v
-                .split(',')
-                .map(s => s.trim())
-                .filter(Boolean)
-            setField(
-                'supportedVersions',
-                next.filter(ver => semver.validRange(ver)),
-            )
-        },
-        [setField],
-    )
+    const appendUniqueEntries = useCallback((current: string[], rawValue: string) => {
+        const nextEntries = parseListEntries(rawValue)
+        if (!nextEntries.length) return current
+
+        const seen = new Set(current.map(entry => entry.toLowerCase()))
+        const result = [...current]
+        for (const entry of nextEntries) {
+            const normalized = entry.toLowerCase()
+            if (seen.has(normalized)) continue
+            seen.add(normalized)
+            result.push(entry)
+        }
+        return result
+    }, [parseListEntries])
+
+    const openListEditor = useCallback(() => {
+        setModalAllowedUrlsDraft(draft.allowedUrls)
+        setModalSupportedVersionsDraft(draft.supportedVersions)
+        setModalAllowedUrlsInput('')
+        setModalSupportedVersionsInput('')
+        setIsListEditorOpen(true)
+    }, [draft.allowedUrls, draft.supportedVersions])
+
+    const closeListEditor = useCallback(() => {
+        setIsListEditorOpen(false)
+    }, [])
+
+    const addAllowedUrls = useCallback(() => {
+        setModalAllowedUrlsDraft(prev => appendUniqueEntries(prev, modalAllowedUrlsInput))
+        setModalAllowedUrlsInput('')
+    }, [appendUniqueEntries, modalAllowedUrlsInput])
+
+    const addSupportedVersions = useCallback(() => {
+        const entries = parseListEntries(modalSupportedVersionsInput)
+        if (!entries.length) return
+        if (entries.some(version => !semver.validRange(version))) return
+
+        setModalSupportedVersionsDraft(prev => appendUniqueEntries(prev, modalSupportedVersionsInput))
+        setModalSupportedVersionsInput('')
+    }, [appendUniqueEntries, modalSupportedVersionsInput, parseListEntries])
+
+    const removeAllowedUrl = useCallback((value: string) => {
+        setModalAllowedUrlsDraft(prev => prev.filter(entry => entry !== value))
+    }, [])
+
+    const removeSupportedVersion = useCallback((value: string) => {
+        setModalSupportedVersionsDraft(prev => prev.filter(entry => entry !== value))
+    }, [])
+
+    const applyListEditor = useCallback(() => {
+        if (invalidModalSupportedVersions.length > 0) return
+
+        setField('allowedUrls', modalAllowedUrlsDraft)
+        setField('supportedVersions', modalSupportedVersionsDraft)
+        setIsListEditorOpen(false)
+    }, [invalidModalSupportedVersions.length, modalAllowedUrlsDraft, modalSupportedVersionsDraft, setField])
 
     const resolveRelIfNeeded = useCallback(
         async (value: string, fallbackBase: string, fallbackExt: string) => {
@@ -308,124 +363,275 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     return (
         <div className={css.root}>
             <div className={css.metaGrid}>
-                <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={v => setField('name', v)} />
-                <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={v => setField('author', v)} />
+                <div className={`${css.metaWide} ${css.metaSplit}`}>
+                    <div className={css.metaMainColumn}>
+                        <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={v => setField('name', v)} />
+                        <TextInput
+                            name="meta-description"
+                            label={t('metadata.labels.description')}
+                            value={draft.description}
+                            onChange={v => setField('description', v)}
+                            className={css.metaDescription}
+                        />
+                    </div>
 
-                <TextInput
-                    name="meta-description"
-                    label={t('metadata.labels.description')}
-                    value={draft.description}
-                    onChange={v => setField('description', v)}
-                />
-                <TextInput
-                    name="meta-version"
-                    label={t('metadata.labels.version')}
-                    value={draft.version}
-                    onChange={v => setField('version', v)}
-                    description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
-                />
+                    <div className={css.metaSideColumn}>
+                        <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={v => setField('author', v)} />
 
-                <SelectInput
-                    label={t('metadata.labels.type')}
-                    value={draft.type}
-                    options={[
-                        { value: 'theme', label: 'theme' },
-                        { value: 'script', label: 'script' },
-                        { value: 'library', label: 'library' },
-                    ]}
-                    onChange={v => setField('type', v as Metadata['type'])}
-                />
+                        <div className={css.metaSideRow}>
+                            <SelectInput
+                                label={t('metadata.labels.type')}
+                                value={draft.type}
+                                options={[
+                                    { value: 'theme', label: 'theme' },
+                                    { value: 'script', label: 'script' },
+                                    { value: 'library', label: 'library' },
+                                ]}
+                                onChange={v => setField('type', v as Metadata['type'])}
+                            />
+
+                            <TextInput
+                                name="meta-version"
+                                label={t('metadata.labels.version')}
+                                value={draft.version}
+                                onChange={v => setField('version', v)}
+                                description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
+                            />
+                        </div>
+                    </div>
+                </div>
 
                 <TextInput
                     name="meta-tags"
                     label={t('metadata.labels.tags')}
                     value={tagsAsString}
                     onChange={setTagsFromString}
+                    className={css.metaWide}
                     description={t('metadata.examples.tags')}
                 />
 
-                <div className={css.fileCol}>
+                <div className={`${css.metaWide} ${css.assetGrid}`}>
+                    <div className={css.fileCol}>
+                        <FileInput
+                            label={t('metadata.labels.image')}
+                            value={draft.image}
+                            onChange={p => setField('image', p)}
+                            placeholder={t('metadata.placeholders.selectOrEnterPath')}
+                            metadata
+                            addonPath={addonPath}
+                            preferredBaseName="image"
+                            accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                        />
+                    </div>
+
+                    <div className={css.fileCol}>
+                        <FileInput
+                            label={t('metadata.labels.banner')}
+                            value={draft.banner}
+                            onChange={p => setField('banner', p)}
+                            placeholder={t('metadata.placeholders.selectOrEnterPath')}
+                            metadata
+                            addonPath={addonPath}
+                            preferredBaseName="banner"
+                            accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                        />
+                    </div>
+
+                    <div className={css.fileCol}>
+                        <FileInput
+                            label={t('metadata.labels.libraryLogo')}
+                            value={draft.libraryLogo ?? ''}
+                            onChange={p => setField('libraryLogo', p)}
+                            placeholder={t('metadata.placeholders.logoFile')}
+                            metadata
+                            addonPath={addonPath}
+                            preferredBaseName="libraryLogo"
+                            accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                        />
+                    </div>
+
                     <FileInput
-                        label={t('metadata.labels.image')}
-                        value={draft.image}
-                        onChange={p => setField('image', p)}
-                        placeholder={t('metadata.placeholders.selectOrEnterPath')}
+                        label={t('metadata.labels.css')}
+                        value={draft.css}
+                        onChange={p => setField('css', p)}
+                        placeholder={t('metadata.placeholders.cssPath')}
                         metadata
                         addonPath={addonPath}
-                        preferredBaseName="image"
-                        accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
+                        preferredBaseName="style"
+                        accept=".css"
+                    />
+
+                    <FileInput
+                        className={css.assetWide}
+                        label={t('metadata.labels.script')}
+                        value={draft.script}
+                        onChange={p => setField('script', p)}
+                        placeholder={t('metadata.placeholders.scriptPath')}
+                        metadata
+                        addonPath={addonPath}
+                        preferredBaseName="script"
+                        accept=".js"
                     />
                 </div>
 
-                <div className={css.fileCol}>
-                    <FileInput
-                        label={t('metadata.labels.banner')}
-                        value={draft.banner}
-                        onChange={p => setField('banner', p)}
-                        placeholder={t('metadata.placeholders.selectOrEnterPath')}
-                        metadata
-                        addonPath={addonPath}
-                        preferredBaseName="banner"
-                        accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
-                    />
+                <div className={css.listEditorCard}>
+                    <div className={css.listEditorHeader}>
+                        <div>
+                            <div className={css.listEditorTitle}>{t('metadata.listEditor.title')}</div>
+                            <div className={css.listEditorDescription}>{t('metadata.listEditor.description')}</div>
+                        </div>
+                        <button type="button" className={css.listEditorButton} onClick={openListEditor}>
+                            {t('metadata.listEditor.edit')}
+                        </button>
+                    </div>
+
+                    <div className={css.listSummaryRow}>
+                        <div className={css.listSummaryMeta}>
+                            <div className={css.listSummaryLabel}>{t('metadata.labels.allowedUrls')}</div>
+                            <div className={css.listSummaryValue}>
+                                {draft.allowedUrls.length
+                                    ? t('metadata.listEditor.allowedUrlsSummary', { count: draft.allowedUrls.length })
+                                    : t('metadata.listEditor.previewEmpty')}
+                            </div>
+                        </div>
+
+                        <div className={css.listSummaryMeta}>
+                            <div className={css.listSummaryLabel}>{t('metadata.labels.supportedVersions')}</div>
+                            <div className={css.listSummaryValue}>
+                                {draft.supportedVersions.length
+                                    ? t('metadata.listEditor.supportedVersionsSummary', {
+                                          value: draft.supportedVersions.join(', '),
+                                      })
+                                    : t('metadata.listEditor.previewEmpty')}
+                            </div>
+                        </div>
+                    </div>
                 </div>
-
-                <div className={css.fileCol}>
-                    <FileInput
-                        label={t('metadata.labels.libraryLogo')}
-                        value={draft.libraryLogo ?? ''}
-                        onChange={p => setField('libraryLogo', p)}
-                        placeholder={t('metadata.placeholders.logoFile')}
-                        metadata
-                        addonPath={addonPath}
-                        preferredBaseName="libraryLogo"
-                        accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
-                    />
-                </div>
-
-                <FileInput
-                    label={t('metadata.labels.css')}
-                    value={draft.css}
-                    onChange={p => setField('css', p)}
-                    placeholder={t('metadata.placeholders.cssPath')}
-                    metadata
-                    addonPath={addonPath}
-                    preferredBaseName="style"
-                    accept=".css"
-                />
-                <FileInput
-                    label={t('metadata.labels.script')}
-                    value={draft.script}
-                    onChange={p => setField('script', p)}
-                    placeholder={t('metadata.placeholders.scriptPath')}
-                    metadata
-                    addonPath={addonPath}
-                    preferredBaseName="script"
-                    accept=".js"
-                />
-                <TextInput
-                    name="meta-dependencies"
-                    label={t('metadata.labels.dependencies')}
-                    value={dependenciesAsString}
-                    onChange={setDependenciesFromString}
-                    description={t('metadata.examples.addonName')}
-                />
-                <TextInput
-                    name="meta-allowedUrls"
-                    label={t('metadata.labels.allowedUrls')}
-                    value={allowedUrlsAsString}
-                    onChange={setAllowedUrlsFromString}
-                    description={t('metadata.examples.allowedUrls')}
-                />
-
-                <TextInput
-                    name="meta-supportedVersions"
-                    label={t('metadata.labels.supportedVersions')}
-                    value={supportedVersionsAsString}
-                    onChange={setSupportedVersionsFromString}
-                    description={t('metadata.examples.supportedVersions')}
-                />
             </div>
+
+            <CustomModalPS
+                className={css.listEditorModal}
+                isOpen={isListEditorOpen}
+                onClose={closeListEditor}
+                title={t('metadata.listEditor.title')}
+                text={t('metadata.listEditor.description')}
+                buttons={[
+                    {
+                        text: t('common.done'),
+                        onClick: applyListEditor,
+                        disabled: invalidModalSupportedVersions.length > 0,
+                    },
+                    {
+                        text: t('common.cancel'),
+                        onClick: closeListEditor,
+                        variant: 'secondary',
+                    },
+                ]}
+            >
+                <div className={css.listEditorModalBody}>
+                    <div className={css.listEditorSection}>
+                        <div className={css.listEditorSectionHeader}>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.listEditor.allowedUrlsTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.listEditor.allowedUrlsHint')}</div>
+                        </div>
+
+                        <div className={css.listEditorComposer}>
+                            <input
+                                className={css.listEditorInput}
+                                value={modalAllowedUrlsInput}
+                                onChange={event => setModalAllowedUrlsInput(event.target.value)}
+                                onKeyDown={event => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        addAllowedUrls()
+                                    }
+                                }}
+                                placeholder={t('metadata.examples.allowedUrls')}
+                            />
+                            <ButtonV2 className={css.listEditorAddButton} onClick={addAllowedUrls} disabled={!parseListEntries(modalAllowedUrlsInput).length}>
+                                <MdAdd size={18} />
+                                <span>{t('metadata.listEditor.add')}</span>
+                            </ButtonV2>
+                        </div>
+
+                        {modalAllowedUrlsDraft.length ? (
+                            <div className={css.listEditorItems}>
+                                {modalAllowedUrlsDraft.map(url => (
+                                    <div key={url} className={css.listEditorRow}>
+                                        <div className={css.listEditorRowValue}>{url}</div>
+                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeAllowedUrl(url)}>
+                                            <MdClose size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={css.listEditorEmpty}>{t('metadata.listEditor.previewEmpty')}</div>
+                        )}
+                    </div>
+
+                    <div className={css.listEditorSection}>
+                        <div className={css.listEditorSectionHeader}>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.listEditor.supportedVersionsTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.listEditor.supportedVersionsHint')}</div>
+                        </div>
+
+                        <div className={css.listEditorComposer}>
+                            <input
+                                className={css.listEditorInput}
+                                value={modalSupportedVersionsInput}
+                                onChange={event => setModalSupportedVersionsInput(event.target.value)}
+                                onKeyDown={event => {
+                                    if (event.key === 'Enter') {
+                                        event.preventDefault()
+                                        addSupportedVersions()
+                                    }
+                                }}
+                                placeholder={t('metadata.examples.supportedVersions')}
+                            />
+                            <ButtonV2
+                                className={css.listEditorAddButton}
+                                onClick={addSupportedVersions}
+                                disabled={!parseListEntries(modalSupportedVersionsInput).length || invalidPendingSupportedVersions.length > 0}
+                            >
+                                <MdAdd size={18} />
+                                <span>{t('metadata.listEditor.add')}</span>
+                            </ButtonV2>
+                        </div>
+
+                        {invalidPendingSupportedVersions.length > 0 && (
+                            <div className={css.listEditorInlineError}>
+                                {t('metadata.listEditor.invalidSupportedVersions', {
+                                    versions: invalidPendingSupportedVersions.join(', '),
+                                })}
+                            </div>
+                        )}
+
+                        {modalSupportedVersionsDraft.length ? (
+                            <div className={css.listEditorItems}>
+                                {modalSupportedVersionsDraft.map(version => (
+                                    <div key={version} className={css.listEditorRow}>
+                                        <div className={css.listEditorRowValue}>{version}</div>
+                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeSupportedVersion(version)}>
+                                            <MdClose size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={css.listEditorEmpty}>{t('metadata.listEditor.previewEmpty')}</div>
+                        )}
+                    </div>
+                </div>
+
+                {invalidModalSupportedVersions.length > 0 && (
+                    <div className={css.listEditorError}>
+                        {t('metadata.listEditor.invalidSupportedVersions', {
+                            versions: invalidModalSupportedVersions.join(', '),
+                        })}
+                    </div>
+                )}
+            </CustomModalPS>
 
             <ChangesBar
                 open={open}
