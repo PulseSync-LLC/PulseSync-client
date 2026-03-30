@@ -10,11 +10,13 @@ import { sendToRenderer } from './download.helpers'
 import { closeMusicIfRunning, persistInstalledModState, readChecksum, sendSuccessAfterLaunch } from './mod-manager.helpers'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, writePatchedAsarAndPatchBundle } from './mod-files'
 import { resolveInstallModMatch } from './network/modCatalog'
+import { getState } from '../state'
 
 const ACTION_PATCH = 'PATCH'
 const PATCH_TYPE_FROM_MOD = 'FROM_MOD'
 
 type InstallModUpdateFromSource = 'socket' | 'deeplink' | 'unknown'
+const State = getState()
 
 export interface InstallModUpdateFromResult {
     success: boolean
@@ -101,6 +103,13 @@ const sendInstallFailure = (window: BrowserWindow | null | undefined, params: { 
     window?.setProgressBar(-1)
 }
 
+const sendInstallStarted = (window: BrowserWindow | null | undefined): void => {
+    sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
+        success: true,
+        isUpdate: Boolean(State.get('mod.installed')),
+    })
+}
+
 export const extractInstallModUpdateFromDeepLink = (rawUrl: string): string | null => {
     if (!rawUrl || !rawUrl.toLowerCase().startsWith('pulsesync://')) return null
 
@@ -148,6 +157,8 @@ export const installModUpdateFromAsar = async (
     window: BrowserWindow | null | undefined,
     source: InstallModUpdateFromSource = 'unknown',
 ): Promise<InstallModUpdateFromResult> => {
+    sendInstallStarted(window)
+
     const asarPath = toAsarPathCandidate(rawPath)
     if (!asarPath) {
         const error = 'Invalid .asar path'

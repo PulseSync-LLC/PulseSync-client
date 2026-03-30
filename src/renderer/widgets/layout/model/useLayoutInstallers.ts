@@ -81,6 +81,28 @@ export function useLayoutInstallers({
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
+        const handleModInstallStarted = (_: any, data?: { isUpdate?: boolean }) => {
+            const isUpdate = typeof data?.isUpdate === 'boolean' ? data.isUpdate : app.mod.installed
+            setIsUpdating(true)
+
+            if (downloadToastIdRef.current) {
+                toast.update(downloadToastIdRef.current, {
+                    kind: 'loading',
+                    title: isUpdate ? t('layout.modUpdateStart') : t('layout.modInstallStart'),
+                    msg: t('layout.modInstallDescription'),
+                    sticky: true,
+                })
+                return
+            }
+
+            downloadToastIdRef.current = toast.custom(
+                'loading',
+                isUpdate ? t('layout.modUpdateStart') : t('layout.modInstallStart'),
+                t('layout.modInstallDescription'),
+                { duration: Infinity },
+            )
+        }
+
         const handleProgress = (_: any, { progress, name }: { progress: number; name: string }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
@@ -189,11 +211,13 @@ export function useLayoutInstallers({
             setIsUpdating(false)
         }
 
+        window.desktopEvents?.on(RendererEvents.MOD_INSTALL_STARTED, handleModInstallStarted)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
         window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)
 
         return () => {
+            window.desktopEvents?.removeAllListeners(RendererEvents.MOD_INSTALL_STARTED)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_PROGRESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_SUCCESS)
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
