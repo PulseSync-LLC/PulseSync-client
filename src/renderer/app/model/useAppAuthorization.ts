@@ -14,7 +14,14 @@ import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
 import type { GetMeData, GetMeVars } from '@app/AppShell.types'
 
 type Params = {
-    router: { navigate: (to: string, options?: any) => Promise<void> | void }
+    router: {
+        navigate: (to: string, options?: any) => Promise<void> | void
+        state?: {
+            location?: {
+                pathname?: string
+            }
+        }
+    }
     setIsAppDeprecated: (value: boolean) => void
     setLoading: (value: boolean) => void
     setUser: React.Dispatch<React.SetStateAction<UserInterface>>
@@ -49,11 +56,12 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
     })
 
     const shouldRedirectToHomeAfterAuth = useCallback(() => {
-        if (typeof window === 'undefined') return false
-        const rawHash = window.location?.hash || ''
-        const path = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+        const routerPath = router && 'state' in router ? router.state?.location?.pathname : undefined
+        const rawHash = typeof window !== 'undefined' ? window.location?.hash || '' : ''
+        const hashPath = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
+        const path = routerPath || hashPath
         return path === '/auth' || path === '/auth/callback' || path === ''
-    }, [])
+    }, [router])
 
     const sendAuthStatus = useCallback((user?: Partial<UserInterface> | null) => {
         if (user?.id) {
