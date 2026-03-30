@@ -28,7 +28,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1019.0",
+        "@aws-sdk/client-s3": "^3.1020.0",
         "@babel/core": "7.29.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -59,8 +59,8 @@
         "@types/unzipper": "^0.10.11",
         "@types/uuid": "^11.0.0",
         "@types/yazl": "^3.3.0",
-        "@typescript-eslint/eslint-plugin": "^8.57.2",
-        "@typescript-eslint/parser": "^8.57.2",
+        "@typescript-eslint/eslint-plugin": "^8.58.0",
+        "@typescript-eslint/parser": "^8.58.0",
         "@vitejs/plugin-react": "^6.0.1",
         "babel-plugin-react-compiler": "^1.0.0",
         "electron": "41.1.0",
@@ -102,7 +102,7 @@
         "glob": "^13.0.6",
         "graphql": "^16.13.2",
         "graphql-ws": "^6.0.8",
-        "i18next": "^26.0.1",
+        "i18next": "^26.0.2",
         "lodash.debounce": "^4.0.8",
         "log4js": "^6.9.1",
         "net": "^1.0.2",
@@ -148,8 +148,8 @@
     },
     "buildInfo": {
         "VERSION": "2.12.0-beta",
-        "BRANCH": "2e61c0f",
-        "BUILD_TIME": "28.03.2026, 23:53:05"
+        "BRANCH": "1f507a6",
+        "BUILD_TIME": "30.03.2026, 23:05:56"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

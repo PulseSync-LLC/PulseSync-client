@@ -33,6 +33,7 @@ import config, { branch, isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
+import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
@@ -45,7 +46,6 @@ const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
-let uiReady = false
 let pendingAddonOpen: string | null = null
 
 const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
@@ -126,7 +126,7 @@ export const queueAddonOpen = (addonName: string): void => {
 }
 
 const tryOpenPendingAddon = (): void => {
-    if (!authorized || !uiReady || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
+    if (!authorized || !isUiReady() || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
     mainWindow.webContents.send(RendererEvents.OPEN_ADDON, pendingAddonOpen)
     pendingAddonOpen = null
 }
@@ -219,7 +219,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         arch: os.arch(),
     }))
     ipcMain.on(MainEvents.UI_READY, () => {
-        uiReady = true
+        markUiReady()
         tryOpenPendingAddon()
         get_current_track()
     })

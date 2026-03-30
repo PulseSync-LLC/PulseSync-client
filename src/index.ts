@@ -31,6 +31,7 @@ import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
 import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
+import { runWhenUiReady } from './main/modules/uiReady'
 
 export let updated = false
 export let musicPath: string
@@ -125,8 +126,10 @@ app.on('ready', async () => {
         }
         const pendingInstallModUpdateFrom = consumePendingInstallModUpdateFromPath()
         if (pendingInstallModUpdateFrom) {
-            void installModUpdateFromAsar(pendingInstallModUpdateFrom.path, mainWindow, pendingInstallModUpdateFrom.source).catch(err => {
-                logger.main.error('Failed to apply pending INSTALL_MOD_UPDATE_FROM:', err)
+            runWhenUiReady(() => {
+                void installModUpdateFromAsar(pendingInstallModUpdateFrom.path, mainWindow, pendingInstallModUpdateFrom.source).catch(err => {
+                    logger.main.error('Failed to apply pending INSTALL_MOD_UPDATE_FROM:', err)
+                })
             })
         }
         if (isWindows()) {
@@ -492,8 +495,8 @@ export async function prestartCheck() {
         asarBackup = path.join(musicPath, asarFilename)
     }
 
-    if (!State.get('settings.closeAppInTray')) {
-        State.set('settings.closeAppInTray', true)
+    if (typeof State.get('settings.closeAppInTray') !== 'boolean') {
+        State.set('settings.closeAppInTray', false)
     }
     checkAsar()
     initializeAddon()
