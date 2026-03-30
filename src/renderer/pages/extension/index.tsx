@@ -481,6 +481,14 @@ export default function ExtensionPage() {
         return selectedPublication
     }, [selectedAddon, selectedPublication, storeCatalog])
 
+    const visiblePublicationReleases = useMemo(() => {
+        if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
+            return []
+        }
+
+        return selectedPublishedAddon?.releases ?? []
+    }, [selectedAddon, selectedPublishedAddon])
+
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
 
     useEffect(() => {
@@ -773,7 +781,7 @@ export default function ExtensionPage() {
                                 void handleStoreAddonUpdate()
                             }}
                             publication={selectedPublication}
-                            publicationReleases={selectedPublishedAddon?.releases ?? []}
+                            publicationReleases={visiblePublicationReleases}
                             publicationChangelogText={publicationChangelogText}
                             canManagePublication={canManagePublication}
                             publicationBusy={publicationBusy}
