@@ -93,7 +93,6 @@ typings/
 # Electron-Forge
 out/
 .idea
-yarn.lock
 
 release
 
