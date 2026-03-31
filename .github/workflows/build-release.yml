@@ -25,7 +25,6 @@ jobs:
         with:
           node-version: 22
           cache: yarn
-          cache-dependency-path: yarn.lock
 
       - name: Create .env
         shell: bash
