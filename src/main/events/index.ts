@@ -29,7 +29,7 @@ import Addon from '@entities/addon/model/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import config, { branch, isDevmark } from '@common/appConfig'
+import config, { isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -41,6 +41,14 @@ import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
 import { createGeneratedLocalAddonId } from '../utils/addonIdentity'
+import {
+    getBuildUpdateChannel,
+    getEffectiveUpdateChannel,
+    getMacManifestUrl,
+    getUpdateChannelOverride,
+    setUpdateChannelOverride,
+    shouldAllowDowngradeForCurrentChannel,
+} from '../modules/updater/updateChannel'
 
 const updater = getUpdater()
 const State = getState()
@@ -49,10 +57,9 @@ export let updateAvailable = false
 export let authorized = false
 let pendingAddonOpen: string | null = null
 
-const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
-          manifestUrl: macManifestUrl,
+          manifestUrl: getMacManifestUrl(getEffectiveUpdateChannel()),
           appName: 'PulseSync',
           attemptAutoInstall: false,
           onProgress: p => {
@@ -78,6 +85,15 @@ const macUpdater = isMac()
           onLog: m => logger.updater.info(m),
       })
     : null
+
+const syncMacUpdaterFeed = () => {
+    if (!macUpdater) {
+        return
+    }
+
+    macUpdater.setManifestUrl(getMacManifestUrl(getEffectiveUpdateChannel()))
+    macUpdater.setAllowDowngrade(shouldAllowDowngradeForCurrentChannel())
+}
 
 export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
@@ -200,6 +216,20 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
         event.returnValue = process.env.BRANCH
+    })
+    ipcMain.handle(MainEvents.GET_BUILD_CHANNEL, async () => getBuildUpdateChannel())
+    ipcMain.handle(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL, async () => getEffectiveUpdateChannel())
+    ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
+    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
+        const nextOverride = setUpdateChannelOverride(channel)
+        updater.reloadFeed()
+        syncMacUpdaterFeed()
+
+        return {
+            buildChannel: getBuildUpdateChannel(),
+            overrideChannel: nextOverride,
+            effectiveChannel: getEffectiveUpdateChannel(),
+        }
     })
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
         event.returnValue = State.get(val)
@@ -497,6 +527,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
         if (isMac()) {
             try {
+                syncMacUpdaterFeed()
                 const installInfo = await macUpdater?.installUpdate()
                 if (installInfo && mainWindow) {
                     mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
@@ -510,12 +541,15 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
+        syncMacUpdaterFeed()
+        updater.reloadFeed()
         await checkOrFindUpdate(args?.hard, args?.manual)
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
         if (isMac()) {
             try {
+                syncMacUpdaterFeed()
                 const m = await macUpdater?.checkForUpdates()
                 if (m) {
                     mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, m.version)
@@ -668,7 +702,8 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             let newName = t('main.events.newExtensionName')
             let counter = 1
             const existingNames = new Set(
-                fs.readdirSync(extensionsPath)
+                fs
+                    .readdirSync(extensionsPath)
                     .map(folder => {
                         const metadataPath = path.join(extensionsPath, folder, 'metadata.json')
                         if (!fs.existsSync(metadataPath)) return ''
@@ -901,6 +936,7 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
+            syncMacUpdaterFeed()
             const macUpdaterInstance = await macUpdater?.checkForUpdates()
             if (macUpdaterInstance) {
                 mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })

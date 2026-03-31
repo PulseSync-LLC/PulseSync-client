@@ -88,9 +88,7 @@ export default function StorePage() {
     const installedStoreAddons = useMemo(
         () =>
             new Map(
-                installedAddons
-                    .filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-                    .map(addon => [addon.storeAddonId!, addon]),
+                installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId).map(addon => [addon.storeAddonId!, addon]),
             ),
         [installedAddons],
     )
@@ -158,13 +156,23 @@ export default function StorePage() {
                             downloadInstalled={isInstalledFromStore}
                             downloadVariant={isInstalledFromStore ? 'remove' : 'default'}
                             downloadDisabled={installingAddonId === addon.id}
-                            downloadLabel={isInstalledFromStore ? t('store.remove') : installingAddonId === addon.id ? t('common.importing') : t('store.download')}
+                            downloadLabel={
+                                isInstalledFromStore
+                                    ? t('store.remove')
+                                    : installingAddonId === addon.id
+                                      ? t('common.importing')
+                                      : t('store.download')
+                            }
                             onDownloadClick={async () => {
                                 if (installingAddonId === addon.id || !window.desktopEvents) return
 
                                 setInstallingAddonId(addon.id)
                                 const isRemoving = !!installedStoreAddon
-                                const toastId = toast.custom('loading', isRemoving ? t('common.delete') : t('common.importTitle'), t('common.pleaseWait'))
+                                const toastId = toast.custom(
+                                    'loading',
+                                    isRemoving ? t('common.delete') : t('common.importTitle'),
+                                    t('common.pleaseWait'),
+                                )
 
                                 try {
                                     if (installedStoreAddon) {
@@ -175,7 +183,9 @@ export default function StorePage() {
 
                                         const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
                                         setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-                                        toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), { id: toastId })
+                                        toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
+                                            id: toastId,
+                                        })
                                         return
                                     }
 
@@ -220,7 +230,10 @@ export default function StorePage() {
                     <header className={st.store_header}>
                         <div className={st.store_title}>{t('pages.store.headerTitle')}</div>
                         <div className={st.store_subtitle}>{t('pages.store.headerSubtitle')}</div>
-                        <div className={st.store_search} onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus()}>
+                        <div
+                            className={st.store_search}
+                            onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus()}
+                        >
                             <input
                                 type="text"
                                 value={searchQuery}

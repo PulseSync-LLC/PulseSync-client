@@ -230,11 +230,16 @@ const schema = {
                 description: t('main.storage.app.version'),
                 default: '',
             },
+            updateChannelOverride: {
+                type: 'string',
+                default: '',
+            },
         },
-        required: ['version'],
+        required: ['version', 'updateChannelOverride'],
         additionalProperties: false,
         default: {
             version: '',
+            updateChannelOverride: '',
         },
     },
 

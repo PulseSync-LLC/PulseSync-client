@@ -151,8 +151,7 @@ export async function loadAddons(): Promise<Addon[]> {
                     metadataChanged = true
                 }
 
-                const resolvedId =
-                    metadata.name === 'Default' ? 'default' : resolveAddonStableId(metadata)
+                const resolvedId = metadata.name === 'Default' ? 'default' : resolveAddonStableId(metadata)
                 if (metadata.id !== resolvedId) {
                     metadata.id = resolvedId
                     metadataChanged = true
@@ -167,7 +166,9 @@ export async function loadAddons(): Promise<Addon[]> {
                         addonFolderPath = desiredFolderPath
                         metadataFilePath = path.join(addonFolderPath, 'metadata.json')
                     } else {
-                        logger.main.warn(`Addons: skipped directory migration from ${currentFolder} to ${desiredFolder} because target already exists.`)
+                        logger.main.warn(
+                            `Addons: skipped directory migration from ${currentFolder} to ${desiredFolder} because target already exists.`,
+                        )
                     }
                 }
 

@@ -8,6 +8,7 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
+import * as semver from 'semver'
 import { fileURLToPath } from 'node:url'
 import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
@@ -101,6 +102,21 @@ function log(level: LogLevel, message: string): void {
     else console.log(out)
 }
 
+function resolvePublishedVersion(currentVersion: string, targetBranch: string): string {
+    const parsedVersion = semver.parse(currentVersion)
+    if (!parsedVersion) {
+        const baseVersion = currentVersion.split('-')[0]
+        return `${baseVersion}-${targetBranch}`
+    }
+
+    const currentPrereleaseChannel = parsedVersion.prerelease[0]
+    if (typeof currentPrereleaseChannel === 'string' && currentPrereleaseChannel.toLowerCase() === targetBranch.toLowerCase()) {
+        return currentVersion
+    }
+
+    return `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}-${targetBranch}`
+}
+
 function generateBuildInfo(): { version: string } {
     const pkgPath = path.resolve(__dirname, '../package.json')
     log(LogLevel.INFO, `Reading package.json from ${pkgPath}`)
@@ -128,8 +144,7 @@ function generateBuildInfo(): { version: string } {
     const currentVersion = pkg.version
     let newVersion = currentVersion
     if (publishBranch) {
-        const baseVersion = currentVersion.split('-')[0]
-        newVersion = `${baseVersion}-${publishBranch}`
+        newVersion = resolvePublishedVersion(currentVersion, publishBranch)
         pkg.version = newVersion
     }
 

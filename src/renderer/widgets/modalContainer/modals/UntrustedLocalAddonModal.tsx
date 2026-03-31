@@ -28,11 +28,12 @@ const UntrustedLocalAddonModal: React.FC = () => {
                 {
                     text: t('extensions.untrustedLocal.confirm'),
                     onClick: handleConfirm,
+                    variant: 'secondary',
                 },
                 {
                     text: t('common.cancel'),
                     onClick: handleClose,
-                    variant: 'secondary',
+                    variant: 'primary',
                 },
             ]}
         >

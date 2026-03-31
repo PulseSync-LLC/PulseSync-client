@@ -25,6 +25,7 @@ const initialModalsState: ModalsState = {
     },
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: { isOpen: false, addonName: '', onConfirm: null },
     [Modals.EXPERIMENT_OVERRIDES_DEV]: { isOpen: false },
+    [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({
@@ -71,24 +72,22 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     const getModalState = useCallback(<T extends ModalName>(modal: T) => openedModals[modal] as ModalState<T>, [openedModals])
 
     const setModalState = useCallback(<T extends ModalName>(modal: T, state: Partial<ModalState<T>>) => {
-        setOpenedModals(
-            prev => {
-                const currentState = prev[modal] as ModalState<T>
-                const hasChanges = Object.entries(state).some(([key, value]) => currentState[key as keyof ModalState<T>] !== value)
+        setOpenedModals(prev => {
+            const currentState = prev[modal] as ModalState<T>
+            const hasChanges = Object.entries(state).some(([key, value]) => currentState[key as keyof ModalState<T>] !== value)
 
-                if (!hasChanges) {
-                    return prev
-                }
+            if (!hasChanges) {
+                return prev
+            }
 
-                return {
-                    ...prev,
-                    [modal]: {
-                        ...currentState,
-                        ...state,
-                    },
-                } as ModalsState
-            },
-        )
+            return {
+                ...prev,
+                [modal]: {
+                    ...currentState,
+                    ...state,
+                },
+            } as ModalsState
+        })
     }, [])
 
     const openModalByName = useCallback(

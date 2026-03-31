@@ -9,6 +9,7 @@ import logger from '../logger'
 import isAppDev from '../../utils/isAppDev'
 import { mainWindow } from '../createWindow'
 import { t } from '../../i18n'
+import { getEffectiveUpdateChannel, getUpdateFeedUrl, shouldAllowDowngradeForCurrentChannel } from './updateChannel'
 
 type CommonConfig = Record<string, unknown>
 
@@ -18,6 +19,7 @@ type UpdateInfo = ElectronUpdaterUpdateInfo & {
 }
 
 type DownloadResult = unknown
+const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
 
 type UpdateResult = UpdateCheckResult & {
     updateInfo: UpdateInfo
@@ -30,6 +32,7 @@ class Updater {
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
     private commonConfig: CommonConfig = {}
+    private configuredChannel: string | null = null
 
     constructor() {
         autoUpdater.logger = logger.updater
@@ -85,6 +88,27 @@ class Updater {
                 }
             })
         })
+    }
+
+    private configureFeed(force = false) {
+        const channel = getEffectiveUpdateChannel()
+        if (!force && this.configuredChannel === channel) {
+            return channel
+        }
+
+        const feedUrl = getUpdateFeedUrl(channel)
+        autoUpdater.setFeedURL({
+            provider: 'generic',
+            url: feedUrl,
+            channel: 'latest',
+            updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
+            useMultipleRangeRequest: true,
+        })
+        autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
+
+        this.configuredChannel = channel
+        logger.updater.info('Configured updater feed', { channel, feedUrl, allowDowngrade: autoUpdater.allowDowngrade })
+        return channel
     }
 
     private getWindow(): BrowserWindow | null {
@@ -179,6 +203,8 @@ class Updater {
     }
 
     async check(manual = false): Promise<UpdateStatus | null> {
+        this.configureFeed()
+
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
 
@@ -221,6 +247,7 @@ class Updater {
 
     start() {
         if (this.updaterId) return
+        this.configureFeed()
         this.check(false)
         this.updaterId = setInterval(() => {
             this.check(false)
@@ -235,6 +262,10 @@ class Updater {
 
     onUpdate(listener: (version: string) => void) {
         this.onUpdateListeners.push(listener)
+    }
+
+    reloadFeed() {
+        this.configureFeed(true)
     }
 
     install() {

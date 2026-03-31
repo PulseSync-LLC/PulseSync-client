@@ -12,6 +12,7 @@ import { ExperimentsProvider } from '@app/providers/experiments'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import Preloader from '@widgets/preloader'
 import ExperimentOverridesDevModal from '@widgets/modalContainer/modals/ExperimentOverridesDevModal'
+import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import type { AppProvidersProps } from '@app/AppShell.types'
 import PlayerProvider from '@app/providers/PlayerProvider'
 
@@ -130,6 +131,7 @@ export default function AppProviders({
             <UserContext.Provider value={userContextValue}>
                 <ExperimentsProvider userId={user.id}>
                     <ExperimentOverridesDevModal />
+                    <UpdateChannelOverrideModal />
                     <NotificationsProvider value={notificationsValue}>
                         <PlayerProvider>
                             <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">

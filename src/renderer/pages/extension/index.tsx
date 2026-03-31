@@ -433,7 +433,11 @@ export default function ExtensionPage() {
         if (!storePublishingEnabled || !selectedAddon || !user) return false
 
         const me = [user.username, user.nickname]
-            .map(value => String(value || '').trim().toLowerCase())
+            .map(value =>
+                String(value || '')
+                    .trim()
+                    .toLowerCase(),
+            )
             .filter(Boolean)
 
         if (!me.length) return false
@@ -452,7 +456,10 @@ export default function ExtensionPage() {
 
         return (
             sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
-            sameName.sort((a, b) => new Date(b.currentRelease?.updatedAt || b.updatedAt).getTime() - new Date(a.currentRelease?.updatedAt || a.updatedAt).getTime())[0]
+            sameName.sort(
+                (a, b) =>
+                    new Date(b.currentRelease?.updatedAt || b.updatedAt).getTime() - new Date(a.currentRelease?.updatedAt || a.updatedAt).getTime(),
+            )[0]
         )
     }, [selectedAddon, storePublications])
 
@@ -495,7 +502,12 @@ export default function ExtensionPage() {
         setPublicationChangelogText(
             Array.isArray(selectedPublishedAddon?.currentRelease?.changelog) ? selectedPublishedAddon.currentRelease.changelog.join('\n') : '',
         )
-    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.updatedAt])
+    }, [
+        selectedAddon?.directoryName,
+        selectedPublishedAddon?.id,
+        selectedPublishedAddon?.currentRelease?.id,
+        selectedPublishedAddon?.currentRelease?.updatedAt,
+    ])
 
     useEffect(() => {
         if (!isPublicationModalOpen) {
@@ -787,19 +799,19 @@ export default function ExtensionPage() {
                             publicationBusy={publicationBusy}
                             onPublicationChangelogChange={setPublicationChangelogText}
                             onPublishAddon={
-                                        publicationActionMode === 'publish'
-                                            ? changelogText => {
-                                                  void handleSubmitAddon('create', changelogText)
-                                              }
-                                            : undefined
-                                    }
-                                    onUpdateAddon={
-                                        publicationActionMode === 'update'
-                                            ? changelogText => {
-                                                  void handleSubmitAddon('update', changelogText)
-                                              }
-                                            : undefined
-                                    }
+                                publicationActionMode === 'publish'
+                                    ? changelogText => {
+                                          void handleSubmitAddon('create', changelogText)
+                                      }
+                                    : undefined
+                            }
+                            onUpdateAddon={
+                                publicationActionMode === 'update'
+                                    ? changelogText => {
+                                          void handleSubmitAddon('update', changelogText)
+                                      }
+                                    : undefined
+                            }
                             onToggleEnabled={enabled => {
                                 if (enabled) {
                                     handleEnableAddon(selectedAddon)

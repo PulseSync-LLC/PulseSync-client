@@ -18,8 +18,7 @@
 
 .themeInfo::before {
     z-index: 0;
-    background:
-        linear-gradient(180deg, rgba(16, 18, 28, 0.04) 0%, rgba(16, 18, 28, 0.14) 100%),
+    background: linear-gradient(180deg, rgba(16, 18, 28, 0.04) 0%, rgba(16, 18, 28, 0.14) 100%),
         radial-gradient(circle at 20% 84%, rgba(14, 16, 25, 0.2) 0%, rgba(14, 16, 25, 0.08) 28%, transparent 52%),
         linear-gradient(90deg, rgba(18, 20, 31, 0.14) 0%, rgba(18, 20, 31, 0.04) 38%, rgba(18, 20, 31, 0) 64%);
 }

@@ -253,20 +253,23 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         [modalSupportedVersionsInput, parseListEntries],
     )
 
-    const appendUniqueEntries = useCallback((current: string[], rawValue: string) => {
-        const nextEntries = parseListEntries(rawValue)
-        if (!nextEntries.length) return current
+    const appendUniqueEntries = useCallback(
+        (current: string[], rawValue: string) => {
+            const nextEntries = parseListEntries(rawValue)
+            if (!nextEntries.length) return current
 
-        const seen = new Set(current.map(entry => entry.toLowerCase()))
-        const result = [...current]
-        for (const entry of nextEntries) {
-            const normalized = entry.toLowerCase()
-            if (seen.has(normalized)) continue
-            seen.add(normalized)
-            result.push(entry)
-        }
-        return result
-    }, [parseListEntries])
+            const seen = new Set(current.map(entry => entry.toLowerCase()))
+            const result = [...current]
+            for (const entry of nextEntries) {
+                const normalized = entry.toLowerCase()
+                if (seen.has(normalized)) continue
+                seen.add(normalized)
+                result.push(entry)
+            }
+            return result
+        },
+        [parseListEntries],
+    )
 
     const openListEditor = useCallback(() => {
         setModalAllowedUrlsDraft(draft.allowedUrls)
@@ -357,7 +360,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setDraft(baseRef.current)
     }, [])
 
-    if (loading) return <div className={css.alert}><Loader variant="panel" /></div>
+    if (loading)
+        return (
+            <div className={css.alert}>
+                <Loader variant="panel" />
+            </div>
+        )
     if (error) return <div className={css.alert}>{error}</div>
 
     return (
@@ -376,7 +384,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     </div>
 
                     <div className={css.metaSideColumn}>
-                        <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={v => setField('author', v)} />
+                        <TextInput
+                            name="meta-author"
+                            label={t('metadata.labels.author')}
+                            value={draft.author}
+                            onChange={v => setField('author', v)}
+                        />
 
                         <div className={css.metaSideRow}>
                             <SelectInput
@@ -548,7 +561,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                 }}
                                 placeholder={t('metadata.examples.allowedUrls')}
                             />
-                            <ButtonV2 className={css.listEditorAddButton} onClick={addAllowedUrls} disabled={!parseListEntries(modalAllowedUrlsInput).length}>
+                            <ButtonV2
+                                className={css.listEditorAddButton}
+                                onClick={addAllowedUrls}
+                                disabled={!parseListEntries(modalAllowedUrlsInput).length}
+                            >
                                 <MdAdd size={18} />
                                 <span>{t('metadata.listEditor.add')}</span>
                             </ButtonV2>

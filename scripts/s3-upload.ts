@@ -5,9 +5,10 @@ import path from 'path'
 import crypto from 'crypto'
 import yaml from 'js-yaml'
 import chalk from 'chalk'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
 import https from 'https'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import semver from 'semver'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -125,13 +126,124 @@ function walkFiles(dir: string): string[] {
     })
 }
 
-export async function publishToS3(branch: string, dir: string, version?: string, opts?: { prefix?: string }): Promise<void> {
+const WINDOWS_VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-(x64|arm64)\.(exe(?:\.blockmap)?)$/iu
+
+function parseKeepRecentVersions(rawValue?: string | null): number | null {
+    if (!rawValue) return null
+    const parsed = Number.parseInt(rawValue, 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function extractWindowsArtifactVersion(key: string): string | null {
+    const fileName = path.basename(key)
+    const match = WINDOWS_VERSIONED_ARTIFACT_RE.exec(fileName)
+    return match?.[1] ?? null
+}
+
+function compareVersionsDesc(left: string, right: string): number {
+    const leftValid = semver.valid(left)
+    const rightValid = semver.valid(right)
+
+    if (leftValid && rightValid) {
+        return semver.rcompare(leftValid, rightValid)
+    }
+    if (leftValid) return -1
+    if (rightValid) return 1
+    return right.localeCompare(left)
+}
+
+async function pruneOldWindowsArtifacts(
+    client: S3Client,
+    bucket: string,
+    prefix: string,
+    branch: string,
+    currentVersion: string,
+    keepRecentVersions: number,
+): Promise<void> {
+    const branchPrefix = `${prefix}/${branch}/`
+    const versionToKeys = new Map<string, string[]>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: branchPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+
+        for (const object of response.Contents ?? []) {
+            if (!object.Key) continue
+            const version = extractWindowsArtifactVersion(object.Key)
+            if (!version) continue
+
+            const keys = versionToKeys.get(version) ?? []
+            keys.push(object.Key)
+            versionToKeys.set(version, keys)
+        }
+
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    if (!versionToKeys.size) {
+        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: no existing Windows versioned artifacts found`)
+        return
+    }
+
+    if (!versionToKeys.has(currentVersion)) {
+        versionToKeys.set(currentVersion, [])
+    }
+
+    const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
+    const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
+    keptVersions.add(currentVersion)
+
+    const keysToDelete = Array.from(versionToKeys.entries())
+        .filter(([version]) => !keptVersions.has(version))
+        .flatMap(([, keys]) => keys)
+
+    if (!keysToDelete.length) {
+        log(
+            LogLevel.INFO,
+            `Retention skipped for ${branchPrefix}: keeping ${Math.min(sortedVersions.length, keepRecentVersions)} recent version groups`,
+        )
+        return
+    }
+
+    for (let index = 0; index < keysToDelete.length; index += 1000) {
+        const chunk = keysToDelete.slice(index, index + 1000)
+        await client.send(
+            new DeleteObjectsCommand({
+                Bucket: bucket,
+                Delete: {
+                    Objects: chunk.map(Key => ({ Key })),
+                    Quiet: false,
+                },
+            }),
+        )
+    }
+
+    const removedVersions = sortedVersions.filter(version => !keptVersions.has(version))
+    log(
+        LogLevel.SUCCESS,
+        `Retention removed ${keysToDelete.length} Windows artifacts from ${branchPrefix} (deleted versions: ${removedVersions.join(', ')})`,
+    )
+}
+
+export async function publishToS3(
+    branch: string,
+    dir: string,
+    version?: string,
+    opts?: { prefix?: string; keepRecentVersions?: number | null },
+): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
+    const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
     const client = createS3Client()
 
     let files = walkFiles(dir)
@@ -170,6 +282,10 @@ export async function publishToS3(branch: string, dir: string, version?: string,
         .filter(name => name.endsWith('.zip') && (!version || name.includes(version)))
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
+
+    if (version && keepRecentVersions && platform === 'win32') {
+        await pruneOldWindowsArtifacts(client, bucket, prefix, branch, version, keepRecentVersions)
+    }
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
@@ -297,14 +413,16 @@ async function cli(): Promise<void> {
     const version = argValue('--version') || readPkgVersion()
     const prefix = argValue('--prefix') || process.env.S3_PREFIX || 'builds/app'
     const macManifest = hasFlag('--mac-manifest')
+    const keepRecentVersions = parseKeepRecentVersions(argValue('--keep-last') || argValue('--keepLast') || process.env.S3_KEEP_RECENT_VERSIONS)
 
     log(LogLevel.INFO, `Branch: ${branch}`)
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
     log(LogLevel.INFO, `macOS download.json: ${macManifest ? 'ON' : 'OFF'}`)
+    log(LogLevel.INFO, `Retention keep recent versions: ${keepRecentVersions ?? 'OFF'}`)
 
-    await publishToS3(branch, dir, version, { prefix })
+    await publishToS3(branch, dir, version, { prefix, keepRecentVersions })
     if (macManifest) {
         await generateAndPublishMacDownloadJson(branch, dir, version, { prefix })
     }
