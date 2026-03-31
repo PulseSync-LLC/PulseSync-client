@@ -126,6 +126,11 @@ function walkFiles(dir: string): string[] {
     })
 }
 
+function isUpdaterManifestFile(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase()
+    return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+}
+
 const WINDOWS_VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-(x64|arm64)\.(exe(?:\.blockmap)?)$/iu
 
 function parseKeepRecentVersions(rawValue?: string | null): number | null {
@@ -282,6 +287,11 @@ export async function publishToS3(
         .filter(name => name.endsWith('.zip') && (!version || name.includes(version)))
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
+
+    files = [
+        ...files.filter(filePath => !isUpdaterManifestFile(filePath)),
+        ...files.filter(filePath => isUpdaterManifestFile(filePath)),
+    ]
 
     if (version && keepRecentVersions && platform === 'win32') {
         await pruneOldWindowsArtifacts(client, bucket, prefix, branch, version, keepRecentVersions)

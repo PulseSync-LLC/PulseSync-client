@@ -91,6 +91,13 @@ export class MacOSUpdater extends EventEmitter {
         return this.status
     }
 
+    resetPendingUpdate() {
+        this.currentManifest = null
+        this.downloadedFile = null
+        this.pickedAsset = null
+        this.setStatus(UpdateStatus.IDLE)
+    }
+
     private setStatus(s: UpdateStatus) {
         this.status = s
         this.options.onStatus?.(s)

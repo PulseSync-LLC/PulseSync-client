@@ -125,6 +125,7 @@ export function useAppDesktopBindings({
 
         const handleCheckUpdate = (_event: any, data: any) => {
             const isManualCheck = !!data?.manual
+            setUpdate(!!data?.updateAvailable)
             if (isManualCheck && !toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
