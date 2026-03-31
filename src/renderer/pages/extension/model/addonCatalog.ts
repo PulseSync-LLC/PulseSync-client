@@ -151,7 +151,7 @@ export function buildAddonImagePath(addon: Addon, fallbackAddonImage: string) {
     if (!addon.image) return fallbackAddonImage
     if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
 
-    return `http://127.0.0.1:${config.MAIN_PORT}/addon_file` + `?name=${encodeURIComponent(addon.name)}` + `&file=${encodeURIComponent(addon.image)}`
+    return `http://127.0.0.1:${config.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(addon.image)}`
 }
 
 export function createWhitelistedAddonNames(addonWhitelist: AddonWhitelistItem[]) {

@@ -122,17 +122,17 @@ const ThemeInfo: React.FC<Props> = ({
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     const getAssetUrl = (file: string) =>
-        `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
+        `http://127.0.0.1:${config.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(file)}`
 
     const bannerSource = useMemo(() => {
         if (!addon.banner || (isMac && isGif(addon.banner))) return null
         return getAssetUrl(addon.banner)
-    }, [addon.banner, addon.name, isMac])
+    }, [addon.banner, addon.directoryName, isMac])
 
     const logoSource = useMemo(() => {
         if (!addon.libraryLogo || (isMac && isGif(addon.libraryLogo))) return null
         return getAssetUrl(addon.libraryLogo)
-    }, [addon.libraryLogo, addon.name, isMac])
+    }, [addon.directoryName, addon.libraryLogo, isMac])
 
     const bannerUrl = useResolvedImage(bannerSource, fallbackBanner)
     const logoUrl = useResolvedImage(logoSource, null)

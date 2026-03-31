@@ -102,7 +102,7 @@
         "glob": "^13.0.6",
         "graphql": "^16.13.2",
         "graphql-ws": "^6.0.8",
-        "i18next": "^26.0.2",
+        "i18next": "^26.0.3",
         "lodash.debounce": "^4.0.8",
         "log4js": "^6.9.1",
         "net": "^1.0.2",
@@ -112,7 +112,7 @@
         "react-chartjs-2": "^5.3.1",
         "react-dom": "^19.2.4",
         "react-hot-toast": "^2.6.0",
-        "react-i18next": "^17.0.1",
+        "react-i18next": "^17.0.2",
         "react-icons": "^5.6.0",
         "react-loading-skeleton": "^3.5.0",
         "react-markdown": "^10.1.0",
@@ -148,8 +148,8 @@
     },
     "buildInfo": {
         "VERSION": "2.12.0-beta",
-        "BRANCH": "1f507a6",
-        "BUILD_TIME": "30.03.2026, 23:05:56"
+        "BRANCH": "85b17a0",
+        "BUILD_TIME": "31.03.2026, 00:51:15"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

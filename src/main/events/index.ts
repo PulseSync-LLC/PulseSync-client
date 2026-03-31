@@ -40,6 +40,7 @@ import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { createGeneratedLocalAddonId } from '../utils/addonIdentity'
 
 const updater = getUpdater()
 const State = getState()
@@ -646,6 +647,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
+                id: createGeneratedLocalAddonId(),
                 name: t('main.events.newExtensionName'),
                 installSource: 'local',
                 image: '',
@@ -665,12 +667,26 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             if (!fs.existsSync(extensionsPath)) fs.mkdirSync(extensionsPath)
             let newName = t('main.events.newExtensionName')
             let counter = 1
-            while (fs.readdirSync(extensionsPath).includes(newName)) {
+            const existingNames = new Set(
+                fs.readdirSync(extensionsPath)
+                    .map(folder => {
+                        const metadataPath = path.join(extensionsPath, folder, 'metadata.json')
+                        if (!fs.existsSync(metadataPath)) return ''
+                        try {
+                            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as Partial<Addon>
+                            return typeof metadata.name === 'string' ? metadata.name.trim() : ''
+                        } catch {
+                            return ''
+                        }
+                    })
+                    .filter(Boolean),
+            )
+            while (existingNames.has(newName)) {
                 counter++
                 newName = t('main.events.newExtensionNameWithIndex', { index: counter })
                 defaultAdd.name = newName
             }
-            const extensionPath = path.join(extensionsPath, newName)
+            const extensionPath = path.join(extensionsPath, defaultAdd.id!)
             fs.mkdirSync(extensionPath)
             fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAdd, null, 4))
             fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent)
