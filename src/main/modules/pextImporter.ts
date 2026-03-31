@@ -8,6 +8,7 @@ import logger from './logger'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
+import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonStableId } from '../utils/addonIdentity'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
@@ -61,6 +62,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
     const ext = path.extname(filePath).toLowerCase()
 
     try {
+        const archiveBuffer = await fsp.readFile(filePath)
         const zip = new AdmZip(filePath)
         tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'pext-import-'))
         zip.extractAllTo(tempDir, true)
@@ -85,7 +87,11 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             return null
         }
 
-        const outputDir = path.join(app.getPath('userData'), 'addons', addonName)
+        metadata.id = resolveAddonStableId(metadata)
+        metadata.packageHash = computeAddonPackageHash(archiveBuffer)
+
+        const addonDirectory = resolveAddonDirectoryKey(metadata)
+        const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
         if (fs.existsSync(outputDir)) {
             await clearDirectory(outputDir)
         } else {
@@ -100,7 +106,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             await removeSourcePextIfNeeded(filePath)
         }
 
-        return addonName
+        return addonDirectory
     } catch (err: any) {
         logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)

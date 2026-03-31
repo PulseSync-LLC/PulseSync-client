@@ -235,7 +235,6 @@ const defaultTemplate: AddonConfig = {
 
 const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationReleases = [] }) => {
     const { t } = useTranslation()
-    const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
 
@@ -249,8 +248,8 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     }, [creating, config])
 
     const asset = useMemo(
-        () => (f: string) => `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?name=${encodeURIComponent(addonName)}&file=${encodeURIComponent(f)}`,
-        [addonName],
+        () => (f: string) => `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(f)}`,
+        [addon.directoryName],
     )
 
     const MDImg: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ src = '', alt, ...rest }) => {

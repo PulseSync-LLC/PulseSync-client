@@ -1,6 +1,7 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { app } from 'electron'
+import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
 
 type JsonRecord = Record<string, any>
 
@@ -82,7 +83,10 @@ export const transformAddonHandleConfig = (input: HandleConfig | null | undefine
 export const readAddonSettings = (addonName: string): AddonSettingsPayload => {
     if (!addonName || typeof addonName !== 'string') return {}
 
-    const handlePath = path.join(getAddonRoot(), addonName, HANDLE_EVENTS_FILENAME)
+    const directory = resolveAddonDirectory(addonName)
+    if (!directory) return {}
+
+    const handlePath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_FILENAME)
     if (!fs.existsSync(handlePath)) return {}
 
     try {
@@ -107,7 +111,7 @@ export const readAllAddonSettings = (): Record<string, AddonSettingsPayload> => 
     for (const folder of folders) {
         const handlePath = path.join(addonsRoot, folder, HANDLE_EVENTS_FILENAME)
         if (!fs.existsSync(handlePath)) continue
-        result[folder] = readAddonSettings(folder)
+        result[resolveAddonDisplayName(folder) || folder] = readAddonSettings(folder)
     }
 
     return result

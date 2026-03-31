@@ -7,6 +7,7 @@ import { sanitizeScript } from '../../utils/addonUtils'
 import { Server as IOServer, Socket } from 'socket.io'
 import { mainWindow } from '../createWindow'
 import { readAddonSettings } from './addonSettings'
+import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
 
 interface StateLike {
     get: (key: string) => any
@@ -156,7 +157,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
         js = sanitizeScript(js)
 
-        const themeData = { name: selected, css: css || '{}', script: js || '' }
+        const themeData = { name: metadata.name || selected, css: css || '{}', script: js || '' }
         if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
             return
         }
@@ -209,7 +210,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         const themeData = {
-            name: themeDef ? 'Default' : state.get('addons.theme') || 'Default',
+            name: themeDef ? 'Default' : metadata.name || state.get('addons.theme') || 'Default',
             css: css || '{}',
             script: js || '',
         }
@@ -288,7 +289,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     }
 
                     return {
-                        name: folderMatches ? folderName : addonName,
+                        name: addonName,
+                        directoryName: folderName,
+                        id: typeof meta.id === 'string' ? meta.id : undefined,
                         css,
                         script,
                     }
@@ -296,7 +299,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     return null
                 }
             })
-            .filter((x): x is { name: string; css: string | null; script: string | null } => Boolean(x))
+            .filter((x): x is { name: string; directoryName: string; id?: string; css: string | null; script: string | null } => Boolean(x))
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
@@ -309,21 +312,24 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     const sendAddonSettings = ({ addonName, targetSocket, force = false }: { addonName: string; targetSocket?: Socket; force?: boolean }): void => {
         if (!addonName) return
-        if (!getEnabledAddonNames().includes(addonName)) {
+        const addonDirectory = resolveAddonDirectory(addonName)
+        if (!addonDirectory) return
+        if (!getEnabledAddonNames().includes(addonDirectory)) {
             return
         }
 
-        const settings = readAddonSettings(addonName)
+        const settings = readAddonSettings(addonDirectory)
         const serialized = JSON.stringify(settings)
-        if (!force && lastAddonSettings.get(addonName) === serialized) {
+        const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
+        if (!force && lastAddonSettings.get(addonDisplayName) === serialized) {
             return
         }
 
-        lastAddonSettings.set(addonName, serialized)
+        lastAddonSettings.set(addonDisplayName, serialized)
 
         for (const sock of getMusicRecipients(targetSocket)) {
             sock.emit('ADDON_SETTINGS_UPDATE', {
-                addon: addonName,
+                addon: addonDisplayName,
                 settings,
             })
         }
@@ -338,7 +344,10 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     } = {}): void => {
         const snapshot = getEnabledAddonNames().reduce(
             (acc, addonName) => {
-                acc[addonName] = readAddonSettings(addonName)
+                const addonDirectory = resolveAddonDirectory(addonName)
+                if (!addonDirectory) return acc
+                const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
+                acc[addonDisplayName] = readAddonSettings(addonDirectory)
                 return acc
             },
             {} as Record<string, ReturnType<typeof readAddonSettings>>,
