@@ -302,7 +302,7 @@ async function main(): Promise<void> {
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
                     updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: true,
+                    useMultipleRangeRequest: false,
                 }
                 const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
                 fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
@@ -362,7 +362,7 @@ async function main(): Promise<void> {
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
                     updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: true,
+                    useMultipleRangeRequest: false,
                 },
             ]
             configObj.extraMetadata = configObj.extraMetadata || {}

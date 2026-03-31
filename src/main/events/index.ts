@@ -221,14 +221,23 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL, async () => getEffectiveUpdateChannel())
     ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
     ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
+        const previousEffectiveChannel = getEffectiveUpdateChannel()
         const nextOverride = setUpdateChannelOverride(channel)
+        const nextEffectiveChannel = getEffectiveUpdateChannel()
+
+        if (previousEffectiveChannel !== nextEffectiveChannel) {
+            await updater.clearPendingUpdate(`channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`)
+            macUpdater?.resetPendingUpdate()
+            updateAvailable = false
+        }
+
         updater.reloadFeed()
         syncMacUpdaterFeed()
 
         return {
             buildChannel: getBuildUpdateChannel(),
             overrideChannel: nextOverride,
-            effectiveChannel: getEffectiveUpdateChannel(),
+            effectiveChannel: nextEffectiveChannel,
         }
     })
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {

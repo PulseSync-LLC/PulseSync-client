@@ -57,6 +57,7 @@ class Updater {
 
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
+            autoUpdater.autoInstallOnAppQuit = true
             this.setProgressBar(-1)
 
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
@@ -102,7 +103,7 @@ class Updater {
             url: feedUrl,
             channel: 'latest',
             updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-            useMultipleRangeRequest: true,
+            useMultipleRangeRequest: false,
         })
         autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
 
@@ -266,6 +267,36 @@ class Updater {
 
     reloadFeed() {
         this.configureFeed(true)
+    }
+
+    getStatus() {
+        return this.updateStatus
+    }
+
+    async clearPendingUpdate(reason = 'manual-reset') {
+        if (this.updateStatus !== UpdateStatus.DOWNLOADED) {
+            return false
+        }
+
+        try {
+            const internalUpdater = autoUpdater as any
+
+            await internalUpdater.downloadedUpdateHelper?.clear?.()
+            internalUpdater.downloadPromise = null
+            internalUpdater.updateInfoAndProvider = null
+            internalUpdater.autoInstallOnAppQuit = false
+
+            this.latestAvailableVersion = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            this.flashFrame(false)
+
+            logger.updater.info('Cleared pending downloaded update', { reason })
+            return true
+        } catch (error) {
+            logger.updater.error('Failed to clear pending downloaded update', error)
+            return false
+        }
     }
 
     install() {
