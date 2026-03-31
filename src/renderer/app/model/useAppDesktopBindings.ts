@@ -1,4 +1,5 @@
 import { useCallback, useEffect } from 'react'
+import { useRef } from 'react'
 
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
@@ -40,6 +41,8 @@ export function useAppDesktopBindings({
     t,
     toastReference,
 }: Params) {
+    const manualUpdateCheckPendingRef = useRef(false)
+
     const invokeFileEvent = useCallback(async (eventType: string, filePath: string, data?: any) => {
         return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
     }, [])
@@ -125,19 +128,34 @@ export function useAppDesktopBindings({
 
         const handleCheckUpdate = (_event: any, data: any) => {
             const isManualCheck = !!data?.manual
-            setUpdate(!!data?.updateAvailable)
-            if (isManualCheck && !toastReference.current) {
+            const isChecking = !!data?.checking
+
+            if (isManualCheck && isChecking) {
+                manualUpdateCheckPendingRef.current = true
+            }
+
+            if (isManualCheck && isChecking && !toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
             }
-            if (!data.updateAvailable) {
-                if (isManualCheck && toastReference.current) {
-                    toast.update(toastReference.current, {
-                        kind: 'info',
-                        title: t('updates.notFoundTitle'),
-                        msg: t('updates.notFoundMessage'),
-                        sticky: false,
-                        duration: 5000,
-                    })
+
+            if (data?.updateAvailable === false) {
+                setUpdate(false)
+
+                if (isManualCheck && !isChecking) {
+                    if (toastReference.current) {
+                        toast.update(toastReference.current, {
+                            kind: 'info',
+                            title: t('updates.notFoundTitle'),
+                            msg: t('updates.notFoundMessage'),
+                            sticky: false,
+                            duration: 5000,
+                        })
+                    } else {
+                        toast.custom('info', t('updates.notFoundTitle'), t('updates.notFoundMessage'))
+                    }
+                    manualUpdateCheckPendingRef.current = false
+                } else if (toastReference.current) {
+                    toast.dismiss(toastReference.current)
                 }
                 toastReference.current = null
             }
@@ -156,6 +174,7 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadFailed = () => {
+            setUpdate(false)
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'error',
@@ -170,6 +189,7 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadFinished = () => {
+            manualUpdateCheckPendingRef.current = false
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'success',
@@ -183,8 +203,10 @@ export function useAppDesktopBindings({
             setUpdate(true)
         }
 
-        const handleUpdateAvailable = () => {
-            setUpdate(true)
+        const handleUpdateAvailable = async () => {
+            manualUpdateCheckPendingRef.current = false
+            const nextStatus = await window.desktopEvents?.invoke(MainEvents.GET_UPDATE_STATUS)
+            setUpdate(nextStatus === 'DOWNLOADED')
         }
 
         window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)

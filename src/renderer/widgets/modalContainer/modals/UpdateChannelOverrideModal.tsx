@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import MainEvents from '@common/types/mainEvents'
+import RendererEvents from '@common/types/rendererEvents'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
@@ -10,6 +11,7 @@ import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideMod
 
 type UpdateChannel = 'beta' | 'dev'
 type ChannelSelection = UpdateChannel | 'default'
+type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
 type ChannelStateResponse = {
     buildChannel: UpdateChannel
@@ -30,17 +32,20 @@ const UpdateChannelOverrideModal: React.FC = () => {
     const [selection, setSelection] = useState<ChannelSelection>('default')
     const [loading, setLoading] = useState(false)
     const [saving, setSaving] = useState(false)
+    const [updateStatus, setUpdateStatus] = useState<UpdateStatus>('IDLE')
 
     const isOpen = isModalOpen(Modals.UPDATE_CHANNEL_OVERRIDE)
+    const isSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
 
     const loadState = useCallback(async () => {
         setLoading(true)
 
         try {
-            const [buildChannel, effectiveChannel, overrideChannel] = await Promise.all([
+            const [buildChannel, effectiveChannel, overrideChannel, currentUpdateStatus] = await Promise.all([
                 window.desktopEvents.invoke(MainEvents.GET_BUILD_CHANNEL),
                 window.desktopEvents.invoke(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL),
                 window.desktopEvents.invoke(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE),
+                window.desktopEvents.invoke(MainEvents.GET_UPDATE_STATUS),
             ])
 
             const nextState: ChannelStateResponse = {
@@ -51,6 +56,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
             setChannelState(nextState)
             setSelection(overrideChannel ?? 'default')
+            setUpdateStatus(currentUpdateStatus ?? 'IDLE')
         } catch (error) {
             console.error(error)
             toast.custom('error', t('common.errorTitleShort'), t('header.updateChannel.loadError'))
@@ -66,6 +72,37 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
         void loadState()
     }, [isOpen, loadState])
+
+    useEffect(() => {
+        if (!isOpen) {
+            return
+        }
+
+        const handleCheckUpdate = (_event: unknown, data?: { checking?: boolean; updateAvailable?: boolean }) => {
+            if (data?.checking) {
+                setUpdateStatus('CHECKING')
+                return
+            }
+            if (!data?.updateAvailable) {
+                setUpdateStatus('IDLE')
+            }
+        }
+
+        const handleDownloadProgress = () => setUpdateStatus('DOWNLOADING')
+        const handleDownloadFinished = () => setUpdateStatus('DOWNLOADED')
+        const handleDownloadFailed = () => setUpdateStatus('IDLE')
+
+        const unsubscribers = [
+            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
+        ].filter(Boolean) as Array<() => void>
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe())
+        }
+    }, [isOpen])
 
     const options = useMemo(
         () => [
@@ -150,12 +187,15 @@ const UpdateChannelOverrideModal: React.FC = () => {
                         void handleSave()
                     },
                     variant: 'primary',
-                    disabled: loading || saving || isUnchangedSelection,
+                    disabled: loading || saving || isSwitchBlocked || isUnchangedSelection,
                 },
             ]}
         >
             <div className={styles.content}>
                 <div className={styles.statusSummary}>{summaryParts.join(' · ')}</div>
+
+                {isSwitchBlocked && <div className={styles.hint}>{t('header.updateChannel.busy')}</div>}
+                {updateStatus === 'DOWNLOADED' && <div className={styles.hint}>{t('header.updateChannel.downloadedHint')}</div>}
 
                 <div className={styles.fieldWrap}>
                     <SelectInput
@@ -163,11 +203,11 @@ const UpdateChannelOverrideModal: React.FC = () => {
                         value={selection}
                         onChange={value => setSelection(value as ChannelSelection)}
                         options={options}
-                        disabled={loading || saving}
+                        disabled={loading || saving || isSwitchBlocked}
                     />
                 </div>
 
-                {selection !== 'default' && (
+                {!isSwitchBlocked && selection !== 'default' && (
                     <div className={styles.hint}>
                         {t('header.updateChannel.nextChannel', { channel: nextChannel })}
                         {selection === 'beta' && channelState.effectiveChannel === 'dev' ? ` ${t('header.updateChannel.hint')}` : ''}

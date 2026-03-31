@@ -54,7 +54,7 @@ const Header: React.FC<p> = () => {
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app, setUser } = useContext(userContext)
+    const { user, appInfo, app, setUser, updateAvailable } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const [modal, setModal] = useState(false)

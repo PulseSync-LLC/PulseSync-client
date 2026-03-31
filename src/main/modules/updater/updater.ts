@@ -39,14 +39,11 @@ class Updater {
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.autoDownload = true
         autoUpdater.disableWebInstaller = true
+        autoUpdater.disableDifferentialDownload = true
 
         autoUpdater.on('error', (error: unknown) => {
             logger.updater.error('Updater error', error)
             this.setProgressBar(-1)
-        })
-
-        autoUpdater.on('checking-for-update', () => {
-            logger.updater.log('Checking for update')
         })
 
         autoUpdater.on('download-progress', (info: ProgressInfo) => {
@@ -162,17 +159,21 @@ class Updater {
     private updateApplier(updateResult: UpdateResult, manual = false) {
         const { downloadPromise, updateInfo } = updateResult
 
+        if (!downloadPromise) {
+            this.latestAvailableVersion = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            this.flashFrame(false)
+            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+            return
+        }
+
         if (updateInfo.updateUrgency !== undefined) {
             logger.updater.info('Urgency', updateInfo.updateUrgency)
         }
 
         if (updateInfo.commonConfig !== undefined) {
             this.mergeCommonConfig(updateInfo.commonConfig)
-        }
-
-        if (!downloadPromise) {
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
-            return
         }
 
         this.latestAvailableVersion = updateInfo.version
@@ -218,12 +219,16 @@ class Updater {
         }
 
         try {
+            this.updateStatus = UpdateStatus.CHECKING
+            this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
+
             const updateResult = (await autoUpdater.checkForUpdatesAndNotify({
                 title: t('main.updater.updateReadyTitle'),
                 body: t('main.updater.updateReadyBody'),
             })) as UpdateResult | null
 
             if (!updateResult) {
+                this.updateStatus = UpdateStatus.IDLE
                 logger.updater.log(t('main.updater.noUpdatesFound'))
                 this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
                 return null
@@ -231,6 +236,7 @@ class Updater {
 
             this.updateApplier(updateResult, manual)
         } catch (error: unknown) {
+            this.updateStatus = UpdateStatus.IDLE
             const e = error as any
             if (e?.code === 'ENOENT' && typeof e?.path === 'string' && e.path.endsWith('app-update.yml')) {
                 if (!isAppDev) {
