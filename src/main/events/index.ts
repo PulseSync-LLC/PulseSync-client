@@ -220,6 +220,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_BUILD_CHANNEL, async () => getBuildUpdateChannel())
     ipcMain.handle(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL, async () => getEffectiveUpdateChannel())
     ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
+    ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => (isMac() ? macUpdater?.getStatus() ?? UpdateStatus.IDLE : updater.getStatus()))
     ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
         const previousEffectiveChannel = getEffectiveUpdateChannel()
         const nextOverride = setUpdateChannelOverride(channel)
@@ -945,6 +946,7 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
+            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { checking: true, manual })
             syncMacUpdaterFeed()
             const macUpdaterInstance = await macUpdater?.checkForUpdates()
             if (macUpdaterInstance) {
@@ -974,13 +976,12 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
         return
     }
     const status = await updater.check(manual)
-    if (status === UpdateStatus.DOWNLOADING) {
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
-        updateAvailable = true
-    } else if (status === UpdateStatus.DOWNLOADED) {
+    if (status === UpdateStatus.DOWNLOADED) {
         if (hard) updater.install()
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         updateAvailable = true
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+    } else if (status === UpdateStatus.DOWNLOADING) {
+        updateAvailable = true
+    } else if (status === UpdateStatus.IDLE || status === null) {
+        updateAvailable = false
     }
 }
