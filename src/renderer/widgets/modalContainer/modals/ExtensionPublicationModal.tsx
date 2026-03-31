@@ -10,8 +10,9 @@ const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const ExtensionPublicationModal: React.FC = () => {
     const { t, i18n } = useTranslation()
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
-    const { addon, authorsDisplay, publication, publicationBusy, changelogText, onChangeChangelog, onPublish, onUpdate } =
-        getModalState(Modals.EXTENSION_PUBLICATION_MODAL)
+    const { addon, authorsDisplay, publication, publicationBusy, changelogText, onChangeChangelog, onPublish, onUpdate } = getModalState(
+        Modals.EXTENSION_PUBLICATION_MODAL,
+    )
     const publicationRelease = publication?.currentRelease
 
     const handleClose = () => {

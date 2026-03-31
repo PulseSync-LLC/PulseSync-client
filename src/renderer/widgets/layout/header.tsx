@@ -29,6 +29,7 @@ import { MdSettings } from 'react-icons/md'
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
+import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout/model/playStatus'
@@ -285,9 +286,7 @@ const Header: React.FC<p> = () => {
                                 <span>PulseSync</span>
                                 <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
                             </button>
-                            <AnimatePresence>
-                                {isMenuOpen && <ContextMenu modalRef={updateModalRef} />}
-                            </AnimatePresence>
+                            <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
                         </div>
                     )) || <div></div>}
                     <div className={styles.event_container}>
@@ -299,6 +298,7 @@ const Header: React.FC<p> = () => {
                         <div className={styles.menu} ref={userCardRef}>
                             {user.id !== '-1' && (
                                 <>
+                                    {(user.perms === 'developer' || isDev) && <UpdateChannelOverrideButton />}
                                     {(user.perms === 'developer' || isDev) && <ExperimentOverridesDevButton />}
                                     <NotificationsBell />
                                     <div

@@ -241,9 +241,10 @@ const ThemeInfo: React.FC<Props> = ({
 
                     <div className={s.metaItem}>
                         <span className={s.label}>{t('extensions.meta.source')}</span>
-                        <span className={s.value}>{addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}</span>
+                        <span className={s.value}>
+                            {addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}
+                        </span>
                     </div>
-
                 </div>
 
                 <div className={s.sideActions} ref={actionsRef}>
@@ -310,7 +311,6 @@ const ThemeInfo: React.FC<Props> = ({
                         )}
                     </div>
                 </div>
-
             </div>
         </>
     )

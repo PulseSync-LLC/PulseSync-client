@@ -63,11 +63,11 @@ jobs:
         os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os)))) }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.target }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 

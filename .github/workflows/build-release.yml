@@ -17,11 +17,11 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
 
@@ -53,17 +53,6 @@ jobs:
             echo "release/ not found"; exit 1
           fi
 
-      - name: Upload release/ to S3
-        shell: bash
-        run: |
-          BRANCH="${{ github.ref_name }}"
-          PREFIX="builds/releases"
-          npx -y tsx scripts/s3-upload.ts \
-            --branch "$BRANCH" \
-            --dir "release" \
-            --prefix "$PREFIX" \
-            --mac-manifest
-
       - name: Upload release artifacts for GitHub Release
         uses: actions/upload-artifact@v7
         with:
@@ -91,7 +80,7 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: github-release-artifacts
@@ -119,7 +108,7 @@ jobs:
           find github-release-assets -maxdepth 1 -type f | sort
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v2.6.1
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}

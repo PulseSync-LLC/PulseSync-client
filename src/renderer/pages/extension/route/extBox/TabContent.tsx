@@ -248,7 +248,8 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     }, [creating, config])
 
     const asset = useMemo(
-        () => (f: string) => `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(f)}`,
+        () => (f: string) =>
+            `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(f)}`,
         [addon.directoryName],
     )
 

@@ -15,9 +15,7 @@ const transformUrl = (url: string): string[] => {
         const parsed = new URL(url)
         if (parsed.protocol !== 'pulsesync:') return []
 
-        return [parsed.hostname, ...parsed.pathname.split('/')]
-            .map(part => trimQuotes(part || ''))
-            .filter(Boolean)
+        return [parsed.hostname, ...parsed.pathname.split('/')].map(part => trimQuotes(part || '')).filter(Boolean)
     } catch {
         return url
             .replace(/^pulsesync:\/\//i, '')

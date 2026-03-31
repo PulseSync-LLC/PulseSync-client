@@ -191,49 +191,46 @@ function App() {
         }
     }, [])
 
-    const notifyAddonUpdates = useCallback(
-        async (installedAddons: Addon[]) => {
-            const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-            if (!storeInstalledAddons.length) {
-                return
-            }
+    const notifyAddonUpdates = useCallback(async (installedAddons: Addon[]) => {
+        const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
+        if (!storeInstalledAddons.length) {
+            return
+        }
 
-            try {
-                const response = await apolloClient.query<GetStoreAddonsData>({
-                    query: GetStoreAddonsQuery,
-                    variables: {
-                        page: 1,
-                        pageSize: 100,
-                    },
-                    fetchPolicy: 'no-cache',
+        try {
+            const response = await apolloClient.query<GetStoreAddonsData>({
+                query: GetStoreAddonsQuery,
+                variables: {
+                    page: 1,
+                    pageSize: 100,
+                },
+                fetchPolicy: 'no-cache',
+            })
+
+            const catalog = Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : []
+
+            storeInstalledAddons.forEach(addon => {
+                const publishedAddon = catalog.find(item => item.id === addon.storeAddonId)
+                if (!publishedAddon?.currentRelease) return
+                if (compareVersions(publishedAddon.currentRelease.version, addon.version) <= 0) return
+
+                const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
+                if (localStorage.getItem(notificationKey) === publishedAddon.currentRelease.version) return
+
+                const title = tRef.current('extensions.storeUpdateAvailableTitle')
+                const body = tRef.current('extensions.storeUpdateAvailableMessage', {
+                    name: publishedAddon.name,
+                    version: publishedAddon.currentRelease.version,
                 })
 
-                const catalog = Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : []
-
-                storeInstalledAddons.forEach(addon => {
-                    const publishedAddon = catalog.find(item => item.id === addon.storeAddonId)
-                    if (!publishedAddon?.currentRelease) return
-                    if (compareVersions(publishedAddon.currentRelease.version, addon.version) <= 0) return
-
-                    const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
-                    if (localStorage.getItem(notificationKey) === publishedAddon.currentRelease.version) return
-
-                    const title = tRef.current('extensions.storeUpdateAvailableTitle')
-                    const body = tRef.current('extensions.storeUpdateAvailableMessage', {
-                        name: publishedAddon.name,
-                        version: publishedAddon.currentRelease.version,
-                    })
-
-                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, { title, body })
-                    toast.custom('info', title, body)
-                    localStorage.setItem(notificationKey, publishedAddon.currentRelease.version)
-                })
-            } catch (error) {
-                console.error('Failed to check store addon updates:', error)
-            }
-        },
-        [],
-    )
+                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                toast.custom('info', title, body)
+                localStorage.setItem(notificationKey, publishedAddon.currentRelease.version)
+            })
+        } catch (error) {
+            console.error('Failed to check store addon updates:', error)
+        }
+    }, [])
 
     const handleSocketAchievementsUpdate = useCallback(
         async (payload: unknown) => {
