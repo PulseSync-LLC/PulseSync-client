@@ -99,13 +99,13 @@ const ExtensionPublicationModal: React.FC = () => {
             isOpen={isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)}
             onClose={handleClose}
             buttons={[
-                ...(primaryButton ? [primaryButton] : []),
                 {
                     text: t('common.cancel'),
                     onClick: handleClose,
                     variant: 'secondary',
                     disabled: publicationBusy,
                 },
+                ...(primaryButton ? [primaryButton] : []),
             ]}
         >
             <div className={styles.body}>
