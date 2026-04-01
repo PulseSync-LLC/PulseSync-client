@@ -32,6 +32,7 @@ import RendererEvents from './common/types/rendererEvents'
 import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
 import { runWhenUiReady } from './main/modules/uiReady'
+import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 
 export let updated = false
 export let musicPath: string
@@ -137,6 +138,7 @@ app.on('ready', async () => {
         }
         modManager(mainWindow)
         createTray()
+        void sendAppStartupTelemetry()
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
         logger.main.error(t('main.index.appStartupError'), e)
