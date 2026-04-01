@@ -54,13 +54,15 @@ const UpdateChannelOverrideButton: React.FC = () => {
         }
     }, [refreshStatus])
 
-    if (isSwitchBlocked) {
-        return null
-    }
-
     return (
         <TooltipButton tooltipText={label} dataSide={'top'} side="bottom" as="div" className={styles.devOverridesTrigger}>
-            <button type="button" className={styles.headerIconButton} aria-label={label} onClick={() => openModal(Modals.UPDATE_CHANNEL_OVERRIDE)}>
+            <button
+                disabled={isSwitchBlocked}
+                type="button"
+                className={styles.headerIconButton}
+                aria-label={label}
+                onClick={() => openModal(Modals.UPDATE_CHANNEL_OVERRIDE)}
+            >
                 <MdAltRoute size={18} />
             </button>
         </TooltipButton>
