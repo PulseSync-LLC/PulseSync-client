@@ -17,6 +17,10 @@
     }
 }
 
+.softFadeIn {
+    animation: fadeInSoft 0.28s ease-out forwards;
+}
+
 @keyframes fadeInUp {
     from {
         opacity: 0;
@@ -25,6 +29,15 @@
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes fadeInSoft {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
     }
 }
 

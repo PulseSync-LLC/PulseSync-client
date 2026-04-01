@@ -14,20 +14,74 @@ import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 interface UserCardProps {
     user: Partial<UserInterface>
     onClick: (username: string) => void
+    animationsEnabledRef: React.MutableRefObject<boolean>
+    eagerVisible?: boolean
 }
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) => {
-    const [isIntersecting, setIsIntersecting] = useState(false)
+type VisibilityState = {
+    isIntersecting: boolean
+    shouldAnimate: boolean
+}
+
+const useIntersectionObserver = (
+    ref: React.RefObject<HTMLElement | null>,
+    animationsEnabledRef: React.MutableRefObject<boolean>,
+    eagerVisible: boolean,
+    options?: IntersectionObserverInit,
+) => {
+    const [visibilityState, setVisibilityState] = useState<VisibilityState>({
+        isIntersecting: eagerVisible,
+        shouldAnimate: animationsEnabledRef.current,
+    })
+
     useEffect(() => {
+        if (eagerVisible) {
+            setVisibilityState({
+                isIntersecting: true,
+                shouldAnimate: animationsEnabledRef.current,
+            })
+            return
+        }
+
         if (!ref.current) return
-        const obs = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
-            ...options,
-            rootMargin: '50%',
-        })
+
+        const obs = new IntersectionObserver(
+            ([entry]) => {
+                setVisibilityState(prevState => {
+                    if (entry.isIntersecting) {
+                        const nextState = {
+                            isIntersecting: true,
+                            shouldAnimate: animationsEnabledRef.current,
+                        }
+
+                        if (
+                            prevState.isIntersecting === nextState.isIntersecting &&
+                            prevState.shouldAnimate === nextState.shouldAnimate
+                        ) {
+                            return prevState
+                        }
+
+                        return nextState
+                    }
+
+                    if (!prevState.isIntersecting) return prevState
+
+                    return {
+                        ...prevState,
+                        isIntersecting: false,
+                    }
+                })
+            },
+            {
+                ...options,
+                rootMargin: '50%',
+            },
+        )
         obs.observe(ref.current)
         return () => obs.disconnect()
-    }, [ref, options])
-    return isIntersecting
+    }, [animationsEnabledRef, eagerVisible, options, ref])
+
+    return visibilityState
 }
 
 const isInactive = (lastOnline?: number) => {
@@ -38,11 +92,12 @@ const isInactive = (lastOnline?: number) => {
     return date < weekAgo
 }
 
-const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
+const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledRef, eagerVisible = false }) => {
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
-    const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
     const [isHovered, setIsHovered] = useState(false)
+    const observerOptions = useMemo<IntersectionObserverInit>(() => ({ threshold: 0.1 }), [])
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, eagerVisible, observerOptions)
 
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
@@ -52,10 +107,10 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick }) => {
     const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
 
     return (
-        <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!isVisible}>
-            {isVisible ? (
+        <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!visibilityState.isIntersecting}>
+            {visibilityState.isIntersecting ? (
                 <div
-                    className={cn(styles.container, styles.visible)}
+                    className={cn(styles.container, !visibilityState.shouldAnimate && styles.softFadeIn)}
                     onClick={() => onClick(user.username!)}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}

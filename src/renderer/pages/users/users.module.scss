@@ -23,6 +23,10 @@
     background: #2c303f;
 }
 
+.containerFixInnerLocked {
+    overflow: hidden !important;
+}
+
 .headerSection {
     flex-direction: column;
     width: 100%;
@@ -265,6 +269,25 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
     gap: 10px;
+}
+
+.initialContentShell {
+    position: relative;
+    width: 100%;
+}
+
+.initialShimmerOverlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.18s ease-out;
+}
+
+.initialShimmerOverlayHidden {
+    opacity: 0;
 }
 
 .statusCircle {

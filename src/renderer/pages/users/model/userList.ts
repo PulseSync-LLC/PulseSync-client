@@ -1,8 +1,21 @@
 import UserInterface from '@entities/user/model/user.interface'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 
-export const PER_PAGE = 51
 export const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
+export const USER_CARD_MIN_WIDTH = 300
+export const USER_CARD_HEIGHT = 150
+export const USER_GRID_GAP = 10
+
+const USER_BATCH_VIEWPORTS = 3
+const MAX_USERS_PER_PAGE = 150
+
+export type UserGridMetrics = {
+    columns: number
+    visibleRows: number
+    visibleCount: number
+    perPage: number
+    prefetchOffsetPx: number
+}
 
 export type SortField = (typeof SORT_FIELDS)[number]
 export type SortState = { id: SortField; desc: boolean }[]
@@ -62,4 +75,24 @@ export function sortUsers(rawUsers: UserInterface[], sortingState: SortState): U
     }
 
     return arr
+}
+
+export function getUserGridMetrics(width: number, height: number): UserGridMetrics {
+    const safeWidth = Math.max(width, USER_CARD_MIN_WIDTH)
+    const safeHeight = Math.max(height, USER_CARD_HEIGHT)
+    const rowHeight = USER_CARD_HEIGHT + USER_GRID_GAP
+
+    const columns = Math.max(1, Math.floor((safeWidth + USER_GRID_GAP) / (USER_CARD_MIN_WIDTH + USER_GRID_GAP)))
+    const visibleRows = Math.max(1, Math.ceil((safeHeight + USER_GRID_GAP) / rowHeight))
+    const visibleCount = columns * visibleRows
+    const perPage = Math.max(visibleCount, Math.min(MAX_USERS_PER_PAGE, visibleCount * USER_BATCH_VIEWPORTS))
+    const prefetchOffsetPx = Math.max(rowHeight, visibleRows * rowHeight)
+
+    return {
+        columns,
+        visibleRows,
+        visibleCount,
+        perPage,
+        prefetchOffsetPx,
+    }
 }
