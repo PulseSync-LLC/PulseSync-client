@@ -73,6 +73,13 @@ jobs:
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
+      - uses: actions/cache@v4
+        with:
+          path: |
+            nativeModules/**/node_modules
+            nativeModules/**/build
+          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/yarn.lock', 'nativeModules/**/binding.gyp', 'nativeModules/**/*.c', 'nativeModules/**/*.cc', 'nativeModules/**/*.cpp', 'nativeModules/**/*.h', 'nativeModules/**/*.hpp') }}
+
       - name: Create .env
         shell: bash
         env:

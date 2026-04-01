@@ -225,6 +225,19 @@ function setConfigBranch(branch: string) {
     log(LogLevel.SUCCESS, `Set branch=${branch} in appConfig.ts`)
 }
 
+function hasCompiledNativeArtifact(modulePath: string): boolean {
+    const releaseDir = path.join(modulePath, 'build', 'Release')
+    if (!fs.existsSync(releaseDir)) {
+        return false
+    }
+
+    return fs.readdirSync(releaseDir).some(fileName => path.extname(fileName).toLowerCase() === '.node')
+}
+
+function hasNativeModuleDependencies(modulePath: string): boolean {
+    return fs.existsSync(path.join(modulePath, 'node_modules'))
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -258,6 +271,10 @@ async function main(): Promise<void> {
             const packageJsonPath = path.join(fullPath, 'package.json')
             if (!fs.existsSync(packageJsonPath)) {
                 log(LogLevel.WARN, `Skipping native module "${mod}" (package.json not found)`)
+                continue
+            }
+            if (hasNativeModuleDependencies(fullPath) && hasCompiledNativeArtifact(fullPath)) {
+                log(LogLevel.SUCCESS, `Skipping native module "${mod}" (cached build artifacts found)`)
                 continue
             }
             await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)
@@ -322,22 +339,30 @@ async function main(): Promise<void> {
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 
-            function copyNodes(srcDir: string) {
-                fs.readdirSync(srcDir, { withFileTypes: true }).forEach(entry => {
-                    const fullPath = path.join(srcDir, entry.name)
-                    if (entry.isDirectory()) {
-                        copyNodes(fullPath)
-                    } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
-                        const relativePath = path.relative(nativeDir, fullPath)
-                        const dest = path.join(outDir, 'modules', relativePath)
+            for (const mod of fs.readdirSync(nativeDir)) {
+                const modulePath = path.join(nativeDir, mod)
+                if (!fs.existsSync(modulePath) || !fs.statSync(modulePath).isDirectory()) {
+                    continue
+                }
 
-                        fs.mkdirSync(path.dirname(dest), { recursive: true })
-                        fs.copyFileSync(fullPath, dest)
-                        log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
-                    }
-                })
+                const releasePath = path.join(modulePath, 'build', 'Release')
+                if (!fs.existsSync(releasePath) || !fs.statSync(releasePath).isDirectory()) {
+                    continue
+                }
+
+                const compiledArtifacts = fs
+                    .readdirSync(releasePath, { withFileTypes: true })
+                    .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.node')
+
+                for (const artifact of compiledArtifacts) {
+                    const sourcePath = path.join(releasePath, artifact.name)
+                    const dest = path.join(outDir, 'modules', mod, artifact.name)
+
+                    fs.mkdirSync(path.dirname(dest), { recursive: true })
+                    fs.copyFileSync(sourcePath, dest)
+                    log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+                }
             }
-            copyNodes(nativeDir)
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
