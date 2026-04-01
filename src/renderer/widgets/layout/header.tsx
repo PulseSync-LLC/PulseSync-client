@@ -275,7 +275,7 @@ const Header: React.FC<p> = () => {
                 <div className={styles.fix_size}>
                     {(user.id !== '-1' && (
                         <div className={styles.app_menu}>
-                            <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
+                            <TooltipButton tooltipText="В разработке" side="bottom" dataSide={"top"} as="div" className={styles.settingsTooltip}>
                                 <button className={styles.settingsButton} disabled={!settingsAvailable}>
                                     <MdSettings size={22} />
                                 </button>

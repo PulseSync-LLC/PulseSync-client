@@ -200,7 +200,7 @@ const NotificationsBell: React.FC = () => {
 
     return (
         <div className={styles.notificationTrigger} ref={rootRef}>
-            <TooltipButton tooltipText={t('header.notifications.open')} side="bottom" as="div">
+            <TooltipButton tooltipText={t('header.notifications.open')} side="bottom" dataSide={'top'} as="div">
                 <button
                     type="button"
                     className={styles.iconButton}

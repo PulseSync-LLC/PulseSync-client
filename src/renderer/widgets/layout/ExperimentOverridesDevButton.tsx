@@ -14,7 +14,7 @@ const ExperimentOverridesDevButton: React.FC = () => {
     const label = t('header.devOverrides.open')
 
     return (
-        <TooltipButton tooltipText={label} side="bottom" as="div" className={styles.devOverridesTrigger}>
+        <TooltipButton tooltipText={label} dataSide={'top'} side="bottom" as="div" className={styles.devOverridesTrigger}>
             <button type="button" className={styles.headerIconButton} aria-label={label} onClick={() => openModal(Modals.EXPERIMENT_OVERRIDES_DEV)}>
                 <MdOutlineScience size={18} />
             </button>
