@@ -39,7 +39,7 @@ import apolloClient from '@shared/api/apolloClient'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import { useTranslation } from 'react-i18next'
-import { AddonStoreSubmitError, fetchOwnStoreAddons, submitAddonForStore } from '@entities/addon/api/storeAddons'
+import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, submitAddonForStore } from '@entities/addon/api/storeAddons'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
@@ -560,8 +560,28 @@ export default function ExtensionPage() {
 
             setPublicationBusy(true)
             try {
-                await submitAddonForStore(selectedAddon, changelog, mode === 'update' ? selectedPublication?.id : undefined)
-                await refreshOwnPublications()
+                let linkedStoreAddonId = await submitAddonForStore(selectedAddon, changelog, mode === 'update' ? selectedPublication?.id : undefined)
+                const ownAddons = await fetchOwnStoreAddons()
+                setStorePublications(ownAddons)
+
+                if (!linkedStoreAddonId) {
+                    const normalizedAddonName = selectedAddon.name.trim().toLowerCase()
+                    linkedStoreAddonId =
+                        ownAddons.find(
+                            item =>
+                                item.type === selectedAddon.type &&
+                                item.name.trim().toLowerCase() === normalizedAddonName &&
+                                item.currentRelease?.version === selectedAddon.version,
+                        )?.id ||
+                        ownAddons.find(item => item.type === selectedAddon.type && item.name.trim().toLowerCase() === normalizedAddonName)?.id ||
+                        null
+                }
+
+                if (linkedStoreAddonId) {
+                    await persistAddonStoreLink(selectedAddon, linkedStoreAddonId)
+                    await loadAddons(true)
+                }
+
                 toast.custom(
                     'success',
                     t('extensions.publication.successTitle'),
@@ -589,7 +609,7 @@ export default function ExtensionPage() {
                 setPublicationBusy(false)
             }
         },
-        [i18n.language, publicationChangelogText, refreshOwnPublications, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+        [i18n.language, loadAddons, publicationChangelogText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
     )
 
     const handleStoreAddonUpdate = useCallback(async () => {

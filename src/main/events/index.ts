@@ -56,6 +56,7 @@ let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
 let pendingAddonOpen: string | null = null
+let updaterStartListenerBound = false
 
 const macUpdater = isMac()
     ? getMacUpdater({
@@ -572,11 +573,14 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
             return
         }
         updater.start()
-        updater.onUpdate(version => {
-            mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
-            mainWindow.flashFrame(true)
-            updateAvailable = true
-        })
+        if (!updaterStartListenerBound) {
+            updaterStartListenerBound = true
+            updater.onUpdate(version => {
+                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
+                mainWindow.flashFrame(true)
+                updateAvailable = true
+            })
+        }
     })
 }
 

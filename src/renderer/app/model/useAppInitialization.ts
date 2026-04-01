@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
 import MainEvents from '@common/types/mainEvents'
 import config from '@common/appConfig'
@@ -7,22 +7,22 @@ import type Addon from '@entities/addon/model/addon.interface'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
 type Params = {
-    app: SettingsInterface
+    appRef: MutableRefObject<SettingsInterface>
     fetchAchievements: () => Promise<void>
-    fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean }) => Promise<void>
+    fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
-    setAddons: React.Dispatch<React.SetStateAction<Addon[]>>
-    setAllAchievements: React.Dispatch<React.SetStateAction<any[]>>
-    setAppInfo: React.Dispatch<React.SetStateAction<AppInfoInterface[]>>
-    setModInfoFetched: React.Dispatch<React.SetStateAction<boolean>>
-    setMusicInstalled: React.Dispatch<React.SetStateAction<boolean>>
-    setMusicVersion: React.Dispatch<React.SetStateAction<string | null>>
-    setWidgetInstalled: React.Dispatch<React.SetStateAction<boolean>>
+    setAddons: Dispatch<SetStateAction<Addon[]>>
+    setAllAchievements: Dispatch<SetStateAction<any[]>>
+    setAppInfo: Dispatch<SetStateAction<AppInfoInterface[]>>
+    setModInfoFetched: Dispatch<SetStateAction<boolean>>
+    setMusicInstalled: Dispatch<SetStateAction<boolean>>
+    setMusicVersion: Dispatch<SetStateAction<string | null>>
+    setWidgetInstalled: Dispatch<SetStateAction<boolean>>
     userId: string
 }
 
 export function useAppInitialization({
-    app,
+    appRef,
     fetchAchievements,
     fetchModInfo,
     router,
@@ -77,12 +77,14 @@ export function useAppInitialization({
                     console.error('Failed to fetch app info:', error)
                 }
 
-                await Promise.all([fetchModInfo(app), fetchAchievements()])
+                await Promise.all([fetchModInfo(appRef.current), fetchAchievements()])
             }
 
-            initializeApp()
+            void initializeApp()
 
-            const modCheckId = setInterval(() => fetchModInfo(app), 10 * 60 * 1000)
+            const modCheckId = setInterval(() => {
+                void fetchModInfo(appRef.current)
+            }, 10 * 60 * 1000)
             return () => {
                 clearInterval(modCheckId)
             }
@@ -91,7 +93,7 @@ export function useAppInitialization({
         setAllAchievements([])
         router.navigate('/auth', { replace: true })
     }, [
-        app,
+        appRef,
         fetchAchievements,
         fetchModInfo,
         router,

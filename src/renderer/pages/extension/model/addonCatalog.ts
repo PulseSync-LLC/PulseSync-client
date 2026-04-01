@@ -37,6 +37,42 @@ export function useDebouncedValue<T>(value: T, delay: number) {
     return debounced
 }
 
+function normalizeSearchText(value: string): string {
+    return value.trim().toLowerCase()
+}
+
+function tokenizeSearchText(value: string): string[] {
+    return normalizeSearchText(value)
+        .split(/[^a-z0-9а-яё._-]+/i)
+        .map(token => token.trim())
+        .filter(Boolean)
+}
+
+function matchesTokenSequence(target: string, query: string): boolean {
+    const queryTokens = tokenizeSearchText(query)
+    if (!queryTokens.length) return true
+
+    const targetTokens = tokenizeSearchText(target)
+    if (!targetTokens.length) return false
+
+    return queryTokens.every(queryToken => targetTokens.some(targetToken => targetToken.includes(queryToken)))
+}
+
+function matchesFuzzyName(name: string, query: string): boolean {
+    const normalizedName = normalizeSearchText(name)
+    const normalizedQuery = normalizeSearchText(query)
+
+    if (normalizedQuery.length < 4 || normalizedName.length < 4) {
+        return false
+    }
+
+    if (normalizedName[0] !== normalizedQuery[0]) {
+        return false
+    }
+
+    return stringSimilarity.compareTwoStrings(normalizedName, normalizedQuery) >= 0.72
+}
+
 export function getUniqueAddonTags(addons: Addon[]): string[] {
     const tags = new Set<string>()
 
@@ -94,18 +130,23 @@ export function filterAndSortAddons({
 
     if (searchQuery.trim()) {
         result = result.filter(item => {
+            const normalizedQuery = normalizeSearchText(searchQuery)
             const authorString =
                 typeof item.author === 'string'
-                    ? item.author.toLowerCase()
+                    ? normalizeSearchText(item.author)
                     : Array.isArray(item.author)
-                      ? item.author.map(id => String(id).toLowerCase()).join(', ')
+                      ? item.author.map(id => normalizeSearchText(String(id))).join(', ')
                       : ''
-            let matches = item.name.toLowerCase().includes(searchQuery) || authorString.includes(searchQuery)
+            const normalizedName = normalizeSearchText(item.name)
 
-            if (!matches && searchQuery.length > 2) {
-                matches =
-                    stringSimilarity.compareTwoStrings(item.name.toLowerCase(), searchQuery) > 0.35 ||
-                    stringSimilarity.compareTwoStrings(authorString, searchQuery) > 0.35
+            let matches =
+                normalizedName.includes(normalizedQuery) ||
+                authorString.includes(normalizedQuery) ||
+                matchesTokenSequence(normalizedName, normalizedQuery) ||
+                matchesTokenSequence(authorString, normalizedQuery)
+
+            if (!matches) {
+                matches = matchesFuzzyName(item.name, normalizedQuery)
             }
 
             return matches

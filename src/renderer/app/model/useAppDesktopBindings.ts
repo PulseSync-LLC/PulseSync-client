@@ -13,7 +13,7 @@ import { fetchSettings } from '@entities/settings/api/settings'
 type Params = {
     appRef: React.MutableRefObject<SettingsInterface>
     authorize: () => Promise<void>
-    fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean }) => Promise<void>
+    fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
     setAddons: React.Dispatch<React.SetStateAction<Addon[]>>
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
@@ -260,7 +260,7 @@ export function useAppDesktopBindings({
                 router.navigate('/', { replace: true })
             })
         }
-        ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean }) => {
+        ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
             await fetchModInfo(currentApp, options)
         }
     }, [authorize, fetchModInfo, router, setAddons, setHasToken, setTokenReady])

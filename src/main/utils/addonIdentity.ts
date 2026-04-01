@@ -36,6 +36,13 @@ const normalizeAuthors = (value: unknown): string[] => {
     return author ? [author.toLowerCase()] : []
 }
 
+const normalizeAddonName = (value: unknown): string =>
+    readText(value)
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+
+const normalizeAddonType = (value: unknown): string => readText(value).toLowerCase()
+
 export const isDefaultAddon = (source: Pick<AddonIdentitySource, 'name'>): boolean => readText(source.name) === DEFAULT_ADDON_NAME
 
 export const createGeneratedLocalAddonId = (): string => randomUUID().replace(/-/g, '')
@@ -43,21 +50,36 @@ export const createGeneratedLocalAddonId = (): string => randomUUID().replace(/-
 export const createDeterministicLocalAddonId = (source: AddonIdentitySource): string => {
     const payload = JSON.stringify({
         author: normalizeAuthors(source.author),
-        name: readText(source.name).toLowerCase(),
-        type: readText(source.type).toLowerCase(),
+        name: normalizeAddonName(source.name),
+        type: normalizeAddonType(source.type),
     })
     const digest = createHash('sha256').update(payload).digest('hex').slice(0, 24)
     return digest
 }
 
-export const resolveAddonStableId = (source: AddonIdentitySource, fallbackId?: string): string => {
+export const resolveAddonPublicationFingerprint = (source: AddonIdentitySource): string => {
     if (isDefaultAddon(source)) {
         return DEFAULT_ADDON_ID
     }
 
-    const storeAddonId = readText(source.storeAddonId)
-    if (storeAddonId) {
-        return storeAddonId
+    const name = normalizeAddonName(source.name)
+    const type = normalizeAddonType(source.type)
+    const authors = normalizeAuthors(source.author).sort()
+
+    if (!name || !type) {
+        return ''
+    }
+
+    return JSON.stringify({
+        authors,
+        name,
+        type,
+    })
+}
+
+export const resolveAddonStableId = (source: AddonIdentitySource, fallbackId?: string): string => {
+    if (isDefaultAddon(source)) {
+        return DEFAULT_ADDON_ID
     }
 
     const existingId = normalizeLocalAddonId(readText(source.id))
@@ -73,12 +95,29 @@ export const resolveAddonStableId = (source: AddonIdentitySource, fallbackId?: s
     return createDeterministicLocalAddonId(source)
 }
 
-export const resolveAddonDirectoryKey = (source: AddonIdentitySource, fallbackId?: string): string => {
+export const resolveAddonCanonicalId = (source: AddonIdentitySource, fallbackId?: string): string => {
+    if (isDefaultAddon(source)) {
+        return DEFAULT_ADDON_ID
+    }
+
+    const storeAddonId = normalizeLocalAddonId(readText(source.storeAddonId))
+    if (storeAddonId) {
+        return storeAddonId
+    }
+
+    return resolveAddonStableId(source, fallbackId)
+}
+
+export const resolveAddonDirectoryKey = (
+    source: AddonIdentitySource,
+    fallbackId?: string,
+    options?: { preferStoreId?: boolean },
+): string => {
     if (isDefaultAddon(source)) {
         return DEFAULT_ADDON_NAME
     }
 
-    return resolveAddonStableId(source, fallbackId)
+    return options?.preferStoreId ? resolveAddonCanonicalId(source, fallbackId) : resolveAddonStableId(source, fallbackId)
 }
 
 export const computeAddonPackageHash = (buffer: Buffer): string => createHash('sha256').update(buffer).digest('hex')

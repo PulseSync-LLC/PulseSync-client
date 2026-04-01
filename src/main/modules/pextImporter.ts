@@ -8,7 +8,8 @@ import logger from './logger'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
-import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonStableId } from '../utils/addonIdentity'
+import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
+import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
@@ -90,7 +91,20 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         metadata.id = resolveAddonStableId(metadata)
         metadata.packageHash = computeAddonPackageHash(archiveBuffer)
 
-        const addonDirectory = resolveAddonDirectoryKey(metadata)
+        let targetDirectoryOverride: string | null = null
+        if (metadata.installSource === 'store') {
+            const publicationFingerprint = resolveAddonPublicationFingerprint(metadata)
+            const existingLocalAddon = findAddonByPublicationFingerprint(publicationFingerprint, 'local')
+
+            if (existingLocalAddon) {
+                targetDirectoryOverride = existingLocalAddon.directoryName
+                logger.main.info(
+                    `Replacing local addon ${existingLocalAddon.directoryName} with store publication ${String(metadata.storeAddonId || metadata.name)}`,
+                )
+            }
+        }
+
+        const addonDirectory = targetDirectoryOverride || resolveAddonDirectoryKey(metadata)
         const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
         if (fs.existsSync(outputDir)) {
             await clearDirectory(outputDir)
@@ -106,7 +120,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             await removeSourcePextIfNeeded(filePath)
         }
 
-        return addonDirectory
+        return targetDirectoryOverride ? addonName : addonDirectory
     } catch (err: any) {
         logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)
