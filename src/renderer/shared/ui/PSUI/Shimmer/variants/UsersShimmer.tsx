@@ -2,11 +2,17 @@ import React from 'react'
 import Line from '@shared/ui/PSUI/Shimmer/ui/Line'
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer.module.scss'
 
-export default function UsersShimmer() {
+type UsersShimmerProps = {
+    count?: number
+}
+
+export default function UsersShimmer({ count = 8 }: UsersShimmerProps) {
+    const safeCount = Math.max(1, Math.floor(count))
+
     return (
         <div className={styles.shell}>
             <div className={styles.grid}>
-                {Array.from({ length: 8 }, (_, index) => (
+                {Array.from({ length: safeCount }, (_, index) => (
                     <div key={index} className={styles.card}>
                         <div className={styles.topSection}>
                             <div className={styles.banner} />
