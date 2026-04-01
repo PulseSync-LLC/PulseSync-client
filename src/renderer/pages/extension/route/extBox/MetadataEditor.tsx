@@ -530,14 +530,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 text={t('metadata.listEditor.description')}
                 buttons={[
                     {
-                        text: t('common.done'),
-                        onClick: applyListEditor,
-                        disabled: invalidModalSupportedVersions.length > 0,
-                    },
-                    {
                         text: t('common.cancel'),
                         onClick: closeListEditor,
                         variant: 'secondary',
+                    },
+                    {
+                        text: t('common.done'),
+                        onClick: applyListEditor,
+                        disabled: invalidModalSupportedVersions.length > 0,
                     },
                 ]}
             >
