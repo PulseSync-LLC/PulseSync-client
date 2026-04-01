@@ -86,10 +86,7 @@ export default function StorePage() {
     }, [])
 
     const installedStoreAddons = useMemo(
-        () =>
-            new Map(
-                installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId).map(addon => [addon.storeAddonId!, addon]),
-            ),
+        () => new Map(installedAddons.filter(addon => addon.storeAddonId).map(addon => [addon.storeAddonId!, addon])),
         [installedAddons],
     )
 
@@ -136,7 +133,7 @@ export default function StorePage() {
                     const release = addon.currentRelease
                     if (!release) return null
                     const installedStoreAddon = installedStoreAddons.get(addon.id)
-                    const isInstalledFromStore = !!installedStoreAddon
+                    const isInstalled = !!installedStoreAddon
 
                     return (
                         <ExtensionCardStore
@@ -153,11 +150,11 @@ export default function StorePage() {
                             kind={addon.type}
                             backgroundImage={release.bannerUrl || undefined}
                             iconImage={release.avatarUrl || undefined}
-                            downloadInstalled={isInstalledFromStore}
-                            downloadVariant={isInstalledFromStore ? 'remove' : 'default'}
+                            downloadInstalled={isInstalled}
+                            downloadVariant={isInstalled ? 'remove' : 'default'}
                             downloadDisabled={installingAddonId === addon.id}
                             downloadLabel={
-                                isInstalledFromStore
+                                isInstalled
                                     ? t('store.remove')
                                     : installingAddonId === addon.id
                                       ? t('common.importing')
@@ -198,6 +195,9 @@ export default function StorePage() {
                                     if (!result?.success) {
                                         throw new Error(result?.reason || 'INSTALL_FAILED')
                                     }
+
+                                    const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                                    setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
 
                                     toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
                                 } catch (error: any) {

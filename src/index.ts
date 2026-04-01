@@ -304,7 +304,10 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     const enc = (data?.encoding as BufferEncoding) || 'utf8'
                     return await fsp.readFile(p, enc)
-                } catch (error) {
+                } catch (error: any) {
+                    if (error?.code === 'ENOENT') {
+                        return null
+                    }
                     logger?.main?.error?.('[file-event:read-file]', error)
                     return null
                 }
@@ -332,7 +335,10 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     const buf = await readBufResilient(p)
                     return buf.toString('base64')
-                } catch (error) {
+                } catch (error: any) {
+                    if (error?.code === 'ENOENT') {
+                        return null
+                    }
                     logger?.main?.error?.('[file-event:read-file-base64]', error)
                     return null
                 }

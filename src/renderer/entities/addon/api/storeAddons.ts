@@ -3,6 +3,7 @@ import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import getUserToken from '@shared/lib/auth/getUserToken'
 import MainEvents from '@common/types/mainEvents'
+import RendererEvents from '@common/types/rendererEvents'
 
 type OwnAddonsResponse = {
     addons?: StoreAddon[]
@@ -14,6 +15,18 @@ type PackageArchiveResponse = {
     fileName?: string
     reason?: string
     success?: boolean
+}
+
+type AddonStoreSubmitSuccessPayload = {
+    addon?: { id?: string | null } | null
+    addonId?: string | null
+    data?: {
+        addon?: { id?: string | null } | null
+        addonId?: string | null
+        id?: string | null
+    } | null
+    id?: string | null
+    ok?: boolean
 }
 
 type AddonStoreErrorPayload = {
@@ -93,6 +106,25 @@ function getAuthHeaders(extra?: HeadersInit): HeadersInit {
     }
 }
 
+function extractStoreAddonId(payload: AddonStoreSubmitSuccessPayload | null): string | null {
+    const candidates = [
+        payload?.addon?.id,
+        payload?.addonId,
+        payload?.id,
+        payload?.data?.addon?.id,
+        payload?.data?.addonId,
+        payload?.data?.id,
+    ]
+
+    for (const candidate of candidates) {
+        if (typeof candidate === 'string' && candidate.trim()) {
+            return candidate.trim()
+        }
+    }
+
+    return null
+}
+
 function base64ToBlob(base64: string, mimeType: string): Blob {
     const binary = atob(base64)
     const bytes = new Uint8Array(binary.length)
@@ -134,7 +166,32 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
-export async function submitAddonForStore(addon: Addon, changelog: string[], existingAddonId?: string): Promise<void> {
+export async function persistAddonStoreLink(addon: Addon, storeAddonId: string): Promise<void> {
+    if (!addon?.path || !storeAddonId.trim()) {
+        return
+    }
+
+    try {
+        const metadataPath = `${addon.path}/metadata.json`
+        const rawMetadata = (await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, metadataPath, {
+            encoding: 'utf8',
+        })) as string | null
+
+        if (!rawMetadata) {
+            return
+        }
+
+        const parsedMetadata = JSON.parse(rawMetadata) as Partial<Addon>
+        parsedMetadata.storeAddonId = storeAddonId.trim()
+        parsedMetadata.installSource = parsedMetadata.installSource === 'store' ? 'store' : 'local'
+
+        await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, metadataPath, JSON.stringify(parsedMetadata, null, 4))
+    } catch (error) {
+        console.error('[AddonStore] failed to persist store addon link', error)
+    }
+}
+
+export async function submitAddonForStore(addon: Addon, changelog: string[], existingAddonId?: string): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
     const formData = new FormData()
     formData.append('name', addon.name)
@@ -152,7 +209,7 @@ export async function submitAddonForStore(addon: Addon, changelog: string[], exi
         body: formData,
     })
 
-    const payload = (await response.json().catch((): null => null)) as AddonStoreErrorPayload | null
+    const payload = (await response.json().catch((): null => null)) as (AddonStoreErrorPayload & AddonStoreSubmitSuccessPayload) | null
     if (!response.ok || payload?.ok === false) {
         const resolvedError = pickErrorCode(payload)
         throw new AddonStoreSubmitError(resolvedError.code, {
@@ -161,4 +218,6 @@ export async function submitAddonForStore(addon: Addon, changelog: string[], exi
             statusCode: payload?.statusCode ?? response.status,
         })
     }
+
+    return extractStoreAddonId(payload)
 }

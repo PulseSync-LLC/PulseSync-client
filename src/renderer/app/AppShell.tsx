@@ -78,6 +78,7 @@ function App() {
     const [widgetInstalled, setWidgetInstalled] = useState(false)
     const [isAppDeprecated, setIsAppDeprecated] = useState(false)
     const toastReference = useRef<string | null>(null)
+    const lastNotInstalledToastKeyRef = useRef<string | null>(null)
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const appRef = useRef(app)
@@ -104,8 +105,9 @@ function App() {
         userId: user.id,
     })
 
-    const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean }) => {
+    const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
         const isManualCheck = !!options?.manual
+        const silentNotInstalled = !!options?.silentNotInstalled
         try {
             const res = await apolloClient.query<{ getMod: ModInterface[] }>({
                 query: GetModQuery,
@@ -122,9 +124,15 @@ function App() {
 
             const latest = mods[0]
             if (!app.mod.installed || !app.mod.version) {
-                toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
+                const toastKey = `not-installed:${latest.modVersion}`
+                if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
+                    lastNotInstalledToastKeyRef.current = toastKey
+                    toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
+                }
                 return
             }
+
+            lastNotInstalledToastKeyRef.current = null
             if (compareVersions(latest.modVersion, app.mod.version) > 0) {
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
                 if (lastNotifiedModVersion !== latest.modVersion) {
@@ -271,7 +279,7 @@ function App() {
     }, [addons, notifyAddonUpdates])
 
     useAppInitialization({
-        app,
+        appRef,
         fetchAchievements,
         fetchModInfo,
         router,

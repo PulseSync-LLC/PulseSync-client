@@ -65,7 +65,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                         version: '',
                     },
                 }
-                window.getModInfo(updatedApp)
+                window.getModInfo(updatedApp, { silentNotInstalled: true })
                 window.electron.store.delete('mod')
                 return updatedApp
             })

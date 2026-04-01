@@ -28,7 +28,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1020.0",
+        "@aws-sdk/client-s3": "^3.1021.0",
         "@babel/core": "7.29.0",
         "@electron-forge/cli": "^7.11.1",
         "@electron-forge/maker-deb": "^7.11.1",
@@ -63,7 +63,7 @@
         "@typescript-eslint/parser": "^8.58.0",
         "@vitejs/plugin-react": "^6.0.1",
         "babel-plugin-react-compiler": "^1.0.0",
-        "electron": "41.1.0",
+        "electron": "41.1.1",
         "electron-builder": "^26.8.1",
         "eslint": "^10.1.0",
         "eslint-plugin-import": "^2.32.0",
@@ -87,7 +87,7 @@
         "@radix-ui/react-tooltip": "^1.2.8",
         "acorn": "^8.16.0",
         "acorn-walk": "^8.3.5",
-        "adm-zip": "^0.5.16",
+        "adm-zip": "^0.5.17",
         "axios": "^1.14.0",
         "browserify-fs": "^1.0.0",
         "browserify-sign": "^4.2.5",
@@ -148,8 +148,8 @@
     },
     "buildInfo": {
         "VERSION": "2.12.0-beta",
-        "BRANCH": "9fa81f5",
-        "BUILD_TIME": "01.04.2026, 01:33:51"
+        "BRANCH": "ff76bf0",
+        "BUILD_TIME": "01.04.2026, 20:03:05"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",
