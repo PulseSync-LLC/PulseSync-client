@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import * as s from '@shared/ui/PSUI/ColorInput/ColorInput.module.scss'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -181,8 +182,11 @@ const ColorInput: React.FC<Props> = ({
     const startMode: Mode = modes.includes(defaultMode) ? defaultMode : modes[0]
 
     const [open, setOpen] = useState(false)
-    const [alignRight, setAlignRight] = useState(false)
+    const [panelStyle, setPanelStyle] = useState<React.CSSProperties | null>(null)
+    const [openUpward, setOpenUpward] = useState(false)
+    const [caretLeft, setCaretLeft] = useState(16)
     const wrapRef = useRef<HTMLDivElement>(null)
+    const triggerRef = useRef<HTMLButtonElement>(null)
     const panelRef = useRef<HTMLDivElement>(null)
     const svRef = useRef<HTMLDivElement>(null)
     const dragging = useRef(false)
@@ -228,17 +232,67 @@ const ColorInput: React.FC<Props> = ({
         setText(formatText({ h, s, v, a }, mode))
     }, [value, withAlpha])
 
-    useEffect(() => {
-        if (!open || !panelRef.current) return
-        const rect = panelRef.current.getBoundingClientRect()
-        const oobRight = rect.right > window.innerWidth - 8
-        const oobLeft = rect.left < 8
-        setAlignRight(oobRight && !oobLeft)
+    const updatePanelPosition = React.useCallback(() => {
+        const trigger = triggerRef.current
+        const panel = panelRef.current
+        if (!open || !trigger || !panel) return
+
+        const viewportPadding = 8
+        const offset = 10
+        const caretPadding = 16
+
+        const triggerRect = trigger.getBoundingClientRect()
+        const panelRect = panel.getBoundingClientRect()
+
+        let left = triggerRect.left
+        if (left + panelRect.width > window.innerWidth - viewportPadding) {
+            left = window.innerWidth - panelRect.width - viewportPadding
+        }
+        left = Math.max(viewportPadding, left)
+
+        const shouldOpenUpward =
+            triggerRect.bottom + offset + panelRect.height > window.innerHeight - viewportPadding &&
+            triggerRect.top - offset - panelRect.height >= viewportPadding
+
+        const top = shouldOpenUpward ? triggerRect.top - panelRect.height - offset : triggerRect.bottom + offset
+        const nextCaretLeft = clamp(triggerRect.left + 20 - left, caretPadding, panelRect.width - caretPadding)
+
+        setOpenUpward(shouldOpenUpward)
+        setCaretLeft(nextCaretLeft)
+        setPanelStyle({
+            left,
+            top: Math.max(viewportPadding, top),
+        })
     }, [open])
+
+    useLayoutEffect(() => {
+        if (!open) {
+            setPanelStyle(null)
+            setOpenUpward(false)
+            return
+        }
+
+        updatePanelPosition()
+
+        const raf = window.requestAnimationFrame(updatePanelPosition)
+        const onViewportChange = () => updatePanelPosition()
+
+        window.addEventListener('resize', onViewportChange)
+        window.addEventListener('scroll', onViewportChange, true)
+
+        return () => {
+            window.cancelAnimationFrame(raf)
+            window.removeEventListener('resize', onViewportChange)
+            window.removeEventListener('scroll', onViewportChange, true)
+        }
+    }, [open, mode, withAlpha, updatePanelPosition])
 
     useEffect(() => {
         const h = (e: MouseEvent) => {
-            if (wrapRef.current && !wrapRef.current.contains(e.target as Node)) setOpen(false)
+            const target = e.target as Node
+            const insideTrigger = !!wrapRef.current?.contains(target)
+            const insidePanel = !!panelRef.current?.contains(target)
+            if (!insideTrigger && !insidePanel) setOpen(false)
         }
         document.addEventListener('mousedown', h)
         return () => document.removeEventListener('mousedown', h)
@@ -323,13 +377,116 @@ const ColorInput: React.FC<Props> = ({
         }
     }
 
-    useEffect(() => {
-        if (!open || !panelRef.current) return
-        const rect = panelRef.current.getBoundingClientRect()
-        const oobRight = rect.right > window.innerWidth - 8
-        const oobLeft = rect.left < 8
-        setAlignRight(oobRight && !oobLeft)
-    }, [open])
+    const panelNode =
+        open && typeof document !== 'undefined'
+            ? createPortal(
+                  <div
+                      ref={panelRef}
+                      className={clsx(s.panel, openUpward && s.panelUp)}
+                      style={panelStyle ?? { visibility: 'hidden' }}
+                      onClick={e => e.stopPropagation()}
+                  >
+                      <span className={s.caret} style={{ left: caretLeft }} />
+
+                      <div
+                          ref={svRef}
+                          className={s.sv}
+                          style={{ backgroundColor: `hsl(${hsva.h} 100% 50%)` }}
+                          onMouseDown={e => {
+                              dragging.current = true
+                              onSV(e)
+                          }}
+                          onMouseMove={e => {
+                              if (dragging.current) onSV(e)
+                          }}
+                          onMouseUp={() => (dragging.current = false)}
+                          onMouseLeave={() => (dragging.current = false)}
+                      >
+                          <div className={s.svKnob} style={{ left: `${hsva.s * 100}%`, top: `${(1 - hsva.v) * 100}%` }} />
+                      </div>
+
+                      <div className={s.row}>
+                          <input
+                              type="range"
+                              min={0}
+                              max={360}
+                              value={Math.round(hsva.h)}
+                              onChange={e => setApply({ ...hsva, h: Number(e.target.value) })}
+                              className={s.slider}
+                              style={{ background: hueBg }}
+                          />
+                      </div>
+
+                      {withAlpha && (
+                          <div className={clsx(s.row, s.alphaRow)}>
+                              <div className={s.checker} />
+                              <input
+                                  type="range"
+                                  min={0}
+                                  max={100}
+                                  value={Math.round(hsva.a * 100)}
+                                  onChange={e => setApply({ ...hsva, a: Number(e.target.value) / 100 })}
+                                  className={s.slider}
+                                  style={{ background: alphaBg }}
+                              />
+                          </div>
+                      )}
+
+                      <div className={s.inputsRow}>
+                          {modes.length > 1 && (
+                              <div className={s.selectWrap} title={t('colorInput.inputFormat')}>
+                                  <select
+                                      className={s.select}
+                                      value={mode}
+                                      onChange={e => {
+                                          setMode(e.target.value as Mode)
+                                          setText(formatText(hsva, e.target.value as Mode))
+                                          setInvalid(false)
+                                      }}
+                                  >
+                                      {modes.includes('hex') && <option value="hex">Hex</option>}
+                                      {modes.includes('rgb') && <option value="rgb">RGB</option>}
+                                      {modes.includes('hsl') && <option value="hsl">HSL</option>}
+                                      {modes.includes('hsb') && <option value="hsb">HSB</option>}
+                                  </select>
+                                  <MdKeyboardArrowDown className={s.selectArrow} size={18} />
+                              </div>
+                          )}
+
+                          <input
+                              className={clsx(s.text, invalid && s.textInvalid)}
+                              value={isTyping ? text : formatText(hsva, mode)}
+                              onFocus={() => {
+                                  setIsTyping(true)
+                                  setText(formatText(hsva, mode))
+                                  setInvalid(false)
+                              }}
+                              onChange={e => setText(e.target.value)}
+                              onBlur={() => {
+                                  setIsTyping(false)
+                                  tryApplyFromText()
+                              }}
+                              onKeyDown={onInputKeyDown}
+                          />
+
+                          {withAlpha && (
+                              <div className={s.opacityBox}>
+                                  <input
+                                      className={s.text}
+                                      value={Math.round(hsva.a * 100)}
+                                      onChange={e => {
+                                          const n = clamp(parseInt(e.target.value || '0', 10), 0, 100)
+                                          setApply({ ...hsva, a: n / 100 })
+                                      }}
+                                  />
+                                  <span className={s.suffix}>%</span>
+                              </div>
+                          )}
+                      </div>
+                  </div>,
+                  document.body,
+              )
+            : null
 
     return (
         <div ref={wrapRef} className={clsx(s.inputContainer, className)} style={disabled ? { pointerEvents: 'none', opacity: 0.6 } : {}}>
@@ -342,112 +499,12 @@ const ColorInput: React.FC<Props> = ({
                 )}
             </div>
 
-            <button type="button" className={s.inline} onClick={() => setOpen(v => !v)}>
+            <button ref={triggerRef} type="button" className={s.inline} onClick={() => setOpen(v => !v)}>
                 <span className={s.swatch} style={{ background: `rgba(${r}, ${g}, ${b}, ${hsva.a})` }} />
                 <span className={s.hexText}>{hex}</span>
             </button>
 
-            {open && (
-                <div ref={panelRef} className={clsx(s.panel, alignRight && s.right)} onClick={e => e.stopPropagation()}>
-                    <span className={s.caret} />
-
-                    <div
-                        ref={svRef}
-                        className={s.sv}
-                        style={{ backgroundColor: `hsl(${hsva.h} 100% 50%)` }}
-                        onMouseDown={e => {
-                            dragging.current = true
-                            onSV(e)
-                        }}
-                        onMouseMove={e => {
-                            if (dragging.current) onSV(e)
-                        }}
-                        onMouseUp={() => (dragging.current = false)}
-                        onMouseLeave={() => (dragging.current = false)}
-                    >
-                        <div className={s.svKnob} style={{ left: `${hsva.s * 100}%`, top: `${(1 - hsva.v) * 100}%` }} />
-                    </div>
-
-                    <div className={s.row}>
-                        <input
-                            type="range"
-                            min={0}
-                            max={360}
-                            value={Math.round(hsva.h)}
-                            onChange={e => setApply({ ...hsva, h: Number(e.target.value) })}
-                            className={s.slider}
-                            style={{ background: hueBg }}
-                        />
-                    </div>
-
-                    {withAlpha && (
-                        <div className={clsx(s.row, s.alphaRow)}>
-                            <div className={s.checker} />
-                            <input
-                                type="range"
-                                min={0}
-                                max={100}
-                                value={Math.round(hsva.a * 100)}
-                                onChange={e => setApply({ ...hsva, a: Number(e.target.value) / 100 })}
-                                className={s.slider}
-                                style={{ background: alphaBg }}
-                            />
-                        </div>
-                    )}
-
-                    <div className={s.inputsRow}>
-                        {modes.length > 1 && (
-                            <div className={s.selectWrap} title={t('colorInput.inputFormat')}>
-                                <select
-                                    className={s.select}
-                                    value={mode}
-                                    onChange={e => {
-                                        setMode(e.target.value as Mode)
-                                        setText(formatText(hsva, e.target.value as Mode))
-                                        setInvalid(false)
-                                    }}
-                                >
-                                    {modes.includes('hex') && <option value="hex">Hex</option>}
-                                    {modes.includes('rgb') && <option value="rgb">RGB</option>}
-                                    {modes.includes('hsl') && <option value="hsl">HSL</option>}
-                                    {modes.includes('hsb') && <option value="hsb">HSB</option>}
-                                </select>
-                                <MdKeyboardArrowDown className={s.selectArrow} size={18} />
-                            </div>
-                        )}
-
-                        <input
-                            className={clsx(s.text, invalid && s.textInvalid)}
-                            value={isTyping ? text : formatText(hsva, mode)}
-                            onFocus={() => {
-                                setIsTyping(true)
-                                setText(formatText(hsva, mode))
-                                setInvalid(false)
-                            }}
-                            onChange={e => setText(e.target.value)}
-                            onBlur={() => {
-                                setIsTyping(false)
-                                tryApplyFromText()
-                            }}
-                            onKeyDown={onInputKeyDown}
-                        />
-
-                        {withAlpha && (
-                            <div className={s.opacityBox}>
-                                <input
-                                    className={s.text}
-                                    value={Math.round(hsva.a * 100)}
-                                    onChange={e => {
-                                        const n = clamp(parseInt(e.target.value || '0', 10), 0, 100)
-                                        setApply({ ...hsva, a: n / 100 })
-                                    }}
-                                />
-                                <span className={s.suffix}>%</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            )}
+            {panelNode}
         </div>
     )
 }
