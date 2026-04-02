@@ -191,16 +191,33 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
     }
 }
 
-export async function submitAddonForStore(addon: Addon, changelog: string[], existingAddonId?: string): Promise<string | null> {
+export async function submitAddonForStore(
+    addon: Addon,
+    changelog: string[],
+    githubUrl: string,
+    existingAddonId?: string,
+): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    const formData = new FormData()
-    formData.append('name', addon.name)
-    formData.append('description', addon.description || '')
-    formData.append('changelog', JSON.stringify(changelog))
-    formData.append('zipFile', blob, fileName)
+    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl })
+}
 
-    const targetUrl = existingAddonId
-        ? `${config.SERVER_URL}/extensions/${encodeURIComponent(existingAddonId)}/update`
+export async function submitAddonArchiveForStore(options: {
+    addon: Addon
+    changelog: string[]
+    githubUrl: string
+    existingAddonId?: string
+    blob: Blob
+    fileName: string
+}): Promise<string | null> {
+    const formData = new FormData()
+    formData.append('name', options.addon.name)
+    formData.append('description', options.addon.description || '')
+    formData.append('githubUrl', options.githubUrl.trim())
+    formData.append('changelog', JSON.stringify(options.changelog))
+    formData.append('zipFile', options.blob, options.fileName)
+
+    const targetUrl = options.existingAddonId
+        ? `${config.SERVER_URL}/extensions/${encodeURIComponent(options.existingAddonId)}/update`
         : `${config.SERVER_URL}/extensions/create`
 
     const response = await fetch(targetUrl, {

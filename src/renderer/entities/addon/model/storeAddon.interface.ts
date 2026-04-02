@@ -5,6 +5,7 @@ export interface StoreAddonRelease {
     id: string
     version: string
     description: string
+    githubUrl?: string | null
     authors: string[]
     changelog?: string[] | null
     avatarUrl?: string | null

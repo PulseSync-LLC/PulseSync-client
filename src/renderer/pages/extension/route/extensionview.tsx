@@ -25,9 +25,11 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     publication,
     publicationReleases = [],
     publicationChangelogText = '',
+    publicationGithubUrlText = '',
     canManagePublication,
     publicationBusy,
     onPublicationChangelogChange,
+    onPublicationGithubUrlChange,
     onPublishAddon,
     onUpdateAddon,
 }) => {
@@ -73,9 +75,11 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     onToggleEnabled={toggleWithToast}
                     publication={publication}
                     publicationChangelogText={publicationChangelogText}
+                    publicationGithubUrlText={publicationGithubUrlText}
                     canManagePublication={canManagePublication}
                     publicationBusy={publicationBusy}
                     onPublicationChangelogChange={onPublicationChangelogChange}
+                    onPublicationGithubUrlChange={onPublicationGithubUrlChange}
                     onPublishAddon={onPublishAddon}
                     onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
