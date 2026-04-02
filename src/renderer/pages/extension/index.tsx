@@ -58,6 +58,18 @@ function normalizeChangelogInput(value: string): string[] {
         .filter(Boolean)
 }
 
+function isGithubUrl(value: string): boolean {
+    const trimmed = value.trim()
+    if (!trimmed) return false
+
+    try {
+        const url = new URL(trimmed)
+        return (url.protocol === 'http:' || url.protocol === 'https:') && ['github.com', 'www.github.com'].includes(url.hostname.toLowerCase())
+    } catch {
+        return false
+    }
+}
+
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user } = useContext(userContext)
@@ -80,6 +92,7 @@ export default function ExtensionPage() {
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
     const [publicationBusy, setPublicationBusy] = useState(false)
     const [publicationChangelogText, setPublicationChangelogText] = useState('')
+    const [publicationGithubUrlText, setPublicationGithubUrlText] = useState('')
     const [storeUpdateBusy, setStoreUpdateBusy] = useState(false)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
@@ -510,6 +523,10 @@ export default function ExtensionPage() {
     ])
 
     useEffect(() => {
+        setPublicationGithubUrlText(selectedPublishedAddon?.currentRelease?.githubUrl || '')
+    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.githubUrl])
+
+    useEffect(() => {
         if (!isPublicationModalOpen) {
             return
         }
@@ -517,8 +534,9 @@ export default function ExtensionPage() {
         setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
             publication: selectedPublication ?? null,
             publicationBusy,
+            githubUrlText: publicationGithubUrlText,
         })
-    }, [Modals.EXTENSION_PUBLICATION_MODAL, isPublicationModalOpen, publicationBusy, selectedPublication, setModalState])
+    }, [Modals.EXTENSION_PUBLICATION_MODAL, isPublicationModalOpen, publicationBusy, publicationGithubUrlText, selectedPublication, setModalState])
 
     const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
         if (!selectedAddon) {
@@ -549,7 +567,7 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedPublication])
 
     const handleSubmitAddon = useCallback(
-        async (mode: 'create' | 'update', changelogTextOverride?: string) => {
+        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string) => {
             if (!selectedAddon || !storePublishingEnabled) return
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
@@ -558,9 +576,25 @@ export default function ExtensionPage() {
                 return
             }
 
+            const githubUrl = (githubUrlOverride ?? publicationGithubUrlText).trim()
+            if (!githubUrl) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlRequired'))
+                return
+            }
+
+            if (!isGithubUrl(githubUrl)) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlInvalid'))
+                return
+            }
+
             setPublicationBusy(true)
             try {
-                let linkedStoreAddonId = await submitAddonForStore(selectedAddon, changelog, mode === 'update' ? selectedPublication?.id : undefined)
+                let linkedStoreAddonId = await submitAddonForStore(
+                    selectedAddon,
+                    changelog,
+                    githubUrl,
+                    mode === 'update' ? selectedPublication?.id : undefined,
+                )
                 const ownAddons = await fetchOwnStoreAddons()
                 setStorePublications(ownAddons)
 
@@ -609,7 +643,7 @@ export default function ExtensionPage() {
                 setPublicationBusy(false)
             }
         },
-        [i18n.language, loadAddons, publicationChangelogText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+        [i18n.language, loadAddons, publicationChangelogText, publicationGithubUrlText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
     )
 
     const handleStoreAddonUpdate = useCallback(async () => {
@@ -815,20 +849,22 @@ export default function ExtensionPage() {
                             publication={selectedPublication}
                             publicationReleases={visiblePublicationReleases}
                             publicationChangelogText={publicationChangelogText}
+                            publicationGithubUrlText={publicationGithubUrlText}
                             canManagePublication={canManagePublication}
                             publicationBusy={publicationBusy}
                             onPublicationChangelogChange={setPublicationChangelogText}
+                            onPublicationGithubUrlChange={setPublicationGithubUrlText}
                             onPublishAddon={
                                 publicationActionMode === 'publish'
-                                    ? changelogText => {
-                                          void handleSubmitAddon('create', changelogText)
+                                    ? (changelogText, githubUrl) => {
+                                          void handleSubmitAddon('create', changelogText, githubUrl)
                                       }
                                     : undefined
                             }
                             onUpdateAddon={
                                 publicationActionMode === 'update'
-                                    ? changelogText => {
-                                          void handleSubmitAddon('update', changelogText)
+                                    ? (changelogText, githubUrl) => {
+                                          void handleSubmitAddon('update', changelogText, githubUrl)
                                       }
                                     : undefined
                             }

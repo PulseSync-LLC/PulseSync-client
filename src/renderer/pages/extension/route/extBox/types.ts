@@ -21,11 +21,13 @@ export interface ExtensionViewProps {
     publication?: StoreAddon | null
     publicationReleases?: StoreAddonRelease[]
     publicationChangelogText?: string
+    publicationGithubUrlText?: string
     canManagePublication?: boolean
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string) => void
-    onUpdateAddon?: (changelogText: string) => void
+    onPublicationGithubUrlChange?: (value: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
 
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void

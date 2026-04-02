@@ -24,11 +24,13 @@ interface Props {
     onToggleEnabled: (enabled: boolean) => void
     publication?: StoreAddon | null
     publicationChangelogText?: string
+    publicationGithubUrlText?: string
     canManagePublication?: boolean
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string) => void
-    onUpdateAddon?: (changelogText: string) => void
+    onPublicationGithubUrlChange?: (value: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
@@ -81,9 +83,11 @@ const ThemeInfo: React.FC<Props> = ({
     onToggleEnabled,
     publication,
     publicationChangelogText = '',
+    publicationGithubUrlText = '',
     canManagePublication = false,
     publicationBusy = false,
     onPublicationChangelogChange,
+    onPublicationGithubUrlChange,
     onPublishAddon,
     onUpdateAddon,
     setSelectedTags,
@@ -259,7 +263,9 @@ const ThemeInfo: React.FC<Props> = ({
                                         publication: publication ?? null,
                                         publicationBusy,
                                         changelogText: publicationChangelogText,
+                                        githubUrlText: publicationGithubUrlText,
                                         onChangeChangelog: onPublicationChangelogChange ?? null,
+                                        onChangeGithubUrl: onPublicationGithubUrlChange ?? null,
                                         onPublish: onPublishAddon ?? null,
                                         onUpdate: onUpdateAddon ?? null,
                                     })

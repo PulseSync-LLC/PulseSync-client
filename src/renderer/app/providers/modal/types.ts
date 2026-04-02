@@ -15,9 +15,11 @@ export type ModalAdditionalStateMap = {
         publication: StoreAddon | null
         publicationBusy: boolean
         changelogText: string
+        githubUrlText: string
         onChangeChangelog?: ((value: string) => void) | null
-        onPublish?: ((changelogText: string) => void) | null
-        onUpdate?: ((changelogText: string) => void) | null
+        onChangeGithubUrl?: ((value: string) => void) | null
+        onPublish?: ((changelogText: string, githubUrl: string) => void) | null
+        onUpdate?: ((changelogText: string, githubUrl: string) => void) | null
     }
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string
