@@ -2,7 +2,7 @@ import isAppDev from '../../utils/isAppDev'
 import path from 'path'
 import fs from 'fs'
 import logger from '../logger'
-import { sendAddon, sendAddonSettings, sendAllAddonSettings } from '../httpServer'
+import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
 
@@ -100,14 +100,17 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
             case 'add':
                 logger.main.info(`File ${filename} has been added`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             case 'change':
                 logger.main.info(`File ${filename} has been changed`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             case 'unlink':
                 logger.main.info(`File ${filename} has been removed`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             default:
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)

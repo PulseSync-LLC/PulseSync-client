@@ -64,10 +64,8 @@
 }
 
 .panel {
-    position: absolute;
-    top: calc(100% + 10px);
-    left: 0;
-    z-index: 1000;
+    position: fixed;
+    z-index: 10000;
     width: var(--ci-panel-w);
     padding: 12px;
     background: #2b3042;
@@ -77,14 +75,9 @@
     display: grid;
     gap: 10px;
 }
-.panel.right {
-    left: auto;
-    right: 0;
-}
 .caret {
     position: absolute;
     top: -6px;
-    left: 16px;
     width: 10px;
     height: 10px;
     background: inherit;
@@ -94,9 +87,11 @@
     border-radius: 2px 0 0 0;
     box-shadow: -2px -2px 6px rgba(0, 0, 0, 0.15);
 }
-.panel.right .caret {
-    left: auto;
-    right: 16px;
+.panelUp .caret {
+    top: auto;
+    bottom: -6px;
+    transform: rotate(225deg);
+    box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.15);
 }
 
 .sv {
