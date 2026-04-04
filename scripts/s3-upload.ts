@@ -5,12 +5,25 @@ import path from 'path'
 import crypto from 'crypto'
 import yaml from 'js-yaml'
 import chalk from 'chalk'
-import { DeleteObjectsCommand, ListObjectsV2Command, PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import {
+    AbortMultipartUploadCommand,
+    CompleteMultipartUploadCommand,
+    CreateMultipartUploadCommand,
+    DeleteObjectsCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    S3Client,
+    UploadPartCommand,
+} from '@aws-sdk/client-s3'
 import https from 'https'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import semver from 'semver'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_PART_SIZE = 8 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_CONCURRENCY = 4
 
 enum LogLevel {
     INFO = 'INFO',
@@ -48,6 +61,20 @@ function createS3Client(): S3Client {
         forcePathStyle: true,
         maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
     })
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+    const parsed = Number.parseInt(value ?? '', 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getMultipartUploadConfig() {
+    const threshold = parsePositiveInteger(process.env.S3_MULTIPART_THRESHOLD, S3_MULTIPART_DEFAULT_THRESHOLD)
+    const requestedPartSize = parsePositiveInteger(process.env.S3_MULTIPART_PART_SIZE, S3_MULTIPART_DEFAULT_PART_SIZE)
+    const partSize = Math.max(requestedPartSize, S3_MULTIPART_MIN_PART_SIZE)
+    const concurrency = Math.max(1, parsePositiveInteger(process.env.S3_MULTIPART_CONCURRENCY, S3_MULTIPART_DEFAULT_CONCURRENCY))
+
+    return { threshold, partSize, concurrency }
 }
 
 async function hashFileSha512(filePath: string): Promise<string> {
@@ -236,6 +263,113 @@ async function pruneOldWindowsArtifacts(
     )
 }
 
+async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string): Promise<void> {
+    const { size } = await fs.promises.stat(filePath)
+    const { threshold, partSize, concurrency } = getMultipartUploadConfig()
+
+    if (size < threshold) {
+        await client.send(
+            new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: fs.createReadStream(filePath),
+                ACL: 'public-read',
+            }),
+        )
+        log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
+        return
+    }
+
+    const createResponse = await client.send(
+        new CreateMultipartUploadCommand({
+            Bucket: bucket,
+            Key: key,
+            ACL: 'public-read',
+        }),
+    )
+
+    const uploadId = createResponse.UploadId
+    if (!uploadId) {
+        throw new Error(`Failed to start multipart upload for ${key}: missing UploadId`)
+    }
+
+    const partCount = Math.ceil(size / partSize)
+    const completedParts = new Array<{ ETag: string; PartNumber: number }>(partCount)
+    let nextPartNumber = 1
+    let uploadedBytes = 0
+    let finishedParts = 0
+
+    log(
+        LogLevel.INFO,
+        `Uploading ${key} via multipart (${(size / 1024 / 1024).toFixed(1)} MiB, ${partCount} parts x ${(partSize / 1024 / 1024).toFixed(1)} MiB, concurrency ${concurrency})`,
+    )
+
+    try {
+        const uploadWorker = async () => {
+            while (true) {
+                const partNumber = nextPartNumber++
+                if (partNumber > partCount) return
+
+                const start = (partNumber - 1) * partSize
+                const end = Math.min(size, start + partSize) - 1
+                const contentLength = end - start + 1
+                const body = fs.createReadStream(filePath, { start, end })
+
+                const uploadPartResponse = await client.send(
+                    new UploadPartCommand({
+                        Bucket: bucket,
+                        Key: key,
+                        UploadId: uploadId,
+                        PartNumber: partNumber,
+                        Body: body,
+                        ContentLength: contentLength,
+                    }),
+                )
+
+                if (!uploadPartResponse.ETag) {
+                    throw new Error(`Failed to upload part ${partNumber} for ${key}: missing ETag`)
+                }
+
+                completedParts[partNumber - 1] = {
+                    ETag: uploadPartResponse.ETag,
+                    PartNumber: partNumber,
+                }
+                uploadedBytes += contentLength
+                finishedParts += 1
+
+                log(
+                    LogLevel.INFO,
+                    `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`,
+                )
+            }
+        }
+
+        await Promise.all(Array.from({ length: Math.min(concurrency, partCount) }, () => uploadWorker()))
+
+        await client.send(
+            new CompleteMultipartUploadCommand({
+                Bucket: bucket,
+                Key: key,
+                UploadId: uploadId,
+                MultipartUpload: {
+                    Parts: completedParts,
+                },
+            }),
+        )
+    } catch (error) {
+        await client.send(
+            new AbortMultipartUploadCommand({
+                Bucket: bucket,
+                Key: key,
+                UploadId: uploadId,
+            }),
+        )
+        throw error
+    }
+
+    log(LogLevel.INFO, `Uploaded ${key} (${finishedParts} parts, multipart)`)
+}
+
 export async function publishToS3(
     branch: string,
     dir: string,
@@ -301,16 +435,7 @@ export async function publishToS3(
 
     for (const filePath of files) {
         const key = `${prefix}/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
-        const body = await fs.promises.readFile(filePath)
-        await client.send(
-            new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: body,
-                ACL: 'public-read',
-            }),
-        )
-        log(LogLevel.INFO, `Uploaded ${key}`)
+        await uploadFileToS3(client, bucket, key, filePath)
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
