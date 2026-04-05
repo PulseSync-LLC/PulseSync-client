@@ -10,6 +10,11 @@ type OwnAddonsResponse = {
     ok?: boolean
 }
 
+type StoreAddonUpdatesResponse = {
+    addons?: StoreAddon[]
+    ok?: boolean
+}
+
 type PackageArchiveResponse = {
     base64?: string
     fileName?: string
@@ -161,6 +166,37 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     const payload = (await response.json().catch((): null => null)) as OwnAddonsResponse | null
     if (!response.ok || payload?.ok === false) {
         throw new Error('FAILED_TO_LOAD_OWN_ADDONS')
+    }
+
+    return Array.isArray(payload?.addons) ? payload.addons : []
+}
+
+export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[]> {
+    const normalizedIds = Array.from(
+        new Set(
+            ids
+                .map(id => String(id || '').trim())
+                .filter(Boolean),
+        ),
+    )
+
+    if (!normalizedIds.length) {
+        return []
+    }
+
+    const response = await fetch(`${config.SERVER_URL}/extensions/updates`, {
+        method: 'POST',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...getAuthHeaders(),
+        },
+        body: JSON.stringify({ ids: normalizedIds }),
+    })
+
+    const payload = (await response.json().catch((): null => null)) as StoreAddonUpdatesResponse | null
+    if (!response.ok || payload?.ok === false) {
+        throw new Error('FAILED_TO_LOAD_STORE_ADDON_UPDATES')
     }
 
     return Array.isArray(payload?.addons) ? payload.addons : []

@@ -17,11 +17,10 @@ import { compareVersions } from '@shared/lib/utils'
 import { usePextDnDImport } from '@shared/lib/usePextDnDImport'
 import Addon from '@entities/addon/model/addon.interface'
 import AddonInitials from '@entities/addon/model/addon.initials'
-import type { StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import { ModInterface } from '@entities/mod/model/modInterface'
 import modInitials from '@entities/mod/model/mod.initials'
 import GetModQuery from '@entities/mod/api/getMod.query'
-import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
 import { useTranslation } from 'react-i18next'
 import { createAppRouter } from '@app/router'
@@ -56,9 +55,7 @@ type GetAchievementsVars = {
     sortOptions?: Array<unknown>
 }
 
-type GetStoreAddonsData = {
-    getStoreAddons: StoreAddonsPayload
-}
+const STORE_ADDON_UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000
 
 function App() {
     const { t } = useTranslation()
@@ -79,6 +76,8 @@ function App() {
     const [isAppDeprecated, setIsAppDeprecated] = useState(false)
     const toastReference = useRef<string | null>(null)
     const lastNotInstalledToastKeyRef = useRef<string | null>(null)
+    const storeAddonUpdateCheckInFlightRef = useRef(false)
+    const autoUpdatingStoreAddonIdsRef = useRef<Set<string>>(new Set())
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const appRef = useRef(app)
@@ -199,46 +198,103 @@ function App() {
         }
     }, [])
 
-    const notifyAddonUpdates = useCallback(async (installedAddons: Addon[]) => {
+    const syncStoreAddonUpdates = useCallback(async (installedAddons: Addon[]) => {
         const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-        if (!storeInstalledAddons.length) {
+        if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
             return
         }
 
+        storeAddonUpdateCheckInFlightRef.current = true
+
         try {
-            const response = await apolloClient.query<GetStoreAddonsData>({
-                query: GetStoreAddonsQuery,
-                variables: {
-                    page: 1,
-                    pageSize: 100,
-                },
-                fetchPolicy: 'no-cache',
+            const updates = await fetchStoreAddonUpdates(storeInstalledAddons.map(addon => addon.storeAddonId || ''))
+            const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
+            const outdatedAddons = updates.filter(publishedAddon => {
+                const installedAddon = installedByStoreId.get(publishedAddon.id)
+                return (
+                    !!installedAddon &&
+                    !!publishedAddon.currentRelease?.downloadUrl &&
+                    compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
+                )
             })
 
-            const catalog = Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : []
+            if (!outdatedAddons.length) {
+                return
+            }
 
-            storeInstalledAddons.forEach(addon => {
-                const publishedAddon = catalog.find(item => item.id === addon.storeAddonId)
-                if (!publishedAddon?.currentRelease) return
-                if (compareVersions(publishedAddon.currentRelease.version, addon.version) <= 0) return
+            const canAutoUpdate = appRef.current.settings.autoUpdateStoreAddons !== false
+            const musicRunning = canAutoUpdate
+                ? Boolean(await window.desktopEvents.invoke(MainEvents.GET_MUSIC_RUNNING_STATUS))
+                : true
+
+            let hasInstalledUpdates = false
+
+            for (const publishedAddon of outdatedAddons) {
+                const release = publishedAddon.currentRelease
+                const installedAddon = installedByStoreId.get(publishedAddon.id)
+                if (!release?.downloadUrl || !installedAddon) {
+                    continue
+                }
 
                 const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
-                if (localStorage.getItem(notificationKey) === publishedAddon.currentRelease.version) return
+
+                if (!musicRunning && canAutoUpdate) {
+                    if (autoUpdatingStoreAddonIdsRef.current.has(publishedAddon.id)) {
+                        continue
+                    }
+
+                    autoUpdatingStoreAddonIdsRef.current.add(publishedAddon.id)
+                    try {
+                        const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                            id: publishedAddon.id,
+                            downloadUrl: release.downloadUrl,
+                            title: publishedAddon.name,
+                        })
+
+                        if (!result?.success) {
+                            throw new Error(result?.reason || 'STORE_ADDON_AUTO_UPDATE_FAILED')
+                        }
+
+                        const title = tRef.current('common.doneTitle')
+                        const body = tRef.current('extensions.storeUpdateComplete', { name: publishedAddon.name })
+                        window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                        toast.custom('success', title, body)
+                        localStorage.setItem(notificationKey, release.version)
+                        hasInstalledUpdates = true
+                    } catch (error) {
+                        console.error(`Failed to auto-update store addon "${publishedAddon.name}":`, error)
+                    } finally {
+                        autoUpdatingStoreAddonIdsRef.current.delete(publishedAddon.id)
+                    }
+
+                    continue
+                }
+
+                if (localStorage.getItem(notificationKey) === release.version) {
+                    continue
+                }
 
                 const title = tRef.current('extensions.storeUpdateAvailableTitle')
                 const body = tRef.current('extensions.storeUpdateAvailableMessage', {
                     name: publishedAddon.name,
-                    version: publishedAddon.currentRelease.version,
+                    version: release.version,
                 })
 
-                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
                 toast.custom('info', title, body)
-                localStorage.setItem(notificationKey, publishedAddon.currentRelease.version)
-            })
+                localStorage.setItem(notificationKey, release.version)
+            }
+
+            if (hasInstalledUpdates) {
+                const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+            }
         } catch (error) {
             console.error('Failed to check store addon updates:', error)
+        } finally {
+            storeAddonUpdateCheckInFlightRef.current = false
         }
-    }, [])
+    }, [setAddons])
 
     const handleSocketAchievementsUpdate = useCallback(
         async (payload: unknown) => {
@@ -273,10 +329,34 @@ function App() {
         [fetchAchievements],
     )
 
+    const handleSocketStoreAddonUpdated = useCallback(async () => {
+        if (!addons.length) {
+            return
+        }
+
+        await syncStoreAddonUpdates(addons)
+    }, [addons, syncStoreAddonUpdates])
+
     useEffect(() => {
         if (!addons.length) return
-        void notifyAddonUpdates(addons)
-    }, [addons, notifyAddonUpdates])
+        void syncStoreAddonUpdates(addons)
+    }, [addons, syncStoreAddonUpdates])
+
+    useEffect(() => {
+        if (user.id === '-1') {
+            return
+        }
+
+        const intervalId = window.setInterval(() => {
+            if (addons.length) {
+                void syncStoreAddonUpdates(addons)
+            }
+        }, STORE_ADDON_UPDATE_CHECK_INTERVAL_MS)
+
+        return () => {
+            window.clearInterval(intervalId)
+        }
+    }, [addons, syncStoreAddonUpdates, user.id])
 
     useAppInitialization({
         appRef,
@@ -331,6 +411,7 @@ function App() {
             setLoading={setLoading}
             onLogout={handleSocketLogout}
             onAchievementsUpdate={handleSocketAchievementsUpdate}
+            onAddonStoreUpdated={handleSocketStoreAddonUpdated}
             onNotificationCreated={handleNotificationCreated}
             onNotificationRead={handleNotificationRead}
             onNotificationsReadAll={handleNotificationsReadAll}

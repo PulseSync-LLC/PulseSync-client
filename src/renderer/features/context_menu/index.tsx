@@ -208,6 +208,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 window.electron.store.set('settings.deletePextAfterImport', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.deletePextAfterImport'))
                 break
+            case 'autoUpdateStoreAddons':
+                window.electron.store.set('settings.autoUpdateStoreAddons', status)
+                toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoUpdateStoreAddons', { status: statusLabel }))
+                break
             case 'hardwareAcceleration':
                 window.electron.store.set('settings.hardwareAcceleration', status)
                 toast.custom('success', t('common.doneTitle'), t('settings.restartRequired'))
@@ -254,6 +258,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     break
                 case 'deletePextAfterImport':
                     updatedSettings.deletePextAfterImport = status
+                    break
+                case 'autoUpdateStoreAddons':
+                    updatedSettings.autoUpdateStoreAddons = status
                     break
                 case 'hardwareAcceleration':
                     updatedSettings.hardwareAcceleration = status

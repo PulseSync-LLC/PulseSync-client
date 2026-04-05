@@ -41,7 +41,7 @@ declare global {
             isMac: () => boolean
         }
         refreshAddons: () => void
-        getModInfo: (args?: any) => void
+        getModInfo: (args?: any, options?: { manual?: boolean; silentNotInstalled?: boolean }) => void
         desktopEvents: DesktopEvents
         appInfo: {
             getBranch: () => string

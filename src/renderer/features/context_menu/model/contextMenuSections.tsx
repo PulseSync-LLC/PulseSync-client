@@ -164,6 +164,9 @@ export function buildContextMenuSections({
             createToggleButton(t('contextMenu.appSettings.hardwareAcceleration'), app.settings.hardwareAcceleration, () =>
                 toggleSetting('hardwareAcceleration', !app.settings.hardwareAcceleration),
             ),
+            createToggleButton(t('contextMenu.appSettings.autoUpdateStoreAddons'), app.settings.autoUpdateStoreAddons, () =>
+                toggleSetting('autoUpdateStoreAddons', !app.settings.autoUpdateStoreAddons),
+            ),
             createToggleButton(t('contextMenu.appSettings.deletePextAfterImport'), app.settings.deletePextAfterImport, () =>
                 toggleSetting('deletePextAfterImport', !app.settings.deletePextAfterImport),
             ),

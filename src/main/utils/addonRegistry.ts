@@ -29,7 +29,7 @@ export const listAddonMetadata = (): AddonMetadataRecord[] => {
     }
 
     return folders
-        .map(folder => {
+        .map<AddonMetadataRecord | null>(folder => {
             const metadataPath = path.join(addonsRoot, folder, 'metadata.json')
             if (!fs.existsSync(metadataPath)) return null
 
@@ -49,7 +49,7 @@ export const listAddonMetadata = (): AddonMetadataRecord[] => {
                 return null
             }
         })
-        .filter((item): item is AddonMetadataRecord => Boolean(item))
+        .filter((item): item is AddonMetadataRecord => item !== null)
 }
 
 export const resolveAddonDirectory = (ref: unknown): string => {

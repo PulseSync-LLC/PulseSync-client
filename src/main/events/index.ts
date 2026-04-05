@@ -21,6 +21,7 @@ import {
     getLinuxInstallerUrl,
     getYandexMusicAppDataPath,
     getYandexMusicLogsPath,
+    isYandexMusicRunning,
     isLinux,
     isMac,
     uninstallApp,
@@ -522,6 +523,10 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_MUSIC_STATUS, async () => {
         if (isLinux()) return true
         else return fs.existsSync(musicPath)
+    })
+
+    ipcMain.handle(MainEvents.GET_MUSIC_RUNNING_STATUS, async () => {
+        return await isYandexMusicRunning()
     })
 
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {

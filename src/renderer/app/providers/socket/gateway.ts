@@ -19,6 +19,7 @@ type CreateGatewayHandlerParams = {
     setUser: Dispatch<SetStateAction<UserInterface>>
     onLogout: () => Promise<void>
     onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
+    onAddonStoreUpdated?: (payload: unknown) => Promise<void> | void
     onNotificationCreated?: (payload: unknown) => Promise<void> | void
     onNotificationRead?: (payload: unknown) => Promise<void> | void
     onNotificationsReadAll?: (payload: unknown) => Promise<void> | void
@@ -34,6 +35,7 @@ export function createGatewayHandler({
     setUser,
     onLogout,
     onAchievementsUpdate,
+    onAddonStoreUpdated,
     onNotificationCreated,
     onNotificationRead,
     onNotificationsReadAll,
@@ -86,6 +88,10 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.ACHIEVEMENTS_UPDATE:
                 console.debug('Gateway achievements update', gatewayPayload)
                 await onAchievementsUpdate?.(gatewayPayload)
+                break
+            case IncomingGatewayEvents.ADDON_STORE_UPDATED:
+                console.debug('Gateway store addon update', gatewayPayload)
+                await onAddonStoreUpdated?.(gatewayPayload)
                 break
             case IncomingGatewayEvents.NOTIFICATION_CREATED:
                 console.debug('Gateway notification created', gatewayPayload)

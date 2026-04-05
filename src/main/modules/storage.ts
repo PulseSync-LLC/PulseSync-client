@@ -53,6 +53,11 @@ const schema = {
                 description: t('main.storage.settings.deletePextAfterImport'),
                 default: false,
             },
+            autoUpdateStoreAddons: {
+                type: 'boolean',
+                description: 'Automatically update store addons when Yandex Music is closed',
+                default: true,
+            },
             closeAppInTray: {
                 type: 'boolean',
                 description: t('main.storage.settings.closeAppInTray'),
@@ -127,6 +132,7 @@ const schema = {
             'autoStartApp',
             'hardwareAcceleration',
             'deletePextAfterImport',
+            'autoUpdateStoreAddons',
             'closeAppInTray',
             'devSocket',
             'askSavePath',
@@ -148,6 +154,7 @@ const schema = {
             autoStartApp: false,
             hardwareAcceleration: true,
             deletePextAfterImport: false,
+            autoUpdateStoreAddons: true,
             closeAppInTray: false,
             devSocket: true,
             askSavePath: false,

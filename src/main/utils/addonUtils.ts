@@ -98,7 +98,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
     const availableAddons: Addon[] = []
     const aliasMap = new Map<string, string>()
 
-    const setAlias = (alias: string, target: string) => {
+    const setAlias = (alias: string | undefined, target: string) => {
         const normalizedAlias = String(alias || '').trim()
         const normalizedTarget = String(target || '').trim()
         if (!normalizedAlias || !normalizedTarget) return

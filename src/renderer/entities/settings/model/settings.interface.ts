@@ -6,6 +6,7 @@ export interface Settings {
     autoStartApp: boolean
     hardwareAcceleration: boolean
     deletePextAfterImport: boolean
+    autoUpdateStoreAddons: boolean
     closeAppInTray: boolean
     devSocket: boolean
     askSavePath: boolean

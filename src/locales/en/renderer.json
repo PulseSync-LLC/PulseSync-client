@@ -149,9 +149,10 @@
         "appDirectory": "App directory",
         "appSettings": {
             "autoStartApp": "Auto-start app",
+            "autoUpdateStoreAddons": "Auto-update store add-ons",
             "deletePextAfterImport": "Delete .pext after theme import",
             "hardwareAcceleration": "Hardware acceleration",
-            "title": "App settings"
+            "title": "Application"
         },
         "language": {
             "english": "English",
@@ -162,7 +163,7 @@
             "checkUpdates": "Check for updates",
             "collectLogs": "Collect logs archive",
             "logsReady": "Opening the folder soon",
-            "title": "Misc",
+            "title": "System",
             "version": "Version: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Websocket status"
         },
@@ -954,6 +955,7 @@
             "askSavePath": "Option \"Ask where to save track\" {{status}}",
             "autoStartApp": "Option \"Auto-start app\" {{status}}",
             "autoStartMusic": "Option \"Auto-start music\" {{status}}",
+            "autoUpdateStoreAddons": "Option \"Auto-update store add-ons\" {{status}}",
             "autoTray": "Option \"Auto-start in tray\" {{status}}",
             "closeAppInTray": "Option \"Close app to tray\" {{status}}",
             "deletePextAfterImport": "Enabled deletion of .pext after theme import",

@@ -149,9 +149,10 @@
         "appDirectory": "Директория приложения",
         "appSettings": {
             "autoStartApp": "Автозапуск приложения",
+            "autoUpdateStoreAddons": "Автообновление аддонов из каталога",
             "deletePextAfterImport": "Удалять .pext после импорта темы",
             "hardwareAcceleration": "Аппаратное ускорение",
-            "title": "Настройки приложения"
+            "title": "Приложение"
         },
         "language": {
             "english": "Английский",
@@ -162,7 +163,7 @@
             "checkUpdates": "Проверить обновления",
             "collectLogs": "Собрать логи в архив",
             "logsReady": "Скоро открою папку",
-            "title": "Особое",
+            "title": "Система",
             "version": "Версия: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Статус вебсокета"
         },
@@ -954,6 +955,7 @@
             "askSavePath": "Опция \"Спрашивать куда сохранять трек\" {{status}}",
             "autoStartApp": "Опция \"Автозапуск приложения\" {{status}}",
             "autoStartMusic": "Опция \"Автозапуск музыки\" {{status}}",
+            "autoUpdateStoreAddons": "Опция \"Автообновление аддонов из каталога\" {{status}}",
             "autoTray": "Опция \"Автозапуск в трее\" {{status}}",
             "closeAppInTray": "Опция \"Закрытие приложения в трее\" {{status}}",
             "deletePextAfterImport": "Включена функция удаления .pext после импорта темы",

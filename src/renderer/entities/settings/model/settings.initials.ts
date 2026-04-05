@@ -9,6 +9,7 @@ const settingsInitials: SettingsInterface = {
         autoStartApp: false,
         hardwareAcceleration: true,
         deletePextAfterImport: false,
+        autoUpdateStoreAddons: true,
         closeAppInTray: false,
         askSavePath: false,
         saveAsMp3: false,

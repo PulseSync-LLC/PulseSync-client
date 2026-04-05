@@ -31,6 +31,14 @@ interface DataToMusicOptions {
     targetSocket?: Socket
 }
 
+type RefreshedAddonPayload = {
+    name: string
+    directoryName: string
+    id?: string
+    css: string | null
+    script: string | null
+}
+
 export const createAddonService = ({ state, logger, getIo, getAuthorized, getSelectedAddon }: CreateAddonServiceOptions) => {
     const lastAddonSettings = new Map<string, string>()
     const pendingDataSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
@@ -255,7 +263,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         const found = dirs
-            .map(folderName => {
+            .map<RefreshedAddonPayload | null>(folderName => {
                 const metadataPath = path.join(addonsFolder, folderName, 'metadata.json')
                 if (!fs.existsSync(metadataPath)) {
                     return null
@@ -299,7 +307,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     return null
                 }
             })
-            .filter((x): x is { name: string; directoryName: string; id?: string; css: string | null; script: string | null } => Boolean(x))
+            .filter((x): x is RefreshedAddonPayload => x !== null)
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any

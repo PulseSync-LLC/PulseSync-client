@@ -18,6 +18,7 @@ export type SocketProviderProps = {
     setLoading: Dispatch<SetStateAction<boolean>>
     onLogout: () => Promise<void>
     onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
+    onAddonStoreUpdated?: (payload: unknown) => Promise<void> | void
     onNotificationCreated?: (payload: unknown) => Promise<void> | void
     onNotificationRead?: (payload: unknown) => Promise<void> | void
     onNotificationsReadAll?: (payload: unknown) => Promise<void> | void
