@@ -152,7 +152,7 @@
             "autoUpdateStoreAddons": "Автообновление аддонов из каталога",
             "deletePextAfterImport": "Удалять .pext после импорта темы",
             "hardwareAcceleration": "Аппаратное ускорение",
-            "title": "Приложение"
+            "title": "Настройки приложения"
         },
         "language": {
             "english": "Английский",
@@ -493,6 +493,7 @@
             "openItem": "Открыть",
             "categories": {
                 "addon": "Аддоны",
+                "achievement": "Достижения",
                 "localization": "Локализация",
                 "subscription": "Подписка",
                 "security": "Безопасность",
@@ -505,6 +506,8 @@
                 "addonAcceptedBody": "{{name}} теперь доступен в каталоге.",
                 "addonRejectedTitle": "Аддон отклонён",
                 "addonRejectedBody": "{{name}} не прошёл модерацию.",
+                "achievementCompletedTitle": "Достижение выполнено",
+                "achievementCompletedBody": "Получено достижение «{{title}}» (+{{points}} очков).",
                 "localizationApprovedTitle": "Предложение по локализации принято",
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
@@ -674,6 +677,7 @@
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",
         "modInstallFailed": "Установка мода не удалась. Попробуйте ещё раз.",
+        "modInstallInterrupted": "Загрузка была прервана. Проверьте соединение и попробуйте снова.",
         "modInstallStart": "Начало установки мода...",
         "modInstallSuccess": "Установка прошла успешно!",
         "modInstallTitle": "Установка мода",

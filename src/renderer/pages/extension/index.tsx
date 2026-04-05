@@ -577,12 +577,15 @@ export default function ExtensionPage() {
             }
 
             const githubUrl = (githubUrlOverride ?? publicationGithubUrlText).trim()
-            if (!githubUrl) {
+            const currentGithubUrl = selectedPublication?.currentRelease?.githubUrl?.trim() || ''
+            const effectiveGithubUrl = githubUrl || currentGithubUrl
+
+            if (mode === 'create' && !effectiveGithubUrl) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlRequired'))
                 return
             }
 
-            if (!isGithubUrl(githubUrl)) {
+            if (githubUrl && !isGithubUrl(githubUrl)) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlInvalid'))
                 return
             }
@@ -592,7 +595,7 @@ export default function ExtensionPage() {
                 let linkedStoreAddonId = await submitAddonForStore(
                     selectedAddon,
                     changelog,
-                    githubUrl,
+                    effectiveGithubUrl,
                     mode === 'update' ? selectedPublication?.id : undefined,
                 )
                 const ownAddons = await fetchOwnStoreAddons()

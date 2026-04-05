@@ -45,6 +45,7 @@ export function useLayoutInstallers({
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
+    const [modInstallError, setModInstallError] = useState<{ details: string; title: string } | null>(null)
     const [modUpdateState, setModUpdateState] = useState({
         isVersionOutdated: false,
         updateUrl: '',
@@ -52,6 +53,9 @@ export function useLayoutInstallers({
 
     const downloadToastIdRef = useRef<string | null>(null)
     const toastReference = useRef<string | null>(null)
+    const appRef = useRef(app)
+    const modInfoRef = useRef(modInfo)
+    const currentModActionRef = useRef<'install' | 'update'>(app.mod.installed ? 'update' : 'install')
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
@@ -69,6 +73,39 @@ export function useLayoutInstallers({
     }, [])
 
     useEffect(() => {
+        appRef.current = app
+    }, [app])
+
+    useEffect(() => {
+        modInfoRef.current = modInfo
+    }, [modInfo])
+
+    const getModInstallErrorText = useCallback(
+        (error: any) => {
+            const rawMessage = typeof error?.error === 'string' ? error.error.trim() : ''
+            const normalizedMessage =
+                rawMessage && rawMessage.toLowerCase().includes('aborted') ? t('layout.modInstallInterrupted') : rawMessage || t('layout.unknownError')
+            const isUpdate = currentModActionRef.current === 'update'
+
+            const details = errorTypesToShow.has(error?.type)
+                ? t('layout.errorWithMessage', { message: normalizedMessage })
+                : isUpdate
+                  ? t('layout.modUpdateFailed')
+                  : t('layout.modInstallFailed')
+
+            const title =
+                error?.type === 'download_error' || error?.type === 'download_unpacked_error'
+                    ? isUpdate
+                        ? t('layout.modUpdateLoadError')
+                        : t('layout.modInstallErrorTitle')
+                    : t('layout.errorOccurred')
+
+            return { details, title }
+        },
+        [t],
+    )
+
+    useEffect(() => {
         const serverRaw = modInfo[0]?.modVersion
         if (!serverRaw) return
 
@@ -82,8 +119,10 @@ export function useLayoutInstallers({
         ;(window as any).__listenersAdded = true
 
         const handleModInstallStarted = (_: any, data?: { isUpdate?: boolean }) => {
-            const isUpdate = typeof data?.isUpdate === 'boolean' ? data.isUpdate : app.mod.installed
+            const isUpdate = typeof data?.isUpdate === 'boolean' ? data.isUpdate : appRef.current.mod.installed
+            currentModActionRef.current = isUpdate ? 'update' : 'install'
             setIsUpdating(true)
+            setModInstallError(null)
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
@@ -125,12 +164,14 @@ export function useLayoutInstallers({
 
         const handleSuccess = (_: any, data: any) => {
             const installedMod = readInstalledModFromStore()
-            const installedEntry = modInfo.find(mod => mod.modVersion === installedMod.version)
+            const installedEntry = modInfoRef.current.find(mod => mod.modVersion === installedMod.version)
+            setModInstallError(null)
+            const isUpdate = currentModActionRef.current === 'update'
 
             if (downloadToastIdRef.current) {
                 toast.custom(
                     'success',
-                    data.message || (app.mod.installed ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
+                    data.message || (isUpdate ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
                     t('common.doneTitle'),
                     { id: downloadToastIdRef.current },
                 )
@@ -138,7 +179,7 @@ export function useLayoutInstallers({
             } else {
                 toast.custom(
                     'success',
-                    data.message || (app.mod.installed ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
+                    data.message || (isUpdate ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
                     t('common.doneTitle'),
                 )
             }
@@ -161,7 +202,7 @@ export function useLayoutInstallers({
                 },
             }))
 
-            if (installedEntry?.showModal || app.settings.showModModalAfterInstall) {
+            if (installedEntry?.showModal || appRef.current.settings.showModModalAfterInstall) {
                 openModal(modals.MOD_CHANGELOG)
             }
 
@@ -176,24 +217,21 @@ export function useLayoutInstallers({
         }
 
         const handleFailure = (_: any, error: any) => {
-            const getErrorMessage = () => {
-                if (errorTypesToShow.has(error.type)) {
-                    return t('layout.errorWithMessage', { message: error.error || t('layout.unknownError') })
-                }
-                return app.mod.installed ? t('layout.modUpdateFailed') : t('layout.modInstallFailed')
-            }
+            const errorPresentation = getModInstallErrorText(error)
+            setModInstallError(errorPresentation)
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'error',
-                    title: t('layout.errorOccurred'),
-                    msg: getErrorMessage(),
+                    title: errorPresentation.title,
+                    msg: errorPresentation.details,
                     sticky: false,
+                    duration: 15000,
                     value: 0,
                 })
                 downloadToastIdRef.current = null
             } else {
-                toast.custom('error', t('layout.errorOccurred'), getErrorMessage())
+                toast.custom('error', errorPresentation.title, errorPresentation.details, undefined, undefined, 15000)
             }
 
             if (error.type === 'version_too_new') {
@@ -224,9 +262,6 @@ export function useLayoutInstallers({
             ;(window as any).__listenersAdded = false
         }
     }, [
-        app.mod.installed,
-        app.settings.showModModalAfterInstall,
-        modInfo,
         modals.LINUX_PERMISSIONS_MODAL,
         modals.MOD_CHANGELOG,
         openModal,
@@ -364,6 +399,8 @@ export function useLayoutInstallers({
             }
 
             setIsUpdating(true)
+            setModInstallError(null)
+            currentModActionRef.current = app.mod.installed ? 'update' : 'install'
             const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'))
             downloadToastIdRef.current = id
 
@@ -419,6 +456,7 @@ export function useLayoutInstallers({
     return {
         isForceInstallEnabled,
         isModUpdateAvailable,
+        modInstallError,
         modUpdateState,
         startUpdate,
         updateYandexMusic,

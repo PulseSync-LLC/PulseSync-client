@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-export type NotificationCategory = 'localization' | 'subscription' | 'security' | 'system' | string
+export type NotificationCategory = 'achievement' | 'localization' | 'subscription' | 'security' | 'system' | string
 
 export type NotificationItem = {
     category: NotificationCategory

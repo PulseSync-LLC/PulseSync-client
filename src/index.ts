@@ -15,7 +15,6 @@ import logger from './main/modules/logger'
 import isAppDev from './main/utils/isAppDev'
 import { modManager } from './main/modules/mod/modManager'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
-import * as dns from 'node:dns'
 
 import { checkCLIArguments } from './main/utils/processUtils'
 import { registerSchemes } from './main/utils/serverUtils'

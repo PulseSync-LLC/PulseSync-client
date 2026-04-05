@@ -152,7 +152,7 @@
             "autoUpdateStoreAddons": "Auto-update store add-ons",
             "deletePextAfterImport": "Delete .pext after theme import",
             "hardwareAcceleration": "Hardware acceleration",
-            "title": "Application"
+            "title": "App settings"
         },
         "language": {
             "english": "English",
@@ -493,6 +493,7 @@
             "openItem": "Open",
             "categories": {
                 "addon": "Add-ons",
+                "achievement": "Achievements",
                 "localization": "Localization",
                 "subscription": "Subscription",
                 "security": "Security",
@@ -505,6 +506,8 @@
                 "addonAcceptedBody": "{{name}} is now available in the store.",
                 "addonRejectedTitle": "Add-on rejected",
                 "addonRejectedBody": "{{name}} was rejected during moderation.",
+                "achievementCompletedTitle": "Achievement completed",
+                "achievementCompletedBody": "Achievement unlocked: \"{{title}}\" (+{{points}} points).",
                 "localizationApprovedTitle": "Localization suggestion approved",
                 "localizationApprovedBody": "Your changes passed review and are already published.",
                 "localizationRejectedTitle": "Localization suggestion rejected",
@@ -674,6 +677,7 @@
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
         "modInstallFailed": "Failed to install the mod. Please try again.",
+        "modInstallInterrupted": "The download was interrupted. Check your connection and try again.",
         "modInstallStart": "Starting mod installation...",
         "modInstallSuccess": "Installation completed successfully!",
         "modInstallTitle": "Mod installation",

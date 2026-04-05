@@ -1,6 +1,9 @@
+import MainEvents from '@common/types/mainEvents'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import config from '@common/appConfig'
 import getUserToken from '@shared/lib/auth/getUserToken'
+import toast from '@shared/ui/toast'
+import { getNotificationPresentation } from '@app/providers/notifications/presentation'
 import type { NotificationsContextValue, NotificationItem } from '@app/providers/notifications/types'
 
 type NotificationsListResponse = {
@@ -142,6 +145,15 @@ export function useNotificationsController(userId: string): NotificationsControl
         setNotifications(current => dedupeNotifications([data.notification as NotificationItem, ...current]).slice(0, MAX_NOTIFICATIONS))
         if (typeof data.unreadCount === 'number') {
             setNotificationsUnreadCount(data.unreadCount)
+        }
+
+        if (data.notification.type === 'achievement.completed' && !data.notification.read) {
+            const presentation = getNotificationPresentation(data.notification)
+            toast.custom(presentation.tone, presentation.title, presentation.body)
+            window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                title: presentation.title,
+                body: presentation.body,
+            })
         }
     }, [])
 

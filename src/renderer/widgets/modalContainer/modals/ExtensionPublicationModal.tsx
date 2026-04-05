@@ -28,6 +28,9 @@ const ExtensionPublicationModal: React.FC = () => {
     )
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)
+    const isUpdateMode = Boolean(onUpdate)
+    const isEditingMode = Boolean(onUpdate || onPublish)
+    const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
 
     useEffect(() => {
         if (!isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)) {
@@ -103,8 +106,12 @@ const ExtensionPublicationModal: React.FC = () => {
         .map(line => line.replace(/^\s*[-*•]\s*/, '').trim())
         .filter(Boolean)
 
-    const hasValidGithubUrl = isGithubUrl(githubUrlText)
-    const canSubmit = normalizedChangelog.length > 0 && hasValidGithubUrl && rulesAccepted && !publicationBusy
+    const hasExistingGithubUrl = Boolean(publicationRelease?.githubUrl?.trim())
+    const hasEnteredGithubUrl = Boolean(githubUrlText.trim())
+    const hasValidGithubUrl = hasEnteredGithubUrl ? isGithubUrl(githubUrlText) : false
+    const hasGithubForSubmit = isUpdateMode ? hasExistingGithubUrl || hasValidGithubUrl : hasValidGithubUrl
+    const shouldShowGithubField = !isEditingMode || !isUpdateMode || !hasExistingGithubUrl
+    const canSubmit = normalizedChangelog.length > 0 && hasGithubForSubmit && (!requiresRulesAgreement || rulesAccepted) && !publicationBusy
 
     const primaryButton = onUpdate
         ? {
@@ -187,26 +194,28 @@ const ExtensionPublicationModal: React.FC = () => {
                     </div>
                 ) : null}
 
-                <div className={styles.noteCard}>
-                    <span className={styles.label}>
-                        {t('extensions.publication.githubUrlLabel')} <span className={styles.requiredMark}>*</span>
-                    </span>
-                    {primaryButton ? (
-                        <input
-                            className={styles.githubInput}
-                            type="url"
-                            value={githubUrlText}
-                            onChange={event => handleGithubUrlChange(event.target.value)}
-                            placeholder={t('extensions.publication.githubUrlPlaceholder')}
-                        />
-                    ) : publicationRelease?.githubUrl ? (
-                        <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
-                            {publicationRelease.githubUrl}
-                        </a>
-                    ) : (
-                        <span className={styles.subValue}>{t('common.emDash')}</span>
-                    )}
-                </div>
+                {shouldShowGithubField ? (
+                    <div className={styles.noteCard}>
+                        <span className={styles.label}>
+                            {t('extensions.publication.githubUrlLabel')} {!isUpdateMode ? <span className={styles.requiredMark}>*</span> : null}
+                        </span>
+                        {primaryButton ? (
+                            <input
+                                className={styles.githubInput}
+                                type="url"
+                                value={githubUrlText}
+                                onChange={event => handleGithubUrlChange(event.target.value)}
+                                placeholder={t('extensions.publication.githubUrlPlaceholder')}
+                            />
+                        ) : publicationRelease?.githubUrl ? (
+                            <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
+                                {publicationRelease.githubUrl}
+                            </a>
+                        ) : (
+                            <span className={styles.subValue}>{t('common.emDash')}</span>
+                        )}
+                    </div>
+                ) : null}
 
                 {primaryButton ? (
                     <div className={styles.noteCard}>
@@ -223,7 +232,7 @@ const ExtensionPublicationModal: React.FC = () => {
                     </div>
                 ) : null}
 
-                {primaryButton ? (
+                {primaryButton && requiresRulesAgreement ? (
                     <label className={styles.rulesCheckbox}>
                         <input
                             type="checkbox"

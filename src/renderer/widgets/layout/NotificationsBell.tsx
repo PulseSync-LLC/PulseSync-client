@@ -5,12 +5,11 @@ import MainEvents from '@common/types/mainEvents'
 import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
 import { useNotifications } from '@app/providers/notifications'
+import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
 import Loader from '@shared/ui/PSUI/Loader'
 import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
-
-type NotificationTone = 'success' | 'error' | 'warning'
 
 const NotificationsBell: React.FC = () => {
     const { t } = useTranslation()
@@ -46,73 +45,16 @@ const NotificationsBell: React.FC = () => {
         return () => document.removeEventListener('keydown', handleKeyDown)
     }, [isOpen])
 
-    const getNotificationCopy = useCallback(
-        (notification: NotificationItem) => {
-            if (notification.type === 'addon.review.pending') {
-                return {
-                    tone: 'warning' as NotificationTone,
-                    title: t('header.notifications.items.addonPendingTitle'),
-                    body: t('header.notifications.items.addonPendingBody', {
-                        name: String(notification.payload?.['name'] || t('store.unknownAddon')),
-                    }),
-                }
-            }
-
-            if (notification.type === 'addon.review.accepted') {
-                return {
-                    tone: 'success' as NotificationTone,
-                    title: t('header.notifications.items.addonAcceptedTitle'),
-                    body: t('header.notifications.items.addonAcceptedBody', {
-                        name: String(notification.payload?.['name'] || t('store.unknownAddon')),
-                    }),
-                }
-            }
-
-            if (notification.type === 'addon.review.rejected') {
-                const reviewNoteValue = notification.payload?.['moderationNote']
-                const reviewNote = typeof reviewNoteValue === 'string' ? reviewNoteValue.trim() : ''
-                return {
-                    tone: 'error' as NotificationTone,
-                    title: t('header.notifications.items.addonRejectedTitle'),
-                    body:
-                        reviewNote ||
-                        t('header.notifications.items.addonRejectedBody', {
-                            name: String(notification.payload?.['name'] || t('store.unknownAddon')),
-                        }),
-                }
-            }
-
-            if (notification.type === 'localization.suggestion.approved') {
-                return {
-                    tone: 'success' as NotificationTone,
-                    title: t('header.notifications.items.localizationApprovedTitle'),
-                    body: t('header.notifications.items.localizationApprovedBody'),
-                }
-            }
-
-            if (notification.type === 'localization.suggestion.rejected') {
-                const reviewNoteValue = notification.payload?.['reviewNote']
-                const reviewNote = typeof reviewNoteValue === 'string' ? reviewNoteValue.trim() : ''
-                return {
-                    tone: 'error' as NotificationTone,
-                    title: t('header.notifications.items.localizationRejectedTitle'),
-                    body: reviewNote || t('header.notifications.items.localizationRejectedBody'),
-                }
-            }
-
-            return {
-                tone: 'warning' as NotificationTone,
-                title: t('header.notifications.items.genericTitle'),
-                body: t('header.notifications.items.genericBody'),
-            }
-        },
-        [t],
-    )
+    const getNotificationCopy = useCallback((notification: NotificationItem) => getNotificationPresentation(notification), [])
 
     const getNotificationToneLabel = useCallback(
         (notification: NotificationItem) => {
             if (notification.category === 'addon') {
                 return t('header.notifications.categories.addon')
+            }
+
+            if (notification.category === 'achievement') {
+                return t('header.notifications.categories.achievement')
             }
 
             if (notification.category === 'localization') {
