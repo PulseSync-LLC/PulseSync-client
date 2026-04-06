@@ -23,6 +23,10 @@
     background: #2c303f;
 }
 
+.containerFixInnerLocked {
+    overflow: hidden !important;
+}
+
 .headerSection {
     flex-direction: column;
     width: 100%;
@@ -267,6 +271,25 @@
     gap: 10px;
 }
 
+.initialContentShell {
+    position: relative;
+    width: 100%;
+}
+
+.initialShimmerOverlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.18s ease-out;
+}
+
+.initialShimmerOverlayHidden {
+    opacity: 0;
+}
+
 .statusCircle {
     position: absolute;
     bottom: -3px;
@@ -495,4 +518,28 @@
 .userPage {
     padding-bottom: 0;
     margin-bottom: 0;
+}
+
+.loadMoreSentinel {
+    width: 100%;
+    height: 1px;
+}
+
+.paginationStatus {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 12px;
+    padding: 20px 0 25px 0;
+    color: #959dba;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+}
+
+.loadMoreShimmer {
+    max-height: 165px;
+    overflow: hidden;
+    padding: 0 0 25px 0;
+    pointer-events: none;
 }

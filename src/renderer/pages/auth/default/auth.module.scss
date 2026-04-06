@@ -35,17 +35,14 @@
 /* Layer 1: Bright stars - slow */
 .stars1 {
     background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.9), transparent),
-        radial-gradient(1.5px 1.5px at 90px 40px, #fff, transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(255, 255, 255, 0.9), transparent), radial-gradient(1.5px 1.5px at 90px 40px, #fff, transparent),
         radial-gradient(2px 2px at 160px 120px, rgba(255, 255, 255, 0.95), transparent),
         radial-gradient(1.5px 1.5px at 250px 80px, #fff, transparent),
         radial-gradient(2px 2px at 300px 150px, rgba(255, 255, 255, 0.85), transparent),
-        radial-gradient(1.5px 1.5px at 370px 200px, #fff, transparent),
-        radial-gradient(2px 2px at 450px 50px, rgba(255, 255, 255, 0.9), transparent),
+        radial-gradient(1.5px 1.5px at 370px 200px, #fff, transparent), radial-gradient(2px 2px at 450px 50px, rgba(255, 255, 255, 0.9), transparent),
         radial-gradient(1.5px 1.5px at 520px 180px, #fff, transparent),
         radial-gradient(2px 2px at 600px 100px, rgba(255, 255, 255, 0.95), transparent),
-        radial-gradient(1.5px 1.5px at 680px 250px, #fff, transparent),
-        radial-gradient(2px 2px at 750px 170px, rgba(255, 255, 255, 0.8), transparent);
+        radial-gradient(1.5px 1.5px at 680px 250px, #fff, transparent), radial-gradient(2px 2px at 750px 170px, rgba(255, 255, 255, 0.8), transparent);
     background-size: 800px 300px;
     animation: starsMove1 120s linear infinite;
 }
@@ -77,29 +74,48 @@
         radial-gradient(1.5px 1.5px at 640px 160px, rgba(220, 240, 255, 0.8), transparent),
         radial-gradient(1.5px 1.5px at 760px 80px, rgba(255, 230, 240, 0.75), transparent);
     background-size: 800px 220px;
-    animation: starsMove3 150s linear infinite, twinkle 6s ease-in-out infinite;
+    animation:
+        starsMove3 150s linear infinite,
+        twinkle 6s ease-in-out infinite;
     opacity: 0.7;
 }
 
 /* Star movement animations */
 @keyframes starsMove1 {
-    from { transform: translate(0, 0); }
-    to { transform: translate(-800px, -300px); }
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(-800px, -300px);
+    }
 }
 
 @keyframes starsMove2 {
-    from { transform: translate(0, 0); }
-    to { transform: translate(-800px, -250px); }
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(-800px, -250px);
+    }
 }
 
 @keyframes starsMove3 {
-    from { transform: translate(0, 0); }
-    to { transform: translate(-800px, -220px); }
+    from {
+        transform: translate(0, 0);
+    }
+    to {
+        transform: translate(-800px, -220px);
+    }
 }
 
 @keyframes twinkle {
-    0%, 100% { opacity: 0.7; }
-    50% { opacity: 1; }
+    0%,
+    100% {
+        opacity: 0.7;
+    }
+    50% {
+        opacity: 1;
+    }
 }
 
 /* ===== Shooting Stars ===== */
@@ -112,14 +128,7 @@
     position: absolute;
     width: 120px;
     height: 2px;
-    background: linear-gradient(
-        90deg,
-        transparent 0%,
-        rgba(255, 255, 255, 0.1) 10%,
-        rgba(255, 255, 255, 0.8) 50%,
-        #fff 70%,
-        transparent 100%
-    );
+    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 10%, rgba(255, 255, 255, 0.8) 50%, #fff 70%, transparent 100%);
     border-radius: 2px;
     opacity: 0;
     animation: shooting 8s ease-in-out infinite;

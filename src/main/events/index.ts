@@ -10,7 +10,7 @@ import { musicPath, readBufResilient, updated } from '../../index'
 import { getUpdater } from '../modules/updater/updater'
 import { UpdateStatus } from '../modules/updater/constants/updateStatus'
 import AdmZip from 'adm-zip'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../utils/isAppDev'
 import { execFile } from 'child_process'
 import axios from 'axios'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
@@ -21,37 +21,47 @@ import {
     getLinuxInstallerUrl,
     getYandexMusicAppDataPath,
     getYandexMusicLogsPath,
+    isYandexMusicRunning,
     isLinux,
     isMac,
     uninstallApp,
 } from '../utils/appUtils'
-import Addon from '../../renderer/api/interfaces/addon.interface'
+import Addon from '@entities/addon/model/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { createSettingsWindow, inSleepMode, mainWindow, settingsWindow } from '../modules/createWindow'
+import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
-import config, { branch, isDevmark } from '@common/appConfig'
+import config, { isDevmark } from '@common/appConfig'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
+import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
-import { importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { createGeneratedLocalAddonId } from '../utils/addonIdentity'
+import {
+    getBuildUpdateChannel,
+    getEffectiveUpdateChannel,
+    getMacManifestUrl,
+    getUpdateChannelOverride,
+    setUpdateChannelOverride,
+    shouldAllowDowngradeForCurrentChannel,
+} from '../modules/updater/updateChannel'
 
 const updater = getUpdater()
 const State = getState()
 let reqModal = 0
 export let updateAvailable = false
 export let authorized = false
-let uiReady = false
 let pendingAddonOpen: string | null = null
+let updaterStartListenerBound = false
 
-const macManifestUrl = `${config.S3_URL}/builds/app/${branch}/download.json`
 const macUpdater = isMac()
     ? getMacUpdater({
-          manifestUrl: macManifestUrl,
+          manifestUrl: getMacManifestUrl(getEffectiveUpdateChannel()),
           appName: 'PulseSync',
           attemptAutoInstall: false,
           onProgress: p => {
@@ -77,6 +87,15 @@ const macUpdater = isMac()
           onLog: m => logger.updater.info(m),
       })
     : null
+
+const syncMacUpdaterFeed = () => {
+    if (!macUpdater) {
+        return
+    }
+
+    macUpdater.setManifestUrl(getMacManifestUrl(getEffectiveUpdateChannel()))
+    macUpdater.setAllowDowngrade(shouldAllowDowngradeForCurrentChannel())
+}
 
 export const getPath = (args: string) => {
     const savePath = app.getPath('userData')
@@ -126,7 +145,7 @@ export const queueAddonOpen = (addonName: string): void => {
 }
 
 const tryOpenPendingAddon = (): void => {
-    if (!authorized || !uiReady || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
+    if (!authorized || !isUiReady() || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
     mainWindow.webContents.send(RendererEvents.OPEN_ADDON, pendingAddonOpen)
     pendingAddonOpen = null
 }
@@ -186,22 +205,6 @@ const registerWindowEvents = (): void => {
     })
 }
 
-const registerSettingsEvents = (): void => {
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MINIMIZE, () => {
-        settingsWindow.minimize()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_EXIT, () => {
-        logger.main.info(t('main.events.exitApp'))
-        app.quit()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_MAXIMIZE, () => {
-        settingsWindow.isMaximized() ? settingsWindow.unmaximize() : settingsWindow.maximize()
-    })
-    ipcMain.on(MainEvents.ELECTRON_SETTINGS_CLOSE, (event, val) => {
-        if (!val) settingsWindow.close()
-        else settingsWindow.hide()
-    })
-}
 const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
@@ -215,6 +218,30 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
         event.returnValue = process.env.BRANCH
+    })
+    ipcMain.handle(MainEvents.GET_BUILD_CHANNEL, async () => getBuildUpdateChannel())
+    ipcMain.handle(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL, async () => getEffectiveUpdateChannel())
+    ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
+    ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => (isMac() ? macUpdater?.getStatus() ?? UpdateStatus.IDLE : updater.getStatus()))
+    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
+        const previousEffectiveChannel = getEffectiveUpdateChannel()
+        const nextOverride = setUpdateChannelOverride(channel)
+        const nextEffectiveChannel = getEffectiveUpdateChannel()
+
+        if (previousEffectiveChannel !== nextEffectiveChannel) {
+            await updater.clearPendingUpdate(`channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`)
+            macUpdater?.resetPendingUpdate()
+            updateAvailable = false
+        }
+
+        updater.reloadFeed()
+        syncMacUpdaterFeed()
+
+        return {
+            buildChannel: getBuildUpdateChannel(),
+            overrideChannel: nextOverride,
+            effectiveChannel: nextEffectiveChannel,
+        }
     })
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
         event.returnValue = State.get(val)
@@ -235,7 +262,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         arch: os.arch(),
     }))
     ipcMain.on(MainEvents.UI_READY, () => {
-        uiReady = true
+        markUiReady()
         tryOpenPendingAddon()
         get_current_track()
     })
@@ -498,6 +525,10 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
         else return fs.existsSync(musicPath)
     })
 
+    ipcMain.handle(MainEvents.GET_MUSIC_RUNNING_STATUS, async () => {
+        return await isYandexMusicRunning()
+    })
+
     ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
         const metadata = await getInstalledYmMetadata()
         return metadata?.version
@@ -512,6 +543,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
         if (isMac()) {
             try {
+                syncMacUpdaterFeed()
                 const installInfo = await macUpdater?.installUpdate()
                 if (installInfo && mainWindow) {
                     mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
@@ -525,12 +557,15 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
+        syncMacUpdaterFeed()
+        updater.reloadFeed()
         await checkOrFindUpdate(args?.hard, args?.manual)
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
         if (isMac()) {
             try {
+                syncMacUpdaterFeed()
                 const m = await macUpdater?.checkForUpdates()
                 if (m) {
                     mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, m.version)
@@ -543,11 +578,14 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
             return
         }
         updater.start()
-        updater.onUpdate(version => {
-            mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
-            mainWindow.flashFrame(true)
-            updateAvailable = true
-        })
+        if (!updaterStartListenerBound) {
+            updaterStartListenerBound = true
+            updater.onUpdate(version => {
+                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
+                mainWindow.flashFrame(true)
+                updateAvailable = true
+            })
+        }
     })
 }
 
@@ -659,13 +697,12 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             logger.main.error(t('main.events.addonsLoadError'), error)
         }
     })
-    ipcMain.on(MainEvents.OPEN_SETTINGS_WINDOW, () => {
-        createSettingsWindow()
-    })
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
             const defaultAdd: Partial<Addon> = {
+                id: createGeneratedLocalAddonId(),
                 name: t('main.events.newExtensionName'),
+                installSource: 'local',
                 image: '',
                 banner: '',
                 author: t('main.events.newExtensionAuthor'),
@@ -683,12 +720,27 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             if (!fs.existsSync(extensionsPath)) fs.mkdirSync(extensionsPath)
             let newName = t('main.events.newExtensionName')
             let counter = 1
-            while (fs.readdirSync(extensionsPath).includes(newName)) {
+            const existingNames = new Set(
+                fs
+                    .readdirSync(extensionsPath)
+                    .map(folder => {
+                        const metadataPath = path.join(extensionsPath, folder, 'metadata.json')
+                        if (!fs.existsSync(metadataPath)) return ''
+                        try {
+                            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as Partial<Addon>
+                            return typeof metadata.name === 'string' ? metadata.name.trim() : ''
+                        } catch {
+                            return ''
+                        }
+                    })
+                    .filter(Boolean),
+            )
+            while (existingNames.has(newName)) {
                 counter++
                 newName = t('main.events.newExtensionNameWithIndex', { index: counter })
                 defaultAdd.name = newName
             }
-            const extensionPath = path.join(extensionsPath, newName)
+            const extensionPath = path.join(extensionsPath, defaultAdd.id!)
             fs.mkdirSync(extensionPath)
             fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAdd, null, 4))
             fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent)
@@ -750,6 +802,30 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 
+    ipcMain.handle(MainEvents.PACKAGE_ADDON_ARCHIVE, async (_event, data: { name?: string; path?: string }) => {
+        try {
+            if (!data?.path || !fs.existsSync(data.path)) {
+                return { success: false, reason: 'ADDON_PATH_NOT_FOUND' }
+            }
+
+            const zip = new AdmZip()
+            zip.addLocalFolder(data.path, '', relativePath => {
+                if (!relativePath) return true
+                const parts = relativePath.split(path.sep)
+                return !parts.some(part => part.startsWith('.'))
+            })
+
+            return {
+                success: true,
+                fileName: `${(data.name || path.basename(data.path)).replace(/[^\w.-]+/g, '_') || 'addon'}.zip`,
+                base64: zip.toBuffer().toString('base64'),
+            }
+        } catch (error: any) {
+            logger.main.error('Failed to package addon archive:', error)
+            return { success: false, reason: error?.message || 'PACKAGE_FAILED' }
+        }
+    })
+
     ipcMain.handle(MainEvents.IMPORT_PEXT_FILE, async (_event, rawPath: string) => {
         try {
             if (!isPextFilePath(rawPath)) {
@@ -764,6 +840,53 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         } catch (error: any) {
             logger.main.error('Failed to import .pext from renderer drop:', error)
             return { success: false, reason: error?.message || 'IMPORT_FAILED' }
+        }
+    })
+
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { id?: string; downloadUrl?: string; title?: string }) => {
+        let tempArchivePath = ''
+
+        try {
+            const downloadUrl = payload?.downloadUrl?.trim()
+            if (!downloadUrl) {
+                return { success: false, reason: 'DOWNLOAD_URL_MISSING' }
+            }
+
+            const parsedUrl = new URL(downloadUrl)
+            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+                return { success: false, reason: 'INVALID_PROTOCOL' }
+            }
+
+            const ext = path.extname(parsedUrl.pathname).toLowerCase() === '.pext' ? '.pext' : '.zip'
+            tempArchivePath = path.join(app.getPath('temp'), `store-addon-${v4()}${ext}`)
+
+            const response = await axios.get<ArrayBuffer>(downloadUrl, {
+                responseType: 'arraybuffer',
+            })
+
+            await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
+
+            const addonName = await importAddonArchive(tempArchivePath, {
+                installSource: 'store',
+                storeAddonId: payload?.id || null,
+            })
+            if (!addonName) {
+                return { success: false, reason: 'IMPORT_FAILED' }
+            }
+
+            queueAddonOpen(addonName)
+            return { success: true, addonName }
+        } catch (error: any) {
+            logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
+            return { success: false, reason: error?.message || 'INSTALL_FAILED' }
+        } finally {
+            if (tempArchivePath) {
+                try {
+                    await fsp.rm(tempArchivePath, { force: true })
+                } catch (cleanupError) {
+                    logger.main.warn(`Unable to remove temporary store addon archive: ${String(cleanupError)}`)
+                }
+            }
         }
     })
 }
@@ -813,7 +936,6 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
 
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
-    registerSettingsEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)
     registerFileOperations(window)
@@ -833,6 +955,8 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
     if (isMac()) {
         try {
+            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { checking: true, manual })
+            syncMacUpdaterFeed()
             const macUpdaterInstance = await macUpdater?.checkForUpdates()
             if (macUpdaterInstance) {
                 mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
@@ -861,13 +985,12 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
         return
     }
     const status = await updater.check(manual)
-    if (status === UpdateStatus.DOWNLOADING) {
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
-        updateAvailable = true
-    } else if (status === UpdateStatus.DOWNLOADED) {
+    if (status === UpdateStatus.DOWNLOADED) {
         if (hard) updater.install()
-        mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         updateAvailable = true
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+    } else if (status === UpdateStatus.DOWNLOADING) {
+        updateAvailable = true
+    } else if (status === UpdateStatus.IDLE || status === null) {
+        updateAvailable = false
     }
 }

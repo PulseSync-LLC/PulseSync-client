@@ -2,12 +2,12 @@ import * as http from 'http'
 import { app, dialog } from 'electron'
 import { selectedAddon } from '../../../index'
 import { authorized } from '../../events'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import logger from '../logger'
 import { Server as IOServer, Socket } from 'socket.io'
-import trackInitials from '../../../renderer/api/initials/track.initials'
+import trackInitials from '@entities/track/model/track.initials'
 import { isFirstInstance } from '../singleInstance'
-import { Track } from '../../../renderer/api/interfaces/track.interface'
+import { Track } from '@entities/track/model/track.interface'
 import { mainWindow } from '../createWindow'
 import config from '@common/appConfig'
 import { getState } from '../state'
@@ -182,6 +182,8 @@ export const getAllAllowedUrls = addonService.getAllAllowedUrls
 export const setAddon = addonService.setAddon
 export const sendAddon = addonService.sendAddon
 export const sendExtensions = addonService.sendExtensions
+export const sendAddonSettings = addonService.sendAddonSettings
+export const sendAllAddonSettings = addonService.sendAllAddonSettings
 export const get_current_track = addonService.getCurrentTrack
 export const getTrackInfo = () => data
 

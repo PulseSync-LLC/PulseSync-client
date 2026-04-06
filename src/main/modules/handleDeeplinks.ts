@@ -3,6 +3,7 @@ import deeplinkCommands from './deeplinkCommands'
 import logger from './logger'
 import { BrowserAuthCredentials, extractBrowserAuthFromDeepLink, processBrowserAuth } from './auth/browserAuth'
 import { extractInstallModUpdateFromDeepLink, installModUpdateFromAsar } from './mod/installModUpdateFrom'
+import { isUiReady, runWhenUiReady } from './uiReady'
 
 let pendingInstallModUpdateFrom: { path: string; source: 'deeplink' } | null = null
 let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null
@@ -10,7 +11,18 @@ let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null
 const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/g, '')
 
 const transformUrl = (url: string): string[] => {
-    return url.replace(/^pulsesync:\/\//i, '').split('/').filter(Boolean)
+    try {
+        const parsed = new URL(url)
+        if (parsed.protocol !== 'pulsesync:') return []
+
+        return [parsed.hostname, ...parsed.pathname.split('/')].map(part => trimQuotes(part || '')).filter(Boolean)
+    } catch {
+        return url
+            .replace(/^pulsesync:\/\//i, '')
+            .split('/')
+            .map(part => trimQuotes(part.split(/[?#]/, 1)[0] || ''))
+            .filter(Boolean)
+    }
 }
 
 export const checkIsDeeplink = (value: string): boolean => /^pulsesync:\/\/.*/i.test(value)
@@ -36,17 +48,40 @@ export const consumePendingBrowserAuthFromDeepLink = (): BrowserAuthCredentials 
 }
 
 const handleInstallModUpdateFrom = async (asarPath: string, window?: BrowserWindow): Promise<void> => {
-    const targetWindow = window ?? BrowserWindow.getAllWindows()[0]
+    const resolveTargetWindow = (): BrowserWindow | undefined => {
+        if (window && !window.isDestroyed()) return window
+        return BrowserWindow.getAllWindows()[0]
+    }
+
+    const targetWindow = resolveTargetWindow()
     if (!targetWindow) {
         pendingInstallModUpdateFrom = { path: asarPath, source: 'deeplink' }
         logger.main.info(`Queued INSTALL_MOD_UPDATE_FROM from deeplink: ${asarPath}`)
         return
     }
 
-    const result = await installModUpdateFromAsar(asarPath, targetWindow, 'deeplink')
-    if (!result.success) {
-        logger.main.warn('INSTALL_MOD_UPDATE_FROM failed from deeplink:', result)
+    const startInstall = () => {
+        const installWindow = resolveTargetWindow()
+        if (!installWindow) {
+            pendingInstallModUpdateFrom = { path: asarPath, source: 'deeplink' }
+            logger.main.info(`Re-queued INSTALL_MOD_UPDATE_FROM until window is available: ${asarPath}`)
+            return
+        }
+
+        void installModUpdateFromAsar(asarPath, installWindow, 'deeplink').then(result => {
+            if (!result.success) {
+                logger.main.warn('INSTALL_MOD_UPDATE_FROM failed from deeplink:', result)
+            }
+        })
     }
+
+    if (!isUiReady()) {
+        runWhenUiReady(startInstall)
+        logger.main.info(`Queued INSTALL_MOD_UPDATE_FROM until UI_READY: ${asarPath}`)
+        return
+    }
+
+    startInstall()
 }
 
 const handleBrowserAuthDeepLink = async (credentials: BrowserAuthCredentials, window?: BrowserWindow): Promise<void> => {
@@ -61,10 +96,10 @@ const handleBrowserAuthDeepLink = async (credentials: BrowserAuthCredentials, wi
 }
 
 export const createDeeplinkCommandsHandler = async (): Promise<deeplinkCommands> => {
-    const deeplinkCommandsHandler = await new deeplinkCommands({
+    return new deeplinkCommands({
+        handleBrowserAuth: handleBrowserAuthDeepLink,
         handleInstallModUpdateFrom,
     })
-    return deeplinkCommandsHandler
 }
 
 export const navigateToDeeplink = async (url: string, deeplinkCommandsHandler: deeplinkCommands, window?: BrowserWindow): Promise<void> => {

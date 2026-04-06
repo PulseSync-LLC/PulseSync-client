@@ -3,14 +3,17 @@ import path from 'path'
 import * as fs from 'original-fs'
 import { getFolderSize, formatSizeUnits } from './appUtils'
 import logger from '../modules/logger'
-import Addon from '../../renderer/api/interfaces/addon.interface'
+import Addon from '@entities/addon/model/addon.interface'
 import { getState } from '../modules/state'
 import * as acorn from 'acorn'
 import { simple as walkSimple } from 'acorn-walk'
+import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
 
 const State = getState()
 const defaultAddon: Partial<Addon> = {
+    id: 'default',
     name: 'Default',
+    installSource: 'local',
     image: 'url',
     author: 'Your Name',
     description: 'Default theme.',
@@ -25,6 +28,7 @@ const defaultAddon: Partial<Addon> = {
 
 const defaultCssContent = `{}`
 const defaultScriptContent = ``
+let loadAddonsInFlight: Promise<Addon[]> | null = null
 
 export function createDefaultAddonIfNotExists(themesFolderPath: string) {
     const defaultAddonPath = path.join(themesFolderPath, defaultAddon.name!)
@@ -44,6 +48,10 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
                     metadata.type = defaultAddon.type
                     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
                     logger.main.info(`Addons: metadata.json updated in ${defaultAddonPath}.`)
+                }
+                if (!metadata.id) {
+                    metadata.id = defaultAddon.id
+                    fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
                 }
             }
             return
@@ -65,7 +73,7 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
     }
 }
 
-export async function loadAddons(): Promise<Addon[]> {
+async function loadAddonsInternal(): Promise<Addon[]> {
     const addonsFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
 
     createDefaultAddonIfNotExists(addonsFolderPath)
@@ -86,11 +94,23 @@ export async function loadAddons(): Promise<Addon[]> {
             logger.main.error(`Addons: error stating ${fullPath}:`, err)
         }
     }
+    folders.sort((left, right) => left.localeCompare(right))
     const availableAddons: Addon[] = []
+    const aliasMap = new Map<string, string>()
+
+    const setAlias = (alias: string | undefined, target: string) => {
+        const normalizedAlias = String(alias || '').trim()
+        const normalizedTarget = String(target || '').trim()
+        if (!normalizedAlias || !normalizedTarget) return
+
+        aliasMap.set(normalizedAlias, normalizedTarget)
+        aliasMap.set(normalizedAlias.toLowerCase(), normalizedTarget)
+    }
 
     for (const folder of folders) {
-        const addonFolderPath = path.join(addonsFolderPath, folder)
-        const metadataFilePath = path.join(addonFolderPath, 'metadata.json')
+        let currentFolder = folder
+        let addonFolderPath = path.join(addonsFolderPath, currentFolder)
+        let metadataFilePath = path.join(addonFolderPath, 'metadata.json')
 
         if (fs.existsSync(metadataFilePath)) {
             try {
@@ -119,28 +139,102 @@ export async function loadAddons(): Promise<Addon[]> {
 
                 const versionRegex = /^\d+(\.\d+){0,2}$/
                 const metadata = JSON.parse(data) as Addon
+                const previousAliases = [
+                    folder,
+                    typeof metadata.name === 'string' ? metadata.name.trim() : '',
+                    typeof metadata.id === 'string' ? metadata.id.trim() : '',
+                    typeof metadata.storeAddonId === 'string' ? metadata.storeAddonId.trim() : '',
+                ].filter(Boolean)
+                let metadataChanged = false
+
+                const normalizedInstallSource =
+                    metadata.installSource === 'store' || metadata.installSource === 'local' ? metadata.installSource : null
+                const inferredLegacyStoreInstall =
+                    !!metadata.storeAddonId &&
+                    (currentFolder === String(metadata.storeAddonId).trim() || String(metadata.id || '').trim() === String(metadata.storeAddonId).trim())
+                const resolvedInstallSource =
+                    normalizedInstallSource || inferredLegacyStoreInstall
+                        ? normalizedInstallSource || 'store'
+                        : 'local'
+                if (metadata.installSource !== resolvedInstallSource) {
+                    metadata.installSource = resolvedInstallSource
+                    metadataChanged = true
+                }
+
+                const resolvedId =
+                    metadata.name === 'Default'
+                        ? 'default'
+                        : resolvedInstallSource === 'store'
+                          ? resolveAddonCanonicalId(metadata, metadata.id)
+                          : resolveAddonStableId(metadata, metadata.id)
+                if (metadata.id !== resolvedId) {
+                    metadata.id = resolvedId
+                    metadataChanged = true
+                }
+
+                const desiredFolder =
+                    metadata.name === 'Default'
+                        ? 'Default'
+                        : resolveAddonDirectoryKey(metadata, resolvedId, {
+                              preferStoreId: resolvedInstallSource === 'store',
+                          })
+                if (desiredFolder && desiredFolder !== currentFolder) {
+                    const desiredFolderPath = path.join(addonsFolderPath, desiredFolder)
+                    if (!fs.existsSync(desiredFolderPath)) {
+                        try {
+                            await fs.promises.rename(addonFolderPath, desiredFolderPath)
+                            currentFolder = desiredFolder
+                            addonFolderPath = desiredFolderPath
+                            metadataFilePath = path.join(addonFolderPath, 'metadata.json')
+                        } catch (error: any) {
+                            const sourceMissing = error?.code === 'ENOENT'
+                            const destinationReady = fs.existsSync(desiredFolderPath)
+
+                            if (sourceMissing && destinationReady) {
+                                currentFolder = desiredFolder
+                                addonFolderPath = desiredFolderPath
+                                metadataFilePath = path.join(addonFolderPath, 'metadata.json')
+                            } else {
+                                throw error
+                            }
+                        }
+                    } else {
+                        logger.main.warn(
+                            `Addons: skipped directory migration from ${currentFolder} to ${desiredFolder} because target already exists.`,
+                        )
+                    }
+                }
+
                 const versionMatch = metadata.version.match(versionRegex)
                 if (!versionMatch) {
                     logger.main.log(`Addons: No valid version found in theme ${metadataFilePath}. Setting version to 1.0.0`)
                     metadata.version = '1.0.0'
-                    await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8').catch(err => {
-                        logger.main.error(`Addons: error writing metadata.json in theme ${folder}:`, err)
-                    })
+                    metadataChanged = true
                 } else {
                     metadata.version = versionMatch[0]
+                }
+
+                if (metadataChanged) {
+                    await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8').catch(err => {
+                        logger.main.error(`Addons: error writing metadata.json in theme ${currentFolder}:`, err)
+                    })
                 }
 
                 metadata.lastModified = diffString
                 metadata.path = addonFolderPath
                 metadata.size = formatSizeUnits(folderSize)
-                metadata.directoryName = folder
+                metadata.directoryName = currentFolder
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
                     metadata.rootFiles = rootEntries.filter(entry => entry.isFile()).map(entry => entry.name)
                 } catch (err) {
-                    logger.main.error(`Addons: error reading addon root files in theme ${folder}:`, err)
+                    logger.main.error(`Addons: error reading addon root files in theme ${currentFolder}:`, err)
                     metadata.rootFiles = []
                 }
+
+                previousAliases.forEach(alias => setAlias(alias, currentFolder))
+                setAlias(currentFolder, currentFolder)
+                setAlias(metadata.id, currentFolder)
 
                 availableAddons.push(metadata)
             } catch (err) {
@@ -151,21 +245,137 @@ export async function loadAddons(): Promise<Addon[]> {
         }
     }
 
-    let selectedTheme = State.get('addons.theme') ?? 'Default'
-    let selectedScripts = State.get('addons.scripts') ?? []
-    logger.main.log(selectedScripts)
+    const resolveStoredAddonKey = (value: unknown): string => {
+        const raw = String(value || '').trim()
+        if (!raw) return ''
+        return aliasMap.get(raw) || aliasMap.get(raw.toLowerCase()) || raw
+    }
 
-    const themeAddonExists = availableAddons.some(addon => addon.type === 'theme' && addon.directoryName === selectedTheme)
+    const choosePreferredAddon = (left: Addon, right: Addon): Addon => {
+        const leftPriority = left.installSource === 'store' ? 2 : 1
+        const rightPriority = right.installSource === 'store' ? 2 : 1
+
+        if (leftPriority !== rightPriority) {
+            return leftPriority > rightPriority ? left : right
+        }
+
+        return left.directoryName.localeCompare(right.directoryName) <= 0 ? left : right
+    }
+
+    const cleanupShadowedAddonDirectory = async (shadowedAddon: Addon, preferredAddon: Addon, reason: 'identity' | 'fingerprint') => {
+        if (!shadowedAddon?.directoryName || shadowedAddon.directoryName === preferredAddon.directoryName) {
+            return
+        }
+
+        const shadowedPath = path.join(addonsFolderPath, shadowedAddon.directoryName)
+        if (!fs.existsSync(shadowedPath)) {
+            return
+        }
+
+        try {
+            await fs.promises.rm(shadowedPath, { recursive: true, force: true })
+            logger.main.info(
+                `Addons: removed duplicate ${reason} folder ${shadowedAddon.directoryName}. Keeping ${preferredAddon.directoryName}.`,
+            )
+        } catch (error) {
+            logger.main.warn(
+                `Addons: failed to remove duplicate ${reason} folder ${shadowedAddon.directoryName}: ${String(error)}`,
+            )
+        }
+    }
+
+    const dedupedByCanonicalId = new Map<string, Addon>()
+    for (const addon of availableAddons) {
+        const canonicalId = resolveAddonCanonicalId(addon, addon.id)
+        const existingAddon = dedupedByCanonicalId.get(canonicalId)
+        if (!existingAddon) {
+            dedupedByCanonicalId.set(canonicalId, addon)
+            continue
+        }
+
+        const preferredAddon = choosePreferredAddon(existingAddon, addon)
+        const shadowedAddon = preferredAddon === existingAddon ? addon : existingAddon
+
+        setAlias(shadowedAddon.directoryName, preferredAddon.directoryName)
+        setAlias(shadowedAddon.id, preferredAddon.directoryName)
+        setAlias(shadowedAddon.storeAddonId, preferredAddon.directoryName)
+        setAlias(shadowedAddon.name, preferredAddon.directoryName)
+
+        await cleanupShadowedAddonDirectory(shadowedAddon, preferredAddon, 'identity')
+        logger.main.info(
+            `Addons: duplicate addon identity "${canonicalId}" detected for ${existingAddon.directoryName} and ${addon.directoryName}. Keeping ${preferredAddon.directoryName}.`,
+        )
+
+        dedupedByCanonicalId.set(canonicalId, preferredAddon)
+    }
+
+    const resolvedAddons = Array.from(dedupedByCanonicalId.values())
+    const dedupedByPublicationFingerprint = new Map<string, Addon>()
+    const finalAddons: Addon[] = []
+
+    for (const addon of resolvedAddons) {
+        const fingerprint = resolveAddonPublicationFingerprint(addon)
+        if (!fingerprint) {
+            finalAddons.push(addon)
+            continue
+        }
+
+        const existingAddon = dedupedByPublicationFingerprint.get(fingerprint)
+        if (!existingAddon) {
+            dedupedByPublicationFingerprint.set(fingerprint, addon)
+            finalAddons.push(addon)
+            continue
+        }
+
+        const preferredAddon = choosePreferredAddon(existingAddon, addon)
+        const shadowedAddon = preferredAddon === existingAddon ? addon : existingAddon
+
+        setAlias(shadowedAddon.directoryName, preferredAddon.directoryName)
+        setAlias(shadowedAddon.id, preferredAddon.directoryName)
+        setAlias(shadowedAddon.storeAddonId, preferredAddon.directoryName)
+        setAlias(shadowedAddon.name, preferredAddon.directoryName)
+
+        await cleanupShadowedAddonDirectory(shadowedAddon, preferredAddon, 'fingerprint')
+        logger.main.info(
+            `Addons: duplicate publication fingerprint detected for ${existingAddon.directoryName} and ${addon.directoryName}. Keeping ${preferredAddon.directoryName}.`,
+        )
+
+        dedupedByPublicationFingerprint.set(fingerprint, preferredAddon)
+
+        if (preferredAddon !== existingAddon) {
+            const existingIndex = finalAddons.findIndex(item => item.directoryName === existingAddon.directoryName)
+            if (existingIndex >= 0) {
+                finalAddons[existingIndex] = preferredAddon
+            }
+        }
+    }
+
+    let selectedTheme = resolveStoredAddonKey(State.get('addons.theme') ?? 'Default') || 'Default'
+    let selectedScripts = State.get('addons.scripts') ?? []
+
+    const themeAddonExists = finalAddons.some(addon => addon.type === 'theme' && addon.directoryName === selectedTheme)
     if (!themeAddonExists) {
         selectedTheme = 'Default'
         State.set('addons.theme', selectedTheme)
     }
-    selectedScripts = availableAddons
+
+    if (typeof selectedScripts === 'string') {
+        selectedScripts = selectedScripts
+            .split(',')
+            .map(item => resolveStoredAddonKey(item))
+            .filter(Boolean)
+    } else if (Array.isArray(selectedScripts)) {
+        selectedScripts = selectedScripts.map(item => resolveStoredAddonKey(item)).filter(Boolean)
+    } else {
+        selectedScripts = []
+    }
+
+    selectedScripts = finalAddons
         .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName!))
         .map(addon => addon.directoryName!)
     State.set('addons.scripts', selectedScripts)
 
-    availableAddons.forEach(addon => {
+    finalAddons.forEach(addon => {
         if (addon.type === 'theme' && addon.directoryName === selectedTheme) {
             addon.enabled = true
         } else if (addon.type === 'script' && selectedScripts.includes(addon.directoryName!)) {
@@ -173,7 +383,23 @@ export async function loadAddons(): Promise<Addon[]> {
         }
     })
 
-    return availableAddons
+    return finalAddons
+}
+
+export async function loadAddons(): Promise<Addon[]> {
+    if (loadAddonsInFlight) {
+        return loadAddonsInFlight
+    }
+
+    loadAddonsInFlight = (async () => {
+        try {
+            return await loadAddonsInternal()
+        } finally {
+            loadAddonsInFlight = null
+        }
+    })()
+
+    return loadAddonsInFlight
 }
 
 export function sanitizeScript(js: string): string {

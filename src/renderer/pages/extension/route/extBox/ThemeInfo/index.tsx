@@ -1,22 +1,36 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import { MdMoreHoriz, MdStoreMallDirectory } from 'react-icons/md'
-import AddonInterface from '../../../../../api/interfaces/addon.interface'
-import Button from '../../../../../components/buttonV2'
-import ViewModal from '../../../../../components/context_menu_themes/viewModal'
-import { createContextMenuActions } from '../../../../../components/context_menu_themes/sectionConfig'
-import * as s from './ThemeInfo.module.scss'
+import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import AddonInterface from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import Button from '@shared/ui/buttonV2'
+import ViewModal from '@features/context_menu_themes/viewModal'
+import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
+import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 import config from '@common/appConfig'
-import { staticAsset } from '../../../../../utils/staticAssets'
+import { staticAsset } from '@shared/lib/staticAssets'
 import { useTranslation } from 'react-i18next'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
 
 interface Props {
     addon: AddonInterface
     isEnabled: boolean
+    hasStoreUpdate?: boolean
+    storeUpdateBusy?: boolean
+    onStoreUpdate?: () => void
     themeActive: boolean
     onToggleEnabled: (enabled: boolean) => void
-
+    publication?: StoreAddon | null
+    publicationChangelogText?: string
+    publicationGithubUrlText?: string
+    canManagePublication?: boolean
+    publicationBusy?: boolean
+    onPublicationChangelogChange?: (value: string) => void
+    onPublicationGithubUrlChange?: (value: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
@@ -48,18 +62,47 @@ function useResolvedImage(url: string | null, fallback: string | null) {
     return resolved
 }
 
-const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEnabled, setSelectedTags, setShowFilters }) => {
+function normalizeAuthorNames(author: AddonInterface['author']): string[] {
+    if (typeof author === 'string') {
+        return author
+            .split(',')
+            .map(name => name.trim())
+            .filter(Boolean)
+    }
+
+    return author.map(name => String(name).trim()).filter(Boolean)
+}
+
+const ThemeInfo: React.FC<Props> = ({
+    addon,
+    isEnabled,
+    hasStoreUpdate = false,
+    storeUpdateBusy = false,
+    onStoreUpdate,
+    themeActive,
+    onToggleEnabled,
+    publication,
+    publicationChangelogText = '',
+    publicationGithubUrlText = '',
+    canManagePublication = false,
+    publicationBusy = false,
+    onPublicationChangelogChange,
+    onPublicationGithubUrlChange,
+    onPublishAddon,
+    onUpdateAddon,
+    setSelectedTags,
+    setShowFilters,
+}) => {
     const { t } = useTranslation()
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
+    const { Modals, openModal } = useModalContext()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
     const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
 
-    const authorNames =
-        typeof addon.author === 'string'
-            ? addon.author.split(', ').map(name => name.trim().toLowerCase())
-            : addon.author.map(name => name.toLowerCase())
+    const authorNames = normalizeAuthorNames(addon.author)
 
     const MAX_VISIBLE = 1
     const visibleAuthors = authorNames.slice(0, MAX_VISIBLE)
@@ -83,17 +126,17 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     const getAssetUrl = (file: string) =>
-        `http://127.0.0.1:${config.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}`
+        `http://127.0.0.1:${config.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(file)}`
 
     const bannerSource = useMemo(() => {
         if (!addon.banner || (isMac && isGif(addon.banner))) return null
         return getAssetUrl(addon.banner)
-    }, [addon.banner, addon.name, isMac])
+    }, [addon.banner, addon.directoryName, isMac])
 
     const logoSource = useMemo(() => {
         if (!addon.libraryLogo || (isMac && isGif(addon.libraryLogo))) return null
         return getAssetUrl(addon.libraryLogo)
-    }, [addon.libraryLogo, addon.name, isMac])
+    }, [addon.directoryName, addon.libraryLogo, isMac])
 
     const bannerUrl = useResolvedImage(bannerSource, fallbackBanner)
     const logoUrl = useResolvedImage(logoSource, null)
@@ -108,6 +151,9 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
         document.addEventListener('mousedown', handleClickOutside)
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
+
+    const authorsDisplay = authorNames.join(', ')
+    const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
 
     return (
         <>
@@ -126,18 +172,18 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
             <div className={s.topTags}>
                 {addon.tags &&
                     addon.tags.length > 0 &&
-                    addon.tags.map(t => (
+                    addon.tags.map(tag => (
                         <Button
-                            key={t}
+                            key={tag}
                             className={s.tag}
                             onClick={() => {
                                 if (setSelectedTags && setShowFilters) {
-                                    setSelectedTags(prev => new Set([...prev, t]))
+                                    setSelectedTags(prev => new Set([...prev, tag]))
                                     setShowFilters(false)
                                 }
                             }}
                         >
-                            {t}
+                            {tag}
                         </Button>
                     ))}
             </div>
@@ -196,36 +242,80 @@ const ThemeInfo: React.FC<Props> = ({ addon, isEnabled, themeActive, onToggleEna
                         <span className={s.label}>{t('extensions.meta.updated')}</span>
                         <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
                     </div>
+
+                    <div className={s.metaItem}>
+                        <span className={s.label}>{t('extensions.meta.source')}</span>
+                        <span className={s.value}>
+                            {addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}
+                        </span>
+                    </div>
                 </div>
 
-                <div className={s.actions} ref={actionsRef}>
-                    <Button className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)} onClick={() => onToggleEnabled(!isEnabled)}>
-                        {isEnabled ? t('common.disable') : t('common.enable')}
-                    </Button>
+                <div className={s.sideActions} ref={actionsRef}>
+                    <div className={s.actions}>
+                        {canManagePublication && (
+                            <Button
+                                className={s.actionButton}
+                                onClick={() =>
+                                    openModal(Modals.EXTENSION_PUBLICATION_MODAL, {
+                                        addon,
+                                        authorsDisplay,
+                                        publication: publication ?? null,
+                                        publicationBusy,
+                                        changelogText: publicationChangelogText,
+                                        githubUrlText: publicationGithubUrlText,
+                                        onChangeChangelog: onPublicationChangelogChange ?? null,
+                                        onChangeGithubUrl: onPublicationGithubUrlChange ?? null,
+                                        onPublish: onPublishAddon ?? null,
+                                        onUpdate: onUpdateAddon ?? null,
+                                    })
+                                }
+                                title={authorsDisplay}
+                            >
+                                <MdSync size={18} />
+                                <span>{t('extensions.publication.statusLabel')}</span>
+                            </Button>
+                        )}
 
-                    <Button className={s.miniButton} title={t('extensions.actions.store')} disabled>
-                        <MdStoreMallDirectory size={20} />
-                    </Button>
+                        {hasStoreUpdate ? (
+                            <Button className={cn(s.toggleButton, s.updateState)} onClick={onStoreUpdate} disabled={storeUpdateBusy}>
+                                {storeUpdateBusy ? t('common.importing') : t('layout.updateAction')}
+                            </Button>
+                        ) : (
+                            <Button
+                                className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
+                                onClick={() => onToggleEnabled(!isEnabled)}
+                            >
+                                {isEnabled ? t('common.disable') : t('common.enable')}
+                            </Button>
+                        )}
 
-                    <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
-                        <MdMoreHoriz size={20} />
-                    </Button>
+                        {canAccessStore && (
+                            <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>
+                                <MdStoreMallDirectory size={20} />
+                            </Button>
+                        )}
 
-                    {menuOpen && (
-                        <ViewModal
-                            items={createContextMenuActions(
-                                undefined,
-                                themeActive,
-                                {
-                                    showCheck: false,
-                                    showDirectory: true,
-                                    showExport: true,
-                                    showDelete: true,
-                                },
-                                addon,
-                            )}
-                        />
-                    )}
+                        <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
+                            <MdMoreHoriz size={20} />
+                        </Button>
+
+                        {menuOpen && (
+                            <ViewModal
+                                items={createContextMenuActions(
+                                    undefined,
+                                    themeActive,
+                                    {
+                                        showCheck: false,
+                                        showDirectory: true,
+                                        showExport: true,
+                                        showDelete: true,
+                                    },
+                                    addon,
+                                )}
+                            />
+                        )}
+                    </div>
                 </div>
             </div>
         </>

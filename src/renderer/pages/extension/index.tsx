@@ -1,69 +1,80 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import cn from 'clsx'
 import { useLocation, useParams } from 'react-router'
-import semver from 'semver'
 
-import { MdCheckCircle, MdFilterList, MdIntegrationInstructions, MdInvertColors, MdMoreHoriz } from 'react-icons/md'
-import stringSimilarity from 'string-similarity'
+import userContext from '@entities/user/model/context'
+import Addon from '@entities/addon/model/addon.interface'
+import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 
-import userContext from '../../api/context/user'
-import Addon from '../../api/interfaces/addon.interface'
-import { AddonWhitelistItem } from '../../api/interfaces/addonWhitelist.interface'
+import toast from '@shared/ui/toast'
 
-import toast from '../../components/toast'
+import PageLayout from '@widgets/layout/PageLayout'
+import Loader from '@shared/ui/PSUI/Loader'
 
-import PageLayout from '../PageLayout'
-import Scrollbar from '../../components/PSUI/Scrollbar'
-import AddonFilters from '../../components/PSUI/AddonFilters'
-import OptionMenu from '../../components/PSUI/OptionMenu'
-import Loader from '../../components/PSUI/Loader'
+import ExtensionView from '@pages/extension/route/extensionview'
+import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import {
+    buildAddonImagePath,
+    checkAddonVersionSupported,
+    createWhitelistedAddonNames,
+    defaultOrder,
+    filterAndSortAddons,
+    getUniqueAddonCreators,
+    getUniqueAddonTags,
+    isAddonWhitelisted,
+    safeStoreGet,
+    SortKey,
+    useDebouncedValue,
+} from '@pages/extension/model/addonCatalog'
+import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
+import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
+import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
 
-import ExtensionView from './route/extensionview'
-import { clearAddonFilesCache, preloadAddonFiles } from './route/extBox/hooks'
+import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+import addonInitials from '@entities/addon/model/addon.initials'
 
-import * as extensionStylesV2 from './extension.module.scss'
-import addonInitials from '../../api/initials/addon.initials'
-
-import config from '@common/appConfig'
-import MainEvents from '../../../common/types/mainEvents'
-import CustomModalPS from '../../components/PSUI/CustomModalPS'
-import { staticAsset } from '../../utils/staticAssets'
-import apolloClient from '../../api/apolloClient'
-import GetAddonWhitelistQuery from '../../api/queries/getAddonWhitelist.query'
+import MainEvents from '@common/types/mainEvents'
+import { staticAsset } from '@shared/lib/staticAssets'
+import apolloClient from '@shared/api/apolloClient'
+import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
+import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import { useTranslation } from 'react-i18next'
+import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, submitAddonForStore } from '@entities/addon/api/storeAddons'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { compareVersions } from '@shared/lib/utils'
+import { useModalContext } from '@app/providers/modal'
 
-const defaultOrder = {
-    alphabet: 'asc',
-    author: 'asc',
-    date: 'asc',
-    size: 'desc',
-    type: 'asc',
-} as const
+type StoreAddonsQuery = {
+    getStoreAddons: StoreAddonsPayload
+}
 
-type SortKey = keyof typeof defaultOrder
+const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
+const getUntrustedAddonWarningKey = (addon: Addon) => `untrusted-addon-warning:${encodeURIComponent(addon.directoryName)}`
 
-function safeStoreGet<T>(path: string, fallback: T): T {
+function normalizeChangelogInput(value: string): string[] {
+    return value
+        .split(/\r?\n/)
+        .map(line => line.replace(/^\s*[-*•]\s*/, '').trim())
+        .filter(Boolean)
+}
+
+function isGithubUrl(value: string): boolean {
+    const trimmed = value.trim()
+    if (!trimmed) return false
+
     try {
-        // @ts-ignore
-        const val = window?.electron?.store?.get?.(path)
-        return (val ?? fallback) as T
+        const url = new URL(trimmed)
+        return (url.protocol === 'http:' || url.protocol === 'https:') && ['github.com', 'www.github.com'].includes(url.hostname.toLowerCase())
     } catch {
-        return fallback
+        return false
     }
 }
 
-function useDebouncedValue<T>(value: T, delay: number) {
-    const [debounced, setDebounced] = useState(value)
-    useEffect(() => {
-        const id = setTimeout(() => setDebounced(value), delay)
-        return () => clearTimeout(id)
-    }, [value, delay])
-    return debounced
-}
-
 export default function ExtensionPage() {
-    const { t } = useTranslation()
-    const { addons, setAddons, musicVersion } = useContext(userContext)
+    const { i18n, t } = useTranslation()
+    const { addons, setAddons, musicVersion, user } = useContext(userContext)
+    const { isExperimentEnabled } = useExperiments()
+    const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
     const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
@@ -76,6 +87,13 @@ export default function ExtensionPage() {
     const [modalOpen, setModalOpen] = useState(false)
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
+    const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
+    const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
+    const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
+    const [publicationBusy, setPublicationBusy] = useState(false)
+    const [publicationChangelogText, setPublicationChangelogText] = useState('')
+    const [publicationGithubUrlText, setPublicationGithubUrlText] = useState('')
+    const [storeUpdateBusy, setStoreUpdateBusy] = useState(false)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -135,6 +153,60 @@ export default function ExtensionPage() {
         }
 
         fetchAddonWhitelist()
+    }, [])
+
+    const refreshOwnPublications = useCallback(async () => {
+        if (!user?.id || user.id === '-1') {
+            setStorePublications([])
+            return
+        }
+
+        try {
+            const ownAddons = await fetchOwnStoreAddons()
+            setStorePublications(ownAddons)
+        } catch (error) {
+            console.error('[ExtensionPage] failed to load own store addons', error)
+            setStorePublications([])
+        }
+    }, [user?.id])
+
+    useEffect(() => {
+        void refreshOwnPublications()
+    }, [refreshOwnPublications])
+
+    useEffect(() => {
+        let active = true
+
+        const loadStoreCatalog = async () => {
+            try {
+                const response = await apolloClient.query<StoreAddonsQuery>({
+                    query: GetStoreAddonsQuery,
+                    variables: {
+                        page: 1,
+                        pageSize: 100,
+                    },
+                    fetchPolicy: 'no-cache',
+                })
+
+                if (!active) return
+                setStoreCatalog(Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : [])
+            } catch (error) {
+                console.error('[ExtensionPage] failed to load store catalog', error)
+                if (active) {
+                    setStoreCatalog([])
+                }
+            } finally {
+                if (active) {
+                    setStoreCatalogLoaded(true)
+                }
+            }
+        }
+
+        void loadStoreCatalog()
+
+        return () => {
+            active = false
+        }
     }, [])
 
     useEffect(() => {
@@ -241,96 +313,22 @@ export default function ExtensionPage() {
         [sort],
     )
 
-    const uniqueTags = useMemo(() => {
-        const src = addons.filter(ad => ad.name !== 'Default')
-        const tags = new Set<string>()
-        src.forEach(ad => (ad.tags || []).forEach(t => tags.add(t)))
-        return Array.from(tags)
-    }, [addons])
+    const uniqueTags = useMemo(() => getUniqueAddonTags(addons), [addons])
+    const uniqueCreators = useMemo(() => getUniqueAddonCreators(addons), [addons])
 
-    const uniqueCreators = useMemo(() => {
-        const src = addons.filter(ad => ad.name !== 'Default')
-        const creators = new Set<string>()
-        src.forEach(ad => {
-            if (typeof ad.author === 'string' && ad.author.trim() !== '') creators.add(ad.author)
-        })
-        return Array.from(creators)
-    }, [addons])
-
-    const mergedAddons = useMemo(() => {
-        let result = addons.filter(a => a.name !== 'Default')
-        if (type !== 'all') {
-            result = result.filter(addon => addon.type === type)
-        }
-        if (selectedTags.size > 0) {
-            result = result.filter(addon => addon.tags?.some(tag => selectedTags.has(tag)))
-        }
-        if (selectedCreators.size > 0) {
-            result = result.filter(addon => typeof addon.author === 'string' && selectedCreators.has(addon.author))
-        }
-        if (debouncedSearchQuery.trim()) {
-            const q = debouncedSearchQuery
-            result = result.filter(item => {
-                const authorString =
-                    typeof item.author === 'string'
-                        ? item.author.toLowerCase()
-                        : Array.isArray(item.author)
-                          ? item.author.map(id => String(id).toLowerCase()).join(', ')
-                          : ''
-                let matches = item.name.toLowerCase().includes(q) || authorString.includes(q)
-                if (!matches && q.length > 2) {
-                    matches =
-                        stringSimilarity.compareTwoStrings(item.name.toLowerCase(), q) > 0.35 ||
-                        stringSimilarity.compareTwoStrings(authorString, q) > 0.35
-                }
-                return matches
-            })
-        }
-        switch (sort) {
-            case 'type': {
-                result = result.slice().sort((a, b) => {
-                    const typeA = a.type || ''
-                    const typeB = b.type || ''
-                    const cmp = typeA.localeCompare(typeB)
-                    return sortOrder === 'asc' ? cmp : -cmp
-                })
-                break
-            }
-            case 'alphabet': {
-                result = result.slice().sort((a, b) => {
-                    const cmp = a.name.localeCompare(b.name)
-                    return sortOrder === 'asc' ? cmp : -cmp
-                })
-                break
-            }
-            case 'date': {
-                result = result.slice().sort((a, b) => {
-                    const dateA = parseFloat(a.lastModified || '0') || 0
-                    const dateB = parseFloat(b.lastModified || '0') || 0
-                    return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
-                })
-                break
-            }
-            case 'size': {
-                result = result.slice().sort((a, b) => {
-                    const sizeA = parseFloat(a.size || '0') || 0
-                    const sizeB = parseFloat(b.size || '0') || 0
-                    return sortOrder === 'asc' ? sizeA - sizeB : sizeB - sizeA
-                })
-                break
-            }
-            case 'author': {
-                result = result.slice().sort((a, b) => {
-                    const authorA = typeof a.author === 'string' ? a.author : ''
-                    const authorB = typeof b.author === 'string' ? b.author : ''
-                    const cmp = authorA.localeCompare(authorB)
-                    return sortOrder === 'asc' ? cmp : -cmp
-                })
-                break
-            }
-        }
-        return result
-    }, [addons, type, selectedTags, selectedCreators, debouncedSearchQuery, sort, sortOrder])
+    const mergedAddons = useMemo(
+        () =>
+            filterAndSortAddons({
+                addons,
+                type,
+                selectedTags,
+                selectedCreators,
+                searchQuery: debouncedSearchQuery,
+                sort,
+                sortOrder,
+            }),
+        [addons, debouncedSearchQuery, selectedCreators, selectedTags, sort, sortOrder, type],
+    )
 
     const requestedAddonExists = useMemo(
         () => !!requestedAddonId && mergedAddons.some(addon => addon.directoryName === requestedAddonId || addon.name === requestedAddonId),
@@ -382,18 +380,7 @@ export default function ExtensionPage() {
         setShowFilters(false)
     }, [])
 
-    const getImagePath = useCallback(
-        (addon: Addon) => {
-            if (!addon.image) return fallbackAddonImage
-            if (/^(https?:\/\/|data:)/i.test(addon.image.trim())) return addon.image
-            return (
-                `http://127.0.0.1:${config.MAIN_PORT}/addon_file` +
-                `?name=${encodeURIComponent(addon.name)}` +
-                `&file=${encodeURIComponent(addon.image)}`
-            )
-        },
-        [fallbackAddonImage],
-    )
+    const getImagePath = useCallback((addon: Addon) => buildAddonImagePath(addon, fallbackAddonImage), [fallbackAddonImage])
 
     const handleReloadAddons = useCallback(async () => {
         try {
@@ -442,6 +429,256 @@ export default function ExtensionPage() {
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
 
+    const selectedAddonAuthors = useMemo(() => {
+        if (!selectedAddon) return []
+        if (typeof selectedAddon.author === 'string') {
+            return selectedAddon.author
+                .split(',')
+                .map(name => name.trim())
+                .filter(Boolean)
+        }
+        return selectedAddon.author.map(name => String(name).trim()).filter(Boolean)
+    }, [selectedAddon])
+
+    const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, false)
+
+    const canManagePublication = useMemo(() => {
+        if (!storePublishingEnabled || !selectedAddon || !user) return false
+
+        const me = [user.username, user.nickname]
+            .map(value =>
+                String(value || '')
+                    .trim()
+                    .toLowerCase(),
+            )
+            .filter(Boolean)
+
+        if (!me.length) return false
+
+        return selectedAddonAuthors.some(authorName => me.includes(authorName.toLowerCase()))
+    }, [selectedAddon, selectedAddonAuthors, storePublishingEnabled, user])
+
+    const selectedPublication = useMemo(() => {
+        if (!selectedAddon) return null
+
+        const addonName = selectedAddon.name.trim().toLowerCase()
+        const exactVersion = selectedAddon.version?.trim().toLowerCase()
+
+        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName)
+        if (!sameName.length) return null
+
+        return (
+            sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
+            sameName.sort(
+                (a, b) =>
+                    new Date(b.currentRelease?.updatedAt || b.updatedAt).getTime() - new Date(a.currentRelease?.updatedAt || a.updatedAt).getTime(),
+            )[0]
+        )
+    }, [selectedAddon, storePublications])
+
+    const selectedStoreUpdate = useMemo(() => {
+        if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
+            return null
+        }
+
+        const publishedAddon = storeCatalog.find(item => item.id === selectedAddon.storeAddonId)
+        if (!publishedAddon?.currentRelease) {
+            return null
+        }
+
+        return compareVersions(publishedAddon.currentRelease.version, selectedAddon.version) > 0 ? publishedAddon : null
+    }, [selectedAddon, storeCatalog])
+
+    const selectedPublishedAddon = useMemo(() => {
+        if (!selectedAddon) {
+            return null
+        }
+
+        if (selectedAddon.installSource === 'store' && selectedAddon.storeAddonId) {
+            return storeCatalog.find(item => item.id === selectedAddon.storeAddonId) ?? null
+        }
+
+        return selectedPublication
+    }, [selectedAddon, selectedPublication, storeCatalog])
+
+    const visiblePublicationReleases = useMemo(() => {
+        if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
+            return []
+        }
+
+        return selectedPublishedAddon?.releases ?? []
+    }, [selectedAddon, selectedPublishedAddon])
+
+    const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
+
+    useEffect(() => {
+        setPublicationChangelogText(
+            Array.isArray(selectedPublishedAddon?.currentRelease?.changelog) ? selectedPublishedAddon.currentRelease.changelog.join('\n') : '',
+        )
+    }, [
+        selectedAddon?.directoryName,
+        selectedPublishedAddon?.id,
+        selectedPublishedAddon?.currentRelease?.id,
+        selectedPublishedAddon?.currentRelease?.updatedAt,
+    ])
+
+    useEffect(() => {
+        setPublicationGithubUrlText(selectedPublishedAddon?.currentRelease?.githubUrl || '')
+    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.githubUrl])
+
+    useEffect(() => {
+        if (!isPublicationModalOpen) {
+            return
+        }
+
+        setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
+            publication: selectedPublication ?? null,
+            publicationBusy,
+            githubUrlText: publicationGithubUrlText,
+        })
+    }, [Modals.EXTENSION_PUBLICATION_MODAL, isPublicationModalOpen, publicationBusy, publicationGithubUrlText, selectedPublication, setModalState])
+
+    const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
+        if (!selectedAddon) {
+            return 'none'
+        }
+
+        if (!selectedPublication) {
+            return 'publish'
+        }
+
+        const localVersion = selectedAddon.version?.trim().toLowerCase()
+        const publishedVersion = selectedPublication.currentRelease?.version?.trim().toLowerCase()
+
+        if (selectedPublication.currentRelease?.status === 'rejected') {
+            const rejectedAt = new Date(selectedPublication.currentRelease.updatedAt).getTime()
+            if (Number.isFinite(rejectedAt) && Date.now() < rejectedAt + REPUBLISH_COOLDOWN_MS) {
+                return 'none'
+            }
+
+            return localVersion && publishedVersion && localVersion !== publishedVersion ? 'update' : 'publish'
+        }
+
+        if (localVersion && publishedVersion && localVersion !== publishedVersion) {
+            return 'update'
+        }
+
+        return 'none'
+    }, [selectedAddon, selectedPublication])
+
+    const handleSubmitAddon = useCallback(
+        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string) => {
+            if (!selectedAddon || !storePublishingEnabled) return
+
+            const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
+            if (!changelog.length) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.changelogRequired'))
+                return
+            }
+
+            const githubUrl = (githubUrlOverride ?? publicationGithubUrlText).trim()
+            const currentGithubUrl = selectedPublication?.currentRelease?.githubUrl?.trim() || ''
+            const effectiveGithubUrl = githubUrl || currentGithubUrl
+
+            if (mode === 'create' && !effectiveGithubUrl) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlRequired'))
+                return
+            }
+
+            if (githubUrl && !isGithubUrl(githubUrl)) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlInvalid'))
+                return
+            }
+
+            setPublicationBusy(true)
+            try {
+                let linkedStoreAddonId = await submitAddonForStore(
+                    selectedAddon,
+                    changelog,
+                    effectiveGithubUrl,
+                    mode === 'update' ? selectedPublication?.id : undefined,
+                )
+                const ownAddons = await fetchOwnStoreAddons()
+                setStorePublications(ownAddons)
+
+                if (!linkedStoreAddonId) {
+                    const normalizedAddonName = selectedAddon.name.trim().toLowerCase()
+                    linkedStoreAddonId =
+                        ownAddons.find(
+                            item =>
+                                item.type === selectedAddon.type &&
+                                item.name.trim().toLowerCase() === normalizedAddonName &&
+                                item.currentRelease?.version === selectedAddon.version,
+                        )?.id ||
+                        ownAddons.find(item => item.type === selectedAddon.type && item.name.trim().toLowerCase() === normalizedAddonName)?.id ||
+                        null
+                }
+
+                if (linkedStoreAddonId) {
+                    await persistAddonStoreLink(selectedAddon, linkedStoreAddonId)
+                    await loadAddons(true)
+                }
+
+                toast.custom(
+                    'success',
+                    t('extensions.publication.successTitle'),
+                    mode === 'update' ? t('extensions.publication.updateSuccess') : t('extensions.publication.publishSuccess'),
+                )
+            } catch (error) {
+                console.error('[ExtensionPage] failed to submit addon', error)
+                const defaultMessage = mode === 'update' ? t('extensions.publication.updateError') : t('extensions.publication.publishError')
+                let message = defaultMessage
+
+                if (error instanceof AddonStoreSubmitError) {
+                    if (error.code === 'ADDON_REPUBLISH_COOLDOWN_ACTIVE' && error.availableAt) {
+                        message = t('extensions.publication.cooldownMessage', {
+                            date: new Date(error.availableAt).toLocaleString(i18n.language === 'ru' ? 'ru-RU' : 'en-US'),
+                        })
+                    } else {
+                        const translationKey = `extensions.publication.errors.${error.code}`
+                        const translatedMessage = t(translationKey)
+                        message = translatedMessage !== translationKey ? translatedMessage : error.message || defaultMessage
+                    }
+                }
+
+                toast.custom('error', t('common.errorTitle'), message)
+            } finally {
+                setPublicationBusy(false)
+            }
+        },
+        [i18n.language, loadAddons, publicationChangelogText, publicationGithubUrlText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+    )
+
+    const handleStoreAddonUpdate = useCallback(async () => {
+        if (!selectedAddon || !selectedStoreUpdate || !window.desktopEvents) {
+            return
+        }
+
+        setStoreUpdateBusy(true)
+        const toastId = toast.custom('loading', t('layout.updateAction'), t('common.pleaseWait'))
+
+        try {
+            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                id: selectedStoreUpdate.id,
+                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl,
+                title: selectedStoreUpdate.name,
+            })
+
+            if (!result?.success) {
+                throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
+            }
+
+            const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+            setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+            toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: selectedStoreUpdate.name }), { id: toastId })
+        } catch (error) {
+            console.error('[ExtensionPage] failed to update store addon', error)
+            toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateFailed', { name: selectedAddon.name }), { id: toastId })
+        } finally {
+            setStoreUpdateBusy(false)
+        }
+    }, [selectedAddon, selectedStoreUpdate, setAddons, t])
+
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 
     useEffect(() => {
@@ -460,46 +697,17 @@ export default function ExtensionPage() {
         return () => window.clearTimeout(timeoutId)
     }, [mergedAddons, selectedAddon])
 
-    const whitelistedAddonNames = useMemo(() => {
-        return new Set(addonWhitelist.map(addon => addon.name.toLowerCase()))
-    }, [addonWhitelist])
+    const whitelistedAddonNames = useMemo(() => createWhitelistedAddonNames(addonWhitelist), [addonWhitelist])
 
-    const isAddonWhitelisted = useCallback(
-        (addon: Addon) => {
-            const name = addon.name.toLowerCase()
-            const directoryName = addon.directoryName.toLowerCase()
-            return whitelistedAddonNames.has(name) || whitelistedAddonNames.has(directoryName)
+    const isAddonVersionSupported = useCallback(
+        (addon: Addon, version: string | undefined | null) => {
+            return checkAddonVersionSupported(addon, version, whitelistedAddonNames)
         },
         [whitelistedAddonNames],
     )
 
-    const isAddonVersionSupported = useCallback(
-        (addon: Addon, version: string | undefined | null) => {
-            if (isAddonWhitelisted(addon)) {
-                return true
-            }
-            if (!version) {
-                return false
-            }
-            return addon.supportedVersions?.some(range => semver.valid(version) && semver.satisfies(version, range)) ?? false
-        },
-        [isAddonWhitelisted],
-    )
-
-    function ThemeNotFound({ hasAnyAddons }: { hasAnyAddons: boolean }) {
-        return (
-            <div className={extensionStylesV2.notFound}>
-                <h2>{hasAnyAddons ? t('extensions.notFound.titleFiltered') : t('extensions.notFound.titleEmpty')}</h2>
-                <p>{hasAnyAddons ? t('extensions.notFound.filteredDescription') : t('extensions.notFound.emptyDescription')}</p>
-                <a href="https://discord.gg/qy42uGTzRy" target="_blank" rel="noopener noreferrer">
-                    {t('extensions.notFound.discordLink')}
-                </a>
-            </div>
-        )
-    }
-
     const getAddonModalText = useCallback(
-        (addon: Addon, musicVersion: string | undefined) => {
+        (addon: Addon, musicVersion: string | null | undefined) => {
             const supported = addon.supportedVersions ? addon.supportedVersions.join(', ') : t('extensions.supportedVersionsUnknown')
 
             const isSupported = isAddonVersionSupported(addon, musicVersion)
@@ -512,7 +720,15 @@ export default function ExtensionPage() {
         [isAddonVersionSupported, t],
     )
 
-    const handleEnableAddon = useCallback(
+    const isAddonInStoreCatalog = useCallback(
+        (addon: Addon) => {
+            const normalizedName = addon.name.trim().toLowerCase()
+            return storeCatalog.some(item => item.type === addon.type && item.name.trim().toLowerCase() === normalizedName)
+        },
+        [storeCatalog],
+    )
+
+    const continueEnableAddon = useCallback(
         (addon: Addon) => {
             const isSupported = isAddonVersionSupported(addon, musicVersion)
             if (musicVersion && addon.supportedVersions?.length && !isSupported) {
@@ -529,209 +745,97 @@ export default function ExtensionPage() {
         [currentTheme, enabledScripts, handleCheckboxChange, isAddonVersionSupported, musicVersion],
     )
 
+    const shouldShowUntrustedAddonWarning = useCallback(
+        (addon: Addon) => {
+            if (addon.installSource === 'store') return false
+            if (!storeCatalogLoaded) return false
+            if (isAddonWhitelisted(addon, whitelistedAddonNames)) return false
+            if (isAddonInStoreCatalog(addon)) return false
+            return window.localStorage.getItem(getUntrustedAddonWarningKey(addon)) !== '1'
+        },
+        [isAddonInStoreCatalog, storeCatalogLoaded, whitelistedAddonNames],
+    )
+
+    const handleEnableAddon = useCallback(
+        (addon: Addon) => {
+            if (shouldShowUntrustedAddonWarning(addon)) {
+                openModal(Modals.UNTRUSTED_LOCAL_ADDON_MODAL, {
+                    addonName: addon.name,
+                    onConfirm: () => {
+                        window.localStorage.setItem(getUntrustedAddonWarningKey(addon), '1')
+                        continueEnableAddon(addon)
+                    },
+                })
+                return
+            }
+
+            continueEnableAddon(addon)
+        },
+        [Modals.UNTRUSTED_LOCAL_ADDON_MODAL, continueEnableAddon, openModal, shouldShowUntrustedAddonWarning],
+    )
+
     return (
         <PageLayout title={t('extensions.pageTitle')}>
-            <CustomModalPS
+            <EnableAddonModal
+                addon={modalAddon}
                 isOpen={modalOpen}
+                musicVersion={musicVersion}
                 onClose={() => {
                     setModalOpen(false)
                     setModalAddon(null)
                 }}
-                title={t('extensions.confirmTitle')}
-                text={modalAddon ? getAddonModalText(modalAddon, musicVersion) : ''}
-                subText={t('extensions.versionLabel', { version: musicVersion || t('common.notAvailable') })}
-                buttons={[
-                    {
-                        text: t('extensions.enableAnyway'),
-                        onClick: () => {
-                            if (modalAddon) {
-                                handleCheckboxChange(
-                                    modalAddon,
-                                    !(modalAddon.type === 'theme'
-                                        ? modalAddon.directoryName === currentTheme
-                                        : enabledScripts.includes(modalAddon.directoryName)),
-                                    true,
-                                )
-                            }
-                            setModalOpen(false)
-                            setModalAddon(null)
-                        },
-                        variant: 'danger',
-                    },
-                    {
-                        text: t('common.cancel'),
-                        onClick: () => {
-                            setModalOpen(false)
-                            setModalAddon(null)
-                        },
-                        variant: 'secondary',
-                    },
-                ]}
+                onConfirm={addon => {
+                    handleCheckboxChange(
+                        addon,
+                        !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
+                        true,
+                    )
+                }}
+                getAddonModalText={getAddonModalText}
             />
-            <div ref={containerRef}>
-                {showFilters && (
-                    <AddonFilters
-                        tags={uniqueTags}
-                        creators={uniqueCreators}
-                        sort={sort}
-                        sortOrder={sortOrder}
-                        type={type}
-                        selectedTags={selectedTags}
-                        selectedCreators={selectedCreators}
-                        onSortChange={handleSortChange}
-                        onTypeChange={handleTypeChange}
-                        onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
-                        onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
-                        setType={setType}
-                        setSelectedTags={setSelectedTags}
-                        setSelectedCreators={setSelectedCreators}
-                        onSortOrderChange={setSortOrder}
-                    />
-                )}
-                {optionMenu && (
-                    <OptionMenu
-                        onReloadAddons={handleReloadAddons}
-                        onOpenAddonsDirectory={handleOpenAddonsDirectory}
-                        onCreateNewAddon={handleCreateNewAddon}
-                    />
-                )}
-            </div>
             <div className={extensionStylesV2.container}>
-                <Scrollbar className={extensionStylesV2.leftSide} classNameInner={extensionStylesV2.leftSideInner}>
-                    <div className={extensionStylesV2.topContainer}>
-                        <div className={extensionStylesV2.searchContainer}>
-                            <input
-                                type="text"
-                                placeholder={t('extensions.searchPlaceholder')}
-                                value={searchQuery}
-                                onChange={handleSearchChange}
-                                className={extensionStylesV2.searchInput}
-                            />
-                            <button
-                                ref={filterButtonRef}
-                                className={extensionStylesV2.filterButton}
-                                style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
-                                onClick={toggleFilterPanel}
-                                aria-label={t('extensions.filtersLabel')}
-                            >
-                                <MdFilterList />
-                                {(() => {
-                                    const activeFiltersCount =
-                                        (type !== 'all' ? 1 : 0) + (sort !== 'type' ? 1 : 0) + selectedTags.size + selectedCreators.size
-                                    return activeFiltersCount > 0 ? (
-                                        <div className={extensionStylesV2.count}>{activeFiltersCount > 9 ? '9+' : activeFiltersCount}</div>
-                                    ) : null
-                                })()}
-                            </button>
-                        </div>
-                        <button
-                            ref={optionButtonRef}
-                            className={cn(extensionStylesV2.optionsButton, optionMenu && extensionStylesV2.optionsButtonActive)}
-                            style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
-                            onClick={toggleOptionMenu}
-                            aria-label={t('extensions.optionsLabel')}
-                        >
-                            <MdMoreHoriz />
-                        </button>
-                    </div>
-                    <div className={extensionStylesV2.addonList}>
-                        <div className={extensionStylesV2.enabledAddons}>
-                            {enabledAddons.map(addon => (
-                                <div
-                                    key={addon.directoryName}
-                                    className={cn(
-                                        extensionStylesV2.addonCard,
-                                        selectedAddon?.directoryName === addon.directoryName && extensionStylesV2.addonCardSelected,
-                                    )}
-                                    onClick={() => handleAddonClick(addon)}
-                                >
-                                    <div
-                                        className={cn(
-                                            extensionStylesV2.checkSelect,
-                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
-                                        )}
-                                        style={{ marginRight: '12px', opacity: 1, cursor: 'pointer' }}
-                                        onClick={e => {
-                                            e.stopPropagation()
-                                            if (
-                                                addon.type === 'theme'
-                                                    ? addon.directoryName === currentTheme
-                                                    : enabledScripts.includes(addon.directoryName)
-                                            ) {
-                                                handleCheckboxChange(addon, false, true)
-                                            } else {
-                                                handleEnableAddon(addon)
-                                            }
-                                        }}
-                                    >
-                                        <MdCheckCircle size={18} />
-                                    </div>
-                                    <img
-                                        src={getImagePath(addon)}
-                                        alt={addon.name}
-                                        className={extensionStylesV2.addonImage}
-                                        loading="lazy"
-                                        onError={event => {
-                                            event.currentTarget.src = fallbackAddonImage
-                                        }}
-                                    />
-                                    <div className={extensionStylesV2.addonName}>{addon.name}</div>
-                                    <div className={extensionStylesV2.addonType}>
-                                        {addon.type === 'theme' ? <MdInvertColors size={24} /> : <MdIntegrationInstructions size={24} />}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                        {enabledAddons.length > 0 && disabledAddons.length > 0 && <div className={extensionStylesV2.line}></div>}
-                        {enabledAddons.length === 0 && disabledAddons.length === 0 && (
-                            <div className={extensionStylesV2.noFix}>
-                                <div className={extensionStylesV2.noResults}>{t('extensions.noResults')}</div>
-                            </div>
-                        )}
-                        <div className={extensionStylesV2.disabledAddons}>
-                            {disabledAddons.map(addon => (
-                                <div
-                                    key={addon.directoryName}
-                                    className={cn(
-                                        extensionStylesV2.addonCard,
-                                        selectedAddon?.directoryName === addon.directoryName && extensionStylesV2.addonCardSelected,
-                                    )}
-                                    onClick={() => handleAddonClick(addon)}
-                                >
-                                    <div
-                                        className={cn(
-                                            extensionStylesV2.checkSelect,
-                                            addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
-                                        )}
-                                        style={{ color: '#565F77' }}
-                                        onClick={e => {
-                                            e.stopPropagation()
-                                            handleEnableAddon(addon)
-                                        }}
-                                    >
-                                        <MdCheckCircle size={18} />
-                                    </div>
-                                    <img
-                                        src={getImagePath(addon)}
-                                        alt={addon.name}
-                                        className={extensionStylesV2.addonImage}
-                                        loading="lazy"
-                                        onError={event => {
-                                            event.currentTarget.src = fallbackAddonImage
-                                        }}
-                                    />
-                                    <div className={extensionStylesV2.addonName}>{addon.name}</div>
-                                    <div className={extensionStylesV2.addonType}>
-                                        {addon.type === 'theme' ? <MdInvertColors size={21} /> : <MdIntegrationInstructions size={21} />}
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                </Scrollbar>
+                <ExtensionSidebar
+                    containerRef={containerRef}
+                    currentTheme={currentTheme}
+                    disabledAddons={disabledAddons}
+                    enabledAddons={enabledAddons}
+                    enabledScripts={enabledScripts}
+                    fallbackAddonImage={fallbackAddonImage}
+                    filterButtonRef={filterButtonRef}
+                    getImagePath={getImagePath}
+                    onAddonClick={handleAddonClick}
+                    onCreateNewAddon={handleCreateNewAddon}
+                    onDisableAddon={addon => handleCheckboxChange(addon, false, true)}
+                    onEnableAddon={handleEnableAddon}
+                    onOpenAddonsDirectory={handleOpenAddonsDirectory}
+                    onReloadAddons={handleReloadAddons}
+                    onSearchChange={handleSearchChange}
+                    onSortChange={handleSortChange}
+                    onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
+                    onToggleFilters={toggleFilterPanel}
+                    onToggleOptionMenu={toggleOptionMenu}
+                    onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
+                    optionButtonRef={optionButtonRef}
+                    optionMenu={optionMenu}
+                    searchQuery={searchQuery}
+                    selectedAddon={selectedAddon}
+                    selectedCreators={selectedCreators}
+                    selectedTags={selectedTags}
+                    setSelectedCreators={setSelectedCreators}
+                    setSelectedTags={setSelectedTags}
+                    setSortOrder={setSortOrder}
+                    setType={setType}
+                    showFilters={showFilters}
+                    sort={sort}
+                    sortOrder={sortOrder}
+                    t={t}
+                    type={type}
+                    uniqueCreators={uniqueCreators}
+                    uniqueTags={uniqueTags}
+                />
                 <div className={extensionStylesV2.rightSide}>
                     {!isLoaded ? (
-                        <Loader text={t('extensions.analyzingAddons')} />
+                        <Loader variant="extension" />
                     ) : selectedAddon ? (
                         <ExtensionView
                             addon={selectedAddon}
@@ -739,6 +843,33 @@ export default function ExtensionPage() {
                                 selectedAddon.type === 'theme'
                                     ? selectedAddon.directoryName === currentTheme
                                     : enabledScripts.includes(selectedAddon.directoryName)
+                            }
+                            hasStoreUpdate={!!selectedStoreUpdate}
+                            storeUpdateBusy={storeUpdateBusy}
+                            onStoreUpdate={() => {
+                                void handleStoreAddonUpdate()
+                            }}
+                            publication={selectedPublication}
+                            publicationReleases={visiblePublicationReleases}
+                            publicationChangelogText={publicationChangelogText}
+                            publicationGithubUrlText={publicationGithubUrlText}
+                            canManagePublication={canManagePublication}
+                            publicationBusy={publicationBusy}
+                            onPublicationChangelogChange={setPublicationChangelogText}
+                            onPublicationGithubUrlChange={setPublicationGithubUrlText}
+                            onPublishAddon={
+                                publicationActionMode === 'publish'
+                                    ? (changelogText, githubUrl) => {
+                                          void handleSubmitAddon('create', changelogText, githubUrl)
+                                      }
+                                    : undefined
+                            }
+                            onUpdateAddon={
+                                publicationActionMode === 'update'
+                                    ? (changelogText, githubUrl) => {
+                                          void handleSubmitAddon('update', changelogText, githubUrl)
+                                      }
+                                    : undefined
                             }
                             onToggleEnabled={enabled => {
                                 if (enabled) {
@@ -758,5 +889,3 @@ export default function ExtensionPage() {
         </PageLayout>
     )
 }
-
-

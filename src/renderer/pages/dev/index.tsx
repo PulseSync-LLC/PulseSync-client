@@ -1,15 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import Layout from '../../components/layout'
+import Layout from '@widgets/layout'
 import * as globalStyles from '../../../../static/styles/page/index.module.scss'
-import * as styles from './dev.module.scss'
-import toast from '../../components/toast'
+import * as styles from '@pages/dev/dev.module.scss'
+import toast from '@shared/ui/toast'
 import { motion } from 'framer-motion'
-import CustomModalPS from '../../components/PSUI/CustomModalPS'
-import CustomFormikModalPS from '../../components/PSUI/CustomFormikModalPS'
-import ButtonV2 from '../../components/buttonV2'
-import AddonUploadModal, { UploadStep } from '../../components/PSUI/AddonUploadModal'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
+import ButtonV2 from '@shared/ui/buttonV2'
+import AddonUploadModal, { UploadStep } from '@shared/ui/PSUI/AddonUploadModal'
+import Loader from '@shared/ui/PSUI/Loader'
 import { Line } from 'react-chartjs-2'
 import { useTranslation } from 'react-i18next'
 import {
@@ -284,8 +285,7 @@ function Dev() {
                     <div className={styles.chartCard}>
                         {loading ? (
                             <div className={styles.loadingState}>
-                                <div className={styles.loadingSpinner} />
-                                <p>{t('dev.loadingAnalytics')}</p>
+                                <Loader variant="panel" />
                             </div>
                         ) : formatted.length ? (
                             <div className={styles.chartWrapper}>
@@ -392,6 +392,9 @@ function Dev() {
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>
                             {t('dev.navigation.joint')}
+                        </ButtonV2>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/store')}>
+                            {t('dev.navigation.store')}
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/auth?dev=true')}>
                             {t('dev.navigation.auth')}

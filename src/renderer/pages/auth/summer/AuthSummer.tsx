@@ -1,26 +1,26 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
-import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user'
-import { staticAsset } from '../../../utils/staticAssets'
-import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
+import Header from '@widgets/layout/header'
+import userContext from '@entities/user/model/context'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 
-import * as pageStyles from './summer_auth.module.scss'
+import * as pageStyles from '@pages/auth/summer/summer_auth.module.scss'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthSummer() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, isAppDeprecated } = useContext(userContext)
-    const img1Ref = useRef(null)
-    const img2Ref = useRef(null)
-    const img3Ref = useRef(null)
-    const img4Ref = useRef(null)
-    const imgLogo = useRef(null)
+    const img1Ref = useRef<HTMLImageElement | null>(null)
+    const img2Ref = useRef<HTMLImageElement | null>(null)
+    const img3Ref = useRef<HTMLImageElement | null>(null)
+    const img4Ref = useRef<HTMLImageElement | null>(null)
+    const imgLogo = useRef<HTMLDivElement | null>(null)
 
-    const pulseChanRef = useRef(null)
-    const jmhIntervalRef = useRef(null)
+    const pulseChanRef = useRef<HTMLImageElement | null>(null)
+    const jmhIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null)
 
     const isDraggingRef = useRef(false)
     const dragOffsetRef = useRef({ x: 0, y: 0 })
@@ -81,8 +81,8 @@ export default function AuthSummer() {
     }
 
     const handleMouseDown = (e: React.MouseEvent) => {
-        if (!pulseChanRef.current) return
         const el = pulseChanRef.current
+        if (!el) return
 
         const style = getComputedStyle(el)
         initPosRef.current = {
@@ -174,7 +174,7 @@ export default function AuthSummer() {
                             onMouseDown={handleMouseDown}
                             onTouchStart={e => {
                                 e.preventDefault()
-                                handleMouseDown(e as any)
+                                handleMouseDown(e as unknown as React.MouseEvent)
                             }}
                         />
                         <img className={pageStyles.imgLogo} src={staticAsset('assets/images/LogoName3D.png')} alt="LogoName" />

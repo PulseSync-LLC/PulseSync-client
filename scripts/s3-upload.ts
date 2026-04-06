@@ -5,8 +5,25 @@ import path from 'path'
 import crypto from 'crypto'
 import yaml from 'js-yaml'
 import chalk from 'chalk'
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3'
+import {
+    AbortMultipartUploadCommand,
+    CompleteMultipartUploadCommand,
+    CreateMultipartUploadCommand,
+    DeleteObjectsCommand,
+    ListObjectsV2Command,
+    PutObjectCommand,
+    S3Client,
+    UploadPartCommand,
+} from '@aws-sdk/client-s3'
 import https from 'https'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+import semver from 'semver'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_PART_SIZE = 8 * 1024 * 1024
+const S3_MULTIPART_DEFAULT_CONCURRENCY = 4
 
 enum LogLevel {
     INFO = 'INFO',
@@ -44,6 +61,20 @@ function createS3Client(): S3Client {
         forcePathStyle: true,
         maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
     })
+}
+
+function parsePositiveInteger(value: string | undefined, fallback: number): number {
+    const parsed = Number.parseInt(value ?? '', 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback
+}
+
+function getMultipartUploadConfig() {
+    const threshold = parsePositiveInteger(process.env.S3_MULTIPART_THRESHOLD, S3_MULTIPART_DEFAULT_THRESHOLD)
+    const requestedPartSize = parsePositiveInteger(process.env.S3_MULTIPART_PART_SIZE, S3_MULTIPART_DEFAULT_PART_SIZE)
+    const partSize = Math.max(requestedPartSize, S3_MULTIPART_MIN_PART_SIZE)
+    const concurrency = Math.max(1, parsePositiveInteger(process.env.S3_MULTIPART_CONCURRENCY, S3_MULTIPART_DEFAULT_CONCURRENCY))
+
+    return { threshold, partSize, concurrency }
 }
 
 async function hashFileSha512(filePath: string): Promise<string> {
@@ -91,6 +122,57 @@ function collectMacArtifacts(releaseDir: string, version: string) {
     return Array.from(uniq.values())
 }
 
+async function collectRemoteMacArtifacts(
+    client: S3Client,
+    bucket: string,
+    prefix: string,
+    branch: string,
+    version: string,
+    baseUrl: string,
+) {
+    const branchPrefix = `${prefix}/${branch}/`
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '')
+    const uniq = new Map<string, { arch: 'arm64' | 'x64'; fileName: string; url: string; type: 'dmg' | 'zip' }>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: branchPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+
+        for (const object of response.Contents ?? []) {
+            if (!object.Key) continue
+
+            const fileName = path.basename(object.Key)
+            if ((version && !fileName.includes(version)) || (!isDmg(fileName) && !isZip(fileName))) {
+                continue
+            }
+
+            const arch = parseMacArtifactArch(fileName)
+            if (!arch) continue
+
+            const type = fileTypeOf(fileName)
+            const key = `${arch}:${type}`
+            if (uniq.has(key)) continue
+
+            uniq.set(key, {
+                arch,
+                fileName,
+                url: `${normalizedBaseUrl}/${object.Key}`,
+                type,
+            })
+        }
+
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    return Array.from(uniq.values())
+}
+
 async function fetchJson(url: string): Promise<any | null> {
     return await new Promise(resolve => {
         https
@@ -122,13 +204,236 @@ function walkFiles(dir: string): string[] {
     })
 }
 
-export async function publishToS3(branch: string, dir: string, version?: string, opts?: { prefix?: string }): Promise<void> {
+function isUpdaterManifestFile(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase()
+    return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+}
+
+const WINDOWS_VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-(x64|arm64)\.(exe(?:\.blockmap)?)$/iu
+
+function parseKeepRecentVersions(rawValue?: string | null): number | null {
+    if (!rawValue) return null
+    const parsed = Number.parseInt(rawValue, 10)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+}
+
+function extractWindowsArtifactVersion(key: string): string | null {
+    const fileName = path.basename(key)
+    const match = WINDOWS_VERSIONED_ARTIFACT_RE.exec(fileName)
+    return match?.[1] ?? null
+}
+
+function compareVersionsDesc(left: string, right: string): number {
+    const leftValid = semver.valid(left)
+    const rightValid = semver.valid(right)
+
+    if (leftValid && rightValid) {
+        return semver.rcompare(leftValid, rightValid)
+    }
+    if (leftValid) return -1
+    if (rightValid) return 1
+    return right.localeCompare(left)
+}
+
+async function pruneOldWindowsArtifacts(
+    client: S3Client,
+    bucket: string,
+    prefix: string,
+    branch: string,
+    currentVersion: string,
+    keepRecentVersions: number,
+): Promise<void> {
+    const branchPrefix = `${prefix}/${branch}/`
+    const versionToKeys = new Map<string, string[]>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: branchPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+
+        for (const object of response.Contents ?? []) {
+            if (!object.Key) continue
+            const version = extractWindowsArtifactVersion(object.Key)
+            if (!version) continue
+
+            const keys = versionToKeys.get(version) ?? []
+            keys.push(object.Key)
+            versionToKeys.set(version, keys)
+        }
+
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    if (!versionToKeys.size) {
+        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: no existing Windows versioned artifacts found`)
+        return
+    }
+
+    if (!versionToKeys.has(currentVersion)) {
+        versionToKeys.set(currentVersion, [])
+    }
+
+    const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
+    const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
+    keptVersions.add(currentVersion)
+
+    const keysToDelete = Array.from(versionToKeys.entries())
+        .filter(([version]) => !keptVersions.has(version))
+        .flatMap(([, keys]) => keys)
+
+    if (!keysToDelete.length) {
+        log(
+            LogLevel.INFO,
+            `Retention skipped for ${branchPrefix}: keeping ${Math.min(sortedVersions.length, keepRecentVersions)} recent version groups`,
+        )
+        return
+    }
+
+    for (let index = 0; index < keysToDelete.length; index += 1000) {
+        const chunk = keysToDelete.slice(index, index + 1000)
+        await client.send(
+            new DeleteObjectsCommand({
+                Bucket: bucket,
+                Delete: {
+                    Objects: chunk.map(Key => ({ Key })),
+                    Quiet: false,
+                },
+            }),
+        )
+    }
+
+    const removedVersions = sortedVersions.filter(version => !keptVersions.has(version))
+    log(
+        LogLevel.SUCCESS,
+        `Retention removed ${keysToDelete.length} Windows artifacts from ${branchPrefix} (deleted versions: ${removedVersions.join(', ')})`,
+    )
+}
+
+async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string): Promise<void> {
+    const { size } = await fs.promises.stat(filePath)
+    const { threshold, partSize, concurrency } = getMultipartUploadConfig()
+
+    if (size < threshold) {
+        await client.send(
+            new PutObjectCommand({
+                Bucket: bucket,
+                Key: key,
+                Body: fs.createReadStream(filePath),
+                ACL: 'public-read',
+            }),
+        )
+        log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
+        return
+    }
+
+    const createResponse = await client.send(
+        new CreateMultipartUploadCommand({
+            Bucket: bucket,
+            Key: key,
+            ACL: 'public-read',
+        }),
+    )
+
+    const uploadId = createResponse.UploadId
+    if (!uploadId) {
+        throw new Error(`Failed to start multipart upload for ${key}: missing UploadId`)
+    }
+
+    const partCount = Math.ceil(size / partSize)
+    const completedParts = new Array<{ ETag: string; PartNumber: number }>(partCount)
+    let nextPartNumber = 1
+    let uploadedBytes = 0
+    let finishedParts = 0
+
+    log(
+        LogLevel.INFO,
+        `Uploading ${key} via multipart (${(size / 1024 / 1024).toFixed(1)} MiB, ${partCount} parts x ${(partSize / 1024 / 1024).toFixed(1)} MiB, concurrency ${concurrency})`,
+    )
+
+    try {
+        const uploadWorker = async () => {
+            while (true) {
+                const partNumber = nextPartNumber++
+                if (partNumber > partCount) return
+
+                const start = (partNumber - 1) * partSize
+                const end = Math.min(size, start + partSize) - 1
+                const contentLength = end - start + 1
+                const body = fs.createReadStream(filePath, { start, end })
+
+                const uploadPartResponse = await client.send(
+                    new UploadPartCommand({
+                        Bucket: bucket,
+                        Key: key,
+                        UploadId: uploadId,
+                        PartNumber: partNumber,
+                        Body: body,
+                        ContentLength: contentLength,
+                    }),
+                )
+
+                if (!uploadPartResponse.ETag) {
+                    throw new Error(`Failed to upload part ${partNumber} for ${key}: missing ETag`)
+                }
+
+                completedParts[partNumber - 1] = {
+                    ETag: uploadPartResponse.ETag,
+                    PartNumber: partNumber,
+                }
+                uploadedBytes += contentLength
+                finishedParts += 1
+
+                log(
+                    LogLevel.INFO,
+                    `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`,
+                )
+            }
+        }
+
+        await Promise.all(Array.from({ length: Math.min(concurrency, partCount) }, () => uploadWorker()))
+
+        await client.send(
+            new CompleteMultipartUploadCommand({
+                Bucket: bucket,
+                Key: key,
+                UploadId: uploadId,
+                MultipartUpload: {
+                    Parts: completedParts,
+                },
+            }),
+        )
+    } catch (error) {
+        await client.send(
+            new AbortMultipartUploadCommand({
+                Bucket: bucket,
+                Key: key,
+                UploadId: uploadId,
+            }),
+        )
+        throw error
+    }
+
+    log(LogLevel.INFO, `Uploaded ${key} (${finishedParts} parts, multipart)`)
+}
+
+export async function publishToS3(
+    branch: string,
+    dir: string,
+    version?: string,
+    opts?: { prefix?: string; keepRecentVersions?: number | null },
+): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
+    const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
     const client = createS3Client()
 
     let files = walkFiles(dir)
@@ -168,20 +473,20 @@ export async function publishToS3(branch: string, dir: string, version?: string,
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
+    files = [
+        ...files.filter(filePath => !isUpdaterManifestFile(filePath)),
+        ...files.filter(filePath => isUpdaterManifestFile(filePath)),
+    ]
+
+    if (version && keepRecentVersions && platform === 'win32') {
+        await pruneOldWindowsArtifacts(client, bucket, prefix, branch, version, keepRecentVersions)
+    }
+
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
     for (const filePath of files) {
         const key = `${prefix}/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
-        const body = await fs.promises.readFile(filePath)
-        await client.send(
-            new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: body,
-                ACL: 'public-read',
-            }),
-        )
-        log(LogLevel.INFO, `Uploaded ${key}`)
+        await uploadFileToS3(client, bucket, key, filePath)
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
@@ -205,8 +510,8 @@ export async function generateAndPublishMacDownloadJson(
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const artifacts = collectMacArtifacts(releaseDir, version)
-    if (!artifacts.length) {
+    const localArtifacts = collectMacArtifacts(releaseDir, version)
+    if (!localArtifacts.length) {
         log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
         process.exit(1)
     }
@@ -215,8 +520,9 @@ export async function generateAndPublishMacDownloadJson(
     if (fs.existsSync(patchPath)) {
         releaseNotes = fs.readFileSync(patchPath, 'utf-8')
     }
+    const client = createS3Client()
     const assets: Array<{ arch: string; url: string; fileType: string; sha512: string }> = []
-    for (const a of artifacts) {
+    for (const a of localArtifacts) {
         const sha512 = await hashFileSha512(a.file)
         const fileName = path.basename(a.file)
         assets.push({
@@ -229,11 +535,22 @@ export async function generateAndPublishMacDownloadJson(
     const existingUrl = `${baseUrl}/${prefix}/${branch}/download.json`
     const existing = await fetchJson(existingUrl)
     const existingAssets = Array.isArray(existing?.assets) ? existing.assets : []
-    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512: string }>()
+    const remoteAssets = await collectRemoteMacArtifacts(client, bucket, prefix, branch, version, baseUrl)
+    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512?: string }>()
     for (const a of existingAssets) {
-        if (a?.arch && a?.fileType && a?.url && a?.sha512) {
+        if (a?.arch && a?.fileType && a?.url) {
             merged.set(`${a.arch}:${a.fileType}`, a)
         }
+    }
+    for (const a of remoteAssets) {
+        const key = `${a.arch}:${a.type}`
+        const current = merged.get(key)
+        merged.set(key, {
+            arch: a.arch,
+            url: a.url,
+            fileType: a.type,
+            sha512: current?.sha512,
+        })
     }
     for (const a of assets) {
         merged.set(`${a.arch}:${a.fileType}`, a)
@@ -251,7 +568,6 @@ export async function generateAndPublishMacDownloadJson(
         assets: mergedAssets,
     }
     const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
-    const client = createS3Client()
     const key = `${prefix}/${branch}/download.json`
     await client.send(
         new PutObjectCommand({
@@ -286,7 +602,7 @@ async function cli(): Promise<void> {
     if (!branch) {
         log(
             LogLevel.ERROR,
-            'Usage: ts-node scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
         )
         process.exit(1)
     }
@@ -294,20 +610,24 @@ async function cli(): Promise<void> {
     const version = argValue('--version') || readPkgVersion()
     const prefix = argValue('--prefix') || process.env.S3_PREFIX || 'builds/app'
     const macManifest = hasFlag('--mac-manifest')
+    const keepRecentVersions = parseKeepRecentVersions(argValue('--keep-last') || argValue('--keepLast') || process.env.S3_KEEP_RECENT_VERSIONS)
 
     log(LogLevel.INFO, `Branch: ${branch}`)
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
     log(LogLevel.INFO, `macOS download.json: ${macManifest ? 'ON' : 'OFF'}`)
+    log(LogLevel.INFO, `Retention keep recent versions: ${keepRecentVersions ?? 'OFF'}`)
 
-    await publishToS3(branch, dir, version, { prefix })
+    await publishToS3(branch, dir, version, { prefix, keepRecentVersions })
     if (macManifest) {
         await generateAndPublishMacDownloadJson(branch, dir, version, { prefix })
     }
 }
 
-if (require.main === module) {
+const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+
+if (isDirectRun) {
     cli().catch(err => {
         log(LogLevel.ERROR, `Unexpected error: ${err.message || err}`)
         if (err && err.stack) {

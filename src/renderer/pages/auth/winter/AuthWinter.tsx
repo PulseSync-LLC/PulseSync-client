@@ -1,25 +1,25 @@
 import { useContext, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router'
 
-import Header from '../../../components/layout/header'
-import userContext from '../../../api/context/user'
-import { staticAsset } from '../../../utils/staticAssets'
-import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '../authUtils'
+import Header from '@widgets/layout/header'
+import userContext from '@entities/user/model/context'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 
-import AppNameLogo from '../../../assets/icon/AppName.svg'
+import AppNameLogo from '@shared/assets/icon/AppName.svg'
 
-import Snowfall from './Snowfall'
-import * as pageStyles from './winter_auth.module.scss'
+import Snowfall from '@pages/auth/winter/Snowfall'
+import * as pageStyles from '@pages/auth/winter/winter_auth.module.scss'
 import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { user, isAppDeprecated } = useContext(userContext)
-    const img1Ref = useRef(null)
-    const img2Ref = useRef(null)
-    const img3Ref = useRef(null)
-    const imgLogo = useRef(null)
+    const img1Ref = useRef<HTMLImageElement | null>(null)
+    const img2Ref = useRef<HTMLImageElement | null>(null)
+    const img3Ref = useRef<HTMLImageElement | null>(null)
+    const imgLogo = useRef<HTMLDivElement | null>(null)
 
     const startAuthProcess = () => openAuthCallback(navigate)
     const checkUpdate = () => checkUpdateHard()
@@ -33,7 +33,7 @@ export default function AuthPage() {
 
     useAuthRedirect(user.id, navigate)
     useEffect(() => {
-        const handleMouseMove = (e: { clientX: any; clientY: any }) => {
+        const handleMouseMove = (e: MouseEvent) => {
             const { innerWidth, innerHeight } = window
             const mouseX = e.clientX
             const mouseY = e.clientY

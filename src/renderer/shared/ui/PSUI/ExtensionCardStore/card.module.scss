@@ -1,0 +1,508 @@
+.card_mount {
+    width: 100%;
+    min-height: 238px;
+    height: 100%;
+}
+
+.card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: end;
+    height: 100%;
+    min-height: 220px;
+    align-self: stretch;
+    padding: 52px 14px 14px;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+
+    font-family:
+        'Segoe UI',
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI Variable',
+        'SF Pro Text',
+        sans-serif;
+    color: #eff2ff;
+
+    box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
+    outline: 2px solid #98ffd600;
+    transition: var(--transition);
+    animation: fadeInUp 0.4s ease-out forwards;
+
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.card_overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 1;
+    pointer-events: none;
+    background: linear-gradient(0deg, rgba(35, 38, 50, 0.95) 0%, rgba(35, 38, 50, 0.7) 40%, rgba(35, 38, 50, 0.4) 100%);
+}
+
+.card_with_image_bg {
+    background-color: #232632;
+    padding: 72px 14px 14px;
+}
+
+.card_theme_purple {
+    background: linear-gradient(0deg, #252735 0%, rgba(48, 51, 70, 0.85) 39.42%, rgba(54, 58, 78, 0.3) 100%),
+        radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), #232632;
+}
+
+.card_theme_red {
+    background: linear-gradient(0deg, #342328 0%, rgba(67, 36, 33, 0.9) 40%, rgba(75, 34, 30, 0.3) 100%),
+        radial-gradient(circle at 40% 0%, rgba(255, 132, 100, 0.95), transparent 55%), #2b2226;
+}
+
+.card_theme_wave {
+    background: linear-gradient(0deg, #151826 0%, rgba(16, 20, 33, 0.9) 40%, rgba(10, 14, 29, 0.4) 100%),
+        radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.9), transparent 55%),
+        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.85), transparent 55%),
+        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.9), transparent 55%), #050816;
+}
+
+.card_large {
+    max-width: none;
+}
+
+.card_content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-width: 0;
+    z-index: 2;
+}
+
+.card_main {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 0;
+    gap: 14px;
+    min-width: 0;
+}
+
+.card_icon_wrapper {
+    flex: 0 0 auto;
+}
+
+.card_icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 14px;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.7);
+    overflow: hidden;
+    outline: 3px solid rgb(255 255 255 / 5%);
+    box-sizing: border-box;
+}
+
+.card_icon_placeholder {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
+}
+
+.card_icon_image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.card_text {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.card_title_row {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    min-width: 0;
+}
+
+.card_title {
+    margin: 0;
+    min-width: 0;
+    font-weight: 700;
+    font-size: 22px;
+    line-height: 110%;
+    color: #eff2ff;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card_title_version {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 25px;
+    padding: 0 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.15);
+    color: #d4dcf6;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.card_subtitle {
+    margin: 0;
+    font-weight: 400;
+    font-size: 13px;
+    line-height: 1.15;
+    color: #c7d2fb;
+
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
+}
+
+.card_meta {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+    padding: 0;
+    gap: 4px 6px;
+    margin-top: 1px;
+
+    font-size: 12px;
+    line-height: 110%;
+    color: #b0b9d8;
+}
+
+.card_authors {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    column-gap: 8px;
+    row-gap: 4px;
+    min-width: 0;
+}
+
+.card_authors_label {
+    color: #b0b9d8;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.card_author_item {
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.card_author_link {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: transparent;
+    color: #b0b9d8;
+    font: inherit;
+    line-height: 1.2;
+    cursor: pointer;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.card_author_link:hover {
+    color: #ffffff;
+}
+
+.card_downloads {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #d6def8;
+}
+
+.download_button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 154px;
+    padding: 0 18px;
+    margin-bottom: 10px;
+    min-width: 154px;
+    height: 52px;
+    box-sizing: border-box;
+    background: rgba(168, 255, 102, 0.15);
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    z-index: 2;
+    color: #a8ff66;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    white-space: nowrap;
+
+    transition:
+        background 0.15s ease,
+        transform 0.15s ease,
+        box-shadow 0.15s ease,
+        color 0.15s ease;
+
+    &:disabled {
+        opacity: 1;
+        cursor: default;
+    }
+}
+
+.download_button:hover:not(:disabled) {
+    background: rgb(168 255 102);
+    color: #000000;
+}
+
+.download_button:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.download_icon {
+    width: 20px;
+    height: 20px;
+    display: block;
+    flex: 0 0 auto;
+}
+
+.download_count {
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.download_content {
+    position: relative;
+    z-index: 3;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: color 0.15s ease;
+}
+
+.download_button_installed {
+    background: rgba(168, 255, 102, 0.12);
+    color: #9fe267;
+    border: 1px solid rgba(168, 255, 102, 0.12);
+
+    &:disabled {
+        background: rgba(168, 255, 102, 0.12);
+        color: #9fe267;
+        border: 1px solid rgba(168, 255, 102, 0.12);
+    }
+}
+
+.download_button_remove {
+    background: rgba(239, 68, 68, 0.14);
+    color: #ff9b9b;
+    border: 1px solid rgba(239, 68, 68, 0.16);
+
+    &:hover:not(:disabled) {
+        background: rgba(239, 68, 68, 0.22);
+        color: #ffd0d0;
+    }
+
+    &:disabled {
+        background: rgba(239, 68, 68, 0.14);
+        color: #ff9b9b;
+        border: 1px solid rgba(239, 68, 68, 0.16);
+    }
+}
+
+.button_downloading {
+    background: #ffd166;
+    color: #000000;
+    cursor: default;
+    box-shadow: none;
+    pointer-events: none;
+}
+
+.download_progress_bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background-color: rgb(255 194 102 / 16%);
+    transition: width 0.3s linear;
+    z-index: 2;
+}
+
+.button_installing {
+    background: #7657ff;
+    color: #ffffff;
+    cursor: default;
+    pointer-events: none;
+    box-shadow: none;
+    animation: pulse-install 1.5s infinite alternate;
+}
+
+@keyframes pulse-install {
+    0% {
+        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
+    }
+    100% {
+        box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
+    }
+}
+
+.button_installed {
+    cursor: default;
+    pointer-events: none;
+    background: #a8ff66;
+    color: black;
+}
+
+.spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.spinner_path {
+    opacity: 0.8;
+}
+
+@media (max-width: 640px) {
+    .card {
+        grid-template-columns: minmax(0, 1fr);
+        padding: 48px 12px 12px;
+        max-width: 100%;
+    }
+
+    .card_with_image_bg {
+        padding: 62px 12px 12px;
+    }
+
+    .download_button {
+        justify-self: stretch;
+        flex-basis: 140px;
+        min-width: 140px;
+        height: 48px;
+        padding: 0 14px;
+    }
+
+    .download_count {
+        font-size: 13px;
+    }
+
+    .card_title_row {
+        flex-wrap: wrap;
+        align-items: flex-start;
+        gap: 4px 8px;
+    }
+}
+
+.card_header_badges {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    display: flex;
+    gap: 6px;
+    z-index: 2;
+}
+
+.card_badge {
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 800;
+    text-transform: uppercase;
+    line-height: 1;
+    color: #ffffff;
+    opacity: 0.9;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.badge_active {
+    background-color: rgb(168, 255, 102);
+    color: black;
+}
+
+.badge_theme {
+    background-color: rgb(168, 255, 102);
+    color: black;
+}
+
+.badge_script {
+    background-color: #60a5fa;
+    color: #08111f;
+}
+
+.badge_deprecated {
+    background-color: #ef4444;
+}
+
+.badge_pending {
+    background-color: #f59e0b;
+    color: #111827;
+}
+
+.badge_rejected {
+    background-color: #dc2626;
+}
+
+.badge_css {
+    background-color: #1d4ed8;
+}
+
+.badge_js {
+    background-color: #f0db4f;
+    color: black;
+}
+
+.badge_both {
+    background-color: #9333ea;
+}

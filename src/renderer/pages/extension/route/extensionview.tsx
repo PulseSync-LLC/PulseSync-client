@@ -2,18 +2,37 @@ import React, { useEffect, useMemo, useState } from 'react'
 import cn from 'clsx'
 import { MdEdit } from 'react-icons/md'
 
-import Scrollbar from '../../../components/PSUI/Scrollbar'
-import TabNavigation from './extBox/TabNavigation'
-import TabContent from './extBox/TabContent'
-import ThemeInfo from './extBox/ThemeInfo'
-import { useAddonFiles } from './extBox/hooks'
-import { useConfig } from './extBox/useConfig'
-import { ExtensionViewProps, ActiveTab } from './extBox/types'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+import TabNavigation from '@pages/extension/route/extBox/TabNavigation'
+import TabContent from '@pages/extension/route/extBox/TabContent'
+import ThemeInfo from '@pages/extension/route/extBox/ThemeInfo'
+import { useAddonFiles } from '@pages/extension/route/extBox/hooks'
+import { useConfig } from '@pages/extension/route/extBox/useConfig'
+import { ExtensionViewProps, ActiveTab } from '@pages/extension/route/extBox/types'
 import { useTranslation } from 'react-i18next'
 
-import * as s from './extensionview.module.scss'
+import * as s from '@pages/extension/route/extensionview.module.scss'
 
-const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSelectedTags, setShowFilters, onToggleEnabled }) => {
+const ExtensionView: React.FC<ExtensionViewProps> = ({
+    addon,
+    isEnabled,
+    hasStoreUpdate,
+    storeUpdateBusy,
+    onStoreUpdate,
+    setSelectedTags,
+    setShowFilters,
+    onToggleEnabled,
+    publication,
+    publicationReleases = [],
+    publicationChangelogText = '',
+    publicationGithubUrlText = '',
+    canManagePublication,
+    publicationBusy,
+    onPublicationChangelogChange,
+    onPublicationGithubUrlChange,
+    onPublishAddon,
+    onUpdateAddon,
+}) => {
     const { t } = useTranslation()
     const { docs } = useAddonFiles(addon)
     const { configExists, config, configApi } = useConfig(addon.path)
@@ -49,14 +68,26 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                 <ThemeInfo
                     addon={addon}
                     isEnabled={isEnabled}
+                    hasStoreUpdate={hasStoreUpdate}
+                    storeUpdateBusy={storeUpdateBusy}
+                    onStoreUpdate={onStoreUpdate}
                     themeActive={themeActive}
                     onToggleEnabled={toggleWithToast}
+                    publication={publication}
+                    publicationChangelogText={publicationChangelogText}
+                    publicationGithubUrlText={publicationGithubUrlText}
+                    canManagePublication={canManagePublication}
+                    publicationBusy={publicationBusy}
+                    onPublicationChangelogChange={onPublicationChangelogChange}
+                    onPublicationGithubUrlChange={onPublicationGithubUrlChange}
+                    onPublishAddon={onPublishAddon}
+                    onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
                     setShowFilters={setShowFilters}
                 />
 
                 <div className={s.extensionContent}>
-                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} />
+                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationReleases.length > 0} />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
@@ -66,6 +97,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({ addon, isEnabled, setSele
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
+                        publicationReleases={publicationReleases}
                     />
                 </div>
             </Scrollbar>

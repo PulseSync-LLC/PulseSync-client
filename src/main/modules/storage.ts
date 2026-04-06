@@ -53,6 +53,11 @@ const schema = {
                 description: t('main.storage.settings.deletePextAfterImport'),
                 default: false,
             },
+            autoUpdateStoreAddons: {
+                type: 'boolean',
+                description: 'Automatically update store addons when Yandex Music is closed',
+                default: true,
+            },
             closeAppInTray: {
                 type: 'boolean',
                 description: t('main.storage.settings.closeAppInTray'),
@@ -127,6 +132,7 @@ const schema = {
             'autoStartApp',
             'hardwareAcceleration',
             'deletePextAfterImport',
+            'autoUpdateStoreAddons',
             'closeAppInTray',
             'devSocket',
             'askSavePath',
@@ -148,6 +154,7 @@ const schema = {
             autoStartApp: false,
             hardwareAcceleration: true,
             deletePextAfterImport: false,
+            autoUpdateStoreAddons: true,
             closeAppInTray: false,
             devSocket: true,
             askSavePath: false,
@@ -230,11 +237,16 @@ const schema = {
                 description: t('main.storage.app.version'),
                 default: '',
             },
+            updateChannelOverride: {
+                type: 'string',
+                default: '',
+            },
         },
-        required: ['version'],
+        required: ['version', 'updateChannelOverride'],
         additionalProperties: false,
         default: {
             version: '',
+            updateChannelOverride: '',
         },
     },
 
@@ -271,7 +283,9 @@ class Store {
             logger.main.error('Error initializing ElectronStore:', error)
         }
 
-        if (!this.store.get('settings.hardwareAcceleration', true)) {
+        // Electron applies this only during startup, before the app becomes ready.
+        const hardwareAccelerationEnabled = this.store?.get('settings.hardwareAcceleration', true) ?? true
+        if (!hardwareAccelerationEnabled) {
             app.disableHardwareAcceleration()
         }
     }

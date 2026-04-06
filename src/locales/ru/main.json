@@ -1,12 +1,12 @@
 {
     "main": {
         "appUtils": {
-            "appInstalledAndLaunched": "Приложение установлено и запущено.",
+            "appInstalledAndLaunched": "Приложение установлено и запущено",
             "dmgAppNotFound": "В DMG не найден .app пакет",
             "dumpingEntitlements": "Дампим entitlements…",
             "executeFailed": "Не удалось выполнить: {{message}}",
-            "fileExecutedSuccessfully": "Файл успешно выполнен.",
-            "fileOpenedSuccessfully": "Файл успешно открыт.",
+            "fileExecutedSuccessfully": "Файл успешно выполнен",
+            "fileOpenedSuccessfully": "Файл успешно открыт",
             "hashUpdated": "Хеш обновлён",
             "jsonArrayEndNotFound": "Не найден конец JSON-массива",
             "jsonArrayStartNotFound": "Не найдено начало JSON-массива",
@@ -17,7 +17,7 @@
             "macPatchSuccess": "Патч macOS выполнен успешно",
             "noWriteAccess": "Нет прав на запись app.asar",
             "patchSupportedPlatforms": "Патч доступен только на Windows и macOS",
-            "permissionsRequiredMessage": "Предоставьте доступ к записи для патча ASAR и повторите.",
+            "permissionsRequiredMessage": "Предоставьте доступ к записи для патча ASAR и повторите",
             "permissionsRequiredTitle": "Требуются права",
             "rcdataJsonNotFound": "RCDATA JSON запись не найдена",
             "reSigningApp": "Переподписываем приложение…",
@@ -53,10 +53,10 @@
             "disconnectError": "Ошибка отключения клиента",
             "disconnected": "Отключение RPC",
             "genericConnectError": "Ошибка подключения",
-            "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключен.",
-            "stateRetry": "{{state}} Следующая попытка через несколько секунд.",
+            "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключен",
+            "stateRetry": "{{state}} Следующая попытка через несколько секунд",
             "states": {
-                "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора.",
+                "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора",
                 "closed": "Не удалось обнаружить запущенный Discord!",
                 "snap": "Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC",
                 "success": ""
@@ -72,14 +72,14 @@
             "exitApp": "Выход из приложения",
             "fileDownloadError": "Ошибка при скачивании файла: {{message}}",
             "fileExecuteFailed": "Не удалось выполнить файл: {{message}}",
-            "fileExecutedSuccessfully": "Файл успешно выполнен.",
+            "fileExecutedSuccessfully": "Файл успешно выполнен",
             "fileOpenFailed": "Не удалось открыть файл: {{message}}",
-            "fileOpenedSuccessfully": "Файл успешно открыт.",
+            "fileOpenedSuccessfully": "Файл успешно открыт",
             "folderNotFound": "Папка не найдена.",
             "invalidDownloadUrl": "Недопустимая ссылка для загрузки",
             "latestYmlVersionNotFound": "Версия не найдена в latest.yml",
             "newExtensionAuthor": "Ваше имя",
-            "newExtensionDescription": "Тема по умолчанию.",
+            "newExtensionDescription": "Тема по умолчанию",
             "newExtensionName": "Новое расширение",
             "newExtensionNameWithIndex": "Новое расширение {{index}}",
             "rendererError": "Ошибка рендера",
@@ -94,13 +94,6 @@
         "handleErrors": {
             "internalError": "Ошибка внутри ErrorService.handleError:",
             "writeCrashLogError": "Ошибка записи в crash.log:"
-        },
-        "hostFile": {
-            "entriesAddError": "Произошла ошибка при добавлении записей",
-            "entriesAddFailed": "Не удалось добавить записи в список",
-            "entriesAdded": "Записи успешно добавлены в список",
-            "invalidListGeneralPath": "Некорректный путь list-general.txt",
-            "noPendingListGeneralPath": "Нет ожидающего пути list-general.txt для этого окна"
         },
         "index": {
             "appStartupError": "Ошибка при запуске приложения:",
@@ -136,6 +129,7 @@
             "linuxPermissionsRequired": "Недостаточно прав для изменения файлов Яндекс Музыки. Разрешите доступ и повторите действие.",
             "modAlreadyInstalled": "Мод уже установлен.",
             "modAsarNotFound": "{{name}} не найден. Пожалуйста, переустановите Яндекс Музыку.",
+            "modVersionNotFoundByChecksum": "Этот патч сейчас не поддерживается. Установка отменена.",
             "usingCache": "Использую кеш мода..."
         },
         "modNetwork": {

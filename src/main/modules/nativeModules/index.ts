@@ -1,9 +1,8 @@
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import path from 'path'
 import fs from 'fs'
 import logger from '../logger'
-import { app } from 'electron'
-import { sendAddon } from '../httpServer'
+import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
 
@@ -22,11 +21,13 @@ interface NativeModules {
 }
 
 const loadNativeModules = (): NativeModules => {
-    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(app.getPath('exe'), '..', 'modules')
-
-    logger.nativeModuleManager.info(`Scanning native modules directory: ${baseDir}`)
+    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(process.resourcesPath, 'modules')
 
     const modules: NativeModules = {}
+
+    if (!fs.existsSync(baseDir)) {
+        return modules
+    }
 
     const scanDir = (dir: string) => {
         fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
@@ -56,14 +57,26 @@ const loadNativeModules = (): NativeModules => {
         logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
     }
 
-    if (Object.keys(modules).length === 0) {
-        logger.nativeModuleManager.warn('No native modules available.')
-    }
-
     return modules
 }
 
 const nativeModules = loadNativeModules()
+
+const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+
+const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
+    if (!filename) return null
+
+    const normalized = path.normalize(filename)
+    if (path.basename(normalized).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+        return null
+    }
+
+    const parts = normalized.split(/[\\/]+/).filter(Boolean)
+    if (parts.length < 2) return null
+
+    return parts[parts.length - 2] || null
+}
 
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
     const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
@@ -73,18 +86,31 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
     }
     logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
     addon.watch(themesPath, intervalMs, (eventType, filename) => {
+        const watchedAddonName = tryExtractAddonNameFromWatchPath(filename)
+        if (watchedAddonName) {
+            sendAddonSettings({ addonName: watchedAddonName, force: true })
+            return
+        }
+        if (path.basename(path.normalize(filename)).toLowerCase() === HANDLE_EVENTS_FILENAME.toLowerCase()) {
+            sendAllAddonSettings({ force: true })
+            return
+        }
+
         switch (eventType) {
             case 'add':
                 logger.main.info(`File ${filename} has been added`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             case 'change':
                 logger.main.info(`File ${filename} has been changed`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             case 'unlink':
                 logger.main.info(`File ${filename} has been removed`)
                 sendAddon(true)
+                void sendExtensions()
                 break
             default:
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)

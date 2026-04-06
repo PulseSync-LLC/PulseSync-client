@@ -1,0 +1,164 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    @include shimmer.shell;
+    min-height: 620px;
+    background: #252835;
+}
+
+.hero {
+    @include shimmer.surface;
+    height: 294px;
+}
+
+.topTags {
+    display: flex;
+    gap: 5px;
+    padding: 0 40px;
+    height: 28px;
+    margin-top: -246px;
+    position: relative;
+    z-index: 2;
+    align-items: center;
+}
+
+.tag,
+.tagSmall {
+    @include shimmer.surface(rgba(99, 106, 130, 0.53));
+    border-radius: 8px;
+}
+
+.tag {
+    width: 72px;
+    height: 28px;
+}
+
+.tagSmall {
+    width: 56px;
+    height: 28px;
+}
+
+.metaBar {
+    @include shimmer.surface(rgba(129, 141, 179, 0.08));
+    min-height: 66px;
+    padding: 10px 300px 10px 40px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px 24px;
+    position: relative;
+}
+
+.metaGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(72px, max-content));
+    gap: 16px 20px;
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.metaItem {
+    min-height: 42px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    position: absolute;
+    right: 40px;
+    top: 10px;
+}
+
+.actionWide {
+    @include shimmer.surface;
+    width: 128px;
+    height: 46px;
+    border-radius: 8px;
+}
+
+.action {
+    @include shimmer.surface;
+    width: 46px;
+    height: 46px;
+    border-radius: 8px;
+}
+
+.tabs {
+    display: flex;
+    gap: 25px;
+    padding: 0 40px;
+    height: 65px;
+    align-items: center;
+    background: rgba(56, 62, 82, 0.9411764706);
+    border-bottom: 1px solid #3d445b;
+}
+
+.tab {
+    @include shimmer.text-surface;
+    width: 104px;
+    height: 24px;
+}
+
+.content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 15px 30px 32px;
+}
+
+.codeBlock {
+    @include shimmer.surface;
+    height: 56px;
+    border-radius: 14px;
+}
+
+.sectionTitle {
+    @include shimmer.text-surface;
+    width: min(420px, 52%);
+    height: 34px;
+}
+
+.paragraph {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.codeBlockLarge {
+    @include shimmer.surface;
+    height: 260px;
+    border-radius: 18px;
+}
+
+@media (max-width: 1024px) {
+    .metaBar {
+        flex-direction: column;
+        padding-right: 40px;
+    }
+
+    .metaGrid {
+        grid-template-columns: repeat(3, minmax(96px, 1fr));
+    }
+
+    .actions {
+        position: static;
+    }
+}
+
+@media (max-width: 720px) {
+    .metaGrid {
+        grid-template-columns: repeat(2, minmax(96px, 1fr));
+    }
+
+    .tabs,
+    .content,
+    .topTags {
+        padding-left: 18px;
+        padding-right: 18px;
+    }
+}

@@ -36,6 +36,7 @@ export type MacUpdaterOptions = {
     appName?: string
     downloadsDir?: string
     attemptAutoInstall?: boolean
+    allowDowngrade?: boolean
     onStatus?: (status: UpdateStatus) => void
     onProgress?: (percent: number) => void
     onLog?: (message: string) => void
@@ -67,8 +68,34 @@ export class MacOSUpdater extends EventEmitter {
         this.options = options
     }
 
+    setManifestUrl(manifestUrl: string) {
+        if (this.options.manifestUrl === manifestUrl) {
+            return
+        }
+
+        this.options.manifestUrl = manifestUrl
+        this.currentManifest = null
+        this.downloadedFile = null
+        this.pickedAsset = null
+    }
+
+    getManifestUrl() {
+        return this.options.manifestUrl
+    }
+
+    setAllowDowngrade(allowDowngrade: boolean) {
+        this.options.allowDowngrade = allowDowngrade
+    }
+
     getStatus() {
         return this.status
+    }
+
+    resetPendingUpdate() {
+        this.currentManifest = null
+        this.downloadedFile = null
+        this.pickedAsset = null
+        this.setStatus(UpdateStatus.IDLE)
     }
 
     private setStatus(s: UpdateStatus) {
@@ -96,9 +123,11 @@ export class MacOSUpdater extends EventEmitter {
         const current = app.getVersion()
         this.log(t('main.macUpdater.currentVersionAvailable', { current, version: manifest.version }))
         if (semver.valid(manifest.version) && semver.valid(current)) {
-            if (semver.lte(manifest.version, current)) return null
+            const isNewer = semver.gt(manifest.version, current)
+            const isOlder = semver.lt(manifest.version, current)
+            if (!isNewer && !(this.options.allowDowngrade && isOlder)) return null
         } else {
-            if (manifest.version <= current) return null
+            if (!(this.options.allowDowngrade && manifest.version < current) && manifest.version <= current) return null
         }
         if (manifest.minOsVersion) {
             const release = os.release()

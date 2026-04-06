@@ -9,22 +9,20 @@ import {
     consumePendingInstallModUpdateFromPath,
     isFirstInstance,
 } from './main/modules/singleInstance'
-import { setAddon } from './main/modules/httpServer'
+import { sendAddonSettings, sendAllAddonSettings, setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
-import isAppDev from 'electron-is-dev'
+import isAppDev from './main/utils/isAppDev'
 import { modManager } from './main/modules/mod/modManager'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
-import * as dns from 'node:dns'
 
 import { checkCLIArguments } from './main/utils/processUtils'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
-import { checkAndAddPulseSyncOnStartup, setupPulseSyncDialogHandler } from './main/utils/hostFileUtils'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import { initMainI18n, t } from './main/i18n'
-import Addon from './renderer/api/interfaces/addon.interface'
+import Addon from '@entities/addon/model/addon.interface'
 import { getState } from './main/modules/state'
 import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'
@@ -32,9 +30,10 @@ import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
 import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
+import { runWhenUiReady } from './main/modules/uiReady'
+import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 
 export let updated = false
-export let hardwareAcceleration = false
 export let musicPath: string
 export let asarFilename = 'app.backup.asar'
 export let asarBackup: string
@@ -42,9 +41,6 @@ export let selectedAddon: string
 
 registerSchemes()
 initMainI18n()
-
-dns.setServers(['8.8.8.8', '8.8.4.4', '1.1.1.1', '1.0.0.1'])
-app.commandLine.appendSwitch('dns-server', '8.8.8.8,8.8.4.4,1.1.1.1,1.0.0.1')
 
 if (isWindows()) {
     app.setAppUserModelId('pulsesync.app')
@@ -61,6 +57,21 @@ const mimeByExt: Record<string, string> = {
     '.bmp': 'image/bmp',
     '.svg': 'image/svg+xml',
 }
+
+const registerPulseSyncProtocol = (): void => {
+    try {
+        const entryFile = process.argv[1]
+        const isDevProtocolRegistration = Boolean(process.defaultApp || (isAppDev && entryFile))
+        isDevProtocolRegistration
+            ? app.setAsDefaultProtocolClient('pulsesync', process.execPath, entryFile ? [path.resolve(entryFile)] : [])
+            : app.setAsDefaultProtocolClient('pulsesync')
+    } catch (error) {
+        logger.main.warn('Failed to register pulsesync:// protocol handler:', error)
+    }
+}
+
+registerPulseSyncProtocol()
+
 const checkOldYandexMusic = async () => {
     try {
         const namePart = 'Yandex.Music'
@@ -115,21 +126,18 @@ app.on('ready', async () => {
         }
         const pendingInstallModUpdateFrom = consumePendingInstallModUpdateFromPath()
         if (pendingInstallModUpdateFrom) {
-            void installModUpdateFromAsar(pendingInstallModUpdateFrom.path, mainWindow, pendingInstallModUpdateFrom.source).catch(err => {
-                logger.main.error('Failed to apply pending INSTALL_MOD_UPDATE_FROM:', err)
+            runWhenUiReady(() => {
+                void installModUpdateFromAsar(pendingInstallModUpdateFrom.path, mainWindow, pendingInstallModUpdateFrom.source).catch(err => {
+                    logger.main.error('Failed to apply pending INSTALL_MOD_UPDATE_FROM:', err)
+                })
             })
         }
         if (isWindows()) {
             await checkOldYandexMusic()
         }
-        setupPulseSyncDialogHandler()
-        if (isWindows()) {
-            checkAndAddPulseSyncOnStartup(mainWindow).catch(err => {
-                logger.main.warn('Failed to check pulsesync on startup:', err)
-            })
-        }
         modManager(mainWindow)
         createTray()
+        void sendAppStartupTelemetry()
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
         logger.main.error(t('main.index.appStartupError'), e)
@@ -246,6 +254,33 @@ const mimeFromExt = (p: string) => {
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
 }
 
+const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+
+const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
+    if (!writtenPath) return
+
+    const normalizedPath = path.normalize(writtenPath)
+    if (path.basename(normalizedPath).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+        return
+    }
+
+    const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const relativePath = path.relative(addonsRoot, normalizedPath)
+    const isOutsideAddonsRoot = relativePath.startsWith('..') || path.isAbsolute(relativePath)
+    if (isOutsideAddonsRoot) {
+        return
+    }
+
+    const parts = relativePath.split(path.sep).filter(Boolean)
+    const addonName = parts[0]
+    if (!addonName) {
+        sendAllAddonSettings({ force: true })
+        return
+    }
+
+    sendAddonSettings({ addonName, force: true })
+}
+
 ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) => {
     try {
         switch (eventType) {
@@ -268,7 +303,10 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     const enc = (data?.encoding as BufferEncoding) || 'utf8'
                     return await fsp.readFile(p, enc)
-                } catch (error) {
+                } catch (error: any) {
+                    if (error?.code === 'ENOENT') {
+                        return null
+                    }
                     logger?.main?.error?.('[file-event:read-file]', error)
                     return null
                 }
@@ -282,6 +320,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const content = typeof data === 'string' ? data : typeof data?.content === 'string' ? data.content : safeJson(data)
                     await ensureDir(p)
                     await fsp.writeFile(p, content, enc)
+                    emitAddonSettingsWriteIfNeeded(p)
                     return { success: true }
                 } catch (error: any) {
                     logger?.main?.error?.('[file-event:write-file]', error)
@@ -295,7 +334,10 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     const buf = await readBufResilient(p)
                     return buf.toString('base64')
-                } catch (error) {
+                } catch (error: any) {
+                    if (error?.code === 'ENOENT') {
+                        return null
+                    }
                     logger?.main?.error?.('[file-event:read-file-base64]', error)
                     return null
                 }
@@ -361,6 +403,7 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
                     const p = resolveInputPath(filePath)
                     await ensureDir(p)
                     await fsp.writeFile(p, safeJson(data), 'utf8')
+                    emitAddonSettingsWriteIfNeeded(p)
                     return { success: true }
                 } catch (error: any) {
                     logger?.main?.error?.('[file-event:create-config-file]', error)
@@ -459,8 +502,8 @@ export async function prestartCheck() {
         asarBackup = path.join(musicPath, asarFilename)
     }
 
-    if (!State.get('settings.closeAppInTray')) {
-        State.set('settings.closeAppInTray', true)
+    if (typeof State.get('settings.closeAppInTray') !== 'boolean') {
+        State.set('settings.closeAppInTray', false)
     }
     checkAsar()
     initializeAddon()

@@ -4,20 +4,21 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
-import MainEvents from '../../../../../common/types/mainEvents'
-import RendererEvents from '../../../../../common/types/rendererEvents'
+import MainEvents from '@common/types/mainEvents'
+import RendererEvents from '@common/types/rendererEvents'
 
-import MetadataEditor from './MetadataEditor'
+import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
 
-import ConfigurationSettings from '../../../../components/сonfigurationSettings/ConfigurationSettings'
-import ConfigurationSettingsEdit from '../../../../components/сonfigurationSettings/ConfigurationSettingsEdit'
-import { AddonConfig } from '../../../../components/сonfigurationSettings/types'
+import ConfigurationSettings from '@features/configurationSettings/ConfigurationSettings'
+import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
+import { AddonConfig } from '@features/configurationSettings/types'
 
-import { ActiveTab, DocTab } from './types'
-import * as styles from './../extensionview.module.scss'
+import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/route/extBox/types'
+import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
-import Addon from '../../../../api/interfaces/addon.interface'
-import { t as i18nT } from '../../../../i18n'
+import Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
+import { t as i18nT } from '@app/i18n'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -31,6 +32,7 @@ interface Props {
     }
     editMode: boolean
     addon: Addon
+    publicationReleases?: StoreAddonRelease[]
 }
 
 const slug = (t: string) =>
@@ -231,9 +233,8 @@ const defaultTemplate: AddonConfig = {
     ],
 }
 
-const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon }) => {
+const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationReleases = [] }) => {
     const { t } = useTranslation()
-    const addonName = path.basename(addon.path)
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
 
@@ -247,8 +248,9 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
     }, [creating, config])
 
     const asset = useMemo(
-        () => (f: string) => `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?name=${encodeURIComponent(addonName)}&file=${encodeURIComponent(f)}`,
-        [addonName],
+        () => (f: string) =>
+            `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(f)}`,
+        [addon.directoryName],
     )
 
     const MDImg: React.FC<React.ImgHTMLAttributes<HTMLImageElement>> = ({ src = '', alt, ...rest }) => {
@@ -299,6 +301,42 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 
     if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
 
+    if (active === PUBLICATION_CHANGELOG_TAB && addon.installSource === 'store' && publicationReleases.length > 0) {
+        return (
+            <div className={styles.galleryContainer}>
+                <div className={styles.changelogPanel}>
+                    <div className={styles.changelogTitle}>{t('extensions.publication.changelogTabTitle')}</div>
+                    {publicationReleases.length ? (
+                        <div className={styles.changelogList}>
+                            {publicationReleases.map(release => (
+                                <div key={release.id} className={styles.changelogItem}>
+                                    <div className={styles.changelogVersionRow}>
+                                        <span className={styles.changelogVersion}>v{release.version}</span>
+                                        <span className={styles.changelogDate}>
+                                            {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    {release.changelog?.length ? (
+                                        release.changelog.map((item, index) => (
+                                            <div key={`${release.id}-${index}`} className={styles.changelogEntry}>
+                                                <span className={styles.changelogBullet}>•</span>
+                                                <span>{item}</span>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                    )}
+                </div>
+            </div>
+        )
+    }
+
     const doc = docs.find(d => d.title === active)
     if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
 
@@ -339,4 +377,3 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 }
 
 export default TabContent
-

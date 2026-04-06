@@ -1,0 +1,22 @@
+{
+    "extends": "./tsconfig.json",
+    "compilerOptions": {
+        "composite": true,
+        "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        "types": ["node", "react", "react-dom", "vite/client"]
+    },
+    "include": [
+        "src/**/*",
+        "package.json",
+        "styles.d.ts",
+        "window.d.ts",
+        "declarations.d.ts",
+        "vite-env.d.ts"
+    ],
+    "exclude": [
+        "src/main/settingsRenderer.ts",
+        "node_modules"
+    ]
+}

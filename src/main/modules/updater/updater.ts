@@ -6,9 +6,10 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../../utils/isAppDev'
 import { mainWindow } from '../createWindow'
 import { t } from '../../i18n'
+import { getEffectiveUpdateChannel, getUpdateFeedUrl, shouldAllowDowngradeForCurrentChannel } from './updateChannel'
 
 type CommonConfig = Record<string, unknown>
 
@@ -18,6 +19,7 @@ type UpdateInfo = ElectronUpdaterUpdateInfo & {
 }
 
 type DownloadResult = unknown
+const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
 
 type UpdateResult = UpdateCheckResult & {
     updateInfo: UpdateInfo
@@ -30,20 +32,18 @@ class Updater {
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
     private commonConfig: CommonConfig = {}
+    private configuredChannel: string | null = null
 
     constructor() {
         autoUpdater.logger = logger.updater
         autoUpdater.autoRunAppAfterInstall = true
         autoUpdater.autoDownload = true
         autoUpdater.disableWebInstaller = true
+        autoUpdater.disableDifferentialDownload = true
 
         autoUpdater.on('error', (error: unknown) => {
             logger.updater.error('Updater error', error)
             this.setProgressBar(-1)
-        })
-
-        autoUpdater.on('checking-for-update', () => {
-            logger.updater.log('Checking for update')
         })
 
         autoUpdater.on('download-progress', (info: ProgressInfo) => {
@@ -54,6 +54,7 @@ class Updater {
 
         autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
             logger.updater.log('Update downloaded', updateInfo.version)
+            autoUpdater.autoInstallOnAppQuit = true
             this.setProgressBar(-1)
 
             if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
@@ -85,6 +86,27 @@ class Updater {
                 }
             })
         })
+    }
+
+    private configureFeed(force = false) {
+        const channel = getEffectiveUpdateChannel()
+        if (!force && this.configuredChannel === channel) {
+            return channel
+        }
+
+        const feedUrl = getUpdateFeedUrl(channel)
+        autoUpdater.setFeedURL({
+            provider: 'generic',
+            url: feedUrl,
+            channel: 'latest',
+            updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
+            useMultipleRangeRequest: false,
+        })
+        autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
+
+        this.configuredChannel = channel
+        logger.updater.info('Configured updater feed', { channel, feedUrl, allowDowngrade: autoUpdater.allowDowngrade })
+        return channel
     }
 
     private getWindow(): BrowserWindow | null {
@@ -137,17 +159,21 @@ class Updater {
     private updateApplier(updateResult: UpdateResult, manual = false) {
         const { downloadPromise, updateInfo } = updateResult
 
+        if (!downloadPromise) {
+            this.latestAvailableVersion = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            this.flashFrame(false)
+            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+            return
+        }
+
         if (updateInfo.updateUrgency !== undefined) {
             logger.updater.info('Urgency', updateInfo.updateUrgency)
         }
 
         if (updateInfo.commonConfig !== undefined) {
             this.mergeCommonConfig(updateInfo.commonConfig)
-        }
-
-        if (!downloadPromise) {
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
-            return
         }
 
         this.latestAvailableVersion = updateInfo.version
@@ -179,6 +205,8 @@ class Updater {
     }
 
     async check(manual = false): Promise<UpdateStatus | null> {
+        this.configureFeed()
+
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
 
@@ -191,12 +219,16 @@ class Updater {
         }
 
         try {
+            this.updateStatus = UpdateStatus.CHECKING
+            this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
+
             const updateResult = (await autoUpdater.checkForUpdatesAndNotify({
                 title: t('main.updater.updateReadyTitle'),
                 body: t('main.updater.updateReadyBody'),
             })) as UpdateResult | null
 
             if (!updateResult) {
+                this.updateStatus = UpdateStatus.IDLE
                 logger.updater.log(t('main.updater.noUpdatesFound'))
                 this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
                 return null
@@ -204,6 +236,7 @@ class Updater {
 
             this.updateApplier(updateResult, manual)
         } catch (error: unknown) {
+            this.updateStatus = UpdateStatus.IDLE
             const e = error as any
             if (e?.code === 'ENOENT' && typeof e?.path === 'string' && e.path.endsWith('app-update.yml')) {
                 if (!isAppDev) {
@@ -221,6 +254,7 @@ class Updater {
 
     start() {
         if (this.updaterId) return
+        this.configureFeed()
         this.check(false)
         this.updaterId = setInterval(() => {
             this.check(false)
@@ -237,14 +271,46 @@ class Updater {
         this.onUpdateListeners.push(listener)
     }
 
+    reloadFeed() {
+        this.configureFeed(true)
+    }
+
+    getStatus() {
+        return this.updateStatus
+    }
+
+    async clearPendingUpdate(reason = 'manual-reset') {
+        if (this.updateStatus !== UpdateStatus.DOWNLOADED) {
+            return false
+        }
+
+        try {
+            const internalUpdater = autoUpdater as any
+
+            await internalUpdater.downloadedUpdateHelper?.clear?.()
+            internalUpdater.downloadPromise = null
+            internalUpdater.updateInfoAndProvider = null
+            internalUpdater.autoInstallOnAppQuit = false
+
+            this.latestAvailableVersion = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            this.flashFrame(false)
+
+            logger.updater.info('Cleared pending downloaded update', { reason })
+            return true
+        } catch (error) {
+            logger.updater.error('Failed to clear pending downloaded update', error)
+            return false
+        }
+    }
+
     install() {
         logger.updater.info('Installing a new version', this.latestAvailableVersion)
         state.willQuit = true
         autoUpdater.quitAndInstall(true, true)
     }
 }
-
-exports.Updater = Updater
 
 export const getUpdater = (() => {
     let updater: Updater | undefined

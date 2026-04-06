@@ -1,15 +1,15 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import RendererEvents from '../../../common/types/rendererEvents'
+import RendererEvents from '@common/types/rendererEvents'
 
-import * as pageStyles from './callback.module.scss'
+import * as pageStyles from '@pages/auth/callback.module.scss'
 
-import AppIcon from '../../assets/icon/App.svg'
-import HandBlockIcon from '../../assets/icons/handBlock.svg'
-import UserBlockIcon from '../../assets/icons/userBlock.svg'
+import AppIcon from '@shared/assets/icon/App.svg'
+import HandBlockIcon from '@shared/assets/icons/handBlock.svg'
+import UserBlockIcon from '@shared/assets/icons/userBlock.svg'
 
-import userContext from '../../api/context/user'
-import Header from '../../components/layout/header'
+import userContext from '@entities/user/model/context'
+import Header from '@widgets/layout/header'
 import { useTranslation } from 'react-i18next'
 
 export default function CallbackPage() {
@@ -62,4 +62,3 @@ export default function CallbackPage() {
         </>
     )
 }
-

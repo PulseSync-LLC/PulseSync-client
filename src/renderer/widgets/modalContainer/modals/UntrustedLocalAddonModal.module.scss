@@ -1,0 +1,53 @@
+.modal {
+    min-width: 0;
+    width: min(560px, calc(100vw - 32px));
+    max-width: 560px;
+    align-items: stretch;
+    padding: 28px;
+    gap: 18px;
+}
+
+.body {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.eyebrow {
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #ffb0b0;
+}
+
+.title {
+    margin: 0;
+    font-size: 28px;
+    line-height: 1.05;
+    font-weight: 900;
+    color: #f6f8ff;
+}
+
+.description,
+.caption {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.55;
+    color: #d6def7;
+}
+
+.caption {
+    color: #aab4d6;
+}
+
+@media (max-width: 640px) {
+    .modal {
+        width: min(100%, calc(100vw - 24px));
+        padding: 22px;
+    }
+
+    .title {
+        font-size: 24px;
+    }
+}

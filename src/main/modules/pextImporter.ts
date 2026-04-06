@@ -8,8 +8,15 @@ import logger from './logger'
 import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
+import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
+import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
 
 const State = getState()
+const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
+type ImportAddonArchiveOptions = {
+    installSource?: 'store' | 'local'
+    storeAddonId?: string | null
+}
 
 export const normalizePextPath = (rawPath: string): string => {
     if (!rawPath) return ''
@@ -29,6 +36,11 @@ export const isPextFilePath = (rawPath: string): boolean => {
     return !!normalized && path.extname(normalized).toLowerCase() === '.pext'
 }
 
+export const isAddonArchivePath = (rawPath: string): boolean => {
+    const normalized = normalizePextPath(rawPath)
+    return !!normalized && SUPPORTED_ADDON_ARCHIVE_EXTENSIONS.has(path.extname(normalized).toLowerCase())
+}
+
 const removeSourcePextIfNeeded = async (filePath: string): Promise<void> => {
     if (!State.get('settings.deletePextAfterImport')) return
     try {
@@ -39,17 +51,19 @@ const removeSourcePextIfNeeded = async (filePath: string): Promise<void> => {
     }
 }
 
-export const importPextFile = async (rawPath: string): Promise<string | null> => {
+export const importAddonArchive = async (rawPath: string, options: ImportAddonArchiveOptions = {}): Promise<string | null> => {
     const filePath = normalizePextPath(rawPath)
-    if (!isPextFilePath(filePath)) return null
+    if (!isAddonArchivePath(filePath)) return null
     if (!fs.existsSync(filePath)) {
-        logger.main.warn(`Pext file not found: ${filePath}`)
+        logger.main.warn(`Addon archive not found: ${filePath}`)
         return null
     }
 
     let tempDir = ''
+    const ext = path.extname(filePath).toLowerCase()
 
     try {
+        const archiveBuffer = await fsp.readFile(filePath)
         const zip = new AdmZip(filePath)
         tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'pext-import-'))
         zip.extractAllTo(tempDir, true)
@@ -62,13 +76,36 @@ export const importPextFile = async (rawPath: string): Promise<string | null> =>
 
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
         metadata.fromPext = true
+        metadata.installSource = options.installSource === 'store' ? 'store' : 'local'
+        if (options.storeAddonId) {
+            metadata.storeAddonId = options.storeAddonId
+        } else {
+            delete metadata.storeAddonId
+        }
         const addonName = typeof metadata.name === 'string' ? metadata.name.trim() : ''
         if (!addonName) {
             logger.main.error('Theme name missing in metadata.json')
             return null
         }
 
-        const outputDir = path.join(app.getPath('userData'), 'addons', addonName)
+        metadata.id = resolveAddonStableId(metadata)
+        metadata.packageHash = computeAddonPackageHash(archiveBuffer)
+
+        let targetDirectoryOverride: string | null = null
+        if (metadata.installSource === 'store') {
+            const publicationFingerprint = resolveAddonPublicationFingerprint(metadata)
+            const existingLocalAddon = findAddonByPublicationFingerprint(publicationFingerprint, 'local')
+
+            if (existingLocalAddon) {
+                targetDirectoryOverride = existingLocalAddon.directoryName
+                logger.main.info(
+                    `Replacing local addon ${existingLocalAddon.directoryName} with store publication ${String(metadata.storeAddonId || metadata.name)}`,
+                )
+            }
+        }
+
+        const addonDirectory = targetDirectoryOverride || resolveAddonDirectoryKey(metadata)
+        const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
         if (fs.existsSync(outputDir)) {
             await clearDirectory(outputDir)
         } else {
@@ -77,14 +114,16 @@ export const importPextFile = async (rawPath: string): Promise<string | null> =>
 
         zip.extractAllTo(outputDir, true)
         fs.writeFileSync(path.join(outputDir, 'metadata.json'), JSON.stringify(metadata, null, 4))
-        logger.main.info(`Extension imported successfully to ${outputDir}`)
+        logger.main.info(`Extension imported successfully from ${ext} archive to ${outputDir}`)
 
-        await removeSourcePextIfNeeded(filePath)
+        if (ext === '.pext') {
+            await removeSourcePextIfNeeded(filePath)
+        }
 
-        return addonName
+        return targetDirectoryOverride ? addonName : addonDirectory
     } catch (err: any) {
-        logger.main.error(`Error in importPextFile: ${err?.message || err}`)
-        HandleErrorsElectron.handleError('pextImporter', 'importPextFile', 'importPextFile', err)
+        logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
+        HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)
         return null
     } finally {
         if (tempDir) {
@@ -95,4 +134,10 @@ export const importPextFile = async (rawPath: string): Promise<string | null> =>
             }
         }
     }
+}
+
+export const importPextFile = async (rawPath: string): Promise<string | null> => {
+    const filePath = normalizePextPath(rawPath)
+    if (!isPextFilePath(filePath)) return null
+    return importAddonArchive(filePath, { installSource: 'local' })
 }

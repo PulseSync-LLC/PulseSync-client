@@ -1,0 +1,170 @@
+.stack {
+    position: fixed;
+    bottom: -20px;
+    width: 500px;
+    z-index: 10050;
+    pointer-events: auto;
+    cursor: default;
+}
+
+.card {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 8px 18px;
+    border-radius: 10px;
+    background: #292c36;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+    transform: translateY(var(--y)) scale(var(--s));
+    transition:
+        transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.35s;
+    color: var(--clr);
+}
+
+.cardIn {
+    opacity: 1;
+}
+.cardOut {
+    opacity: 0;
+}
+
+.icon {
+    flex-shrink: 0;
+    display: flex;
+}
+
+.text {
+    display: flex;
+    flex-direction: column;
+}
+
+.title {
+    font-size: 16px;
+    font-weight: 900;
+    color: var(--clr);
+}
+
+.msg {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--clr);
+}
+
+.hide {
+    margin-left: auto;
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+    padding: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+
+    &:hover {
+        background: #363944;
+    }
+}
+
+.progressContainer {
+    position: relative;
+    width: 36px;
+    height: 36px;
+}
+
+.prog {
+    width: 100%;
+    height: 100%;
+}
+
+.bg {
+    stroke: rgba(255, 255, 255, 0.2);
+    fill: none;
+    stroke-width: 3;
+}
+
+.fg {
+    stroke: currentColor;
+    fill: none;
+    stroke-width: 3;
+    stroke-linecap: round;
+    transform: rotate(-90deg);
+    transform-origin: center;
+}
+
+.progressText {
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: currentColor;
+    position: absolute;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+}
+
+.fadeEnter {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+}
+
+.fadeEnterActive {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    transition:
+        opacity 0.3s ease,
+        transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.fadeExit {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+}
+
+.fadeExitActive {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+    transition:
+        opacity 0.25s ease,
+        transform 0.25s cubic-bezier(0.55, 0, 0.1, 1);
+}
+
+.success,
+.download,
+.default {
+    --clr: #87ff77;
+}
+
+.error {
+    --clr: #ff7777;
+}
+
+.warning,
+.loading {
+    --clr: #ffef77;
+}
+
+.info {
+    --clr: #77ffc9;
+}
+
+.export,
+.import {
+    --clr: #77f1ff;
+}
+
+.success,
+.error,
+.warning,
+.info,
+.download,
+.loading,
+.export,
+.import,
+.default {
+    cursor: pointer;
+    border-left: 4px solid var(--clr);
+}

@@ -50,7 +50,6 @@
         "selectFile": "Select file",
         "selectPlaceholder": "Select",
         "serverUnavailable": "Server unavailable",
-        "serverUnavailableShort": "Unavailable",
         "somethingWrongTitle": "Something went wrong",
         "submit": "Submit",
         "successTitle": "Success",
@@ -149,6 +148,7 @@
         "appDirectory": "App directory",
         "appSettings": {
             "autoStartApp": "Auto-start app",
+            "autoUpdateStoreAddons": "Auto-update store add-ons",
             "deletePextAfterImport": "Delete .pext after theme import",
             "hardwareAcceleration": "Hardware acceleration",
             "title": "App settings"
@@ -162,7 +162,7 @@
             "checkUpdates": "Check for updates",
             "collectLogs": "Collect logs archive",
             "logsReady": "Opening the folder soon",
-            "title": "Misc",
+            "title": "System",
             "version": "Version: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Websocket status"
         },
@@ -316,7 +316,7 @@
     },
     "extensions": {
         "actions": {
-            "store": "Store"
+            "store": "Catalog"
         },
         "addonCreatedMessage": "Addon {{name}} created successfully",
         "addonCreatedTitle": "Addon created",
@@ -330,10 +330,81 @@
         "loadFailed": "Load failed",
         "meta": {
             "author": "Author",
+            "authors": "Authors:",
+            "source": "Source",
             "size": "Size",
             "updated": "Updated",
             "version": "Version"
         },
+        "source": {
+            "local": "Local",
+            "store": "Catalog"
+        },
+        "publication": {
+            "statusLabel": "Publication",
+            "modalTitle": "Add-on publication",
+            "noteLabel": "Moderator note",
+            "githubUrlLabel": "GitHub link",
+            "githubUrlPlaceholder": "https://github.com/owner/repository",
+            "changelogLabel": "Changelog",
+            "changelogPlaceholder": "- Fixed the player bug\n- Updated card styles\n- Added a new setting",
+            "changelogRequired": "Add a changelog before publishing.",
+            "githubUrlRequired": "Add a GitHub link before publishing.",
+            "githubUrlInvalid": "Enter a valid GitHub link.",
+            "rulesAgreementPrefix": "I have read and agree to the",
+            "rulesAgreementLink": "add-on publication rules",
+            "changelogTabTitle": "Changes in this version",
+            "changelogEmpty": "No changelog was added for this version yet.",
+            "cooldownLabel": "Resubmission",
+            "cooldownMessage": "After rejection, the add-on can be submitted again only after 3 days. Available {{date}}.",
+            "statusDate": "Updated {{date}}",
+            "publish": "Publish",
+            "update": "Update",
+            "uploading": "Sending...",
+            "successTitle": "Sent for review",
+            "publishSuccess": "The add-on has been submitted for moderation.",
+            "updateSuccess": "The add-on update has been submitted for moderation.",
+            "errors": {
+                "PACKAGE_FAILED": "Failed to prepare the add-on archive for upload.",
+                "ZIP_FILE_REQUIRED": "The add-on archive was not sent to the server.",
+                "INVALID_ZIP_FILE": "The add-on archive is corrupted or has an invalid format.",
+                "METADATA_JSON_MISSING": "The archive does not contain metadata.json.",
+                "METADATA_JSON_INVALID": "The metadata.json file contains invalid JSON.",
+                "ARCHIVE_MISSING_REQUIRED_FILES": "The archive is missing required add-on files.",
+                "STYLE_FILE_EMPTY": "The add-on style file is empty.",
+                "METADATA_IMAGE_NOT_FOUND": "The image referenced in metadata.json was not found in the archive.",
+                "METADATA_BANNER_NOT_FOUND": "The banner referenced in metadata.json was not found in the archive.",
+                "SCRIPT_USES_FORBIDDEN_EVAL": "The script did not pass the automatic security check.",
+                "SCRIPT_ACCESSES_OAUTH_STORAGE": "The script did not pass the automatic security check.",
+                "IMAGE_CONVERT_FAILED": "Failed to process the add-on images.",
+                "ADDON_NAME_REQUIRED": "Set an add-on name before submitting.",
+                "ADDON_DESCRIPTION_REQUIRED": "Set an add-on description before submitting.",
+                "ADDON_GITHUB_URL_REQUIRED": "Add a GitHub link before submitting.",
+                "ADDON_GITHUB_URL_INVALID": "Enter a valid GitHub link.",
+                "ADDON_AUTHORS_REQUIRED": "Specify at least one add-on author.",
+                "ADDON_NOT_FOUND": "The add-on publication was not found.",
+                "AUTHENTICATED_USER_ID_REQUIRED": "Failed to determine the current user for publication.",
+                "CDN_BUCKET_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
+                "CDN_DOMAIN_URL_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
+                "S3_UPLOAD_FAILED": "Failed to send the add-on files. Please try again later.",
+                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation."
+            },
+            "publishError": "Failed to publish the add-on.",
+            "updateError": "Failed to send the add-on update."
+        },
+        "untrustedLocal": {
+            "title": "Untrusted add-on",
+            "description": "The add-on {{name}} was loaded from an untrusted source and was not found in the catalog. We do not guarantee its safety, stability, or the safety of your data.",
+            "caption": "Enable it only if you trust the source and understand the risks.",
+            "confirm": "Enable anyway"
+        },
+        "tabs": {
+            "metadata": "Metadata"
+        },
+        "storeUpdateAvailableTitle": "Add-on update available",
+        "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
+        "storeUpdateComplete": "Add-on {{name}} was updated.",
+        "storeUpdateFailed": "Failed to update add-on {{name}}.",
         "reloadFailed": "Reload failed",
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
@@ -410,6 +481,90 @@
         "logoutTitle": "See you, {{name}}",
         "myProfile": "My profile",
         "noChangelogFound": "Changelog not found.",
+        "notifications": {
+            "open": "Open notifications",
+            "title": "Notifications",
+            "unreadCount": "Unread: {{count}}",
+            "markAllRead": "Mark all read",
+            "loading": "Loading notifications...",
+            "empty": "There are no important notifications yet",
+            "read": "Read",
+            "openItem": "Open",
+            "categories": {
+                "addon": "Add-ons",
+                "achievement": "Achievements",
+                "localization": "Localization",
+                "subscription": "Subscription",
+                "security": "Security",
+                "system": "System"
+            },
+            "items": {
+                "addonPendingTitle": "Add-on sent for review",
+                "addonPendingBody": "{{name}} is now waiting for moderation.",
+                "addonAcceptedTitle": "Add-on accepted",
+                "addonAcceptedBody": "{{name}} is now available in the store.",
+                "addonRejectedTitle": "Add-on rejected",
+                "addonRejectedBody": "{{name}} was rejected during moderation.",
+                "achievementCompletedTitle": "Achievement completed",
+                "achievementCompletedBody": "Achievement unlocked: \"{{title}}\" (+{{points}} points).",
+                "localizationApprovedTitle": "Localization suggestion approved",
+                "localizationApprovedBody": "Your changes passed review and are already published.",
+                "localizationRejectedTitle": "Localization suggestion rejected",
+                "localizationRejectedBody": "Open the notification to review the feedback.",
+                "genericTitle": "New notification",
+                "genericBody": "Open the notification to view details."
+            }
+        },
+        "devOverrides": {
+            "open": "Open local experiment overrides",
+            "title": "Experiments",
+            "loading": "Loading experiments...",
+            "empty": "No experiments are available yet.",
+            "selectExperiment": "Select an experiment on the left.",
+            "overrideBadge": "override",
+            "overrideActive": "Override active",
+            "group": "Group",
+            "groupPlaceholder": "on / variant_name",
+            "enabledLabel": "State",
+            "valueLabel": "Value (JSON)",
+            "enabled": {
+                "inherit": "Inherit",
+                "on": "On",
+                "off": "Off"
+            },
+            "noGroup": "No group",
+            "rollout": "Rollout: {{percentage}}%",
+            "copyName": "Copy key",
+            "copyNameSuccess": "Experiment key copied",
+            "copyNameError": "Failed to copy experiment key",
+            "apply": "Apply",
+            "clear": "Clear override",
+            "applied": "Override applied",
+            "cleared": "Override cleared",
+            "invalidJson": "The value field must contain valid JSON",
+            "valueObjectError": "Value must be a JSON object"
+        },
+        "updateChannel": {
+            "open": "Update channel",
+            "title": "Update channel",
+            "buildChannel": "Build",
+            "currentChannel": "Current",
+            "overrideChannel": "Override",
+            "noOverride": "none",
+            "selectLabel": "Switch to",
+            "optionDefault": "Default ({{channel}})",
+            "optionBeta": "beta",
+            "optionDev": "dev",
+            "apply": "Apply",
+            "saving": "Saving...",
+              "saved": "Switched to {{channel}}.",
+              "loadError": "Failed to load update channel settings.",
+              "saveError": "Failed to save the update channel.",
+              "busy": "Channel switching is unavailable while an update is being checked or downloaded.",
+              "downloadedHint": "The downloaded update will be cleared, then the selected channel will be checked again.",
+              "hint": "Switching back from dev to beta may require an older build.",
+              "nextChannel": "After apply: {{channel}}"
+          },
         "settings": "Settings",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Heads up",
@@ -486,25 +641,6 @@
             "description": "You've unlocked premium features. Enjoy the enhanced experience.\nThank you for your support",
             "ok": "Got it"
         },
-        "pulseSync": {
-            "title": "Detected running zapret",
-            "description": "If you have trouble accessing PulseSync (the app won't connect, loads slowly, or behaves unstably), you can add domains to the zapret config.",
-            "subText": "The pulsesync.dev entry is missing. Add automatically?",
-            "subTextWithPath": "Config file:\n{{path}}\nThe pulsesync.dev entry is missing. Add automatically?",
-            "buttons": {
-                "cancel": "No",
-                "confirm": "Yes, add",
-                "adding": "Adding…"
-            },
-            "toasts": {
-                "addingTitle": "Adding entries...",
-                "pleaseWait": "Please wait",
-                "successTitle": "Done",
-                "addFailedTitle": "Couldn't complete",
-                "addFailed": "Failed to add entries",
-                "errorTitle": "Error"
-            }
-        },
         "yandexMusicUpdate": {
             "title": "Remove Yandex Music",
             "description": "You have an outdated Microsoft Store version of Yandex Music installed. It will be removed to ensure full functionality.",
@@ -527,7 +663,7 @@
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
         "downloadProgressLabel": "Download progress",
-        "downloading": "Downloading",
+        "downloading": "Downloading {{name}}...",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
         "forceInstallAction": "Install anyway",
@@ -539,7 +675,9 @@
         "installedVersionOutdated": "Installed version ({{version}}) is outdated",
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
+        "modInstallErrorProxyHint": "Make sure these domains are proxied/added to zapret:",
         "modInstallFailed": "Failed to install the mod. Please try again.",
+        "modInstallInterrupted": "The download was interrupted. Check your connection and try again.",
         "modInstallStart": "Starting mod installation...",
         "modInstallSuccess": "Installation completed successfully!",
         "modInstallTitle": "Mod installation",
@@ -553,7 +691,9 @@
         "modUpdateStart": "Starting update download...",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",
+        "musicAppName": "Yandex Music",
         "musicDownloadProgress": "Downloading: {{progress}}%",
+        "musicDownloadProgressLabel": "Yandex Music installation",
         "musicInstallFailed": "Failed to install Yandex Music",
         "musicInstallSuccess": "Yandex Music installed successfully.",
         "musicUpdateFailed": "Failed to update Yandex Music",
@@ -585,12 +725,26 @@
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru/*",
-            "supportedVersions": "2024.06.01",
+            "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Fix errors",
+        "listEditor": {
+            "title": "Allowed URLs and versions",
+            "description": "URLs the add-on can access and Yandex Music versions it supports.",
+            "allowedUrlsTitle": "Allowed URLs",
+            "supportedVersionsTitle": "Supported Yandex Music versions",
+            "add": "Add",
+            "edit": "Configure",
+            "allowedUrlsHint": "One URL per line. You can paste multiple entries at once.",
+            "supportedVersionsHint": "Semver ranges such as ^5.75.0 or >=5.75 <5.80.",
+            "allowedUrlsSummary": "URLs added: {{count}}",
+            "supportedVersionsSummary": "{{value}}",
+            "invalidSupportedVersions": "Invalid version ranges: {{versions}}",
+            "previewEmpty": "Not set"
+        },
         "labels": {
-            "allowedUrls": "Allowed URLs (comma-separated)",
+            "allowedUrls": "Allowed URLs",
             "author": "Author",
             "banner": "Banner",
             "css": "CSS",
@@ -600,7 +754,7 @@
             "libraryLogo": "Library logo",
             "name": "Name",
             "script": "Script",
-            "supportedVersions": "Supported Versions (comma-separated)",
+            "supportedVersions": "Supported versions",
             "tags": "Tags (comma-separated)",
             "type": "Type",
             "version": "Version"
@@ -664,8 +818,8 @@
                 "volumeControl": "Volume control"
             },
             "headerSubtitle": "Refresh the interface and unlock new features",
-            "headerTitle": "Extension store",
-            "title": "Store"
+            "headerTitle": "Add-on catalog",
+            "title": "Catalog"
         }
     },
     "profile": {
@@ -750,7 +904,7 @@
         },
         "fallbackAlbumTitle": "PulseSync {{version}}",
         "fields": {
-            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence.",
+            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence",
             "appIdLabel": "App ID",
             "detailsDescription": "Details description",
             "detailsLabel": "Details",
@@ -761,7 +915,7 @@
             "statusDisplayTypeAria": "Status display type",
             "statusDisplayTypeDescription": "Changes how activity is shown after “Listen”.",
             "statusDisplayTypeLabel": "Change activity status display type",
-            "statusLanguage": "Change the language in which the app name will be displayed in RPC.",
+            "statusLanguage": "Change the language in which the app name will be displayed in RPC",
             "textPlaceholder": "enter text"
         },
         "listeningStatus": "Listening to PulseSync",
@@ -805,6 +959,7 @@
             "askSavePath": "Option \"Ask where to save track\" {{status}}",
             "autoStartApp": "Option \"Auto-start app\" {{status}}",
             "autoStartMusic": "Option \"Auto-start music\" {{status}}",
+            "autoUpdateStoreAddons": "Option \"Auto-update store add-ons\" {{status}}",
             "autoTray": "Option \"Auto-start in tray\" {{status}}",
             "closeAppInTray": "Option \"Close app to tray\" {{status}}",
             "deletePextAfterImport": "Enabled deletion of .pext after theme import",
@@ -817,14 +972,36 @@
     },
     "store": {
         "download": "Download",
+        "loading": "Loading store add-ons...",
+        "empty": "No published add-ons are available yet.",
+        "noResults": "Nothing was found.",
+        "searchPlaceholder": "Find an add-on...",
+        "approvedAt": "Reviewed {{date}}",
+        "installed": "Installed",
+        "localVersionLinked": "A local version of {{title}} is already installed and linked to this publication.",
+        "installComplete": "Add-on {{title}} was installed.",
+        "installFailed": "Failed to install add-on {{title}}.",
+        "openLocal": "Open local",
+        "remove": "Remove",
+        "removeComplete": "Add-on {{title}} was removed.",
+        "removeFailed": "Failed to remove add-on {{title}}.",
+        "unknownAddon": "Add-on",
         "logs": {
             "downloadComplete": "[Store] Download complete. Starting installation.",
             "downloadStart": "[Store] Starting download {{title}}",
             "installComplete": "[Store] Installed {{title}}!"
         },
         "status": {
+            "accepted": "Accepted",
             "active": "Active",
-            "deprecated": "Deprecated"
+            "deprecated": "Deprecated",
+            "notPublished": "Not published",
+            "pending": "Pending review",
+            "rejected": "Rejected"
+        },
+        "kind": {
+            "theme": "Theme",
+            "script": "Script"
         },
         "type": {
             "both": "CSS + JS",

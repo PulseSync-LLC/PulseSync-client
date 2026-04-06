@@ -2,9 +2,9 @@ import { useEffect, useState } from 'react'
 import path from 'path'
 
 import appConfig from '@common/appConfig'
-import { DocTab } from './types'
-import AddonInterface from '../../../../api/interfaces/addon.interface'
-import { AddonConfig } from '../../../../components/сonfigurationSettings/types'
+import { DocTab } from '@pages/extension/route/extBox/types'
+import AddonInterface from '@entities/addon/model/addon.interface'
+import { AddonConfig } from '@features/configurationSettings/types'
 
 interface HookResult {
     docs: DocTab[]
@@ -26,7 +26,7 @@ const HANDLE_EVENTS_PATTERN = /^handleevents\.json$/i
 const DEFAULT_DOC_FILES = ['readme.md', 'license', 'changelog.md']
 const DEFAULT_CONFIG_FILE = 'handleEvents.json'
 
-const getAddonCacheKey = (addon: AddonInterface): string => addon.directoryName || addon.name
+const getAddonCacheKey = (addon: AddonInterface): string => addon.id || addon.directoryName || addon.name
 
 const resolveRootFileByPattern = (addon: AddonInterface, pattern: RegExp): string | null => {
     if (!Array.isArray(addon.rootFiles) || addon.rootFiles.length === 0) return null
@@ -128,7 +128,7 @@ export const clearAddonFilesCache = (addon?: AddonInterface | null): void => {
 }
 
 const buildAddonUrl = (addon: AddonInterface, file: string): string =>
-    `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?name=${encodeURIComponent(addon.name)}&file=${encodeURIComponent(file)}&r=${encodeURIComponent(
+    `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(file)}&r=${encodeURIComponent(
         `addon-docs-v2-${addon.lastModified || ''}-${addon.size || ''}`,
     )}`
 
@@ -225,4 +225,3 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
 
     return { docs, config, configExists }
 }
-

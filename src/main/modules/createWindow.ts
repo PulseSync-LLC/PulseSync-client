@@ -1,6 +1,6 @@
 import { app, BrowserWindow, shell, powerMonitor, screen } from 'electron'
 import { getNativeImg } from '../utils/electronNative'
-import isAppDev from 'electron-is-dev'
+import isAppDev from '../utils/isAppDev'
 import { getUpdater } from './updater/updater'
 import { queueAddonOpen, updateAvailable } from '../events'
 import { isWindows } from '../utils/appUtils'
@@ -19,11 +19,8 @@ declare const PRELOADER_VITE_DEV_SERVER_URL: string
 declare const PRELOADER_VITE_NAME: string
 
 const State = getState()
-declare const SETTINGS_WINDOW_VITE_DEV_SERVER_URL: string
-declare const SETTINGS_WINDOW_VITE_NAME: string
 
 export let mainWindow: BrowserWindow
-export let settingsWindow: BrowserWindow
 export let inSleepMode = false
 let isAppQuitting = false
 
@@ -134,7 +131,6 @@ export async function createWindow(): Promise<void> {
         transparent: false,
         roundedCorners: true,
         webPreferences: {
-            preload: path.join(__dirname, 'preloaderPreload.js'),
             contextIsolation: true,
             nodeIntegration: false,
         },
@@ -160,12 +156,10 @@ export async function createWindow(): Promise<void> {
         trafficLightPosition: { x: 16, y: 10 },
         icon,
         webPreferences: {
-            preload: path.join(__dirname, 'mainWindowPreload.js'),
+            preload: path.join(__dirname, 'mainWindowPreload.cjs'),
             contextIsolation: true,
             nodeIntegration: false,
             devTools: isAppDev || isDevmark,
-            webgl: State.get('settings.hardwareAcceleration'),
-            enableBlinkFeatures: State.get('settings.hardwareAcceleration') ? 'WebGL2' : '',
         },
     })
 
@@ -273,38 +267,5 @@ export async function createWindow(): Promise<void> {
             getUpdater().install()
         }
         inSleepMode = false
-    })
-}
-export function createSettingsWindow() {
-    if (settingsWindow) {
-        settingsWindow.focus()
-        return
-    }
-
-    settingsWindow = new BrowserWindow({
-        width: 1157,
-        height: 750,
-        minWidth: 1157,
-        minHeight: 750,
-        resizable: true,
-        fullscreenable: true,
-        frame: false,
-        backgroundColor: '#16181E',
-        webPreferences: {
-            preload: path.join(__dirname, 'mainWindowPreload.js'),
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
-    })
-
-    loadRendererWindow(
-        settingsWindow,
-        SETTINGS_WINDOW_VITE_DEV_SERVER_URL,
-        SETTINGS_WINDOW_VITE_NAME,
-        'src/renderer/settings.html',
-        'src/renderer/settings.html',
-    )
-    settingsWindow.on('closed', () => {
-        settingsWindow = null
     })
 }

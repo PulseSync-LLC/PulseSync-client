@@ -1,43 +1,29 @@
-import PageLayout from '../PageLayout'
-import * as s from './users.module.scss'
+import PageLayout from '@widgets/layout/PageLayout'
+import * as s from '@pages/users/users.module.scss'
 import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import cn from 'clsx'
-import UserInterface from '../../api/interfaces/user.interface'
-import GetAllUsersQuery from '../../api/queries/user/getAllUsers.query'
-import apolloClient from '../../api/apolloClient'
+import UserInterface from '@entities/user/model/user.interface'
+import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
+import apolloClient from '@shared/api/apolloClient'
 import debounce from 'lodash.debounce'
-import { MdKeyboardArrowDown, MdKeyboardArrowLeft, MdKeyboardArrowRight, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
-import toast from '../../components/toast'
-import UserCardV2 from '../../components/userCardV2'
-import Scrollbar from '../../components/PSUI/Scrollbar'
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
+import toast from '@shared/ui/toast'
+import UserCardV2 from '@entities/user/ui/userCardV2'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
-import { Banner } from '../../components/PSUI/Image'
-import { getBannerMediaUrls } from '../../utils/mediaVariants'
-import { getEffectiveLevelInfo } from '../../utils/levelInfo'
-
-const PER_PAGE = 51
-const SORT_FIELDS = ['lastOnline', 'createdAt', 'username', 'level'] as const
-
-type SortState = { id: (typeof SORT_FIELDS)[number]; desc: boolean }[]
-
-const SAFE_LEVEL_V2 = {
-    totalPoints: 0,
-}
-
-function normalizeUser(u: any): UserInterface {
-    const levelInfoV2 =
-        u?.levelInfoV2 && typeof u.levelInfoV2 === 'object' ? { ...SAFE_LEVEL_V2, ...u.levelInfoV2 } : SAFE_LEVEL_V2
-
-    return {
-        ...u,
-        badges: Array.isArray(u?.badges) ? u.badges : [],
-        levelInfoV2,
-    }
-}
+import { Banner } from '@shared/ui/PSUI/Image'
+import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
+import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
+import type { SortState, UserGridMetrics } from '@pages/users/model/userList'
+import { SORT_FIELDS, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH, getUserGridMetrics, sortUsers } from '@pages/users/model/userList'
 
 export default function UsersPage() {
+    const INITIAL_SHIMMER_FADE_MS = 180
+
     const [loading, setLoading] = useState(true)
+    const [isFetchingMore, setIsFetchingMore] = useState(false)
+    const [hasLoadMoreError, setHasLoadMoreError] = useState(false)
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
@@ -46,12 +32,28 @@ export default function UsersPage() {
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
     const [isHeaderHovered, setIsHeaderHovered] = useState(false)
+    const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
+    const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
 
     const inputRef = useRef<HTMLInputElement>(null)
     const containerRef = useRef<HTMLDivElement>(null)
+    const headerRef = useRef<HTMLDivElement>(null)
+    const userPageRef = useRef<HTMLDivElement>(null)
+    const loadMoreRef = useRef<HTMLDivElement>(null)
     const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
+    const queryKeyRef = useRef(0)
+    const nextPagePendingRef = useRef(false)
+    const animationsEnabledRef = useRef(false)
+    const shimmerFadeTimeoutRef = useRef<number | null>(null)
+    const shimmerFadeRafRef = useRef<number | null>(null)
+    const queryParamsRef = useRef<{ perPage: number; sorting: SortState; search: string }>({
+        perPage: 0,
+        sorting,
+        search: '',
+    })
     const nav = useNavigate()
     const { t } = useTranslation()
+    const [gridMetrics, setGridMetrics] = useState<UserGridMetrics | null>(null)
 
     const openProfile = useCallback(
         (u: any) => {
@@ -68,94 +70,142 @@ export default function UsersPage() {
             sortRefs.current[idx] = el
         }
 
+    const measureGrid = useCallback(() => {
+        const container = containerRef.current
+        const userPage = userPageRef.current
+
+        if (!container || !userPage) return
+
+        const userPageStyles = window.getComputedStyle(userPage)
+        const paddingLeft = Number.parseFloat(userPageStyles.paddingLeft) || 0
+        const paddingRight = Number.parseFloat(userPageStyles.paddingRight) || 0
+        const paddingTop = Number.parseFloat(userPageStyles.paddingTop) || 0
+        const contentWidth = Math.max(USER_CARD_MIN_WIDTH, userPage.clientWidth - paddingLeft - paddingRight)
+        const topOffset = Math.max(0, userPage.offsetTop + paddingTop)
+        const availableHeight = Math.max(USER_CARD_HEIGHT, container.clientHeight - topOffset)
+        const nextMetrics = getUserGridMetrics(contentWidth, availableHeight)
+
+        setGridMetrics(prevMetrics => {
+            if (
+                prevMetrics &&
+                prevMetrics.columns === nextMetrics.columns &&
+                prevMetrics.visibleRows === nextMetrics.visibleRows &&
+                prevMetrics.visibleCount === nextMetrics.visibleCount &&
+                prevMetrics.perPage === nextMetrics.perPage &&
+                prevMetrics.prefetchOffsetPx === nextMetrics.prefetchOffsetPx
+            ) {
+                return prevMetrics
+            }
+
+            return nextMetrics
+        })
+    }, [])
+
     const calculateIndicator = useCallback((index: number) => {
         const el = sortRefs.current[index]
         if (el && el.parentElement) {
             const rect = el.getBoundingClientRect()
             const containerRect = el.parentElement.getBoundingClientRect()
-            setIndicatorStyle({
-                left: rect.left - containerRect.left,
-                width: rect.width,
+            const nextLeft = rect.left - containerRect.left
+            const nextWidth = rect.width
+
+            setIndicatorStyle(prevStyle => {
+                if (prevStyle.left === nextLeft && prevStyle.width === nextWidth) {
+                    return prevStyle
+                }
+
+                return {
+                    left: nextLeft,
+                    width: nextWidth,
+                }
             })
         }
-    }, [])
-
-    const processUsers = useCallback((rawUsers: UserInterface[], sortingState: SortState): UserInterface[] => {
-        const id = sortingState[0].id
-        const desc = sortingState[0].desc
-        const arr = rawUsers.map(normalizeUser)
-
-        if (id === 'lastOnline') {
-            return [...arr].sort((a, b) => {
-                const aOnline = a.status === 'online'
-                const bOnline = b.status === 'online'
-                if (aOnline !== bOnline) return aOnline ? -1 : 1
-                const aT = a.lastOnline ? Number(a.lastOnline) : 0
-                const bT = b.lastOnline ? Number(b.lastOnline) : 0
-                if (aT === bT) return 0
-                return desc ? bT - aT : aT - bT
-            })
-        }
-
-        if (id === 'createdAt') {
-            return [...arr].sort((a, b) => {
-                const aT = a.createdAt ? Number(a.createdAt) : 0
-                const bT = b.createdAt ? Number(b.createdAt) : 0
-                return desc ? bT - aT : aT - bT
-            })
-        }
-
-        if (id === 'username') {
-            return [...arr].sort((a, b) => {
-                const r = (a.username || '').localeCompare(b.username || '', undefined, { sensitivity: 'base' })
-                return desc ? -r : r
-            })
-        }
-
-        if (id === 'level') {
-            return [...arr].sort((a, b) => {
-                const aPts = getEffectiveLevelInfo(a).totalPoints
-                const bPts = getEffectiveLevelInfo(b).totalPoints
-                return desc ? bPts - aPts : aPts - bPts
-            })
-        }
-
-        return arr
     }, [])
 
     const fetchUsers = useCallback(
-        (page_: number, perPage_: number, sorting_: SortState, search_: string) => {
-            setLoading(true)
-            apolloClient
-                .query({
+        async (page_: number, perPage_: number, sorting_: SortState, search_: string, mode: 'replace' | 'append', queryKey: number) => {
+            if (mode === 'append') {
+                setIsFetchingMore(true)
+            } else {
+                setLoading(true)
+            }
+
+            try {
+                const result = await apolloClient.query({
                     query: GetAllUsersQuery,
                     variables: { perPage: perPage_, page: page_, sorting: sorting_, search: search_ },
                     fetchPolicy: 'no-cache',
                 })
-                .then(result => {
-                    const data: any = result.data || {}
-                    const payload = data.getUsersWithPagination || null
-                    if (payload) {
-                        const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
-                        const totalPages: number = payload.totalPages || 1
-                        setUsers(processUsers(raw, sorting_))
-                        setMaxPages(totalPages)
-                    } else {
-                        setUsers([])
-                        setMaxPages(1)
-                    }
+
+                if (queryKey !== queryKeyRef.current) return
+
+                const data: any = result.data || {}
+                const payload = data.getUsersWithPagination || null
+
+                if (payload) {
+                    const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
+                    const totalPages: number = payload.totalPages || 1
+                    const nextUsers = sortUsers(raw, sorting_)
+
+                    setUsers(prevUsers => {
+                        if (mode !== 'append') return nextUsers
+
+                        const knownIds = new Set(prevUsers.map(user => user.id))
+                        return [...prevUsers, ...nextUsers.filter(user => !knownIds.has(user.id))]
+                    })
+                    setMaxPages(totalPages)
+                    if (mode === 'append') setHasLoadMoreError(false)
+                } else {
+                    if (mode !== 'append') setUsers([])
+                    setMaxPages(1)
+                }
+            } catch (e) {
+                if (queryKey !== queryKeyRef.current) return
+                console.error(e)
+                if (mode === 'append') {
+                    setHasLoadMoreError(true)
+                    setPage(prevPage => (prevPage >= page_ ? Math.max(1, page_ - 1) : prevPage))
+                }
+                toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
+            } finally {
+                if (mode === 'append') {
+                    nextPagePendingRef.current = false
+                    if (queryKey === queryKeyRef.current) setIsFetchingMore(false)
+                } else if (queryKey === queryKeyRef.current) {
                     setLoading(false)
-                })
-                .catch(e => {
-                    console.error(e)
-                    toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
-                    setLoading(false)
-                })
+                }
+            }
         },
-        [processUsers, t],
+        [t],
     )
 
     const debouncedFetchUsers = useMemo(() => debounce(fetchUsers, 300), [fetchUsers])
+
+    const getPT = useCallback(() => Math.round(window.innerHeight * 0.15), [])
+    const [pt, setPt] = useState(getPT())
+
+    const fallbackGridMetrics = useMemo(() => {
+        const estimatedWidth = typeof window === 'undefined' ? USER_CARD_MIN_WIDTH : Math.max(window.innerWidth - 80, USER_CARD_MIN_WIDTH)
+        const estimatedHeight = typeof window === 'undefined' ? USER_CARD_HEIGHT : Math.max(window.innerHeight - pt - 140, USER_CARD_HEIGHT)
+
+        return getUserGridMetrics(estimatedWidth, estimatedHeight)
+    }, [pt])
+
+    const effectiveGridMetrics = gridMetrics ?? fallbackGridMetrics
+    const perPage = gridMetrics?.perPage ?? 0
+    const shouldRenderUsers = users.length > 0
+
+    const clearInitialShimmerTimers = useCallback(() => {
+        if (shimmerFadeTimeoutRef.current !== null) {
+            window.clearTimeout(shimmerFadeTimeoutRef.current)
+            shimmerFadeTimeoutRef.current = null
+        }
+
+        if (shimmerFadeRafRef.current !== null) {
+            window.cancelAnimationFrame(shimmerFadeRafRef.current)
+            shimmerFadeRafRef.current = null
+        }
+    }, [])
 
     useEffect(() => {
         return () => {
@@ -170,33 +220,141 @@ export default function UsersPage() {
         return () => clearTimeout(handler)
     }, [search])
 
+    useLayoutEffect(() => {
+        const syncLayout = () => {
+            setPt(prevPt => {
+                const nextPt = getPT()
+                return prevPt === nextPt ? prevPt : nextPt
+            })
+            measureGrid()
+            calculateIndicator(SORT_FIELDS.indexOf(sorting[0].id))
+        }
+
+        syncLayout()
+
+        const debouncedSyncLayout = debounce(syncLayout, 120)
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => debouncedSyncLayout())
+
+        if (observer) {
+            ;[containerRef.current, headerRef.current, userPageRef.current].forEach(element => {
+                if (element) observer.observe(element)
+            })
+        }
+
+        window.addEventListener('resize', debouncedSyncLayout)
+
+        return () => {
+            debouncedSyncLayout.cancel()
+            observer?.disconnect()
+            window.removeEventListener('resize', debouncedSyncLayout)
+        }
+    }, [calculateIndicator, getPT, measureGrid, sorting])
+
     useEffect(() => {
-        debouncedFetchUsers(page, PER_PAGE, sorting, debouncedSearch)
-    }, [sorting, page, debouncedSearch, debouncedFetchUsers])
+        queryParamsRef.current = {
+            perPage,
+            sorting,
+            search: debouncedSearch,
+        }
+    }, [debouncedSearch, perPage, sorting])
+
+    useEffect(() => {
+        if (!perPage) return
+
+        const nextQueryKey = queryKeyRef.current + 1
+        queryKeyRef.current = nextQueryKey
+        nextPagePendingRef.current = false
+        animationsEnabledRef.current = false
+        clearInitialShimmerTimers()
+        setIsInitialShimmerVisible(true)
+        setIsInitialShimmerFading(false)
+
+        setPage(1)
+        setMaxPages(1)
+        setUsers([])
+        setLoading(true)
+        setIsFetchingMore(false)
+        setHasLoadMoreError(false)
+
+        debouncedFetchUsers(1, perPage, sorting, debouncedSearch, 'replace', nextQueryKey)
+    }, [clearInitialShimmerTimers, sorting, debouncedSearch, debouncedFetchUsers, perPage])
+
+    useEffect(() => {
+        if (page === 1) return
+
+        const currentQuery = queryParamsRef.current
+        if (!currentQuery.perPage) return
+
+        fetchUsers(page, currentQuery.perPage, currentQuery.sorting, currentQuery.search, 'append', queryKeyRef.current)
+    }, [page, fetchUsers])
+
+    useEffect(() => {
+        return () => {
+            clearInitialShimmerTimers()
+        }
+    }, [clearInitialShimmerTimers])
+
+    useEffect(() => {
+        if (loading) return
+
+        if (!shouldRenderUsers) {
+            clearInitialShimmerTimers()
+            setIsInitialShimmerVisible(false)
+            setIsInitialShimmerFading(false)
+            return
+        }
+
+        if (!isInitialShimmerVisible || isInitialShimmerFading) return
+
+        shimmerFadeRafRef.current = window.requestAnimationFrame(() => {
+            shimmerFadeRafRef.current = null
+            setIsInitialShimmerFading(true)
+
+            shimmerFadeTimeoutRef.current = window.setTimeout(() => {
+                shimmerFadeTimeoutRef.current = null
+                setIsInitialShimmerVisible(false)
+                setIsInitialShimmerFading(false)
+            }, INITIAL_SHIMMER_FADE_MS)
+        })
+    }, [INITIAL_SHIMMER_FADE_MS, clearInitialShimmerTimers, isInitialShimmerFading, isInitialShimmerVisible, loading, shouldRenderUsers])
 
     useLayoutEffect(() => {
         const activeIndex = SORT_FIELDS.indexOf(sorting[0].id)
         const timer = setTimeout(() => calculateIndicator(activeIndex), 0)
         return () => clearTimeout(timer)
-    }, [calculateIndicator, sorting, users])
-
-    useEffect(() => {
-        const handler = () => {
-            const idx = SORT_FIELDS.indexOf(sorting[0].id)
-            calculateIndicator(idx)
-        }
-        window.addEventListener('resize', handler)
-        return () => window.removeEventListener('resize', handler)
     }, [calculateIndicator, sorting])
 
-    const getPT = useCallback(() => Math.round(window.innerHeight * 0.15), [])
-    const [pt, setPt] = useState(getPT())
-
     useEffect(() => {
-        const onResize = () => setPt(getPT())
-        window.addEventListener('resize', onResize)
-        return () => window.removeEventListener('resize', onResize)
-    }, [getPT])
+        const root = containerRef.current
+        const target = loadMoreRef.current
+
+        if (!root || !target || loading || isFetchingMore || hasLoadMoreError || page >= maxPages) return
+
+        const observer = new IntersectionObserver(
+            entries => {
+                const entry = entries[0]
+                if (!entry?.isIntersecting || nextPagePendingRef.current) return
+
+                nextPagePendingRef.current = true
+                setPage(prevPage => {
+                    if (prevPage >= maxPages) {
+                        nextPagePendingRef.current = false
+                        return prevPage
+                    }
+
+                    return prevPage + 1
+                })
+            },
+            {
+                root,
+                rootMargin: `0px 0px ${effectiveGridMetrics.prefetchOffsetPx}px 0px`,
+                threshold: 0.1,
+            },
+        )
+
+        observer.observe(target)
+        return () => observer.disconnect()
+    }, [effectiveGridMetrics.prefetchOffsetPx, hasLoadMoreError, isFetchingMore, loading, maxPages, page])
 
     const handleSort = useCallback((field: string) => {
         setPage(1)
@@ -287,68 +445,18 @@ export default function UsersPage() {
         }
     }, [users])
 
-    const handlePageChange = useCallback((newPage: number) => {
-        setPage(newPage)
-        setTimeout(() => {
-            containerRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-        }, 0)
-    }, [])
-
-    const pagination = useMemo(() => {
-        if (maxPages <= 1) return null
-
-        const maxVisibleButtons = 5
-        let startPage = Math.max(1, page - Math.floor(maxVisibleButtons / 2))
-        let endPage = Math.min(maxPages, startPage + maxVisibleButtons - 1)
-
-        if (endPage - startPage + 1 < maxVisibleButtons) {
-            startPage = Math.max(1, endPage - maxVisibleButtons + 1)
-        }
-
-        return (
-            <div className={s.paginationContainer}>
-                <button onClick={() => handlePageChange(page - 1)} disabled={page === 1} className={s.paginationNavButton}>
-                    <MdKeyboardArrowLeft />
-                </button>
-                {startPage > 1 && (
-                    <>
-                        <button onClick={() => handlePageChange(1)} className={s.paginationPageButton}>
-                            1
-                        </button>
-                        {startPage > 2 && <span className={s.paginationEllipsis}>...</span>}
-                    </>
-                )}
-                {Array.from({ length: endPage - startPage + 1 }).map((_, i) => {
-                    const pageNum = startPage + i
-                    return (
-                        <button
-                            key={pageNum}
-                            onClick={() => handlePageChange(pageNum)}
-                            className={cn(s.paginationPageButton, pageNum === page && s.activePage)}
-                        >
-                            {pageNum}
-                        </button>
-                    )
-                })}
-                {endPage < maxPages && (
-                    <>
-                        {endPage < maxPages - 1 && <span className={s.paginationEllipsis}>...</span>}
-                        <button onClick={() => handlePageChange(maxPages)} className={s.paginationPageButton}>
-                            {maxPages}
-                        </button>
-                    </>
-                )}
-                <button onClick={() => handlePageChange(page + 1)} disabled={page === maxPages} className={s.paginationNavButton}>
-                    <MdKeyboardArrowRight />
-                </button>
-            </div>
-        )
-    }, [handlePageChange, maxPages, page])
-
     return (
         <PageLayout title={t('users.pageTitle')}>
-            <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner} ref={containerRef}>
+            <Scrollbar
+                className={s.containerFix}
+                classNameInner={cn(s.containerFixInner, loading && s.containerFixInnerLocked)}
+                ref={containerRef}
+                onScroll={() => {
+                    animationsEnabledRef.current = true
+                }}
+            >
                 <div
+                    ref={headerRef}
                     style={defaultBackground}
                     className={s.headerSection}
                     onMouseEnter={() => setIsHeaderHovered(true)}
@@ -377,7 +485,6 @@ export default function UsersPage() {
                                 value={search}
                                 onChange={e => {
                                     setSearch(e.target.value)
-                                    setPage(1)
                                 }}
                                 className={s.searchInput}
                             />
@@ -408,18 +515,47 @@ export default function UsersPage() {
                         <div className={s.indicator} style={{ left: `${indicatorStyle.left}px`, width: `${indicatorStyle.width}px` }} />
                     </div>
                 </div>
-                <div className={s.userPage}>
-                    {users.length > 0 ? (
-                        <div className={s.userGrid}>
-                            {users.map(user => (
-                                <UserCardV2 key={user.id} user={user} onClick={openProfile} />
-                            ))}
-                        </div>
+                <div ref={userPageRef} className={s.userPage}>
+                    {shouldRenderUsers ? (
+                        <>
+                            <div className={s.initialContentShell}>
+                                <div className={s.userGrid}>
+                                    {users.map((user, index) => (
+                                        <UserCardV2
+                                            key={user.id}
+                                            user={user}
+                                            onClick={openProfile}
+                                            animationsEnabledRef={animationsEnabledRef}
+                                            eagerVisible={index < effectiveGridMetrics.visibleCount}
+                                        />
+                                    ))}
+                                </div>
+                                {isInitialShimmerVisible && (
+                                    <div className={cn(s.initialShimmerOverlay, isInitialShimmerFading && s.initialShimmerOverlayHidden)}>
+                                        <UsersShimmer count={effectiveGridMetrics.visibleCount} />
+                                    </div>
+                                )}
+                            </div>
+                            <div ref={loadMoreRef} className={s.loadMoreSentinel} aria-hidden="true" />
+                            {maxPages > 1 && (
+                                <div className={s.paginationStatus}>
+                                    <span>
+                                        {page} / {maxPages}
+                                    </span>
+                                </div>
+                            )}
+                            {isFetchingMore && (
+                                <div className={s.loadMoreShimmer}>
+                                    <UsersShimmer count={effectiveGridMetrics.columns} />
+                                </div>
+                            )}
+                        </>
+                    ) : loading ? (
+                        <UsersShimmer count={effectiveGridMetrics.visibleCount} />
                     ) : (
                         !loading && <div className={s.noResults}>{t('users.noResults')}</div>
                     )}
                 </div>
-                {pagination}
             </Scrollbar>
         </PageLayout>
     )

@@ -1,0 +1,585 @@
+.overlay {
+    position: fixed;
+    bottom: 30px;
+    display: flex;
+    height: -webkit-fill-available;
+    top: 60px;
+    border: 1px solid #687397;
+    box-shadow: 0px 0px 16.4px #000000;
+    right: 30px;
+    border-radius: 10px;
+    overflow: hidden;
+    justify-content: center;
+    align-items: flex-end;
+    transition: var(--transition);
+    z-index: 9999;
+    opacity: 1;
+    background: rgba(0, 0, 0, 0);
+
+    &.closed {
+        right: -150px;
+        opacity: 0;
+    }
+}
+
+.closeBtn {
+    width: 22px;
+    height: 22px;
+    border: none;
+    background: transparent;
+    color: #c2c2c2;
+    font-size: 18px;
+    cursor: pointer;
+    transition: color 0.2s;
+    margin-left: auto;
+
+    &:hover {
+        color: #fff;
+    }
+}
+
+.modalContainer {
+    position: relative;
+    height: -webkit-fill-available;
+    display: flex;
+    overflow: auto;
+    transition: var(--transition);
+    flex-direction: column;
+    align-items: center;
+    background: #363944;
+
+    &.open {
+        opacity: 1;
+    }
+
+    &.closed {
+        opacity: 0;
+    }
+
+    & > div {
+        max-width: 1010px;
+        min-width: 930px;
+        width: -webkit-fill-available;
+    }
+}
+
+.tabsHeader {
+    justify-content: flex-start;
+    border-bottom: 1px solid #3e424c;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 8px 40px;
+    gap: 14px;
+    background: #424757;
+    text-transform: lowercase;
+}
+
+.tabsHeader button {
+    background: transparent;
+    border: none;
+    padding: 6px 10px;
+    cursor: pointer;
+    font-weight: 500;
+    font-size: 14px;
+    color: #a4aed3;
+    border-radius: 6px;
+    transition: var(--transition);
+
+    &:hover {
+        background: #474e66;
+    }
+}
+
+.tabsHeader button.activeTab {
+    background: #537aff;
+    color: #ffffff;
+
+    font-weight: 800;
+    font-size: 14px;
+    line-height: 140%;
+
+    color: #ffffff;
+}
+
+.currentTabLabel {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 15px 40px;
+    gap: 14px;
+
+    background: #292c36;
+
+    font-weight: 500;
+    font-size: 24px;
+    line-height: 140%;
+
+    color: #ffffff;
+}
+
+.modalContent {
+    padding: 0;
+}
+
+.bannerBackground {
+    width: 100%;
+    height: 350px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    align-items: flex-end;
+    padding: 15px 40px;
+    justify-content: flex-end;
+    overflow: hidden;
+}
+
+.bannerImage {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    z-index: 0;
+}
+
+.bannerGradient {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: linear-gradient(180deg, rgba(41, 44, 54, 0) 0%, #292c36 100%);
+    z-index: 1;
+    pointer-events: none;
+}
+
+.dateCreate {
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 110%;
+    color: #e1e1e1;
+}
+
+.dateCreateTooltip {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 3px 8px;
+    background: #272a33c9;
+    font-weight: 600;
+    font-size: 12px;
+    line-height: 140%;
+    color: #ffffff;
+}
+
+.levelBadge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    font-size: 14px;
+    font-weight: bold;
+    color: #fff;
+    background: linear-gradient(135deg, #ffcc00, #ff8800);
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
+}
+
+.userInfo {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.userImage {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-start;
+    gap: 15px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+
+    .avatarWrapper {
+        border-radius: 16px;
+        object-fit: cover;
+        background: white;
+    }
+}
+
+.userName {
+    font-weight: 900;
+    font-size: 20px;
+    line-height: 110%;
+    display: flex;
+    gap: 5px;
+    color: #ffffff;
+
+    .userBadges {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 3px;
+
+        .badge {
+            width: 20px;
+            height: 20px;
+        }
+    }
+}
+
+.userUsername {
+    font-weight: 500;
+    font-size: 12px;
+    line-height: 110%;
+    color: #e1e1e1;
+}
+
+.userButtons {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    position: relative;
+    z-index: 2;
+}
+
+.friendActionButton {
+    transition: 0.2s;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+    border-radius: 8px;
+    padding: 10px 15px;
+    gap: 8px;
+    width: -webkit-fill-available;
+
+    svg {
+        margin-right: 5px;
+    }
+
+    &:hover {
+        filter: brightness(1.05);
+    }
+}
+
+.buttonAddFriendWhite {
+    background: #ffffff;
+    color: #474c5c;
+
+    &:hover {
+        background: #f0f0f0;
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.buttonUnsubscribe {
+    background: #686ae0;
+    color: #ffffff;
+
+    &:hover {
+        background: #5859b8;
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.buttonRemoveFriend {
+    background: #e14677;
+    color: #ffffff;
+
+    &:hover {
+        background: #ac395d;
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.buttonAddFriend {
+    transition: 0.2s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px 15px;
+    gap: 10px;
+    width: 100%;
+    background: #ffffff;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+    color: #474c5c;
+
+    &:hover {
+        background: #d7d7d7;
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.buttonPersonal {
+    transition: 0.2s;
+    cursor: pointer;
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 10px 10px;
+    gap: 10px;
+    background: #474c5c;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 140%;
+    color: #b3bad4;
+
+    &:hover {
+        background: #5b6070;
+    }
+    &:disabled {
+        opacity: 0.5;
+    }
+}
+
+.userStatusInfo {
+    transition: 0.2s;
+    background: var(--statusColorProfile);
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    padding: 6px 40px;
+    gap: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    justify-content: space-between;
+    color: var(--statusColorDark);
+}
+
+.hoverEffect {
+    transition: 0.2s;
+
+    &:hover {
+        padding: 10px 40px;
+    }
+}
+
+.titleHeader {
+    font-weight: 900;
+    font-size: 18px;
+    line-height: 140%;
+    color: #ffffff;
+}
+
+.descriptionHeader {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 140%;
+    color: #c4cce7;
+}
+
+.achievementsSection {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px 40px;
+    gap: 15px;
+    width: 100%;
+    background: #292c36;
+    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+}
+
+.userPageDown {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+}
+
+.warning {
+    display: flex;
+    width: 100%;
+    background: transparent;
+    justify-content: center;
+    padding: 20px 40px;
+    margin: 0 20px;
+    font-weight: 700;
+    color: #ffee6d;
+    z-index: 2;
+    border-radius: 14px;
+    position: relative;
+    overflow: hidden;
+    flex-direction: column;
+
+    .title {
+        font-size: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+    }
+
+    .description {
+        font-size: 16px;
+        font-weight: 400;
+        line-height: 1.5;
+    }
+
+    .warnDot {
+        position: absolute;
+        left: 16px;
+        width: 10px;
+        height: 10px;
+        background-color: #ffee6d;
+        border-radius: 50%;
+    }
+
+    .pulsingDot {
+        position: absolute;
+        left: 13px;
+        width: 16px;
+        height: 16px;
+        background-color: #ffee6d;
+        border-radius: 50%;
+        animation: pulse 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
+    }
+
+    @keyframes pulse {
+        0% {
+            transform: scale(0.7);
+            opacity: 0;
+        }
+        50% {
+            transform: scale(1);
+            opacity: 0.7;
+        }
+        100% {
+            transform: scale(1.4);
+            opacity: 0;
+        }
+    }
+}
+//
+
+.achievementsList {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    width: 100%;
+}
+
+.achievementsListContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 5px;
+    width: -webkit-fill-available;
+}
+
+.achievementsListTitle {
+    font-weight: 900;
+    font-size: 14px;
+    line-height: 140%;
+    color: #c4cce7;
+}
+
+.noAchievementsMessage {
+    font-weight: 600;
+    font-size: 14px;
+    line-height: 140%;
+    color: #bac8f4;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: #474c5c;
+    border-radius: 8px;
+    padding: 10px 15px;
+    gap: 10px;
+    width: 100%;
+}
+
+.loadingContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 20px;
+    text-align: center;
+    height: -webkit-fill-available;
+    min-height: 100%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    color: white;
+    font-weight: 700;
+}
+
+.profileLoadingContainer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 0;
+    overflow: hidden;
+}
+
+.loader {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.dot {
+    width: 10px;
+    height: 10px;
+    background: #ffffff;
+    border-radius: 50%;
+    animation: bounce 0.6s infinite alternate;
+}
+
+.dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+.dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes bounce {
+    0% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+    100% {
+        transform: translateY(-10px);
+        opacity: 0.3;
+    }
+}

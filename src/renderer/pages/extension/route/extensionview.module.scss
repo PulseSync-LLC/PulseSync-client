@@ -5,8 +5,11 @@
 
 .container {
     display: flex;
+    flex: 1 1 auto;
     flex-direction: column;
     align-items: flex-start;
+    min-width: 0;
+    max-width: 100%;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
     background: #252835;
@@ -15,12 +18,16 @@
 }
 
 .containerFix {
+    min-width: 0;
+    max-width: 100%;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
 }
 
 .containerFixInner {
     overflow: overlay;
+    min-width: 0;
+    max-width: 100%;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
     background: #33394b;
@@ -28,6 +35,9 @@
     & > .extensionContent {
         display: flex;
         flex-direction: column;
+        min-width: 0;
+        width: 100%;
+        max-width: 100%;
         background: #33394b;
         z-index: 2;
         position: relative;
@@ -101,6 +111,8 @@
         }
 
         & > .galleryContainer {
+            min-width: 0;
+            max-width: 100%;
             width: -webkit-fill-available;
             display: flex;
             flex-direction: column;
@@ -121,6 +133,68 @@
                 }
             }
 
+            .changelogPanel {
+                display: flex;
+                flex-direction: column;
+                gap: 14px;
+            }
+
+            .changelogTitle {
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: 800;
+            }
+
+            .changelogList {
+                display: flex;
+                flex-direction: column;
+                gap: 12px;
+            }
+
+            .changelogItem {
+                display: flex;
+                flex-direction: column;
+                align-items: stretch;
+                gap: 12px;
+                padding: 14px 16px;
+                border-radius: 12px;
+                background: rgba(129, 141, 179, 0.12);
+                color: #e7edff;
+                line-height: 1.55;
+            }
+
+            .changelogVersionRow {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+            }
+
+            .changelogVersion {
+                color: #ffffff;
+                font-size: 15px;
+                font-weight: 800;
+            }
+
+            .changelogDate {
+                color: rgba(231, 237, 255, 0.6);
+                font-size: 12px;
+                font-weight: 600;
+            }
+
+            .changelogEntry {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+            }
+
+            .changelogBullet {
+                flex: 0 0 auto;
+                color: #8fffd4;
+                font-size: 18px;
+                line-height: 1.2;
+            }
+
             & > div {
                 width: -webkit-fill-available;
             }
@@ -128,8 +202,13 @@
             .markdownText {
                 padding: 0;
                 margin: 0;
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: hidden;
                 * {
                     user-select: text !important;
+                    max-width: 100%;
                 }
                 img {
                     max-width: 100%;
@@ -142,6 +221,31 @@
                     height: auto;
                     display: block;
                     object-fit: contain;
+                }
+                pre {
+                    width: 100%;
+                    max-width: 100%;
+                    min-width: 0;
+                    overflow-x: auto;
+                    overflow-y: hidden;
+                    box-sizing: border-box;
+                    white-space: pre;
+                }
+                code {
+                    word-break: break-word;
+                    overflow-wrap: anywhere;
+                }
+                pre code {
+                    display: block;
+                    min-width: max-content;
+                    word-break: normal;
+                    overflow-wrap: normal;
+                }
+                table {
+                    display: block;
+                    width: 100%;
+                    max-width: 100%;
+                    overflow-x: auto;
                 }
             }
         }

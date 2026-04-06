@@ -2,22 +2,22 @@ import React, { useCallback, useContext, useEffect, useMemo, useState } from 're
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@apollo/client/react'
 
-import getUserProfileQuery from '../../api/queries/user/getUserProfile.query'
-import getMeProfileQuery from '../../api/queries/user/getMeProfile.query'
-import userInitials from '../../api/initials/user.initials'
-import UserInterface from '../../api/interfaces/user.interface'
+import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
+import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
+import userInitials from '@entities/user/model/user.initials'
+import UserInterface from '@entities/user/model/user.interface'
 
-import PageLayout from '../PageLayout'
-import Scrollbar from '../../components/PSUI/Scrollbar'
+import PageLayout from '@widgets/layout/PageLayout'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 
-import ProfileTab from '../../components/userProfileModal/tabs/ProfileTab'
-import FriendsTab from '../../components/userProfileModal/tabs/FriendsTab'
-import SettingsTab from '../../components/userProfileModal/tabs/SettingsTab'
+import ProfileTab from '@widgets/userProfileModal/tabs/ProfileTab'
+import FriendsTab from '@widgets/userProfileModal/tabs/FriendsTab'
+import SettingsTab from '@widgets/userProfileModal/tabs/SettingsTab'
 
-import * as styles from './profilePage.module.scss'
+import * as styles from '@pages/profile/profilePage.module.scss'
 import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
-import { ExtendedUser } from '../../api/interfaces/extendUser.interface'
-import userContext from '../../api/context/user'
+import { ExtendedUser } from '@entities/user/model/extendUser.interface'
+import userContext from '@entities/user/model/context'
 import { useTranslation } from 'react-i18next'
 
 const ProfilePage: React.FC = () => {

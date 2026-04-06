@@ -1,17 +1,26 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
+import os from 'os'
 import crypto from 'crypto'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import { closeYandexMusic, copyFile, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
+import {
+    closeYandexMusic,
+    copyFile,
+    getInstalledYmMetadata,
+    getYandexMusicProcesses,
+    isYandexMusicRunning,
+    launchYandexMusic,
+} from '../../utils/appUtils'
 import { Paths, writePatchedAsarAndPatchBundle } from './mod-files'
 import { downloadAndUpdateFile } from './network'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
 import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
 import { CACHE_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
+import type { RemoteModInfo } from './network/modCatalog'
 
 const State = getState()
 
@@ -111,6 +120,36 @@ export async function cleanupModArtifacts(paths: Paths): Promise<void> {
         }
     } catch (e) {
         logger.modManager.warn('Failed to delete unpacked dir:', e)
+    }
+}
+
+export async function persistInstalledModState(paths: Paths, matchedMod: RemoteModInfo, resolvedChecksum: string): Promise<void> {
+    const ymMetadata = await getInstalledYmMetadata()
+    const prevMod = (State.get('mod') as Record<string, unknown> | undefined) ?? {}
+
+    State.set('mod', {
+        ...prevMod,
+        version: matchedMod.modVersion,
+        musicVersion: ymMetadata?.version ?? matchedMod.musicVersion,
+        realMusicVersion: matchedMod.realMusicVersion,
+        name: matchedMod.name,
+        installed: true,
+        checksum: resolvedChecksum,
+        unpackedChecksum: '',
+    })
+
+    const targetMusicVersion = matchedMod.realMusicVersion || matchedMod.musicVersion
+    if (!targetMusicVersion) return
+
+    const versionFilePath = path.join(paths.music, 'version.bin')
+    const tempVersionFilePath = path.join(os.tmpdir(), `pulsesync-version.${Date.now()}.${process.pid}.bin`)
+    await fs.promises.writeFile(tempVersionFilePath, targetMusicVersion)
+    try {
+        await fs.promises.copyFile(tempVersionFilePath, versionFilePath)
+    } finally {
+        try {
+            await fs.promises.unlink(tempVersionFilePath)
+        } catch {}
     }
 }
 

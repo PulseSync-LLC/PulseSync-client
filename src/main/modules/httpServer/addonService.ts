@@ -6,6 +6,8 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { sanitizeScript } from '../../utils/addonUtils'
 import { Server as IOServer, Socket } from 'socket.io'
 import { mainWindow } from '../createWindow'
+import { readAddonSettings } from './addonSettings'
+import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
 
 interface StateLike {
     get: (key: string) => any
@@ -29,7 +31,29 @@ interface DataToMusicOptions {
     targetSocket?: Socket
 }
 
+type RefreshedAddonPayload = {
+    name: string
+    directoryName: string
+    id?: string
+    css: string | null
+    script: string | null
+}
+
 export const createAddonService = ({ state, logger, getIo, getAuthorized, getSelectedAddon }: CreateAddonServiceOptions) => {
+    const lastAddonSettings = new Map<string, string>()
+    const pendingDataSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
+
+    const getMusicRecipients = (targetSocket?: Socket): Socket[] => {
+        const io = getIo()
+        if (!io) return []
+
+        const sockets = targetSocket ? [targetSocket] : Array.from(io.sockets.sockets.values())
+        return sockets.filter(sock => {
+            const client = sock as any
+            return client.clientType === 'yaMusic' && getAuthorized() && client.hasPong
+        })
+    }
+
     const getAllAllowedUrls = (): string[] => {
         const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
         const urls = new Set<string>()
@@ -92,6 +116,38 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         return Array.from(urls)
     }
 
+    const getEnabledAddonNames = (): string[] => {
+        const enabled = new Set<string>()
+
+        const stateTheme = state.get('addons.theme')
+        const selectedTheme =
+            typeof stateTheme === 'string' && stateTheme.trim()
+                ? stateTheme.trim()
+                : typeof getSelectedAddon() === 'string' && getSelectedAddon().trim()
+                  ? getSelectedAddon().trim()
+                  : 'Default'
+
+        enabled.add(selectedTheme)
+
+        let scripts = state.get('addons.scripts')
+        if (typeof scripts === 'string') {
+            scripts = scripts
+                .split(',')
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+        }
+
+        if (Array.isArray(scripts)) {
+            scripts.forEach(scriptName => {
+                if (typeof scriptName === 'string' && scriptName.trim()) {
+                    enabled.add(scriptName.trim())
+                }
+            })
+        }
+
+        return Array.from(enabled)
+    }
+
     const setAddon = (_theme: string) => {
         const io = getIo()
         if (!getAuthorized() || !io) return
@@ -109,7 +165,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
         js = sanitizeScript(js)
 
-        const themeData = { name: selected, css: css || '{}', script: js || '' }
+        const themeData = { name: metadata.name || selected, css: css || '{}', script: js || '' }
         if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
             return
         }
@@ -162,7 +218,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         const themeData = {
-            name: themeDef ? 'Default' : state.get('addons.theme') || 'Default',
+            name: themeDef ? 'Default' : metadata.name || state.get('addons.theme') || 'Default',
             css: css || '{}',
             script: js || '',
         }
@@ -207,7 +263,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         const found = dirs
-            .map(folderName => {
+            .map<RefreshedAddonPayload | null>(folderName => {
                 const metadataPath = path.join(addonsFolder, folderName, 'metadata.json')
                 if (!fs.existsSync(metadataPath)) {
                     return null
@@ -241,7 +297,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     }
 
                     return {
-                        name: folderMatches ? folderName : addonName,
+                        name: addonName,
+                        directoryName: folderName,
+                        id: typeof meta.id === 'string' ? meta.id : undefined,
                         css,
                         script,
                     }
@@ -249,7 +307,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     return null
                 }
             })
-            .filter((x): x is { name: string; css: string | null; script: string | null } => Boolean(x))
+            .filter((x): x is RefreshedAddonPayload => x !== null)
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
@@ -260,9 +318,66 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         })
     }
 
+    const sendAddonSettings = ({ addonName, targetSocket, force = false }: { addonName: string; targetSocket?: Socket; force?: boolean }): void => {
+        if (!addonName) return
+        const addonDirectory = resolveAddonDirectory(addonName)
+        if (!addonDirectory) return
+        if (!getEnabledAddonNames().includes(addonDirectory)) {
+            return
+        }
+
+        const settings = readAddonSettings(addonDirectory)
+        const serialized = JSON.stringify(settings)
+        const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
+        if (!force && lastAddonSettings.get(addonDisplayName) === serialized) {
+            return
+        }
+
+        lastAddonSettings.set(addonDisplayName, serialized)
+
+        for (const sock of getMusicRecipients(targetSocket)) {
+            sock.emit('ADDON_SETTINGS_UPDATE', {
+                addon: addonDisplayName,
+                settings,
+            })
+        }
+    }
+
+    const sendAllAddonSettings = ({
+        targetSocket,
+        force = false,
+    }: {
+        targetSocket?: Socket
+        force?: boolean
+    } = {}): void => {
+        const snapshot = getEnabledAddonNames().reduce(
+            (acc, addonName) => {
+                const addonDirectory = resolveAddonDirectory(addonName)
+                if (!addonDirectory) return acc
+                const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
+                acc[addonDisplayName] = readAddonSettings(addonDirectory)
+                return acc
+            },
+            {} as Record<string, ReturnType<typeof readAddonSettings>>,
+        )
+        if (force) {
+            lastAddonSettings.clear()
+        }
+        Object.entries(snapshot).forEach(([addonName, settings]) => {
+            lastAddonSettings.set(addonName, JSON.stringify(settings))
+        })
+
+        for (const sock of getMusicRecipients(targetSocket)) {
+            sock.emit('ADDON_SETTINGS_SNAPSHOT', {
+                settings: snapshot,
+            })
+        }
+    }
+
     const sendDataToMusic = ({ targetSocket }: DataToMusicOptions = {}) => {
         const io = getIo()
         if (!io) return
+        const syncKey = targetSocket?.id || '__all__'
 
         const sendOnce = (sock: Socket) => {
             const s = sock as any
@@ -276,7 +391,13 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         if (targetSocket) sendOnce(targetSocket)
         else io.sockets.sockets.forEach(sendOnce)
 
-        setTimeout(async () => {
+        const existingTimer = pendingDataSyncTimers.get(syncKey)
+        if (existingTimer) {
+            clearTimeout(existingTimer)
+        }
+
+        const timer = setTimeout(async () => {
+            pendingDataSyncTimers.delete(syncKey)
             io.sockets.sockets.forEach(sock => {
                 const s = sock as any
                 if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
@@ -284,7 +405,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                 }
             })
             await sendExtensions()
+            sendAllAddonSettings({ targetSocket, force: true })
         }, 1000)
+        pendingDataSyncTimers.set(syncKey, timer)
     }
 
     const getCurrentTrack = () => {
@@ -321,6 +444,8 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         setAddon,
         sendAddon,
         sendExtensions,
+        sendAddonSettings,
+        sendAllAddonSettings,
         sendDataToMusic,
         getCurrentTrack,
         sendPremiumUserToClients,

@@ -8,8 +8,12 @@ import { exec as _exec, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
-import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload'
-import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish'
+import * as semver from 'semver'
+import { fileURLToPath } from 'node:url'
+import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
+import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const exec = promisify(_exec)
 
@@ -44,7 +48,10 @@ if (publishIndex !== -1) {
 }
 
 function parsePublishBranchFromTag(tagValue: string): string | null {
-    const tag = tagValue.trim().replace(/^refs\/tags\//u, '').replace(/^v(?=\d)/u, '')
+    const tag = tagValue
+        .trim()
+        .replace(/^refs\/tags\//u, '')
+        .replace(/^v(?=\d)/u, '')
     if (!tag.includes('-')) {
         return null
     }
@@ -95,6 +102,21 @@ function log(level: LogLevel, message: string): void {
     else console.log(out)
 }
 
+function resolvePublishedVersion(currentVersion: string, targetBranch: string): string {
+    const parsedVersion = semver.parse(currentVersion)
+    if (!parsedVersion) {
+        const baseVersion = currentVersion.split('-')[0]
+        return `${baseVersion}-${targetBranch}`
+    }
+
+    const currentPrereleaseChannel = parsedVersion.prerelease[0]
+    if (typeof currentPrereleaseChannel === 'string' && currentPrereleaseChannel.toLowerCase() === targetBranch.toLowerCase()) {
+        return currentVersion
+    }
+
+    return `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}-${targetBranch}`
+}
+
 function generateBuildInfo(): { version: string } {
     const pkgPath = path.resolve(__dirname, '../package.json')
     log(LogLevel.INFO, `Reading package.json from ${pkgPath}`)
@@ -122,8 +144,7 @@ function generateBuildInfo(): { version: string } {
     const currentVersion = pkg.version
     let newVersion = currentVersion
     if (publishBranch) {
-        const baseVersion = currentVersion.split('-')[0]
-        newVersion = `${baseVersion}-${publishBranch}`
+        newVersion = resolvePublishedVersion(currentVersion, publishBranch)
         pkg.version = newVersion
     }
 
@@ -204,6 +225,19 @@ function setConfigBranch(branch: string) {
     log(LogLevel.SUCCESS, `Set branch=${branch} in appConfig.ts`)
 }
 
+function hasCompiledNativeArtifact(modulePath: string): boolean {
+    const releaseDir = path.join(modulePath, 'build', 'Release')
+    if (!fs.existsSync(releaseDir)) {
+        return false
+    }
+
+    return fs.readdirSync(releaseDir).some(fileName => path.extname(fileName).toLowerCase() === '.node')
+}
+
+function hasNativeModuleDependencies(modulePath: string): boolean {
+    return fs.existsSync(path.join(modulePath, 'node_modules'))
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -237,6 +271,10 @@ async function main(): Promise<void> {
             const packageJsonPath = path.join(fullPath, 'package.json')
             if (!fs.existsSync(packageJsonPath)) {
                 log(LogLevel.WARN, `Skipping native module "${mod}" (package.json not found)`)
+                continue
+            }
+            if (hasNativeModuleDependencies(fullPath) && hasCompiledNativeArtifact(fullPath)) {
+                log(LogLevel.SUCCESS, `Skipping native module "${mod}" (cached build artifacts found)`)
                 continue
             }
             await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)
@@ -281,7 +319,7 @@ async function main(): Promise<void> {
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
                     updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: true,
+                    useMultipleRangeRequest: false,
                 }
                 const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
                 fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
@@ -301,22 +339,30 @@ async function main(): Promise<void> {
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 
-            function copyNodes(srcDir: string) {
-                fs.readdirSync(srcDir, { withFileTypes: true }).forEach(entry => {
-                    const fullPath = path.join(srcDir, entry.name)
-                    if (entry.isDirectory()) {
-                        copyNodes(fullPath)
-                    } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
-                        const relativePath = path.relative(nativeDir, fullPath)
-                        const dest = path.join(outDir, 'modules', relativePath)
+            for (const mod of fs.readdirSync(nativeDir)) {
+                const modulePath = path.join(nativeDir, mod)
+                if (!fs.existsSync(modulePath) || !fs.statSync(modulePath).isDirectory()) {
+                    continue
+                }
 
-                        fs.mkdirSync(path.dirname(dest), { recursive: true })
-                        fs.copyFileSync(fullPath, dest)
-                        log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
-                    }
-                })
+                const releasePath = path.join(modulePath, 'build', 'Release')
+                if (!fs.existsSync(releasePath) || !fs.statSync(releasePath).isDirectory()) {
+                    continue
+                }
+
+                const compiledArtifacts = fs
+                    .readdirSync(releasePath, { withFileTypes: true })
+                    .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.node')
+
+                for (const artifact of compiledArtifacts) {
+                    const sourcePath = path.join(releasePath, artifact.name)
+                    const dest = path.join(outDir, 'modules', mod, artifact.name)
+
+                    fs.mkdirSync(path.dirname(dest), { recursive: true })
+                    fs.copyFileSync(sourcePath, dest)
+                    log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+                }
             }
-            copyNodes(nativeDir)
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
@@ -341,7 +387,7 @@ async function main(): Promise<void> {
                     url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
                     channel: 'latest',
                     updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: true,
+                    useMultipleRangeRequest: false,
                 },
             ]
             configObj.extraMetadata = configObj.extraMetadata || {}

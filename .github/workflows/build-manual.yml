@@ -63,13 +63,22 @@ jobs:
         os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-latest","macos-15-intel"]' || (inputs.build_os == 'macos-latest' && '["macos-latest","macos-15-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-latest","macos-15-intel"]' || format('["{0}"]', inputs.build_os)))) }}
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ inputs.target }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            nativeModules/**/node_modules
+            nativeModules/**/build
+          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/yarn.lock', 'nativeModules/**/binding.gyp', 'nativeModules/**/*.c', 'nativeModules/**/*.cc', 'nativeModules/**/*.cpp', 'nativeModules/**/*.h', 'nativeModules/**/*.hpp') }}
 
       - name: Create .env
         shell: bash
@@ -84,7 +93,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
+        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
 
       - name: Show release contents (debug)
         shell: bash

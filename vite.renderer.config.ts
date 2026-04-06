@@ -1,9 +1,12 @@
-import react from '@vitejs/plugin-react'
+import babel from '@rolldown/plugin-babel'
+import react, { reactCompilerPreset } from '@vitejs/plugin-react'
 import svgr from 'vite-plugin-svgr'
 import { defineConfig } from 'vite'
 import path from 'path'
-import { nodePolyfills } from 'vite-plugin-node-polyfills'
 import fs from 'fs'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -42,20 +45,27 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         },
         build: {
             sourcemap: isDevSourceMapMode,
+            target: 'chrome146',
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: '../assets',
             emptyOutDir: true,
-            rollupOptions: {
+            rolldownOptions: {
                 input: path.resolve(__dirname, htmlEntry),
                 output: {
                     entryFileNames: 'renderer.js',
                     chunkFileNames: '[name].js',
                     assetFileNames: '[name].[ext]',
-                    manualChunks: id => {
-                        if (id.includes('node_modules')) {
-                            return 'vendor'
-                        }
-                        return undefined
+                    codeSplitting: {
+                        groups: [
+                            {
+                                name: moduleId => {
+                                    if (moduleId.includes('node_modules')) {
+                                        return 'vendor'
+                                    }
+                                    return null
+                                },
+                            },
+                        ],
                     },
                 },
             },
@@ -66,15 +76,13 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             },
         },
         plugins: [
-            nodePolyfills(),
             svgr({
                 include: 'src/**/*.svg',
             }),
-            react({
-                babel: {
-                    plugins: ['babel-plugin-react-compiler'],
-                },
-            }),
+            react({}),
+            babel({
+                presets: [reactCompilerPreset()],
+            } as Parameters<typeof babel>[0]),
             ...(!isDevMode
                 ? [
                       {
@@ -99,6 +107,13 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             alias: {
                 '@': path.resolve(__dirname, 'static'),
                 '@common': path.resolve(__dirname, 'src/common'),
+                '@app': path.resolve(__dirname, 'src/renderer/app'),
+                '@pages': path.resolve(__dirname, 'src/renderer/pages'),
+                '@widgets': path.resolve(__dirname, 'src/renderer/widgets'),
+                '@features': path.resolve(__dirname, 'src/renderer/features'),
+                '@entities': path.resolve(__dirname, 'src/renderer/entities'),
+                '@shared': path.resolve(__dirname, 'src/renderer/shared'),
+                path: 'path-browserify',
                 '/assets': path.resolve(__dirname, 'static/assets'),
             },
         },

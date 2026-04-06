@@ -1,45 +1,35 @@
 {
     "compilerOptions": {
-        "target": "ES2022",
+        "target": "ES2025",
         "lib": [
-            "ES2016.Array.Include",
-            "ES2021",
+            "ES2025",
             "DOM",
-            "DOM.Iterable",
-            "ScriptHost"
+            "DOM.Iterable"
         ],
-        "allowJs": true,
-        "maxNodeModuleJsDepth": 10,
-        "module": "commonjs",
         "skipLibCheck": true,
         "noImplicitAny": true,
         "allowSyntheticDefaultImports": true,
         "sourceMap": true,
         "inlineSources": true,
-        "baseUrl": ".",
-        "outDir": "dist",
-        "moduleResolution": "node",
-        "jsx": "react-jsx",
         "resolveJsonModule": true,
         "esModuleInterop": true,
+        "jsx": "react-jsx",
+        "isolatedModules": true,
+        "moduleDetection": "force",
         "paths": {
-            "*": ["node_modules/*"],
-            "@/*": ["static/*"],
-            "@common/*": ["src/common/*"]
+            "@/*": ["./static/*"],
+            "@common/*": ["./src/common/*"],
+            "@app/*": ["./src/renderer/app/*"],
+            "@pages/*": ["./src/renderer/pages/*"],
+            "@widgets/*": ["./src/renderer/widgets/*"],
+            "@features/*": ["./src/renderer/features/*"],
+            "@entities/*": ["./src/renderer/entities/*"],
+            "@shared/*": ["./src/renderer/shared/*"]
         }
     },
-    "include": [
-        "src/**/*",
-        "styles.d.ts",
-        "window.d.ts",
-        "declarations.d.ts",
-        "vite-env.d.ts"
-    ],
-    "exclude": [
-        "src/renderer/**"
-    ],
+    "files": [],
     "references": [
-        { "path": "./tsconfig.node.json" },
-        { "path": "./tsconfig.renderer.json" }
+        { "path": "./tsconfig.app.json" },
+        { "path": "./tsconfig.node.json" }
     ]
 }

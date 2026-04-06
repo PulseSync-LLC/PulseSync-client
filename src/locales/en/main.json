@@ -96,13 +96,6 @@
             "internalError": "Error inside ErrorService.handleError:",
             "writeCrashLogError": "Error writing crash.log:"
         },
-        "hostFile": {
-            "entriesAddError": "An error occurred while adding entries",
-            "entriesAddFailed": "Failed to add entries to the list",
-            "entriesAdded": "pulsesync.dev and ru-node-1.pulsesync.dev were successfully added to the list",
-            "invalidListGeneralPath": "Invalid list-general.txt path",
-            "noPendingListGeneralPath": "No pending list-general.txt path for this window"
-        },
         "index": {
             "appStartupError": "Error starting the app:",
             "musicPathError": "Error getting path:"
@@ -137,6 +130,7 @@
             "linuxPermissionsRequired": "Not enough permissions to modify Yandex Music files. Grant access and retry.",
             "modAlreadyInstalled": "Mod is already installed.",
             "modAsarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
+            "modVersionNotFoundByChecksum": "This patch is not supported right now. Installation was cancelled.",
             "usingCache": "Using mod cache..."
         },
         "modNetwork": {

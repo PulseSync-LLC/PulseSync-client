@@ -28,9 +28,268 @@
     align-items: start;
 }
 
+.metaWide {
+    grid-column: 1 / -1;
+}
+
+.metaSplit {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+    gap: 12px;
+    align-items: start;
+}
+
+.metaMainColumn,
+.metaSideColumn {
+    display: grid;
+    gap: 12px;
+}
+
+.metaSideRow {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metaDescription {
+    padding-top: 8px;
+    padding-bottom: 8px;
+}
+
+.metaDescription [role='textbox'] {
+    font-size: 16px;
+    line-height: 1.35;
+}
+
 .fileCol {
     display: grid;
     gap: 8px;
+}
+
+.assetGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    align-items: start;
+}
+
+.assetWide {
+    grid-column: 1 / -1;
+}
+
+.listEditorCard {
+    grid-column: 1 / -1;
+    display: grid;
+    gap: 14px;
+    padding: 16px 18px;
+    background: #313748;
+    border: 1px solid #434b61;
+    border-radius: 14px;
+}
+
+.listEditorHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.listEditorTitle {
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.listEditorDescription {
+    margin-top: 4px;
+    color: var(--cfg-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.listEditorButton {
+    min-width: 140px;
+    padding: 10px 14px;
+    border: 1px solid #5b6687;
+    border-radius: 10px;
+    background: #3b4460;
+    color: #f4f7ff;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.listEditorButton:hover {
+    background: #45506f;
+}
+
+.listSummaryRow {
+    display: grid;
+    gap: 12px;
+    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    padding-top: 2px;
+}
+
+.listSummaryMeta {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.listSummaryLabel {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f2f6ff;
+}
+
+.listSummaryValue {
+    color: #b8c5dd;
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-word;
+}
+
+.listPreviewEmpty {
+    color: var(--cfg-muted);
+    font-size: 13px;
+}
+
+.listEditorModal {
+    max-width: 1040px !important;
+}
+
+.listEditorModalBody {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+}
+
+.listEditorSection {
+    display: grid;
+    gap: 12px;
+    padding: 14px;
+    border-radius: 14px;
+    background: #282e3d;
+    border: 1px solid #3d4458;
+    color: #e7ecf3;
+}
+
+.listEditorSectionHeader {
+    display: grid;
+    gap: 6px;
+}
+
+.listEditorFieldLabel {
+    font-size: 14px;
+    font-weight: 700;
+    color: #f2f6ff;
+}
+
+.listEditorHint {
+    color: var(--cfg-muted);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.listEditorComposer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+}
+
+.listEditorInput {
+    height: 44px;
+    width: 100%;
+    border: 1px solid #4a526d;
+    border-radius: 12px;
+    background: #242a39;
+    color: var(--cfg-text);
+    padding: 0 14px;
+    font: inherit;
+    line-height: 1.5;
+}
+
+.listEditorInput::placeholder {
+    color: #8f9bb3;
+}
+
+.listEditorInput:focus {
+    outline: none;
+    border-color: var(--cfg-accent);
+    box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.18);
+}
+
+.listEditorAddButton {
+    min-height: 44px;
+    padding: 0 16px !important;
+    align-items: center !important;
+}
+
+.listEditorItems {
+    display: grid;
+    gap: 0;
+    max-height: 280px;
+    overflow: auto;
+    padding-right: 2px;
+    border: 1px solid #343c50;
+    border-radius: 12px;
+    background: #242a39;
+}
+
+.listEditorEmpty {
+    color: var(--cfg-muted);
+    font-size: 13px;
+    line-height: 1.5;
+    padding: 4px 2px 0;
+}
+
+.listEditorRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 10px;
+    align-items: center;
+    padding: 12px 14px;
+    background: transparent;
+    border-bottom: 1px solid rgba(74, 82, 109, 0.5);
+}
+
+.listEditorRow:last-child {
+    border-bottom: 0;
+}
+
+.listEditorRowValue {
+    font-size: 13px;
+    line-height: 1.5;
+    word-break: break-word;
+    color: #e7ecf3;
+}
+
+.listEditorRemoveButton {
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 8px;
+    background: rgba(255, 107, 107, 0.12);
+    color: #ffb1b1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.listEditorRemoveButton:hover {
+    background: rgba(255, 107, 107, 0.2);
+}
+
+.listEditorInlineError,
+.listEditorError {
+    padding: 12px 14px;
+    border-radius: 12px;
+    background: rgba(255, 107, 107, 0.14);
+    border: 1px solid rgba(255, 107, 107, 0.32);
+    color: #ffb1b1;
+    font-size: 13px;
+    line-height: 1.5;
 }
 
 .preview {
@@ -69,4 +328,38 @@
 
 .footerSpace {
     height: 56px;
+}
+
+@media (max-width: 920px) {
+    .metaGrid,
+    .listSummaryRow,
+    .listEditorModalBody {
+        grid-template-columns: 1fr;
+    }
+
+    .metaSplit,
+    .metaSideRow,
+    .assetGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .metaWide {
+        grid-column: auto;
+    }
+
+    .assetWide {
+        grid-column: auto;
+    }
+
+    .listEditorHeader {
+        flex-direction: column;
+    }
+
+    .listEditorButton {
+        width: 100%;
+    }
+
+    .listEditorComposer {
+        grid-template-columns: 1fr;
+    }
 }

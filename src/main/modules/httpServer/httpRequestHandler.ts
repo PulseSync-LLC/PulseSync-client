@@ -3,7 +3,8 @@ import * as fs from 'original-fs'
 import * as path from 'path'
 import { app } from 'electron'
 import { parse } from 'url'
-import { Track } from '../../../renderer/api/interfaces/track.interface'
+import { Track } from '@entities/track/model/track.interface'
+import { resolveAddonDirectory } from '../../utils/addonRegistry'
 
 interface LoggerLike {
     http: {
@@ -90,15 +91,28 @@ const imageMimes: Record<string, string> = {
     ico: 'image/x-icon',
 }
 
+const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
+    const candidates = [query.directory, query.id, query.name]
+
+    for (const candidate of candidates) {
+        const resolved = resolveAddonDirectory(candidate)
+        if (resolved) {
+            return resolved
+        }
+    }
+
+    return ''
+}
+
 export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized, getTrackData }: CreateHttpRequestHandlerOptions) => {
     const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { query } = parse(req.url || '', true)
-            const name = query.name as string
+            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
 
-            if (!name) return sendJson(res, 400, { error: 'Missing query parameters: name or type' })
+            if (!directory) return sendJson(res, 400, { error: 'Missing query parameters: directory, id or name' })
 
-            const handlePath = path.join(getAddonRoot(), name, 'handleEvents.json')
+            const handlePath = path.join(getAddonRoot(), directory, 'handleEvents.json')
             if (!fs.existsSync(handlePath)) return sendJson(res, 404, { error: 'Handle events data not found' })
 
             const data = JSON.parse(fs.readFileSync(handlePath, 'utf8'))
@@ -112,11 +126,11 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { query } = parse(req.url || '', true)
-            const name = query.name as string
+            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
 
-            if (!name) return sendJson(res, 400, { error: 'Missing query parameter: name' })
+            if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
-            const addonPath = path.join(getAddonRoot(), name)
+            const addonPath = path.join(getAddonRoot(), directory)
             const assetsDir = findAssetsDirectory(addonPath)
             if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
 
@@ -135,10 +149,10 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
     const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { pathname, query } = parse(req.url || '', true)
-            const name = query.name as string
-            if (!name) return sendJson(res, 400, { error: 'Missing query parameter: name' })
+            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
+            if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
-            const assetsDir = findAssetsDirectory(path.join(getAddonRoot(), name))
+            const assetsDir = findAssetsDirectory(path.join(getAddonRoot(), directory))
             if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
 
             const fileName = pathname!.substring(ASSET_PREFIX.length)
@@ -159,16 +173,16 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
     const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { query } = parse(req.url || '', true)
-            const name = query.name as string
+            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
             const fileName = query.file as string
 
-            if (!name || !fileName) return sendJson(res, 400, { error: 'Missing query parameters: name or file' })
+            if (!directory || !fileName) return sendJson(res, 400, { error: 'Missing query parameters: directory/id/name or file' })
             if (/^https?:\/\//i.test(fileName)) {
                 logger.http.log(`Skipping remote URL for root file: ${fileName}`)
                 return sendJson(res, 400, { ok: false, error: 'Remote URLs are not served by this endpoint.' })
             }
 
-            const targetPath = path.join(getAddonRoot(), name, fileName)
+            const targetPath = path.join(getAddonRoot(), directory, fileName)
             if (!fs.existsSync(targetPath) || !fs.statSync(targetPath).isFile()) {
                 return sendJson(res, 404, { error: 'File not found in addon root' })
             }

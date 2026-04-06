@@ -50,7 +50,6 @@
         "selectFile": "Выберите файл",
         "selectPlaceholder": "Выберите",
         "serverUnavailable": "Сервер недоступен",
-        "serverUnavailableShort": "Недоступен",
         "somethingWrongTitle": "Что-то не так",
         "submit": "Отправить",
         "successTitle": "Успех",
@@ -149,6 +148,7 @@
         "appDirectory": "Директория приложения",
         "appSettings": {
             "autoStartApp": "Автозапуск приложения",
+            "autoUpdateStoreAddons": "Автообновление аддонов из каталога",
             "deletePextAfterImport": "Удалять .pext после импорта темы",
             "hardwareAcceleration": "Аппаратное ускорение",
             "title": "Настройки приложения"
@@ -162,7 +162,7 @@
             "checkUpdates": "Проверить обновления",
             "collectLogs": "Собрать логи в архив",
             "logsReady": "Скоро открою папку",
-            "title": "Особое",
+            "title": "Система",
             "version": "Версия: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Статус вебсокета"
         },
@@ -316,7 +316,7 @@
     },
     "extensions": {
         "actions": {
-            "store": "Магазин"
+            "store": "Каталог"
         },
         "addonCreatedMessage": "Аддон {{name}} успешно создан",
         "addonCreatedTitle": "Аддон создан",
@@ -330,10 +330,81 @@
         "loadFailed": "Ошибка загрузки",
         "meta": {
             "author": "Автор",
+            "authors": "Авторы:",
+            "source": "Источник",
             "size": "Размер",
             "updated": "Обновлено",
             "version": "Версия"
         },
+        "source": {
+            "local": "Локально",
+            "store": "Каталог"
+        },
+        "publication": {
+            "statusLabel": "Публикация",
+            "modalTitle": "Публикация аддона",
+            "noteLabel": "Заметка модератора",
+            "githubUrlLabel": "Ссылка на GitHub",
+            "githubUrlPlaceholder": "https://github.com/owner/repository",
+            "changelogLabel": "Список изменений",
+            "changelogPlaceholder": "- Исправил баг с плеером\n- Обновил стили карточек\n- Добавил новую настройку",
+            "changelogRequired": "Добавь список изменений перед публикацией.",
+            "githubUrlRequired": "Добавь ссылку на GitHub перед публикацией.",
+            "githubUrlInvalid": "Укажи корректную ссылку на GitHub.",
+            "rulesAgreementPrefix": "Я ознакомился и согласен с",
+            "rulesAgreementLink": "правилами публикации аддонов",
+            "changelogTabTitle": "Изменения этой версии",
+            "changelogEmpty": "Для этой версии список изменений пока не добавлен.",
+            "cooldownLabel": "Повторная отправка",
+            "cooldownMessage": "После отклонения аддон можно отправить снова только через 3 дня. Доступно {{date}}.",
+            "statusDate": "Обновлено {{date}}",
+            "publish": "Опубликовать",
+            "update": "Обновить",
+            "uploading": "Отправляю...",
+            "successTitle": "Отправлено на проверку",
+            "publishSuccess": "Аддон отправлен на модерацию.",
+            "updateSuccess": "Обновление аддона отправлено на модерацию.",
+            "errors": {
+                "PACKAGE_FAILED": "Не удалось подготовить архив аддона к отправке.",
+                "ZIP_FILE_REQUIRED": "Архив аддона не был передан на сервер.",
+                "INVALID_ZIP_FILE": "Архив аддона повреждён или имеет неверный формат.",
+                "METADATA_JSON_MISSING": "В архиве отсутствует файл metadata.json.",
+                "METADATA_JSON_INVALID": "Файл metadata.json содержит некорректный JSON.",
+                "ARCHIVE_MISSING_REQUIRED_FILES": "В архиве не хватает обязательных файлов аддона.",
+                "STYLE_FILE_EMPTY": "Файл стилей аддона пустой.",
+                "METADATA_IMAGE_NOT_FOUND": "Изображение, указанное в metadata.json, не найдено в архиве.",
+                "METADATA_BANNER_NOT_FOUND": "Баннер, указанный в metadata.json, не найден в архиве.",
+                "SCRIPT_USES_FORBIDDEN_EVAL": "Скрипт не прошёл автоматическую проверку безопасности.",
+                "SCRIPT_ACCESSES_OAUTH_STORAGE": "Скрипт не прошёл автоматическую проверку безопасности.",
+                "IMAGE_CONVERT_FAILED": "Не удалось обработать изображения аддона.",
+                "ADDON_NAME_REQUIRED": "Укажи название аддона перед отправкой.",
+                "ADDON_DESCRIPTION_REQUIRED": "Укажи описание аддона перед отправкой.",
+                "ADDON_GITHUB_URL_REQUIRED": "Укажи ссылку на GitHub перед отправкой.",
+                "ADDON_GITHUB_URL_INVALID": "Укажи корректную ссылку на GitHub.",
+                "ADDON_AUTHORS_REQUIRED": "Укажи хотя бы одного автора аддона.",
+                "ADDON_NOT_FOUND": "Публикация аддона не найдена.",
+                "AUTHENTICATED_USER_ID_REQUIRED": "Не удалось определить текущего пользователя для публикации.",
+                "CDN_BUCKET_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
+                "CDN_DOMAIN_URL_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
+                "S3_UPLOAD_FAILED": "Не удалось отправить файлы аддона. Попробуй позже.",
+                "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию."
+            },
+            "publishError": "Не удалось опубликовать аддон.",
+            "updateError": "Не удалось отправить обновление аддона."
+        },
+        "untrustedLocal": {
+            "title": "Непроверенный аддон",
+            "description": "Аддон {{name}} загружен из непроверенного источника и не найден в каталоге. Мы не гарантируем его безопасность, стабильность и сохранность ваших данных.",
+            "caption": "Включайте его только если доверяете источнику и понимаете возможные риски.",
+            "confirm": "Включить всё равно"
+        },
+        "tabs": {
+            "metadata": "Metadata"
+        },
+        "storeUpdateAvailableTitle": "Доступно обновление аддона",
+        "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
+        "storeUpdateComplete": "Аддон {{name}} обновлён.",
+        "storeUpdateFailed": "Не удалось обновить аддон {{name}}.",
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
@@ -410,6 +481,90 @@
         "logoutTitle": "До встречи {{name}}",
         "myProfile": "Мой профиль",
         "noChangelogFound": "Список изменений не найден.",
+        "notifications": {
+            "open": "Открыть уведомления",
+            "title": "Уведомления",
+            "unreadCount": "Непрочитанных: {{count}}",
+            "markAllRead": "Прочитать все",
+            "loading": "Загружаю уведомления...",
+            "empty": "Пока нет важных уведомлений",
+            "read": "Прочитано",
+            "openItem": "Открыть",
+            "categories": {
+                "addon": "Аддоны",
+                "achievement": "Достижения",
+                "localization": "Локализация",
+                "subscription": "Подписка",
+                "security": "Безопасность",
+                "system": "Система"
+            },
+            "items": {
+                "addonPendingTitle": "Аддон отправлен на проверку",
+                "addonPendingBody": "{{name}} сейчас ожидает модерацию.",
+                "addonAcceptedTitle": "Аддон принят",
+                "addonAcceptedBody": "{{name}} теперь доступен в каталоге.",
+                "addonRejectedTitle": "Аддон отклонён",
+                "addonRejectedBody": "{{name}} не прошёл модерацию.",
+                "achievementCompletedTitle": "Достижение выполнено",
+                "achievementCompletedBody": "Получено достижение «{{title}}» (+{{points}} очков).",
+                "localizationApprovedTitle": "Предложение по локализации принято",
+                "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
+                "localizationRejectedTitle": "Предложение по локализации отклонено",
+                "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "genericTitle": "Новое уведомление",
+                "genericBody": "Открой уведомление, чтобы посмотреть подробности."
+            }
+        },
+        "devOverrides": {
+            "open": "Локальные overrides experiments",
+            "title": "Experiments",
+            "loading": "Загружаю experiments...",
+            "empty": "Пока нет доступных experiments.",
+            "selectExperiment": "Выбери experiment слева.",
+            "overrideBadge": "override",
+            "overrideActive": "Override активен",
+            "group": "Группа",
+            "groupPlaceholder": "on / variant_name",
+            "enabledLabel": "Состояние",
+            "valueLabel": "Value (JSON)",
+            "enabled": {
+                "inherit": "Наследовать",
+                "on": "Включено",
+                "off": "Выключено"
+            },
+            "noGroup": "Без группы",
+            "rollout": "Rollout: {{percentage}}%",
+            "copyName": "Скопировать ключ",
+            "copyNameSuccess": "Ключ скопирован",
+            "copyNameError": "Не удалось скопировать ключ",
+            "apply": "Применить",
+            "clear": "Очистить override",
+            "applied": "Override применён",
+            "cleared": "Override очищен",
+            "invalidJson": "В поле value должен быть валидный JSON",
+            "valueObjectError": "Value должен быть JSON-объектом"
+        },
+        "updateChannel": {
+            "open": "Канал обновлений",
+            "title": "Канал обновлений",
+            "buildChannel": "Сборка",
+            "currentChannel": "Текущий",
+            "overrideChannel": "Override",
+            "noOverride": "не задан",
+            "selectLabel": "Переключить на",
+            "optionDefault": "По умолчанию ({{channel}})",
+            "optionBeta": "beta",
+            "optionDev": "dev",
+            "apply": "Применить",
+            "saving": "Сохраняю...",
+              "saved": "Переключено на {{channel}}.",
+              "loadError": "Не удалось загрузить настройки канала обновлений.",
+              "saveError": "Не удалось сохранить канал обновлений.",
+              "busy": "Переключение канала недоступно, пока обновление проверяется или скачивается.",
+              "downloadedHint": "Скачанное обновление будет сброшено, затем начнется проверка выбранного канала.",
+              "hint": "При возврате с dev на beta может понадобиться более старая сборка.",
+              "nextChannel": "После применения: {{channel}}"
+          },
         "settings": "Настройки",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Так-так",
@@ -486,25 +641,6 @@
             "description": "Премиум функции теперь доступны в вашем аккаунте.\nСпасибо за поддержку!",
             "ok": "Отлично"
         },
-        "pulseSync": {
-            "title": "Обнаружен запущенный zapret",
-            "description": "Если вы испытываете трудности с доступностью PulseSync (приложение не подключается, долго загружается или работает нестабильно), можно добавить домены в конфиг zapret.",
-            "subText": "Записи pulsesync.dev сейчас нет. Добавить автоматически?",
-            "subTextWithPath": "Файл конфигурации:\n{{path}}\nНе хватает записей PulseSync (pulsesync.dev, ru-node-1.pulsesync.dev, worker.pulsesync.dev). Добавить автоматически?",
-            "buttons": {
-                "cancel": "Нет",
-                "confirm": "Да, добавить",
-                "adding": "Добавляю…"
-            },
-            "toasts": {
-                "addingTitle": "Добавляю записи...",
-                "pleaseWait": "Ожидайте",
-                "successTitle": "Готово",
-                "addFailedTitle": "Не получилось",
-                "addFailed": "Не удалось добавить записи",
-                "errorTitle": "Ошибка"
-            }
-        },
         "yandexMusicUpdate": {
             "title": "Удаление Яндекс Музыки",
             "description": "У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалено для корректной работы со всеми функциями.",
@@ -539,7 +675,9 @@
         "installedVersionOutdated": "Установленная версия ({{version}}) устарела",
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",
+        "modInstallErrorProxyHint": "Проверьте, что данные домены проксируются/добавлены в zapret:",
         "modInstallFailed": "Установка мода не удалась. Попробуйте ещё раз.",
+        "modInstallInterrupted": "Загрузка была прервана. Проверьте соединение и попробуйте снова.",
         "modInstallStart": "Начало установки мода...",
         "modInstallSuccess": "Установка прошла успешно!",
         "modInstallTitle": "Установка мода",
@@ -553,7 +691,9 @@
         "modUpdateStart": "Начало загрузки обновления...",
         "modUpdateSuccess": "Обновление прошло успешно!",
         "modUpdateTitle": "Обновление мода",
+        "musicAppName": "Я.Музыку",
         "musicDownloadProgress": "Загрузка: {{progress}}%",
+        "musicDownloadProgressLabel": "Установка Я.Музыки",
         "musicInstallFailed": "Не удалось выполнить установку Я.Музыки",
         "musicInstallSuccess": "Установка Я.Музыки прошла успешно.",
         "musicUpdateFailed": "Не удалось выполнить обновление Я.Музыки",
@@ -561,7 +701,7 @@
         "nav": {
             "addonsBeta": "Аддоны Бета",
             "development": "Development",
-            "extensionsStore": "Магазин расширений",
+            "extensionsStore": "Каталог расширений",
             "trackInfo": "Информация о треке",
             "users": "Пользователи"
         },
@@ -585,12 +725,26 @@
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru/*",
-            "supportedVersions": "2024.06.01",
+            "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Исправьте ошибки",
+        "listEditor": {
+            "title": "Разрешённые URL и версии",
+            "description": "URL, к которым может обращаться аддон, и версии Яндекс Музыки, с которыми он совместим.",
+            "allowedUrlsTitle": "Разрешённые URL",
+            "supportedVersionsTitle": "Поддерживаемые версии Яндекс Музыки",
+            "add": "Добавить",
+            "edit": "Настроить",
+            "allowedUrlsHint": "По одному URL в строке. Можно вставить несколько адресов сразу.",
+            "supportedVersionsHint": "Semver-диапазоны, например ^5.75.0 или >=5.75 <5.80.",
+            "allowedUrlsSummary": "Добавлено URL: {{count}}",
+            "supportedVersionsSummary": "{{value}}",
+            "invalidSupportedVersions": "Некорректные диапазоны версий: {{versions}}",
+            "previewEmpty": "Не задано"
+        },
         "labels": {
-            "allowedUrls": "Разрешенные URL (через запятую)",
+            "allowedUrls": "Разрешённые URL",
             "author": "Автор",
             "banner": "Баннер",
             "css": "CSS",
@@ -600,7 +754,7 @@
             "libraryLogo": "Логотип библиотеки",
             "name": "Название",
             "script": "Скрипт",
-            "supportedVersions": "Поддерживаемые версии (через запятую)",
+            "supportedVersions": "Поддерживаемые версии",
             "tags": "Теги (через запятую)",
             "type": "Тип",
             "version": "Версия"
@@ -664,7 +818,7 @@
                 "volumeControl": "Контроль громкости"
             },
             "headerSubtitle": "Обновляйте интерфейс, открывайте новые возможности",
-            "headerTitle": "Магазин расширений",
+            "headerTitle": "Каталог расширений",
             "title": "Store"
         }
     },
@@ -750,13 +904,13 @@
         },
         "fallbackAlbumTitle": "PulseSync {{version}}",
         "fields": {
-            "appIdDescription": "Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence.",
+            "appIdDescription": "Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence",
             "appIdLabel": "App ID",
             "detailsDescription": "Описание Details",
             "detailsLabel": "Details",
             "stateDescription": "Описание State",
             "stateLabel": "State",
-            "listenButtonDescription": "Текст кнопки в активности. Максимум 15 символов для русского текста, 30 для английского.",
+            "listenButtonDescription": "Текст кнопки в активности. Максимум 15 символов для русского текста, 30 для английского",
             "listenButtonLabel": "Слушать трек на Яндекс Музыке",
             "statusDisplayTypeAria": "Тип отображения статуса",
             "statusDisplayTypeDescription": "В статусе меняет, как будет отображаться активность после «Слушать»",
@@ -805,6 +959,7 @@
             "askSavePath": "Опция \"Спрашивать куда сохранять трек\" {{status}}",
             "autoStartApp": "Опция \"Автозапуск приложения\" {{status}}",
             "autoStartMusic": "Опция \"Автозапуск музыки\" {{status}}",
+            "autoUpdateStoreAddons": "Опция \"Автообновление аддонов из каталога\" {{status}}",
             "autoTray": "Опция \"Автозапуск в трее\" {{status}}",
             "closeAppInTray": "Опция \"Закрытие приложения в трее\" {{status}}",
             "deletePextAfterImport": "Включена функция удаления .pext после импорта темы",
@@ -817,14 +972,36 @@
     },
     "store": {
         "download": "Скачать",
+        "loading": "Загружаю аддоны каталога...",
+        "empty": "Пока нет опубликованных аддонов.",
+        "noResults": "Ничего не найдено.",
+        "searchPlaceholder": "Найти аддон...",
+        "approvedAt": "Проверено {{date}}",
+        "installed": "Уже установлен",
+        "localVersionLinked": "Локальная версия аддона {{title}} уже установлена и связана с публикацией.",
+        "installComplete": "Аддон {{title}} установлен.",
+        "installFailed": "Не удалось установить аддон {{title}}.",
+        "openLocal": "Открыть локальный",
+        "remove": "Удалить",
+        "removeComplete": "Аддон {{title}} удалён.",
+        "removeFailed": "Не удалось удалить аддон {{title}}.",
+        "unknownAddon": "Аддон",
         "logs": {
             "downloadComplete": "[Store] Завершено скачивание. Начинаем установку.",
             "downloadStart": "[Store] Начинаем скачивание {{title}}",
             "installComplete": "[Store] Установлено {{title}}!"
         },
         "status": {
+            "accepted": "Принят",
             "active": "Активно",
-            "deprecated": "Устарело"
+            "deprecated": "Устарело",
+            "notPublished": "Не опубликован",
+            "pending": "На проверке",
+            "rejected": "Отклонён"
+        },
+        "kind": {
+            "theme": "Тема",
+            "script": "Скрипт"
         },
         "type": {
             "both": "CSS + JS",

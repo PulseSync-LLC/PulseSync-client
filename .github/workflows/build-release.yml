@@ -17,13 +17,22 @@ jobs:
         os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.event_name == 'push' && 'main' || github.ref_name }}
 
-      - uses: actions/setup-node@v5
+      - uses: actions/setup-node@v6
         with:
           node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            nativeModules/**/node_modules
+            nativeModules/**/build
+          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/yarn.lock', 'nativeModules/**/binding.gyp', 'nativeModules/**/*.c', 'nativeModules/**/*.cc', 'nativeModules/**/*.cpp', 'nativeModules/**/*.h', 'nativeModules/**/*.hpp') }}
 
       - name: Create .env
         shell: bash
@@ -38,7 +47,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ matrix.os == 'macos-15-intel' && '--mac-x64' || '' }}
+        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
         env:
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
@@ -52,17 +61,6 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
-
-      - name: Upload release/ to S3
-        shell: bash
-        run: |
-          BRANCH="${{ github.ref_name }}"
-          PREFIX="builds/releases"
-          npx -y tsx scripts/s3-upload.ts \
-            --branch "$BRANCH" \
-            --dir "release" \
-            --prefix "$PREFIX" \
-            --mac-manifest
 
       - name: Upload release artifacts for GitHub Release
         uses: actions/upload-artifact@v7
@@ -91,7 +89,7 @@ jobs:
 
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: github-release-artifacts
@@ -119,7 +117,7 @@ jobs:
           find github-release-assets -maxdepth 1 -type f | sort
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2.5.0
+        uses: softprops/action-gh-release@v2.6.1
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
