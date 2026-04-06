@@ -218,9 +218,11 @@
     }
 }
 .line {
+    align-self: stretch;
     background: #3d445b;
-    width: -webkit-fill-available;
+    width: auto;
     height: 1px;
+    flex: 0 0 1px;
     margin: 5px 13px;
 }
 .enabledAddons,
