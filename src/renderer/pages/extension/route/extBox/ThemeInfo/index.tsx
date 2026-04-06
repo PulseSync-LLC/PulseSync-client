@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
@@ -33,6 +33,7 @@ interface Props {
     onUpdateAddon?: (changelogText: string, githubUrl: string) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
+    onBottomBarHeightChange?: (height: number) => void
 }
 
 function useResolvedImage(url: string | null, fallback: string | null) {
@@ -92,6 +93,7 @@ const ThemeInfo: React.FC<Props> = ({
     onUpdateAddon,
     setSelectedTags,
     setShowFilters,
+    onBottomBarHeightChange,
 }) => {
     const { t } = useTranslation()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
@@ -100,6 +102,7 @@ const ThemeInfo: React.FC<Props> = ({
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
     const moreBtnRef = useRef<HTMLButtonElement>(null)
+    const bottomBarRef = useRef<HTMLDivElement>(null)
     const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
 
     const authorNames = normalizeAuthorNames(addon.author)
@@ -152,6 +155,31 @@ const ThemeInfo: React.FC<Props> = ({
         return () => document.removeEventListener('mousedown', handleClickOutside)
     }, [menuOpen])
 
+    useLayoutEffect(() => {
+        const node = bottomBarRef.current
+        if (!node || !onBottomBarHeightChange) return
+
+        const emitHeight = () => {
+            onBottomBarHeightChange(Math.ceil(node.getBoundingClientRect().height))
+        }
+
+        emitHeight()
+
+        if (typeof ResizeObserver === 'undefined') {
+            window.addEventListener('resize', emitHeight)
+            return () => window.removeEventListener('resize', emitHeight)
+        }
+
+        const observer = new ResizeObserver(() => emitHeight())
+        observer.observe(node)
+        window.addEventListener('resize', emitHeight)
+
+        return () => {
+            observer.disconnect()
+            window.removeEventListener('resize', emitHeight)
+        }
+    }, [onBottomBarHeightChange, addon.directoryName, addon.author, addon.size, addon.version, addon.lastModified, addon.installSource])
+
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
 
@@ -190,7 +218,7 @@ const ThemeInfo: React.FC<Props> = ({
 
             <div className={s.invisible}></div>
 
-            <div className={s.bottomBar}>
+            <div className={s.bottomBar} ref={bottomBarRef}>
                 <div className={s.meta}>
                     <div className={s.metaItem}>
                         <span className={s.label}>{t('extensions.meta.author')}</span>

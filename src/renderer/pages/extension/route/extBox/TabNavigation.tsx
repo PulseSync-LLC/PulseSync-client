@@ -8,9 +8,10 @@ interface Props {
     onChange: (t: ActiveTab) => void
     docs: DocTab[]
     hasPublicationChangelog?: boolean
+    stickyTop?: number
 }
 
-const TabNavigation: React.FC<Props> = ({ active, onChange, docs, hasPublicationChangelog = false }) => {
+const TabNavigation: React.FC<Props> = ({ active, onChange, docs, hasPublicationChangelog = false, stickyTop }) => {
     const docTabs: TabItem[] = docs.map(d => ({
         title: d.title,
         icon: <MdStickyNote2 size={22} />,
@@ -23,7 +24,7 @@ const TabNavigation: React.FC<Props> = ({ active, onChange, docs, hasPublication
         { title: 'Metadata', icon: <MdConstruction size={22} /> },
     ]
 
-    return <PSUITabNavigation active={active} onChange={onChange} tabs={tabs} />
+    return <PSUITabNavigation active={active} onChange={onChange} tabs={tabs} stickyPos={stickyTop == null ? undefined : { top: `${stickyTop}px` }} />
 }
 
 export default TabNavigation

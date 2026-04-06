@@ -39,6 +39,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
+    const [tabStickyTop, setTabStickyTop] = useState(66)
 
     useEffect(() => {
         setEditMode(false)
@@ -84,10 +85,17 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
                     setShowFilters={setShowFilters}
+                    onBottomBarHeightChange={setTabStickyTop}
                 />
 
                 <div className={s.extensionContent}>
-                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationReleases.length > 0} />
+                    <TabNavigation
+                        active={activeTab}
+                        onChange={setActiveTab}
+                        docs={docs}
+                        hasPublicationChangelog={publicationReleases.length > 0}
+                        stickyTop={tabStickyTop}
+                    />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
