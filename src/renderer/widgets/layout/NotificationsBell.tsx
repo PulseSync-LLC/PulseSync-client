@@ -4,6 +4,7 @@ import { MdDoneAll, MdNotificationsNone } from 'react-icons/md'
 import MainEvents from '@common/types/mainEvents'
 import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '@app/providers/notifications'
 import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
@@ -11,8 +12,49 @@ import Loader from '@shared/ui/PSUI/Loader'
 import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
 
+const WEBSITE_ORIGIN = (() => {
+    try {
+        return new URL(config.WEBSITE_URL).origin
+    } catch {
+        return null
+    }
+})()
+
+function getInternalNotificationPath(link: string | null | undefined): string | null {
+    if (!WEBSITE_ORIGIN) {
+        return null
+    }
+
+    const rawLink = link?.trim()
+    if (!rawLink) {
+        return null
+    }
+
+    try {
+        const url = new URL(rawLink, WEBSITE_ORIGIN)
+        if (url.origin !== WEBSITE_ORIGIN) {
+            return null
+        }
+
+        const pathname = url.pathname.endsWith('/') && url.pathname !== '/' ? url.pathname.slice(0, -1) : url.pathname
+        const isInternalPath =
+            pathname === '/' ||
+            pathname === '/auth' ||
+            pathname === '/auth/callback' ||
+            pathname === '/joint' ||
+            pathname === '/store' ||
+            pathname === '/users' ||
+            /^\/profile\/[^/?#]+$/i.test(pathname)
+
+        return isInternalPath ? `${pathname}${url.search}${url.hash}` : null
+    } catch {
+        return null
+    }
+}
+
 const NotificationsBell: React.FC = () => {
     const { t } = useTranslation()
+    const navigate = useNavigate()
     const notificationsContext = useNotifications()
     const [isOpen, setOpen] = useState(false)
     const rootRef = useRef<HTMLDivElement>(null)
@@ -87,10 +129,21 @@ const NotificationsBell: React.FC = () => {
     }, [])
 
     const openNotificationTarget = useCallback((notification: NotificationItem) => {
-        const link = notification.link?.trim() || '/contribute/localization'
-        const targetUrl = /^https?:\/\//i.test(link) ? link : `${config.WEBSITE_URL}${link.startsWith('/') ? link : `/${link}`}`
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, targetUrl)
-    }, [])
+        const internalPath = getInternalNotificationPath(notification.link)
+        if (internalPath) {
+            void navigate(internalPath)
+            return
+        }
+
+        const rawLink = notification.link?.trim()
+        const externalUrl = !rawLink
+            ? `${config.WEBSITE_URL}/contribute/localization`
+            : /^https?:\/\//i.test(rawLink)
+              ? rawLink
+              : `${config.WEBSITE_URL}${rawLink.startsWith('/') ? rawLink : `/${rawLink}`}`
+
+        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, externalUrl)
+    }, [navigate])
 
     const handleNotificationClick = useCallback(
         async (notification: NotificationItem) => {
