@@ -117,7 +117,7 @@ export function SocketProvider({
             if (unavailableToastShownRef.current) return
 
             unavailableToastShownRef.current = true
-            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailableShort'))
+            toast.custom('error', t('common.somethingWrongTitle'), t('common.serverUnavailable'))
         }
 
         const onGatewayMessage = createGatewayHandler({

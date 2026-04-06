@@ -73,7 +73,7 @@
         "ts-node": "^10.9.2",
         "tsx": "4.21.0",
         "typescript": "^6.0.2",
-        "vite": "^8.0.3",
+        "vite": "^8.0.5",
         "vite-plugin-svgr": "^5.2.0"
     },
     "dependencies": {

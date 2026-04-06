@@ -5,6 +5,8 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import * as pageStyles from '@widgets/layout/layout.module.scss'
 
+const modInstallProxyDomains = ['pulsesync.dev', 'ru-node-1.pulsesync.dev', 'worker.pulsesync.dev', 's3.pulsesync.dev']
+
 type Props = {
     app: SettingsInterface
     isForceInstallEnabled: boolean
@@ -35,6 +37,8 @@ export default function ModUpdateBanner({
     t,
 }: Props) {
     if (!isModUpdateAvailable) return null
+
+    const shouldShowModInstallProxyHint = modInstallError?.title === t('layout.modInstallErrorTitle')
 
     return (
         <div className={pageStyles.alert_patch}>
@@ -80,6 +84,14 @@ export default function ModUpdateBanner({
                                 <div className={pageStyles.patch_error_title}>{modInstallError.title}</div>
                             </div>
                             <div className={pageStyles.patch_error_message}>{modInstallError.details}</div>
+                            {shouldShowModInstallProxyHint && (
+                                <div className={pageStyles.patch_error_message}>
+                                    <div>{t('layout.modInstallErrorProxyHint')}</div>
+                                    {modInstallProxyDomains.map((domain) => (
+                                        <div key={domain}>{domain}</div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
