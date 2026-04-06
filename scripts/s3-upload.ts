@@ -122,6 +122,57 @@ function collectMacArtifacts(releaseDir: string, version: string) {
     return Array.from(uniq.values())
 }
 
+async function collectRemoteMacArtifacts(
+    client: S3Client,
+    bucket: string,
+    prefix: string,
+    branch: string,
+    version: string,
+    baseUrl: string,
+) {
+    const branchPrefix = `${prefix}/${branch}/`
+    const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '')
+    const uniq = new Map<string, { arch: 'arm64' | 'x64'; fileName: string; url: string; type: 'dmg' | 'zip' }>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: branchPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+
+        for (const object of response.Contents ?? []) {
+            if (!object.Key) continue
+
+            const fileName = path.basename(object.Key)
+            if ((version && !fileName.includes(version)) || (!isDmg(fileName) && !isZip(fileName))) {
+                continue
+            }
+
+            const arch = parseMacArtifactArch(fileName)
+            if (!arch) continue
+
+            const type = fileTypeOf(fileName)
+            const key = `${arch}:${type}`
+            if (uniq.has(key)) continue
+
+            uniq.set(key, {
+                arch,
+                fileName,
+                url: `${normalizedBaseUrl}/${object.Key}`,
+                type,
+            })
+        }
+
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    return Array.from(uniq.values())
+}
+
 async function fetchJson(url: string): Promise<any | null> {
     return await new Promise(resolve => {
         https
@@ -459,8 +510,8 @@ export async function generateAndPublishMacDownloadJson(
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const artifacts = collectMacArtifacts(releaseDir, version)
-    if (!artifacts.length) {
+    const localArtifacts = collectMacArtifacts(releaseDir, version)
+    if (!localArtifacts.length) {
         log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
         process.exit(1)
     }
@@ -469,8 +520,9 @@ export async function generateAndPublishMacDownloadJson(
     if (fs.existsSync(patchPath)) {
         releaseNotes = fs.readFileSync(patchPath, 'utf-8')
     }
+    const client = createS3Client()
     const assets: Array<{ arch: string; url: string; fileType: string; sha512: string }> = []
-    for (const a of artifacts) {
+    for (const a of localArtifacts) {
         const sha512 = await hashFileSha512(a.file)
         const fileName = path.basename(a.file)
         assets.push({
@@ -483,11 +535,22 @@ export async function generateAndPublishMacDownloadJson(
     const existingUrl = `${baseUrl}/${prefix}/${branch}/download.json`
     const existing = await fetchJson(existingUrl)
     const existingAssets = Array.isArray(existing?.assets) ? existing.assets : []
-    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512: string }>()
+    const remoteAssets = await collectRemoteMacArtifacts(client, bucket, prefix, branch, version, baseUrl)
+    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512?: string }>()
     for (const a of existingAssets) {
-        if (a?.arch && a?.fileType && a?.url && a?.sha512) {
+        if (a?.arch && a?.fileType && a?.url) {
             merged.set(`${a.arch}:${a.fileType}`, a)
         }
+    }
+    for (const a of remoteAssets) {
+        const key = `${a.arch}:${a.type}`
+        const current = merged.get(key)
+        merged.set(key, {
+            arch: a.arch,
+            url: a.url,
+            fileType: a.type,
+            sha512: current?.sha512,
+        })
     }
     for (const a of assets) {
         merged.set(`${a.arch}:${a.fileType}`, a)
@@ -505,7 +568,6 @@ export async function generateAndPublishMacDownloadJson(
         assets: mergedAssets,
     }
     const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
-    const client = createS3Client()
     const key = `${prefix}/${branch}/download.json`
     await client.send(
         new PutObjectCommand({

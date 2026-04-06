@@ -6,13 +6,17 @@ on:
       - dev
 
 concurrency:
-  group: build-dev-windows-${{ github.ref }}
+  group: build-dev-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, macos-15-intel]
 
     steps:
       - uses: actions/checkout@v6
@@ -53,8 +57,8 @@ jobs:
           echo "build_version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
           echo "Using BUILD_VERSION=$DEV_VERSION"
 
-      - name: Build and publish Windows dev
-        run: yarn build:package --nativeModules --publish dev
+      - name: Build and publish dev
+        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} --publish dev
         env:
           BUILD_VERSION: ${{ steps.version.outputs.build_version }}
           S3_KEEP_RECENT_VERSIONS: 3
