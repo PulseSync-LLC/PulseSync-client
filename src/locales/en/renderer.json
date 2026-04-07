@@ -976,6 +976,7 @@
         "empty": "No published add-ons are available yet.",
         "noResults": "Nothing was found.",
         "searchPlaceholder": "Find an add-on...",
+        "downloadCount": "{{count}} downloads",
         "approvedAt": "Reviewed {{date}}",
         "installed": "Installed",
         "localVersionLinked": "A local version of {{title}} is already installed and linked to this publication.",

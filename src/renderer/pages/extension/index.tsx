@@ -5,6 +5,7 @@ import userContext from '@entities/user/model/context'
 import Addon from '@entities/addon/model/addon.interface'
 import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
 
 import toast from '@shared/ui/toast'
 
@@ -43,6 +44,7 @@ import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, subm
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
+import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -72,7 +74,7 @@ function isGithubUrl(value: string): boolean {
 
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
-    const { addons, setAddons, musicVersion, user } = useContext(userContext)
+    const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
     const { isExperimentEnabled } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
@@ -247,6 +249,17 @@ export default function ExtensionPage() {
         [setAddons, t],
     )
 
+    const sendStoreAddonMetrics = useCallback(
+        (nextTheme: string, nextEnabledScripts: string[]) => {
+            const metrics = buildStoreAddonMetrics(addons, nextTheme, nextEnabledScripts)
+            console.log('[AddonMetrics] send on addon toggle', metrics)
+            emitGateway(OutgoingGatewayEvents.SEND_METRICS, {
+                addons: metrics,
+            })
+        },
+        [addons, emitGateway],
+    )
+
     const handleCheckboxChange = useCallback(
         (addon: Addon, newChecked: boolean, showToast: boolean = true) => {
             if (addon.type === 'theme') {
@@ -255,6 +268,7 @@ export default function ExtensionPage() {
                     window.electron.store.set('addons.theme', addon.directoryName)
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
+                    sendStoreAddonMetrics(addon.directoryName, enabledScripts)
                     if (showToast) {
                         toast.custom('success', t('extensions.themeActivated'), t('extensions.themeActivatedMessage', { name: addon.name }))
                     }
@@ -262,6 +276,7 @@ export default function ExtensionPage() {
                     setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
+                    sendStoreAddonMetrics('Default', enabledScripts)
                     if (showToast) {
                         toast.custom('info', t('extensions.themeDeactivated'), t('extensions.defaultThemeSet'))
                     }
@@ -278,9 +293,10 @@ export default function ExtensionPage() {
                 window.electron.store.set('addons.scripts', updated)
                 window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
                 setEnabledScripts(updated)
+                sendStoreAddonMetrics(currentTheme, updated)
             }
         },
-        [enabledScripts],
+        [currentTheme, enabledScripts, sendStoreAddonMetrics, t],
     )
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
