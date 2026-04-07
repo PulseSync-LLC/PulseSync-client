@@ -220,7 +220,7 @@ function isUpdaterManifestFile(filePath: string): boolean {
     return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
 }
 
-const WINDOWS_VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-(x64|arm64)\.(exe(?:\.blockmap)?)$/iu
+const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
 
 function parseKeepRecentVersions(rawValue?: string | null): number | null {
     if (!rawValue) return null
@@ -228,10 +228,61 @@ function parseKeepRecentVersions(rawValue?: string | null): number | null {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null
 }
 
-function extractWindowsArtifactVersion(key: string): string | null {
+type ArtifactPlatform = 'win32' | 'darwin' | 'linux'
+
+type VersionedArtifactDescriptor = {
+    version: string
+    arch: string
+    platform: ArtifactPlatform
+    suffix: string
+    family: string
+}
+
+function resolveArtifactPlatform(suffix: string): ArtifactPlatform | null {
+    switch (suffix) {
+        case 'exe':
+        case 'exe.blockmap':
+            return 'win32'
+        case 'dmg':
+        case 'zip':
+            return 'darwin'
+        case 'deb':
+        case 'rpm':
+        case 'appimage':
+            return 'linux'
+        default:
+            return null
+    }
+}
+
+function parseVersionedArtifactDescriptor(key: string): VersionedArtifactDescriptor | null {
     const fileName = path.basename(key)
-    const match = WINDOWS_VERSIONED_ARTIFACT_RE.exec(fileName)
-    return match?.[1] ?? null
+    const match = VERSIONED_ARTIFACT_RE.exec(fileName)
+    if (!match) return null
+
+    const [, version, rawArch, rawSuffix] = match
+    const arch = rawArch.toLowerCase()
+    const suffix = rawSuffix.toLowerCase()
+    const platform = resolveArtifactPlatform(suffix)
+    if (!platform) return null
+
+    return {
+        version,
+        arch,
+        platform,
+        suffix,
+        family: `${platform}:${arch}:${suffix}`,
+    }
+}
+
+function collectArtifactFamilies(filePaths: string[]): Set<string> {
+    const families = new Set<string>()
+    for (const filePath of filePaths) {
+        const descriptor = parseVersionedArtifactDescriptor(filePath)
+        if (!descriptor) continue
+        families.add(descriptor.family)
+    }
+    return families
 }
 
 function compareVersionsDesc(left: string, right: string): number {
@@ -246,16 +297,17 @@ function compareVersionsDesc(left: string, right: string): number {
     return right.localeCompare(left)
 }
 
-async function pruneOldWindowsArtifacts(
+async function pruneOldArtifacts(
     client: S3Client,
     bucket: string,
     prefix: string,
     branch: string,
     currentVersion: string,
     keepRecentVersions: number,
+    artifactFamilies: Set<string>,
 ): Promise<void> {
     const branchPrefix = `${prefix}/${branch}/`
-    const versionToKeys = new Map<string, string[]>()
+    const familyToVersionedKeys = new Map<string, Map<string, string[]>>()
     let continuationToken: string | undefined
 
     do {
@@ -269,39 +321,50 @@ async function pruneOldWindowsArtifacts(
 
         for (const object of response.Contents ?? []) {
             if (!object.Key) continue
-            const version = extractWindowsArtifactVersion(object.Key)
-            if (!version) continue
+            const descriptor = parseVersionedArtifactDescriptor(object.Key)
+            if (!descriptor || !artifactFamilies.has(descriptor.family)) continue
 
-            const keys = versionToKeys.get(version) ?? []
+            const versionToKeys = familyToVersionedKeys.get(descriptor.family) ?? new Map<string, string[]>()
+            const keys = versionToKeys.get(descriptor.version) ?? []
             keys.push(object.Key)
-            versionToKeys.set(version, keys)
+            versionToKeys.set(descriptor.version, keys)
+            familyToVersionedKeys.set(descriptor.family, versionToKeys)
         }
 
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
     } while (continuationToken)
 
-    if (!versionToKeys.size) {
-        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: no existing Windows versioned artifacts found`)
+    if (!familyToVersionedKeys.size) {
+        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: no existing matching versioned artifacts found`)
         return
     }
 
-    if (!versionToKeys.has(currentVersion)) {
-        versionToKeys.set(currentVersion, [])
+    const keysToDelete: string[] = []
+    const removedGroups: string[] = []
+    for (const [family, versionToKeys] of familyToVersionedKeys.entries()) {
+        if (!versionToKeys.has(currentVersion)) {
+            versionToKeys.set(currentVersion, [])
+        }
+
+        const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
+        const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
+        keptVersions.add(currentVersion)
+
+        const familyKeysToDelete = Array.from(versionToKeys.entries())
+            .filter(([version]) => !keptVersions.has(version))
+            .flatMap(([, keys]) => keys)
+
+        if (!familyKeysToDelete.length) {
+            continue
+        }
+
+        keysToDelete.push(...familyKeysToDelete)
+        removedGroups.push(`${family} => ${sortedVersions.filter(version => !keptVersions.has(version)).join(', ')}`)
     }
 
-    const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
-    const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
-    keptVersions.add(currentVersion)
-
-    const keysToDelete = Array.from(versionToKeys.entries())
-        .filter(([version]) => !keptVersions.has(version))
-        .flatMap(([, keys]) => keys)
-
     if (!keysToDelete.length) {
-        log(
-            LogLevel.INFO,
-            `Retention skipped for ${branchPrefix}: keeping ${Math.min(sortedVersions.length, keepRecentVersions)} recent version groups`,
-        )
+        const familyList = Array.from(artifactFamilies).sort().join(', ')
+        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: nothing to delete for ${familyList}`)
         return
     }
 
@@ -318,10 +381,9 @@ async function pruneOldWindowsArtifacts(
         )
     }
 
-    const removedVersions = sortedVersions.filter(version => !keptVersions.has(version))
     log(
         LogLevel.SUCCESS,
-        `Retention removed ${keysToDelete.length} Windows artifacts from ${branchPrefix} (deleted versions: ${removedVersions.join(', ')})`,
+        `Retention removed ${keysToDelete.length} artifacts from ${branchPrefix} (${removedGroups.join(' | ')})`,
     )
 }
 
@@ -449,6 +511,7 @@ export async function publishToS3(
     let files = walkFiles(dir)
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
         .filter(fp => (version ? path.basename(fp).includes(version) || /latest(-linux)?\.yml$/.test(path.basename(fp)) : true))
+    const artifactFamilies = collectArtifactFamilies(files)
 
     const platform = os.platform()
     let variantFile: string | null = 'latest.yml'
@@ -488,8 +551,8 @@ export async function publishToS3(
         ...files.filter(filePath => isUpdaterManifestFile(filePath)),
     ]
 
-    if (version && keepRecentVersions && platform === 'win32') {
-        await pruneOldWindowsArtifacts(client, bucket, prefix, branch, version, keepRecentVersions)
+    if (version && keepRecentVersions && artifactFamilies.size) {
+        await pruneOldArtifacts(client, bucket, prefix, branch, version, keepRecentVersions, artifactFamilies)
     }
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
