@@ -13,11 +13,14 @@ interface HandleConfigItem extends JsonRecord {
     input?: string
     selected?: number | string
     value?: unknown
+    defaultValue?: unknown
     defaultParameter?: unknown
     buttons?: Array<{
         id?: string
         text?: string
+        value?: unknown
         defaultParameter?: unknown
+        defaultValue?: unknown
     }>
 }
 
@@ -36,11 +39,23 @@ const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
 const getAddonRoot = () => path.join(app.getPath('appData'), 'PulseSync', 'addons')
 
 const extractItemValue = (item: HandleConfigItem): unknown => {
+    if (typeof item.value !== 'undefined') return item.value
     if (typeof item.bool !== 'undefined') return item.bool
     if (typeof item.filePath !== 'undefined') return item.filePath
     if (typeof item.input !== 'undefined') return item.input
     if (typeof item.selected !== 'undefined') return item.selected
-    return item.value
+    return undefined
+}
+
+const extractItemDefaultValue = (item: HandleConfigItem): unknown => {
+    if (typeof item.defaultValue !== 'undefined') return item.defaultValue
+    if (typeof item.defaultParameter !== 'undefined') {
+        if (item.type === 'file' && item.defaultParameter && typeof item.defaultParameter === 'object' && 'filePath' in item.defaultParameter) {
+            return (item.defaultParameter as { filePath?: string }).filePath ?? ''
+        }
+        return item.defaultParameter
+    }
+    return undefined
 }
 
 export const transformAddonHandleConfig = (input: HandleConfig | null | undefined): AddonSettingsPayload => {
@@ -60,8 +75,8 @@ export const transformAddonHandleConfig = (input: HandleConfig | null | undefine
                     (acc, button) => {
                         if (!button?.id || typeof button.id !== 'string') return acc
                         acc[button.id] = {
-                            value: button.text,
-                            default: button.defaultParameter,
+                            value: button.value ?? button.text,
+                            default: button.defaultValue ?? button.defaultParameter,
                         }
                         return acc
                     },
@@ -72,7 +87,7 @@ export const transformAddonHandleConfig = (input: HandleConfig | null | undefine
 
             result[item.id] = {
                 value: extractItemValue(item),
-                default: item.defaultParameter,
+                default: extractItemDefaultValue(item),
             }
         }
     }

@@ -434,8 +434,8 @@ export default function StorePage() {
                 classNameInner={cn(st.containerFixInner, (loading || isInitialShimmerVisible) && st.containerFixInnerLocked)}
                 onScroll={event => {
                     animationsEnabledRef.current = true
+                    const nextScrollTop = event.currentTarget?.scrollTop ?? scrollContainerRef.current?.scrollTop ?? 0
                     setScrollTop(prevScrollTop => {
-                        const nextScrollTop = event.currentTarget.scrollTop
                         return prevScrollTop === nextScrollTop ? prevScrollTop : nextScrollTop
                     })
                 }}
