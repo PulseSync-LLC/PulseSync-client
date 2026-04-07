@@ -33,6 +33,7 @@ export interface ExtensionCardStoreProps {
     downloadInstalled?: boolean
     downloadVariant?: DownloadVariant
     isPreInstalled?: boolean
+    animationsEnabledRef?: React.MutableRefObject<boolean>
 }
 
 const DownloadIcon = () => (
@@ -104,22 +105,62 @@ const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     </div>
 )
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) => {
-    const [isIntersecting, setIsIntersecting] = useState(false)
+type VisibilityState = {
+    isIntersecting: boolean
+    shouldAnimate: boolean
+}
+
+const useIntersectionObserver = (
+    ref: React.RefObject<HTMLElement | null>,
+    animationsEnabledRef?: React.MutableRefObject<boolean>,
+    options?: IntersectionObserverInit,
+) => {
+    const [visibilityState, setVisibilityState] = useState<VisibilityState>({
+        isIntersecting: false,
+        shouldAnimate: animationsEnabledRef?.current ?? true,
+    })
 
     useEffect(() => {
         if (!ref.current) return
 
-        const observer = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
-            ...options,
-            rootMargin: '50%',
-        })
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setVisibilityState(prevState => {
+                    if (entry.isIntersecting) {
+                        const nextState = {
+                            isIntersecting: true,
+                            shouldAnimate: animationsEnabledRef?.current ?? true,
+                        }
+
+                        if (
+                            prevState.isIntersecting === nextState.isIntersecting &&
+                            prevState.shouldAnimate === nextState.shouldAnimate
+                        ) {
+                            return prevState
+                        }
+
+                        return nextState
+                    }
+
+                    if (!prevState.isIntersecting) return prevState
+
+                    return {
+                        ...prevState,
+                        isIntersecting: false,
+                    }
+                })
+            },
+            {
+                ...options,
+                rootMargin: '50%',
+            },
+        )
 
         observer.observe(ref.current)
         return () => observer.disconnect()
-    }, [ref, options])
+    }, [animationsEnabledRef, ref, options])
 
-    return isIntersecting
+    return visibilityState
 }
 
 const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
@@ -143,9 +184,10 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     downloadDisabled = false,
     downloadInstalled = false,
     downloadVariant = 'default',
+    animationsEnabledRef,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, { threshold: 0.1 })
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
     const sizeClass = size === 'large' ? st.card_large : ''
     const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, sizeClass, className ? className : '']
@@ -155,9 +197,9 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     const backgroundStyle = backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
 
     return (
-        <div ref={containerRef} className={st.card_mount} aria-hidden={!isVisible}>
-            {isVisible ? (
-                <article className={rootClassName} style={backgroundStyle}>
+        <div ref={containerRef} className={st.card_mount} aria-hidden={!visibilityState.isIntersecting}>
+            {visibilityState.isIntersecting ? (
+                <article className={cn(rootClassName, !visibilityState.shouldAnimate && st.softFadeIn)} style={backgroundStyle}>
                     {backgroundImage && <div className={st.card_overlay} />}
 
                     <div className={st.card_header_row}>
