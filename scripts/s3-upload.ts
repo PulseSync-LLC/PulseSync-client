@@ -87,6 +87,17 @@ async function hashFileSha512(filePath: string): Promise<string> {
     })
 }
 
+async function readFileChunk(filePath: string, start: number, length: number): Promise<Buffer> {
+    const handle = await fs.promises.open(filePath, 'r')
+    try {
+        const buffer = Buffer.allocUnsafe(length)
+        const { bytesRead } = await handle.read(buffer, 0, length, start)
+        return bytesRead === length ? buffer : buffer.subarray(0, bytesRead)
+    } finally {
+        await handle.close()
+    }
+}
+
 function isDmg(name: string) {
     return name.toLowerCase().endsWith('.dmg')
 }
@@ -362,9 +373,8 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 if (partNumber > partCount) return
 
                 const start = (partNumber - 1) * partSize
-                const end = Math.min(size, start + partSize) - 1
-                const contentLength = end - start + 1
-                const body = fs.createReadStream(filePath, { start, end })
+                const contentLength = Math.min(size - start, partSize)
+                const body = await readFileChunk(filePath, start, contentLength)
 
                 const uploadPartResponse = await client.send(
                     new UploadPartCommand({
