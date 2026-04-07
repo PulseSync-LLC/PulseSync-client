@@ -15,6 +15,10 @@
     background: #2c303f;
 }
 
+.containerFixInnerLocked {
+    overflow: hidden !important;
+}
+
 .store {
     width: 100%;
     padding: 48px 0 34px;
@@ -106,6 +110,25 @@
     margin: auto;
 }
 
+.initialContentShell {
+    position: relative;
+    width: 100%;
+}
+
+.initialShimmerOverlay {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    pointer-events: none;
+    opacity: 1;
+    transition: opacity 0.18s ease-out;
+}
+
+.initialShimmerOverlayHidden {
+    opacity: 0;
+}
+
 .store_state {
     min-height: 220px;
     display: flex;
@@ -120,6 +143,16 @@
     display: flex;
     align-items: stretch;
     justify-content: stretch;
+    animation: storeShimmerFadeIn 0.18s ease-out;
+}
+
+@keyframes storeShimmerFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 @media (max-width: 1024px) {

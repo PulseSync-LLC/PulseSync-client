@@ -1,4 +1,5 @@
-import { useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdSearch } from 'react-icons/md'
 import PageLayout from '@widgets/layout/PageLayout'
@@ -9,7 +10,7 @@ import { useTranslation } from 'react-i18next'
 import apolloClient from '@shared/api/apolloClient'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
-import Loader from '@shared/ui/PSUI/Loader'
+import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
 import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
 import UserContext from '@entities/user/model/context'
@@ -42,6 +43,8 @@ function formatDate(value: string, locale?: string): string {
 }
 
 export default function StorePage() {
+    const INITIAL_SHIMMER_FADE_MS = 180
+
     const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const { addons: installedAddons, setAddons: setInstalledAddons } = useContext(UserContext)
@@ -50,6 +53,11 @@ export default function StorePage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [loading, setLoading] = useState(true)
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
+    const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
+    const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
+    const animationsEnabledRef = useRef(false)
+    const shimmerFadeTimeoutRef = useRef<number | null>(null)
+    const shimmerFadeRafRef = useRef<number | null>(null)
 
     useEffect(() => {
         let active = true
@@ -112,11 +120,55 @@ export default function StorePage() {
         })
     }, [addons, searchQuery])
 
+    const shouldRenderCards = filteredAddons.length > 0
+
+    const clearInitialShimmerTimers = useCallback(() => {
+        if (shimmerFadeTimeoutRef.current !== null) {
+            window.clearTimeout(shimmerFadeTimeoutRef.current)
+            shimmerFadeTimeoutRef.current = null
+        }
+
+        if (shimmerFadeRafRef.current !== null) {
+            window.cancelAnimationFrame(shimmerFadeRafRef.current)
+            shimmerFadeRafRef.current = null
+        }
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            clearInitialShimmerTimers()
+        }
+    }, [clearInitialShimmerTimers])
+
+    useEffect(() => {
+        if (loading) return
+
+        if (!shouldRenderCards) {
+            clearInitialShimmerTimers()
+            setIsInitialShimmerVisible(false)
+            setIsInitialShimmerFading(false)
+            return
+        }
+
+        if (!isInitialShimmerVisible || isInitialShimmerFading) return
+
+        shimmerFadeRafRef.current = window.requestAnimationFrame(() => {
+            shimmerFadeRafRef.current = null
+            setIsInitialShimmerFading(true)
+
+            shimmerFadeTimeoutRef.current = window.setTimeout(() => {
+                shimmerFadeTimeoutRef.current = null
+                setIsInitialShimmerVisible(false)
+                setIsInitialShimmerFading(false)
+            }, INITIAL_SHIMMER_FADE_MS)
+        })
+    }, [INITIAL_SHIMMER_FADE_MS, clearInitialShimmerTimers, isInitialShimmerFading, isInitialShimmerVisible, loading, shouldRenderCards])
+
     const content = useMemo(() => {
         if (loading) {
             return (
                 <div className={st.store_loading}>
-                    <Loader variant="store" />
+                    <StoreShimmer />
                 </div>
             )
         }
@@ -130,118 +182,150 @@ export default function StorePage() {
         }
 
         return (
-            <div className={st.store_grid}>
-                {filteredAddons.map((addon, index) => {
-                    const release = addon.currentRelease
-                    if (!release) return null
-                    const installedStoreAddon = installedStoreAddons.get(addon.id)
-                    const isInstalled = !!installedStoreAddon
+            <div className={st.initialContentShell}>
+                <div className={st.store_grid}>
+                    {filteredAddons.map((addon, index) => {
+                        const release = addon.currentRelease
+                        if (!release) return null
+                        const installedStoreAddon = installedStoreAddons.get(addon.id)
+                        const isInstalled = !!installedStoreAddon
 
-                    return (
-                        <ExtensionCardStore
-                            key={addon.id}
-                            theme={resolveTheme(index)}
-                            title={addon.name}
-                            subtitle={release.description}
-                            version={`v${release.version}`}
-                            authors={release.authors}
-                            downloads={t('store.approvedAt', {
-                                date: formatDate(release.approvedAt || release.updatedAt, i18n.language),
-                            })}
-                            topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
-                            type={resolveType(addon.type)}
-                            kind={addon.type}
-                            backgroundImage={release.bannerUrl || undefined}
-                            iconImage={release.avatarUrl || undefined}
-                            downloadInstalled={isInstalled}
-                            downloadVariant={isInstalled ? 'remove' : 'default'}
-                            downloadDisabled={installingAddonId === addon.id}
-                            downloadLabel={
-                                isInstalled
-                                    ? t('store.remove')
-                                    : installingAddonId === addon.id
-                                      ? t('common.importing')
-                                      : t('store.download')
-                            }
-                            onDownloadClick={async () => {
-                                if (installingAddonId === addon.id || !window.desktopEvents) return
+                        return (
+                            <ExtensionCardStore
+                                key={addon.id}
+                                theme={resolveTheme(index)}
+                                title={addon.name}
+                                subtitle={release.description}
+                                version={`v${release.version}`}
+                                authors={release.authors}
+                                downloads={t('store.approvedAt', {
+                                    date: formatDate(release.approvedAt || release.updatedAt, i18n.language),
+                                })}
+                                topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
+                                type={resolveType(addon.type)}
+                                kind={addon.type}
+                                backgroundImage={release.bannerUrl || undefined}
+                                iconImage={release.avatarUrl || undefined}
+                                downloadInstalled={isInstalled}
+                                downloadVariant={isInstalled ? 'remove' : 'default'}
+                                downloadDisabled={installingAddonId === addon.id}
+                                animationsEnabledRef={animationsEnabledRef}
+                                downloadLabel={
+                                    isInstalled
+                                        ? t('store.remove')
+                                        : installingAddonId === addon.id
+                                          ? t('common.importing')
+                                          : t('store.download')
+                                }
+                                onDownloadClick={async () => {
+                                    if (installingAddonId === addon.id || !window.desktopEvents) return
 
-                                if (installedStoreAddon) {
-                                    const addonToRemove = installedStoreAddon
-                                    const removeInstalledAddon = async () => {
-                                        setInstallingAddonId(addon.id)
-                                        const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
+                                    if (installedStoreAddon) {
+                                        const addonToRemove = installedStoreAddon
+                                        const removeInstalledAddon = async () => {
+                                            setInstallingAddonId(addon.id)
+                                            const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
 
-                                        try {
-                                            const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, addonToRemove.path)
-                                            if (!result?.success) {
-                                                throw new Error(result?.reason || 'DELETE_FAILED')
+                                            try {
+                                                const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, addonToRemove.path)
+                                                if (!result?.success) {
+                                                    throw new Error(result?.reason || 'DELETE_FAILED')
+                                                }
+
+                                                const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                                                setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+                                                toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
+                                                    id: toastId,
+                                                })
+                                            } catch (error: any) {
+                                                toast.custom('error', t('common.errorTitle'), t('store.removeFailed', { title: addon.name }), {
+                                                    id: toastId,
+                                                })
+                                                console.error('[Store] failed to remove addon', error)
+                                            } finally {
+                                                setInstallingAddonId(current => (current === addon.id ? null : current))
                                             }
-
-                                            const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
-                                            setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-                                            toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
-                                                id: toastId,
-                                            })
-                                        } catch (error: any) {
-                                            toast.custom('error', t('common.errorTitle'), t('store.removeFailed', { title: addon.name }), { id: toastId })
-                                            console.error('[Store] failed to remove addon', error)
-                                        } finally {
-                                            setInstallingAddonId(current => (current === addon.id ? null : current))
                                         }
+
+                                        setModalState(Modals.BASIC_CONFIRMATION, {
+                                            description: t('store.removeConfirm', { title: addon.name }),
+                                            confirmLabel: t('modals.basicConfirmation.delete'),
+                                            confirmVariant: 'danger',
+                                            onConfirm: () => {
+                                                void removeInstalledAddon()
+                                            },
+                                        })
+                                        openModal(Modals.BASIC_CONFIRMATION)
+                                        return
                                     }
 
-                                    setModalState(Modals.BASIC_CONFIRMATION, {
-                                        description: t('store.removeConfirm', { title: addon.name }),
-                                        confirmLabel: t('modals.basicConfirmation.delete'),
-                                        confirmVariant: 'danger',
-                                        onConfirm: () => {
-                                            void removeInstalledAddon()
-                                        },
-                                    })
-                                    openModal(Modals.BASIC_CONFIRMATION)
-                                    return
-                                }
+                                    setInstallingAddonId(addon.id)
+                                    const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
 
-                                setInstallingAddonId(addon.id)
-                                const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
+                                    try {
+                                        const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                                            id: addon.id,
+                                            downloadUrl: release.downloadUrl,
+                                            title: addon.name,
+                                        })
 
-                                try {
-                                    const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
-                                        id: addon.id,
-                                        downloadUrl: release.downloadUrl,
-                                        title: addon.name,
-                                    })
+                                        if (!result?.success) {
+                                            throw new Error(result?.reason || 'INSTALL_FAILED')
+                                        }
 
-                                    if (!result?.success) {
-                                        throw new Error(result?.reason || 'INSTALL_FAILED')
+                                        const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                                        setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+
+                                        toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
+                                    } catch (error: any) {
+                                        toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: addon.name }), { id: toastId })
+                                        console.error('[Store] failed to install addon', error)
+                                    } finally {
+                                        setInstallingAddonId(current => (current === addon.id ? null : current))
                                     }
+                                }}
+                                onAuthorClick={author => {
+                                    if (!author) return
+                                    navigate(`/profile/${encodeURIComponent(author)}`)
+                                }}
+                            />
+                        )
+                    })}
+                </div>
 
-                                    const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
-                                    setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-
-                                    toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
-                                } catch (error: any) {
-                                    toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: addon.name }), { id: toastId })
-                                    console.error('[Store] failed to install addon', error)
-                                } finally {
-                                    setInstallingAddonId(current => (current === addon.id ? null : current))
-                                }
-                            }}
-                            onAuthorClick={author => {
-                                if (!author) return
-                                navigate(`/profile/${encodeURIComponent(author)}`)
-                            }}
-                        />
-                    )
-                })}
+                {isInitialShimmerVisible && (
+                    <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
+                        <StoreShimmer />
+                    </div>
+                )}
             </div>
         )
-    }, [addons, filteredAddons, i18n.language, installedStoreAddons, installingAddonId, loading, Modals, navigate, openModal, setInstalledAddons, setModalState, t])
+    }, [
+        addons,
+        filteredAddons,
+        i18n.language,
+        installedStoreAddons,
+        installingAddonId,
+        isInitialShimmerFading,
+        isInitialShimmerVisible,
+        loading,
+        Modals,
+        navigate,
+        openModal,
+        setInstalledAddons,
+        setModalState,
+        t,
+    ])
 
     return (
         <PageLayout title={t('pages.store.title')}>
-            <Scrollbar className={st.containerFix} classNameInner={st.containerFixInner}>
+            <Scrollbar
+                className={st.containerFix}
+                classNameInner={cn(st.containerFixInner, (loading || isInitialShimmerVisible) && st.containerFixInnerLocked)}
+                onScroll={() => {
+                    animationsEnabledRef.current = true
+                }}
+            >
                 <section className={st.store}>
                     <header className={st.store_header}>
                         <div className={st.store_title}>{t('pages.store.headerTitle')}</div>
