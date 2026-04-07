@@ -23,7 +23,7 @@ const ProfilePage: React.FC = () => {
     const { username: raw } = useParams()
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
-    const { user, allAchievements } = useContext(userContext)
+    const { user, allAchievements, socketConnected } = useContext(userContext)
     const { t } = useTranslation()
 
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
@@ -83,6 +83,8 @@ const ProfilePage: React.FC = () => {
         }
 
         const hasLiveAchievementData = (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
+        const liveStatus = socketConnected ? 'online' : user.status || payload.status
+        const liveLastOnline = user.lastOnline || payload.lastOnline
 
         return {
             ...payload,
@@ -95,14 +97,14 @@ const ProfilePage: React.FC = () => {
             badges: Array.isArray(user.badges) ? user.badges : payload.badges,
             userAchievements: hasLiveAchievementData && Array.isArray(user.userAchievements) ? user.userAchievements : payload.userAchievements,
             levelInfoV2: hasLiveAchievementData && user.levelInfoV2 && typeof user.levelInfoV2 === 'object' ? user.levelInfoV2 : payload.levelInfoV2,
-            status: user.status ?? payload.status,
-            lastOnline: user.lastOnline ?? payload.lastOnline,
+            status: liveStatus,
+            lastOnline: liveLastOnline,
             currentTrack: user.currentTrack ?? payload.currentTrack,
             subscription: user.subscription ?? payload.subscription ?? null,
             hasSupporterBadge: user.hasSupporterBadge,
             active: user.active,
         }
-    }, [isSelf, payload, user])
+    }, [isSelf, payload, socketConnected, user])
 
     const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
         if (!livePayload) return userInitials
