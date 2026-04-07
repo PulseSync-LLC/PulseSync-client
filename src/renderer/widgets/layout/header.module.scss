@@ -16,7 +16,7 @@
         .app_menu {
             display: flex;
             align-items: center;
-            gap: 23px;
+            gap: 21px;
 
             .settingsTooltip {
                 display: flex;
@@ -49,11 +49,6 @@
                         background: #3c3f4a;
                     }
                 }
-            }
-            .line {
-                width: 1px;
-                height: 20px;
-                background: #20232c;
             }
 
             .logoplace {
