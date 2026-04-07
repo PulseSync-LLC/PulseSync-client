@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
 import { MdAdd, MdClose } from 'react-icons/md'
 import MainEvents from '@common/types/mainEvents'
@@ -12,6 +12,7 @@ import ChangesBar from '@shared/ui/PSUI/ChangesBar'
 import Loader from '@shared/ui/PSUI/Loader'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
+import UserContext from '@entities/user/model/context'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -156,6 +157,7 @@ function serializeAuthorField(value: string): string | string[] {
 
 const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     const { t } = useTranslation()
+    const { setAddons } = useContext(UserContext)
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
     const baseRef = useRef<Metadata>(DEFAULT_META)
     const [loading, setLoading] = useState(true)
@@ -348,13 +350,25 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
             baseRef.current = next
             setDraft(next)
+
+            try {
+                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
+                window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+
+                const nextAddons = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force: true })
+                if (Array.isArray(nextAddons)) {
+                    setAddons(nextAddons.filter(addon => addon.name !== 'Default'))
+                }
+            } catch (refreshError) {
+                console.error('[MetadataEditor] metadata saved, but refresh failed', refreshError)
+            }
         } catch (e) {
             console.error(e)
             setError(t('metadata.saveError'))
         } finally {
             setSaving(false)
         }
-    }, [addonPath, draft, open, resolveRelIfNeeded, saving, valid])
+    }, [addonPath, draft, open, resolveRelIfNeeded, saving, setAddons, t, valid])
 
     const onReset = useCallback(() => {
         setDraft(baseRef.current)
