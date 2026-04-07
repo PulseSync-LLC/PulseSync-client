@@ -3,7 +3,7 @@ import path from 'path'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
-import { AddonConfig, ButtonAction, TextItem } from '@features/configurationSettings/types'
+import { AddonConfig, normalizeAddonConfig } from '@features/configurationSettings/types'
 
 type UseConfigResult = {
     configExists: boolean | null
@@ -32,8 +32,9 @@ export function useConfig(addonPath: string): UseConfigResult {
         try {
             const raw = await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, filePath, 'utf-8')
             const parsed = safeParse<AddonConfig>(raw)
-            setExists(!!parsed)
-            setConfig(parsed)
+            const normalized = parsed ? normalizeAddonConfig(parsed) : null
+            setExists(!!normalized)
+            setConfig(normalized)
         } catch {
             setExists(false)
             setConfig(null)
@@ -42,21 +43,7 @@ export function useConfig(addonPath: string): UseConfigResult {
 
     const save = useCallback(
         async (cfg: AddonConfig) => {
-            const normalized: AddonConfig = {
-                sections: cfg.sections.map(s => ({
-                    ...s,
-                    items: s.items.map(it => {
-                        if (it.type !== 'text') return it
-                        const text = it as TextItem
-                        const buttons = text.buttons.map((b: ButtonAction) => ({
-                            ...b,
-                            text: String(b.text ?? ''),
-                            defaultParameter: String(b.defaultParameter ?? ''),
-                        }))
-                        return { ...text, buttons }
-                    }),
-                })),
-            }
+            const normalized = normalizeAddonConfig(cfg)
             await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, filePath, JSON.stringify(normalized, null, 4))
             setConfig(normalized)
             setExists(true)

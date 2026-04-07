@@ -120,6 +120,7 @@
             "newSection": "Новая секция",
             "newSelector": "Новый селектор",
             "newSlider": "Новый слайдер",
+            "newText": "Новая строка",
             "newTextBlock": "Новый текстовый блок",
             "option": "Опция {{index}}"
         },

@@ -207,47 +207,12 @@ export default function ConfigurationItemBody({
         case 'text': {
             const currentItem = item as TextItem
             return (
-                <>
-                    <div className={clsx(css.smallTitle)}>{currentItem.name}</div>
-                    {currentItem.buttons.map((button, bi) => (
-                        <div key={(button as any).__k} className={css.list}>
-                            <div className={css.inlineGrid}>
-                                <TextInput
-                                    name={`btn_name_${button.id}`}
-                                    label={t('configEditor.labels.name')}
-                                    value={button.name}
-                                    onChange={value => updateTextButton(si, ii, bi, { name: value })}
-                                />
-                                <TextInput
-                                    name={`btn_id_${button.id}`}
-                                    label="ID"
-                                    value={button.id}
-                                    onChange={value => updateTextButton(si, ii, bi, { id: value })}
-                                />
-                            </div>
-                            <div className={css.rowWithDelete}>
-                                <TextInput
-                                    name={`btn_def_${button.id}`}
-                                    label="Default"
-                                    value={button.defaultParameter ?? ''}
-                                    onChange={value => updateTextButton(si, ii, bi, { defaultParameter: value })}
-                                />
-                                <button
-                                    className={clsx(css.iconBtn, css.dangerBtn)}
-                                    title={t('configEditor.removeRow')}
-                                    onClick={() => removeTextButton(si, ii, bi)}
-                                >
-                                    <MdDelete />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    <div className={css.rowEnd}>
-                        <button className={css.addBtn} onClick={() => addTextButton(si, ii)}>
-                            <MdAdd /> {t('configEditor.addRow')}
-                        </button>
-                    </div>
-                </>
+                <TextInput
+                    name={`${currentItem.id}_default`}
+                    label="Default"
+                    value={currentItem.defaultParameter}
+                    onChange={value => updateItem(si, ii, { defaultParameter: value })}
+                />
             )
         }
         default:

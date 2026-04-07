@@ -120,6 +120,7 @@
             "newSection": "New section",
             "newSelector": "New selector",
             "newSlider": "New slider",
+            "newText": "New text row",
             "newTextBlock": "New text block",
             "option": "Option {{index}}"
         },

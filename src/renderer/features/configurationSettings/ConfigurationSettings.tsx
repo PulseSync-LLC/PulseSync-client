@@ -9,7 +9,7 @@ import {
     FileItem,
     SelectorItem,
     TextItem,
-    ButtonAction,
+    normalizeAddonConfig,
 } from '@features/configurationSettings/types'
 
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
@@ -126,58 +126,14 @@ const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; childr
     )
 }
 
-const SectionTextGroup: React.FC<{
-    item: TextItem
-    si: number
-    ii: number
-    updateTextButton: (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) => void
-}> = ({ item, si, ii, updateTextButton }) => {
-    const { t } = useTranslation()
-    return (
-        <div className={css.list}>
-            {item.buttons.map((b, bi) => {
-                const dirty = (b.text ?? '') !== (b.defaultParameter ?? '')
-                return (
-                    <div key={`${item.id}-${b.id}-${bi}`}>
-                        <TextInput
-                            name={b.id}
-                            label={item.name}
-                            value={b.text ?? ''}
-                            onChange={(val: string) => updateTextButton(si, ii, bi, { text: val })}
-                            description={item.description}
-                        />
-
-                        {dirty && (
-                            <div className={css.resetRow}>
-                                <button
-                                    type="button"
-                                    className={css.resetLink}
-                                    onClick={e => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        updateTextButton(si, ii, bi, {
-                                            text: b.defaultParameter ?? '',
-                                        })
-                                    }}
-                                >
-                                    ↺ {t('common.reset')}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )
-            })}
-        </div>
-    )
-}
-
 const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
     const { t } = useTranslation()
-    const [cfg, setCfg] = useState<AddonConfig>(structuredClone(configData))
+    const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
+    const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
 
     const rootRef = useRef<HTMLDivElement>(null)
-    const baselineRef = useRef<AddonConfig>(structuredClone(configData))
-    const lastSavedSnapRef = useRef<string>(JSON.stringify(configData))
+    const baselineRef = useRef<AddonConfig>(normalizedInitialConfig)
+    const lastSavedSnapRef = useRef<string>(JSON.stringify(normalizedInitialConfig))
 
     const [savedTick, setSavedTick] = useState(0)
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
@@ -199,12 +155,13 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
     })
 
     useEffect(() => {
-        const incoming = JSON.stringify(configData)
+        const normalizedConfig = normalizeAddonConfig(structuredClone(configData))
+        const incoming = JSON.stringify(normalizedConfig)
         const draftSnap = JSON.stringify(cfg)
         const isDirtyNow = draftSnap !== lastSavedSnapRef.current
         if (!isDirtyNow && incoming !== lastSavedSnapRef.current) {
-            setCfg(structuredClone(configData))
-            baselineRef.current = structuredClone(configData)
+            setCfg(normalizedConfig)
+            baselineRef.current = normalizedConfig
             lastSavedSnapRef.current = incoming
             setSavedTick(t => t + 1)
         }
@@ -245,13 +202,6 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             }),
         )
 
-    const updateTextButton = (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) =>
-        setConfig(
-            produce(cfg, d => {
-                Object.assign((d.sections[si].items[ii] as TextItem).buttons[bi], patch)
-            }),
-        )
-
     const isDirtyUsage = (item: Item): boolean => {
         switch (item.type) {
             case 'button':
@@ -265,7 +215,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             case 'selector':
                 return String(item.selected) !== String(item.defaultParameter)
             case 'text':
-                return item.buttons.some(b => (b.text ?? '') !== (b.defaultParameter ?? ''))
+                return item.text !== item.defaultParameter
         }
     }
 
@@ -290,7 +240,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         item.selected = (item as SelectorItem).defaultParameter
                         break
                     case 'text':
-                        item.buttons = (item as TextItem).buttons.map((b: ButtonAction) => ({ ...b, text: b.defaultParameter ?? '' }))
+                        item.text = (item as TextItem).defaultParameter
                         break
                 }
             }),
@@ -426,7 +376,24 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
             case 'text': {
                 const it = item as TextItem
-                return <SectionTextGroup item={it} si={si} ii={ii} updateTextButton={updateTextButton} />
+                return (
+                    <>
+                        <TextInput
+                            name={it.id}
+                            label={it.name}
+                            description={it.description}
+                            value={it.text}
+                            onChange={(val: string) => updateItem(si, ii, { text: val })}
+                        />
+                        {dirty && (
+                            <div className={css.resetRow}>
+                                <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
+                                    ↺ {t('common.reset')}
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )
             }
 
             default: {

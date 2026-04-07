@@ -1,4 +1,4 @@
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdSearch } from 'react-icons/md'
@@ -19,6 +19,10 @@ import { useModalContext } from '@app/providers/modal'
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
 }
+
+const STORE_CARD_MIN_HEIGHT = 238
+const STORE_GRID_ROW_GAP = 16
+const STORE_GRID_OVERSCAN_ROWS = 2
 
 function resolveTheme(index: number): 'purple' | 'red' | 'wave' {
     const themes: Array<'purple' | 'red' | 'wave'> = ['purple', 'red', 'wave']
@@ -55,9 +59,15 @@ export default function StorePage() {
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
     const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
     const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
+    const [scrollTop, setScrollTop] = useState(0)
+    const [scrollViewportHeight, setScrollViewportHeight] = useState(0)
+    const [gridTopOffset, setGridTopOffset] = useState(0)
+    const [gridColumns, setGridColumns] = useState(2)
     const animationsEnabledRef = useRef(false)
     const shimmerFadeTimeoutRef = useRef<number | null>(null)
     const shimmerFadeRafRef = useRef<number | null>(null)
+    const scrollContainerRef = useRef<HTMLDivElement>(null)
+    const storeContentRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
         let active = true
@@ -122,6 +132,81 @@ export default function StorePage() {
 
     const shouldRenderCards = filteredAddons.length > 0
 
+    const measureVirtualGrid = useCallback(() => {
+        const container = scrollContainerRef.current
+        const content = storeContentRef.current
+
+        if (!container || !content) return
+
+        const nextViewportHeight = container.clientHeight
+        const nextGridTopOffset = content.offsetTop
+        const nextGridColumns = window.innerWidth <= 1024 ? 1 : 2
+
+        setScrollViewportHeight(prevHeight => (prevHeight === nextViewportHeight ? prevHeight : nextViewportHeight))
+        setGridTopOffset(prevOffset => (prevOffset === nextGridTopOffset ? prevOffset : nextGridTopOffset))
+        setGridColumns(prevColumns => (prevColumns === nextGridColumns ? prevColumns : nextGridColumns))
+    }, [])
+
+    useLayoutEffect(() => {
+        const runMeasure = () => {
+            measureVirtualGrid()
+            setScrollTop(prevScrollTop => {
+                const nextScrollTop = scrollContainerRef.current?.scrollTop ?? 0
+                return prevScrollTop === nextScrollTop ? prevScrollTop : nextScrollTop
+            })
+        }
+
+        runMeasure()
+
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(runMeasure)
+
+        if (observer) {
+            if (scrollContainerRef.current) observer.observe(scrollContainerRef.current)
+            if (storeContentRef.current) observer.observe(storeContentRef.current)
+        }
+
+        window.addEventListener('resize', runMeasure)
+
+        return () => {
+            observer?.disconnect()
+            window.removeEventListener('resize', runMeasure)
+        }
+    }, [measureVirtualGrid])
+
+    const virtualizedGrid = useMemo(() => {
+        if (!filteredAddons.length) {
+            return {
+                startIndex: 0,
+                topSpacerHeight: 0,
+                bottomSpacerHeight: 0,
+                visibleAddons: [] as StoreAddon[],
+            }
+        }
+
+        const columns = Math.max(1, gridColumns)
+        const totalRows = Math.ceil(filteredAddons.length / columns)
+        const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
+        const totalHeight = totalRows * STORE_CARD_MIN_HEIGHT + Math.max(0, totalRows - 1) * STORE_GRID_ROW_GAP
+        const relativeScrollTop = Math.max(0, scrollTop - gridTopOffset)
+        const visibleHeight = Math.max(rowHeight, scrollViewportHeight - Math.max(0, gridTopOffset - scrollTop))
+        const startRow = Math.min(totalRows, Math.max(0, Math.floor(relativeScrollTop / rowHeight) - STORE_GRID_OVERSCAN_ROWS))
+        const endRow = Math.min(totalRows, Math.ceil((relativeScrollTop + visibleHeight) / rowHeight) + STORE_GRID_OVERSCAN_ROWS)
+        const startIndex = startRow * columns
+        const endIndex = Math.min(filteredAddons.length, endRow * columns)
+        const visibleAddons = filteredAddons.slice(startIndex, endIndex)
+        const visibleRowCount = Math.ceil(visibleAddons.length / columns)
+        const topSpacerHeight = Math.min(totalHeight, startRow * rowHeight)
+        const renderedHeight = visibleRowCount * STORE_CARD_MIN_HEIGHT + Math.max(0, visibleRowCount - 1) * STORE_GRID_ROW_GAP
+        const bottomSpacerHeight = Math.max(0, totalHeight - topSpacerHeight - renderedHeight)
+
+        return {
+            startIndex,
+            topSpacerHeight,
+            bottomSpacerHeight,
+            visibleAddons,
+        }
+    }, [filteredAddons, gridColumns, gridTopOffset, scrollTop, scrollViewportHeight])
+
     const clearInitialShimmerTimers = useCallback(() => {
         if (shimmerFadeTimeoutRef.current !== null) {
             window.clearTimeout(shimmerFadeTimeoutRef.current)
@@ -183,17 +268,22 @@ export default function StorePage() {
 
         return (
             <div className={st.initialContentShell}>
+                {virtualizedGrid.topSpacerHeight > 0 && (
+                    <div className={st.store_virtualSpacer} style={{ height: `${virtualizedGrid.topSpacerHeight}px` }} aria-hidden="true" />
+                )}
+
                 <div className={st.store_grid}>
-                    {filteredAddons.map((addon, index) => {
+                    {virtualizedGrid.visibleAddons.map((addon, index) => {
                         const release = addon.currentRelease
                         if (!release) return null
                         const installedStoreAddon = installedStoreAddons.get(addon.id)
                         const isInstalled = !!installedStoreAddon
+                        const visibleIndex = virtualizedGrid.startIndex + index
 
                         return (
                             <ExtensionCardStore
                                 key={addon.id}
-                                theme={resolveTheme(index)}
+                                theme={resolveTheme(visibleIndex)}
                                 title={addon.name}
                                 subtitle={release.description}
                                 version={`v${release.version}`}
@@ -293,6 +383,10 @@ export default function StorePage() {
                     })}
                 </div>
 
+                {virtualizedGrid.bottomSpacerHeight > 0 && (
+                    <div className={st.store_virtualSpacer} style={{ height: `${virtualizedGrid.bottomSpacerHeight}px` }} aria-hidden="true" />
+                )}
+
                 {isInitialShimmerVisible && (
                     <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
                         <StoreShimmer />
@@ -315,15 +409,24 @@ export default function StorePage() {
         setInstalledAddons,
         setModalState,
         t,
+        virtualizedGrid.startIndex,
+        virtualizedGrid.bottomSpacerHeight,
+        virtualizedGrid.topSpacerHeight,
+        virtualizedGrid.visibleAddons,
     ])
 
     return (
         <PageLayout title={t('pages.store.title')}>
             <Scrollbar
+                ref={scrollContainerRef}
                 className={st.containerFix}
                 classNameInner={cn(st.containerFixInner, (loading || isInitialShimmerVisible) && st.containerFixInnerLocked)}
-                onScroll={() => {
+                onScroll={event => {
                     animationsEnabledRef.current = true
+                    setScrollTop(prevScrollTop => {
+                        const nextScrollTop = event.currentTarget.scrollTop
+                        return prevScrollTop === nextScrollTop ? prevScrollTop : nextScrollTop
+                    })
                 }}
             >
                 <section className={st.store}>
@@ -345,7 +448,7 @@ export default function StorePage() {
                         </div>
                     </header>
 
-                    {content}
+                    <div ref={storeContentRef}>{content}</div>
                 </section>
             </Scrollbar>
         </PageLayout>
