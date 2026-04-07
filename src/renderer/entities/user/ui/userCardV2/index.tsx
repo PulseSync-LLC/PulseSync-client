@@ -15,23 +15,27 @@ interface UserCardProps {
     user: Partial<UserInterface>
     onClick: (username: string) => void
     animationsEnabledRef: React.MutableRefObject<boolean>
+    scrollDirectionRef: React.MutableRefObject<'up' | 'down'>
     eagerVisible?: boolean
 }
 
 type VisibilityState = {
     isIntersecting: boolean
     shouldAnimate: boolean
+    entryDirection: 'up' | 'down'
 }
 
 const useIntersectionObserver = (
     ref: React.RefObject<HTMLElement | null>,
     animationsEnabledRef: React.MutableRefObject<boolean>,
+    scrollDirectionRef: React.MutableRefObject<'up' | 'down'>,
     eagerVisible: boolean,
     options?: IntersectionObserverInit,
 ) => {
     const [visibilityState, setVisibilityState] = useState<VisibilityState>({
         isIntersecting: eagerVisible,
         shouldAnimate: animationsEnabledRef.current,
+        entryDirection: scrollDirectionRef.current,
     })
 
     useEffect(() => {
@@ -39,6 +43,7 @@ const useIntersectionObserver = (
             setVisibilityState({
                 isIntersecting: true,
                 shouldAnimate: animationsEnabledRef.current,
+                entryDirection: scrollDirectionRef.current,
             })
             return
         }
@@ -52,11 +57,13 @@ const useIntersectionObserver = (
                         const nextState = {
                             isIntersecting: true,
                             shouldAnimate: animationsEnabledRef.current,
+                            entryDirection: scrollDirectionRef.current,
                         }
 
                         if (
                             prevState.isIntersecting === nextState.isIntersecting &&
-                            prevState.shouldAnimate === nextState.shouldAnimate
+                            prevState.shouldAnimate === nextState.shouldAnimate &&
+                            prevState.entryDirection === nextState.entryDirection
                         ) {
                             return prevState
                         }
@@ -79,7 +86,7 @@ const useIntersectionObserver = (
         )
         obs.observe(ref.current)
         return () => obs.disconnect()
-    }, [animationsEnabledRef, eagerVisible, options, ref])
+    }, [animationsEnabledRef, eagerVisible, options, ref, scrollDirectionRef])
 
     return visibilityState
 }
@@ -92,12 +99,12 @@ const isInactive = (lastOnline?: number) => {
     return date < weekAgo
 }
 
-const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledRef, eagerVisible = false }) => {
+const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledRef, scrollDirectionRef, eagerVisible = false }) => {
     const { t } = useTranslation()
     const containerRef = useRef<HTMLDivElement>(null)
     const [isHovered, setIsHovered] = useState(false)
     const observerOptions = useMemo<IntersectionObserverInit>(() => ({ threshold: 0.1 }), [])
-    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, eagerVisible, observerOptions)
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, scrollDirectionRef, eagerVisible, observerOptions)
 
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
@@ -110,7 +117,13 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
         <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!visibilityState.isIntersecting}>
             {visibilityState.isIntersecting ? (
                 <div
-                    className={cn(styles.container, !visibilityState.shouldAnimate && styles.softFadeIn)}
+                    className={cn(
+                        styles.container,
+                        !visibilityState.shouldAnimate && styles.softFadeIn,
+                        visibilityState.shouldAnimate &&
+                            visibilityState.entryDirection === 'up' &&
+                            styles.enterFromTop,
+                    )}
                     onClick={() => onClick(user.username!)}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
