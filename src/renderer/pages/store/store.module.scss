@@ -110,6 +110,61 @@
     margin: auto;
 }
 
+.store_section {
+    width: 100%;
+    max-width: 1200px;
+    margin: 40px auto 0;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 0 16px;
+    box-sizing: border-box;
+    border-top: 1px solid rgba(123, 137, 184, 0.2);
+    padding-top: 24px;
+}
+
+.store_sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    text-align: center;
+}
+
+.store_sectionTitle {
+    margin: 0;
+    font-family: 'Segoe UI';
+    font-size: 32px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+.store_sectionSubtitle {
+    margin: 6px 0 0;
+    color: #aeb8d8;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.store_sectionState {
+    min-height: 120px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    color: #d8def1;
+    border-radius: 18px;
+    background: rgba(18, 21, 31, 0.42);
+    border: 1px solid rgba(105, 115, 148, 0.18);
+}
+
+.store_sectionGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 500px), 500px));
+    gap: 16px;
+    justify-content: center;
+}
+
 .initialContentShell {
     position: relative;
     width: 100%;
@@ -183,6 +238,20 @@
         grid-template-columns: minmax(0, 1fr);
         row-gap: 16px;
     }
+
+    .store_section {
+        margin-top: 32px;
+        padding: 0 12px;
+        padding-top: 20px;
+    }
+
+    .store_sectionTitle {
+        font-size: 28px;
+    }
+
+    .store_sectionGrid {
+        grid-template-columns: minmax(0, 1fr);
+    }
 }
 
 @media (max-width: 640px) {
@@ -212,5 +281,19 @@
 
     .store_search_input {
         font-size: 14px;
+    }
+
+    .store_sectionSubtitle {
+        font-size: 14px;
+    }
+}
+
+@media (max-width: 640px) {
+    .store_sectionTitle {
+        font-size: 24px;
+    }
+
+    .store_sectionSubtitle {
+        font-size: 13px;
     }
 }
