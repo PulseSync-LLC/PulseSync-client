@@ -205,17 +205,17 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
     const isDirtyUsage = (item: Item): boolean => {
         switch (item.type) {
             case 'button':
-                return item.bool !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'slider':
-                return item.value !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'color':
-                return item.input !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'file':
-                return (item.defaultParameter?.filePath ?? '') !== item.filePath
+                return item.value !== item.defaultValue
             case 'selector':
-                return String(item.selected) !== String(item.defaultParameter)
+                return String(item.value) !== String(item.defaultValue)
             case 'text':
-                return item.text !== item.defaultParameter
+                return item.value !== item.defaultValue
         }
     }
 
@@ -225,22 +225,22 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 const item = d.sections[si].items[ii] as any
                 switch (item.type) {
                     case 'button':
-                        item.bool = (item as ButtonItem).defaultParameter
+                        item.value = (item as ButtonItem).defaultValue
                         break
                     case 'slider':
-                        item.value = (item as SliderItem).defaultParameter
+                        item.value = (item as SliderItem).defaultValue
                         break
                     case 'color':
-                        item.input = (item as ColorItem).defaultParameter
+                        item.value = (item as ColorItem).defaultValue
                         break
                     case 'file':
-                        item.filePath = (item as FileItem).defaultParameter?.filePath ?? ''
+                        item.value = (item as FileItem).defaultValue
                         break
                     case 'selector':
-                        item.selected = (item as SelectorItem).defaultParameter
+                        item.value = (item as SelectorItem).defaultValue
                         break
                     case 'text':
-                        item.text = (item as TextItem).defaultParameter
+                        item.value = (item as TextItem).defaultValue
                         break
                 }
             }),
@@ -257,9 +257,9 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         <ButtonInput
                             label={it.name}
                             description={it.description}
-                            defaultValue={it.bool}
+                            defaultValue={it.value}
                             checkType={`config-${it.id}`}
-                            onChange={(val: boolean) => updateItem(si, ii, { bool: val })}
+                            onChange={(val: boolean) => updateItem(si, ii, { value: val })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -279,11 +279,11 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         <BufferedColorInput
                             label={it.name}
                             description={it.description}
-                            value={it.input}
+                            value={it.value}
                             withAlpha
                             inputModes={['hex', 'rgb', 'hsl', 'hsb']}
                             defaultMode="hex"
-                            onCommit={val => updateItem(si, ii, { input: val })}
+                            onCommit={val => updateItem(si, ii, { value: val })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -299,15 +299,15 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             case 'selector': {
                 const it = item as SelectorItem
                 const opts = Object.entries(it.options).map(([k, o]) => ({ value: k, label: o.name }))
-                const toNumber = typeof it.defaultParameter === 'number'
+                const toNumber = typeof it.defaultValue === 'number'
                 return (
                     <>
                         <SelectInput
                             label={it.name}
                             description={it.description}
-                            value={String(it.selected)}
+                            value={String(it.value)}
                             options={opts}
-                            onChange={val => updateItem(si, ii, { selected: toNumber ? Number(val) : (String(val) as any) })}
+                            onChange={val => updateItem(si, ii, { value: toNumber ? Number(val) : (String(val) as any) })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -352,14 +352,14 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
             case 'file': {
                 const it = item as FileItem
-                const current = it.filePath ?? ''
+                const current = it.value ?? ''
                 return (
                     <>
                         <FileInput
                             label={it.name}
                             description={it.description}
                             value={current}
-                            onChange={p => updateItem(si, ii, { filePath: p })}
+                            onChange={p => updateItem(si, ii, { value: p })}
                             previewSrc={filePreviewSrc}
                             placeholder={t('common.selectFile')}
                         />
@@ -382,8 +382,8 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                             name={it.id}
                             label={it.name}
                             description={it.description}
-                            value={it.text}
-                            onChange={(val: string) => updateItem(si, ii, { text: val })}
+                            value={it.value}
+                            onChange={(val: string) => updateItem(si, ii, { value: val })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>

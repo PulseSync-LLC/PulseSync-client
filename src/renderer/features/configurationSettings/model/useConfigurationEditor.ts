@@ -48,8 +48,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newButton'),
                 description: '',
                 type: 'button',
-                bool: false,
-                defaultParameter: false,
+                value: false,
+                defaultValue: false,
             } as any
         case 'slider':
             return {
@@ -62,7 +62,7 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 max: 100,
                 step: 1,
                 value: 0,
-                defaultParameter: 0,
+                defaultValue: 0,
             } as any
         case 'color':
             return {
@@ -71,8 +71,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newColor'),
                 description: '',
                 type: 'color',
-                input: '#FFFFFFFF',
-                defaultParameter: '#FFFFFFFF',
+                value: '#FFFFFFFF',
+                defaultValue: '#FFFFFFFF',
             } as any
         case 'file':
             return {
@@ -81,8 +81,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newFile'),
                 description: '',
                 type: 'file',
-                filePath: '',
-                defaultParameter: { filePath: '' },
+                value: '',
+                defaultValue: '',
             } as any
         case 'selector':
             return {
@@ -91,9 +91,9 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newSelector'),
                 description: '',
                 type: 'selector',
-                selected: 1,
+                value: 1,
                 options: { '1': { event: 'opt_1', name: t('configEditor.defaults.option', { index: 1 }) } },
-                defaultParameter: 1,
+                defaultValue: 1,
             } as any
         case 'text':
         default:
@@ -103,8 +103,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newText'),
                 description: '',
                 type: 'text',
-                text: '',
-                defaultParameter: '',
+                value: '',
+                defaultValue: '',
             } as any
     }
 }
@@ -303,20 +303,15 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
         if (!base || item.type !== base.type) return true
         switch (item.type) {
             case 'button':
-                return item.defaultParameter !== (base as ButtonItem).defaultParameter
+                return item.defaultValue !== (base as ButtonItem).defaultValue
             case 'slider': {
                 const baseSlider = base as SliderItem
-                return (
-                    item.min !== baseSlider.min ||
-                    item.max !== baseSlider.max ||
-                    item.step !== baseSlider.step ||
-                    item.defaultParameter !== baseSlider.defaultParameter
-                )
+                return item.min !== baseSlider.min || item.max !== baseSlider.max || item.step !== baseSlider.step || item.defaultValue !== baseSlider.defaultValue
             }
             case 'color':
-                return item.defaultParameter !== (base as ColorItem).defaultParameter
+                return item.defaultValue !== (base as ColorItem).defaultValue
             case 'file':
-                return (item.defaultParameter?.filePath ?? '') !== ((base as FileItem).defaultParameter?.filePath ?? '')
+                return item.defaultValue !== (base as FileItem).defaultValue
             case 'selector': {
                 const baseSelector = base as SelectorItem
                 const optionsChanged =
@@ -327,11 +322,11 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
                             baseSelector.options[key].name !== option.name ||
                             baseSelector.options[key].event !== option.event,
                     )
-                return String(item.defaultParameter) !== String(baseSelector.defaultParameter) || optionsChanged
+                return String(item.defaultValue) !== String(baseSelector.defaultValue) || optionsChanged
             }
             case 'text': {
                 const baseText = base as TextItem
-                return item.text !== baseText.text || item.defaultParameter !== baseText.defaultParameter
+                return item.defaultValue !== baseText.defaultValue
             }
         }
     }

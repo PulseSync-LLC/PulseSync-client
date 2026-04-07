@@ -456,7 +456,7 @@ export default function UsersPage() {
                 classNameInner={cn(s.containerFixInner, loading && s.containerFixInnerLocked)}
                 ref={containerRef}
                 onScroll={event => {
-                    const nextScrollTop = event.currentTarget.scrollTop
+                    const nextScrollTop = event.currentTarget?.scrollTop ?? containerRef.current?.scrollTop ?? 0
                     animationsEnabledRef.current = true
                     if (nextScrollTop > lastScrollTopRef.current) {
                         scrollDirectionRef.current = 'down'
