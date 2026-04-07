@@ -97,7 +97,7 @@ const ThemeInfo: React.FC<Props> = ({
 }) => {
     const { t } = useTranslation()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
-    const { Modals, openModal } = useModalContext()
+    const { Modals, openModal, setModalState } = useModalContext()
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -340,6 +340,7 @@ const ThemeInfo: React.FC<Props> = ({
                                         showDelete: true,
                                     },
                                     addon,
+                                    { Modals, openModal, setModalState },
                                 )}
                             />
                         )}

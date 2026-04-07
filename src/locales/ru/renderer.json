@@ -201,7 +201,7 @@
     },
     "contextMenuThemes": {
         "delete": "Удалить {{name}}",
-        "deleteConfirm": "Вы уверены, что хотите удалить тему \"{{name}}\"? Это действие нельзя будет отменить.",
+        "deleteConfirm": "Вы уверены, что хотите удалить аддон \"{{name}}\"? Это действие нельзя будет отменить.",
         "deleteError": "Ошибка при удалении темы \"{{name}}\"",
         "deleteSuccess": "Тема \"{{name}}\" и связанные файлы удалены.",
         "directory": "Директория аддона {{name}}",
@@ -658,6 +658,14 @@
                 "successTitle": "Готово",
                 "errorTitle": "Ошибка"
             }
+        },
+        "basicConfirmation": {
+            "confirm": "Да",
+            "delete": "Удалить",
+            "ok": "Ясно",
+            "cancel": "Отмена",
+            "defaultTitle": "Подтверждение",
+            "defaultDescription": "Вы уверены?"
         }
     },
     "layout": {
@@ -984,6 +992,7 @@
         "installFailed": "Не удалось установить аддон {{title}}.",
         "openLocal": "Открыть локальный",
         "remove": "Удалить",
+        "removeConfirm": "Вы уверены, что хотите удалить аддон \"{{title}}\"?",
         "removeComplete": "Аддон {{title}} удалён.",
         "removeFailed": "Не удалось удалить аддон {{title}}.",
         "unknownAddon": "Аддон",

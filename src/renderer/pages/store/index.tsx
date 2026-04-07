@@ -13,6 +13,7 @@ import Loader from '@shared/ui/PSUI/Loader'
 import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
 import UserContext from '@entities/user/model/context'
+import { useModalContext } from '@app/providers/modal'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -44,6 +45,7 @@ export default function StorePage() {
     const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const { addons: installedAddons, setAddons: setInstalledAddons } = useContext(UserContext)
+    const { Modals, openModal, setModalState } = useModalContext()
     const [addons, setAddons] = useState<StoreAddon[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const [loading, setLoading] = useState(true)
@@ -164,29 +166,47 @@ export default function StorePage() {
                             onDownloadClick={async () => {
                                 if (installingAddonId === addon.id || !window.desktopEvents) return
 
-                                setInstallingAddonId(addon.id)
-                                const isRemoving = !!installedStoreAddon
-                                const toastId = toast.custom(
-                                    'loading',
-                                    isRemoving ? t('common.delete') : t('common.importTitle'),
-                                    t('common.pleaseWait'),
-                                )
+                                if (installedStoreAddon) {
+                                    const addonToRemove = installedStoreAddon
+                                    const removeInstalledAddon = async () => {
+                                        setInstallingAddonId(addon.id)
+                                        const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
 
-                                try {
-                                    if (installedStoreAddon) {
-                                        const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, installedStoreAddon.path)
-                                        if (!result?.success) {
-                                            throw new Error(result?.reason || 'DELETE_FAILED')
+                                        try {
+                                            const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, addonToRemove.path)
+                                            if (!result?.success) {
+                                                throw new Error(result?.reason || 'DELETE_FAILED')
+                                            }
+
+                                            const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                                            setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+                                            toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
+                                                id: toastId,
+                                            })
+                                        } catch (error: any) {
+                                            toast.custom('error', t('common.errorTitle'), t('store.removeFailed', { title: addon.name }), { id: toastId })
+                                            console.error('[Store] failed to remove addon', error)
+                                        } finally {
+                                            setInstallingAddonId(current => (current === addon.id ? null : current))
                                         }
-
-                                        const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
-                                        setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-                                        toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
-                                            id: toastId,
-                                        })
-                                        return
                                     }
 
+                                    setModalState(Modals.BASIC_CONFIRMATION, {
+                                        description: t('store.removeConfirm', { title: addon.name }),
+                                        confirmLabel: t('modals.basicConfirmation.delete'),
+                                        confirmVariant: 'danger',
+                                        onConfirm: () => {
+                                            void removeInstalledAddon()
+                                        },
+                                    })
+                                    openModal(Modals.BASIC_CONFIRMATION)
+                                    return
+                                }
+
+                                setInstallingAddonId(addon.id)
+                                const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
+
+                                try {
                                     const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
                                         id: addon.id,
                                         downloadUrl: release.downloadUrl,
@@ -202,13 +222,8 @@ export default function StorePage() {
 
                                     toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
                                 } catch (error: any) {
-                                    toast.custom(
-                                        'error',
-                                        t('common.errorTitle'),
-                                        t(installedStoreAddon ? 'store.removeFailed' : 'store.installFailed', { title: addon.name }),
-                                        { id: toastId },
-                                    )
-                                    console.error(installedStoreAddon ? '[Store] failed to remove addon' : '[Store] failed to install addon', error)
+                                    toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: addon.name }), { id: toastId })
+                                    console.error('[Store] failed to install addon', error)
                                 } finally {
                                     setInstallingAddonId(current => (current === addon.id ? null : current))
                                 }
@@ -222,7 +237,7 @@ export default function StorePage() {
                 })}
             </div>
         )
-    }, [addons, filteredAddons, i18n.language, installedStoreAddons, installingAddonId, loading, navigate, setInstalledAddons, t])
+    }, [addons, filteredAddons, i18n.language, installedStoreAddons, installingAddonId, loading, Modals, navigate, openModal, setInstalledAddons, setModalState, t])
 
     return (
         <PageLayout title={t('pages.store.title')}>
