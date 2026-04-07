@@ -82,6 +82,8 @@ const ProfilePage: React.FC = () => {
             return payload
         }
 
+        const hasLiveAchievementData = (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
+
         return {
             ...payload,
             username: user.username || payload.username,
@@ -91,6 +93,8 @@ const ProfilePage: React.FC = () => {
             bannerHash: user.bannerHash || payload.bannerHash,
             bannerType: user.bannerType || payload.bannerType,
             badges: Array.isArray(user.badges) ? user.badges : payload.badges,
+            userAchievements: hasLiveAchievementData && Array.isArray(user.userAchievements) ? user.userAchievements : payload.userAchievements,
+            levelInfoV2: hasLiveAchievementData && user.levelInfoV2 && typeof user.levelInfoV2 === 'object' ? user.levelInfoV2 : payload.levelInfoV2,
             status: user.status ?? payload.status,
             lastOnline: user.lastOnline ?? payload.lastOnline,
             currentTrack: user.currentTrack ?? payload.currentTrack,
