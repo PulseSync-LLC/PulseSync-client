@@ -10,18 +10,67 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      should_build: ${{ steps.filter.outputs.build }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 50
+
+      - uses: dorny/paths-filter@v4.0.1
+        id: filter
+        with:
+          list-files: shell
+          filters: |
+            build:
+              - 'src/**'
+              - 'static/**'
+              - 'icons/**'
+              - 'nativeModules/**'
+              - 'scripts/**'
+              - 'scriptsInstaller/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - '.yarnrc.yml'
+              - 'forge.config.ts'
+              - 'vite.main.config.ts'
+              - 'vite.preload.config.ts'
+              - 'vite.renderer.config.ts'
+              - 'electron-builder.yml'
+              - 'tsconfig*.json'
+              - 'Info.plist'
+              - 'graphql.config.yml'
+              - 'schema.graphql'
+              - '.github/workflows/build-dev-windows.yml'
+
+      - name: Report changed build-related files
+        shell: bash
+        run: |
+          echo "should_build=${{ steps.filter.outputs.build }}"
+          if [ "${{ steps.filter.outputs.build }}" = "true" ]; then
+            echo "Changed build-related files:"
+            printf '%s\n' ${{ steps.filter.outputs.build_files }}
+          else
+            echo "No build-related changes detected"
+          fi
+
   build:
+    needs: changes
+    if: ${{ needs.changes.outputs.should_build == 'true' }}
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest]
 
     steps:
       - uses: actions/checkout@v6
         with:
-          ref: dev
+          ref: ${{ github.sha }}
 
       - uses: actions/setup-node@v6
         with:
@@ -72,3 +121,11 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
+
+  skip-build:
+    needs: changes
+    if: ${{ needs.changes.outputs.should_build != 'true' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Skip dev build
+        run: echo "Skipping dev build because no app or build files changed."
