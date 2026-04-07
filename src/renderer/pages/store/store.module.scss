@@ -115,6 +115,11 @@
     width: 100%;
 }
 
+.store_virtualSpacer {
+    width: 100%;
+    flex: 0 0 auto;
+}
+
 .initialShimmerOverlay {
     position: absolute;
     top: 0;

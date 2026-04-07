@@ -195,30 +195,28 @@ const defaultTemplate: AddonConfig = {
             title: i18nT('extensions.defaults.about.title'),
             items: [
                 {
-                    id: 'aboutText',
-                    name: i18nT('extensions.defaults.about.text'),
+                    id: 'aboutName',
+                    name: i18nT('extensions.defaults.about.appName'),
                     description: i18nT('extensions.defaults.about.textDescription'),
                     type: 'text',
-                    buttons: [
-                        {
-                            id: 'name',
-                            name: i18nT('extensions.defaults.about.appName'),
-                            text: i18nT('extensions.defaults.about.sampleName'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleName'),
-                        },
-                        {
-                            id: 'tagline',
-                            name: i18nT('extensions.defaults.about.tagline'),
-                            text: i18nT('extensions.defaults.about.sampleTagline'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleTagline'),
-                        },
-                        {
-                            id: 'version',
-                            name: i18nT('extensions.defaults.about.version'),
-                            text: i18nT('extensions.defaults.about.sampleVersion'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleVersion'),
-                        },
-                    ],
+                    text: i18nT('extensions.defaults.about.sampleName'),
+                    defaultParameter: i18nT('extensions.defaults.about.sampleName'),
+                },
+                {
+                    id: 'aboutTagline',
+                    name: i18nT('extensions.defaults.about.tagline'),
+                    description: i18nT('extensions.defaults.about.textDescription'),
+                    type: 'text',
+                    text: i18nT('extensions.defaults.about.sampleTagline'),
+                    defaultParameter: i18nT('extensions.defaults.about.sampleTagline'),
+                },
+                {
+                    id: 'aboutVersion',
+                    name: i18nT('extensions.defaults.about.version'),
+                    description: i18nT('extensions.defaults.about.textDescription'),
+                    type: 'text',
+                    text: i18nT('extensions.defaults.about.sampleVersion'),
+                    defaultParameter: i18nT('extensions.defaults.about.sampleVersion'),
                 },
                 {
                     id: 'customLogo',
