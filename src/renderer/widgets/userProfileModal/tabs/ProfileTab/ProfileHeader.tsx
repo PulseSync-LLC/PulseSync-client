@@ -43,7 +43,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
         const updateAllowAnimate = () => {
             const scrollTop = useWindowScroll
                 ? window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-                : scrollContainer.scrollTop
+                : scrollContainer?.scrollTop ?? 0
 
             setAllowAnimate(scrollTop < threshold)
         }
@@ -57,9 +57,9 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
             }
         }
 
-        scrollContainer.addEventListener('scroll', updateAllowAnimate, { passive: true })
+        scrollContainer?.addEventListener('scroll', updateAllowAnimate, { passive: true })
         return () => {
-            scrollContainer.removeEventListener('scroll', updateAllowAnimate)
+            scrollContainer?.removeEventListener('scroll', updateAllowAnimate)
         }
     }, [])
 

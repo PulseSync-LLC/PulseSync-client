@@ -207,6 +207,16 @@ export default function StorePage() {
         }
     }, [filteredAddons, gridColumns, gridTopOffset, scrollTop, scrollViewportHeight])
 
+    const shimmerCount = useMemo(() => {
+        const columns = Math.max(1, gridColumns)
+        const fallbackViewportHeight =
+            scrollViewportHeight || (typeof window === 'undefined' ? STORE_CARD_MIN_HEIGHT * 2 : Math.max(window.innerHeight - 220, STORE_CARD_MIN_HEIGHT * 2))
+        const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
+        const rows = Math.max(2, Math.ceil(fallbackViewportHeight / rowHeight) + 1)
+
+        return columns * rows
+    }, [gridColumns, scrollViewportHeight])
+
     const clearInitialShimmerTimers = useCallback(() => {
         if (shimmerFadeTimeoutRef.current !== null) {
             window.clearTimeout(shimmerFadeTimeoutRef.current)
@@ -253,7 +263,7 @@ export default function StorePage() {
         if (loading) {
             return (
                 <div className={st.store_loading}>
-                    <StoreShimmer />
+                    <StoreShimmer count={shimmerCount} />
                 </div>
             )
         }
@@ -389,7 +399,7 @@ export default function StorePage() {
 
                 {isInitialShimmerVisible && (
                     <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
-                        <StoreShimmer />
+                        <StoreShimmer count={shimmerCount} />
                     </div>
                 )}
             </div>
@@ -408,6 +418,7 @@ export default function StorePage() {
         openModal,
         setInstalledAddons,
         setModalState,
+        shimmerCount,
         t,
         virtualizedGrid.startIndex,
         virtualizedGrid.bottomSpacerHeight,

@@ -2,11 +2,15 @@ import React from 'react'
 import Line from '@shared/ui/PSUI/Shimmer/ui/Line'
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer.module.scss'
 
-export default function StoreShimmer() {
+type StoreShimmerProps = {
+    count?: number
+}
+
+export default function StoreShimmer({ count = 4 }: StoreShimmerProps) {
     return (
         <div className={styles.shell}>
             <div className={styles.grid}>
-                {Array.from({ length: 4 }, (_, index) => (
+                {Array.from({ length: count }, (_, index) => (
                     <div key={index} className={styles.card}>
                         <div className={styles.headerRow}>
                             <div className={styles.badges}>
