@@ -71,9 +71,23 @@ const CompactDownloadIcon = () => (
     </svg>
 )
 
-const StatusBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
+const KindBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
     const text = kind === 'script' ? t('store.kind.script') : t('store.kind.theme')
     const className = kind === 'script' ? st.badge_script : st.badge_theme
+    return <div className={[st.card_badge, className].join(' ')}>{text}</div>
+}
+
+const ReleaseStatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
+    const text = t(`store.status.${status}`)
+    const className =
+        status === 'pending'
+            ? st.badge_pending
+            : status === 'rejected'
+              ? st.badge_rejected
+              : status === 'deprecated'
+                ? st.badge_deprecated
+                : st.badge_active
+
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
 
@@ -204,7 +218,8 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
 
                     <div className={st.card_header_row}>
                         <div className={st.card_header_badges}>
-                            {kind && <StatusBadge kind={kind} />}
+                            {status && <ReleaseStatusBadge status={status} />}
+                            {kind && <KindBadge kind={kind} />}
                             {type && <TypeBadge type={type} />}
                         </div>
                         {topRightMeta ? (
