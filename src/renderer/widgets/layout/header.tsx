@@ -280,7 +280,6 @@ const Header: React.FC<p> = () => {
                                     <MdSettings size={22} />
                                 </button>
                             </TooltipButton>
-                            <div className={styles.line} />
                             <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
                                 <span>PulseSync</span>
