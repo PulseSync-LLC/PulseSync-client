@@ -22,6 +22,7 @@ export interface StoreAddon {
     id: string
     name: string
     type: StoreAddonKind
+    downloadCount: number
     currentRelease?: StoreAddonRelease | null
     releases?: StoreAddonRelease[] | null
     submittedById?: string | null

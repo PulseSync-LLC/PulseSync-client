@@ -10,12 +10,14 @@ import { areTracksEqual, normalizeTrack } from '@shared/lib/utils'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import type { PlayerProps } from '@app/AppShell.types'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
 
 export default function PlayerProvider({ children }: PlayerProps) {
-    const { user, socket, emitGateway } = useContext(UserContext)
+    const { user, socket, socketConnected, emitGateway, addons } = useContext(UserContext)
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
+    const lastSentAddonMetrics = useRef('')
     const lastSendAt = useRef(0)
     const trackSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientTrackSending, false)
     const metricsSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientMetricsSending, false)
@@ -80,19 +82,22 @@ export default function PlayerProvider({ children }: PlayerProps) {
     }, [socket, track, emitGateway, trackSendingEnabled])
 
     useEffect(() => {
-        if (!socket || !metricsSendingEnabled) return
+        if (!socket || !socketConnected || !metricsSendingEnabled) return
+        const enabledTheme = String((window as any)?.electron?.store?.get('addons.theme') || 'Default')
+        const enabledScripts = Array.isArray((window as any)?.electron?.store?.get('addons.scripts'))
+            ? ((window as any).electron.store.get('addons.scripts') as string[])
+            : []
+        const metrics = buildStoreAddonMetrics(addons, enabledTheme, enabledScripts)
+        const serializedMetrics = JSON.stringify(metrics)
 
-        const send = () => {
-            const enabledTheme = (window as any)?.electron?.store?.get('addons.theme')
-            const enabledScripts = (window as any)?.electron?.store?.get('addons.scripts')
-            emitGateway(OutgoingGatewayEvents.SEND_METRICS, { theme: enabledTheme || 'Default', scripts: enabledScripts || [] })
+        if (lastSentAddonMetrics.current === serializedMetrics) {
+            return
         }
 
-        send()
-
-        const id = setInterval(send, 15 * 60 * 1000)
-        return () => clearInterval(id)
-    }, [socket, emitGateway, metricsSendingEnabled])
+        console.log('[AddonMetrics] send on socket connect/update', metrics)
+        emitGateway(OutgoingGatewayEvents.SEND_METRICS, { addons: metrics })
+        lastSentAddonMetrics.current = serializedMetrics
+    }, [addons, emitGateway, metricsSendingEnabled, socket, socketConnected])
 
     return (
         <PlayerContext.Provider

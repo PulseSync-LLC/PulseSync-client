@@ -146,6 +146,7 @@ export default function StorePage() {
                             downloads={t('store.approvedAt', {
                                 date: formatDate(release.approvedAt || release.updatedAt, i18n.language),
                             })}
+                            topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
                             type={resolveType(addon.type)}
                             kind={addon.type}
                             backgroundImage={release.bannerUrl || undefined}

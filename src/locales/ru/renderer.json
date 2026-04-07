@@ -976,6 +976,7 @@
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",
         "searchPlaceholder": "Найти аддон...",
+        "downloadCount": "{{count}} скачиваний",
         "approvedAt": "Проверено {{date}}",
         "installed": "Уже установлен",
         "localVersionLinked": "Локальная версия аддона {{title}} уже установлена и связана с публикацией.",
