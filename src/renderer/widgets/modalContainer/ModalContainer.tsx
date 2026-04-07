@@ -10,6 +10,7 @@ import LinuxPermissionsModal from '@widgets/modalContainer/modals/LinuxPermissio
 import PextDNDModal from '@widgets/modalContainer/modals/PextDNDModal'
 import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
 import UntrustedLocalAddonModal from '@widgets/modalContainer/modals/UntrustedLocalAddonModal'
+import BasicConfirmationModal from '@widgets/modalContainer/modals/BasicConfirmationModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -25,6 +26,7 @@ const ModalContainer: React.FC = () => {
             <PextDNDModal />
             <ExtensionPublicationModal />
             <UntrustedLocalAddonModal />
+            <BasicConfirmationModal />
         </>
     )
 }

@@ -201,7 +201,7 @@
     },
     "contextMenuThemes": {
         "delete": "Delete {{name}}",
-        "deleteConfirm": "Are you sure you want to delete the theme \"{{name}}\"? This action cannot be undone.",
+        "deleteConfirm": "Are you sure you want to delete the addon \"{{name}}\"? This action cannot be undone.",
         "deleteError": "Error deleting theme \"{{name}}\"",
         "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
         "directory": "Addon directory {{name}}",
@@ -658,6 +658,14 @@
                 "successTitle": "Done",
                 "errorTitle": "Error"
             }
+        },
+        "basicConfirmation": {
+            "confirm": "Confirm",
+            "delete": "Delete",
+            "ok": "Ok",
+            "cancel": "Cancel",
+            "defaultTitle": "Confirmation",
+            "defaultDescription": "Are you sure?"
         }
     },
     "layout": {
@@ -984,6 +992,7 @@
         "installFailed": "Failed to install add-on {{title}}.",
         "openLocal": "Open local",
         "remove": "Remove",
+        "removeConfirm": "Are you sure you want to delete the addon \"{{title}}\"?",
         "removeComplete": "Add-on {{title}} was removed.",
         "removeFailed": "Failed to remove add-on {{title}}.",
         "unknownAddon": "Add-on",
