@@ -108,6 +108,8 @@ const ProfilePage: React.FC = () => {
         }
     }, [allAchievements, livePayload])
 
+    const profileLoading = loading && (!livePayload || !livePayload.id || livePayload.id === '-1')
+
     const normalizedError: string | null = useMemo(() => {
         if (error) return error.message || t('profile.errors.loadFailed')
         if (!loading && username && !payload) return t('profile.errors.userNotFound')
@@ -163,10 +165,10 @@ const ProfilePage: React.FC = () => {
 
                 <div className={styles.content}>
                     {activeTab === 'profile' && (
-                        <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
+                        <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} username={username} />
                     )}
-                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
-                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
+                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
+                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
                 </div>
             </Scrollbar>
         </PageLayout>
