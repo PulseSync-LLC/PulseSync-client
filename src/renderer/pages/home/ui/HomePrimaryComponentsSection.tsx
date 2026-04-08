@@ -1,3 +1,4 @@
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { staticAsset } from '@shared/lib/staticAssets'
@@ -14,18 +15,23 @@ type Props = {
     onWhatsNewClick: (componentId: string) => void
 }
 
+const itemClassnameMap = {
+    mod: styles.modItem,
+    client: styles.clientItem,
+    music: styles.ymItem,
+}
+
 export default function HomePrimaryComponentsSection({ items, versions, isModInstalled, onWhatsNewClick }: Props) {
     const { t } = useTranslation()
 
     return (
-        <section className={styles.panel}>
+        <section className={styles.panelHollow}>
             <h2 className={styles.panelTitle}>{t('pages.home.mainComponents')}</h2>
             <div className={styles.primaryList}>
                 {items.map(item => (
-                    <article className={styles.primaryItem} key={item.id}>
-                        <div className={styles.logoFrame}>
-                            <img className={styles.componentLogo} src={staticAsset(`assets/${item.iconAsset}`)} alt="" aria-hidden="true" />
-                        </div>
+                    <article className={cn(styles.primaryItem, itemClassnameMap[item.id])} key={item.id}>
+
+                        <img className={styles.componentLogo} src={staticAsset(`assets/${item.iconAsset}`)} alt="" aria-hidden="true" />
 
                         <div className={styles.componentMeta}>
                             <div className={styles.componentTitle}>{t(item.titleKey)}</div>

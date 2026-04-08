@@ -18,7 +18,7 @@ export default function HomeAuxiliaryComponentsSection({ items, isObsInstalled, 
     const { t } = useTranslation()
 
     return (
-        <section className={styles.panel}>
+        <section className={styles.panelHollow}>
             <h2 className={styles.panelTitle}>{t('pages.home.auxiliaryComponents')}</h2>
             <div className={styles.secondaryList}>
                 {items.map(item => (
@@ -34,7 +34,13 @@ export default function HomeAuxiliaryComponentsSection({ items, isObsInstalled, 
                                 {isObsInstalled ? t('pages.home.installed') : isObsInstalling ? t('common.loading') : t('layout.installAction')}
                             </ButtonV2>
                         ) : item.id === 'ffmpeg' || item.id === 'yt-dlp' ? (
-                            <TooltipButton side={'top'} dataSide={'bottom'} tooltipText={t('pages.home.onDemandInstallHint')} as="div" className={styles.secondaryActionTooltip}>
+                            <TooltipButton
+                                side={'top'}
+                                dataSide={'bottom'}
+                                tooltipText={t('pages.home.onDemandInstallHint')}
+                                as="div"
+                                className={styles.secondaryActionTooltip}
+                            >
                                 <ButtonV2 type="button" className={styles.secondaryActionButton} disabled>
                                     {t('pages.home.installed')}
                                 </ButtonV2>
