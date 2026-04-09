@@ -69,11 +69,11 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
-                                <MdPeople size={24} />
-                            </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
+                                <MdPeople size={24} />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
