@@ -23,7 +23,7 @@ export const primaryComponents: HomePrimaryComponent[] = [
     {
         id: 'client',
         titleKey: 'pages.home.clientName',
-        iconAsset: 'icon/App.svg',
+        iconAsset: 'icons/homeClient.svg',
     },
 ]
 
