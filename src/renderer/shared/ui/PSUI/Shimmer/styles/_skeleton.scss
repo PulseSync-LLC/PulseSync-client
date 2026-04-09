@@ -17,7 +17,7 @@
         inset: 0;
         transform: translateX(-100%);
         background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
-        animation: shimmer-slide 1.35s ease-in-out infinite;
+        animation: shimmer-slide 1.35s ease-in-out .75s infinite;
     }
 }
 
