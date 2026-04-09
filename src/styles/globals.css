@@ -80,7 +80,6 @@ a.active > button {
 body {
     display: flex;
     background: var(--Main);
-    color: var(--color1);
     padding: 0;
     margin: 0;
     flex-direction: column;
@@ -95,17 +94,10 @@ body.devmark-border {
     border-radius: 10px;
     box-sizing: border-box;
     overflow: hidden;
-}
-
-body.devmark-border::after {
-    content: '';
+    background-color: #fff34c;
     position: fixed;
     inset: 0;
     border: 3px solid #fff34c;
-    border-radius: 10px;
-    box-sizing: border-box;
-    pointer-events: none;
-    z-index: 100000;
 }
 
 .app-wrapper {
