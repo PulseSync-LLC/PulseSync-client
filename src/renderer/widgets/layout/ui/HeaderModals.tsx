@@ -94,7 +94,6 @@ export default function HeaderModals({
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingModChanges && <Shimmer variant="mod-changelog" />}
                     {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&
