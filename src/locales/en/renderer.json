@@ -708,7 +708,7 @@
         "musicUpdateFailed": "Failed to update Yandex Music",
         "musicUpdateSuccess": "Yandex Music updated successfully.",
         "nav": {
-            "addonsBeta": "Add-ons Beta",
+            "addonsBeta": "Add-ons",
             "development": "Development",
             "extensionsStore": "Extension store",
             "trackInfo": "Track info",
