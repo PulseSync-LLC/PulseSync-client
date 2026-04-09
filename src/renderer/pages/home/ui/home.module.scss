@@ -132,10 +132,22 @@
     flex: none;
     order: 2;
     align-items: center;
-    justify-content: space-between;
     flex-grow: 0;
 
     background: #3B4052;
+
+    .componentLogo {
+        box-shadow: none;
+    }
+
+}
+
+.secondaryItemMain {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    flex: 1 1 auto;
 }
 
 .logoFrame {
@@ -148,26 +160,19 @@
 }
 
 .componentLogo {
-    /* image */
-
     width: 44px;
     height: 44px;
 
     box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
     border-radius: 12px;
-
-    /* Inside auto layout */
-    flex: none;
-    order: 0;
-    flex-grow: 0;
-
 }
 
 .componentMeta {
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 0px;
+    justify-content: center;
+    padding: 0;
     gap: 4px;
 
     width: 190px;
@@ -179,8 +184,7 @@
 
 }
 
-.componentTitle,
-.secondaryTitle {
+.componentTitle {
     height: 20px;
 
     font-style: normal;
@@ -199,10 +203,6 @@
 
 }
 
-.secondaryTitle {
-    font-size: 23px;
-}
-
 .componentVersion,
 .secondaryStatus {
     font-size: 18px;
@@ -213,6 +213,7 @@
 
 .secondaryStatus {
     text-align: right;
+    margin-left: auto;
 }
 
 .actionButton {
@@ -277,6 +278,7 @@
     line-height: 110%;
 
     color: #3b4052;
+    margin-left: auto;
 
     transition:
             transform 0.16s ease,
@@ -301,6 +303,7 @@
 
 .secondaryActionTooltip {
     display: inline-flex;
+    margin-left: auto;
 }
 
 .newsBody {

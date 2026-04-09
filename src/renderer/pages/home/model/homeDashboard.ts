@@ -7,6 +7,7 @@ export type HomePrimaryComponent = {
 export type HomeSecondaryComponent = {
     id: string
     title: string
+    iconAsset: string
 }
 
 export const primaryComponents: HomePrimaryComponent[] = [
@@ -28,7 +29,7 @@ export const primaryComponents: HomePrimaryComponent[] = [
 ]
 
 export const secondaryComponents: HomeSecondaryComponent[] = [
-    { id: 'ffmpeg', title: 'ffmpeg' },
-    { id: 'yt-dlp', title: 'yt-dlp' },
-    { id: 'obs-widget', title: 'OBS Widget' },
+    { id: 'ffmpeg', title: 'FFmpeg', iconAsset: 'icons/homeFfmpeg.svg' },
+    { id: 'yt-dlp', title: 'YT Dlp', iconAsset: 'icons/homeYtdlp.svg' },
+    { id: 'obs-widget', title: 'OBS Widget', iconAsset: 'icons/homeObs.svg' },
 ]

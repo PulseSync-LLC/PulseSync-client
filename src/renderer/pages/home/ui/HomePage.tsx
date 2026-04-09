@@ -12,7 +12,7 @@ import toast from '@shared/ui/toast'
 import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 
 import { primaryComponents, secondaryComponents } from '@pages/home/model/homeDashboard'
-import HomeAuxiliaryComponentsSection from '@pages/home/ui/HomeAuxiliaryComponentsSection'
+import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'
 import HomeNewsSection from '@pages/home/ui/HomeNewsSection'
 import HomePrimaryComponentsSection from '@pages/home/ui/HomePrimaryComponentsSection'
 
@@ -174,7 +174,7 @@ export default function HomePage() {
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
                             onWhatsNewClick={handleWhatsNewClick}
                         />
-                        <HomeAuxiliaryComponentsSection
+                        <HomeSecondaryComponentsSection
                             items={secondaryComponents}
                             isObsInstalled={widgetInstalled}
                             isObsInstalling={isObsInstalling}
