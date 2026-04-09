@@ -63,7 +63,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             </Helmet>
             <div className={pageStyles.children}>
                 <Header goBack={goBack} />
-                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
+                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
