@@ -708,7 +708,7 @@
         "musicUpdateFailed": "Не удалось выполнить обновление Я.Музыки",
         "musicUpdateSuccess": "Обновление Я.Музыки прошло успешно.",
         "nav": {
-            "addonsBeta": "Аддоны Бета",
+            "addonsBeta": "Аддоны",
             "development": "Development",
             "extensionsStore": "Каталог расширений",
             "trackInfo": "Информация о треке",
