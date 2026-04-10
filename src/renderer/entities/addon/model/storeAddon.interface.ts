@@ -7,7 +7,7 @@ export interface StoreAddonRelease {
     description: string
     githubUrl?: string | null
     authors: string[]
-    changelog?: string[] | null
+    changelog?: string[] | string | null
     avatarUrl?: string | null
     bannerUrl?: string | null
     downloadUrl?: string | null

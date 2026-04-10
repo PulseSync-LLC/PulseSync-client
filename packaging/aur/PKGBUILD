@@ -1,0 +1,50 @@
+pkgname=pulsesync-bin
+_upstream_ver=2.10.4-beta
+pkgver=${_upstream_ver//-/_}
+pkgrel=1
+_prefix=builds/releases
+_branch=beta
+pkgdesc="PulseSync desktop app"
+arch=('x86_64')
+url="https://pulsesync.dev"
+license=('custom')
+install="${pkgname}.install"
+depends=(
+  'gtk3'
+  'libnotify'
+  'nss'
+  'libxss'
+  'libxtst'
+  'xdg-utils'
+  'at-spi2-core'
+  'util-linux-libs'
+  'libsecret'
+)
+optdepends=('libappindicator-gtk3: tray icon support')
+provides=('pulsesync')
+conflicts=('pulsesync')
+options=('!strip')
+
+_asset="pulsesync-app-${_upstream_ver}-amd64.deb"
+
+source_x86_64=("${_asset}::https://s3.pulsesync.dev/${_prefix}/${_branch}/${_asset}")
+sha256sums_x86_64=('SKIP')
+noextract=("${_asset}")
+
+package() {
+  local deb_unpack_dir="${srcdir}/deb-unpack"
+  rm -rf "${deb_unpack_dir}"
+  mkdir -p "${deb_unpack_dir}"
+  bsdtar -xf "${srcdir}/${_asset}" -C "${deb_unpack_dir}"
+
+  local data_tar
+  data_tar="$(find "${deb_unpack_dir}" -maxdepth 1 -type f -name 'data.tar.*' | head -n1)"
+  if [[ -z "${data_tar}" ]]; then
+    echo "data.tar archive not found in ${_asset}" >&2
+    exit 1
+  fi
+  bsdtar -xf "${data_tar}" -C "${pkgdir}"
+
+  install -dm755 "${pkgdir}/usr/bin"
+  ln -sf "/opt/PulseSync/pulsesync" "${pkgdir}/usr/bin/pulsesync"
+}
