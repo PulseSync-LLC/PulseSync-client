@@ -17,6 +17,7 @@ import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/r
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 import { useTranslation } from 'react-i18next'
 
@@ -305,26 +306,29 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                     <div className={styles.changelogTitle}>{t('extensions.publication.changelogTabTitle')}</div>
                     {publicationReleases.length ? (
                         <div className={styles.changelogList}>
-                            {publicationReleases.map(release => (
-                                <div key={release.id} className={styles.changelogItem}>
-                                    <div className={styles.changelogVersionRow}>
-                                        <span className={styles.changelogVersion}>v{release.version}</span>
-                                        <span className={styles.changelogDate}>
-                                            {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    {release.changelog?.length ? (
-                                        release.changelog.map((item, index) => (
-                                            <div key={`${release.id}-${index}`} className={styles.changelogEntry}>
-                                                <span className={styles.changelogBullet}>•</span>
-                                                <span>{item}</span>
+                            {publicationReleases.map(release => {
+                                const changelogMarkdown = normalizeStoreAddonChangelogMarkdown(release.changelog)
+
+                                return (
+                                    <div key={release.id} className={styles.changelogItem}>
+                                        <div className={styles.changelogVersionRow}>
+                                            <span className={styles.changelogVersion}>v{release.version}</span>
+                                            <span className={styles.changelogDate}>
+                                                {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        {changelogMarkdown ? (
+                                            <div className={styles.markdownText}>
+                                                <ReactMarkdown skipHtml={false} remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                                                    {changelogMarkdown}
+                                                </ReactMarkdown>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
-                                    )}
-                                </div>
-                            ))}
+                                        ) : (
+                                            <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     ) : (
                         <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>

@@ -4,6 +4,7 @@ import { useLocation, useParams } from 'react-router'
 import userContext from '@entities/user/model/context'
 import Addon from '@entities/addon/model/addon.interface'
 import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
 
@@ -53,11 +54,8 @@ type StoreAddonsQuery = {
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const getUntrustedAddonWarningKey = (addon: Addon) => `untrusted-addon-warning:${encodeURIComponent(addon.directoryName)}`
 
-function normalizeChangelogInput(value: string): string[] {
-    return value
-        .split(/\r?\n/)
-        .map(line => line.replace(/^\s*[-*•]\s*/, '').trim())
-        .filter(Boolean)
+function normalizeChangelogInput(value: string): string {
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
 }
 
 function isGithubUrl(value: string): boolean {
@@ -528,9 +526,7 @@ export default function ExtensionPage() {
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
 
     useEffect(() => {
-        setPublicationChangelogText(
-            Array.isArray(selectedPublishedAddon?.currentRelease?.changelog) ? selectedPublishedAddon.currentRelease.changelog.join('\n') : '',
-        )
+        setPublicationChangelogText(normalizeStoreAddonChangelogMarkdown(selectedPublishedAddon?.currentRelease?.changelog))
     }, [
         selectedAddon?.directoryName,
         selectedPublishedAddon?.id,
@@ -540,7 +536,12 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         setPublicationGithubUrlText(selectedPublishedAddon?.currentRelease?.githubUrl || '')
-    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.githubUrl])
+    }, [
+        selectedAddon?.directoryName,
+        selectedPublishedAddon?.id,
+        selectedPublishedAddon?.currentRelease?.id,
+        selectedPublishedAddon?.currentRelease?.githubUrl,
+    ])
 
     useEffect(() => {
         if (!isPublicationModalOpen) {
@@ -587,7 +588,7 @@ export default function ExtensionPage() {
             if (!selectedAddon || !storePublishingEnabled) return
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
-            if (!changelog.length) {
+            if (!changelog) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.changelogRequired'))
                 return
             }
@@ -662,7 +663,16 @@ export default function ExtensionPage() {
                 setPublicationBusy(false)
             }
         },
-        [i18n.language, loadAddons, publicationChangelogText, publicationGithubUrlText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+        [
+            i18n.language,
+            loadAddons,
+            publicationChangelogText,
+            publicationGithubUrlText,
+            selectedAddon,
+            selectedPublication?.id,
+            storePublishingEnabled,
+            t,
+        ],
     )
 
     const handleStoreAddonUpdate = useCallback(async () => {
