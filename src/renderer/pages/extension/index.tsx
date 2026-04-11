@@ -419,11 +419,14 @@ export default function ExtensionPage() {
         window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
             if (res?.success) {
                 toast.custom('success', t('extensions.addonCreatedTitle'), t('extensions.addonCreatedMessage', { name: res.name }))
-                setAddons([])
-                await loadAddons(true)
+                return
+            }
+
+            if (!res?.canceled) {
+                toast.custom('error', t('common.oopsTitle'), res?.error || t('extensions.addonCreateFailed'))
             }
         })
-    }, [loadAddons, setAddons, t])
+    }, [t])
 
     const enabledAddons = useMemo(
         () =>

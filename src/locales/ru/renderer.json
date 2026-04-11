@@ -319,8 +319,9 @@
         "actions": {
             "store": "Каталог"
         },
-        "addonCreatedMessage": "Аддон {{name}} успешно создан",
-        "addonCreatedTitle": "Аддон создан",
+        "addonCreateFailed": "Не удалось скачать шаблон аддона",
+        "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
+        "addonCreatedTitle": "Шаблон аддона скачан",
         "createHandleEvents": "Создайте handleEvents.json",
         "defaultThemeSet": "Тема по умолчанию установлена",
         "editModeEnter": "Режим редактирования включен",
