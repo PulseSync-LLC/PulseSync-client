@@ -13,6 +13,7 @@ type Props = {
     isModUpdateAvailable: boolean
     modInstallError: {
         details: string
+        showProxyHint: boolean
         title: string
     } | null
     modInfo: ModInterface[]
@@ -37,8 +38,6 @@ export default function ModUpdateBanner({
     t,
 }: Props) {
     if (!isModUpdateAvailable) return null
-
-    const shouldShowModInstallProxyHint = modInstallError?.title === t('layout.modInstallErrorTitle')
 
     return (
         <div className={pageStyles.alert_patch}>
@@ -84,7 +83,7 @@ export default function ModUpdateBanner({
                                 <div className={pageStyles.patch_error_title}>{modInstallError.title}</div>
                             </div>
                             <div className={pageStyles.patch_error_message}>{modInstallError.details}</div>
-                            {shouldShowModInstallProxyHint && (
+                            {modInstallError?.showProxyHint && (
                                 <div className={pageStyles.patch_error_message}>
                                     <div>{t('layout.modInstallErrorProxyHint')}</div>
                                     {modInstallProxyDomains.map((domain) => (
