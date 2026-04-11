@@ -45,7 +45,7 @@ export function useLayoutInstallers({
     const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
-    const [modInstallError, setModInstallError] = useState<{ details: string; title: string } | null>(null)
+    const [modInstallError, setModInstallError] = useState<{ details: string; showProxyHint: boolean; title: string } | null>(null)
     const [modUpdateState, setModUpdateState] = useState({
         isVersionOutdated: false,
         updateUrl: '',
@@ -100,7 +100,9 @@ export function useLayoutInstallers({
                         : t('layout.modInstallErrorTitle')
                     : t('layout.errorOccurred')
 
-            return { details, title }
+            const showProxyHint = error?.type === 'download_error' || error?.type === 'download_unpacked_error'
+
+            return { details, showProxyHint, title }
         },
         [t],
     )
