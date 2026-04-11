@@ -25,6 +25,7 @@ declare global {
                 minimize: () => void
                 close: (val: boolean) => void
                 exit: () => void
+                isMaximized: () => Promise<boolean>
             }
             player: {
                 setTrack: (track: Track, currentPercent: number) => void

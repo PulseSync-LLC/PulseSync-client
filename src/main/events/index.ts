@@ -295,6 +295,16 @@ const scaffoldAddonTemplate = async (): Promise<{ canceled?: boolean; success: b
 }
 
 const registerWindowEvents = (): void => {
+    ipcMain.handle(MainEvents.ELECTRON_WINDOW_IS_MAXIMIZED, () => mainWindow.isMaximized())
+
+    mainWindow.on('maximize', () => {
+        mainWindow.webContents.send(MainEvents.ELECTRON_WINDOW_MAXIMIZED)
+    })
+
+    mainWindow.on('unmaximize', () => {
+        mainWindow.webContents.send(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED)
+    })
+
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MINIMIZE, () => {
         mainWindow.minimize()
     })
