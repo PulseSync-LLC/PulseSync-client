@@ -319,8 +319,9 @@
         "actions": {
             "store": "Catalog"
         },
-        "addonCreatedMessage": "Addon {{name}} created successfully",
-        "addonCreatedTitle": "Addon created",
+        "addonCreateFailed": "Failed to download the addon template",
+        "addonCreatedMessage": "The {{name}} template was saved successfully",
+        "addonCreatedTitle": "Addon template downloaded",
         "createHandleEvents": "Create handleEvents.json",
         "defaultThemeSet": "Default theme set",
         "editModeEnter": "Edit mode enabled",
