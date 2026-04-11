@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
+import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
@@ -26,9 +27,11 @@ interface Props {
     docs: DocTab[]
     configExists: boolean | null
     config: AddonConfig | null
+    editConfig?: AddonConfig | null
     configApi: {
         reload?: () => Promise<void> | void
         save?: (cfg: AddonConfig) => Promise<void> | void
+        saveSchema?: (cfg: AddonConfig) => Promise<void> | void
     }
     editMode: boolean
     addon: Addon
@@ -231,7 +234,7 @@ const createDefaultTemplate = (): AddonConfig => ({
     ],
 })
 
-const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationReleases = [] }) => {
+const TabContent: React.FC<Props> = ({ active, docs, config, editConfig, configApi, editMode, addon, publicationReleases = [] }) => {
     const { t } = useTranslation()
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
@@ -259,7 +262,8 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
         return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
     }
 
-    const isConfigEmpty = !config || !Array.isArray(config.sections) || config.sections.length === 0
+    const activeConfig = editMode ? editConfig ?? config : config
+    const isConfigEmpty = !activeConfig || !Array.isArray(activeConfig.sections) || activeConfig.sections.length === 0
 
     if (active === 'Settings') {
         if (isConfigEmpty && !creating)
@@ -270,7 +274,7 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                         className={styles.primaryButton}
                         onClick={async () => {
                             setCreating(true)
-                            const fp = path.join(addon.path, 'handleEvents.json')
+                            const fp = path.join(addon.path, HANDLE_EVENTS_FILENAME)
                             await window.desktopEvents?.invoke(
                                 MainEvents.FILE_EVENT,
                                 RendererEvents.WRITE_FILE,
@@ -288,11 +292,23 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 
         if (creating && isConfigEmpty) return <div className={styles.alertContent}>{t('extensions.reopenTheme')}</div>
 
-        if (config) {
+        if (activeConfig) {
             return editMode ? (
-                <ConfigurationSettingsEdit key={`${addon.path}:${settingsKey}:edit`} {...configApi} configData={config} filePreviewSrc={asset} />
+                <ConfigurationSettingsEdit
+                    key={`${addon.path}:${settingsKey}:edit`}
+                    configApi={configApi}
+                    save={configApi.saveSchema}
+                    configData={activeConfig}
+                    filePreviewSrc={asset}
+                />
             ) : (
-                <ConfigurationSettings key={`${addon.path}:${settingsKey}:use`} {...configApi} configData={config} filePreviewSrc={asset} />
+                <ConfigurationSettings
+                    key={`${addon.path}:${settingsKey}:use`}
+                    configApi={configApi}
+                    save={configApi.save}
+                    configData={activeConfig}
+                    filePreviewSrc={asset}
+                />
             )
         }
     }

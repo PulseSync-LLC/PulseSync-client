@@ -31,6 +31,7 @@ import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 import config, { isDevmark } from '@common/appConfig'
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -182,6 +183,17 @@ const resolveWithinBase = (baseDir: string, target: string): string | null => {
     const normalizedBase = path.resolve(baseDir)
     if (resolved === normalizedBase) return resolved
     return resolved.startsWith(normalizedBase + path.sep) ? resolved : null
+}
+
+const shouldIncludeAddonArchiveEntry = (relativePath: string): boolean => {
+    if (!relativePath) return true
+
+    const parts = relativePath.split(path.sep)
+    if (parts.some(part => part.startsWith('.'))) {
+        return false
+    }
+
+    return path.basename(relativePath) !== HANDLE_EVENTS_SETTINGS_FILENAME
 }
 
 const registerWindowEvents = (): void => {
@@ -761,11 +773,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 
             const zip = new AdmZip()
 
-            zip.addLocalFolder(data.path, '', relativePath => {
-                if (!relativePath) return true
-                const parts = relativePath.split(path.sep)
-                return !parts.some(p => p.startsWith('.'))
-            })
+            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
 
             const exportsDir = path.join(app.getPath('userData'), 'exports')
             if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
@@ -809,11 +817,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
 
             const zip = new AdmZip()
-            zip.addLocalFolder(data.path, '', relativePath => {
-                if (!relativePath) return true
-                const parts = relativePath.split(path.sep)
-                return !parts.some(part => part.startsWith('.'))
-            })
+            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
 
             return {
                 success: true,

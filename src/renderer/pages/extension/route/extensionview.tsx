@@ -35,7 +35,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 }) => {
     const { t } = useTranslation()
     const { docs } = useAddonFiles(addon)
-    const { configExists, config, configApi } = useConfig(addon.path)
+    const { configExists, config, editConfig, configApi } = useConfig(addon.path)
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
@@ -102,6 +102,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         docs={docs}
                         configExists={configExists}
                         config={config}
+                        editConfig={editConfig}
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
