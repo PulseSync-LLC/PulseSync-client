@@ -7,6 +7,8 @@
     padding: 0 0 0 21px;
     width: -webkit-fill-available;
     z-index: 9997;
+    background-color: var(--Main);
+    border-radius: 7px 7px 0 0;
 
     .fix_size {
         width: 100%;
@@ -16,7 +18,7 @@
         .app_menu {
             display: flex;
             align-items: center;
-            gap: 23px;
+            gap: 21px;
 
             .settingsTooltip {
                 display: flex;
@@ -49,11 +51,6 @@
                         background: #3c3f4a;
                     }
                 }
-            }
-            .line {
-                width: 1px;
-                height: 20px;
-                background: #20232c;
             }
 
             .logoplace {
@@ -623,7 +620,6 @@
                 display: flex;
 
                 .button_title {
-                    transition: var(--transition);
                     cursor: pointer;
                     display: flex;
                     width: fit-content;
@@ -636,6 +632,14 @@
                     &:hover {
                         background: #20232c;
                     }
+
+                    &[id='close'] {
+                        border-radius: 0 7px 0 0;
+                        &:hover {
+                            background-color: red;
+                        }
+                    }
+
                 }
             }
         }

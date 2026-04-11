@@ -4,6 +4,7 @@ import * as fs from 'original-fs'
 import { getFolderSize, formatSizeUnits } from './appUtils'
 import logger from '../modules/logger'
 import Addon from '@entities/addon/model/addon.interface'
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { getState } from '../modules/state'
 import * as acorn from 'acorn'
 import { simple as walkSimple } from 'acorn-walk'
@@ -226,7 +227,9 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.directoryName = currentFolder
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
-                    metadata.rootFiles = rootEntries.filter(entry => entry.isFile()).map(entry => entry.name)
+                    metadata.rootFiles = rootEntries
+                        .filter(entry => entry.isFile() && entry.name !== HANDLE_EVENTS_SETTINGS_FILENAME)
+                        .map(entry => entry.name)
                 } catch (err) {
                     logger.main.error(`Addons: error reading addon root files in theme ${currentFolder}:`, err)
                     metadata.rootFiles = []

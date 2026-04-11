@@ -104,7 +104,11 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             }
         }
 
-        const addonDirectory = targetDirectoryOverride || resolveAddonDirectoryKey(metadata)
+        const addonDirectory =
+            targetDirectoryOverride ||
+            resolveAddonDirectoryKey(metadata, metadata.id, {
+                preferStoreId: metadata.installSource === 'store',
+            })
         const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
         if (fs.existsSync(outputDir)) {
             await clearDirectory(outputDir)

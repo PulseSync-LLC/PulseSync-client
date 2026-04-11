@@ -2,6 +2,7 @@ import isAppDev from '../../utils/isAppDev'
 import path from 'path'
 import fs from 'fs'
 import logger from '../logger'
+import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
 
 declare const __non_vite_require__: (moduleId: string) => any
@@ -62,13 +63,13 @@ const loadNativeModules = (): NativeModules => {
 
 const nativeModules = loadNativeModules()
 
-const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
 
 const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
     if (!filename) return null
 
     const normalized = path.normalize(filename)
-    if (path.basename(normalized).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+    if (!handleSettingsFilenames.has(path.basename(normalized).toLowerCase())) {
         return null
     }
 
@@ -91,7 +92,7 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
             sendAddonSettings({ addonName: watchedAddonName, force: true })
             return
         }
-        if (path.basename(path.normalize(filename)).toLowerCase() === HANDLE_EVENTS_FILENAME.toLowerCase()) {
+        if (handleSettingsFilenames.has(path.basename(path.normalize(filename)).toLowerCase())) {
             sendAllAddonSettings({ force: true })
             return
         }

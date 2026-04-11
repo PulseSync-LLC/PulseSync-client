@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import path from 'path'
 
 import appConfig from '@common/appConfig'
+import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
 import { DocTab } from '@pages/extension/route/extBox/types'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import { AddonConfig } from '@features/configurationSettings/types'
@@ -24,7 +25,7 @@ const DOC_CHANGELOG_PATTERN = /^change\s*log(?:\.[^.]+)?$/i
 const HANDLE_EVENTS_PATTERN = /^handleevents\.json$/i
 
 const DEFAULT_DOC_FILES = ['readme.md', 'license', 'changelog.md']
-const DEFAULT_CONFIG_FILE = 'handleEvents.json'
+const DEFAULT_CONFIG_FILE = HANDLE_EVENTS_FILENAME
 
 const getAddonCacheKey = (addon: AddonInterface): string => addon.id || addon.directoryName || addon.name
 

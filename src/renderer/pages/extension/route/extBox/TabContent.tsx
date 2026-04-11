@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
+import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
@@ -17,8 +18,8 @@ import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/r
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
-import { t as i18nT } from '@app/i18n'
 import { useTranslation } from 'react-i18next'
 
 interface Props {
@@ -26,9 +27,11 @@ interface Props {
     docs: DocTab[]
     configExists: boolean | null
     config: AddonConfig | null
+    editConfig?: AddonConfig | null
     configApi: {
         reload?: () => Promise<void> | void
         save?: (cfg: AddonConfig) => Promise<void> | void
+        saveSchema?: (cfg: AddonConfig) => Promise<void> | void
     }
     editMode: boolean
     addon: Addon
@@ -54,186 +57,184 @@ const Heading =
         )
     }
 
-const defaultTemplate: AddonConfig = {
+const createDefaultTemplate = (): AddonConfig => ({
     sections: [
         {
-            title: i18nT('extensions.defaults.interface.title'),
+            title: 'Interface',
             items: [
                 {
                     id: 'primaryColor',
-                    name: i18nT('extensions.defaults.interface.primaryColor'),
-                    description: i18nT('extensions.defaults.interface.primaryColorDescription'),
+                    name: 'Primary color',
+                    description: 'Main accent color for buttons and highlights',
                     type: 'color',
-                    input: '#3b82f6',
-                    defaultParameter: '#3b82f6',
+                    value: '#3b82f6',
+                    defaultValue: '#3b82f6',
                 },
                 {
                     id: 'secondaryColor',
-                    name: i18nT('extensions.defaults.interface.secondaryColor'),
-                    description: i18nT('extensions.defaults.interface.secondaryColorDescription'),
+                    name: 'Secondary color',
+                    description: 'Additional accent color for UI elements',
                     type: 'color',
-                    input: '#10b981',
-                    defaultParameter: '#10b981',
+                    value: '#10b981',
+                    defaultValue: '#10b981',
                 },
                 {
                     id: 'borderRadius',
-                    name: i18nT('extensions.defaults.interface.borderRadius'),
-                    description: i18nT('extensions.defaults.interface.borderRadiusDescription'),
+                    name: 'Border radius',
+                    description: 'Roundness of cards, buttons, and inputs',
                     type: 'slider',
                     min: 0,
                     max: 30,
                     step: 1,
                     value: 8,
-                    defaultParameter: 8,
+                    defaultValue: 8,
                 },
                 {
                     id: 'layoutStyle',
-                    name: i18nT('extensions.defaults.interface.layoutStyle'),
-                    description: i18nT('extensions.defaults.interface.layoutStyleDescription'),
+                    name: 'Layout style',
+                    description: 'Choose how lists and blocks should be displayed',
                     type: 'selector',
-                    selected: 2,
+                    value: 2,
                     options: {
-                        '1': { event: 'grid', name: i18nT('extensions.defaults.interface.layoutGrid') },
-                        '2': { event: 'list', name: i18nT('extensions.defaults.interface.layoutList') },
-                        '3': { event: 'compact', name: i18nT('extensions.defaults.interface.layoutCompact') },
+                        '1': { event: 'grid', name: 'Grid' },
+                        '2': { event: 'list', name: 'List' },
+                        '3': { event: 'compact', name: 'Compact' },
                     },
-                    defaultParameter: 2,
+                    defaultValue: 2,
                 },
                 {
                     id: 'darkMode',
-                    name: i18nT('extensions.defaults.interface.darkMode'),
-                    description: i18nT('extensions.defaults.interface.darkModeDescription'),
+                    name: 'Dark mode',
+                    description: 'Enable the dark appearance for the interface',
                     type: 'button',
-                    bool: false,
-                    defaultParameter: false,
+                    value: false,
+                    defaultValue: false,
                 },
             ],
         },
         {
-            title: i18nT('extensions.defaults.player.title'),
+            title: 'Player',
             items: [
                 {
                     id: 'enableCrossfade',
-                    name: i18nT('extensions.defaults.player.crossfade'),
-                    description: i18nT('extensions.defaults.player.crossfadeDescription'),
+                    name: 'Enable crossfade',
+                    description: 'Smoothly fade between tracks during playback',
                     type: 'button',
-                    bool: true,
-                    defaultParameter: true,
+                    value: true,
+                    defaultValue: true,
                 },
                 {
                     id: 'crossfadeDuration',
-                    name: i18nT('extensions.defaults.player.crossfadeDuration'),
-                    description: i18nT('extensions.defaults.player.crossfadeDurationDescription'),
+                    name: 'Crossfade duration',
+                    description: 'Length of the fade effect between tracks in seconds',
                     type: 'slider',
                     min: 0,
                     max: 12,
                     step: 1,
                     value: 6,
-                    defaultParameter: 6,
+                    defaultValue: 6,
                 },
                 {
                     id: 'audioQuality',
-                    name: i18nT('extensions.defaults.player.audioQuality'),
-                    description: i18nT('extensions.defaults.player.audioQualityDescription'),
+                    name: 'Audio quality',
+                    description: 'Preferred playback quality',
                     type: 'selector',
-                    selected: 3,
+                    value: 3,
                     options: {
-                        '1': { event: 'low', name: i18nT('extensions.defaults.player.qualityLow') },
-                        '2': { event: 'medium', name: i18nT('extensions.defaults.player.qualityMedium') },
-                        '3': { event: 'high', name: i18nT('extensions.defaults.player.qualityHigh') },
+                        '1': { event: 'low', name: 'Low' },
+                        '2': { event: 'medium', name: 'Medium' },
+                        '3': { event: 'high', name: 'High' },
                     },
-                    defaultParameter: 3,
+                    defaultValue: 3,
                 },
                 {
                     id: 'customEqualizerPreset',
-                    name: i18nT('extensions.defaults.player.customEq'),
-                    description: i18nT('extensions.defaults.player.customEqDescription'),
+                    name: 'Custom equalizer preset',
+                    description: 'Path to your custom EQ preset file',
                     type: 'file',
-                    filePath: '',
-                    defaultParameter: { filePath: '' },
+                    value: '',
+                    defaultValue: '',
                 },
             ],
         },
         {
-            title: i18nT('extensions.defaults.notifications.title'),
+            title: 'Notifications',
             items: [
                 {
                     id: 'desktopNotifications',
-                    name: i18nT('extensions.defaults.notifications.desktop'),
-                    description: i18nT('extensions.defaults.notifications.desktopDescription'),
+                    name: 'Desktop notifications',
+                    description: 'Show notifications for important events',
                     type: 'button',
-                    bool: true,
-                    defaultParameter: true,
+                    value: true,
+                    defaultValue: true,
                 },
                 {
                     id: 'notificationSound',
-                    name: i18nT('extensions.defaults.notifications.sound'),
-                    description: i18nT('extensions.defaults.notifications.soundDescription'),
+                    name: 'Notification sound',
+                    description: 'Select the sound played for notifications',
                     type: 'selector',
-                    selected: 1,
+                    value: 1,
                     options: {
-                        '1': { event: 'chime', name: i18nT('extensions.defaults.notifications.soundChime') },
-                        '2': { event: 'pop', name: i18nT('extensions.defaults.notifications.soundPop') },
-                        '3': { event: 'ding', name: i18nT('extensions.defaults.notifications.soundDing') },
+                        '1': { event: 'chime', name: 'Chime' },
+                        '2': { event: 'pop', name: 'Pop' },
+                        '3': { event: 'ding', name: 'Ding' },
                     },
-                    defaultParameter: 1,
+                    defaultValue: 1,
                 },
                 {
                     id: 'notificationVolume',
-                    name: i18nT('extensions.defaults.notifications.volume'),
-                    description: i18nT('extensions.defaults.notifications.volumeDescription'),
+                    name: 'Notification volume',
+                    description: 'Volume level for notification sounds',
                     type: 'slider',
                     min: 0,
                     max: 100,
                     step: 5,
                     value: 60,
-                    defaultParameter: 60,
+                    defaultValue: 60,
                 },
             ],
         },
         {
-            title: i18nT('extensions.defaults.about.title'),
+            title: 'About',
             items: [
                 {
-                    id: 'aboutText',
-                    name: i18nT('extensions.defaults.about.text'),
-                    description: i18nT('extensions.defaults.about.textDescription'),
+                    id: 'aboutName',
+                    name: 'Application name',
+                    description: 'Displayed name of the application or theme',
                     type: 'text',
-                    buttons: [
-                        {
-                            id: 'name',
-                            name: i18nT('extensions.defaults.about.appName'),
-                            text: i18nT('extensions.defaults.about.sampleName'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleName'),
-                        },
-                        {
-                            id: 'tagline',
-                            name: i18nT('extensions.defaults.about.tagline'),
-                            text: i18nT('extensions.defaults.about.sampleTagline'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleTagline'),
-                        },
-                        {
-                            id: 'version',
-                            name: i18nT('extensions.defaults.about.version'),
-                            text: i18nT('extensions.defaults.about.sampleVersion'),
-                            defaultParameter: i18nT('extensions.defaults.about.sampleVersion'),
-                        },
-                    ],
+                    value: 'PulseSync',
+                    defaultValue: 'PulseSync',
+                },
+                {
+                    id: 'aboutTagline',
+                    name: 'Tagline',
+                    description: 'Short description shown near the title',
+                    type: 'text',
+                    value: 'Your music, your rules',
+                    defaultValue: 'Your music, your rules',
+                },
+                {
+                    id: 'aboutVersion',
+                    name: 'Version',
+                    description: 'Version label displayed in the UI',
+                    type: 'text',
+                    value: '1.0.0',
+                    defaultValue: '1.0.0',
                 },
                 {
                     id: 'customLogo',
-                    name: i18nT('extensions.defaults.about.logo'),
-                    description: i18nT('extensions.defaults.about.logoDescription'),
+                    name: 'Custom logo',
+                    description: 'Path to a logo image file',
                     type: 'file',
-                    filePath: '',
-                    defaultParameter: { filePath: '' },
+                    value: '',
+                    defaultValue: '',
                 },
             ],
         },
     ],
-}
+})
 
-const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode, addon, publicationReleases = [] }) => {
+const TabContent: React.FC<Props> = ({ active, docs, config, editConfig, configApi, editMode, addon, publicationReleases = [] }) => {
     const { t } = useTranslation()
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
@@ -261,7 +262,8 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
         return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
     }
 
-    const isConfigEmpty = !config || !Array.isArray(config.sections) || config.sections.length === 0
+    const activeConfig = editMode ? editConfig ?? config : config
+    const isConfigEmpty = !activeConfig || !Array.isArray(activeConfig.sections) || activeConfig.sections.length === 0
 
     if (active === 'Settings') {
         if (isConfigEmpty && !creating)
@@ -272,12 +274,12 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                         className={styles.primaryButton}
                         onClick={async () => {
                             setCreating(true)
-                            const fp = path.join(addon.path, 'handleEvents.json')
+                            const fp = path.join(addon.path, HANDLE_EVENTS_FILENAME)
                             await window.desktopEvents?.invoke(
                                 MainEvents.FILE_EVENT,
                                 RendererEvents.WRITE_FILE,
                                 fp,
-                                JSON.stringify(defaultTemplate, null, 4),
+                                JSON.stringify(createDefaultTemplate(), null, 4),
                             )
                             await configApi?.reload?.()
                             setSettingsKey(k => k + 1)
@@ -290,11 +292,23 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
 
         if (creating && isConfigEmpty) return <div className={styles.alertContent}>{t('extensions.reopenTheme')}</div>
 
-        if (config) {
+        if (activeConfig) {
             return editMode ? (
-                <ConfigurationSettingsEdit key={`${addon.path}:${settingsKey}:edit`} {...configApi} configData={config} filePreviewSrc={asset} />
+                <ConfigurationSettingsEdit
+                    key={`${addon.path}:${settingsKey}:edit`}
+                    configApi={configApi}
+                    save={configApi.saveSchema}
+                    configData={activeConfig}
+                    filePreviewSrc={asset}
+                />
             ) : (
-                <ConfigurationSettings key={`${addon.path}:${settingsKey}:use`} {...configApi} configData={config} filePreviewSrc={asset} />
+                <ConfigurationSettings
+                    key={`${addon.path}:${settingsKey}:use`}
+                    configApi={configApi}
+                    save={configApi.save}
+                    configData={activeConfig}
+                    filePreviewSrc={asset}
+                />
             )
         }
     }
@@ -308,26 +322,29 @@ const TabContent: React.FC<Props> = ({ active, docs, config, configApi, editMode
                     <div className={styles.changelogTitle}>{t('extensions.publication.changelogTabTitle')}</div>
                     {publicationReleases.length ? (
                         <div className={styles.changelogList}>
-                            {publicationReleases.map(release => (
-                                <div key={release.id} className={styles.changelogItem}>
-                                    <div className={styles.changelogVersionRow}>
-                                        <span className={styles.changelogVersion}>v{release.version}</span>
-                                        <span className={styles.changelogDate}>
-                                            {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
-                                        </span>
-                                    </div>
-                                    {release.changelog?.length ? (
-                                        release.changelog.map((item, index) => (
-                                            <div key={`${release.id}-${index}`} className={styles.changelogEntry}>
-                                                <span className={styles.changelogBullet}>•</span>
-                                                <span>{item}</span>
+                            {publicationReleases.map(release => {
+                                const changelogMarkdown = normalizeStoreAddonChangelogMarkdown(release.changelog)
+
+                                return (
+                                    <div key={release.id} className={styles.changelogItem}>
+                                        <div className={styles.changelogVersionRow}>
+                                            <span className={styles.changelogVersion}>v{release.version}</span>
+                                            <span className={styles.changelogDate}>
+                                                {new Date(release.updatedAt || release.createdAt).toLocaleDateString()}
+                                            </span>
+                                        </div>
+                                        {changelogMarkdown ? (
+                                            <div className={styles.markdownText}>
+                                                <ReactMarkdown skipHtml={false} remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
+                                                    {changelogMarkdown}
+                                                </ReactMarkdown>
                                             </div>
-                                        ))
-                                    ) : (
-                                        <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
-                                    )}
-                                </div>
-                            ))}
+                                        ) : (
+                                            <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
+                                        )}
+                                    </div>
+                                )
+                            })}
                         </div>
                     ) : (
                         <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>

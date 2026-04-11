@@ -5,6 +5,7 @@ import RendererEvents from '@common/types/rendererEvents'
 
 import Minus from '@shared/assets/icons/minus.svg'
 import Minimize from '@shared/assets/icons/minimize.svg'
+import Maximize from '@shared/assets/icons/maximize.svg'
 import Close from '@shared/assets/icons/close.svg'
 import ArrowDown from '@shared/assets/icons/arrowDown.svg'
 
@@ -221,8 +222,10 @@ const Header: React.FC<p> = () => {
     const [appUpdatesInfo, setAppUpdatesInfo] = useState<typeof appInfo>([])
     const [loadingAppUpdates, setLoadingAppUpdates] = useState(true)
     const [appError, setAppError] = useState<string | null>(null)
+    const [isMaximized, setIsMaximized] = useState(false)
 
     useEffect(() => {
+
         setLoadingAppUpdates(true)
         setAppError(null)
 
@@ -255,6 +258,20 @@ const Header: React.FC<p> = () => {
     const modChangesLoading = shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
     const modChangesError = shouldFetchModChanges ? modError : undefined
 
+    useEffect(() => {
+
+        window.electron.window.isMaximized().then((value)=> setIsMaximized(value))
+
+        const unsub1 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_MAXIMIZED, () => {setIsMaximized(true)})
+        const unsub2 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED, () => {setIsMaximized(false)})
+
+        return () => {
+            unsub1()
+            unsub2()
+        }
+
+    }, [])
+
     return (
         <>
             <HeaderModals
@@ -280,7 +297,6 @@ const Header: React.FC<p> = () => {
                                     <MdSettings size={22} />
                                 </button>
                             </TooltipButton>
-                            <div className={styles.line} />
                             <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu} disabled={user.id === '-1'}>
                                 <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
                                 <span>PulseSync</span>
@@ -358,7 +374,7 @@ const Header: React.FC<p> = () => {
                                 <Minus />
                             </button>
                             <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
-                                <Minimize />
+                                {isMaximized ? <Maximize /> : <Minimize />}
                             </button>
                             <button
                                 id="close"

@@ -44,6 +44,8 @@ export default function UsersPage() {
     const queryKeyRef = useRef(0)
     const nextPagePendingRef = useRef(false)
     const animationsEnabledRef = useRef(false)
+    const scrollDirectionRef = useRef<'up' | 'down'>('down')
+    const lastScrollTopRef = useRef(0)
     const shimmerFadeTimeoutRef = useRef<number | null>(null)
     const shimmerFadeRafRef = useRef<number | null>(null)
     const queryParamsRef = useRef<{ perPage: number; sorting: SortState; search: string }>({
@@ -265,6 +267,8 @@ export default function UsersPage() {
         queryKeyRef.current = nextQueryKey
         nextPagePendingRef.current = false
         animationsEnabledRef.current = false
+        scrollDirectionRef.current = 'down'
+        lastScrollTopRef.current = 0
         clearInitialShimmerTimers()
         setIsInitialShimmerVisible(true)
         setIsInitialShimmerFading(false)
@@ -451,8 +455,15 @@ export default function UsersPage() {
                 className={s.containerFix}
                 classNameInner={cn(s.containerFixInner, loading && s.containerFixInnerLocked)}
                 ref={containerRef}
-                onScroll={() => {
+                onScroll={event => {
+                    const nextScrollTop = event.currentTarget?.scrollTop ?? containerRef.current?.scrollTop ?? 0
                     animationsEnabledRef.current = true
+                    if (nextScrollTop > lastScrollTopRef.current) {
+                        scrollDirectionRef.current = 'down'
+                    } else if (nextScrollTop < lastScrollTopRef.current) {
+                        scrollDirectionRef.current = 'up'
+                    }
+                    lastScrollTopRef.current = nextScrollTop
                 }}
             >
                 <div
@@ -526,6 +537,7 @@ export default function UsersPage() {
                                             user={user}
                                             onClick={openProfile}
                                             animationsEnabledRef={animationsEnabledRef}
+                                            scrollDirectionRef={scrollDirectionRef}
                                             eagerVisible={index < effectiveGridMetrics.visibleCount}
                                         />
                                     ))}

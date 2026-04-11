@@ -18,57 +18,93 @@
 }
 
 .card {
-    @include shimmer.surface;
-    min-height: 220px;
-    border-radius: 10px;
-    padding: 52px 14px 14px;
+    @include shimmer.surface(linear-gradient(180deg, rgba(35, 38, 50, 0.94) 0%, rgba(30, 34, 46, 0.98) 100%));
+    position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: start;
+    align-items: end;
+    height: 100%;
+    min-height: 238px;
+    align-self: stretch;
+    padding: 52px 14px 14px;
     gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
+    outline: 2px solid #98ffd600;
+}
+
+.headerRow {
+    position: absolute;
+    top: 14px;
+    left: 14px;
+    right: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    z-index: 2;
 }
 
 .badges {
     display: flex;
     gap: 6px;
-    position: absolute;
-    top: 14px;
-    left: 14px;
+    flex-wrap: wrap;
+    align-items: center;
+    min-width: 0;
 }
 
 .badge {
     @include shimmer.surface;
-    width: 60px;
-    height: 20px;
+    width: 56px;
+    height: 22px;
     border-radius: 6px;
 }
 
 .badgeSmall {
     @include shimmer.surface;
-    width: 40px;
-    height: 20px;
+    width: 46px;
+    height: 22px;
     border-radius: 6px;
+}
+
+.headerMeta {
+    @include shimmer.text-surface(rgba(255, 255, 255, 0.12));
+    width: 78px;
+    height: 22px;
+    flex: 0 0 auto;
 }
 
 .content {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
     min-width: 0;
     z-index: 2;
 }
 
 .titleRow {
+    width: 100%;
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px;
     min-width: 0;
 }
 
+.title {
+    @include shimmer.text-surface(rgba(239, 242, 255, 0.18));
+    width: 62%;
+    max-width: 240px;
+    height: 22px;
+    flex: 1 1 auto;
+}
+
 .version {
-    @include shimmer.text-surface;
-    width: 44px;
-    height: 18px;
+    @include shimmer.text-surface(rgba(255, 255, 255, 0.14));
+    width: 54px;
+    height: 25px;
     flex: 0 0 auto;
 }
 
@@ -85,41 +121,67 @@
     width: 72px;
     height: 72px;
     border-radius: 14px;
+    flex: 0 0 auto;
+    outline: 3px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.45);
 }
 
 .text {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     min-width: 0;
     flex: 1 1 auto;
 }
 
-.authors {
+.subtitle {
     display: flex;
     flex-direction: column;
     gap: 6px;
 }
 
+.meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-width: 0;
+}
+
+.authorsLabel {
+    @include shimmer.text-surface(rgba(176, 185, 216, 0.18));
+    width: 52px;
+    height: 10px;
+    flex: 0 0 auto;
+}
+
+.authorsValue {
+    width: min(100%, 130px);
+}
+
+.downloads {
+    @include shimmer.text-surface(rgba(214, 222, 248, 0.16));
+    width: 116px;
+    height: 11px;
+    margin-top: 2px;
+}
+
 .button {
     @include shimmer.surface;
-    align-self: center;
+    align-self: end;
     flex: 0 0 154px;
     min-width: 154px;
     height: 52px;
     border-radius: 10px;
     z-index: 2;
+    margin-bottom: 10px;
 }
 
-@media (max-width: 1024px) {
-    .grid {
-        grid-template-columns: 1fr;
-    }
-}
-
-@media (max-width: 720px) {
+@media (max-width: 640px) {
     .card {
         grid-template-columns: minmax(0, 1fr);
+        padding: 48px 12px 12px;
+        max-width: 100%;
     }
 
     .button {
@@ -127,5 +189,20 @@
         flex-basis: 140px;
         min-width: 140px;
         height: 48px;
+        margin-bottom: 0;
+    }
+
+    .headerRow {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+    }
+
+    .title {
+        width: 74%;
+    }
+
+    .version {
+        width: 50px;
     }
 }

@@ -4,7 +4,9 @@ import { useLocation, useParams } from 'react-router'
 import userContext from '@entities/user/model/context'
 import Addon from '@entities/addon/model/addon.interface'
 import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
 
 import toast from '@shared/ui/toast'
 
@@ -43,6 +45,7 @@ import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, subm
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
+import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -51,11 +54,8 @@ type StoreAddonsQuery = {
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const getUntrustedAddonWarningKey = (addon: Addon) => `untrusted-addon-warning:${encodeURIComponent(addon.directoryName)}`
 
-function normalizeChangelogInput(value: string): string[] {
-    return value
-        .split(/\r?\n/)
-        .map(line => line.replace(/^\s*[-*•]\s*/, '').trim())
-        .filter(Boolean)
+function normalizeChangelogInput(value: string): string {
+    return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()
 }
 
 function isGithubUrl(value: string): boolean {
@@ -72,7 +72,7 @@ function isGithubUrl(value: string): boolean {
 
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
-    const { addons, setAddons, musicVersion, user } = useContext(userContext)
+    const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
     const { isExperimentEnabled } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
@@ -247,6 +247,17 @@ export default function ExtensionPage() {
         [setAddons, t],
     )
 
+    const sendStoreAddonMetrics = useCallback(
+        (nextTheme: string, nextEnabledScripts: string[]) => {
+            const metrics = buildStoreAddonMetrics(addons, nextTheme, nextEnabledScripts)
+            console.log('[AddonMetrics] send on addon toggle', metrics)
+            emitGateway(OutgoingGatewayEvents.SEND_METRICS, {
+                addons: metrics,
+            })
+        },
+        [addons, emitGateway],
+    )
+
     const handleCheckboxChange = useCallback(
         (addon: Addon, newChecked: boolean, showToast: boolean = true) => {
             if (addon.type === 'theme') {
@@ -255,6 +266,7 @@ export default function ExtensionPage() {
                     window.electron.store.set('addons.theme', addon.directoryName)
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
+                    sendStoreAddonMetrics(addon.directoryName, enabledScripts)
                     if (showToast) {
                         toast.custom('success', t('extensions.themeActivated'), t('extensions.themeActivatedMessage', { name: addon.name }))
                     }
@@ -262,6 +274,7 @@ export default function ExtensionPage() {
                     setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
                     window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
+                    sendStoreAddonMetrics('Default', enabledScripts)
                     if (showToast) {
                         toast.custom('info', t('extensions.themeDeactivated'), t('extensions.defaultThemeSet'))
                     }
@@ -278,9 +291,10 @@ export default function ExtensionPage() {
                 window.electron.store.set('addons.scripts', updated)
                 window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
                 setEnabledScripts(updated)
+                sendStoreAddonMetrics(currentTheme, updated)
             }
         },
-        [enabledScripts],
+        [currentTheme, enabledScripts, sendStoreAddonMetrics, t],
     )
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -405,11 +419,14 @@ export default function ExtensionPage() {
         window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
             if (res?.success) {
                 toast.custom('success', t('extensions.addonCreatedTitle'), t('extensions.addonCreatedMessage', { name: res.name }))
-                setAddons([])
-                await loadAddons(true)
+                return
+            }
+
+            if (!res?.canceled) {
+                toast.custom('error', t('common.oopsTitle'), res?.error || t('extensions.addonCreateFailed'))
             }
         })
-    }, [loadAddons, setAddons, t])
+    }, [t])
 
     const enabledAddons = useMemo(
         () =>
@@ -512,9 +529,7 @@ export default function ExtensionPage() {
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
 
     useEffect(() => {
-        setPublicationChangelogText(
-            Array.isArray(selectedPublishedAddon?.currentRelease?.changelog) ? selectedPublishedAddon.currentRelease.changelog.join('\n') : '',
-        )
+        setPublicationChangelogText(normalizeStoreAddonChangelogMarkdown(selectedPublishedAddon?.currentRelease?.changelog))
     }, [
         selectedAddon?.directoryName,
         selectedPublishedAddon?.id,
@@ -524,7 +539,12 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         setPublicationGithubUrlText(selectedPublishedAddon?.currentRelease?.githubUrl || '')
-    }, [selectedAddon?.directoryName, selectedPublishedAddon?.id, selectedPublishedAddon?.currentRelease?.id, selectedPublishedAddon?.currentRelease?.githubUrl])
+    }, [
+        selectedAddon?.directoryName,
+        selectedPublishedAddon?.id,
+        selectedPublishedAddon?.currentRelease?.id,
+        selectedPublishedAddon?.currentRelease?.githubUrl,
+    ])
 
     useEffect(() => {
         if (!isPublicationModalOpen) {
@@ -571,7 +591,7 @@ export default function ExtensionPage() {
             if (!selectedAddon || !storePublishingEnabled) return
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
-            if (!changelog.length) {
+            if (!changelog) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.changelogRequired'))
                 return
             }
@@ -646,7 +666,16 @@ export default function ExtensionPage() {
                 setPublicationBusy(false)
             }
         },
-        [i18n.language, loadAddons, publicationChangelogText, publicationGithubUrlText, selectedAddon, selectedPublication?.id, storePublishingEnabled, t],
+        [
+            i18n.language,
+            loadAddons,
+            publicationChangelogText,
+            publicationGithubUrlText,
+            selectedAddon,
+            selectedPublication?.id,
+            storePublishingEnabled,
+            t,
+        ],
     )
 
     const handleStoreAddonUpdate = useCallback(async () => {

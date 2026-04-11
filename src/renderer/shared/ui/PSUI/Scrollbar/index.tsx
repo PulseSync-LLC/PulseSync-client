@@ -25,7 +25,8 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
     const updateThumbSize = () => {
-        const container = containerRef.current!
+        const container = containerRef.current
+        if (!container) return
         const ratio = container.clientHeight / container.scrollHeight
         const maxThumbHeight = container.clientHeight
         const size = Math.min(Math.max(ratio * container.clientHeight, 20), maxThumbHeight)
@@ -33,8 +34,9 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     }
 
     const updateThumbPosition = () => {
-        const container = containerRef.current!
-        const thumb = thumbRef.current!
+        const container = containerRef.current
+        const thumb = thumbRef.current
+        if (!container || !thumb) return
         const scrollTop = container.scrollTop
         const scrollHeight = container.scrollHeight
         const clientHeight = container.clientHeight
@@ -53,7 +55,8 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     }
 
     const smoothScrollTo = (target: number) => {
-        const container = containerRef.current!
+        const container = containerRef.current
+        if (!container) return
         const start = container.scrollTop
         const distance = target - start
         const startTime = performance.now()
@@ -68,9 +71,10 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     }
 
     useEffect(() => {
-        const container = containerRef.current!
-        const thumb = thumbRef.current!
-        const track = trackRef.current!
+        const container = containerRef.current
+        const thumb = thumbRef.current
+        const track = trackRef.current
+        if (!container || !thumb || !track) return
 
         const hovered = { current: false }
 

@@ -120,6 +120,7 @@
             "newSection": "New section",
             "newSelector": "New selector",
             "newSlider": "New slider",
+            "newText": "New text row",
             "newTextBlock": "New text block",
             "option": "Option {{index}}"
         },
@@ -201,7 +202,7 @@
     },
     "contextMenuThemes": {
         "delete": "Delete {{name}}",
-        "deleteConfirm": "Are you sure you want to delete the theme \"{{name}}\"? This action cannot be undone.",
+        "deleteConfirm": "Are you sure you want to delete the addon \"{{name}}\"? This action cannot be undone.",
         "deleteError": "Error deleting theme \"{{name}}\"",
         "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
         "directory": "Addon directory {{name}}",
@@ -318,13 +319,14 @@
         "actions": {
             "store": "Catalog"
         },
-        "addonCreatedMessage": "Addon {{name}} created successfully",
-        "addonCreatedTitle": "Addon created",
-        "createHandleEvents": "Create handleEvents.js",
+        "addonCreateFailed": "Failed to download the addon template",
+        "addonCreatedMessage": "The {{name}} template was saved successfully",
+        "addonCreatedTitle": "Addon template downloaded",
+        "createHandleEvents": "Create handleEvents.json",
         "defaultThemeSet": "Default theme set",
         "editModeEnter": "Edit mode enabled",
         "editModeExit": "Edit mode disabled",
-        "handleEventsMissing": "handleEvents.js not found",
+        "handleEventsMissing": "handleEvents.json not found",
         "initError": "Initialization error",
         "loadError": "Theme load error",
         "loadFailed": "Load failed",
@@ -658,6 +660,14 @@
                 "successTitle": "Done",
                 "errorTitle": "Error"
             }
+        },
+        "basicConfirmation": {
+            "confirm": "Confirm",
+            "delete": "Delete",
+            "ok": "Ok",
+            "cancel": "Cancel",
+            "defaultTitle": "Confirmation",
+            "defaultDescription": "Are you sure?"
         }
     },
     "layout": {
@@ -699,7 +709,7 @@
         "musicUpdateFailed": "Failed to update Yandex Music",
         "musicUpdateSuccess": "Yandex Music updated successfully.",
         "nav": {
-            "addonsBeta": "Add-ons Beta",
+            "addonsBeta": "Add-ons",
             "development": "Development",
             "extensionsStore": "Extension store",
             "trackInfo": "Track info",
@@ -975,14 +985,21 @@
         "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",
         "noResults": "Nothing was found.",
+        "pendingSectionTitle": "Add-ons under moderation",
+        "pendingSectionSubtitle": "Add-ons undergoing moderation",
+        "pendingEmpty": "No add-ons under moderation match the current query.",
         "searchPlaceholder": "Find an add-on...",
+        "downloadCount": "{{count}} downloads",
         "approvedAt": "Reviewed {{date}}",
+        "submittedAt": "Submitted {{date}}",
         "installed": "Installed",
         "localVersionLinked": "A local version of {{title}} is already installed and linked to this publication.",
         "installComplete": "Add-on {{title}} was installed.",
         "installFailed": "Failed to install add-on {{title}}.",
+        "installUnavailable": "There is no installation file available for {{title}} yet.",
         "openLocal": "Open local",
         "remove": "Remove",
+        "removeConfirm": "Are you sure you want to delete the addon \"{{title}}\"?",
         "removeComplete": "Add-on {{title}} was removed.",
         "removeFailed": "Failed to remove add-on {{title}}.",
         "unknownAddon": "Add-on",

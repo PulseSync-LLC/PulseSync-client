@@ -26,11 +26,11 @@ import {
     isMac,
     uninstallApp,
 } from '../utils/appUtils'
-import Addon from '@entities/addon/model/addon.interface'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
 import { loadAddons } from '../utils/addonUtils'
 import config, { isDevmark } from '@common/appConfig'
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
 import { getMacUpdater } from '../modules/updater/macOsUpdater'
@@ -41,7 +41,6 @@ import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
-import { createGeneratedLocalAddonId } from '../utils/addonIdentity'
 import {
     getBuildUpdateChannel,
     getEffectiveUpdateChannel,
@@ -58,6 +57,8 @@ export let updateAvailable = false
 export let authorized = false
 let pendingAddonOpen: string | null = null
 let updaterStartListenerBound = false
+const ADDON_TEMPLATE_DOWNLOAD_URL = 'https://codeload.github.com/PulseSync-LLC/PulseSync-ExampleAddon/zip/refs/heads/main'
+const ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME = 'PulseSync-ExampleAddon'
 
 const macUpdater = isMac()
     ? getMacUpdater({
@@ -184,7 +185,126 @@ const resolveWithinBase = (baseDir: string, target: string): string | null => {
     return resolved.startsWith(normalizedBase + path.sep) ? resolved : null
 }
 
+const shouldIncludeAddonArchiveEntry = (relativePath: string): boolean => {
+    if (!relativePath) return true
+
+    const parts = relativePath.split(path.sep)
+    if (parts.some(part => part.startsWith('.'))) {
+        return false
+    }
+
+    return path.basename(relativePath) !== HANDLE_EVENTS_SETTINGS_FILENAME
+}
+
+const getSuggestedAddonTemplatePath = (parentPath = app.getPath('documents')): string => {
+    const basePath = path.join(parentPath, ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME)
+
+    if (!fs.existsSync(basePath)) {
+        return basePath
+    }
+
+    let counter = 2
+    let candidatePath = `${basePath}-${counter}`
+    while (fs.existsSync(candidatePath)) {
+        counter += 1
+        candidatePath = `${basePath}-${counter}`
+    }
+
+    return candidatePath
+}
+
+const ensureAddonTemplateDestination = async (targetPath: string): Promise<void> => {
+    try {
+        const stats = await fsp.stat(targetPath)
+        if (!stats.isDirectory()) {
+            throw new Error(t('main.events.addonTemplateDestinationBusy'))
+        }
+
+        const existingEntries = await fsp.readdir(targetPath)
+        if (existingEntries.length > 0) {
+            throw new Error(t('main.events.addonTemplateDestinationBusy'))
+        }
+    } catch (error: any) {
+        if (error?.code === 'ENOENT') {
+            await fsp.mkdir(targetPath, { recursive: true })
+            return
+        }
+
+        throw error
+    }
+}
+
+const extractAddonTemplateArchive = async (archiveBuffer: Buffer, targetPath: string): Promise<void> => {
+    let tempDir = ''
+
+    try {
+        tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'addon-template-'))
+        const zip = new AdmZip(archiveBuffer)
+        zip.extractAllTo(tempDir, true)
+
+        const extractedEntries = await fsp.readdir(tempDir, { withFileTypes: true })
+        const templateRoot =
+            extractedEntries.length === 1 && extractedEntries[0].isDirectory() ? path.join(tempDir, extractedEntries[0].name) : tempDir
+
+        const templateRootEntries = await fsp.readdir(templateRoot)
+        if (!templateRootEntries.length) {
+            throw new Error(t('main.events.addonTemplateArchiveInvalid'))
+        }
+
+        await ensureAddonTemplateDestination(targetPath)
+
+        for (const entry of templateRootEntries) {
+            await fsp.cp(path.join(templateRoot, entry), path.join(targetPath, entry), {
+                force: true,
+                recursive: true,
+            })
+        }
+    } finally {
+        if (tempDir) {
+            await fsp.rm(tempDir, { recursive: true, force: true })
+        }
+    }
+}
+
+const scaffoldAddonTemplate = async (): Promise<{ canceled?: boolean; success: boolean; name?: string; path?: string; error?: string }> => {
+    const { canceled, filePaths } = await dialog.showOpenDialog({
+        buttonLabel: t('main.common.ok'),
+        defaultPath: app.getPath('documents'),
+        properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
+        title: t('main.events.addonTemplateDirectoryDialogTitle'),
+    })
+
+    if (canceled || !filePaths.length) {
+        return { canceled: true, success: false }
+    }
+
+    const selectedDirectory = path.normalize(filePaths[0])
+    const targetPath = getSuggestedAddonTemplatePath(selectedDirectory)
+    const response = await axios.get<ArrayBuffer>(ADDON_TEMPLATE_DOWNLOAD_URL, {
+        responseType: 'arraybuffer',
+    })
+
+    await extractAddonTemplateArchive(Buffer.from(response.data), targetPath)
+    await shell.openPath(targetPath)
+
+    return {
+        success: true,
+        name: path.basename(targetPath),
+        path: targetPath,
+    }
+}
+
 const registerWindowEvents = (): void => {
+    ipcMain.handle(MainEvents.ELECTRON_WINDOW_IS_MAXIMIZED, () => mainWindow.isMaximized())
+
+    mainWindow.on('maximize', () => {
+        mainWindow.webContents.send(MainEvents.ELECTRON_WINDOW_MAXIMIZED)
+    })
+
+    mainWindow.on('unmaximize', () => {
+        mainWindow.webContents.send(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED)
+    })
+
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MINIMIZE, () => {
         mainWindow.minimize()
     })
@@ -699,53 +819,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
     })
     ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
         try {
-            const defaultAdd: Partial<Addon> = {
-                id: createGeneratedLocalAddonId(),
-                name: t('main.events.newExtensionName'),
-                installSource: 'local',
-                image: '',
-                banner: '',
-                author: t('main.events.newExtensionAuthor'),
-                version: '1.0.0',
-                description: t('main.events.newExtensionDescription'),
-                css: 'style.css',
-                script: 'script.js',
-                type: 'theme',
-                tags: ['PulseSync'],
-                dependencies: [],
-            }
-            const defaultCssContent = `{}`
-            const defaultScriptContent = ``
-            const extensionsPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-            if (!fs.existsSync(extensionsPath)) fs.mkdirSync(extensionsPath)
-            let newName = t('main.events.newExtensionName')
-            let counter = 1
-            const existingNames = new Set(
-                fs
-                    .readdirSync(extensionsPath)
-                    .map(folder => {
-                        const metadataPath = path.join(extensionsPath, folder, 'metadata.json')
-                        if (!fs.existsSync(metadataPath)) return ''
-                        try {
-                            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8')) as Partial<Addon>
-                            return typeof metadata.name === 'string' ? metadata.name.trim() : ''
-                        } catch {
-                            return ''
-                        }
-                    })
-                    .filter(Boolean),
-            )
-            while (existingNames.has(newName)) {
-                counter++
-                newName = t('main.events.newExtensionNameWithIndex', { index: counter })
-                defaultAdd.name = newName
-            }
-            const extensionPath = path.join(extensionsPath, defaultAdd.id!)
-            fs.mkdirSync(extensionPath)
-            fs.writeFileSync(path.join(extensionPath, 'metadata.json'), JSON.stringify(defaultAdd, null, 4))
-            fs.writeFileSync(path.join(extensionPath, 'style.css'), defaultCssContent)
-            fs.writeFileSync(path.join(extensionPath, 'script.js'), defaultScriptContent)
-            return { success: true, name: newName }
+            return await scaffoldAddonTemplate()
         } catch (error: any) {
             HandleErrorsElectron.handleError('event-handler', MainEvents.CREATE_NEW_EXTENSION, 'try-catch', error)
             logger.main.error(t('main.events.createExtensionError'), error)
@@ -761,11 +835,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 
             const zip = new AdmZip()
 
-            zip.addLocalFolder(data.path, '', relativePath => {
-                if (!relativePath) return true
-                const parts = relativePath.split(path.sep)
-                return !parts.some(p => p.startsWith('.'))
-            })
+            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
 
             const exportsDir = path.join(app.getPath('userData'), 'exports')
             if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
@@ -809,11 +879,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             }
 
             const zip = new AdmZip()
-            zip.addLocalFolder(data.path, '', relativePath => {
-                if (!relativePath) return true
-                const parts = relativePath.split(path.sep)
-                return !parts.some(part => part.startsWith('.'))
-            })
+            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
 
             return {
                 success: true,

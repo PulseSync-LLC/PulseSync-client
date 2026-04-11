@@ -63,17 +63,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
             </Helmet>
             <div className={pageStyles.children}>
                 <Header goBack={goBack} />
-                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px' } : {}}>
+                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
-                                <MdPeople size={24} />
-                            </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>
                                 <MdStoreMallDirectory size={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
+                                <MdPeople size={24} />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>

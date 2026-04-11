@@ -32,6 +32,7 @@ interface DataToMusicOptions {
 }
 
 type RefreshedAddonPayload = {
+    addon: string
     name: string
     directoryName: string
     id?: string
@@ -297,6 +298,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     }
 
                     return {
+                        addon: folderName,
                         name: addonName,
                         directoryName: folderName,
                         id: typeof meta.id === 'string' ? meta.id : undefined,

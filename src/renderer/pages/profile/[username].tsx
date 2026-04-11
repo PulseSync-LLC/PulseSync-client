@@ -1,11 +1,10 @@
-import React, { useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@apollo/client/react'
 
 import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
 import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
 import userInitials from '@entities/user/model/user.initials'
-import UserInterface from '@entities/user/model/user.interface'
 
 import PageLayout from '@widgets/layout/PageLayout'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
@@ -24,7 +23,7 @@ const ProfilePage: React.FC = () => {
     const { username: raw } = useParams()
     const navigate = useNavigate()
     const username = decodeURIComponent(raw || '')
-    const { user, allAchievements } = useContext(userContext)
+    const { user, allAchievements, socketConnected } = useContext(userContext)
     const { t } = useTranslation()
 
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
@@ -39,7 +38,7 @@ const ProfilePage: React.FC = () => {
 
     const variables = useMemo(() => (isSelf ? undefined : { name: username }), [isSelf, username])
 
-    const { data, loading, error } = useQuery<any>(queryDoc, {
+    const { data, loading, error, refetch } = useQuery<any>(queryDoc, {
         variables,
         fetchPolicy: 'no-cache',
         skip: !username,
@@ -50,13 +49,72 @@ const ProfilePage: React.FC = () => {
         return (isSelf ? data.getMeProfile : data.findUserByName) || null
     }, [data, isSelf])
 
-    const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
-        if (!payload) return userInitials
+    const liveAchievementsSignature = useMemo(() => {
+        if (!isSelf || user.id === '-1') return null
+
+        return JSON.stringify({
+            levelInfoV2: user.levelInfoV2 ?? null,
+            userAchievements: Array.isArray(user.userAchievements) ? user.userAchievements : [],
+        })
+    }, [isSelf, user.id, user.levelInfoV2, user.userAchievements])
+
+    const liveAchievementsSignatureRef = useRef<string | null>(null)
+
+    useEffect(() => {
+        if (!isSelf || !payload?.id || loading || !liveAchievementsSignature) {
+            liveAchievementsSignatureRef.current = liveAchievementsSignature
+            return
+        }
+
+        if (liveAchievementsSignatureRef.current === null) {
+            liveAchievementsSignatureRef.current = liveAchievementsSignature
+            return
+        }
+
+        if (liveAchievementsSignatureRef.current === liveAchievementsSignature) return
+
+        liveAchievementsSignatureRef.current = liveAchievementsSignature
+        void refetch(variables)
+    }, [isSelf, liveAchievementsSignature, loading, payload?.id, refetch, variables])
+
+    const livePayload: ExtendedUser | null = useMemo(() => {
+        if (!payload || !isSelf || user.id === '-1' || payload.id !== user.id) {
+            return payload
+        }
+
+        const hasLiveAchievementData = (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
+        const liveStatus = socketConnected ? 'online' : user.status || payload.status
+        const liveLastOnline = user.lastOnline || payload.lastOnline
+
         return {
             ...payload,
+            username: user.username || payload.username,
+            nickname: user.nickname || payload.nickname,
+            avatarHash: user.avatarHash || payload.avatarHash,
+            avatarType: user.avatarType || payload.avatarType,
+            bannerHash: user.bannerHash || payload.bannerHash,
+            bannerType: user.bannerType || payload.bannerType,
+            badges: Array.isArray(user.badges) ? user.badges : payload.badges,
+            userAchievements: hasLiveAchievementData && Array.isArray(user.userAchievements) ? user.userAchievements : payload.userAchievements,
+            levelInfoV2: hasLiveAchievementData && user.levelInfoV2 && typeof user.levelInfoV2 === 'object' ? user.levelInfoV2 : payload.levelInfoV2,
+            status: liveStatus,
+            lastOnline: liveLastOnline,
+            currentTrack: user.currentTrack ?? payload.currentTrack,
+            subscription: user.subscription ?? payload.subscription ?? null,
+            hasSupporterBadge: user.hasSupporterBadge,
+            active: user.active,
+        }
+    }, [isSelf, payload, socketConnected, user])
+
+    const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
+        if (!livePayload) return userInitials
+        return {
+            ...livePayload,
             allAchievements: allAchievements || [],
         }
-    }, [allAchievements, payload])
+    }, [allAchievements, livePayload])
+
+    const profileLoading = loading && (!livePayload || !livePayload.id || livePayload.id === '-1')
 
     const normalizedError: string | null = useMemo(() => {
         if (error) return error.message || t('profile.errors.loadFailed')
@@ -113,10 +171,10 @@ const ProfilePage: React.FC = () => {
 
                 <div className={styles.content}>
                     {activeTab === 'profile' && (
-                        <ProfileTab userProfile={userProfile} loading={loading} error={normalizedError} username={username} />
+                        <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} username={username} />
                     )}
-                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
-                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={loading} error={normalizedError} />}
+                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
+                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
                 </div>
             </Scrollbar>
         </PageLayout>

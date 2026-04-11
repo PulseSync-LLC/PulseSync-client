@@ -35,10 +35,11 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 }) => {
     const { t } = useTranslation()
     const { docs } = useAddonFiles(addon)
-    const { configExists, config, configApi } = useConfig(addon.path)
+    const { configExists, config, editConfig, configApi } = useConfig(addon.path)
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
+    const [tabStickyTop, setTabStickyTop] = useState(66)
 
     useEffect(() => {
         setEditMode(false)
@@ -84,16 +85,24 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
                     setShowFilters={setShowFilters}
+                    onBottomBarHeightChange={setTabStickyTop}
                 />
 
                 <div className={s.extensionContent}>
-                    <TabNavigation active={activeTab} onChange={setActiveTab} docs={docs} hasPublicationChangelog={publicationReleases.length > 0} />
+                    <TabNavigation
+                        active={activeTab}
+                        onChange={setActiveTab}
+                        docs={docs}
+                        hasPublicationChangelog={publicationReleases.length > 0}
+                        stickyTop={tabStickyTop}
+                    />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
                         docs={docs}
                         configExists={configExists}
                         config={config}
+                        editConfig={editConfig}
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}

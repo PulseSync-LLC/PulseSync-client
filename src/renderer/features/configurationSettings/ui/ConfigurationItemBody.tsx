@@ -51,9 +51,9 @@ export default function ConfigurationItemBody({
             return (
                 <ButtonInput
                     label={`${currentItem.name} — default`}
-                    defaultValue={currentItem.defaultParameter}
+                    defaultValue={currentItem.defaultValue}
                     checkType={`config-default-${currentItem.id}`}
-                    onChange={(value: boolean) => updateItem(si, ii, { defaultParameter: value })}
+                    onChange={(value: boolean) => updateItem(si, ii, { defaultValue: value })}
                 />
             )
         }
@@ -62,8 +62,8 @@ export default function ConfigurationItemBody({
             return (
                 <ColorInput
                     label={`${currentItem.name} — default`}
-                    value={currentItem.defaultParameter}
-                    onChange={value => updateItem(si, ii, { defaultParameter: value })}
+                    value={currentItem.defaultValue}
+                    onChange={value => updateItem(si, ii, { defaultValue: value })}
                     withAlpha={true}
                     inputModes={['hex', 'rgb', 'hsl', 'hsb']}
                     defaultMode="hex"
@@ -73,15 +73,15 @@ export default function ConfigurationItemBody({
         case 'selector': {
             const currentItem = item as SelectorItem
             const options = Object.entries(currentItem.options).map(([key, option]) => ({ value: key, label: option.name }))
-            const toNumber = typeof currentItem.defaultParameter === 'number'
+            const toNumber = typeof currentItem.defaultValue === 'number'
 
             return (
                 <>
                     <SelectInput
                         label={`${currentItem.name} — default`}
-                        value={String(currentItem.defaultParameter)}
+                        value={String(currentItem.defaultValue)}
                         options={options}
-                        onChange={value => updateItem(si, ii, { defaultParameter: toNumber ? Number(value) : (String(value) as any) })}
+                        onChange={value => updateItem(si, ii, { defaultValue: toNumber ? Number(value) : (String(value) as any) })}
                     />
                     <div className={css.smallTitle}>{t('configEditor.optionsTitle')}</div>
                     <div className={css.table}>
@@ -158,7 +158,7 @@ export default function ConfigurationItemBody({
                             onChange={value => {
                                 const n = Number(value) || 0
                                 const max = Math.max(n, currentItem.max)
-                                updateItem(si, ii, { min: n, max, defaultParameter: clamp(currentItem.defaultParameter, n, max) })
+                                updateItem(si, ii, { min: n, max, defaultValue: clamp(currentItem.defaultValue, n, max) })
                             }}
                         />
                         <TextInput
@@ -168,7 +168,7 @@ export default function ConfigurationItemBody({
                             onChange={value => {
                                 const n = Number(value) || 0
                                 const min = Math.min(currentItem.min, n)
-                                updateItem(si, ii, { max: n, min, defaultParameter: clamp(currentItem.defaultParameter, min, n) })
+                                updateItem(si, ii, { max: n, min, defaultValue: clamp(currentItem.defaultValue, min, n) })
                             }}
                         />
                         <TextInput
@@ -184,21 +184,20 @@ export default function ConfigurationItemBody({
                         min={currentItem.min}
                         max={currentItem.max}
                         step={currentItem.step}
-                        value={currentItem.defaultParameter}
-                        onChange={value => updateItem(si, ii, { defaultParameter: value })}
+                        value={currentItem.defaultValue}
+                        onChange={value => updateItem(si, ii, { defaultValue: value })}
                     />
                 </>
             )
         }
         case 'file': {
             const currentItem = item as FileItem
-            const defaultValue = currentItem.defaultParameter?.filePath ?? ''
 
             return (
                 <FileInput
                     label={`${currentItem.name} — default`}
-                    value={defaultValue}
-                    onChange={path => updateItem(si, ii, { defaultParameter: { filePath: path } as any })}
+                    value={currentItem.defaultValue}
+                    onChange={path => updateItem(si, ii, { defaultValue: path })}
                     previewSrc={filePreviewSrc}
                     placeholder={t('configEditor.pathPlaceholder')}
                 />
@@ -207,47 +206,12 @@ export default function ConfigurationItemBody({
         case 'text': {
             const currentItem = item as TextItem
             return (
-                <>
-                    <div className={clsx(css.smallTitle)}>{currentItem.name}</div>
-                    {currentItem.buttons.map((button, bi) => (
-                        <div key={(button as any).__k} className={css.list}>
-                            <div className={css.inlineGrid}>
-                                <TextInput
-                                    name={`btn_name_${button.id}`}
-                                    label={t('configEditor.labels.name')}
-                                    value={button.name}
-                                    onChange={value => updateTextButton(si, ii, bi, { name: value })}
-                                />
-                                <TextInput
-                                    name={`btn_id_${button.id}`}
-                                    label="ID"
-                                    value={button.id}
-                                    onChange={value => updateTextButton(si, ii, bi, { id: value })}
-                                />
-                            </div>
-                            <div className={css.rowWithDelete}>
-                                <TextInput
-                                    name={`btn_def_${button.id}`}
-                                    label="Default"
-                                    value={button.defaultParameter ?? ''}
-                                    onChange={value => updateTextButton(si, ii, bi, { defaultParameter: value })}
-                                />
-                                <button
-                                    className={clsx(css.iconBtn, css.dangerBtn)}
-                                    title={t('configEditor.removeRow')}
-                                    onClick={() => removeTextButton(si, ii, bi)}
-                                >
-                                    <MdDelete />
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                    <div className={css.rowEnd}>
-                        <button className={css.addBtn} onClick={() => addTextButton(si, ii)}>
-                            <MdAdd /> {t('configEditor.addRow')}
-                        </button>
-                    </div>
-                </>
+                <TextInput
+                    name={`${currentItem.id}_default`}
+                    label="Default"
+                    value={currentItem.defaultValue}
+                    onChange={value => updateItem(si, ii, { defaultValue: value })}
+                />
             )
         }
         default:

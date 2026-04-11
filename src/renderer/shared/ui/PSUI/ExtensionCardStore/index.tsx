@@ -17,6 +17,7 @@ export interface ExtensionCardStoreProps {
     version: string
     authors: string[]
     downloads?: string
+    topRightMeta?: string
     theme?: ExtensionTheme
     size?: ExtensionCardSize
     iconImage?: string
@@ -32,6 +33,7 @@ export interface ExtensionCardStoreProps {
     downloadInstalled?: boolean
     downloadVariant?: DownloadVariant
     isPreInstalled?: boolean
+    animationsEnabledRef?: React.MutableRefObject<boolean>
 }
 
 const DownloadIcon = () => (
@@ -56,9 +58,36 @@ const InstalledIcon = () => (
     </svg>
 )
 
-const StatusBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
+const CompactDownloadIcon = () => (
+    <svg className={st.header_meta_icon} width={14} height={14} viewBox="0 0 16 16" aria-hidden="true">
+        <path
+            d="M8 1.5C8.41421 1.5 8.75 1.83579 8.75 2.25V8.378L10.9586 6.16935C11.2515 5.87645 11.7263 5.87645 12.0192 6.16935C12.3121 6.46225 12.3121 6.93712 12.0192 7.23L8.53033 10.7189C8.23744 11.0118 7.76256 11.0118 7.46967 10.7189L3.98076 7.23C3.68787 6.93712 3.68787 6.46225 3.98076 6.16935C4.27365 5.87645 4.74853 5.87645 5.04142 6.16935L7.25 8.378V2.25C7.25 1.83579 7.58579 1.5 8 1.5Z"
+            fill="currentColor"
+        />
+        <path
+            d="M3 11.75C2.58579 11.75 2.25 12.0858 2.25 12.5C2.25 12.9142 2.58579 13.25 3 13.25H13C13.4142 13.25 13.75 12.9142 13.75 12.5C13.75 12.0858 13.4142 11.75 13 11.75H3Z"
+            fill="currentColor"
+        />
+    </svg>
+)
+
+const KindBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
     const text = kind === 'script' ? t('store.kind.script') : t('store.kind.theme')
     const className = kind === 'script' ? st.badge_script : st.badge_theme
+    return <div className={[st.card_badge, className].join(' ')}>{text}</div>
+}
+
+const ReleaseStatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
+    const text = t(`store.status.${status}`)
+    const className =
+        status === 'pending'
+            ? st.badge_pending
+            : status === 'rejected'
+              ? st.badge_rejected
+              : status === 'deprecated'
+                ? st.badge_deprecated
+                : st.badge_active
+
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
 
@@ -90,22 +119,62 @@ const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     </div>
 )
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) => {
-    const [isIntersecting, setIsIntersecting] = useState(false)
+type VisibilityState = {
+    isIntersecting: boolean
+    shouldAnimate: boolean
+}
+
+const useIntersectionObserver = (
+    ref: React.RefObject<HTMLElement | null>,
+    animationsEnabledRef?: React.MutableRefObject<boolean>,
+    options?: IntersectionObserverInit,
+) => {
+    const [visibilityState, setVisibilityState] = useState<VisibilityState>({
+        isIntersecting: false,
+        shouldAnimate: animationsEnabledRef?.current ?? true,
+    })
 
     useEffect(() => {
         if (!ref.current) return
 
-        const observer = new IntersectionObserver(([entry]) => setIsIntersecting(entry.isIntersecting), {
-            ...options,
-            rootMargin: '50%',
-        })
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                setVisibilityState(prevState => {
+                    if (entry.isIntersecting) {
+                        const nextState = {
+                            isIntersecting: true,
+                            shouldAnimate: animationsEnabledRef?.current ?? true,
+                        }
+
+                        if (
+                            prevState.isIntersecting === nextState.isIntersecting &&
+                            prevState.shouldAnimate === nextState.shouldAnimate
+                        ) {
+                            return prevState
+                        }
+
+                        return nextState
+                    }
+
+                    if (!prevState.isIntersecting) return prevState
+
+                    return {
+                        ...prevState,
+                        isIntersecting: false,
+                    }
+                })
+            },
+            {
+                ...options,
+                rootMargin: '50%',
+            },
+        )
 
         observer.observe(ref.current)
         return () => observer.disconnect()
-    }, [ref, options])
+    }, [animationsEnabledRef, ref, options])
 
-    return isIntersecting
+    return visibilityState
 }
 
 const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
@@ -114,6 +183,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     version,
     authors,
     downloads,
+    topRightMeta,
     theme = 'purple',
     size = 'default',
     iconImage,
@@ -128,9 +198,10 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     downloadDisabled = false,
     downloadInstalled = false,
     downloadVariant = 'default',
+    animationsEnabledRef,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const isVisible = useIntersectionObserver(containerRef, { threshold: 0.1 })
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, { threshold: 0.1 })
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
     const sizeClass = size === 'large' ? st.card_large : ''
     const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, sizeClass, className ? className : '']
@@ -140,14 +211,23 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     const backgroundStyle = backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
 
     return (
-        <div ref={containerRef} className={st.card_mount} aria-hidden={!isVisible}>
-            {isVisible ? (
-                <article className={rootClassName} style={backgroundStyle}>
+        <div ref={containerRef} className={st.card_mount} aria-hidden={!visibilityState.isIntersecting}>
+            {visibilityState.isIntersecting ? (
+                <article className={cn(rootClassName, !visibilityState.shouldAnimate && st.softFadeIn)} style={backgroundStyle}>
                     {backgroundImage && <div className={st.card_overlay} />}
 
-                    <div className={st.card_header_badges}>
-                        {kind && <StatusBadge kind={kind} />}
-                        {type && <TypeBadge type={type} />}
+                    <div className={st.card_header_row}>
+                        <div className={st.card_header_badges}>
+                            {status && <ReleaseStatusBadge status={status} />}
+                            {kind && <KindBadge kind={kind} />}
+                            {type && <TypeBadge type={type} />}
+                        </div>
+                        {topRightMeta ? (
+                            <div className={st.card_header_meta}>
+                                <CompactDownloadIcon />
+                                <span>{topRightMeta}</span>
+                            </div>
+                        ) : null}
                     </div>
 
                     <div className={st.card_content}>

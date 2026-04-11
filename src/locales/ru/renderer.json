@@ -120,6 +120,7 @@
             "newSection": "Новая секция",
             "newSelector": "Новый селектор",
             "newSlider": "Новый слайдер",
+            "newText": "Новая строка",
             "newTextBlock": "Новый текстовый блок",
             "option": "Опция {{index}}"
         },
@@ -201,7 +202,7 @@
     },
     "contextMenuThemes": {
         "delete": "Удалить {{name}}",
-        "deleteConfirm": "Вы уверены, что хотите удалить тему \"{{name}}\"? Это действие нельзя будет отменить.",
+        "deleteConfirm": "Вы уверены, что хотите удалить аддон \"{{name}}\"? Это действие нельзя будет отменить.",
         "deleteError": "Ошибка при удалении темы \"{{name}}\"",
         "deleteSuccess": "Тема \"{{name}}\" и связанные файлы удалены.",
         "directory": "Директория аддона {{name}}",
@@ -318,13 +319,14 @@
         "actions": {
             "store": "Каталог"
         },
-        "addonCreatedMessage": "Аддон {{name}} успешно создан",
-        "addonCreatedTitle": "Аддон создан",
-        "createHandleEvents": "Создайте handleEvents.js",
+        "addonCreateFailed": "Не удалось скачать шаблон аддона",
+        "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
+        "addonCreatedTitle": "Шаблон аддона скачан",
+        "createHandleEvents": "Создайте handleEvents.json",
         "defaultThemeSet": "Тема по умолчанию установлена",
         "editModeEnter": "Режим редактирования включен",
         "editModeExit": "Режим редактирования выключен",
-        "handleEventsMissing": "Файл handleEvents.js не найден",
+        "handleEventsMissing": "Файл handleEvents.json не найден",
         "initError": "Ошибка инициализации",
         "loadError": "Ошибка загрузки темы",
         "loadFailed": "Ошибка загрузки",
@@ -658,6 +660,14 @@
                 "successTitle": "Готово",
                 "errorTitle": "Ошибка"
             }
+        },
+        "basicConfirmation": {
+            "confirm": "Да",
+            "delete": "Удалить",
+            "ok": "Ясно",
+            "cancel": "Отмена",
+            "defaultTitle": "Подтверждение",
+            "defaultDescription": "Вы уверены?"
         }
     },
     "layout": {
@@ -699,7 +709,7 @@
         "musicUpdateFailed": "Не удалось выполнить обновление Я.Музыки",
         "musicUpdateSuccess": "Обновление Я.Музыки прошло успешно.",
         "nav": {
-            "addonsBeta": "Аддоны Бета",
+            "addonsBeta": "Аддоны",
             "development": "Development",
             "extensionsStore": "Каталог расширений",
             "trackInfo": "Информация о треке",
@@ -975,14 +985,21 @@
         "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",
+        "pendingSectionTitle": "Аддоны на модерации",
+        "pendingSectionSubtitle": "Аддоны проходящие модерацию",
+        "pendingEmpty": "По текущему запросу аддоны на модерации не найдены.",
         "searchPlaceholder": "Найти аддон...",
+        "downloadCount": "{{count}} скачиваний",
         "approvedAt": "Проверено {{date}}",
+        "submittedAt": "Отправлено {{date}}",
         "installed": "Уже установлен",
         "localVersionLinked": "Локальная версия аддона {{title}} уже установлена и связана с публикацией.",
         "installComplete": "Аддон {{title}} установлен.",
         "installFailed": "Не удалось установить аддон {{title}}.",
+        "installUnavailable": "Для аддона {{title}} пока недоступен файл установки.",
         "openLocal": "Открыть локальный",
         "remove": "Удалить",
+        "removeConfirm": "Вы уверены, что хотите удалить аддон \"{{title}}\"?",
         "removeComplete": "Аддон {{title}} удалён.",
         "removeFailed": "Не удалось удалить аддон {{title}}.",
         "unknownAddon": "Аддон",

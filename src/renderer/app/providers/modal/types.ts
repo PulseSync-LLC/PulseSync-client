@@ -25,6 +25,13 @@ export type ModalAdditionalStateMap = {
         addonName: string
         onConfirm?: (() => void) | null
     }
+    [Modals.BASIC_CONFIRMATION]: {
+        title: string
+        description?: string | null
+        confirmLabel?: string | null
+        confirmVariant?: 'primary' | 'danger'
+        onConfirm?: (() => void) | null
+    }
 }
 
 type EmptyObject = {}

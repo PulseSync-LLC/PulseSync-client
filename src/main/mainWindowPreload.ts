@@ -37,6 +37,9 @@ contextBridge.exposeInMainWorld('electron', {
         exit() {
             ipcRenderer.send(MainEvents.ELECTRON_WINDOW_EXIT)
         },
+        isMaximized() {
+            return ipcRenderer.invoke(MainEvents.ELECTRON_WINDOW_IS_MAXIMIZED)
+        }
     },
     isAppDev() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)

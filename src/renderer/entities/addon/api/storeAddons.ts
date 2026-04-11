@@ -112,14 +112,7 @@ function getAuthHeaders(extra?: HeadersInit): HeadersInit {
 }
 
 function extractStoreAddonId(payload: AddonStoreSubmitSuccessPayload | null): string | null {
-    const candidates = [
-        payload?.addon?.id,
-        payload?.addonId,
-        payload?.id,
-        payload?.data?.addon?.id,
-        payload?.data?.addonId,
-        payload?.data?.id,
-    ]
+    const candidates = [payload?.addon?.id, payload?.addonId, payload?.id, payload?.data?.addon?.id, payload?.data?.addonId, payload?.data?.id]
 
     for (const candidate of candidates) {
         if (typeof candidate === 'string' && candidate.trim()) {
@@ -172,13 +165,7 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
 }
 
 export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[]> {
-    const normalizedIds = Array.from(
-        new Set(
-            ids
-                .map(id => String(id || '').trim())
-                .filter(Boolean),
-        ),
-    )
+    const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean)))
 
     if (!normalizedIds.length) {
         return []
@@ -227,19 +214,14 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
     }
 }
 
-export async function submitAddonForStore(
-    addon: Addon,
-    changelog: string[],
-    githubUrl: string,
-    existingAddonId?: string,
-): Promise<string | null> {
+export async function submitAddonForStore(addon: Addon, changelog: string, githubUrl: string, existingAddonId?: string): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
     return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl })
 }
 
 export async function submitAddonArchiveForStore(options: {
     addon: Addon
-    changelog: string[]
+    changelog: string
     githubUrl: string
     existingAddonId?: string
     blob: Blob
@@ -249,7 +231,7 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('name', options.addon.name)
     formData.append('description', options.addon.description || '')
     formData.append('githubUrl', options.githubUrl.trim())
-    formData.append('changelog', JSON.stringify(options.changelog))
+    formData.append('changelog', options.changelog)
     formData.append('zipFile', options.blob, options.fileName)
 
     const targetUrl = options.existingAddonId

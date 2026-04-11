@@ -9,8 +9,8 @@ import {
     FileItem,
     SelectorItem,
     TextItem,
-    ButtonAction,
     Section,
+    normalizeAddonConfig,
 } from '@features/configurationSettings/types'
 
 export function produce<S>(state: S, mut: (draft: S) => void): S {
@@ -26,9 +26,6 @@ export const ensureStableKeys = (config: AddonConfig): AddonConfig =>
         draft.sections.forEach(section => {
             section.items?.forEach(item => {
                 ;(item as any).__k ||= uid('k_')
-                if (item.type === 'text') {
-                    ;(item as TextItem).buttons.forEach(button => ((button as any).__k ||= uid('kb_')))
-                }
             })
         })
     })
@@ -38,9 +35,6 @@ export const stripInternal = (config: AddonConfig): AddonConfig =>
         draft.sections.forEach(section => {
             section.items?.forEach(item => {
                 delete (item as any).__k
-                if (item.type === 'text') {
-                    ;(item as TextItem).buttons.forEach(button => delete (button as any).__k)
-                }
             })
         })
     })
@@ -54,8 +48,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newButton'),
                 description: '',
                 type: 'button',
-                bool: false,
-                defaultParameter: false,
+                value: false,
+                defaultValue: false,
             } as any
         case 'slider':
             return {
@@ -68,7 +62,7 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 max: 100,
                 step: 1,
                 value: 0,
-                defaultParameter: 0,
+                defaultValue: 0,
             } as any
         case 'color':
             return {
@@ -77,8 +71,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newColor'),
                 description: '',
                 type: 'color',
-                input: '#FFFFFFFF',
-                defaultParameter: '#FFFFFFFF',
+                value: '#FFFFFFFF',
+                defaultValue: '#FFFFFFFF',
             } as any
         case 'file':
             return {
@@ -87,8 +81,8 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newFile'),
                 description: '',
                 type: 'file',
-                filePath: '',
-                defaultParameter: { filePath: '' },
+                value: '',
+                defaultValue: '',
             } as any
         case 'selector':
             return {
@@ -97,19 +91,20 @@ const blankItem = (type: Item['type'], t: (key: string, options?: Record<string,
                 name: t('configEditor.defaults.newSelector'),
                 description: '',
                 type: 'selector',
-                selected: 1,
+                value: 1,
                 options: { '1': { event: 'opt_1', name: t('configEditor.defaults.option', { index: 1 }) } },
-                defaultParameter: 1,
+                defaultValue: 1,
             } as any
         case 'text':
         default:
             return {
                 __k: uid('k_') as any,
                 id: uid('txt_'),
-                name: t('configEditor.defaults.newTextBlock'),
+                name: t('configEditor.defaults.newText'),
                 description: '',
                 type: 'text',
-                buttons: [{ __k: uid('kb_') as any, id: uid('t1_'), name: t('configEditor.defaults.line'), text: '', defaultParameter: '' }] as any,
+                value: '',
+                defaultValue: '',
             } as any
     }
 }
@@ -128,9 +123,10 @@ type Params = {
 }
 
 export function useConfigurationEditor({ addMenuClassName, configData, onChange, save, configApiSave, t }: Params) {
-    const [cfg, setCfg] = useState<AddonConfig>(ensureStableKeys(structuredClone(configData)))
-    const baselineRef = useRef<AddonConfig>(ensureStableKeys(structuredClone(configData)))
-    const lastSavedSnapRef = useRef<string>(JSON.stringify(stripInternal(configData)))
+    const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
+    const [cfg, setCfg] = useState<AddonConfig>(ensureStableKeys(normalizedInitialConfig))
+    const baselineRef = useRef<AddonConfig>(ensureStableKeys(normalizedInitialConfig))
+    const lastSavedSnapRef = useRef<string>(JSON.stringify(stripInternal(normalizedInitialConfig)))
     const [savedTick, setSavedTick] = useState(0)
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
     const [addMenu, setAddMenu] = useState<AddMenuState>({ open: false })
@@ -138,14 +134,15 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
     const [dragOver, setDragOver] = useState<{ si: number; ii?: number; where?: 'before' | 'after' } | null>(null)
 
     useEffect(() => {
-        const incomingClean = stripInternal(structuredClone(configData))
+        const normalizedConfig = normalizeAddonConfig(structuredClone(configData))
+        const incomingClean = stripInternal(normalizedConfig)
         const incomingSnap = JSON.stringify(incomingClean)
         const isDirtyNow = JSON.stringify(stripInternal(cfg)) !== lastSavedSnapRef.current
         if (!isDirtyNow && incomingSnap !== lastSavedSnapRef.current) {
-            const withKeys = ensureStableKeys(structuredClone(configData))
+            const withKeys = ensureStableKeys(normalizedConfig)
             setCfg(withKeys)
-            baselineRef.current = ensureStableKeys(structuredClone(configData))
-            lastSavedSnapRef.current = incomingSnap
+            baselineRef.current = ensureStableKeys(normalizedConfig)
+            lastSavedSnapRef.current = JSON.stringify(stripInternal(normalizedConfig))
             setSavedTick(tick => tick + 1)
         }
     }, [cfg, configData])
@@ -306,20 +303,15 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
         if (!base || item.type !== base.type) return true
         switch (item.type) {
             case 'button':
-                return item.defaultParameter !== (base as ButtonItem).defaultParameter
+                return item.defaultValue !== (base as ButtonItem).defaultValue
             case 'slider': {
                 const baseSlider = base as SliderItem
-                return (
-                    item.min !== baseSlider.min ||
-                    item.max !== baseSlider.max ||
-                    item.step !== baseSlider.step ||
-                    item.defaultParameter !== baseSlider.defaultParameter
-                )
+                return item.min !== baseSlider.min || item.max !== baseSlider.max || item.step !== baseSlider.step || item.defaultValue !== baseSlider.defaultValue
             }
             case 'color':
-                return item.defaultParameter !== (base as ColorItem).defaultParameter
+                return item.defaultValue !== (base as ColorItem).defaultValue
             case 'file':
-                return (item.defaultParameter?.filePath ?? '') !== ((base as FileItem).defaultParameter?.filePath ?? '')
+                return item.defaultValue !== (base as FileItem).defaultValue
             case 'selector': {
                 const baseSelector = base as SelectorItem
                 const optionsChanged =
@@ -330,19 +322,11 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
                             baseSelector.options[key].name !== option.name ||
                             baseSelector.options[key].event !== option.event,
                     )
-                return String(item.defaultParameter) !== String(baseSelector.defaultParameter) || optionsChanged
+                return String(item.defaultValue) !== String(baseSelector.defaultValue) || optionsChanged
             }
             case 'text': {
                 const baseText = base as TextItem
-                if (item.buttons.length !== baseText.buttons.length) return true
-                return item.buttons.some((button, index) => {
-                    const baselineButton = baseText.buttons[index]
-                    return (
-                        button.id !== baselineButton?.id ||
-                        button.name !== baselineButton?.name ||
-                        (button.defaultParameter ?? '') !== (baselineButton?.defaultParameter ?? '')
-                    )
-                })
+                return item.defaultValue !== baseText.defaultValue
             }
         }
     }
@@ -415,32 +399,11 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
             }),
         )
 
-    const updateTextButton = (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) =>
-        setConfig(
-            produce(cfg, draft => {
-                Object.assign((draft.sections[si].items[ii] as TextItem).buttons[bi], patch)
-            }),
-        )
+    const updateTextButton = (si: number, ii: number, bi: number, patch: Record<string, any>) => undefined
 
-    const addTextButton = (si: number, ii: number) =>
-        setConfig(
-            produce(cfg, draft => {
-                ;(draft.sections[si].items[ii] as TextItem).buttons.push({
-                    __k: uid('kb_') as any,
-                    id: uid('tb_'),
-                    name: t('configEditor.defaults.newRow'),
-                    text: '',
-                    defaultParameter: '',
-                } as any)
-            }),
-        )
+    const addTextButton = (si: number, ii: number) => undefined
 
-    const removeTextButton = (si: number, ii: number, bi: number) =>
-        setConfig(
-            produce(cfg, draft => {
-                ;(draft.sections[si].items[ii] as TextItem).buttons.splice(bi, 1)
-            }),
-        )
+    const removeTextButton = (si: number, ii: number, bi: number) => undefined
 
     const addSelectorOption = (si: number, ii: number) =>
         setConfig(

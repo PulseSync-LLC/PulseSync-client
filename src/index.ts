@@ -19,6 +19,7 @@ import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectr
 import { checkCLIArguments } from './main/utils/processUtils'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
+import { migrateLegacyAddonSettings } from './main/utils/addonSettingsMigration'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
 import { initMainI18n, t } from './main/i18n'
@@ -28,6 +29,7 @@ import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'
 import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
+import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
 import { runWhenUiReady } from './main/modules/uiReady'
@@ -254,13 +256,13 @@ const mimeFromExt = (p: string) => {
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
 }
 
-const HANDLE_EVENTS_FILENAME = 'handleEvents.json'
+const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
 
 const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
     if (!writtenPath) return
 
     const normalizedPath = path.normalize(writtenPath)
-    if (path.basename(normalizedPath).toLowerCase() !== HANDLE_EVENTS_FILENAME.toLowerCase()) {
+    if (!handleSettingsFilenames.has(path.basename(normalizedPath).toLowerCase())) {
         return
     }
 
@@ -510,6 +512,7 @@ export async function prestartCheck() {
 
     const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
     createDefaultAddonIfNotExists(themesPath)
+    await migrateLegacyAddonSettings(themesPath)
     try {
         startThemeWatcher(themesPath)
     } catch (e) {

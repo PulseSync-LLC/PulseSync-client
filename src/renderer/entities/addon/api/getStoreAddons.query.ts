@@ -9,6 +9,7 @@ export default gql`
                 id
                 name
                 type
+                downloadCount
                 submittedById
                 submittedByUsername
                 submittedByNickname

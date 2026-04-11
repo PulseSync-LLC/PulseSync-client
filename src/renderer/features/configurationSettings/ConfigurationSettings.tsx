@@ -9,7 +9,7 @@ import {
     FileItem,
     SelectorItem,
     TextItem,
-    ButtonAction,
+    normalizeAddonConfig,
 } from '@features/configurationSettings/types'
 
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
@@ -126,58 +126,14 @@ const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; childr
     )
 }
 
-const SectionTextGroup: React.FC<{
-    item: TextItem
-    si: number
-    ii: number
-    updateTextButton: (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) => void
-}> = ({ item, si, ii, updateTextButton }) => {
-    const { t } = useTranslation()
-    return (
-        <div className={css.list}>
-            {item.buttons.map((b, bi) => {
-                const dirty = (b.text ?? '') !== (b.defaultParameter ?? '')
-                return (
-                    <div key={`${item.id}-${b.id}-${bi}`}>
-                        <TextInput
-                            name={b.id}
-                            label={item.name}
-                            value={b.text ?? ''}
-                            onChange={(val: string) => updateTextButton(si, ii, bi, { text: val })}
-                            description={item.description}
-                        />
-
-                        {dirty && (
-                            <div className={css.resetRow}>
-                                <button
-                                    type="button"
-                                    className={css.resetLink}
-                                    onClick={e => {
-                                        e.preventDefault()
-                                        e.stopPropagation()
-                                        updateTextButton(si, ii, bi, {
-                                            text: b.defaultParameter ?? '',
-                                        })
-                                    }}
-                                >
-                                    ↺ {t('common.reset')}
-                                </button>
-                            </div>
-                        )}
-                    </div>
-                )
-            })}
-        </div>
-    )
-}
-
 const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
     const { t } = useTranslation()
-    const [cfg, setCfg] = useState<AddonConfig>(structuredClone(configData))
+    const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
+    const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
 
     const rootRef = useRef<HTMLDivElement>(null)
-    const baselineRef = useRef<AddonConfig>(structuredClone(configData))
-    const lastSavedSnapRef = useRef<string>(JSON.stringify(configData))
+    const baselineRef = useRef<AddonConfig>(normalizedInitialConfig)
+    const lastSavedSnapRef = useRef<string>(JSON.stringify(normalizedInitialConfig))
 
     const [savedTick, setSavedTick] = useState(0)
     const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
@@ -199,12 +155,13 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
     })
 
     useEffect(() => {
-        const incoming = JSON.stringify(configData)
+        const normalizedConfig = normalizeAddonConfig(structuredClone(configData))
+        const incoming = JSON.stringify(normalizedConfig)
         const draftSnap = JSON.stringify(cfg)
         const isDirtyNow = draftSnap !== lastSavedSnapRef.current
         if (!isDirtyNow && incoming !== lastSavedSnapRef.current) {
-            setCfg(structuredClone(configData))
-            baselineRef.current = structuredClone(configData)
+            setCfg(normalizedConfig)
+            baselineRef.current = normalizedConfig
             lastSavedSnapRef.current = incoming
             setSavedTick(t => t + 1)
         }
@@ -245,27 +202,20 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             }),
         )
 
-    const updateTextButton = (si: number, ii: number, bi: number, patch: Partial<ButtonAction>) =>
-        setConfig(
-            produce(cfg, d => {
-                Object.assign((d.sections[si].items[ii] as TextItem).buttons[bi], patch)
-            }),
-        )
-
     const isDirtyUsage = (item: Item): boolean => {
         switch (item.type) {
             case 'button':
-                return item.bool !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'slider':
-                return item.value !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'color':
-                return item.input !== item.defaultParameter
+                return item.value !== item.defaultValue
             case 'file':
-                return (item.defaultParameter?.filePath ?? '') !== item.filePath
+                return item.value !== item.defaultValue
             case 'selector':
-                return String(item.selected) !== String(item.defaultParameter)
+                return String(item.value) !== String(item.defaultValue)
             case 'text':
-                return item.buttons.some(b => (b.text ?? '') !== (b.defaultParameter ?? ''))
+                return item.value !== item.defaultValue
         }
     }
 
@@ -275,22 +225,22 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 const item = d.sections[si].items[ii] as any
                 switch (item.type) {
                     case 'button':
-                        item.bool = (item as ButtonItem).defaultParameter
+                        item.value = (item as ButtonItem).defaultValue
                         break
                     case 'slider':
-                        item.value = (item as SliderItem).defaultParameter
+                        item.value = (item as SliderItem).defaultValue
                         break
                     case 'color':
-                        item.input = (item as ColorItem).defaultParameter
+                        item.value = (item as ColorItem).defaultValue
                         break
                     case 'file':
-                        item.filePath = (item as FileItem).defaultParameter?.filePath ?? ''
+                        item.value = (item as FileItem).defaultValue
                         break
                     case 'selector':
-                        item.selected = (item as SelectorItem).defaultParameter
+                        item.value = (item as SelectorItem).defaultValue
                         break
                     case 'text':
-                        item.buttons = (item as TextItem).buttons.map((b: ButtonAction) => ({ ...b, text: b.defaultParameter ?? '' }))
+                        item.value = (item as TextItem).defaultValue
                         break
                 }
             }),
@@ -307,9 +257,9 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         <ButtonInput
                             label={it.name}
                             description={it.description}
-                            defaultValue={it.bool}
+                            defaultValue={it.value}
                             checkType={`config-${it.id}`}
-                            onChange={(val: boolean) => updateItem(si, ii, { bool: val })}
+                            onChange={(val: boolean) => updateItem(si, ii, { value: val })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -329,11 +279,11 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                         <BufferedColorInput
                             label={it.name}
                             description={it.description}
-                            value={it.input}
+                            value={it.value}
                             withAlpha
                             inputModes={['hex', 'rgb', 'hsl', 'hsb']}
                             defaultMode="hex"
-                            onCommit={val => updateItem(si, ii, { input: val })}
+                            onCommit={val => updateItem(si, ii, { value: val })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -349,15 +299,15 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
             case 'selector': {
                 const it = item as SelectorItem
                 const opts = Object.entries(it.options).map(([k, o]) => ({ value: k, label: o.name }))
-                const toNumber = typeof it.defaultParameter === 'number'
+                const toNumber = typeof it.defaultValue === 'number'
                 return (
                     <>
                         <SelectInput
                             label={it.name}
                             description={it.description}
-                            value={String(it.selected)}
+                            value={String(it.value)}
                             options={opts}
-                            onChange={val => updateItem(si, ii, { selected: toNumber ? Number(val) : (String(val) as any) })}
+                            onChange={val => updateItem(si, ii, { value: toNumber ? Number(val) : (String(val) as any) })}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
@@ -402,14 +352,14 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
             case 'file': {
                 const it = item as FileItem
-                const current = it.filePath ?? ''
+                const current = it.value ?? ''
                 return (
                     <>
                         <FileInput
                             label={it.name}
                             description={it.description}
                             value={current}
-                            onChange={p => updateItem(si, ii, { filePath: p })}
+                            onChange={p => updateItem(si, ii, { value: p })}
                             previewSrc={filePreviewSrc}
                             placeholder={t('common.selectFile')}
                         />
@@ -426,7 +376,24 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
 
             case 'text': {
                 const it = item as TextItem
-                return <SectionTextGroup item={it} si={si} ii={ii} updateTextButton={updateTextButton} />
+                return (
+                    <>
+                        <TextInput
+                            name={it.id}
+                            label={it.name}
+                            description={it.description}
+                            value={it.value}
+                            onChange={(val: string) => updateItem(si, ii, { value: val })}
+                        />
+                        {dirty && (
+                            <div className={css.resetRow}>
+                                <button type="button" className={css.resetLink} onClick={() => resetUsage(si, ii)}>
+                                    ↺ {t('common.reset')}
+                                </button>
+                            </div>
+                        )}
+                    </>
+                )
             }
 
             default: {
