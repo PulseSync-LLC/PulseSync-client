@@ -27,7 +27,7 @@
 
 .store_header {
     text-align: center;
-    margin-bottom: 40px;
+    margin-bottom: 15px;
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -46,6 +46,13 @@
     font-weight: 600;
     font-size: 18px;
     color: #ffffff;
+}
+
+.store_subtitle_stats {
+    font-family: 'Segoe UI';
+    font-weight: 500;
+    font-size: 16px;
+    color: #545d77;
 }
 
 .store_search {

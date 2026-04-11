@@ -558,6 +558,7 @@ export default function StorePage() {
                             />
                             <MdSearch className={st.store_search_icon} />
                         </div>
+                        <div className={st.store_subtitle_stats}>{''.concat(String(filteredAddons?.length)).concat('/').concat(String(addons?.length))}</div>
                     </header>
 
                     <div ref={storeContentRef}>{content}</div>
