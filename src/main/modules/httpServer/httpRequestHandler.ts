@@ -4,7 +4,12 @@ import * as path from 'path'
 import { app } from 'electron'
 import { parse } from 'url'
 import { Track } from '@entities/track/model/track.interface'
-import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
+import {
+    applyAddonSettingsValuesToConfig,
+    HANDLE_EVENTS_FILENAME,
+    HANDLE_EVENTS_SETTINGS_FILENAME,
+    normalizeAddonSettingsValues,
+} from '@common/addons/handleEvents'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
 
 interface LoggerLike {
@@ -116,7 +121,13 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
             const handlePath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_FILENAME)
             if (!fs.existsSync(handlePath)) return sendJson(res, 404, { error: 'Handle events data not found' })
 
-            const data = JSON.parse(fs.readFileSync(handlePath, 'utf8'))
+            const handleSettingsPath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
+            const rawHandleConfig = JSON.parse(fs.readFileSync(handlePath, 'utf8'))
+            const storedValues =
+                fs.existsSync(handleSettingsPath) && fs.statSync(handleSettingsPath).isFile()
+                    ? normalizeAddonSettingsValues(JSON.parse(fs.readFileSync(handleSettingsPath, 'utf8')))
+                    : {}
+            const data = applyAddonSettingsValuesToConfig(rawHandleConfig, storedValues)
             return sendJson(res, 200, { ok: true, data })
         } catch (err) {
             logger.http.error('Error processing get_handle:', err)
