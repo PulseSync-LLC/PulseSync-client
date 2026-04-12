@@ -374,7 +374,7 @@ const Header: React.FC<p> = () => {
                                 <Minus />
                             </button>
                             <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
-                                {isMaximized ? <Maximize /> : <Minimize />}
+                                {isMaximized ? <Minimize /> : <Maximize />}
                             </button>
                             <button
                                 id="close"
