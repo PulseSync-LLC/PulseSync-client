@@ -20,20 +20,14 @@
 
 ## Установка
 
-**Новую версию** можно скачать [на сайте](https://pulsesync.dev).
+Установщик можно скачать [на сайте](https://pulsesync.dev) или на странице [релизов](https://github.com/PulseSync-LLC/PulseSync-client/releases/latest)
 
 ## Скриншоты
 
 <p align="center">
-     <img alt="main page with rpc" src="https://github.com/user-attachments/assets/51da4c75-8573-486c-8a6a-6dd815b1e622">
-     <img alt="extension page" src="https://github.com/user-attachments/assets/c707af55-84bc-48aa-bd03-40848d964848">
+     <img width="1000" alt="image" src="https://github.com/user-attachments/assets/f14e6e1c-60aa-4a5a-9c1f-24fc7841e4a3" />
+     <img width="1000" alt="image" src="https://github.com/user-attachments/assets/06d30599-2c22-44c2-b54d-d2793f73221b" />
 </p>
-
-
-## В разработке
-- **Совместное прослушивание в виде комнат
-
-**В планах если у приложения будет актив, подробней в дизайне [Figma Design](https://www.figma.com/design/jjfbkZ7VmUoAOhYecPJpLQ/pulsesync?t=Ul32BGAz6Dg3eNKt-0)
 
 ## Ошибки и прочие проблемы
 
