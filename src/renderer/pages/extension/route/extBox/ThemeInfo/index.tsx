@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { FaGithub } from 'react-icons/fa'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
@@ -182,6 +183,8 @@ const ThemeInfo: React.FC<Props> = ({
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
+    const resolvedGithubUrl = (publication?.currentRelease?.githubUrl || publicationGithubUrlText || '').trim()
+    const hasGithubUrl = Boolean(resolvedGithubUrl)
 
     return (
         <>
@@ -318,9 +321,25 @@ const ThemeInfo: React.FC<Props> = ({
                             </Button>
                         )}
 
-                        {canAccessStore && (
-                            <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>
-                                <MdStoreMallDirectory size={20} />
+                        {/*{canAccessStore && (*/}
+                        {/*    <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>*/}
+                        {/*        <MdStoreMallDirectory size={20} />*/}
+                        {/*    </Button>*/}
+                        {/*)}*/}
+
+                        {addon.installSource === 'store' && (
+                            <Button
+                                className={s.miniButton}
+                                title={t('extensions.actions.github')}
+                                aria-label={t('extensions.actions.github')}
+                                disabled={!hasGithubUrl}
+                                onClick={() => {
+                                    if (resolvedGithubUrl) {
+                                        window.open(resolvedGithubUrl, '_blank', 'noopener,noreferrer')
+                                    }
+                                }}
+                            >
+                                <FaGithub size={18} />
                             </Button>
                         )}
 

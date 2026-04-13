@@ -317,7 +317,8 @@
     },
     "extensions": {
         "actions": {
-            "store": "Catalog"
+            "store": "Catalog",
+            "github": "GitHub"
         },
         "addonCreateFailed": "Failed to download the addon template",
         "addonCreatedMessage": "The {{name}} template was saved successfully",

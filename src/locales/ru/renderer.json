@@ -317,7 +317,8 @@
     },
     "extensions": {
         "actions": {
-            "store": "Каталог"
+            "store": "Каталог",
+            "github": "GitHub"
         },
         "addonCreateFailed": "Не удалось скачать шаблон аддона",
         "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",

@@ -22,6 +22,7 @@ export default gql`
                     avatarUrl
                     bannerUrl
                     downloadUrl
+                    githubUrl
                     approvedAt
                     status
                     moderationNote
@@ -37,6 +38,7 @@ export default gql`
                     avatarUrl
                     bannerUrl
                     downloadUrl
+                    githubUrl
                     approvedAt
                     status
                     moderationNote
