@@ -133,14 +133,55 @@ export const applyAddonSettingsValuesToConfig = <T extends { sections?: Array<{ 
             ...section,
             items: Array.isArray(section?.items)
                 ? section.items.map(item => {
+                      if (!item || typeof item !== 'object') {
+                          return item
+                      }
+
+                      if (item.type === 'text' && Array.isArray(item.buttons)) {
+                          return {
+                              ...item,
+                              buttons: item.buttons.map(button => {
+                                  if (!button?.id || typeof button.id !== 'string' || !hasOwn(normalizedValues, button.id)) {
+                                      return button
+                                  }
+
+                                  return {
+                                      ...button,
+                                      value: normalizedValues[button.id],
+                                  }
+                              }),
+                          }
+                      }
+
                       if (!item?.id || typeof item.id !== 'string' || !hasOwn(normalizedValues, item.id)) {
                           return item
                       }
 
-                      return {
+                      const nextValue = normalizedValues[item.id]
+                      const nextItem: Record<string, any> = {
                           ...item,
-                          value: normalizedValues[item.id],
+                          value: nextValue,
                       }
+
+                      switch (item.type) {
+                          case 'button':
+                              nextItem.bool = nextValue
+                              break
+                          case 'color':
+                              nextItem.input = typeof nextValue === 'string' ? nextValue : String(nextValue ?? '')
+                              break
+                          case 'file':
+                              nextItem.filePath = typeof nextValue === 'string' ? nextValue : String(nextValue ?? '')
+                              break
+                          case 'selector':
+                              nextItem.selected = nextValue
+                              break
+                          case 'text':
+                              nextItem.text = typeof nextValue === 'string' ? nextValue : String(nextValue ?? '')
+                              break
+                      }
+
+                      return nextItem
                   })
                 : [],
         })),

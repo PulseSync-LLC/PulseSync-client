@@ -131,7 +131,7 @@
 }
 
 .collapse[data-state='open'] {
-    overflow: hidden;
+    overflow: visible;
 }
 
 @media (prefers-reduced-motion: reduce) {
