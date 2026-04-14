@@ -34,6 +34,71 @@ export interface HandleConfig {
 }
 
 const hasOwn = (record: Record<string, unknown>, key: string): boolean => Object.prototype.hasOwnProperty.call(record, key)
+const readConfigId = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
+const readStoredValue = (storedValues: AddonSettingsValues | undefined, keys: string[]): unknown => {
+    if (!storedValues) {
+        return undefined
+    }
+
+    for (const key of keys) {
+        if (key && hasOwn(storedValues, key)) {
+            return storedValues[key]
+        }
+    }
+
+    return undefined
+}
+
+const resolveAnonymousTextButtonLegacyKey = (itemId: string, buttonIndex: number): string => (itemId ? `${itemId}_${buttonIndex + 1}` : '')
+
+const resolveTextButtonStorageKey = (
+    item: Pick<HandleConfigItem, 'id' | 'type' | 'buttons'>,
+    button: { id?: string } | null | undefined,
+    buttonIndex: number,
+): string => {
+    const buttonId = readConfigId(button?.id)
+    if (buttonId) {
+        return buttonId
+    }
+
+    const itemId = readConfigId(item.id)
+    if (item.type === 'text' && itemId) {
+        return resolveAnonymousTextButtonLegacyKey(itemId, buttonIndex)
+    }
+
+    return ''
+}
+
+const resolveTextButtonStorageKeys = (
+    item: Pick<HandleConfigItem, 'id' | 'type' | 'buttons'>,
+    button: { id?: string } | null | undefined,
+    buttonIndex: number,
+): string[] => {
+    const buttonId = readConfigId(button?.id)
+    if (buttonId) {
+        return [buttonId]
+    }
+
+    const itemId = readConfigId(item.id)
+    if (item.type !== 'text' || !itemId) {
+        return []
+    }
+
+    const keys = [resolveAnonymousTextButtonLegacyKey(itemId, buttonIndex)]
+    if (Array.isArray(item.buttons) && item.buttons.length === 1 && buttonIndex === 0) {
+        keys.unshift(itemId)
+    }
+
+    return Array.from(new Set(keys.filter(Boolean)))
+}
+
+const extractTextButtonValue = (button: { value?: unknown; text?: string } | null | undefined): unknown => {
+    if (typeof button?.value !== 'undefined') {
+        return button.value
+    }
+
+    return button?.text
+}
 
 export const normalizeAddonSettingsValues = (input: unknown): AddonSettingsValues => {
     if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -53,8 +118,11 @@ export const normalizeAddonSettingsValues = (input: unknown): AddonSettingsValue
 }
 
 export const extractHandleConfigItemValue = (item: HandleConfigItem, storedValues?: AddonSettingsValues): unknown => {
-    if (item.id && storedValues && hasOwn(storedValues, item.id)) {
-        return storedValues[item.id]
+    if (item.id) {
+        const storedValue = readStoredValue(storedValues, [item.id])
+        if (typeof storedValue !== 'undefined') {
+            return storedValue
+        }
     }
 
     if (typeof item.value !== 'undefined') return item.value
@@ -62,6 +130,7 @@ export const extractHandleConfigItemValue = (item: HandleConfigItem, storedValue
     if (typeof item.filePath !== 'undefined') return item.filePath
     if (typeof item.input !== 'undefined') return item.input
     if (typeof item.selected !== 'undefined') return item.selected
+    if (typeof (item as Record<string, unknown>).text !== 'undefined') return (item as Record<string, unknown>).text
 
     return undefined
 }
@@ -94,12 +163,13 @@ export const collectAddonSettingsValuesFromConfig = (
 
         for (const item of section.items) {
             if (item?.type === 'text' && Array.isArray(item.buttons)) {
-                for (const button of item.buttons) {
-                    if (!button?.id || typeof button.id !== 'string') continue
+                for (const [buttonIndex, button] of item.buttons.entries()) {
+                    const storageKey = resolveTextButtonStorageKey(item as HandleConfigItem, button, buttonIndex)
+                    if (!storageKey) continue
 
-                    const value = typeof button.value !== 'undefined' ? button.value : button.text
+                    const value = extractTextButtonValue(button)
                     if (typeof value !== 'undefined') {
-                        result[button.id] = value
+                        result[storageKey] = value
                     }
                 }
 
@@ -140,14 +210,17 @@ export const applyAddonSettingsValuesToConfig = <T extends { sections?: Array<{ 
                       if (item.type === 'text' && Array.isArray(item.buttons)) {
                           return {
                               ...item,
-                              buttons: item.buttons.map(button => {
-                                  if (!button?.id || typeof button.id !== 'string' || !hasOwn(normalizedValues, button.id)) {
+                              buttons: item.buttons.map((button, buttonIndex) => {
+                                  const storageKeys = resolveTextButtonStorageKeys(item as HandleConfigItem, button, buttonIndex)
+                                  const nextValue = readStoredValue(normalizedValues, storageKeys)
+                                  if (typeof nextValue === 'undefined') {
                                       return button
                                   }
 
                                   return {
                                       ...button,
-                                      value: normalizedValues[button.id],
+                                      value: nextValue,
+                                      ...(typeof nextValue === 'string' ? { text: nextValue } : {}),
                                   }
                               }),
                           }
