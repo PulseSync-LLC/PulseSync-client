@@ -2,12 +2,14 @@ import React from 'react'
 import * as Tooltip from '@radix-ui/react-tooltip'
 import * as styles from '@shared/ui/tooltip_button/tooltip.module.scss'
 
+type Side = 'top' | 'right' | 'bottom' | 'left'
+
 interface TooltipButtonProps {
     tooltipText: React.ReactNode
     children: React.ReactNode
     onClick?: () => void
-    side?: 'top' | 'right' | 'bottom' | 'left'
-    dataSide?: 'top' | 'right' | 'bottom' | 'left'
+    side?: Side
+    dataSide?: Side | undefined
     as?: 'button' | 'div' | 'span'
     disabled?: boolean
     tipEnabled?: boolean
@@ -16,10 +18,17 @@ interface TooltipButtonProps {
     styleComponent?: React.CSSProperties
 }
 
+const dataSideDefault = {
+    top: 'bottom',
+    bottom: 'top',
+    left: 'right',
+    right: 'left',
+}
+
 const TooltipButton: React.FC<TooltipButtonProps> = ({
     tooltipText,
     side = 'left',
-    dataSide = 'left',
+    dataSide = undefined,
     children,
     onClick,
     as = 'button',
@@ -46,7 +55,13 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                     </Component>
                 </Tooltip.Trigger>
                 <Tooltip.Portal>
-                    <Tooltip.Content className={styles.TooltipContent} data-side={dataSide} side={side} sideOffset={5} style={styleComponent}>
+                    <Tooltip.Content
+                        className={styles.TooltipContent}
+                        data-side={dataSide ?? dataSideDefault[side]}
+                        side={side}
+                        sideOffset={5}
+                        style={styleComponent}
+                    >
                         {tooltipText}
                         <Tooltip.Arrow className={styles.TooltipArrow} />
                     </Tooltip.Content>
