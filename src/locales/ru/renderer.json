@@ -819,6 +819,8 @@
             "auxiliaryComponents": "Вспомогательные компоненты",
             "news": "Новости",
             "whatsNew": "Что нового?",
+            "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
+            "musicReleaseNotesFallbackVersion": "По умолчанию",
             "installed": "Установлено",
             "notInstalled": "Не установлено",
             "onDemandInstallHint": "Этот компонент устанавливается автоматически из самой Яндекс Музыки при необходимости.",

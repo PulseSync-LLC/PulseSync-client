@@ -1,0 +1,24 @@
+.updateItem {
+    display: grid;
+    grid-template-columns: 104px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 1.125rem;
+}
+
+.versionInfo {
+    min-width: 104px;
+    margin-bottom: 0;
+
+    span {
+        white-space: nowrap;
+    }
+}
+
+.content {
+    min-width: 0;
+
+    p:first-child,
+    ul:first-child {
+        margin-top: 0;
+    }
+}

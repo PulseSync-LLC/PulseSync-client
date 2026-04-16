@@ -6,6 +6,9 @@ import type Addon from '@entities/addon/model/addon.interface'
 export type ModalName = (typeof Modals)[keyof typeof Modals]
 
 export type ModalAdditionalStateMap = {
+    [Modals.YANDEX_MUSIC_CHANGELOG]: {
+        currentVersion?: string | null
+    }
     [Modals.PEXT_DND_MODAL]: {
         isValidFileType: boolean
     }

@@ -12,6 +12,7 @@ type Props = {
     items: HomePrimaryComponent[]
     versions: Record<string, string>
     isModInstalled: boolean
+    isMusicInstalled: boolean
     onWhatsNewClick: (componentId: string) => void
 }
 
@@ -21,7 +22,7 @@ const itemClassnameMap = {
     music: styles.ymItem,
 }
 
-export default function HomePrimaryComponentsSection({ items, versions, isModInstalled, onWhatsNewClick }: Props) {
+export default function HomePrimaryComponentsSection({ items, versions, isModInstalled, isMusicInstalled, onWhatsNewClick }: Props) {
     const { t } = useTranslation()
 
     return (
@@ -42,7 +43,7 @@ export default function HomePrimaryComponentsSection({ items, versions, isModIns
                             type="button"
                             className={styles.actionButton}
                             onClick={() => onWhatsNewClick(item.id)}
-                            disabled={item.id === 'music' || (item.id === 'mod' && !isModInstalled)}
+                            disabled={(item.id === 'music' && !isMusicInstalled) || (item.id === 'mod' && !isModInstalled)}
                         >
                             {t('pages.home.whatsNew')}
                         </ButtonV2>

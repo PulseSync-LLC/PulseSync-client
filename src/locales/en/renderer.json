@@ -819,6 +819,8 @@
             "auxiliaryComponents": "Secondary components",
             "news": "News",
             "whatsNew": "What's new?",
+            "musicReleaseNotesTitle": "Latest Yandex Music updates",
+            "musicReleaseNotesFallbackVersion": "Default",
             "installed": "Installed",
             "notInstalled": "Not installed",
             "onDemandInstallHint": "This component installs automatically by Yandex Music when needed.",

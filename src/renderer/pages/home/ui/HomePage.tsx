@@ -27,6 +27,13 @@ export default function HomePage() {
 
     const openAppChangelogModal = useCallback(() => openModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, openModal])
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
+    const openYandexMusicChangelogModal = useCallback(
+        () =>
+            openModal(Modals.YANDEX_MUSIC_CHANGELOG, {
+                currentVersion: musicVersion,
+            }),
+        [Modals.YANDEX_MUSIC_CHANGELOG, musicVersion, openModal],
+    )
 
     useEffect(() => {
         let isMounted = true
@@ -133,6 +140,11 @@ export default function HomePage() {
 
     const handleWhatsNewClick = useCallback(
         (componentId: string) => {
+            if (componentId === 'music') {
+                openYandexMusicChangelogModal()
+                return
+            }
+
             if (componentId === 'client') {
                 openAppChangelogModal()
                 return
@@ -142,7 +154,7 @@ export default function HomePage() {
                 openModModal()
             }
         },
-        [openAppChangelogModal, openModModal],
+        [openAppChangelogModal, openModModal, openYandexMusicChangelogModal],
     )
 
     return (
@@ -154,6 +166,7 @@ export default function HomePage() {
                             items={primaryComponents}
                             versions={primaryComponentVersions}
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
+                            isMusicInstalled={Boolean(musicInstalled && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
                         />
                         <HomeSecondaryComponentsSection
