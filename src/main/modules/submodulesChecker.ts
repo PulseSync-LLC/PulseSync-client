@@ -126,7 +126,7 @@ const getFirstNonEmptyLine = (output: string): string | null => {
 }
 
 const extractFfmpegVersion = (output: string): string | null => {
-    const versionMatch = output.match(/^ffmpeg version\s+([^\s]+)/imu)
+    const versionMatch = output.match(/^ffmpeg version\s+([0-9]+(?:\.[0-9]+)+)/imu)
     if (versionMatch?.[1]) {
         return versionMatch[1].trim()
     }

@@ -58,13 +58,13 @@ const Header: React.FC<p> = () => {
     const { user, appInfo, app, setUser, updateAvailable } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
-    const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
         closeUpdateModal: () => void
     }>(null)
 
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
+    const isAppChangelogModalOpen = isModalOpen(Modals.APP_CHANGELOG)
     const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
@@ -74,13 +74,13 @@ const Header: React.FC<p> = () => {
 
     const [playStatus, setPlayStatus] = useState<PlayStatus>('null')
 
-    const openUpdateModal = useCallback(() => setModal(true), [])
-    const closeUpdateModal = useCallback(() => setModal(false), [])
+    const openAppChangelogModal = useCallback(() => openModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, openModal])
+    const closeAppChangelogModal = useCallback(() => closeModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, closeModal])
 
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
     const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
-    updateModalRef.current = { openUpdateModal, closeUpdateModal }
+    updateModalRef.current = { openUpdateModal: openAppChangelogModal, closeUpdateModal: closeAppChangelogModal }
     const toggleMenu = useCallback(() => {
         setIsUserCardOpen(false)
         setIsMenuOpen(current => !current)
@@ -142,7 +142,7 @@ const Header: React.FC<p> = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
                 if (value && user.id !== '-1') {
-                    openUpdateModal()
+                    openAppChangelogModal()
                 }
             })
             window.desktopEvents?.on(RendererEvents.SHOW_MOD_MODAL, () => {
@@ -153,7 +153,7 @@ const Header: React.FC<p> = () => {
                 window.desktopEvents?.removeAllListeners(MainEvents.NEED_MODAL_UPDATE)
             }
         }
-    }, [])
+    }, [openAppChangelogModal, openModModal, user.id])
 
     const logout = () => {
         rendererHttpClient
@@ -285,12 +285,12 @@ const Header: React.FC<p> = () => {
                 appUpdatesInfo={appUpdatesInfo}
                 appVersion={app.info.version}
                 closeModModal={closeModModal}
-                closeUpdateModal={closeUpdateModal}
+                closeAppChangelogModal={closeAppChangelogModal}
                 formatDate={formatDate}
+                isAppChangelogModalOpen={isAppChangelogModalOpen}
                 isModModalOpen={isModModalOpen}
                 loadingAppUpdates={loadingAppUpdates}
                 loadingModChanges={modChangesLoading}
-                modal={modal}
                 modChangesInfo={modChangesInfoRaw}
                 modError={modChangesError}
             />

@@ -820,6 +820,7 @@
             "news": "News",
             "whatsNew": "What's new?",
             "installed": "Installed",
+            "notInstalled": "Not installed",
             "onDemandInstallHint": "This component installs automatically by Yandex Music when needed.",
             "musicName": "Yandex Music",
             "modName": "PulseSync Mod",

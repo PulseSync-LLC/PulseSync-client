@@ -5,6 +5,7 @@ import type { ModalName, ModalProviderProps, ModalState, ModalStatePatch, Modals
 
 const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },
+    [Modals.APP_CHANGELOG]: { isOpen: false },
     [Modals.MAC_UPDATE_DIALOG]: { isOpen: false },
     [Modals.LINUX_ASAR_PATH]: { isOpen: false },
     [Modals.APP_UPDATE_DIALOG]: { isOpen: false },

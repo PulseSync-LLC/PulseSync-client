@@ -4,7 +4,7 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 import TooltipButton from '@shared/ui/tooltip_button'
 
-import type { HomeSecondaryComponent } from '@pages/home/model/homeDashboard'
+import type { HomeSecondaryComponent, HomeSecondaryComponentId } from '@pages/home/model/homeDashboard'
 
 import * as styles from './home.module.scss'
 
@@ -15,29 +15,18 @@ type Props = {
     onInstallObsWidget: () => void
 }
 
+const isMetadataBackedSubcomponent = (itemId: HomeSecondaryComponentId): boolean => {
+    return itemId === 'ffmpeg' || itemId === 'ytdlp'
+}
+
 export default function HomeSecondaryComponentsSection({ items, isObsInstalled, isObsInstalling, onInstallObsWidget }: Props) {
     const { t } = useTranslation()
-
-    const getSecondaryVersionLabel = (itemId: string) => {
-        if (itemId === 'obs-widget') {
-            return undefined
-        }
-
-        if (itemId === 'ffmpeg' || itemId === 'yt-dlp') {
-            return undefined
-        }
-
-        return t('common.notAvailable')
-    }
 
     return (
         <section className={styles.panelHollow}>
             <h2 className={styles.panelTitle}>{t('pages.home.auxiliaryComponents')}</h2>
             <div className={styles.secondaryList}>
                 {items.map(item => {
-
-                    const secondaryVersionLabel = getSecondaryVersionLabel(item.id)
-
                     return (
                         <article className={styles.secondaryItem} key={item.id}>
                             <div className={styles.secondaryItemMain}>
@@ -45,7 +34,7 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
 
                                 <div className={styles.componentMeta}>
                                     <div className={styles.componentTitle}>{item.title}</div>
-                                    {secondaryVersionLabel && <div className={styles.componentVersion}>{secondaryVersionLabel}</div>}
+                                    {item.version && <div className={styles.componentVersion}>{item.version}</div>}
                                 </div>
                             </div>
                             {item.id === 'obs-widget' ? (
@@ -57,7 +46,7 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                 >
                                     {isObsInstalled ? t('pages.home.installed') : isObsInstalling ? t('common.loading') : t('layout.installAction')}
                                 </ButtonV2>
-                            ) : item.id === 'ffmpeg' || item.id === 'yt-dlp' ? (
+                            ) : isMetadataBackedSubcomponent(item.id) ? (
                                 <TooltipButton
                                     side={'top'}
                                     dataSide={'bottom'}
@@ -66,11 +55,11 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                     className={styles.secondaryActionTooltip}
                                 >
                                     <ButtonV2 type="button" className={styles.secondaryActionButton} disabled>
-                                        {t('pages.home.installed')}
+                                        {item.version ? t('pages.home.installed') : t('pages.home.notInstalled')}
                                     </ButtonV2>
                                 </TooltipButton>
                             ) : (
-                                <div className={styles.secondaryStatus}>{t('pages.home.installed')}</div>
+                                <div className={styles.secondaryStatus}>{t('pages.home.notInstalled')}</div>
                             )}
                         </article>
                     )

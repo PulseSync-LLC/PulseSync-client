@@ -4,10 +4,13 @@ export type HomePrimaryComponent = {
     iconAsset: string
 }
 
+export type HomeSecondaryComponentId = 'ffmpeg' | 'ytdlp' | 'obs-widget'
+
 export type HomeSecondaryComponent = {
-    id: string
+    id: HomeSecondaryComponentId
     title: string
     iconAsset: string
+    version?: string
 }
 
 export const primaryComponents: HomePrimaryComponent[] = [
@@ -30,6 +33,6 @@ export const primaryComponents: HomePrimaryComponent[] = [
 
 export const secondaryComponents: HomeSecondaryComponent[] = [
     { id: 'ffmpeg', title: 'FFmpeg', iconAsset: 'icons/homeFfmpeg.svg' },
-    { id: 'yt-dlp', title: 'YT Dlp', iconAsset: 'icons/homeYtdlp.svg' },
+    { id: 'ytdlp', title: 'YT Dlp', iconAsset: 'icons/homeYtdlp.svg' },
     { id: 'obs-widget', title: 'OBS Widget', iconAsset: 'icons/homeObs.svg' },
 ]

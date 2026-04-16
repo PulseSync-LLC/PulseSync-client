@@ -1,77 +1,51 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
+import type { SubcomponentsMeta } from '@common/types/subcomponentsMeta'
 import UserContext from '@entities/user/model/context'
-import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 import PageLayout from '@widgets/layout/PageLayout'
 import toast from '@shared/ui/toast'
-import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 
-import { primaryComponents, secondaryComponents } from '@pages/home/model/homeDashboard'
+import { primaryComponents, secondaryComponents, type HomeSecondaryComponent } from '@pages/home/model/homeDashboard'
 import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'
 import HomeNewsSection from '@pages/home/ui/HomeNewsSection'
 import HomePrimaryComponentsSection from '@pages/home/ui/HomePrimaryComponentsSection'
 
 import * as styles from './home.module.scss'
 
-type GetModUpdatesResponse = {
-    getChangelogEntries: ModChangelogEntry[]
-}
-
 export default function HomePage() {
-    const { app, appInfo, loading, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled } = useContext(UserContext)
-    const { t, i18n } = useTranslation()
-    const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
+    const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled } = useContext(UserContext)
+    const { t } = useTranslation()
+    const { Modals, openModal } = useModalContext()
 
-    const [isAppModalOpen, setIsAppModalOpen] = useState(false)
     const [isObsInstalling, setIsObsInstalling] = useState(false)
-    const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
+    const [subcomponentsMeta, setSubcomponentsMeta] = useState<SubcomponentsMeta | undefined>(undefined)
     const widgetDownloadToastIdRef = useRef<string | null>(null)
 
-    const openAppModal = useCallback(() => setIsAppModalOpen(true), [])
-    const closeAppModal = useCallback(() => setIsAppModalOpen(false), [])
+    const openAppChangelogModal = useCallback(() => openModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, openModal])
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
-    const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
-
-    const formatDate = useCallback(
-        (timestamp: number) => {
-            const date = new Date(timestamp * 1000)
-            return date.toLocaleDateString(i18n.language === 'ru' ? 'ru-RU' : 'en-US', {
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-            })
-        },
-        [i18n.language],
-    )
-
-    const shouldFetchModChanges = isModModalOpen && app.mod.installed && !!app.mod.version
-
-    const {
-        data: modData,
-        loading: loadingModChanges,
-        error: modError,
-        refetch: refetchModChanges,
-    } = useQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
-        variables: { modVersion: app.mod.version || '' },
-        skip: !shouldFetchModChanges,
-        notifyOnNetworkStatusChange: true,
-    })
 
     useEffect(() => {
-        if (shouldFetchModChanges) {
-            void refetchModChanges()
-        }
-    }, [app.mod.version, refetchModChanges, shouldFetchModChanges])
+        let isMounted = true
 
-    const modChangesInfo = useMemo<ModChangelogEntry[]>(
-        () => (Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []),
-        [modData],
-    )
+        void window.desktopEvents
+            .invoke(MainEvents.GET_SUBCOMPONENTS_META)
+            .then((meta: SubcomponentsMeta) => {
+                if (isMounted) {
+                    setSubcomponentsMeta(meta)
+                }
+            })
+            .catch(error => {
+                console.error('Failed to fetch subcomponents meta:', error)
+            })
+
+        return () => {
+            isMounted = false
+        }
+    }, [])
 
     const primaryComponentVersions = useMemo<Record<string, string>>(
         () => ({
@@ -80,6 +54,28 @@ export default function HomePage() {
             client: app.info.version || t('contextMenu.mod.notInstalled'),
         }),
         [app.info.version, app.mod.installed, app.mod.version, musicInstalled, musicVersion, t],
+    )
+
+    const secondaryComponentsWithVersionLabels = useMemo<HomeSecondaryComponent[]>(
+        () =>
+            secondaryComponents.map(item => {
+                if (item.id === 'ffmpeg') {
+                    return {
+                        ...item,
+                        version: subcomponentsMeta?.ffmpeg?.version,
+                    }
+                }
+
+                if (item.id === 'ytdlp') {
+                    return {
+                        ...item,
+                        version: subcomponentsMeta?.ytdlp?.version,
+                    }
+                }
+
+                return item
+            }),
+        [subcomponentsMeta],
     )
 
     const installObsWidget = useCallback(() => {
@@ -138,7 +134,7 @@ export default function HomePage() {
     const handleWhatsNewClick = useCallback(
         (componentId: string) => {
             if (componentId === 'client') {
-                openAppModal()
+                openAppChangelogModal()
                 return
             }
 
@@ -146,25 +142,11 @@ export default function HomePage() {
                 openModModal()
             }
         },
-        [openAppModal, openModModal],
+        [openAppChangelogModal, openModModal],
     )
 
     return (
         <PageLayout title={t('pages.home.title')}>
-            <HeaderModals
-                appError={null}
-                appUpdatesInfo={appInfo}
-                appVersion={app.info.version}
-                closeModModal={closeModModal}
-                closeUpdateModal={closeAppModal}
-                formatDate={formatDate}
-                isModModalOpen={isModModalOpen}
-                loadingAppUpdates={loading}
-                loadingModChanges={loadingModChanges}
-                modal={isAppModalOpen}
-                modChangesInfo={modChangesInfo}
-                modError={modError}
-            />
             <div className={styles.home}>
                 <div className={styles.grid}>
                     <div className={styles.leftColumn}>
@@ -175,7 +157,7 @@ export default function HomePage() {
                             onWhatsNewClick={handleWhatsNewClick}
                         />
                         <HomeSecondaryComponentsSection
-                            items={secondaryComponents}
+                            items={secondaryComponentsWithVersionLabels}
                             isObsInstalled={widgetInstalled}
                             isObsInstalling={isObsInstalling}
                             onInstallObsWidget={installObsWidget}

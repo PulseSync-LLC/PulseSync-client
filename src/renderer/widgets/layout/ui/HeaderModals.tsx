@@ -22,12 +22,12 @@ type Props = {
     appUpdatesInfo: AppInfoInterface[]
     appVersion: string
     closeModModal: () => void
-    closeUpdateModal: () => void
+    closeAppChangelogModal: () => void
     formatDate: (timestamp: any) => string
+    isAppChangelogModalOpen: boolean
     isModModalOpen: boolean
     loadingAppUpdates: boolean
     loadingModChanges: boolean
-    modal: boolean
     modChangesInfo: ModChangelogEntry[]
     modError?: Error
 }
@@ -53,12 +53,12 @@ export default function HeaderModals({
     appUpdatesInfo,
     appVersion,
     closeModModal,
-    closeUpdateModal,
+    closeAppChangelogModal,
     formatDate,
+    isAppChangelogModalOpen,
     isModModalOpen,
     loadingAppUpdates,
     loadingModChanges,
-    modal,
     modChangesInfo,
     modError,
 }: Props) {
@@ -66,7 +66,7 @@ export default function HeaderModals({
 
     return (
         <>
-            <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
+            <Modal title={t('header.latestUpdatesTitle')} isOpen={isAppChangelogModalOpen} reqClose={closeAppChangelogModal}>
                 <div className={modalStyles.updateModal}>
                     {loadingAppUpdates && <Loader variant="panel" />}
                     {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
