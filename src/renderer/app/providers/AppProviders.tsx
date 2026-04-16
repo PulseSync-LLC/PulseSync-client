@@ -21,7 +21,6 @@ export default function AppProviders({
     setUser,
     authorize,
     loading,
-    meLoading,
     musicInstalled,
     setMusicInstalled,
     musicVersion,
@@ -64,7 +63,7 @@ export default function AppProviders({
             user,
             setUser,
             authorize,
-            loading: loading || meLoading,
+            loading,
             musicInstalled,
             setMusicInstalled,
             musicVersion,
@@ -98,7 +97,6 @@ export default function AppProviders({
             isAppDeprecated,
             loading,
             allAchievements,
-            meLoading,
             modInfo,
             modInfoFetched,
             musicInstalled,
@@ -135,7 +133,7 @@ export default function AppProviders({
                     <NotificationsProvider value={notificationsValue}>
                         <PlayerProvider>
                             <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                                <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
+                                <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
                             </SkeletonTheme>
                         </PlayerProvider>
                     </NotificationsProvider>
