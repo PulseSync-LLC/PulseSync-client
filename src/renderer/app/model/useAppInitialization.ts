@@ -1,10 +1,10 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
 import MainEvents from '@common/types/mainEvents'
-import config from '@common/appConfig'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import rendererHttpClient from '@shared/api/http/client'
 
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
@@ -67,9 +67,9 @@ export function useAppInitialization({
                 }
 
                 try {
-                    const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
-                    const data = await res.json()
-                    if (data.ok && Array.isArray(data.appInfo)) {
+                    const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
+                    const data = response.data
+                    if (response.ok && data?.ok && Array.isArray(data.appInfo)) {
                         const sortedAppInfos = data.appInfo.sort((a: any, b: any) => b.id - a.id)
                         setAppInfo(sortedAppInfos)
                     }

@@ -6,6 +6,7 @@ import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
 import { DocTab } from '@pages/extension/route/extBox/types'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import { AddonConfig } from '@features/configurationSettings/types'
+import rendererHttpClient from '@shared/api/http/client'
 
 interface HookResult {
     docs: DocTab[]
@@ -60,9 +61,11 @@ const fetchAddonDocs = async (addon: AddonInterface): Promise<DocTab[]> => {
     await Promise.all(
         candidates.map(async file => {
             try {
-                const res = await fetch(buildAddonUrl(addon, file), { cache: 'no-store' })
+                const res = await rendererHttpClient.get<string>(buildAddonUrl(addon, file), {
+                    responseType: 'text',
+                })
                 if (!res.ok) return
-                const text = await res.text()
+                const text = res.data
                 fetched.push({ title: prettify(file), content: text, isMarkdown: file.toLowerCase().endsWith('.md') })
             } catch {}
         }),
@@ -77,10 +80,9 @@ const fetchAddonConfig = async (addon: AddonInterface): Promise<{ config: AddonC
     if (!file) return { config: null, exists: false }
 
     try {
-        const res = await fetch(buildAddonUrl(addon, file), { cache: 'no-store' })
+        const res = await rendererHttpClient.get<AddonConfig>(buildAddonUrl(addon, file))
         if (!res.ok) throw new Error('404')
-        const json: AddonConfig = await res.json()
-        return { config: json, exists: true }
+        return { config: res.data, exists: true }
     } catch {
         return { config: null, exists: false }
     }

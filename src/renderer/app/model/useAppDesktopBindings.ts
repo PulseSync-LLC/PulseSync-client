@@ -3,11 +3,10 @@ import { useRef } from 'react'
 
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
-import config from '@common/appConfig'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
+import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import getUserToken from '@shared/lib/auth/getUserToken'
 import { fetchSettings } from '@entities/settings/api/settings'
 
 type Params = {
@@ -109,14 +108,14 @@ export function useAppDesktopBindings({
         }
 
         const premiumUserCheck = async () => {
-            const response = await fetch(`${config.SERVER_URL}/user/subscription/token`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${getUserToken()}`,
-                },
+            const response = await rendererHttpClient.post<{
+                expiresAt?: string
+                ok?: boolean
+                token?: string
+            }>('/user/subscription/token', {
+                auth: true,
             })
-            const data = await response.json()
+            const data = response.data
             if (data.ok) {
                 window.desktopEvents?.send(MainEvents.SEND_PREMIUM_USER, {
                     ok: true,

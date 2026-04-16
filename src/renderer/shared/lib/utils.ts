@@ -3,12 +3,12 @@ import config from '@common/appConfig'
 import { Track } from '@entities/track/model/track.interface'
 import trackInitials from '@entities/track/model/track.initials'
 import { t } from '@app/i18n'
+import rendererHttpClient from '@shared/api/http/client'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {
-        const response = await fetch(`${config.SERVER_v2_URL}/api/v2/health`, {
-            method: 'GET',
-            cache: 'no-store',
+        const response = await rendererHttpClient.get(`${config.SERVER_v2_URL}/api/v2/health`, {
+            responseType: 'text',
         })
         return response.status === 200
     } catch (error) {

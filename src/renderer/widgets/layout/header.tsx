@@ -13,9 +13,9 @@ import userContext from '@entities/user/model/context'
 import ContextMenu from '@features/context_menu'
 import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
+import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import config, { isDev, isDevmark } from '@common/appConfig'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { isDev, isDevmark } from '@common/appConfig'
 import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -27,7 +27,7 @@ import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
 import { useModalContext } from '@app/providers/modal'
 import playerContext from '@entities/track/model/player.context'
 import { MdSettings } from 'react-icons/md'
-import { useQuery } from '@apollo/client/react'
+import { useLazyQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
@@ -156,20 +156,18 @@ const Header: React.FC<p> = () => {
     }, [])
 
     const logout = () => {
-        fetch(config.SERVER_URL + '/auth/logout', {
-            method: 'PUT',
-            headers: {
-                authorization: `Bearer ${getUserToken()}`,
-            },
-        }).then(async r => {
-            const res = await r.json()
-            if (res.ok) {
-                toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
-                window.electron.store.delete('tokens.token')
-                setUser(userInitials)
-                await client.clearStore()
-            }
-        })
+        rendererHttpClient
+            .put<{ ok?: boolean }>('/auth/logout', {
+                auth: true,
+            })
+            .then(async ({ data: res }) => {
+                if (res.ok) {
+                    toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
+                    window.electron.store.delete('tokens.token')
+                    setUser(userInitials)
+                    await client.clearStore()
+                }
+            })
     }
 
     const formatDate = useCallback((timestamp: any) => {
@@ -243,20 +241,28 @@ const Header: React.FC<p> = () => {
 
     const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
-    const {
+    const [loadModChanges, {
         data: modData,
         loading: loadingModChanges,
         error: modError,
-    } = useQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
-        variables: { modVersion: app.mod.version || '' },
-        skip: !shouldFetchModChanges,
-        fetchPolicy: 'no-cache',
+    }] = useLazyQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
+        fetchPolicy: 'cache-first',
     })
+
+    useEffect(() => {
+        if (!isModModalOpen || !shouldFetchModChanges) {
+            return
+        }
+
+        void loadModChanges({
+            variables: { modVersion: app.mod.version || '' },
+        })
+    }, [app.mod.version, isModModalOpen, loadModChanges, shouldFetchModChanges])
 
     const modChangesInfoRaw: ModChangelogEntry[] =
         shouldFetchModChanges && Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []
-    const modChangesLoading = shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
-    const modChangesError = shouldFetchModChanges ? modError : undefined
+    const modChangesLoading = isModModalOpen && shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
+    const modChangesError = isModModalOpen && shouldFetchModChanges ? modError : undefined
 
     useEffect(() => {
 
