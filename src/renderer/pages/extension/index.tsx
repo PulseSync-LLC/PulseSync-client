@@ -587,7 +587,7 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedPublication])
 
     const handleSubmitAddon = useCallback(
-        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string) => {
+        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
             if (!selectedAddon || !storePublishingEnabled) return
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
@@ -599,6 +599,7 @@ export default function ExtensionPage() {
             const githubUrl = (githubUrlOverride ?? publicationGithubUrlText).trim()
             const currentGithubUrl = selectedPublication?.currentRelease?.githubUrl?.trim() || ''
             const effectiveGithubUrl = githubUrl || currentGithubUrl
+            const usedAiDuringDevelopment = usedAiDuringDevelopmentOverride ?? Boolean(selectedPublication?.currentRelease?.usedAiDuringDevelopment)
 
             if (mode === 'create' && !effectiveGithubUrl) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.publication.githubUrlRequired'))
@@ -616,6 +617,7 @@ export default function ExtensionPage() {
                     selectedAddon,
                     changelog,
                     effectiveGithubUrl,
+                    usedAiDuringDevelopment,
                     mode === 'update' ? selectedPublication?.id : undefined,
                 )
                 const ownAddons = await fetchOwnStoreAddons()
@@ -888,15 +890,15 @@ export default function ExtensionPage() {
                             onPublicationGithubUrlChange={setPublicationGithubUrlText}
                             onPublishAddon={
                                 publicationActionMode === 'publish'
-                                    ? (changelogText, githubUrl) => {
-                                          void handleSubmitAddon('create', changelogText, githubUrl)
+                                    ? (changelogText, githubUrl, usedAiDuringDevelopment) => {
+                                          void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment)
                                       }
                                     : undefined
                             }
                             onUpdateAddon={
                                 publicationActionMode === 'update'
-                                    ? (changelogText, githubUrl) => {
-                                          void handleSubmitAddon('update', changelogText, githubUrl)
+                                    ? (changelogText, githubUrl, usedAiDuringDevelopment) => {
+                                          void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment)
                                       }
                                     : undefined
                             }

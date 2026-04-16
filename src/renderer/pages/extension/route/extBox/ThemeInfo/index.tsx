@@ -30,8 +30,8 @@ interface Props {
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
     onPublicationGithubUrlChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string, githubUrl: string) => void
-    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
     onBottomBarHeightChange?: (height: number) => void

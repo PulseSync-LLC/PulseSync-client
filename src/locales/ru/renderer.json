@@ -356,6 +356,7 @@
             "githubUrlInvalid": "Укажи корректную ссылку на GitHub.",
             "rulesAgreementPrefix": "Я ознакомился и согласен с",
             "rulesAgreementLink": "правилами публикации аддонов",
+            "aiUsageLabel": "При разработке использовался ИИ",
             "changelogTabTitle": "Изменения этой версии",
             "changelogEmpty": "Для этой версии список изменений пока не добавлен.",
             "cooldownLabel": "Повторная отправка",

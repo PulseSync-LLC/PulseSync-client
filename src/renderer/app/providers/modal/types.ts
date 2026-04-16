@@ -18,8 +18,8 @@ export type ModalAdditionalStateMap = {
         githubUrlText: string
         onChangeChangelog?: ((value: string) => void) | null
         onChangeGithubUrl?: ((value: string) => void) | null
-        onPublish?: ((changelogText: string, githubUrl: string) => void) | null
-        onUpdate?: ((changelogText: string, githubUrl: string) => void) | null
+        onPublish?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
+        onUpdate?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
     }
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string

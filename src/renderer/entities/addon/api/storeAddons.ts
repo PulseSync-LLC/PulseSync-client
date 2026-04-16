@@ -203,15 +203,22 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
     }
 }
 
-export async function submitAddonForStore(addon: Addon, changelog: string, githubUrl: string, existingAddonId?: string): Promise<string | null> {
+export async function submitAddonForStore(
+    addon: Addon,
+    changelog: string,
+    githubUrl: string,
+    usedAiDuringDevelopment: boolean,
+    existingAddonId?: string,
+): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl })
+    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment })
 }
 
 export async function submitAddonArchiveForStore(options: {
     addon: Addon
     changelog: string
     githubUrl: string
+    usedAiDuringDevelopment: boolean
     existingAddonId?: string
     blob: Blob
     fileName: string
@@ -221,6 +228,7 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('description', options.addon.description || '')
     formData.append('githubUrl', options.githubUrl.trim())
     formData.append('changelog', options.changelog)
+    formData.append('usedAiDuringDevelopment', String(options.usedAiDuringDevelopment))
     formData.append('zipFile', options.blob, options.fileName)
 
     const targetUrl = options.existingAddonId ? `/extensions/${encodeURIComponent(options.existingAddonId)}/update` : '/extensions/create'

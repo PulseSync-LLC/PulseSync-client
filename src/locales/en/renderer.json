@@ -356,6 +356,7 @@
             "githubUrlInvalid": "Enter a valid GitHub link.",
             "rulesAgreementPrefix": "I have read and agree to the",
             "rulesAgreementLink": "add-on publication rules",
+            "aiUsageLabel": "AI was used during development",
             "changelogTabTitle": "Changes in this version",
             "changelogEmpty": "No changelog was added for this version yet.",
             "cooldownLabel": "Resubmission",

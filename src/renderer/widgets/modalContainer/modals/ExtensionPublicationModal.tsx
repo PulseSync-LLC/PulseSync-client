@@ -20,26 +20,40 @@ function isGithubUrl(value: string): boolean {
     }
 }
 
+type PublicationCheckboxProps = {
+    checked: boolean
+    onChange: (checked: boolean) => void
+    children: React.ReactNode
+}
+
+function PublicationCheckbox({ checked, onChange, children }: PublicationCheckboxProps) {
+    return (
+        <label className={styles.rulesCheckbox}>
+            <input type="checkbox" checked={checked} onChange={event => onChange(event.target.checked)} />
+            <span className={styles.rulesCheckboxMark}></span>
+            <span>{children}</span>
+        </label>
+    )
+}
+
 const ExtensionPublicationModal: React.FC = () => {
     const { t, i18n } = useTranslation()
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
     const { addon, authorsDisplay, publication, publicationBusy, changelogText, githubUrlText, onChangeChangelog, onChangeGithubUrl, onPublish, onUpdate } = getModalState(
         Modals.EXTENSION_PUBLICATION_MODAL,
     )
+    const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)
+    const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
 
     useEffect(() => {
-        if (!isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)) {
-            setRulesAccepted(false)
-            return
-        }
-
         setRulesAccepted(false)
-    }, [Modals.EXTENSION_PUBLICATION_MODAL, addon?.path, isModalOpen, publication?.id, publicationRelease?.id])
+        setUsedAiDuringDevelopment(Boolean(publicationRelease?.usedAiDuringDevelopment))
+    }, [addon?.path, isPublicationModalOpen, publication?.id, publicationRelease?.id, publicationRelease?.usedAiDuringDevelopment])
 
     const handleClose = () => {
         closeModal(Modals.EXTENSION_PUBLICATION_MODAL)
@@ -117,7 +131,7 @@ const ExtensionPublicationModal: React.FC = () => {
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate(changelogText, githubUrlText)
+                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment)
               },
               disabled: !canSubmit,
           }
@@ -125,7 +139,7 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish(changelogText, githubUrlText)
+                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment)
                 },
                 disabled: !canSubmit,
             }
@@ -134,7 +148,7 @@ const ExtensionPublicationModal: React.FC = () => {
     return (
         <CustomModalPS
             className={styles.publicationModal}
-            isOpen={isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)}
+            isOpen={isPublicationModalOpen}
             onClose={handleClose}
             buttons={[
                 {
@@ -233,26 +247,26 @@ const ExtensionPublicationModal: React.FC = () => {
                 ) : null}
 
                 {primaryButton && requiresRulesAgreement ? (
-                    <label className={styles.rulesCheckbox}>
-                        <input
-                            type="checkbox"
-                            checked={rulesAccepted}
-                            onChange={event => setRulesAccepted(event.target.checked)}
-                        />
-                        <span className={styles.rulesCheckboxMark}></span>
-                        <span>
-                            {t('extensions.publication.rulesAgreementPrefix')}{' '}
-                            <a
-                                className={styles.rulesLink}
-                                href={ADDON_PUBLISHING_RULES_URL}
-                                target="_blank"
-                                rel="noreferrer"
-                                onClick={event => event.stopPropagation()}
-                            >
-                                {t('extensions.publication.rulesAgreementLink')}
-                            </a>
-                        </span>
-                    </label>
+                    <>
+                        <PublicationCheckbox checked={rulesAccepted} onChange={setRulesAccepted}>
+                            <>
+                                {t('extensions.publication.rulesAgreementPrefix')}{' '}
+                                <a
+                                    className={styles.rulesLink}
+                                    href={ADDON_PUBLISHING_RULES_URL}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    onClick={event => event.stopPropagation()}
+                                >
+                                    {t('extensions.publication.rulesAgreementLink')}
+                                </a>
+                            </>
+                        </PublicationCheckbox>
+
+                        <PublicationCheckbox checked={usedAiDuringDevelopment} onChange={setUsedAiDuringDevelopment}>
+                            {t('extensions.publication.aiUsageLabel')}
+                        </PublicationCheckbox>
+                    </>
                 ) : null}
             </div>
         </CustomModalPS>

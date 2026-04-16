@@ -19,6 +19,7 @@ export default gql`
                     description
                     authors
                     changelog
+                    usedAiDuringDevelopment
                     avatarUrl
                     bannerUrl
                     downloadUrl
@@ -35,6 +36,7 @@ export default gql`
                     description
                     authors
                     changelog
+                    usedAiDuringDevelopment
                     avatarUrl
                     bannerUrl
                     downloadUrl
