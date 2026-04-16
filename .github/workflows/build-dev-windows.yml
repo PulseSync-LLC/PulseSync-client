@@ -5,6 +5,9 @@ on:
     branches:
       - dev
 
+permissions:
+  contents: write
+
 concurrency:
   group: build-dev-${{ github.ref }}
   cancel-in-progress: true
@@ -151,6 +154,61 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
+
+      - name: Upload release artifacts for GitHub prerelease
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-${{ matrix.os }}
+          path: release/**/*
+          if-no-files-found: error
+
+  github_prerelease:
+    name: Create GitHub Prerelease
+    needs: [changes, version, build]
+    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: release-*
+          path: github-release-artifacts
+
+      - name: Prepare GitHub release assets
+        shell: bash
+        run: |
+          mkdir -p github-release-assets
+          declare -A NAME_COUNT=()
+
+          while IFS= read -r -d '' file; do
+            base_name="$(basename "$file")"
+            artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
+            target_name="$base_name"
+            name_count="${NAME_COUNT[$base_name]:-0}"
+
+            if (( name_count > 0 )); then
+              target_name="${artifact_dir}-${name_count}-${base_name}"
+            fi
+
+            NAME_COUNT["$base_name"]=$((name_count + 1))
+            cp "$file" "github-release-assets/$target_name"
+          done < <(find github-release-artifacts -type f -print0 | sort -z)
+
+          find github-release-assets -maxdepth 1 -type f | sort
+
+      - name: Create GitHub prerelease
+        uses: softprops/action-gh-release@v2.6.1
+        with:
+          tag_name: ${{ needs.version.outputs.build_version }}
+          target_commitish: ${{ github.sha }}
+          name: ${{ needs.version.outputs.build_version }}
+          prerelease: true
+          generate_release_notes: true
+          overwrite_files: true
+          fail_on_unmatched_files: true
+          files: |
+            github-release-assets/*
 
   skip-build:
     needs: changes
