@@ -11,10 +11,11 @@ const normalizeLocale = (locale?: string): string => {
     return locale.split('-')[0].toLowerCase()
 }
 
-export const initMainI18n = (): typeof i18next => {
+export const initMainI18n = (storedLanguage?: unknown): typeof i18next => {
     if (i18next.isInitialized) return i18next
     const locale = normalizeLocale(app.getLocale?.())
-    const language = locale === 'en' ? 'en' : 'ru'
+    const detectedLanguage = locale === 'en' ? 'en' : 'ru'
+    const language = storedLanguage === 'en' || storedLanguage === 'ru' ? (storedLanguage as string) : detectedLanguage
     i18next.init({
         lng: language,
         fallbackLng: 'ru',
