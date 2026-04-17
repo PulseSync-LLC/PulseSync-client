@@ -35,6 +35,7 @@ jobs:
               - 'nativeModules/**'
               - 'scripts/**'
               - 'scriptsInstaller/**'
+              - '!packaging/**'
               - 'package.json'
               - 'yarn.lock'
               - '.yarnrc.yml'
