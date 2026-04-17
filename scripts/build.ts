@@ -9,6 +9,7 @@ import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
 import * as semver from 'semver'
+import * as tar from 'tar'
 import { fileURLToPath } from 'node:url'
 import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
@@ -238,6 +239,40 @@ function hasNativeModuleDependencies(modulePath: string): boolean {
     return fs.existsSync(path.join(modulePath, 'node_modules'))
 }
 
+async function createLinuxAurTarball(version: string, outDir: string, releaseDir: string): Promise<void> {
+    const archiveName = `pulsesync-app-${version}-linux-x64.tar.gz`
+    const archivePath = path.join(releaseDir, archiveName)
+    const stageRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pulsesync-aur-'))
+    const appDir = path.join(stageRoot, 'opt', 'PulseSync')
+
+    try {
+        fs.mkdirSync(path.dirname(appDir), { recursive: true })
+        fs.cpSync(outDir, appDir, { recursive: true })
+
+        for (const executableName of ['pulsesync', 'chrome-sandbox', 'chrome_crashpad_handler']) {
+            const executablePath = path.join(appDir, executableName)
+            if (fs.existsSync(executablePath)) {
+                fs.chmodSync(executablePath, 0o755)
+            }
+        }
+
+        fs.mkdirSync(releaseDir, { recursive: true })
+        await tar.create(
+            {
+                cwd: stageRoot,
+                file: archivePath,
+                gzip: true,
+                portable: true,
+            },
+            ['opt'],
+        )
+
+        log(LogLevel.SUCCESS, `Created Linux AUR tarball: ${archivePath}`)
+    } finally {
+        fs.rmSync(stageRoot, { force: true, recursive: true })
+    }
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -362,6 +397,10 @@ async function main(): Promise<void> {
                     fs.copyFileSync(sourcePath, dest)
                     log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
                 }
+            }
+
+            if (os.platform() === 'linux') {
+                await createLinuxAurTarball(version, outDir, releaseDir)
             }
         }
 

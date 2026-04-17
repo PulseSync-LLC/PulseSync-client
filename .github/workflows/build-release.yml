@@ -170,7 +170,7 @@ jobs:
             exit 0
           fi
 
-          asset_name="pulsesync-app-${asset_version}-amd64.deb"
+          asset_name="pulsesync-app-${asset_version}-linux-x64.tar.gz"
           asset_url="https://s3.pulsesync.dev/builds/app/${branch}/${asset_name}"
           sha256="$(curl -fsSL "$asset_url" | sha256sum | awk '{print $1}')"
 
@@ -229,6 +229,8 @@ jobs:
 
           cp packaging/aur/PKGBUILD aur-repo/PKGBUILD
           cp packaging/aur/pulsesync-bin.install aur-repo/pulsesync-bin.install
+          cp packaging/aur/pulsesync.desktop aur-repo/pulsesync.desktop
+          cp packaging/aur/pulsesync.xml aur-repo/pulsesync.xml
 
           docker run --rm \
             -v "$PWD/aur-repo:/work" \
@@ -244,7 +246,7 @@ jobs:
           cd aur-repo
           export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o IdentitiesOnly=yes -i \"$HOME/.ssh/aur_archlinux\""
 
-          if [ -z "$(git status --porcelain -- PKGBUILD .SRCINFO pulsesync-bin.install)" ]; then
+          if [ -z "$(git status --porcelain -- PKGBUILD .SRCINFO pulsesync-bin.install pulsesync.desktop pulsesync.xml)" ]; then
             echo "No AUR changes detected"
             exit 0
           fi
@@ -255,6 +257,6 @@ jobs:
           pkgver="$(awk -F= '/^pkgver=/{print $2; exit}' PKGBUILD)"
           pkgrel="$(awk -F= '/^pkgrel=/{print $2; exit}' PKGBUILD)"
 
-          git add PKGBUILD .SRCINFO pulsesync-bin.install
+          git add PKGBUILD .SRCINFO pulsesync-bin.install pulsesync.desktop pulsesync.xml
           git commit -m "chore: update pulsesync-bin to ${pkgver}-${pkgrel}"
           git push origin master
