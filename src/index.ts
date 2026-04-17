@@ -42,13 +42,12 @@ export let asarBackup: string
 export let selectedAddon: string
 
 registerSchemes()
-initMainI18n()
+const State = getState()
+initMainI18n(State.get('settings.language'))
 
 if (isWindows()) {
     app.setAppUserModelId('pulsesync.app')
 }
-
-const State = getState()
 
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',

@@ -16,12 +16,14 @@ function createTray() {
         width: 16,
         height: 16,
     })
+
     const dsIcon = getNativeImg('discord', '.png', 'icon').resize({
         width: 16,
         height: 12,
     })
 
-    tray = new Tray(icon)
+    tray = tray || new Tray(icon)
+
     menu = new Menu()
 
     menu.append(
@@ -33,6 +35,7 @@ function createTray() {
             },
         }),
     )
+
     menu.append(
         new MenuItem({
             label: t('main.tray.addonsDirectory'),
@@ -42,6 +45,7 @@ function createTray() {
             },
         }),
     )
+
     menu.append(
         new MenuItem({
             label: t('main.tray.checkUpdates'),
@@ -51,23 +55,19 @@ function createTray() {
             },
         }),
     )
-    menu.append(
-        new MenuItem({
-            type: 'separator',
-        }),
-    )
+
+    menu.append(new MenuItem({ type: 'separator' }))
+
     menu.append(
         new MenuItem({
             label: t('main.tray.close'),
             accelerator: isMac() ? 'Cmd+Q' : isWindows() ? 'Alt+F4' : 'Ctrl+Q',
-            click: app.quit,
+            click: () => app.quit(),
         }),
     )
+
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
-    tray.on('click', event => {
-        mainWindow.show()
-    })
 }
 
 export default createTray
