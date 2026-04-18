@@ -69,7 +69,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
                                 <MdHome size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
+                            <NavButtonPulse to="/extensions" text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>

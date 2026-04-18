@@ -13,7 +13,7 @@ export const isDevModeEnabled = () => {
 export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
     useEffect(() => {
         if (userId !== '-1' && !isDevModeEnabled()) {
-            navigate('/', { replace: true })
+            navigate('/home', { replace: true })
         }
     }, [userId, navigate])
 }

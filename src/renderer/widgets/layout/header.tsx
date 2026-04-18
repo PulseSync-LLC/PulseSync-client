@@ -289,8 +289,8 @@ const Header: React.FC<p> = () => {
                 formatDate={formatDate}
                 isAppChangelogModalOpen={isAppChangelogModalOpen}
                 isModModalOpen={isModModalOpen}
-                loadingAppUpdates={loadingAppUpdates}
-                loadingModChanges={modChangesLoading}
+                loadingAppUpdates={!loadingAppUpdates}
+                loadingModChanges={!modChangesLoading}
                 modChangesInfo={modChangesInfoRaw}
                 modError={modChangesError}
             />
