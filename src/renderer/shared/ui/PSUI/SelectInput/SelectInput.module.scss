@@ -60,12 +60,40 @@
     left: 0;
     z-index: 1000;
     min-width: 100%;
+    display: flex;
+    flex-direction: column;
     background: #2b3042;
     border: 1px solid #3e465f;
     border-radius: 12px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     padding: 6px;
     width: 100%;
+    overflow: hidden;
+}
+
+.panel.up {
+    top: auto;
+    bottom: calc(100% + 8px);
+}
+
+.searchWrap {
+    padding: 4px 4px 8px;
+}
+
+.searchInput {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #4a526d;
+    border-radius: 10px;
+    background: #242a39;
+    color: #e7ecf3;
+    padding: 0 12px;
+    font: inherit;
+    outline: none;
+}
+
+.searchInput::placeholder {
+    color: #8f9bb3;
 }
 .panel.right {
     left: auto;
@@ -74,6 +102,8 @@
 
 .list {
     display: grid;
+    flex: 1 1 auto;
+    min-height: 0;
     gap: 4px;
     max-height: 280px;
     overflow: auto;

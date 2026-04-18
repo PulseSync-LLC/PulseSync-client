@@ -116,7 +116,7 @@
     display: flex;
     align-items: flex-start;
     gap: 16px 24px;
-    padding: 10px 40px;
+    padding: 10px 40px 0;
     margin: 0 auto;
     background: linear-gradient(180deg, #434963 0%, #383e52 100%);
     align-self: stretch;
@@ -155,7 +155,8 @@
 
 .sideActions {
     display: flex;
-    align-items: flex-start;
+    align-items: flex-end;
+    flex-direction: column;
     flex: 0 0 auto;
     margin-left: auto;
     z-index: 2;
@@ -252,17 +253,24 @@
     background: rgba(99, 106, 130, 0.53);
     color: #fff;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: rgba(99, 106, 130, 0.75);
     }
 }
 
 .disabledState {
-    background: rgba(99, 106, 130, 0.53);
+    background: rgba(91, 98, 120, 0.58);
     color: #fff;
 
-    &:hover {
+    &:hover:not(:disabled) {
         background: rgba(99, 106, 130, 0.75);
+    }
+
+    &:disabled {
+        background: rgba(99, 106, 130, 0.28);
+        color: rgba(255, 255, 255, 0.48);
+        cursor: default;
+        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
     }
 }
 
@@ -391,7 +399,7 @@
 
 @media (max-width: 900px) {
     .bottomBar {
-        padding: 10px 40px;
+        padding: 10px 40px 0;
         flex-direction: column;
     }
 
@@ -416,7 +424,7 @@
 
 @media (max-width: 640px) {
     .bottomBar {
-        padding: 10px 20px;
+        padding: 10px 20px 0;
     }
 
     .meta {

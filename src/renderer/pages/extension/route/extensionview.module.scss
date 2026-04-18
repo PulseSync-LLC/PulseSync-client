@@ -42,6 +42,7 @@
         z-index: 2;
         position: relative;
         align-items: flex-start;
+        gap: 12px;
 
         & > .alertContent {
             height: 25vh;
@@ -249,6 +250,210 @@
                 }
             }
         }
+    }
+}
+
+.relationsLayout {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.relationsSection {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.relationsSectionHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.relationsSectionTitle {
+    color: #f4f7ff;
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.relationsSectionText {
+    color: #acb7d7;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.45;
+}
+
+.relationsCardList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+}
+
+.relationCard {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 16px;
+    border: 1px solid rgba(129, 141, 179, 0.14);
+    background:
+        linear-gradient(180deg, rgba(73, 81, 107, 0.24) 0%, rgba(53, 59, 79, 0.34) 100%),
+        rgba(129, 141, 179, 0.08);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+}
+
+.relationCardButton {
+    cursor: pointer;
+    transition:
+        transform 0.16s ease,
+        border-color 0.16s ease,
+        background 0.16s ease;
+    text-align: left;
+
+    &:hover {
+        border-color: rgba(129, 141, 179, 0.28);
+        background:
+            linear-gradient(180deg, rgba(87, 96, 126, 0.28) 0%, rgba(60, 67, 90, 0.38) 100%),
+            rgba(129, 141, 179, 0.1);
+        transform: translateY(-1px);
+    }
+}
+
+.relationCardStatic {
+    opacity: 0.94;
+}
+
+.relationCardIcon {
+    width: 38px;
+    height: 38px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(129, 141, 179, 0.14);
+    color: #dbe4ff;
+    flex: 0 0 auto;
+}
+
+.relationCardIconDanger {
+    background: rgba(255, 109, 109, 0.16);
+    color: #ffd0d0;
+}
+
+.relationCardBody {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.relationCardTopRow {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.relationCardTitle {
+    min-width: 0;
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 800;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.relationCardStatus {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.relationCardStatusSuccess {
+    background: rgba(122, 216, 142, 0.18);
+    color: #dff7e6;
+}
+
+.relationCardStatusNeutral {
+    background: rgba(129, 141, 179, 0.16);
+    color: #d7e0fb;
+}
+
+.relationCardStatusMuted {
+    background: rgba(129, 141, 179, 0.11);
+    color: #9eabc9;
+}
+
+.relationCardStatusDanger {
+    background: rgba(255, 109, 109, 0.18);
+    color: #ffd0d0;
+}
+
+.relationCardMetaRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.relationCardType {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(52, 104, 242, 0.18);
+    color: #bcd0ff;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.relationCardMeta {
+    min-width: 0;
+    color: #8f9aba;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1.25;
+    overflow-wrap: anywhere;
+}
+
+.relationCardChevron {
+    flex: 0 0 auto;
+    color: rgba(223, 232, 255, 0.45);
+}
+
+@media (max-width: 640px) {
+    .relationsCardList {
+        grid-template-columns: 1fr;
+    }
+
+    .relationCard {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .relationCardChevron {
+        display: none;
+    }
+
+    .relationCardTopRow {
+        flex-direction: column;
+        align-items: flex-start;
     }
 }
 
