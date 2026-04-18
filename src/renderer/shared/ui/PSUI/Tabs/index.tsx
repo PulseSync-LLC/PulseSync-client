@@ -5,6 +5,7 @@ import { MdKeyboardArrowDown, MdKeyboardArrowUp } from 'react-icons/md'
 
 export interface TabItem {
     title: string
+    value?: string
     icon: React.ReactNode
 }
 
@@ -21,12 +22,12 @@ const Tabs: React.FC<Props> = ({ active, onChange, tabs, sortDirection, stickyPo
         <div className={s.extensionNavContainer}>
             {tabs.map(tab => (
                 <button
-                    key={tab.title}
-                    className={cn(s.extensionNavButton, active === tab.title && s.activeTabButton)}
-                    onClick={() => onChange(tab.title)}
+                    key={tab.value || tab.title}
+                    className={cn(s.extensionNavButton, active === (tab.value || tab.title) && s.activeTabButton)}
+                    onClick={() => onChange(tab.value || tab.title)}
                 >
                     {tab.icon} {tab.title}
-                    {active === tab.title &&
+                    {active === (tab.value || tab.title) &&
                         sortDirection &&
                         (sortDirection === 'asc' ? <MdKeyboardArrowUp className={s.sortIcon} /> : <MdKeyboardArrowDown className={s.sortIcon} />)}
                 </button>

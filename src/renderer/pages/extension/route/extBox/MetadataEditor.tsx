@@ -13,11 +13,16 @@ import Loader from '@shared/ui/PSUI/Loader'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
 import UserContext from '@entities/user/model/context'
+import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import apolloClient from '@shared/api/apolloClient'
+import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
 
 type Metadata = {
+    id?: string
+    storeAddonId?: string
     name: string
     image: string
     banner: string
@@ -30,6 +35,7 @@ type Metadata = {
     type: 'theme' | 'script' | 'library' | string
     tags: string[]
     dependencies: string[]
+    conflictsWith: string[]
     allowedUrls: string[]
     supportedVersions: string[]
 }
@@ -41,6 +47,10 @@ type MetadataFileShape = Omit<Metadata, 'author'> & {
 type Props = {
     addonPath: string
     filePreviewSrc?: (rel: string) => string
+}
+
+type StoreAddonsQuery = {
+    getStoreAddons: StoreAddonsPayload
 }
 
 const SEMVER = /^\d+\.\d+\.\d+$/
@@ -58,6 +68,7 @@ const DEFAULT_META: Metadata = {
     type: 'theme',
     tags: [],
     dependencies: [],
+    conflictsWith: [],
     allowedUrls: [],
     supportedVersions: [],
 }
@@ -81,9 +92,9 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     const ext = path.extname(baseName)
     const stem = baseName.slice(0, baseName.length - ext.length)
 
-    const safeExists = async (p: string) => {
+    const safeExists = async (filePath: string) => {
         try {
-            const res = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'exists', p)
+            const res = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'exists', filePath)
             return !!res
         } catch {
             return false
@@ -163,9 +174,18 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
-    const [isListEditorOpen, setIsListEditorOpen] = useState(false)
+
+    const [isRelationsEditorOpen, setIsRelationsEditorOpen] = useState(false)
+    const [isCompatibilityEditorOpen, setIsCompatibilityEditorOpen] = useState(false)
+
+    const [availableAddons, setAvailableAddons] = useState<StoreAddon[]>([])
+    const [modalDependenciesDraft, setModalDependenciesDraft] = useState<string[]>([])
+    const [modalConflictsDraft, setModalConflictsDraft] = useState<string[]>([])
     const [modalAllowedUrlsDraft, setModalAllowedUrlsDraft] = useState<string[]>([])
     const [modalSupportedVersionsDraft, setModalSupportedVersionsDraft] = useState<string[]>([])
+
+    const [modalDependencySelection, setModalDependencySelection] = useState('')
+    const [modalConflictSelection, setModalConflictSelection] = useState('')
     const [modalAllowedUrlsInput, setModalAllowedUrlsInput] = useState('')
     const [modalSupportedVersionsInput, setModalSupportedVersionsInput] = useState('')
 
@@ -174,12 +194,13 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         if (!draft.name.trim()) return false
         if (!SEMVER.test(draft.version.trim())) return false
         if (!['theme', 'script', 'library'].includes(draft.type)) return false
-        if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(v => semver.validRange(v))) return false
+        if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(version => semver.validRange(version))) return false
         return true
     }, [draft])
 
     useEffect(() => {
         let cancelled = false
+
         ;(async () => {
             setError(null)
             setLoading(true)
@@ -192,23 +213,55 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     ...parsed,
                     author: normalizeAuthorInput(parsed?.author),
                     tags: Array.isArray(parsed?.tags) ? parsed.tags : [],
+                    dependencies: Array.isArray(parsed?.dependencies) ? parsed.dependencies : [],
+                    conflictsWith: Array.isArray(parsed?.conflictsWith) ? parsed.conflictsWith : [],
+                    allowedUrls: Array.isArray(parsed?.allowedUrls) ? parsed.allowedUrls : [],
+                    supportedVersions: Array.isArray(parsed?.supportedVersions) ? parsed.supportedVersions : [],
                     type: parsed?.type ?? 'theme',
                 }
                 if (!cancelled) {
                     setDraft(meta)
                     baseRef.current = meta
                 }
-            } catch (e) {
-                console.error(e)
+            } catch (loadMetadataError) {
+                console.error(loadMetadataError)
                 if (!cancelled) setError(t('metadata.loadError'))
             } finally {
                 if (!cancelled) setLoading(false)
             }
         })()
+
         return () => {
             cancelled = true
         }
-    }, [addonPath])
+    }, [addonPath, t])
+
+    useEffect(() => {
+        let cancelled = false
+
+        ;(async () => {
+            try {
+                const response = await apolloClient.query<StoreAddonsQuery>({
+                    query: GetStoreAddonsQuery,
+                    variables: {
+                        page: 1,
+                        pageSize: 500,
+                    },
+                    fetchPolicy: 'no-cache',
+                })
+
+                if (!cancelled) {
+                    setAvailableAddons(Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : [])
+                }
+            } catch (loadAddonsError) {
+                console.error('[MetadataEditor] failed to load store catalog for relation selectors', loadAddonsError)
+            }
+        })()
+
+        return () => {
+            cancelled = true
+        }
+    }, [])
 
     const setField = useCallback(<K extends keyof Metadata>(key: K, value: Metadata[K]) => {
         setDraft(prev => (prev[key] === value ? prev : { ...prev, [key]: value }))
@@ -216,27 +269,57 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
     const tagsAsString = useMemo(() => draft.tags.join(', '), [draft.tags])
     const setTagsFromString = useCallback(
-        (v: string) => {
-            const next = v
+        (value: string) => {
+            const next = value
                 .split(',')
-                .map(s => s.trim())
+                .map(entry => entry.trim())
                 .filter(Boolean)
             setField('tags', next)
         },
         [setField],
     )
 
-    const dependenciesAsString = useMemo(() => draft.dependencies.join(', '), [draft.dependencies])
-    const setDependenciesFromString = useCallback(
-        (v: string) => {
-            const next = v
-                .split(',')
-                .map(s => s.trim())
-                .filter(Boolean)
-            setField('dependencies', next)
-        },
-        [setField],
-    )
+    const relationOptionRecords = useMemo(() => {
+        const relationCandidates = availableAddons
+            .filter(addon => addon.name !== 'Default')
+            .filter(addon => !(draft.storeAddonId && addon.id === draft.storeAddonId))
+            .filter(addon => !(draft.id && addon.id === draft.id))
+
+        const normalizedNameCounts = relationCandidates.reduce(
+            (acc, addon) => {
+                const key = addon.name.trim().toLowerCase()
+                acc.set(key, (acc.get(key) || 0) + 1)
+                return acc
+            },
+            new Map<string, number>(),
+        )
+
+        return relationCandidates
+            .map(addon => {
+                const normalizedName = addon.name.trim().toLowerCase()
+                const hasDuplicateName = (normalizedNameCounts.get(normalizedName) || 0) > 1
+                const suffixParts = [
+                    hasDuplicateName ? addon.type : '',
+                    addon.currentRelease?.version?.trim() || '',
+                ].filter(Boolean)
+                const label = suffixParts.length ? `${addon.name} (${suffixParts.join(' • ')})` : addon.name
+
+                return {
+                    value: addon.id,
+                    label,
+                    searchText: addon.name,
+                }
+            })
+            .sort((left, right) => left.label.localeCompare(right.label))
+    }, [availableAddons, draft.id, draft.storeAddonId])
+
+    const relationOptions = useMemo(() => relationOptionRecords.map(({ value, label, searchText }) => ({ value, label, searchText })), [relationOptionRecords])
+
+    const relationLabelMap = useMemo(() => {
+        const entries = new Map<string, string>()
+        relationOptions.forEach(option => entries.set(String(option.value), option.label))
+        return entries
+    }, [relationOptions])
 
     const parseListEntries = useCallback((value: string) => {
         return value
@@ -250,6 +333,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         () => modalSupportedVersionsDraft.filter(version => !semver.validRange(version)),
         [modalSupportedVersionsDraft],
     )
+
     const invalidPendingSupportedVersions = useMemo(
         () => parseListEntries(modalSupportedVersionsInput).filter(version => !semver.validRange(version)),
         [modalSupportedVersionsInput, parseListEntries],
@@ -262,28 +346,61 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
 
             const seen = new Set(current.map(entry => entry.toLowerCase()))
             const result = [...current]
+
             for (const entry of nextEntries) {
                 const normalized = entry.toLowerCase()
                 if (seen.has(normalized)) continue
                 seen.add(normalized)
                 result.push(entry)
             }
+
             return result
         },
         [parseListEntries],
     )
 
-    const openListEditor = useCallback(() => {
+    const openRelationsEditor = useCallback(() => {
+        setModalDependenciesDraft(draft.dependencies)
+        setModalConflictsDraft(draft.conflictsWith)
+        setModalDependencySelection('')
+        setModalConflictSelection('')
+        setIsRelationsEditorOpen(true)
+    }, [draft.conflictsWith, draft.dependencies])
+
+    const closeRelationsEditor = useCallback(() => {
+        setIsRelationsEditorOpen(false)
+    }, [])
+
+    const openCompatibilityEditor = useCallback(() => {
         setModalAllowedUrlsDraft(draft.allowedUrls)
         setModalSupportedVersionsDraft(draft.supportedVersions)
         setModalAllowedUrlsInput('')
         setModalSupportedVersionsInput('')
-        setIsListEditorOpen(true)
+        setIsCompatibilityEditorOpen(true)
     }, [draft.allowedUrls, draft.supportedVersions])
 
-    const closeListEditor = useCallback(() => {
-        setIsListEditorOpen(false)
+    const closeCompatibilityEditor = useCallback(() => {
+        setIsCompatibilityEditorOpen(false)
     }, [])
+
+    const addRelation = useCallback((selection: string, setter: React.Dispatch<React.SetStateAction<string[]>>, reset: () => void) => {
+        const nextRelation = selection.trim()
+        if (!nextRelation) return
+
+        setter(prev => {
+            if (prev.includes(nextRelation)) return prev
+            return [...prev, nextRelation]
+        })
+        reset()
+    }, [])
+
+    const addDependency = useCallback(() => {
+        addRelation(modalDependencySelection, setModalDependenciesDraft, () => setModalDependencySelection(''))
+    }, [addRelation, modalDependencySelection])
+
+    const addConflict = useCallback(() => {
+        addRelation(modalConflictSelection, setModalConflictsDraft, () => setModalConflictSelection(''))
+    }, [addRelation, modalConflictSelection])
 
     const addAllowedUrls = useCallback(() => {
         setModalAllowedUrlsDraft(prev => appendUniqueEntries(prev, modalAllowedUrlsInput))
@@ -299,6 +416,18 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setModalSupportedVersionsInput('')
     }, [appendUniqueEntries, modalSupportedVersionsInput, parseListEntries])
 
+    const removeRelation = useCallback((value: string, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+        setter(prev => prev.filter(entry => entry !== value))
+    }, [])
+
+    const removeDependency = useCallback((value: string) => {
+        removeRelation(value, setModalDependenciesDraft)
+    }, [removeRelation])
+
+    const removeConflict = useCallback((value: string) => {
+        removeRelation(value, setModalConflictsDraft)
+    }, [removeRelation])
+
     const removeAllowedUrl = useCallback((value: string) => {
         setModalAllowedUrlsDraft(prev => prev.filter(entry => entry !== value))
     }, [])
@@ -307,12 +436,18 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setModalSupportedVersionsDraft(prev => prev.filter(entry => entry !== value))
     }, [])
 
-    const applyListEditor = useCallback(() => {
+    const applyRelationsEditor = useCallback(() => {
+        setField('dependencies', modalDependenciesDraft)
+        setField('conflictsWith', modalConflictsDraft)
+        setIsRelationsEditorOpen(false)
+    }, [modalConflictsDraft, modalDependenciesDraft, setField])
+
+    const applyCompatibilityEditor = useCallback(() => {
         if (invalidModalSupportedVersions.length > 0) return
 
         setField('allowedUrls', modalAllowedUrlsDraft)
         setField('supportedVersions', modalSupportedVersionsDraft)
-        setIsListEditorOpen(false)
+        setIsCompatibilityEditorOpen(false)
     }, [invalidModalSupportedVersions.length, modalAllowedUrlsDraft, modalSupportedVersionsDraft, setField])
 
     const resolveRelIfNeeded = useCallback(
@@ -331,6 +466,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         if (!open || !valid || saving) return
         setSaving(true)
         setError(null)
+
         try {
             const next: Metadata = { ...draft }
 
@@ -362,8 +498,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
             } catch (refreshError) {
                 console.error('[MetadataEditor] metadata saved, but refresh failed', refreshError)
             }
-        } catch (e) {
-            console.error(e)
+        } catch (saveMetadataError) {
+            console.error(saveMetadataError)
             setError(t('metadata.saveError'))
         } finally {
             setSaving(false)
@@ -374,12 +510,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         setDraft(baseRef.current)
     }, [])
 
-    if (loading)
+    if (loading) {
         return (
             <div className={css.alert}>
                 <Loader variant="panel" />
             </div>
         )
+    }
+
     if (error) return <div className={css.alert}>{error}</div>
 
     return (
@@ -387,23 +525,18 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
             <div className={css.metaGrid}>
                 <div className={`${css.metaWide} ${css.metaSplit}`}>
                     <div className={css.metaMainColumn}>
-                        <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={v => setField('name', v)} />
+                        <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={value => setField('name', value)} />
                         <TextInput
                             name="meta-description"
                             label={t('metadata.labels.description')}
                             value={draft.description}
-                            onChange={v => setField('description', v)}
+                            onChange={value => setField('description', value)}
                             className={css.metaDescription}
                         />
                     </div>
 
                     <div className={css.metaSideColumn}>
-                        <TextInput
-                            name="meta-author"
-                            label={t('metadata.labels.author')}
-                            value={draft.author}
-                            onChange={v => setField('author', v)}
-                        />
+                        <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={value => setField('author', value)} />
 
                         <div className={css.metaSideRow}>
                             <SelectInput
@@ -414,14 +547,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                     { value: 'script', label: 'script' },
                                     { value: 'library', label: 'library' },
                                 ]}
-                                onChange={v => setField('type', v as Metadata['type'])}
+                                onChange={value => setField('type', value as Metadata['type'])}
                             />
 
                             <TextInput
                                 name="meta-version"
                                 label={t('metadata.labels.version')}
                                 value={draft.version}
-                                onChange={v => setField('version', v)}
+                                onChange={value => setField('version', value)}
                                 description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
                             />
                         </div>
@@ -442,7 +575,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                         <FileInput
                             label={t('metadata.labels.image')}
                             value={draft.image}
-                            onChange={p => setField('image', p)}
+                            onChange={value => setField('image', value)}
                             placeholder={t('metadata.placeholders.selectOrEnterPath')}
                             metadata
                             addonPath={addonPath}
@@ -455,7 +588,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                         <FileInput
                             label={t('metadata.labels.banner')}
                             value={draft.banner}
-                            onChange={p => setField('banner', p)}
+                            onChange={value => setField('banner', value)}
                             placeholder={t('metadata.placeholders.selectOrEnterPath')}
                             metadata
                             addonPath={addonPath}
@@ -468,7 +601,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                         <FileInput
                             label={t('metadata.labels.libraryLogo')}
                             value={draft.libraryLogo ?? ''}
-                            onChange={p => setField('libraryLogo', p)}
+                            onChange={value => setField('libraryLogo', value)}
                             placeholder={t('metadata.placeholders.logoFile')}
                             metadata
                             addonPath={addonPath}
@@ -480,7 +613,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     <FileInput
                         label={t('metadata.labels.css')}
                         value={draft.css}
-                        onChange={p => setField('css', p)}
+                        onChange={value => setField('css', value)}
                         placeholder={t('metadata.placeholders.cssPath')}
                         metadata
                         addonPath={addonPath}
@@ -492,7 +625,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                         className={css.assetWide}
                         label={t('metadata.labels.script')}
                         value={draft.script}
-                        onChange={p => setField('script', p)}
+                        onChange={value => setField('script', value)}
                         placeholder={t('metadata.placeholders.scriptPath')}
                         metadata
                         addonPath={addonPath}
@@ -501,14 +634,46 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     />
                 </div>
 
-                <div className={css.listEditorCard}>
+                <div className={css.editorCard}>
                     <div className={css.listEditorHeader}>
-                        <div>
-                            <div className={css.listEditorTitle}>{t('metadata.listEditor.title')}</div>
-                            <div className={css.listEditorDescription}>{t('metadata.listEditor.description')}</div>
+                        <div className={css.listEditorHeaderContent}>
+                            <div className={css.listEditorTitle}>{t('metadata.relationsEditor.title')}</div>
+                            <div className={css.listEditorDescription}>{t('metadata.relationsEditor.description')}</div>
                         </div>
-                        <button type="button" className={css.listEditorButton} onClick={openListEditor}>
-                            {t('metadata.listEditor.edit')}
+                        <button type="button" className={css.listEditorButton} onClick={openRelationsEditor}>
+                            {t('metadata.relationsEditor.edit')}
+                        </button>
+                    </div>
+
+                    <div className={css.listSummaryRow}>
+                        <div className={css.listSummaryMeta}>
+                            <div className={css.listSummaryLabel}>{t('metadata.labels.dependencies')}</div>
+                            <div className={css.listSummaryValue}>
+                                {draft.dependencies.length
+                                    ? t('metadata.relationsEditor.dependenciesSummary', { count: draft.dependencies.length })
+                                    : t('metadata.relationsEditor.previewEmpty')}
+                            </div>
+                        </div>
+
+                        <div className={css.listSummaryMeta}>
+                            <div className={css.listSummaryLabel}>{t('metadata.labels.conflictsWith')}</div>
+                            <div className={css.listSummaryValue}>
+                                {draft.conflictsWith.length
+                                    ? t('metadata.relationsEditor.conflictsSummary', { count: draft.conflictsWith.length })
+                                    : t('metadata.relationsEditor.previewEmpty')}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={css.editorCard}>
+                    <div className={css.listEditorHeader}>
+                        <div className={css.listEditorHeaderContent}>
+                            <div className={css.listEditorTitle}>{t('metadata.compatibilityEditor.title')}</div>
+                            <div className={css.listEditorDescription}>{t('metadata.compatibilityEditor.description')}</div>
+                        </div>
+                        <button type="button" className={css.listEditorButton} onClick={openCompatibilityEditor}>
+                            {t('metadata.compatibilityEditor.edit')}
                         </button>
                     </div>
 
@@ -517,8 +682,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                             <div className={css.listSummaryLabel}>{t('metadata.labels.allowedUrls')}</div>
                             <div className={css.listSummaryValue}>
                                 {draft.allowedUrls.length
-                                    ? t('metadata.listEditor.allowedUrlsSummary', { count: draft.allowedUrls.length })
-                                    : t('metadata.listEditor.previewEmpty')}
+                                    ? t('metadata.compatibilityEditor.allowedUrlsSummary', { count: draft.allowedUrls.length })
+                                    : t('metadata.compatibilityEditor.previewEmpty')}
                             </div>
                         </div>
 
@@ -526,10 +691,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                             <div className={css.listSummaryLabel}>{t('metadata.labels.supportedVersions')}</div>
                             <div className={css.listSummaryValue}>
                                 {draft.supportedVersions.length
-                                    ? t('metadata.listEditor.supportedVersionsSummary', {
+                                    ? t('metadata.compatibilityEditor.supportedVersionsSummary', {
                                           value: draft.supportedVersions.join(', '),
                                       })
-                                    : t('metadata.listEditor.previewEmpty')}
+                                    : t('metadata.compatibilityEditor.previewEmpty')}
                             </div>
                         </div>
                     </div>
@@ -537,20 +702,122 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
             </div>
 
             <CustomModalPS
-                className={css.listEditorModal}
-                isOpen={isListEditorOpen}
-                onClose={closeListEditor}
-                title={t('metadata.listEditor.title')}
-                text={t('metadata.listEditor.description')}
+                className={`${css.listEditorModal} ${css.relationsModal}`}
+                isOpen={isRelationsEditorOpen}
+                onClose={closeRelationsEditor}
                 buttons={[
                     {
                         text: t('common.cancel'),
-                        onClick: closeListEditor,
+                        onClick: closeRelationsEditor,
                         variant: 'secondary',
                     },
                     {
                         text: t('common.done'),
-                        onClick: applyListEditor,
+                        onClick: applyRelationsEditor,
+                    },
+                ]}
+            >
+                <div className={css.relationsModalHeader}>
+                    <div className={css.relationsModalTitle}>{t('metadata.relationsEditor.title')}</div>
+                    <div className={css.relationsModalDescription}>{t('metadata.relationsEditor.description')}</div>
+                </div>
+
+                <div className={`${css.listEditorModalBody} ${css.stackedEditorBody}`}>
+                    <div className={css.listEditorSection}>
+                        <div className={css.listEditorSectionHeader}>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.dependenciesTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.relationsEditor.dependenciesHint')}</div>
+                        </div>
+
+                        <div className={css.listEditorComposer}>
+                            <SelectInput
+                                className={css.listEditorSelect}
+                                label={t('metadata.relationsEditor.dependenciesSelectLabel')}
+                                value={modalDependencySelection}
+                                options={relationOptions}
+                                onChange={value => setModalDependencySelection(String(value))}
+                                placeholder={t('metadata.relationsEditor.dependenciesPlaceholder')}
+                                searchable
+                                searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
+                            />
+                            <ButtonV2 className={css.listEditorAddButton} onClick={addDependency} disabled={!modalDependencySelection.trim()}>
+                                <MdAdd size={18} />
+                                <span>{t('metadata.relationsEditor.add')}</span>
+                            </ButtonV2>
+                        </div>
+
+                        {modalDependenciesDraft.length ? (
+                            <div className={css.listEditorItems}>
+                                {modalDependenciesDraft.map(dependencyId => (
+                                    <div key={dependencyId} className={css.listEditorRow}>
+                                        <div className={css.listEditorRowValue}>{relationLabelMap.get(dependencyId) || dependencyId}</div>
+                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeDependency(dependencyId)}>
+                                            <MdClose size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
+                        )}
+                    </div>
+
+                    <div className={css.listEditorSection}>
+                        <div className={css.listEditorSectionHeader}>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.conflictsTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.relationsEditor.conflictsHint')}</div>
+                        </div>
+
+                        <div className={css.listEditorComposer}>
+                            <SelectInput
+                                className={css.listEditorSelect}
+                                label={t('metadata.relationsEditor.conflictsSelectLabel')}
+                                value={modalConflictSelection}
+                                options={relationOptions}
+                                onChange={value => setModalConflictSelection(String(value))}
+                                placeholder={t('metadata.relationsEditor.conflictsPlaceholder')}
+                                searchable
+                                searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
+                            />
+                            <ButtonV2 className={css.listEditorAddButton} onClick={addConflict} disabled={!modalConflictSelection.trim()}>
+                                <MdAdd size={18} />
+                                <span>{t('metadata.relationsEditor.add')}</span>
+                            </ButtonV2>
+                        </div>
+
+                        {modalConflictsDraft.length ? (
+                            <div className={css.listEditorItems}>
+                                {modalConflictsDraft.map(conflictId => (
+                                    <div key={conflictId} className={css.listEditorRow}>
+                                        <div className={css.listEditorRowValue}>{relationLabelMap.get(conflictId) || conflictId}</div>
+                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeConflict(conflictId)}>
+                                            <MdClose size={16} />
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
+                        )}
+                    </div>
+                </div>
+            </CustomModalPS>
+
+            <CustomModalPS
+                className={css.listEditorModal}
+                isOpen={isCompatibilityEditorOpen}
+                onClose={closeCompatibilityEditor}
+                title={t('metadata.compatibilityEditor.title')}
+                text={t('metadata.compatibilityEditor.description')}
+                buttons={[
+                    {
+                        text: t('common.cancel'),
+                        onClick: closeCompatibilityEditor,
+                        variant: 'secondary',
+                    },
+                    {
+                        text: t('common.done'),
+                        onClick: applyCompatibilityEditor,
                         disabled: invalidModalSupportedVersions.length > 0,
                     },
                 ]}
@@ -558,8 +825,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 <div className={css.listEditorModalBody}>
                     <div className={css.listEditorSection}>
                         <div className={css.listEditorSectionHeader}>
-                            <div className={css.listEditorFieldLabel}>{t('metadata.listEditor.allowedUrlsTitle')}</div>
-                            <div className={css.listEditorHint}>{t('metadata.listEditor.allowedUrlsHint')}</div>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.compatibilityEditor.allowedUrlsTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.compatibilityEditor.allowedUrlsHint')}</div>
                         </div>
 
                         <div className={css.listEditorComposer}>
@@ -581,7 +848,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                 disabled={!parseListEntries(modalAllowedUrlsInput).length}
                             >
                                 <MdAdd size={18} />
-                                <span>{t('metadata.listEditor.add')}</span>
+                                <span>{t('metadata.compatibilityEditor.add')}</span>
                             </ButtonV2>
                         </div>
 
@@ -597,14 +864,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                 ))}
                             </div>
                         ) : (
-                            <div className={css.listEditorEmpty}>{t('metadata.listEditor.previewEmpty')}</div>
+                            <div className={css.listEditorEmpty}>{t('metadata.compatibilityEditor.previewEmpty')}</div>
                         )}
                     </div>
 
                     <div className={css.listEditorSection}>
                         <div className={css.listEditorSectionHeader}>
-                            <div className={css.listEditorFieldLabel}>{t('metadata.listEditor.supportedVersionsTitle')}</div>
-                            <div className={css.listEditorHint}>{t('metadata.listEditor.supportedVersionsHint')}</div>
+                            <div className={css.listEditorFieldLabel}>{t('metadata.compatibilityEditor.supportedVersionsTitle')}</div>
+                            <div className={css.listEditorHint}>{t('metadata.compatibilityEditor.supportedVersionsHint')}</div>
                         </div>
 
                         <div className={css.listEditorComposer}>
@@ -626,13 +893,13 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                 disabled={!parseListEntries(modalSupportedVersionsInput).length || invalidPendingSupportedVersions.length > 0}
                             >
                                 <MdAdd size={18} />
-                                <span>{t('metadata.listEditor.add')}</span>
+                                <span>{t('metadata.compatibilityEditor.add')}</span>
                             </ButtonV2>
                         </div>
 
                         {invalidPendingSupportedVersions.length > 0 && (
                             <div className={css.listEditorInlineError}>
-                                {t('metadata.listEditor.invalidSupportedVersions', {
+                                {t('metadata.compatibilityEditor.invalidSupportedVersions', {
                                     versions: invalidPendingSupportedVersions.join(', '),
                                 })}
                             </div>
@@ -650,14 +917,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                                 ))}
                             </div>
                         ) : (
-                            <div className={css.listEditorEmpty}>{t('metadata.listEditor.previewEmpty')}</div>
+                            <div className={css.listEditorEmpty}>{t('metadata.compatibilityEditor.previewEmpty')}</div>
                         )}
                     </div>
                 </div>
 
                 {invalidModalSupportedVersions.length > 0 && (
                     <div className={css.listEditorError}>
-                        {t('metadata.listEditor.invalidSupportedVersions', {
+                        {t('metadata.compatibilityEditor.invalidSupportedVersions', {
                             versions: invalidModalSupportedVersions.join(', '),
                         })}
                     </div>

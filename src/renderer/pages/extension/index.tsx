@@ -70,6 +70,35 @@ function isGithubUrl(value: string): boolean {
     }
 }
 
+function readEnabledScriptsState(): string[] {
+    const rawValue = safeStoreGet<string[] | string>('addons.scripts', [])
+
+    if (typeof rawValue === 'string') {
+        return rawValue
+            .split(',')
+            .map(entry => entry.trim())
+            .filter(Boolean)
+    }
+
+    return Array.isArray(rawValue) ? rawValue.map(entry => String(entry || '').trim()).filter(Boolean) : []
+}
+
+function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
+    const next = new Set<string>()
+
+    if (theme && theme !== 'Default') {
+        next.add(theme)
+    }
+
+    scripts.forEach(script => {
+        if (script) {
+            next.add(script)
+        }
+    })
+
+    return next
+}
+
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
@@ -231,14 +260,16 @@ export default function ExtensionPage() {
     }, [])
 
     const loadAddons = useCallback(
-        async (force = false) => {
+        async (force = false): Promise<Addon[]> => {
             try {
                 const result = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force })
                 const fetchedAddons: Addon[] = Array.isArray(result) ? result : []
                 const filtered = fetchedAddons.filter(a => a.name !== 'Default')
                 setAddons(filtered)
-                const themeFromStore = safeStoreGet<string>('addons.theme', 'Default')
+                const themeFromStore = safeStoreGet<string>('addons.theme', 'Default') || 'Default'
                 setCurrentTheme(themeFromStore)
+                setEnabledScripts(readEnabledScriptsState())
+                return filtered
             } catch (error) {
                 console.error(t('extensions.loadError'), error)
                 throw error
@@ -258,43 +289,240 @@ export default function ExtensionPage() {
         [addons, emitGateway],
     )
 
+    const relationLabels = useMemo(() => {
+        const labels: Record<string, string> = {}
+
+        addons.forEach(addon => {
+            const ids = [addon.id, addon.storeAddonId].map(value => String(value || '').trim()).filter(Boolean)
+            ids.forEach(id => {
+                labels[id] = addon.name
+            })
+        })
+
+        storeCatalog.forEach(addon => {
+            const storeId = String(addon.id || '').trim()
+            if (storeId && !labels[storeId]) {
+                labels[storeId] = addon.name
+            }
+        })
+
+        return labels
+    }, [addons, storeCatalog])
+
+    const installedRelationAddons = useMemo(() => {
+        const entries = new Map<string, Addon>()
+
+        addons.forEach(addon => {
+            const ids = [addon.id, addon.storeAddonId].map(value => String(value || '').trim()).filter(Boolean)
+            ids.forEach(id => entries.set(id, addon))
+        })
+
+        return entries
+    }, [addons])
+
+    const getMissingDependencyLabels = useCallback(
+        (addon: Addon): string[] => {
+            const dependencyIds = Array.isArray(addon.dependencies) ? addon.dependencies.map(value => String(value || '').trim()).filter(Boolean) : []
+
+            return dependencyIds
+                .filter(dependencyId => {
+                    const dependencyAddon = installedRelationAddons.get(dependencyId)
+                    if (!dependencyAddon) {
+                        return true
+                    }
+
+                    return addon.type === 'theme' && dependencyAddon.type === 'theme' && dependencyAddon.directoryName !== addon.directoryName
+                })
+                .map(dependencyId => relationLabels[dependencyId] || dependencyId)
+        },
+        [installedRelationAddons, relationLabels],
+    )
+
+    const getActiveConflictLabels = useCallback((addon: Addon, availableAddons: Addon[] = addons): string[] => {
+        const addonConflictIds = new Set(
+            Array.isArray(addon.conflictsWith) ? addon.conflictsWith.map(value => String(value || '').trim()).filter(Boolean) : [],
+        )
+        const addonIdentifiers = new Set([addon.id, addon.storeAddonId].map(value => String(value || '').trim()).filter(Boolean))
+
+        return availableAddons
+            .filter(candidate => {
+                if (!candidate.enabled || candidate.directoryName === addon.directoryName) {
+                    return false
+                }
+
+                const candidateIdentifiers = [candidate.id, candidate.storeAddonId].map(value => String(value || '').trim()).filter(Boolean)
+                const candidateConflictIds = Array.isArray(candidate.conflictsWith) ?
+                        candidate.conflictsWith.map(value => String(value || '').trim()).filter(Boolean)
+                    :   []
+
+                return (
+                    candidateIdentifiers.some(identifier => addonConflictIds.has(identifier)) ||
+                    candidateConflictIds.some(conflictId => addonIdentifiers.has(conflictId))
+                )
+            })
+            .map(candidate => candidate.name)
+    }, [addons])
+
+    const getDependentAddonLabels = useCallback((addon: Addon, availableAddons: Addon[] = addons): string[] => {
+        const addonIdentifiers = new Set(
+            [addon.directoryName, addon.name, addon.id, addon.storeAddonId]
+                .map(value => String(value || '').trim())
+                .filter(Boolean)
+                .flatMap(value => [value, value.toLowerCase()]),
+        )
+
+        return availableAddons
+            .filter(candidate => {
+                if (!candidate.enabled || candidate.directoryName === addon.directoryName) {
+                    return false
+                }
+
+                return (candidate.dependencies || [])
+                    .map(value => String(value || '').trim())
+                    .filter(Boolean)
+                    .some(dependencyId => addonIdentifiers.has(dependencyId) || addonIdentifiers.has(dependencyId.toLowerCase()))
+            })
+            .map(candidate => candidate.name)
+    }, [addons])
+
     const handleCheckboxChange = useCallback(
-        (addon: Addon, newChecked: boolean, showToast: boolean = true) => {
+        async (addon: Addon, newChecked: boolean, showToast: boolean = true) => {
+            const previousTheme = currentTheme || 'Default'
+            const previousScripts = [...enabledScripts]
+            const previousEnabledKeys = buildEnabledAddonKeys(previousTheme, previousScripts)
+
             if (addon.type === 'theme') {
                 if (newChecked) {
-                    setCurrentTheme(addon.directoryName)
                     window.electron.store.set('addons.theme', addon.directoryName)
-                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
-                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addon)
-                    sendStoreAddonMetrics(addon.directoryName, enabledScripts)
-                    if (showToast) {
-                        toast.custom('success', t('extensions.themeActivated'), t('extensions.themeActivatedMessage', { name: addon.name }))
-                    }
                 } else {
-                    setCurrentTheme('Default')
                     window.electron.store.set('addons.theme', 'Default')
-                    window.desktopEvents?.send(MainEvents.THEME_CHANGED, addonInitials[0])
-                    sendStoreAddonMetrics('Default', enabledScripts)
-                    if (showToast) {
-                        toast.custom('info', t('extensions.themeDeactivated'), t('extensions.defaultThemeSet'))
-                    }
                 }
             } else {
                 const updated = newChecked ? [...enabledScripts, addon.directoryName] : enabledScripts.filter(name => name !== addon.directoryName)
-                if (showToast) {
+                window.electron.store.set('addons.scripts', updated)
+            }
+
+            window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+            const refreshedAddons = await loadAddons(true)
+            const nextTheme = safeStoreGet<string>('addons.theme', 'Default') || 'Default'
+            const nextEnabledScripts = readEnabledScriptsState()
+            const nextEnabledKeys = buildEnabledAddonKeys(nextTheme, nextEnabledScripts)
+            const resolvedEnabled =
+                addon.type === 'theme' ? nextTheme === addon.directoryName : nextEnabledScripts.includes(addon.directoryName)
+            const nextThemeAddon =
+                nextTheme === 'Default' ? addonInitials[0] : refreshedAddons.find(item => item.type === 'theme' && item.directoryName === nextTheme) || addonInitials[0]
+
+            if (previousTheme !== nextTheme) {
+                window.desktopEvents?.send(MainEvents.THEME_CHANGED, nextThemeAddon)
+            }
+            sendStoreAddonMetrics(nextTheme, nextEnabledScripts)
+
+            if (showToast) {
+                const autoEnabled = Array.from(nextEnabledKeys).filter(key => !previousEnabledKeys.has(key) && key !== addon.directoryName)
+                const autoDisabled = Array.from(previousEnabledKeys).filter(key => !nextEnabledKeys.has(key) && key !== addon.directoryName)
+                const disabledAddonIdentifiers = new Set(
+                    [addon.directoryName, addon.name, addon.id, addon.storeAddonId]
+                        .map(value => String(value || '').trim())
+                        .filter(Boolean)
+                        .flatMap(value => [value, value.toLowerCase()]),
+                )
+                const autoDisabledAddons = addons.filter(candidate => autoDisabled.includes(candidate.directoryName))
+                const dependentAutoDisabledAddons = !newChecked ?
+                        autoDisabledAddons.filter(candidate =>
+                            (candidate.dependencies || [])
+                                .map(value => String(value || '').trim())
+                                .filter(Boolean)
+                                .some(dependencyId => disabledAddonIdentifiers.has(dependencyId) || disabledAddonIdentifiers.has(dependencyId.toLowerCase())),
+                        )
+                    :   []
+                const dependentAutoDisabledKeys = new Set(dependentAutoDisabledAddons.map(candidate => candidate.directoryName))
+                const remainingAutoDisabledLabels = autoDisabled
+                    .filter(key => !dependentAutoDisabledKeys.has(key))
+                    .map(key => relationLabels[key] || key)
+                const relationMessages = [
+                    autoEnabled.length ?
+                        t('extensions.relations.autoEnabled', {
+                            value: autoEnabled.map(key => relationLabels[key] || key).join(', '),
+                        })
+                    :   '',
+                    dependentAutoDisabledAddons.length ?
+                        t('extensions.relations.autoDisabledDependents', {
+                            dependency: addon.name,
+                            value: dependentAutoDisabledAddons.map(item => item.name).join(', '),
+                        })
+                    :   '',
+                    remainingAutoDisabledLabels.length ?
+                        t('extensions.relations.autoDisabled', {
+                            value: remainingAutoDisabledLabels.join(', '),
+                        })
+                    :   '',
+                ].filter(Boolean)
+                const toastId = `addon-toggle:${addon.directoryName}:${newChecked ? 'enable' : 'disable'}`
+
+                if (newChecked && !resolvedEnabled) {
+                    const missingDependencyLabels = getMissingDependencyLabels(addon)
+                    const activeConflictLabels = getActiveConflictLabels(addon, refreshedAddons)
+                    const blockingMessages = [
+                        missingDependencyLabels.length ?
+                            t('extensions.relations.blockedByDependencies', {
+                                value: missingDependencyLabels.join(', '),
+                            })
+                        :   '',
+                        activeConflictLabels.length ?
+                            t('extensions.relations.blockedByConflicts', {
+                                value: activeConflictLabels.join(', '),
+                            })
+                        :   '',
+                    ].filter(Boolean)
+
+                    toast.custom(
+                        'error',
+                        t('common.errorTitle'),
+                        [
+                            t('extensions.relations.enableBlockedResolved', { name: addon.name }),
+                            ...blockingMessages,
+                            ...relationMessages,
+                        ].join('\n'),
+                        { id: toastId },
+                    )
+                } else if (!newChecked && resolvedEnabled) {
+                    const dependentAddonLabels = getDependentAddonLabels(addon, refreshedAddons)
+                    const blockingMessages = [
+                        dependentAddonLabels.length ?
+                            t('extensions.relations.disableBlockedByDependents', {
+                                value: dependentAddonLabels.join(', '),
+                            })
+                        :   t('extensions.relations.disableBlockedResolved', { name: addon.name }),
+                        ...relationMessages,
+                    ].filter(Boolean)
+
+                    toast.custom('error', t('common.errorTitle'), blockingMessages.join('\n'), { id: toastId })
+                } else if (addon.type === 'theme') {
+                    toast.custom(
+                        newChecked ? 'success' : 'info',
+                        newChecked ? t('extensions.themeActivated') : t('extensions.themeDeactivated'),
+                        [
+                            newChecked ? t('extensions.themeActivatedMessage', { name: addon.name }) : t('extensions.themeDeactivatedMessage'),
+                            ...relationMessages,
+                        ].join('\n'),
+                        { id: toastId },
+                    )
+                } else {
                     toast.custom(
                         newChecked ? 'success' : 'info',
                         newChecked ? t('extensions.scriptEnabled') : t('extensions.scriptDisabled'),
-                        t('extensions.scriptStatusMessage', { name: addon.name, status: newChecked ? t('common.enabled') : t('common.disabled') }),
+                        [
+                            newChecked ?
+                                t('extensions.scriptEnabledMessage', { name: addon.name })
+                            :   t('extensions.scriptDisabledMessage', { name: addon.name }),
+                            ...relationMessages,
+                        ].join('\n'),
+                        { id: toastId },
                     )
                 }
-                window.electron.store.set('addons.scripts', updated)
-                window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
-                setEnabledScripts(updated)
-                sendStoreAddonMetrics(currentTheme, updated)
             }
         },
-        [currentTheme, enabledScripts, sendStoreAddonMetrics, t],
+        [currentTheme, enabledScripts, getActiveConflictLabels, getDependentAddonLabels, getMissingDependencyLabels, loadAddons, relationLabels, sendStoreAddonMetrics, t],
     )
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -445,6 +673,21 @@ export default function ExtensionPage() {
     )
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
+
+    const selectedAddonMissingDependencies = useMemo(
+        () => (selectedAddon ? getMissingDependencyLabels(selectedAddon) : []),
+        [getMissingDependencyLabels, selectedAddon],
+    )
+
+    const selectedAddonEnableBlockedReason = useMemo(
+        () =>
+            selectedAddonMissingDependencies.length ?
+                t('extensions.relations.enableBlockedHintMissing', {
+                    value: selectedAddonMissingDependencies.join(', '),
+                })
+            :   null,
+        [selectedAddonMissingDependencies, t],
+    )
 
     const selectedAddonAuthors = useMemo(() => {
         if (!selectedAddon) return []
@@ -761,6 +1004,19 @@ export default function ExtensionPage() {
 
     const continueEnableAddon = useCallback(
         (addon: Addon) => {
+            const missingDependencyLabels = getMissingDependencyLabels(addon)
+            if (missingDependencyLabels.length) {
+                toast.custom(
+                    'error',
+                    t('common.errorTitle'),
+                    t('extensions.relations.enableBlockedMissing', {
+                        value: missingDependencyLabels.join(', '),
+                    }),
+                    { id: `addon-enable-blocked:${addon.directoryName}` },
+                )
+                return
+            }
+
             const isSupported = isAddonVersionSupported(addon, musicVersion)
             if (musicVersion && addon.supportedVersions?.length && !isSupported) {
                 setModalAddon(addon)
@@ -773,7 +1029,7 @@ export default function ExtensionPage() {
                 true,
             )
         },
-        [currentTheme, enabledScripts, handleCheckboxChange, isAddonVersionSupported, musicVersion],
+        [currentTheme, enabledScripts, getMissingDependencyLabels, handleCheckboxChange, isAddonVersionSupported, musicVersion, t],
     )
 
     const shouldShowUntrustedAddonWarning = useCallback(
@@ -789,6 +1045,11 @@ export default function ExtensionPage() {
 
     const handleEnableAddon = useCallback(
         (addon: Addon) => {
+            if (getMissingDependencyLabels(addon).length) {
+                continueEnableAddon(addon)
+                return
+            }
+
             if (shouldShowUntrustedAddonWarning(addon)) {
                 openModal(Modals.UNTRUSTED_LOCAL_ADDON_MODAL, {
                     addonName: addon.name,
@@ -802,7 +1063,7 @@ export default function ExtensionPage() {
 
             continueEnableAddon(addon)
         },
-        [Modals.UNTRUSTED_LOCAL_ADDON_MODAL, continueEnableAddon, openModal, shouldShowUntrustedAddonWarning],
+        [Modals.UNTRUSTED_LOCAL_ADDON_MODAL, continueEnableAddon, getMissingDependencyLabels, openModal, shouldShowUntrustedAddonWarning],
     )
 
     return (
@@ -868,13 +1129,18 @@ export default function ExtensionPage() {
                     {!isLoaded ? (
                         <Loader variant="extension" />
                     ) : selectedAddon ? (
-                        <ExtensionView
-                            addon={selectedAddon}
-                            isEnabled={
+                        (() => {
+                            const isSelectedAddonEnabled =
                                 selectedAddon.type === 'theme'
                                     ? selectedAddon.directoryName === currentTheme
                                     : enabledScripts.includes(selectedAddon.directoryName)
-                            }
+
+                            return (
+                        <ExtensionView
+                            addon={selectedAddon}
+                            isEnabled={isSelectedAddonEnabled}
+                            enableBlockedReason={!isSelectedAddonEnabled ? selectedAddonEnableBlockedReason : null}
+                            relationLabels={relationLabels}
                             hasStoreUpdate={!!selectedStoreUpdate}
                             storeUpdateBusy={storeUpdateBusy}
                             onStoreUpdate={() => {
@@ -912,6 +1178,8 @@ export default function ExtensionPage() {
                             setSelectedTags={setSelectedTags}
                             setShowFilters={setShowFilters}
                         />
+                            )
+                        })()
                     ) : (
                         <ThemeNotFound hasAnyAddons={hasAnyInstalled} />
                     )}

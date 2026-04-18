@@ -334,10 +334,33 @@
         "meta": {
             "author": "Автор",
             "authors": "Авторы:",
+            "conflictsWith": "Несовместимо с",
+            "dependencies": "Зависимости",
+            "relations": "Связи",
             "source": "Источник",
             "size": "Размер",
             "updated": "Обновлено",
             "version": "Версия"
+        },
+        "relations": {
+            "autoDisabled": "Автоматически отключено: {{value}}",
+            "autoDisabledDependents": "Отключены аддоны, зависящие от {{dependency}}: {{value}}",
+            "autoEnabled": "Автоматически включено: {{value}}",
+            "blockedByConflicts": "Мешают несовместимые аддоны: {{value}}",
+            "blockedByDependencies": "Не хватает зависимостей: {{value}}",
+            "disableBlockedByDependents": "Нельзя отключить: этот аддон нужен для {{value}}",
+            "disableBlockedResolved": "Не удалось отключить аддон {{name}}.",
+            "conflictsHint": "Если этот аддон активен, текущий аддон не сможет работать одновременно с ним.",
+            "dependenciesHint": "Эти аддоны должны быть установлены, чтобы текущий аддон можно было включить.",
+            "enableBlockedButtonLabel": "Нужна зависимость",
+            "enableBlockedHintMissing": "Нужно установить: {{value}}",
+            "enableBlockedMissing": "Нельзя включить аддон: не установлены обязательные зависимости: {{value}}",
+            "enableBlockedResolved": "Не удалось включить аддон {{name}}. Проверь зависимости и несовместимые аддоны.",
+            "statusConflictActive": "сейчас конфликтует",
+            "statusEnabled": "включён",
+            "statusInstalled": "установлен",
+            "statusMissing": "не установлен",
+            "statusNotInstalled": "не установлен"
         },
         "source": {
             "local": "Локально",
@@ -403,7 +426,9 @@
             "confirm": "Включить всё равно"
         },
         "tabs": {
-            "metadata": "Metadata"
+            "metadata": "Метадата",
+            "relations": "Совместимость",
+            "settings": "Настройки"
         },
         "storeUpdateAvailableTitle": "Доступно обновление аддона",
         "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
@@ -413,11 +438,13 @@
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
         "scriptDisabled": "Скрипт отключен",
+        "scriptDisabledMessage": "Скрипт {{name}} отключён.",
         "scriptEnabled": "Скрипт включен",
-        "scriptStatusMessage": "Скрипт {{name}} {{status}}",
+        "scriptEnabledMessage": "Скрипт {{name}} включён.",
         "themeActivated": "Тема активирована",
         "themeActivatedMessage": "Тема {{name}} активирована",
         "themeDeactivated": "Тема деактивирована",
+        "themeDeactivatedMessage": "Включена тема по умолчанию.",
         "noResults": "Ничего не найдено",
         "analyzingAddons": "Анализирую аддоны…",
         "confirmTitle": "Вы уверены?",
@@ -737,13 +764,32 @@
     "metadata": {
         "examples": {
             "addonName": "My Awesome Addon",
-            "allowedUrls": "https://music.yandex.ru/*",
+            "allowedUrls": "https://music.yandex.ru",
             "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Исправьте ошибки",
-        "listEditor": {
-            "title": "Разрешённые URL и версии",
+        "relationsEditor": {
+            "title": "Связи аддона",
+            "description": "Зависимости — это аддоны, без которых этот аддон не будет работать. Запрещённые аддоны — те, с которыми его нельзя использовать вместе.",
+            "dependenciesTitle": "Зависимости",
+            "dependenciesHint": "Выберите обязательный аддон из установленного каталога. В `metadata.json` будет сохранён его `id`.",
+            "dependenciesSelectLabel": "Аддон",
+            "dependenciesPlaceholder": "Выберите аддон",
+            "searchPlaceholder": "Поиск по названию",
+            "conflictsTitle": "Запрещённые аддоны",
+            "conflictsHint": "Pulse сможет отключать эти аддоны автоматически при конфликте.",
+            "conflictsSelectLabel": "Запрещённый аддон",
+            "conflictsPlaceholder": "Выберите аддон",
+            "add": "Добавить",
+            "edit": "Настроить",
+            "dependenciesSummary": "Добавлено зависимостей: {{count}}",
+            "conflictsSummary": "Добавлено конфликтов: {{count}}",
+            "noSearchResults": "Ничего не найдено",
+            "previewEmpty": "Не задано"
+        },
+        "compatibilityEditor": {
+            "title": "URL и версии",
             "description": "URL, к которым может обращаться аддон, и версии Яндекс Музыки, с которыми он совместим.",
             "allowedUrlsTitle": "Разрешённые URL",
             "supportedVersionsTitle": "Поддерживаемые версии Яндекс Музыки",
@@ -756,12 +802,14 @@
             "invalidSupportedVersions": "Некорректные диапазоны версий: {{versions}}",
             "previewEmpty": "Не задано"
         },
+        "authorOnlyAccess": "Редактировать metadata может только автор аддона.",
         "labels": {
             "allowedUrls": "Разрешённые URL",
             "author": "Автор",
             "banner": "Баннер",
             "css": "CSS",
-            "dependencies": "Зависимости (через запятую)",
+            "conflictsWith": "Запрещённые аддоны",
+            "dependencies": "Зависимости",
             "description": "Описание",
             "image": "Изображение",
             "libraryLogo": "Логотип библиотеки",

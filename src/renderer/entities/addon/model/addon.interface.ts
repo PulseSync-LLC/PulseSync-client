@@ -26,6 +26,7 @@ export default interface Addon {
 
     matches?: boolean
     dependencies?: string[]
+    conflictsWith?: string[]
     allowedUrls?: string[]
 
     supportedVersions?: string[]

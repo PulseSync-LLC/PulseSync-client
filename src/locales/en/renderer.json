@@ -334,10 +334,33 @@
         "meta": {
             "author": "Author",
             "authors": "Authors:",
+            "conflictsWith": "Incompatible with",
+            "dependencies": "Dependencies",
+            "relations": "Relations",
             "source": "Source",
             "size": "Size",
             "updated": "Updated",
             "version": "Version"
+        },
+        "relations": {
+            "autoDisabled": "Automatically disabled: {{value}}",
+            "autoDisabledDependents": "Disabled add-ons that depend on {{dependency}}: {{value}}",
+            "autoEnabled": "Automatically enabled: {{value}}",
+            "blockedByConflicts": "Blocked by incompatible add-ons: {{value}}",
+            "blockedByDependencies": "Missing dependencies: {{value}}",
+            "disableBlockedByDependents": "Cannot disable: this add-on is required by {{value}}",
+            "disableBlockedResolved": "Could not disable the add-on {{name}}.",
+            "conflictsHint": "If this add-on is active, the current add-on cannot run alongside it.",
+            "dependenciesHint": "These add-ons must be installed before the current add-on can be enabled.",
+            "enableBlockedButtonLabel": "Dependency required",
+            "enableBlockedHintMissing": "Required: {{value}}",
+            "enableBlockedMissing": "Cannot enable the add-on: required dependencies are not installed: {{value}}",
+            "enableBlockedResolved": "Could not enable the add-on {{name}}. Check dependencies and incompatible add-ons.",
+            "statusConflictActive": "currently conflicts",
+            "statusEnabled": "enabled",
+            "statusInstalled": "installed",
+            "statusMissing": "missing",
+            "statusNotInstalled": "not installed"
         },
         "source": {
             "local": "Local",
@@ -403,7 +426,9 @@
             "confirm": "Enable anyway"
         },
         "tabs": {
-            "metadata": "Metadata"
+            "metadata": "Metadata",
+            "relations": "Compatibility",
+            "settings": "Settings"
         },
         "storeUpdateAvailableTitle": "Add-on update available",
         "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
@@ -413,11 +438,13 @@
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
         "scriptDisabled": "Script disabled",
+        "scriptDisabledMessage": "Script {{name}} was disabled.",
         "scriptEnabled": "Script enabled",
-        "scriptStatusMessage": "Script {{name}} {{status}}",
+        "scriptEnabledMessage": "Script {{name}} was enabled.",
         "themeActivated": "Theme activated",
         "themeActivatedMessage": "Theme {{name}} activated",
         "themeDeactivated": "Theme deactivated",
+        "themeDeactivatedMessage": "Default theme enabled.",
         "noResults": "No results found",
         "analyzingAddons": "Analyzing add-ons…",
         "confirmTitle": "Are you sure?",
@@ -737,13 +764,32 @@
     "metadata": {
         "examples": {
             "addonName": "My Awesome Addon",
-            "allowedUrls": "https://music.yandex.ru/*",
+            "allowedUrls": "https://music.yandex.ru",
             "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Fix errors",
-        "listEditor": {
-            "title": "Allowed URLs and versions",
+        "relationsEditor": {
+            "title": "Add-on relations",
+            "description": "Dependencies are add-ons this add-on requires to work. Blocked add-ons are the ones that cannot be used together with it.",
+            "dependenciesTitle": "Dependencies",
+            "dependenciesHint": "Choose a required add-on from the installed catalog. Its `id` will be saved to `metadata.json`.",
+            "dependenciesSelectLabel": "Add-on",
+            "dependenciesPlaceholder": "Choose an add-on",
+            "searchPlaceholder": "Search by name",
+            "conflictsTitle": "Blocked add-ons",
+            "conflictsHint": "Pulse can disable these add-ons automatically when a conflict appears.",
+            "conflictsSelectLabel": "Blocked add-on",
+            "conflictsPlaceholder": "Choose an add-on",
+            "add": "Add",
+            "edit": "Configure",
+            "dependenciesSummary": "Dependencies added: {{count}}",
+            "conflictsSummary": "Conflicts added: {{count}}",
+            "noSearchResults": "Nothing found",
+            "previewEmpty": "Not set"
+        },
+        "compatibilityEditor": {
+            "title": "URLs and versions",
             "description": "URLs the add-on can access and Yandex Music versions it supports.",
             "allowedUrlsTitle": "Allowed URLs",
             "supportedVersionsTitle": "Supported Yandex Music versions",
@@ -756,12 +802,14 @@
             "invalidSupportedVersions": "Invalid version ranges: {{versions}}",
             "previewEmpty": "Not set"
         },
+        "authorOnlyAccess": "Only the add-on author can edit metadata.",
         "labels": {
             "allowedUrls": "Allowed URLs",
             "author": "Author",
             "banner": "Banner",
             "css": "CSS",
-            "dependencies": "Dependencies (comma-separated)",
+            "conflictsWith": "Blocked add-ons",
+            "dependencies": "Dependencies",
             "description": "Description",
             "image": "Image",
             "libraryLogo": "Library logo",

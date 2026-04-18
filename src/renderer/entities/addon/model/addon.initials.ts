@@ -19,6 +19,7 @@ const AddonInitials: Addon[] = [
         tags: [],
         type: 'theme',
         dependencies: [],
+        conflictsWith: [],
         allowedUrls: [],
     },
 ]

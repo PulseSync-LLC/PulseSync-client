@@ -23,6 +23,7 @@ const defaultAddon: Partial<Addon> = {
     css: 'style.css',
     script: 'script.js',
     dependencies: [],
+    conflictsWith: [],
     allowedUrls: [],
     supportedVersions: [],
 }
@@ -30,6 +31,14 @@ const defaultAddon: Partial<Addon> = {
 const defaultCssContent = `{}`
 const defaultScriptContent = ``
 let loadAddonsInFlight: Promise<Addon[]> | null = null
+
+const normalizeRelationValues = (value: unknown): string[] => {
+    if (!Array.isArray(value)) return []
+
+    return value
+        .map(entry => String(entry || '').trim())
+        .filter(Boolean)
+}
 
 export function createDefaultAddonIfNotExists(themesFolderPath: string) {
     const defaultAddonPath = path.join(themesFolderPath, defaultAddon.name!)
@@ -225,6 +234,10 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.path = addonFolderPath
                 metadata.size = formatSizeUnits(folderSize)
                 metadata.directoryName = currentFolder
+                metadata.dependencies = normalizeRelationValues(metadata.dependencies)
+                metadata.conflictsWith = normalizeRelationValues(metadata.conflictsWith)
+                metadata.allowedUrls = normalizeRelationValues(metadata.allowedUrls)
+                metadata.supportedVersions = normalizeRelationValues(metadata.supportedVersions)
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
                     metadata.rootFiles = rootEntries
@@ -354,7 +367,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
     }
 
     let selectedTheme = resolveStoredAddonKey(State.get('addons.theme') ?? 'Default') || 'Default'
-    let selectedScripts = State.get('addons.scripts') ?? []
+    let selectedScripts: string[] | string = State.get('addons.scripts') ?? []
 
     const themeAddonExists = finalAddons.some(addon => addon.type === 'theme' && addon.directoryName === selectedTheme)
     if (!themeAddonExists) {
@@ -376,12 +389,145 @@ async function loadAddonsInternal(): Promise<Addon[]> {
     selectedScripts = finalAddons
         .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName!))
         .map(addon => addon.directoryName!)
+
+    const addonByDirectory = new Map(finalAddons.map(addon => [addon.directoryName, addon]))
+    const enabledScriptsSet = new Set<string>(selectedScripts)
+
+    const getRelationDirectory = (value: unknown): string => {
+        const resolvedValue = resolveStoredAddonKey(value)
+        return addonByDirectory.has(resolvedValue) ? resolvedValue : ''
+    }
+
+    const getActiveAddons = (): Addon[] => {
+        const active: Addon[] = []
+
+        if (selectedTheme !== 'Default') {
+            const activeTheme = addonByDirectory.get(selectedTheme)
+            if (activeTheme) {
+                active.push(activeTheme)
+            }
+        }
+
+        enabledScriptsSet.forEach(directoryName => {
+            const addon = addonByDirectory.get(directoryName)
+            if (addon) {
+                active.push(addon)
+            }
+        })
+
+        return active
+    }
+
+    const deactivateAddon = (addon: Addon) => {
+        if (addon.type === 'theme') {
+            if (selectedTheme === addon.directoryName) {
+                selectedTheme = 'Default'
+            }
+            return
+        }
+
+        enabledScriptsSet.delete(addon.directoryName!)
+    }
+
+    const addonConflictsWith = (source: Addon, target: Addon): boolean =>
+        normalizeRelationValues(source.conflictsWith).some(conflictKey => getRelationDirectory(conflictKey) === target.directoryName)
+
+    const addonsConflict = (left: Addon, right: Addon): boolean => addonConflictsWith(left, right) || addonConflictsWith(right, left)
+
+    const hasActiveDependency = (addon: Addon, dependencyDirectory: string): boolean => {
+        const dependencyAddon = addonByDirectory.get(dependencyDirectory)
+        if (!dependencyAddon) {
+            return false
+        }
+
+        return dependencyAddon.type === 'theme' ? selectedTheme === dependencyDirectory : enabledScriptsSet.has(dependencyDirectory)
+    }
+
+    const activateAddon = (addon: Addon, trail = new Set<string>()): boolean => {
+        const addonDirectory = addon.directoryName
+        if (!addonDirectory) return false
+        if (trail.has(addonDirectory)) return true
+
+        const nextTrail = new Set(trail)
+        nextTrail.add(addonDirectory)
+
+        const dependencyDirectories = normalizeRelationValues(addon.dependencies).map(getRelationDirectory)
+        if (dependencyDirectories.some(directory => !directory)) {
+            return false
+        }
+
+        for (const dependencyDirectory of dependencyDirectories) {
+            const dependencyAddon = addonByDirectory.get(dependencyDirectory)
+            if (!dependencyAddon) {
+                return false
+            }
+
+            if (addon.type === 'theme' && dependencyAddon.type === 'theme' && dependencyAddon.directoryName !== addonDirectory) {
+                return false
+            }
+
+            if (!activateAddon(dependencyAddon, nextTrail)) {
+                return false
+            }
+        }
+
+        for (const activeAddon of getActiveAddons()) {
+            if (activeAddon.directoryName === addonDirectory) continue
+            if (addonsConflict(addon, activeAddon)) {
+                deactivateAddon(activeAddon)
+            }
+        }
+
+        if (addon.type === 'theme') {
+            selectedTheme = addonDirectory
+        } else {
+            enabledScriptsSet.add(addonDirectory)
+        }
+
+        return true
+    }
+
+    const requestedTheme = selectedTheme !== 'Default' ? addonByDirectory.get(selectedTheme) ?? null : null
+    if (requestedTheme && !activateAddon(requestedTheme)) {
+        selectedTheme = 'Default'
+    }
+
+    for (const scriptDirectory of selectedScripts) {
+        const scriptAddon = addonByDirectory.get(scriptDirectory)
+        if (!scriptAddon) continue
+
+        activateAddon(scriptAddon)
+    }
+
+    let selectionChanged = true
+    while (selectionChanged) {
+        selectionChanged = false
+        const activeAddons = getActiveAddons()
+
+        for (const addon of activeAddons) {
+            const hasMissingDependency = normalizeRelationValues(addon.dependencies)
+                .map(getRelationDirectory)
+                .some(dependencyDirectory => !dependencyDirectory || !hasActiveDependency(addon, dependencyDirectory))
+
+            const hasConflict = activeAddons.some(otherAddon => otherAddon.directoryName !== addon.directoryName && addonsConflict(addon, otherAddon))
+
+            if (hasMissingDependency || hasConflict) {
+                deactivateAddon(addon)
+                selectionChanged = true
+            }
+        }
+    }
+
+    selectedScripts = Array.from(enabledScriptsSet)
+    State.set('addons.theme', selectedTheme)
     State.set('addons.scripts', selectedScripts)
 
     finalAddons.forEach(addon => {
+        addon.enabled = false
+
         if (addon.type === 'theme' && addon.directoryName === selectedTheme) {
             addon.enabled = true
-        } else if (addon.type === 'script' && selectedScripts.includes(addon.directoryName!)) {
+        } else if (addon.type === 'script' && enabledScriptsSet.has(addon.directoryName!)) {
             addon.enabled = true
         }
     })

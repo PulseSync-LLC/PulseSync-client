@@ -5,7 +5,7 @@ import TooltipButton from '@shared/ui/tooltip_button'
 import { MdHelp, MdKeyboardArrowDown, MdCheck } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 
-type Option = { value: string | number; label: string }
+type Option = { value: string | number; label: string; searchText?: string }
 
 type Props = {
     label: string
@@ -16,27 +16,57 @@ type Props = {
     onChange?: (v: string | number) => void
     disabled?: boolean
     placeholder?: string
+    searchable?: boolean
+    searchPlaceholder?: string
 }
 
-const SelectInput: React.FC<Props> = ({ label, description, className, value, options, onChange, disabled = false, placeholder }) => {
+const SelectInput: React.FC<Props> = ({
+    label,
+    description,
+    className,
+    value,
+    options,
+    onChange,
+    disabled = false,
+    placeholder,
+    searchable = false,
+    searchPlaceholder,
+}) => {
     const { t } = useTranslation()
     const placeholderText = placeholder ?? t('common.selectPlaceholder')
+    const searchPlaceholderText = searchPlaceholder ?? t('common.selectPlaceholder')
     const [open, setOpen] = useState(false)
     const [alignRight, setAlignRight] = useState(false)
+    const [openUpward, setOpenUpward] = useState(false)
     const [panelW, setPanelW] = useState<number | undefined>(undefined)
+    const [panelMaxHeight, setPanelMaxHeight] = useState<number>(360)
+    const [listMaxHeight, setListMaxHeight] = useState<number>(280)
     const [hover, setHover] = useState<number>(-1)
+    const [searchQuery, setSearchQuery] = useState('')
 
     const wrapRef = useRef<HTMLDivElement>(null)
     const btnRef = useRef<HTMLButtonElement>(null)
     const listRef = useRef<HTMLDivElement>(null)
 
-    const idxByValue = useMemo(() => options.findIndex(o => String(o.value) === String(value)), [options, value])
-    const selected = idxByValue >= 0 ? options[idxByValue] : null
+    const filteredOptions = useMemo(() => {
+        const normalizedQuery = searchQuery.trim().toLowerCase()
+        if (!searchable || !normalizedQuery) {
+            return options
+        }
+
+        return options.filter(option => String(option.searchText ?? option.label).trim().toLowerCase().includes(normalizedQuery))
+    }, [options, searchable, searchQuery])
+
+    const idxByValue = useMemo(() => filteredOptions.findIndex(o => String(o.value) === String(value)), [filteredOptions, value])
+    const selected = useMemo(() => options.find(o => String(o.value) === String(value)) ?? null, [options, value])
 
     useEffect(() => {
         const h = (e: MouseEvent) => {
             if (!wrapRef.current) return
-            if (!wrapRef.current.contains(e.target as Node)) setOpen(false)
+            if (!wrapRef.current.contains(e.target as Node)) {
+                setOpen(false)
+                setSearchQuery('')
+            }
         }
         document.addEventListener('mousedown', h)
         return () => document.removeEventListener('mousedown', h)
@@ -44,21 +74,45 @@ const SelectInput: React.FC<Props> = ({ label, description, className, value, op
 
     useEffect(() => {
         if (!open) return
-        const rect = btnRef.current?.getBoundingClientRect()
-        if (rect) setPanelW(rect.width)
-        const panelRect = listRef.current?.getBoundingClientRect()
-        if (panelRect) {
-            const oobRight = panelRect.right > window.innerWidth - 8
-            const oobLeft = panelRect.left < 8
-            setAlignRight(oobRight && !oobLeft)
+
+        const updatePanelLayout = () => {
+            const rect = btnRef.current?.getBoundingClientRect()
+            if (!rect) return
+
+            const viewportPadding = 12
+            const panelGap = 8
+            const panelWidth = rect.width
+            const availableBelow = window.innerHeight - rect.bottom - panelGap - viewportPadding
+            const availableAbove = rect.top - panelGap - viewportPadding
+            const estimatedPanelHeight = searchable ? 360 : 300
+            const preferUpward = availableBelow < estimatedPanelHeight && availableAbove > availableBelow
+            const availableSpace = preferUpward ? availableAbove : availableBelow
+            const reservedHeight = searchable ? 76 : 12
+            const nextPanelMaxHeight = Math.max(140, Math.min(360, availableSpace))
+
+            setPanelW(panelWidth)
+            setAlignRight(rect.left + panelWidth > window.innerWidth - viewportPadding && rect.right - panelWidth >= viewportPadding)
+            setOpenUpward(preferUpward)
+            setPanelMaxHeight(nextPanelMaxHeight)
+            setListMaxHeight(Math.max(72, nextPanelMaxHeight - reservedHeight))
         }
-    }, [open])
+
+        updatePanelLayout()
+        window.addEventListener('resize', updatePanelLayout)
+        window.addEventListener('scroll', updatePanelLayout, true)
+
+        return () => {
+            window.removeEventListener('resize', updatePanelLayout)
+            window.removeEventListener('scroll', updatePanelLayout, true)
+        }
+    }, [open, searchable])
 
     const commit = (i: number) => {
-        const opt = options[i]
+        const opt = filteredOptions[i]
         if (!opt) return
         onChange?.(opt.value)
         setOpen(false)
+        setSearchQuery('')
     }
 
     const toggle = () => {
@@ -66,6 +120,7 @@ const SelectInput: React.FC<Props> = ({ label, description, className, value, op
         setOpen(v => {
             const next = !v
             if (next) setHover(idxByValue >= 0 ? idxByValue : 0)
+            else setSearchQuery('')
             return next
         })
     }
@@ -84,7 +139,7 @@ const SelectInput: React.FC<Props> = ({ label, description, className, value, op
         }
         if (e.key === 'ArrowDown') {
             e.preventDefault()
-            setHover(h => Math.min(options.length - 1, h < 0 ? 0 : h + 1))
+            setHover(h => Math.min(filteredOptions.length - 1, h < 0 ? 0 : h + 1))
             return
         }
         if (e.key === 'ArrowUp') {
@@ -127,9 +182,27 @@ const SelectInput: React.FC<Props> = ({ label, description, className, value, op
             </div>
 
             {open && (
-                <div ref={listRef} className={clsx(s.panel, alignRight && s.right)} style={{ minWidth: panelW }} onClick={e => e.stopPropagation()}>
-                    <div className={s.list} role="listbox">
-                        {options.map((o, i) => {
+                <div
+                    ref={listRef}
+                    className={clsx(s.panel, alignRight && s.right, openUpward && s.up)}
+                    style={{ minWidth: panelW, maxHeight: panelMaxHeight }}
+                    onClick={e => e.stopPropagation()}
+                >
+                    {searchable && (
+                        <div className={s.searchWrap}>
+                            <input
+                                className={s.searchInput}
+                                value={searchQuery}
+                                onChange={event => {
+                                    setSearchQuery(event.target.value)
+                                    setHover(0)
+                                }}
+                                placeholder={searchPlaceholderText}
+                            />
+                        </div>
+                    )}
+                    <div className={s.list} role="listbox" style={{ maxHeight: listMaxHeight }}>
+                        {filteredOptions.map((o, i) => {
                             const active = String(o.value) === String(value)
                             return (
                                 <button
