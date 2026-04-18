@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
@@ -37,6 +37,7 @@ import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout
 import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
 import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
 interface p {
     goBack?: boolean
@@ -55,7 +56,7 @@ const Header: React.FC<p> = () => {
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app, setUser, updateAvailable } = useContext(userContext)
+    const { user, app, setUser, updateAvailable } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const updateModalRef = useRef<{
@@ -215,37 +216,73 @@ const Header: React.FC<p> = () => {
         [setUser, t],
     )
 
-    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
-
-    const [appUpdatesInfo, setAppUpdatesInfo] = useState<typeof appInfo>([])
-    const [loadingAppUpdates, setLoadingAppUpdates] = useState(true)
+    const [appUpdatesInfo, setAppUpdatesInfo] = useState<AppInfoInterface[]>([])
+    const [loadingAppUpdates, setLoadingAppUpdates] = useState(false)
     const [appError, setAppError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
+    const appUpdatesLoadedRef = useRef(false)
+    const appUpdatesLoadingRef = useRef(false)
 
     useEffect(() => {
+        if (!isAppChangelogModalOpen || appUpdatesLoadedRef.current || appUpdatesLoadingRef.current) {
+            return
+        }
 
-        setLoadingAppUpdates(true)
-        setAppError(null)
+        let active = true
 
-        Promise.resolve(memoizedAppInfo)
-            .then(data => {
-                setAppUpdatesInfo(data || [])
-            })
-            .catch(e => {
-                setAppError(e.message)
-            })
-            .finally(() => {
-                setLoadingAppUpdates(false)
-            })
-    }, [memoizedAppInfo])
+        const loadAppUpdates = async () => {
+            appUpdatesLoadingRef.current = true
+            setLoadingAppUpdates(true)
+            setAppError(null)
+
+            try {
+                const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
+                const data = response.data
+
+                if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
+                    throw new Error('Failed to fetch app info')
+                }
+
+                if (!active) {
+                    return
+                }
+
+                const sortedAppInfos = [...data.appInfo].sort((a, b) => b.id - a.id)
+                setAppUpdatesInfo(sortedAppInfos)
+                appUpdatesLoadedRef.current = true
+            } catch (error) {
+                if (!active) {
+                    return
+                }
+
+                console.error('Failed to fetch app info:', error)
+                setAppError(error instanceof Error ? error.message : 'Failed to fetch app info')
+            } finally {
+                appUpdatesLoadingRef.current = false
+                if (active) {
+                    setLoadingAppUpdates(false)
+                }
+            }
+        }
+
+        void loadAppUpdates()
+
+        return () => {
+            active = false
+        }
+    }, [isAppChangelogModalOpen])
 
     const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
-    const [loadModChanges, {
-        data: modData,
-        loading: loadingModChanges,
-        error: modError,
-    }] = useLazyQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
+    const [
+        loadModChanges,
+        {
+            called: modChangesCalled,
+            data: modData,
+            loading: loadingModChanges,
+            error: modError,
+        },
+    ] = useLazyQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
         fetchPolicy: 'cache-first',
     })
 
@@ -261,7 +298,8 @@ const Header: React.FC<p> = () => {
 
     const modChangesInfoRaw: ModChangelogEntry[] =
         shouldFetchModChanges && Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []
-    const modChangesLoading = isModModalOpen && shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
+    const modChangesLoading =
+        isModModalOpen && shouldFetchModChanges && modChangesInfoRaw.length === 0 && (!modChangesCalled || loadingModChanges)
     const modChangesError = isModModalOpen && shouldFetchModChanges ? modError : undefined
 
     useEffect(() => {
@@ -289,8 +327,8 @@ const Header: React.FC<p> = () => {
                 formatDate={formatDate}
                 isAppChangelogModalOpen={isAppChangelogModalOpen}
                 isModModalOpen={isModModalOpen}
-                loadingAppUpdates={!loadingAppUpdates}
-                loadingModChanges={!modChangesLoading}
+                loadingAppUpdates={loadingAppUpdates}
+                loadingModChanges={modChangesLoading}
                 modChangesInfo={modChangesInfoRaw}
                 modError={modChangesError}
             />

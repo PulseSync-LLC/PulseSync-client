@@ -273,6 +273,10 @@ async function createLinuxAurTarball(version: string, outDir: string, releaseDir
     }
 }
 
+function shouldCreateLinuxAurTarball(publishBranch: string | null): boolean {
+    return publishBranch !== 'dev'
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -399,8 +403,10 @@ async function main(): Promise<void> {
                 }
             }
 
-            if (os.platform() === 'linux') {
+            if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
                 await createLinuxAurTarball(version, outDir, releaseDir)
+            } else if (os.platform() === 'linux') {
+                log(LogLevel.INFO, 'Skipping Linux AUR tarball for dev publish branch')
             }
         }
 

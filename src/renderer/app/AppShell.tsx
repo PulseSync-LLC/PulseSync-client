@@ -365,7 +365,6 @@ function App() {
         router,
         setAddons,
         setAllAchievements,
-        setAppInfo,
         setModInfoFetched,
         setMusicInstalled,
         setMusicVersion,
