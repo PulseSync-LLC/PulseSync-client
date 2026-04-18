@@ -7,6 +7,7 @@ import Modal from '@shared/ui/PSUI/Modal'
 import Loader from '@shared/ui/PSUI/Loader'
 import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 import * as styles from './YandexMusicChangelogModal.module.scss'
+import cn from 'clsx'
 
 const RELEASE_NOTES_URL = 'https://desktop.app.music.yandex.net/stable/release-notes/ru.json'
 const RELEASE_NOTES_DEFAULT_KEY = 'desktop-release-notes.default'
@@ -195,12 +196,8 @@ const YandexMusicChangelogModal: React.FC = () => {
     }, [currentVersion, releaseNotes, t])
 
     return (
-        <Modal
-            title={t('pages.home.musicReleaseNotesTitle')}
-            isOpen={isOpen}
-            reqClose={() => closeModal(Modals.YANDEX_MUSIC_CHANGELOG)}
-        >
-            <div className={modalStyles.updateModal}>
+        <Modal title={t('pages.home.musicReleaseNotesTitle')} isOpen={isOpen} reqClose={() => closeModal(Modals.YANDEX_MUSIC_CHANGELOG)}>
+            <div className={cn(modalStyles.updateModal, (isLoading || error) && modalStyles.updateModalMaxedHeight)}>
                 {isLoading && <Loader variant="panel" />}
                 {!isLoading && error && <p>{t('header.errorWithMessage', { message: error })}</p>}
                 {!isLoading &&
@@ -211,7 +208,9 @@ const YandexMusicChangelogModal: React.FC = () => {
                                 <h3>{entry.versionLabel}</h3>
                                 {entry.date && <span>{entry.date}</span>}
                             </div>
-                            <div className={`${modalStyles.remerkStyle} ${styles.content}`}>{renderReleaseNotesNodes(entry.nodes, entry.versionLabel)}</div>
+                            <div className={`${modalStyles.remerkStyle} ${styles.content}`}>
+                                {renderReleaseNotesNodes(entry.nodes, entry.versionLabel)}
+                            </div>
                         </div>
                     ))}
                 {!isLoading && !error && releaseNotesEntries.length === 0 && <p>{t('header.noChangelogFound')}</p>}
