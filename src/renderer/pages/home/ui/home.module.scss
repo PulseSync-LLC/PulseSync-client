@@ -253,6 +253,11 @@
     color: rgba(241, 244, 251, 0.92);
 }
 
+.animatedComponentVersion {
+    animation: componentVersionAppear 0.22s ease-out both;
+    transform-origin: left center;
+}
+
 .secondaryStatus {
     text-align: right;
     margin-left: auto;
@@ -298,6 +303,15 @@
         background: #6b7388;
         color: rgba(244, 246, 251, 0.72);
     }
+}
+
+.secondaryActionStatusLabel {
+    font-style: normal;
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 110%;
+
+    color: rgba(244, 246, 251, 0.72);
 }
 
 .secondaryActionButton {
@@ -720,5 +734,23 @@
 
     100% {
         background-position: -100% 0;
+    }
+}
+
+@keyframes componentVersionAppear {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .animatedComponentVersion {
+        animation: none;
     }
 }
