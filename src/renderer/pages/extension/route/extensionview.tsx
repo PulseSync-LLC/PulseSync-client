@@ -17,6 +17,7 @@ import * as s from '@pages/extension/route/extensionview.module.scss'
 const ExtensionView: React.FC<ExtensionViewProps> = ({
     addon,
     isEnabled,
+    addonRelationsEnabled = false,
     relationLabels,
     enableBlockedReason,
     hasStoreUpdate,
@@ -44,7 +45,10 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
     const [tabStickyTop, setTabStickyTop] = useState(66)
-    const hasRelations = useMemo(() => Boolean(addon.dependencies?.length || addon.conflictsWith?.length), [addon.conflictsWith?.length, addon.dependencies?.length])
+    const hasRelations = useMemo(
+        () => Boolean(addonRelationsEnabled && (addon.dependencies?.length || addon.conflictsWith?.length)),
+        [addon.conflictsWith?.length, addon.dependencies?.length, addonRelationsEnabled],
+    )
     const shouldOpenRelationsByDefault = useMemo(() => Boolean(hasRelations && enableBlockedReason), [enableBlockedReason, hasRelations])
 
     useEffect(() => {
@@ -163,6 +167,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
+                        addonRelationsEnabled={addonRelationsEnabled}
                         relationLabels={relationLabels}
                         canEditMetadata={canEditMetadata}
                         publicationReleases={publicationReleases}

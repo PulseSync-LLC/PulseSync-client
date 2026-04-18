@@ -146,6 +146,7 @@
         "resetToDefault": "Reset to default"
     },
     "contextMenu": {
+        "boostyUrl": "Page on Boosty",
         "appDirectory": "App directory",
         "appSettings": {
             "autoStartApp": "Auto-start app",
@@ -556,15 +557,13 @@
             "overrideActive": "Override active",
             "group": "Group",
             "groupPlaceholder": "on / variant_name",
-            "enabledLabel": "State",
-            "valueLabel": "Value (JSON)",
-            "enabled": {
-                "inherit": "Inherit",
-                "on": "On",
-                "off": "Off"
-            },
+            "metaLabel": "Meta (JSON)",
+            "availableGroups": "Available groups",
+            "groupsCount": "Groups: {{count}}",
+            "groupRollout": "{{percentage}}%",
+            "groupDescriptionEmpty": "No description",
+            "groupRequired": "Specify a group before applying the override",
             "noGroup": "No group",
-            "rollout": "Rollout: {{percentage}}%",
             "copyName": "Copy key",
             "copyNameSuccess": "Experiment key copied",
             "copyNameError": "Failed to copy experiment key",
@@ -572,8 +571,8 @@
             "clear": "Clear override",
             "applied": "Override applied",
             "cleared": "Override cleared",
-            "invalidJson": "The value field must contain valid JSON",
-            "valueObjectError": "Value must be a JSON object"
+            "invalidJson": "The meta field must contain valid JSON",
+            "metaObjectError": "Meta must be a JSON object"
         },
         "updateChannel": {
             "open": "Update channel",
@@ -771,7 +770,7 @@
         "fixErrors": "Fix errors",
         "relationsEditor": {
             "title": "Add-on relations",
-            "description": "Dependencies are add-ons this add-on requires to work. Blocked add-ons are the ones that cannot be used together with it.",
+            "description": "Use this section to define required dependencies and add-ons that cannot be used together with the current one.",
             "dependenciesTitle": "Dependencies",
             "dependenciesHint": "Choose a required add-on from the installed catalog. Its `id` will be saved to `metadata.json`.",
             "dependenciesSelectLabel": "Add-on",

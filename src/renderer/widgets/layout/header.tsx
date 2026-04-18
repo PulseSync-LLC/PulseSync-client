@@ -15,7 +15,7 @@ import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import { isDev, isDevmark } from '@common/appConfig'
+import { isDevmark } from '@common/appConfig'
 import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -359,7 +359,7 @@ const Header: React.FC<p> = () => {
                             {user.id !== '-1' && (
                                 <>
                                     <UpdateChannelOverrideButton />
-                                    {(user.perms === 'developer' || isDev) && <ExperimentOverridesDevButton />}
+                                    {user.perms === 'developer' && <ExperimentOverridesDevButton />}
                                     <NotificationsBell />
                                     <div
                                         className={styles.user_container}

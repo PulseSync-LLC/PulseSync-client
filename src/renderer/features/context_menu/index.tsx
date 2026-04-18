@@ -10,6 +10,7 @@ import SettingsInterface from '@entities/settings/model/settings.interface'
 import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
 import { buildContextMenuSections, renderContextMenuSections } from '@features/context_menu/model/contextMenuSections'
+import config from '@common/appConfig'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{
@@ -30,6 +31,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const openAppDirectory = () => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
+    }
+
+    const openBoostyUrl = () => {
+        window.open(config.BOOSTY_URL)
     }
 
     const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
@@ -309,6 +314,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         deleteMod,
         downloadObsWidget,
         openAppDirectory,
+        openBoostyUrl,
         openModal,
         openUpdateModal,
         removeObsWidget,

@@ -146,6 +146,7 @@
         "resetToDefault": "Сбросить к эталону"
     },
     "contextMenu": {
+        "boostyUrl": "Страница на Boosty",
         "appDirectory": "Директория приложения",
         "appSettings": {
             "autoStartApp": "Автозапуск приложения",
@@ -556,15 +557,13 @@
             "overrideActive": "Override активен",
             "group": "Группа",
             "groupPlaceholder": "on / variant_name",
-            "enabledLabel": "Состояние",
-            "valueLabel": "Value (JSON)",
-            "enabled": {
-                "inherit": "Наследовать",
-                "on": "Включено",
-                "off": "Выключено"
-            },
+            "metaLabel": "Meta (JSON)",
+            "availableGroups": "Доступные группы",
+            "groupsCount": "Групп: {{count}}",
+            "groupRollout": "{{percentage}}%",
+            "groupDescriptionEmpty": "Без описания",
+            "groupRequired": "Укажи группу перед применением override",
             "noGroup": "Без группы",
-            "rollout": "Rollout: {{percentage}}%",
             "copyName": "Скопировать ключ",
             "copyNameSuccess": "Ключ скопирован",
             "copyNameError": "Не удалось скопировать ключ",
@@ -572,8 +571,8 @@
             "clear": "Очистить override",
             "applied": "Override применён",
             "cleared": "Override очищен",
-            "invalidJson": "В поле value должен быть валидный JSON",
-            "valueObjectError": "Value должен быть JSON-объектом"
+            "invalidJson": "В поле meta должен быть валидный JSON",
+            "metaObjectError": "Meta должен быть JSON-объектом"
         },
         "updateChannel": {
             "open": "Канал обновлений",
@@ -771,7 +770,7 @@
         "fixErrors": "Исправьте ошибки",
         "relationsEditor": {
             "title": "Связи аддона",
-            "description": "Зависимости — это аддоны, без которых этот аддон не будет работать. Запрещённые аддоны — те, с которыми его нельзя использовать вместе.",
+            "description": "Здесь можно указать обязательные зависимости и аддоны, которые нельзя использовать вместе с текущим.",
             "dependenciesTitle": "Зависимости",
             "dependenciesHint": "Выберите обязательный аддон из установленного каталога. В `metadata.json` будет сохранён его `id`.",
             "dependenciesSelectLabel": "Аддон",

@@ -1,4 +1,4 @@
-import React, { ReactElement, useEffect, useMemo, useRef, useState } from 'react'
+import React, { ReactElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import * as s from '@shared/ui/PSUI/SelectInput/SelectInput.module.scss'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -45,7 +45,6 @@ const SelectInput: React.FC<Props> = ({
     const [searchQuery, setSearchQuery] = useState('')
 
     const wrapRef = useRef<HTMLDivElement>(null)
-    const btnRef = useRef<HTMLButtonElement>(null)
     const listRef = useRef<HTMLDivElement>(null)
 
     const filteredOptions = useMemo(() => {
@@ -60,6 +59,28 @@ const SelectInput: React.FC<Props> = ({
     const idxByValue = useMemo(() => filteredOptions.findIndex(o => String(o.value) === String(value)), [filteredOptions, value])
     const selected = useMemo(() => options.find(o => String(o.value) === String(value)) ?? null, [options, value])
 
+    const updatePanelLayout = useCallback(() => {
+        const rect = wrapRef.current?.getBoundingClientRect()
+        if (!rect) return
+
+        const viewportPadding = 12
+        const panelGap = 8
+        const panelWidth = rect.width
+        const availableBelow = window.innerHeight - rect.bottom - panelGap - viewportPadding
+        const availableAbove = rect.top - panelGap - viewportPadding
+        const estimatedPanelHeight = searchable ? 360 : 300
+        const preferUpward = availableBelow < estimatedPanelHeight && availableAbove > availableBelow
+        const availableSpace = preferUpward ? availableAbove : availableBelow
+        const reservedHeight = searchable ? 76 : 12
+        const nextPanelMaxHeight = Math.max(140, Math.min(360, availableSpace))
+
+        setPanelW(panelWidth)
+        setAlignRight(rect.left + panelWidth > window.innerWidth - viewportPadding && rect.right - panelWidth >= viewportPadding)
+        setOpenUpward(preferUpward)
+        setPanelMaxHeight(nextPanelMaxHeight)
+        setListMaxHeight(Math.max(72, nextPanelMaxHeight - reservedHeight))
+    }, [searchable])
+
     useEffect(() => {
         const h = (e: MouseEvent) => {
             if (!wrapRef.current) return
@@ -72,30 +93,8 @@ const SelectInput: React.FC<Props> = ({
         return () => document.removeEventListener('mousedown', h)
     }, [])
 
-    useEffect(() => {
+    useLayoutEffect(() => {
         if (!open) return
-
-        const updatePanelLayout = () => {
-            const rect = btnRef.current?.getBoundingClientRect()
-            if (!rect) return
-
-            const viewportPadding = 12
-            const panelGap = 8
-            const panelWidth = rect.width
-            const availableBelow = window.innerHeight - rect.bottom - panelGap - viewportPadding
-            const availableAbove = rect.top - panelGap - viewportPadding
-            const estimatedPanelHeight = searchable ? 360 : 300
-            const preferUpward = availableBelow < estimatedPanelHeight && availableAbove > availableBelow
-            const availableSpace = preferUpward ? availableAbove : availableBelow
-            const reservedHeight = searchable ? 76 : 12
-            const nextPanelMaxHeight = Math.max(140, Math.min(360, availableSpace))
-
-            setPanelW(panelWidth)
-            setAlignRight(rect.left + panelWidth > window.innerWidth - viewportPadding && rect.right - panelWidth >= viewportPadding)
-            setOpenUpward(preferUpward)
-            setPanelMaxHeight(nextPanelMaxHeight)
-            setListMaxHeight(Math.max(72, nextPanelMaxHeight - reservedHeight))
-        }
 
         updatePanelLayout()
         window.addEventListener('resize', updatePanelLayout)
@@ -105,7 +104,7 @@ const SelectInput: React.FC<Props> = ({
             window.removeEventListener('resize', updatePanelLayout)
             window.removeEventListener('scroll', updatePanelLayout, true)
         }
-    }, [open, searchable])
+    }, [open, updatePanelLayout])
 
     const commit = (i: number) => {
         const opt = filteredOptions[i]
@@ -119,7 +118,10 @@ const SelectInput: React.FC<Props> = ({
         if (disabled) return
         setOpen(v => {
             const next = !v
-            if (next) setHover(idxByValue >= 0 ? idxByValue : 0)
+            if (next) {
+                updatePanelLayout()
+                setHover(idxByValue >= 0 ? idxByValue : 0)
+            }
             else setSearchQuery('')
             return next
         })
