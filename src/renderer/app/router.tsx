@@ -26,7 +26,7 @@ function StoreRoute() {
     }
 
     if (!storeEnabled) {
-        return <Navigate to="/" replace />
+        return <Navigate to="/home" replace />
     }
 
     return <StorePage />
@@ -41,7 +41,7 @@ function UsersRoute() {
     }
 
     if (!usersPageEnabled) {
-        return <Navigate to="/" replace />
+        return <Navigate to="/home" replace />
     }
 
     return <UsersPage />
@@ -49,8 +49,9 @@ function UsersRoute() {
 
 export function createAppRouter() {
     return createHashRouter([
-        { path: '/', element: withErrorBoundary(<ExtensionPage />) },
+        { path: '/', element: <Navigate to="/home" replace /> },
         { path: '/home', element: withErrorBoundary(<HomePage />) },
+        { path: '/extensions', element: withErrorBoundary(<ExtensionPage />) },
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },

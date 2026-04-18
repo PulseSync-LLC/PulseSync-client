@@ -403,7 +403,7 @@ function Dev() {
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
                             {t('dev.navigation.users')}
                         </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extensions')}>
                             {t('dev.navigation.extension')}
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>

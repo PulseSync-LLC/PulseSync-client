@@ -20,7 +20,7 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (user.id !== '-1') {
-            navigate('/')
+            navigate('/home')
         }
     }, [user.id, navigate])
 

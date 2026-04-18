@@ -256,7 +256,7 @@ export function useAppDesktopBindings({
         ;(window as any).refreshAddons = async (_args: any) => {
             window.desktopEvents.invoke(MainEvents.GET_ADDONS).then((fetchedAddons: Addon[]) => {
                 setAddons(fetchedAddons)
-                router.navigate('/', { replace: true })
+                router.navigate('/extensions', { replace: true })
             })
         }
         ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
