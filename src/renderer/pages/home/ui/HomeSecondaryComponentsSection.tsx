@@ -7,6 +7,7 @@ import TooltipButton from '@shared/ui/tooltip_button'
 import type { HomeSecondaryComponent, HomeSecondaryComponentId } from '@pages/home/model/homeDashboard'
 
 import * as styles from './home.module.scss'
+import cn from 'clsx'
 
 type Props = {
     items: HomeSecondaryComponent[]
@@ -34,7 +35,9 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
 
                                 <div className={styles.componentMeta}>
                                     <div className={styles.componentTitle}>{item.title}</div>
-                                    {item.version && <div className={styles.componentVersion}>{item.version}</div>}
+                                    {item.version && (
+                                        <div className={cn(styles.componentVersion, styles.animatedComponentVersion)}>{item.version}</div>
+                                    )}
                                 </div>
                             </div>
                             {item.id === 'obs-widget' ? (
@@ -54,9 +57,9 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                     as="div"
                                     className={styles.secondaryActionTooltip}
                                 >
-                                    <ButtonV2 type="button" className={styles.secondaryActionButton} disabled>
+                                    <div className={styles.secondaryActionStatusLabel}>
                                         {item.version ? t('pages.home.installed') : t('pages.home.notInstalled')}
-                                    </ButtonV2>
+                                    </div>
                                 </TooltipButton>
                             ) : (
                                 <div className={styles.secondaryStatus}>{t('pages.home.notInstalled')}</div>
