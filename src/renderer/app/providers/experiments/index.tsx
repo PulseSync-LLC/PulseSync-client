@@ -1,17 +1,14 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import { useQuery } from '@apollo/client/react'
-import GET_EXPERIMENTS from '@entities/experiment/api/getExperiments.query'
+import { fetchExperiments } from '@entities/experiment/api/experiments'
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
 import type {
     DesktopExperiment,
     ExperimentOverrideMap,
     ExperimentsContextValue,
     ExperimentsProviderProps,
-    GetExperimentsData,
 } from '@app/providers/experiments/types'
 
-const STORAGE_KEY = 'pulsesync.desktop.experimentOverrides'
-const ANONYMOUS_SUBJECT_KEY = 'pulsesync.desktop.experimentSubjectId'
+const STORAGE_KEY = 'pulsesync.desktop.experimentOverrides.v2'
 
 const defaultExperimentsContextValue: ExperimentsContextValue = {
     experiments: [],
@@ -43,7 +40,30 @@ function readOverrides(): ExperimentOverrideMap {
             return {}
         }
 
-        return parsed as ExperimentOverrideMap
+        return Object.fromEntries(
+            Object.entries(parsed).flatMap(([key, value]) => {
+                if (!value || typeof value !== 'object' || Array.isArray(value)) {
+                    return []
+                }
+
+                const rawOverride = value as Record<string, unknown>
+                if (typeof rawOverride.group !== 'string' || !rawOverride.group.trim()) {
+                    return []
+                }
+
+                const meta = rawOverride.meta
+                return [
+                    [
+                        key,
+                        {
+                            key: key as ClientExperimentKey,
+                            group: rawOverride.group.trim(),
+                            meta: meta && typeof meta === 'object' && !Array.isArray(meta) ? { ...(meta as Record<string, unknown>) } : {},
+                        },
+                    ],
+                ]
+            }),
+        )
     } catch {
         return {}
     }
@@ -59,88 +79,48 @@ function persistOverrides(nextValue: ExperimentOverrideMap) {
     } catch {}
 }
 
-function getOrCreateAnonymousSubjectId(): string {
-    if (typeof window === 'undefined') {
-        return ''
-    }
-
-    const existingValue = window.localStorage.getItem(ANONYMOUS_SUBJECT_KEY)
-    if (existingValue) {
-        return existingValue
-    }
-
-    const generatedValue =
-        typeof window.crypto?.randomUUID === 'function'
-            ? window.crypto.randomUUID()
-            : `anon_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`
-
-    window.localStorage.setItem(ANONYMOUS_SUBJECT_KEY, generatedValue)
-    return generatedValue
-}
-
-function getRolloutPercentage(experiment: DesktopExperiment): number | null {
-    const percentageValue = experiment.rollout && typeof experiment.rollout.percentage === 'number' ? experiment.rollout.percentage : null
-    if (percentageValue === null || !Number.isFinite(percentageValue)) {
-        return null
-    }
-
-    return Math.min(100, Math.max(0, percentageValue))
-}
-
-function hashExperimentSubject(value: string): number {
-    let hash = 2166136261
-
-    for (let index = 0; index < value.length; index += 1) {
-        hash ^= value.charCodeAt(index)
-        hash = Math.imul(hash, 16777619)
-    }
-
-    return hash >>> 0
-}
-
 export function ExperimentsProvider({ children, userId }: ExperimentsProviderProps) {
-    const { data, loading } = useQuery<GetExperimentsData>(GET_EXPERIMENTS, {
-        fetchPolicy: 'cache-first',
-        nextFetchPolicy: 'cache-first',
-        errorPolicy: 'ignore',
-    })
-
+    const [experiments, setExperiments] = useState<DesktopExperiment[]>([])
+    const [loading, setLoading] = useState(true)
     const [localOverrides, setLocalOverrides] = useState<ExperimentOverrideMap>({})
-    const [anonymousSubjectId, setAnonymousSubjectId] = useState('')
 
     useEffect(() => {
         setLocalOverrides(readOverrides())
-        setAnonymousSubjectId(getOrCreateAnonymousSubjectId())
     }, [])
 
-    const experiments = data?.getExperiments ?? []
+    useEffect(() => {
+        let active = true
+
+        setLoading(true)
+        setExperiments([])
+
+        void fetchExperiments()
+            .then(nextExperiments => {
+                if (!active) {
+                    return
+                }
+
+                setExperiments(nextExperiments)
+            })
+            .catch(() => {
+                if (!active) {
+                    return
+                }
+
+                setExperiments([])
+            })
+            .finally(() => {
+                if (active) {
+                    setLoading(false)
+                }
+            })
+
+        return () => {
+            active = false
+        }
+    }, [userId])
+
     const experimentsMap = useMemo(() => new Map(experiments.map(experiment => [experiment.key, experiment])), [experiments])
-    const rolloutSubjectId = userId || anonymousSubjectId
-
-    const isExperimentIncludedInRollout = useCallback(
-        (experiment: DesktopExperiment) => {
-            const percentage = getRolloutPercentage(experiment)
-            if (percentage === null) {
-                return true
-            }
-
-            if (percentage <= 0) {
-                return false
-            }
-
-            if (percentage >= 100) {
-                return true
-            }
-
-            if (!rolloutSubjectId) {
-                return false
-            }
-
-            const bucket = hashExperimentSubject(`${experiment.key}:${rolloutSubjectId}`) % 10000
-            return bucket < Math.round(percentage * 100)
-        },
-        [rolloutSubjectId],
-    )
 
     const getExperiment = useCallback(
         (key: ClientExperimentKey) => {
@@ -154,9 +134,9 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
                 return undefined
             }
 
-            return isExperimentIncludedInRollout(experiment) ? experiment : undefined
+            return experiment
         },
-        [experimentsMap, isExperimentIncludedInRollout, localOverrides],
+        [experimentsMap, localOverrides],
     )
 
     const checkExperiment = useCallback(
@@ -178,16 +158,7 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
                 return fallback
             }
 
-            const nestedEnabled = experiment.value && typeof experiment.value.enabled === 'boolean' ? experiment.value.enabled : undefined
-            if (typeof nestedEnabled === 'boolean') {
-                return nestedEnabled
-            }
-
-            if (typeof experiment.enabled === 'boolean') {
-                return experiment.enabled
-            }
-
-            return experiment.group === 'on'
+            return experiment.group === 'on' || experiment.group.startsWith('on_')
         },
         [getExperiment],
     )

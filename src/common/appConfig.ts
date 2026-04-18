@@ -17,6 +17,7 @@ const config = {
     MAX_RETRY_COUNT: 15,
     MAIN_PORT,
     BOOSTY_PURCHASE_URL: 'https://boosty.to/evt/purchase/2634425',
+    BOOSTY_URL: 'https://boosty.to/evt',
 }
 
 export default config

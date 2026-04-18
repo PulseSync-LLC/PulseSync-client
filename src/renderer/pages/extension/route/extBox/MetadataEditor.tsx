@@ -9,13 +9,13 @@ import TextInput from '@shared/ui/PSUI/TextInput'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import FileInput from '@shared/ui/PSUI/FileInput'
 import ChangesBar from '@shared/ui/PSUI/ChangesBar'
-import Loader from '@shared/ui/PSUI/Loader'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
 import UserContext from '@entities/user/model/context'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import apolloClient from '@shared/api/apolloClient'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -46,6 +46,7 @@ type MetadataFileShape = Omit<Metadata, 'author'> & {
 
 type Props = {
     addonPath: string
+    addonRelationsEnabled?: boolean
     filePreviewSrc?: (rel: string) => string
 }
 
@@ -166,9 +167,42 @@ function serializeAuthorField(value: string): string | string[] {
     return authors
 }
 
-const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
+const MetadataSkeleton: React.FC = () => (
+    <div className={css.root}>
+        <div className={css.metaGrid}>
+            <div className={`${css.metaWide} ${css.metaSplit}`}>
+                <div className={css.metaMainColumn}>
+                    <div className={css.skeletonFieldLarge} />
+                    <div className={css.skeletonFieldTall} />
+                </div>
+
+                <div className={css.metaSideColumn}>
+                    <div className={css.skeletonFieldLarge} />
+                    <div className={css.metaSideRow}>
+                        <div className={css.skeletonFieldMedium} />
+                        <div className={css.skeletonFieldMedium} />
+                    </div>
+                </div>
+            </div>
+
+            <div className={`${css.metaWide} ${css.skeletonFieldLarge}`} />
+
+            <div className={`${css.metaWide} ${css.assetGrid}`}>
+                <div className={css.skeletonCard} />
+                <div className={css.skeletonCard} />
+                <div className={css.skeletonCard} />
+                <div className={css.skeletonCard} />
+                <div className={`${css.assetWide} ${css.skeletonCard}`} />
+            </div>
+        </div>
+    </div>
+)
+
+const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) => {
     const { t } = useTranslation()
     const { setAddons } = useContext(UserContext)
+    const { isExperimentEnabled } = useExperiments()
+    const relationsEnabled = addonRelationsEnabled ?? isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
     const baseRef = useRef<Metadata>(DEFAULT_META)
     const [loading, setLoading] = useState(true)
@@ -237,6 +271,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     }, [addonPath, t])
 
     useEffect(() => {
+        if (!relationsEnabled) {
+            setAvailableAddons([])
+            return
+        }
+
         let cancelled = false
 
         ;(async () => {
@@ -261,7 +300,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [relationsEnabled])
 
     const setField = useCallback(<K extends keyof Metadata>(key: K, value: Metadata[K]) => {
         setDraft(prev => (prev[key] === value ? prev : { ...prev, [key]: value }))
@@ -511,11 +550,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
     }, [])
 
     if (loading) {
-        return (
-            <div className={css.alert}>
-                <Loader variant="panel" />
-            </div>
-        )
+        return <MetadataSkeleton />
     }
 
     if (error) return <div className={css.alert}>{error}</div>
@@ -634,37 +669,39 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                     />
                 </div>
 
-                <div className={css.editorCard}>
-                    <div className={css.listEditorHeader}>
-                        <div className={css.listEditorHeaderContent}>
-                            <div className={css.listEditorTitle}>{t('metadata.relationsEditor.title')}</div>
-                            <div className={css.listEditorDescription}>{t('metadata.relationsEditor.description')}</div>
-                        </div>
-                        <button type="button" className={css.listEditorButton} onClick={openRelationsEditor}>
-                            {t('metadata.relationsEditor.edit')}
-                        </button>
-                    </div>
-
-                    <div className={css.listSummaryRow}>
-                        <div className={css.listSummaryMeta}>
-                            <div className={css.listSummaryLabel}>{t('metadata.labels.dependencies')}</div>
-                            <div className={css.listSummaryValue}>
-                                {draft.dependencies.length
-                                    ? t('metadata.relationsEditor.dependenciesSummary', { count: draft.dependencies.length })
-                                    : t('metadata.relationsEditor.previewEmpty')}
+                {relationsEnabled && (
+                    <div className={css.editorCard}>
+                        <div className={css.listEditorHeader}>
+                            <div className={css.listEditorHeaderContent}>
+                                <div className={css.listEditorTitle}>{t('metadata.relationsEditor.title')}</div>
+                                <div className={css.listEditorDescription}>{t('metadata.relationsEditor.description')}</div>
                             </div>
+                            <button type="button" className={css.listEditorButton} onClick={openRelationsEditor}>
+                                {t('metadata.relationsEditor.edit')}
+                            </button>
                         </div>
 
-                        <div className={css.listSummaryMeta}>
-                            <div className={css.listSummaryLabel}>{t('metadata.labels.conflictsWith')}</div>
-                            <div className={css.listSummaryValue}>
-                                {draft.conflictsWith.length
-                                    ? t('metadata.relationsEditor.conflictsSummary', { count: draft.conflictsWith.length })
-                                    : t('metadata.relationsEditor.previewEmpty')}
+                        <div className={css.listSummaryRow}>
+                            <div className={css.listSummaryMeta}>
+                                <div className={css.listSummaryLabel}>{t('metadata.labels.dependencies')}</div>
+                                <div className={css.listSummaryValue}>
+                                    {draft.dependencies.length
+                                        ? t('metadata.relationsEditor.dependenciesSummary', { count: draft.dependencies.length })
+                                        : t('metadata.relationsEditor.previewEmpty')}
+                                </div>
+                            </div>
+
+                            <div className={css.listSummaryMeta}>
+                                <div className={css.listSummaryLabel}>{t('metadata.labels.conflictsWith')}</div>
+                                <div className={css.listSummaryValue}>
+                                    {draft.conflictsWith.length
+                                        ? t('metadata.relationsEditor.conflictsSummary', { count: draft.conflictsWith.length })
+                                        : t('metadata.relationsEditor.previewEmpty')}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                 <div className={css.editorCard}>
                     <div className={css.listEditorHeader}>
@@ -701,107 +738,109 @@ const MetadataEditor: React.FC<Props> = ({ addonPath }) => {
                 </div>
             </div>
 
-            <CustomModalPS
-                className={`${css.listEditorModal} ${css.relationsModal}`}
-                isOpen={isRelationsEditorOpen}
-                onClose={closeRelationsEditor}
-                buttons={[
-                    {
-                        text: t('common.cancel'),
-                        onClick: closeRelationsEditor,
-                        variant: 'secondary',
-                    },
-                    {
-                        text: t('common.done'),
-                        onClick: applyRelationsEditor,
-                    },
-                ]}
-            >
-                <div className={css.relationsModalHeader}>
-                    <div className={css.relationsModalTitle}>{t('metadata.relationsEditor.title')}</div>
-                    <div className={css.relationsModalDescription}>{t('metadata.relationsEditor.description')}</div>
-                </div>
-
-                <div className={`${css.listEditorModalBody} ${css.stackedEditorBody}`}>
-                    <div className={css.listEditorSection}>
-                        <div className={css.listEditorSectionHeader}>
-                            <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.dependenciesTitle')}</div>
-                            <div className={css.listEditorHint}>{t('metadata.relationsEditor.dependenciesHint')}</div>
-                        </div>
-
-                        <div className={css.listEditorComposer}>
-                            <SelectInput
-                                className={css.listEditorSelect}
-                                label={t('metadata.relationsEditor.dependenciesSelectLabel')}
-                                value={modalDependencySelection}
-                                options={relationOptions}
-                                onChange={value => setModalDependencySelection(String(value))}
-                                placeholder={t('metadata.relationsEditor.dependenciesPlaceholder')}
-                                searchable
-                                searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
-                            />
-                            <ButtonV2 className={css.listEditorAddButton} onClick={addDependency} disabled={!modalDependencySelection.trim()}>
-                                <MdAdd size={18} />
-                                <span>{t('metadata.relationsEditor.add')}</span>
-                            </ButtonV2>
-                        </div>
-
-                        {modalDependenciesDraft.length ? (
-                            <div className={css.listEditorItems}>
-                                {modalDependenciesDraft.map(dependencyId => (
-                                    <div key={dependencyId} className={css.listEditorRow}>
-                                        <div className={css.listEditorRowValue}>{relationLabelMap.get(dependencyId) || dependencyId}</div>
-                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeDependency(dependencyId)}>
-                                            <MdClose size={16} />
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
-                        )}
+            {relationsEnabled && (
+                <CustomModalPS
+                    className={`${css.listEditorModal} ${css.relationsModal}`}
+                    isOpen={isRelationsEditorOpen}
+                    onClose={closeRelationsEditor}
+                    buttons={[
+                        {
+                            text: t('common.cancel'),
+                            onClick: closeRelationsEditor,
+                            variant: 'secondary',
+                        },
+                        {
+                            text: t('common.done'),
+                            onClick: applyRelationsEditor,
+                        },
+                    ]}
+                >
+                    <div className={css.relationsModalHeader}>
+                        <div className={css.relationsModalTitle}>{t('metadata.relationsEditor.title')}</div>
+                        <div className={css.relationsModalDescription}>{t('metadata.relationsEditor.description')}</div>
                     </div>
 
-                    <div className={css.listEditorSection}>
-                        <div className={css.listEditorSectionHeader}>
-                            <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.conflictsTitle')}</div>
-                            <div className={css.listEditorHint}>{t('metadata.relationsEditor.conflictsHint')}</div>
-                        </div>
-
-                        <div className={css.listEditorComposer}>
-                            <SelectInput
-                                className={css.listEditorSelect}
-                                label={t('metadata.relationsEditor.conflictsSelectLabel')}
-                                value={modalConflictSelection}
-                                options={relationOptions}
-                                onChange={value => setModalConflictSelection(String(value))}
-                                placeholder={t('metadata.relationsEditor.conflictsPlaceholder')}
-                                searchable
-                                searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
-                            />
-                            <ButtonV2 className={css.listEditorAddButton} onClick={addConflict} disabled={!modalConflictSelection.trim()}>
-                                <MdAdd size={18} />
-                                <span>{t('metadata.relationsEditor.add')}</span>
-                            </ButtonV2>
-                        </div>
-
-                        {modalConflictsDraft.length ? (
-                            <div className={css.listEditorItems}>
-                                {modalConflictsDraft.map(conflictId => (
-                                    <div key={conflictId} className={css.listEditorRow}>
-                                        <div className={css.listEditorRowValue}>{relationLabelMap.get(conflictId) || conflictId}</div>
-                                        <button type="button" className={css.listEditorRemoveButton} onClick={() => removeConflict(conflictId)}>
-                                            <MdClose size={16} />
-                                        </button>
-                                    </div>
-                                ))}
+                    <div className={`${css.listEditorModalBody} ${css.stackedEditorBody}`}>
+                        <div className={css.listEditorSection}>
+                            <div className={css.listEditorSectionHeader}>
+                                <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.dependenciesTitle')}</div>
+                                <div className={css.listEditorHint}>{t('metadata.relationsEditor.dependenciesHint')}</div>
                             </div>
-                        ) : (
-                            <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
-                        )}
+
+                            <div className={css.listEditorComposer}>
+                                <SelectInput
+                                    className={css.listEditorSelect}
+                                    label={t('metadata.relationsEditor.dependenciesSelectLabel')}
+                                    value={modalDependencySelection}
+                                    options={relationOptions}
+                                    onChange={value => setModalDependencySelection(String(value))}
+                                    placeholder={t('metadata.relationsEditor.dependenciesPlaceholder')}
+                                    searchable
+                                    searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
+                                />
+                                <ButtonV2 className={css.listEditorAddButton} onClick={addDependency} disabled={!modalDependencySelection.trim()}>
+                                    <MdAdd size={18} />
+                                    <span>{t('metadata.relationsEditor.add')}</span>
+                                </ButtonV2>
+                            </div>
+
+                            {modalDependenciesDraft.length ? (
+                                <div className={css.listEditorItems}>
+                                    {modalDependenciesDraft.map(dependencyId => (
+                                        <div key={dependencyId} className={css.listEditorRow}>
+                                            <div className={css.listEditorRowValue}>{relationLabelMap.get(dependencyId) || dependencyId}</div>
+                                            <button type="button" className={css.listEditorRemoveButton} onClick={() => removeDependency(dependencyId)}>
+                                                <MdClose size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
+                            )}
+                        </div>
+
+                        <div className={css.listEditorSection}>
+                            <div className={css.listEditorSectionHeader}>
+                                <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.conflictsTitle')}</div>
+                                <div className={css.listEditorHint}>{t('metadata.relationsEditor.conflictsHint')}</div>
+                            </div>
+
+                            <div className={css.listEditorComposer}>
+                                <SelectInput
+                                    className={css.listEditorSelect}
+                                    label={t('metadata.relationsEditor.conflictsSelectLabel')}
+                                    value={modalConflictSelection}
+                                    options={relationOptions}
+                                    onChange={value => setModalConflictSelection(String(value))}
+                                    placeholder={t('metadata.relationsEditor.conflictsPlaceholder')}
+                                    searchable
+                                    searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
+                                />
+                                <ButtonV2 className={css.listEditorAddButton} onClick={addConflict} disabled={!modalConflictSelection.trim()}>
+                                    <MdAdd size={18} />
+                                    <span>{t('metadata.relationsEditor.add')}</span>
+                                </ButtonV2>
+                            </div>
+
+                            {modalConflictsDraft.length ? (
+                                <div className={css.listEditorItems}>
+                                    {modalConflictsDraft.map(conflictId => (
+                                        <div key={conflictId} className={css.listEditorRow}>
+                                            <div className={css.listEditorRowValue}>{relationLabelMap.get(conflictId) || conflictId}</div>
+                                            <button type="button" className={css.listEditorRemoveButton} onClick={() => removeConflict(conflictId)}>
+                                                <MdClose size={16} />
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
+                            )}
+                        </div>
                     </div>
-                </div>
-            </CustomModalPS>
+                </CustomModalPS>
+            )}
 
             <CustomModalPS
                 className={css.listEditorModal}

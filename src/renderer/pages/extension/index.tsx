@@ -118,6 +118,7 @@ export default function ExtensionPage() {
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
     const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
+    const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
     const [publicationBusy, setPublicationBusy] = useState(false)
     const [publicationChangelogText, setPublicationChangelogText] = useState('')
@@ -439,29 +440,32 @@ export default function ExtensionPage() {
                 const remainingAutoDisabledLabels = autoDisabled
                     .filter(key => !dependentAutoDisabledKeys.has(key))
                     .map(key => relationLabels[key] || key)
-                const relationMessages = [
-                    autoEnabled.length ?
-                        t('extensions.relations.autoEnabled', {
-                            value: autoEnabled.map(key => relationLabels[key] || key).join(', '),
-                        })
-                    :   '',
-                    dependentAutoDisabledAddons.length ?
-                        t('extensions.relations.autoDisabledDependents', {
-                            dependency: addon.name,
-                            value: dependentAutoDisabledAddons.map(item => item.name).join(', '),
-                        })
-                    :   '',
-                    remainingAutoDisabledLabels.length ?
-                        t('extensions.relations.autoDisabled', {
-                            value: remainingAutoDisabledLabels.join(', '),
-                        })
-                    :   '',
-                ].filter(Boolean)
+                const relationMessages =
+                    addonRelationsEnabled ?
+                        [
+                            autoEnabled.length ?
+                                t('extensions.relations.autoEnabled', {
+                                    value: autoEnabled.map(key => relationLabels[key] || key).join(', '),
+                                })
+                            :   '',
+                            dependentAutoDisabledAddons.length ?
+                                t('extensions.relations.autoDisabledDependents', {
+                                    dependency: addon.name,
+                                    value: dependentAutoDisabledAddons.map(item => item.name).join(', '),
+                                })
+                            :   '',
+                            remainingAutoDisabledLabels.length ?
+                                t('extensions.relations.autoDisabled', {
+                                    value: remainingAutoDisabledLabels.join(', '),
+                                })
+                            :   '',
+                        ].filter(Boolean)
+                    :   []
                 const toastId = `addon-toggle:${addon.directoryName}:${newChecked ? 'enable' : 'disable'}`
 
                 if (newChecked && !resolvedEnabled) {
-                    const missingDependencyLabels = getMissingDependencyLabels(addon)
-                    const activeConflictLabels = getActiveConflictLabels(addon, refreshedAddons)
+                    const missingDependencyLabels = addonRelationsEnabled ? getMissingDependencyLabels(addon) : []
+                    const activeConflictLabels = addonRelationsEnabled ? getActiveConflictLabels(addon, refreshedAddons) : []
                     const blockingMessages = [
                         missingDependencyLabels.length ?
                             t('extensions.relations.blockedByDependencies', {
@@ -486,7 +490,7 @@ export default function ExtensionPage() {
                         { id: toastId },
                     )
                 } else if (!newChecked && resolvedEnabled) {
-                    const dependentAddonLabels = getDependentAddonLabels(addon, refreshedAddons)
+                    const dependentAddonLabels = addonRelationsEnabled ? getDependentAddonLabels(addon, refreshedAddons) : []
                     const blockingMessages = [
                         dependentAddonLabels.length ?
                             t('extensions.relations.disableBlockedByDependents', {
@@ -522,7 +526,7 @@ export default function ExtensionPage() {
                 }
             }
         },
-        [currentTheme, enabledScripts, getActiveConflictLabels, getDependentAddonLabels, getMissingDependencyLabels, loadAddons, relationLabels, sendStoreAddonMetrics, t],
+        [addonRelationsEnabled, currentTheme, enabledScripts, getActiveConflictLabels, getDependentAddonLabels, getMissingDependencyLabels, loadAddons, relationLabels, sendStoreAddonMetrics, t],
     )
 
     const handleSearchChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -675,8 +679,8 @@ export default function ExtensionPage() {
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
 
     const selectedAddonMissingDependencies = useMemo(
-        () => (selectedAddon ? getMissingDependencyLabels(selectedAddon) : []),
-        [getMissingDependencyLabels, selectedAddon],
+        () => (selectedAddon && addonRelationsEnabled ? getMissingDependencyLabels(selectedAddon) : []),
+        [addonRelationsEnabled, getMissingDependencyLabels, selectedAddon],
     )
 
     const selectedAddonEnableBlockedReason = useMemo(
@@ -1004,7 +1008,7 @@ export default function ExtensionPage() {
 
     const continueEnableAddon = useCallback(
         (addon: Addon) => {
-            const missingDependencyLabels = getMissingDependencyLabels(addon)
+            const missingDependencyLabels = addonRelationsEnabled ? getMissingDependencyLabels(addon) : []
             if (missingDependencyLabels.length) {
                 toast.custom(
                     'error',
@@ -1029,7 +1033,7 @@ export default function ExtensionPage() {
                 true,
             )
         },
-        [currentTheme, enabledScripts, getMissingDependencyLabels, handleCheckboxChange, isAddonVersionSupported, musicVersion, t],
+        [addonRelationsEnabled, currentTheme, enabledScripts, getMissingDependencyLabels, handleCheckboxChange, isAddonVersionSupported, musicVersion, t],
     )
 
     const shouldShowUntrustedAddonWarning = useCallback(
@@ -1045,7 +1049,7 @@ export default function ExtensionPage() {
 
     const handleEnableAddon = useCallback(
         (addon: Addon) => {
-            if (getMissingDependencyLabels(addon).length) {
+            if (addonRelationsEnabled && getMissingDependencyLabels(addon).length) {
                 continueEnableAddon(addon)
                 return
             }
@@ -1063,7 +1067,7 @@ export default function ExtensionPage() {
 
             continueEnableAddon(addon)
         },
-        [Modals.UNTRUSTED_LOCAL_ADDON_MODAL, continueEnableAddon, getMissingDependencyLabels, openModal, shouldShowUntrustedAddonWarning],
+        [Modals.UNTRUSTED_LOCAL_ADDON_MODAL, addonRelationsEnabled, continueEnableAddon, getMissingDependencyLabels, openModal, shouldShowUntrustedAddonWarning],
     )
 
     return (
@@ -1139,6 +1143,7 @@ export default function ExtensionPage() {
                         <ExtensionView
                             addon={selectedAddon}
                             isEnabled={isSelectedAddonEnabled}
+                            addonRelationsEnabled={addonRelationsEnabled}
                             enableBlockedReason={!isSelectedAddonEnabled ? selectedAddonEnableBlockedReason : null}
                             relationLabels={relationLabels}
                             hasStoreUpdate={!!selectedStoreUpdate}

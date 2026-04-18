@@ -15,6 +15,7 @@ export type ActiveTab = string
 export interface ExtensionViewProps {
     addon: AddonInterface
     isEnabled: boolean
+    addonRelationsEnabled?: boolean
     relationLabels?: Record<string, string>
     enableBlockedReason?: string | null
     canEditMetadata?: boolean

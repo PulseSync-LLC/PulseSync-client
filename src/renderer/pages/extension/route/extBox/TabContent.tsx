@@ -36,6 +36,7 @@ interface Props {
     }
     editMode: boolean
     addon: Addon
+    addonRelationsEnabled?: boolean
     relationLabels?: Record<string, string>
     canEditMetadata?: boolean
     publicationReleases?: StoreAddonRelease[]
@@ -245,6 +246,7 @@ const TabContent: React.FC<Props> = ({
     configApi,
     editMode,
     addon,
+    addonRelationsEnabled = false,
     relationLabels,
     canEditMetadata = false,
     publicationReleases = [],
@@ -332,10 +334,10 @@ const TabContent: React.FC<Props> = ({
             return <div className={styles.alertContent}>{t('metadata.authorOnlyAccess')}</div>
         }
 
-        return <MetadataEditor addonPath={addon.path} />
+        return <MetadataEditor addonPath={addon.path} addonRelationsEnabled={addonRelationsEnabled} />
     }
 
-    if (active === RELATIONS_TAB) {
+    if (active === RELATIONS_TAB && addonRelationsEnabled) {
         return (
             <div className={styles.galleryContainer}>
                 <AddonRelationsPanel addon={addon} relationLabels={relationLabels} />

@@ -1,3 +1,5 @@
+@use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
+
 :root {
     --cfg-text: var(--text-primary, #e7ecf3);
     --cfg-muted: var(--text-secondary, #9fb0c6);
@@ -19,6 +21,31 @@
     background: #3b4052;
     border: 1px solid #4a526d;
     border-radius: 12px;
+}
+
+.skeletonFieldLarge,
+.skeletonFieldMedium,
+.skeletonFieldTall,
+.skeletonCard {
+    @include shimmer.surface(rgba(129, 141, 179, 0.14));
+    border: 1px solid rgba(74, 82, 109, 0.5);
+    border-radius: 14px;
+}
+
+.skeletonFieldLarge {
+    min-height: 64px;
+}
+
+.skeletonFieldMedium {
+    min-height: 64px;
+}
+
+.skeletonFieldTall {
+    min-height: 92px;
+}
+
+.skeletonCard {
+    min-height: 98px;
 }
 
 .metaGrid {
