@@ -6,10 +6,11 @@ import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 import userContext from '@entities/user/model/context'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+import { isProfileSlugForUser } from '@shared/lib/profileSlug'
 
 interface AchievementsSectionProps {
     userProfile: any
-    username: string
+    profileName: string
 }
 
 type Difficulty = 'EASY' | 'NORMAL' | 'HARD' | 'EXTREME'
@@ -21,11 +22,11 @@ const difficultyPriority: Record<Difficulty, number> = {
     EXTREME: 4,
 }
 
-const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, username }) => {
+const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, profileName }) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([])
     const { user } = useContext(userContext)
     const { isExperimentEnabled } = useExperiments()
-    const canViewDetails = useMemo(() => user.username === username, [user.username, username])
+    const canViewDetails = useMemo(() => isProfileSlugForUser(profileName, user), [profileName, user])
     const levelInfo = useMemo(() => getEffectiveLevelInfo(userProfile), [userProfile?.levelInfoV2])
     const { t } = useTranslation()
     const achievementsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAchievements, false)

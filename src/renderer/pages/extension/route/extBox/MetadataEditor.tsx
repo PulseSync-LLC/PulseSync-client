@@ -15,7 +15,10 @@ import UserContext from '@entities/user/model/context'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import apolloClient from '@shared/api/apolloClient'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
+import FindUserByNameQuery from '@entities/user/api/findUserByName.query'
+import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { getProfileSlug } from '@shared/lib/profileSlug'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -52,6 +55,29 @@ type Props = {
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
+}
+
+type PulseUserLookupQuery = {
+    findUserByName?: {
+        username?: string | null
+        nickname?: string | null
+    } | null
+}
+
+type PulseUsersSearchQuery = {
+    getUsersWithPagination?: {
+        users?: Array<{
+            id: string
+            username?: string | null
+            nickname?: string | null
+        }>
+    } | null
+}
+
+type PulseAuthorOption = {
+    id: string
+    username: string
+    nickname: string
 }
 
 const SEMVER = /^\d+\.\d+\.\d+$/
@@ -143,22 +169,53 @@ function deepEqual(a: any, b: any): boolean {
     return false
 }
 
+function splitAuthorEntries(value: string): string[] {
+    return value
+        .split(',')
+        .map(author => author.trim())
+        .filter(Boolean)
+}
+
+function normalizeComparableText(value?: string | null): string {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+}
+
+function buildAuthorDisplayLabel(author: string, knownAuthorsMap?: Map<string, PulseAuthorOption>) {
+    const normalizedAuthor = normalizeComparableText(author)
+    const knownAuthor = knownAuthorsMap?.get(normalizedAuthor)
+
+    if (knownAuthor) {
+        if (knownAuthor.nickname && normalizeComparableText(knownAuthor.nickname) !== normalizeComparableText(knownAuthor.username)) {
+            return `${knownAuthor.nickname} (@${knownAuthor.username})`
+        }
+
+        return `@${knownAuthor.username}`
+    }
+
+    return author
+}
+
+function isAuthorMatchingPulseUser(author: string, user: Pick<PulseAuthorOption, 'username' | 'nickname'>) {
+    const normalizedAuthor = normalizeComparableText(author)
+    if (!normalizedAuthor) {
+        return false
+    }
+
+    return [user.username, user.nickname].some(candidate => normalizeComparableText(candidate) === normalizedAuthor)
+}
+
 function normalizeAuthorInput(value: unknown): string {
     if (Array.isArray(value)) {
-        return value
-            .map(author => String(author).trim())
-            .filter(Boolean)
-            .join(', ')
+        return value.map(author => String(author)).join(', ')
     }
 
     return typeof value === 'string' ? value : ''
 }
 
 function serializeAuthorField(value: string): string | string[] {
-    const authors = value
-        .split(',')
-        .map(author => author.trim())
-        .filter(Boolean)
+    const authors = splitAuthorEntries(value)
 
     if (authors.length <= 1) {
         return authors[0] ?? ''
@@ -213,6 +270,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     const [isCompatibilityEditorOpen, setIsCompatibilityEditorOpen] = useState(false)
 
     const [availableAddons, setAvailableAddons] = useState<StoreAddon[]>([])
+    const [authorSearchResults, setAuthorSearchResults] = useState<PulseAuthorOption[]>([])
+    const [authorSearchLoading, setAuthorSearchLoading] = useState(false)
+    const [authorSearchOpen, setAuthorSearchOpen] = useState(false)
+    const [authorSearchQuery, setAuthorSearchQuery] = useState('')
     const [modalDependenciesDraft, setModalDependenciesDraft] = useState<string[]>([])
     const [modalConflictsDraft, setModalConflictsDraft] = useState<string[]>([])
     const [modalAllowedUrlsDraft, setModalAllowedUrlsDraft] = useState<string[]>([])
@@ -222,6 +283,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     const [modalConflictSelection, setModalConflictSelection] = useState('')
     const [modalAllowedUrlsInput, setModalAllowedUrlsInput] = useState('')
     const [modalSupportedVersionsInput, setModalSupportedVersionsInput] = useState('')
+    const authorFieldRef = useRef<HTMLDivElement>(null)
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
@@ -301,6 +363,130 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             cancelled = true
         }
     }, [relationsEnabled])
+
+    useEffect(() => {
+        const trimmedQuery = authorSearchQuery.trim()
+        if (!trimmedQuery) {
+            setAuthorSearchResults([])
+            setAuthorSearchLoading(false)
+            return
+        }
+
+        let cancelled = false
+        const timer = window.setTimeout(async () => {
+            setAuthorSearchLoading(true)
+
+            try {
+                const response = await apolloClient.query<PulseUsersSearchQuery>({
+                    query: GetAllUsersQuery,
+                    variables: {
+                        page: 1,
+                        perPage: 20,
+                        sorting: [{ id: 'username', desc: false }],
+                        search: trimmedQuery,
+                    },
+                    fetchPolicy: 'no-cache',
+                })
+
+                if (cancelled) {
+                    return
+                }
+
+                const nextUsers = Array.isArray(response.data?.getUsersWithPagination?.users) ? response.data.getUsersWithPagination.users : []
+                setAuthorSearchResults(
+                    nextUsers
+                        .map(user => ({
+                            id: String(user.id || ''),
+                            username: String(user.username || '').trim(),
+                            nickname: String(user.nickname || '').trim(),
+                        }))
+                        .filter(user => user.id && user.username),
+                )
+            } catch (loadUsersError) {
+                console.error('[MetadataEditor] failed to load Pulse users for author selector', loadUsersError)
+                if (!cancelled) {
+                    setAuthorSearchResults([])
+                }
+            } finally {
+                if (!cancelled) {
+                    setAuthorSearchLoading(false)
+                }
+            }
+        }, 250)
+
+        return () => {
+            cancelled = true
+            window.clearTimeout(timer)
+        }
+    }, [authorSearchQuery])
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (!authorFieldRef.current?.contains(event.target as Node)) {
+                setAuthorSearchOpen(false)
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside)
+        return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
+
+    const resolvePulseAuthor = useCallback(async (value: string) => {
+        const trimmedValue = value.trim()
+        if (!trimmedValue) {
+            return ''
+        }
+
+        try {
+            const response = await apolloClient.query<PulseUserLookupQuery>({
+                query: FindUserByNameQuery,
+                variables: {
+                    name: trimmedValue,
+                },
+                fetchPolicy: 'no-cache',
+            })
+
+            const foundUser = response.data?.findUserByName
+            const normalizedInput = normalizeComparableText(trimmedValue)
+            const exactMatchExists = [foundUser?.username, foundUser?.nickname].some(candidate => normalizeComparableText(candidate) === normalizedInput)
+            const canonicalAuthor = getProfileSlug(foundUser)
+
+            if (!exactMatchExists || !canonicalAuthor) {
+                return trimmedValue
+            }
+
+            return canonicalAuthor
+        } catch (authorLookupError) {
+            console.error('[MetadataEditor] failed to resolve author via Pulse user search', authorLookupError)
+            return trimmedValue
+        }
+    }, [])
+
+    const resolvePulseAuthorsField = useCallback(
+        async (value: string) => {
+            const authors = splitAuthorEntries(value)
+            if (!authors.length) {
+                return ''
+            }
+
+            const resolvedAuthors = await Promise.all(authors.map(resolvePulseAuthor))
+            const seen = new Set<string>()
+
+            return resolvedAuthors
+                .filter(Boolean)
+                .filter(author => {
+                    const normalizedAuthor = normalizeComparableText(author)
+                    if (!normalizedAuthor || seen.has(normalizedAuthor)) {
+                        return false
+                    }
+
+                    seen.add(normalizedAuthor)
+                    return true
+                })
+                .join(', ')
+        },
+        [resolvePulseAuthor],
+    )
 
     const setField = useCallback(<K extends keyof Metadata>(key: K, value: Metadata[K]) => {
         setDraft(prev => (prev[key] === value ? prev : { ...prev, [key]: value }))
@@ -508,6 +694,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
         try {
             const next: Metadata = { ...draft }
+            next.author = await resolvePulseAuthorsField(next.author)
 
             if (draft.image) next.image = await resolveRelIfNeeded(draft.image, 'image', '.png')
             if (draft.banner) next.banner = await resolveRelIfNeeded(draft.banner, 'banner', '.png')
@@ -543,10 +730,61 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
         } finally {
             setSaving(false)
         }
-    }, [addonPath, draft, open, resolveRelIfNeeded, saving, setAddons, t, valid])
+    }, [addonPath, draft, open, resolvePulseAuthorsField, resolveRelIfNeeded, saving, setAddons, t, valid])
 
     const onReset = useCallback(() => {
         setDraft(baseRef.current)
+    }, [])
+
+    const selectedAuthors = useMemo(() => splitAuthorEntries(draft.author), [draft.author])
+    const knownAuthorsMap = useMemo(() => {
+        const entries = new Map<string, PulseAuthorOption>()
+
+        authorSearchResults.forEach(author => {
+            entries.set(normalizeComparableText(author.username), author)
+
+            if (author.nickname) {
+                entries.set(normalizeComparableText(author.nickname), author)
+            }
+        })
+
+        return entries
+    }, [authorSearchResults])
+
+    const addAuthor = useCallback(
+        async (value: string) => {
+            const resolvedAuthor = await resolvePulseAuthor(value)
+            if (!resolvedAuthor) {
+                return
+            }
+
+            setDraft(prev => {
+                const currentAuthors = splitAuthorEntries(prev.author)
+                const hasAuthor = currentAuthors.some(author => normalizeComparableText(author) === normalizeComparableText(resolvedAuthor))
+                if (hasAuthor) {
+                    return prev
+                }
+
+                const nextAuthors = [...currentAuthors, resolvedAuthor]
+                return {
+                    ...prev,
+                    author: nextAuthors.join(', '),
+                }
+            })
+            setAuthorSearchQuery('')
+            setAuthorSearchResults([])
+            setAuthorSearchOpen(false)
+        },
+        [resolvePulseAuthor],
+    )
+
+    const removeAuthor = useCallback((value: string) => {
+        setDraft(prev => ({
+            ...prev,
+            author: splitAuthorEntries(prev.author)
+                .filter(entry => normalizeComparableText(entry) !== normalizeComparableText(value))
+                .join(', '),
+        }))
     }, [])
 
     if (loading) {
@@ -571,7 +809,82 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     </div>
 
                     <div className={css.metaSideColumn}>
-                        <TextInput name="meta-author" label={t('metadata.labels.author')} value={draft.author} onChange={value => setField('author', value)} />
+                        <div className={css.authorField} ref={authorFieldRef}>
+                            <div className={css.authorFieldLabel}>{t('metadata.authorsEditor.title')}</div>
+
+                            <div className={css.authorSearchWrap}>
+                                <div
+                                    className={css.authorCombobox}
+                                    onClick={() => {
+                                        setAuthorSearchOpen(true)
+                                    }}
+                                >
+                                    {selectedAuthors.map(author => (
+                                        <div key={author} className={css.authorChip}>
+                                            <span className={css.authorChipText}>{buildAuthorDisplayLabel(author, knownAuthorsMap)}</span>
+                                            <button
+                                                type="button"
+                                                className={css.authorChipRemove}
+                                                onClick={event => {
+                                                    event.stopPropagation()
+                                                    removeAuthor(author)
+                                                }}
+                                            >
+                                                <MdClose size={14} />
+                                            </button>
+                                        </div>
+                                    ))}
+
+                                    <input
+                                        className={css.authorSearchInput}
+                                        value={authorSearchQuery}
+                                        onChange={event => {
+                                            setAuthorSearchQuery(event.target.value)
+                                            setAuthorSearchOpen(true)
+                                        }}
+                                        onFocus={() => setAuthorSearchOpen(true)}
+                                        placeholder={selectedAuthors.length ? '' : t('metadata.authorsEditor.searchPlaceholder')}
+                                    />
+                                </div>
+
+                                {authorSearchOpen && (
+                                    <div className={css.authorSearchDropdown}>
+                                        {!authorSearchQuery.trim() ? (
+                                            <div className={css.authorSearchState}>{t('metadata.authorsEditor.searchHint')}</div>
+                                        ) : authorSearchLoading ? (
+                                            <div className={css.authorSearchState}>{t('metadata.authorsEditor.loading')}</div>
+                                        ) : authorSearchResults.length ? (
+                                            <div className={css.authorSearchResults}>
+                                                {authorSearchResults.map(user => {
+                                                    const alreadyAdded = selectedAuthors.some(author => isAuthorMatchingPulseUser(author, user))
+                                                    return (
+                                                        <button
+                                                            key={user.id}
+                                                            type="button"
+                                                            className={`${css.authorSearchOption} ${alreadyAdded ? css.authorSearchOptionSelected : ''}`}
+                                                            onClick={() => {
+                                                                void addAuthor(user.username)
+                                                            }}
+                                                            disabled={alreadyAdded}
+                                                        >
+                                                            <span className={css.authorSearchBody}>
+                                                                <span className={css.authorSearchPrimary}>{user.nickname || user.username}</span>
+                                                                <span className={css.authorSearchSecondary}>@{user.username}</span>
+                                                            </span>
+                                                            <span className={css.authorSearchAction}>
+                                                                {alreadyAdded ? t('metadata.authorsEditor.added') : t('metadata.authorsEditor.add')}
+                                                            </span>
+                                                        </button>
+                                                    )
+                                                })}
+                                            </div>
+                                        ) : (
+                                            <div className={css.authorSearchState}>{t('metadata.authorsEditor.noSearchResults')}</div>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        </div>
 
                         <div className={css.metaSideRow}>
                             <SelectInput

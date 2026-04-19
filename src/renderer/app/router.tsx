@@ -59,6 +59,6 @@ export function createAppRouter() {
         { path: '/:contactId', element: withErrorBoundary(<ExtensionPage />) },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
-        { path: '/profile/:username', element: withErrorBoundary(<ProfilePage />) },
+        { path: '/profile/:profileName', element: withErrorBoundary(<ProfilePage />) },
     ])
 }
