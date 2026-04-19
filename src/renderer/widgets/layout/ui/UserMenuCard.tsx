@@ -6,6 +6,7 @@ import UserInterface from '@entities/user/model/user.interface'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { staticAsset } from '@shared/lib/staticAssets'
+import { getProfileSlug } from '@shared/lib/profileSlug'
 import * as styles from '@widgets/layout/header.module.scss'
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
 
 export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInputRef, bannerProgress, isOpen, logout, onClose, t, user }: Props) {
     const nav = useNavigate()
+    const profileSlug = getProfileSlug(user)
 
     return (
         <motion.div
@@ -87,7 +89,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                     <div className={styles.user_info}>
                         <div
                             onClick={() => {
-                                nav(`/profile/${encodeURIComponent(user.username)}`)
+                                nav(`/profile/${encodeURIComponent(profileSlug)}`)
                                 onClose()
                             }}
                             key={user.username}
@@ -102,7 +104,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
             <div className={styles.user_menu_buttons}>
                 <button
                     onClick={() => {
-                        nav(`/profile/${encodeURIComponent(user.username)}`)
+                        nav(`/profile/${encodeURIComponent(profileSlug)}`)
                         onClose()
                     }}
                     key={user.id}

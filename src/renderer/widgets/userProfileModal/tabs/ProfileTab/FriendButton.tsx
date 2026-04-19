@@ -7,11 +7,12 @@ import toggleFollowMutation from '@features/toggleFollow/api/toggleFollow.query'
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 import { useTranslation } from 'react-i18next'
 import config from '@common/appConfig'
+import { isProfileSlugForUser } from '@shared/lib/profileSlug'
 
 interface FriendButtonProps {
     userProfile: any
     user: any
-    username: string
+    profileName: string
 }
 
 type ToggleFollowData = {
@@ -25,7 +26,7 @@ type ToggleFollowVars = {
     targetId: string
 }
 
-const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username }) => {
+const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, profileName }) => {
     const { t } = useTranslation()
     const [isHovered, setIsHovered] = useState(false)
 
@@ -48,7 +49,7 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, username
     const openProfileSettings = useCallback(() => {
         window.open(config.WEBSITE_URL + '/settings')
     }, [])
-    if ((user?.username || '').toLowerCase() === (username || '').toLowerCase()) {
+    if (isProfileSlugForUser(profileName, user)) {
         return (
             <>
                 <Button className={styles.buttonAddFriend} onClick={() => openProfileSettings()}>

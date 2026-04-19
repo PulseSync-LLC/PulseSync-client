@@ -19,12 +19,13 @@ const TabNavigation: React.FC<Props> = ({ active, onChange, docs, hasPublication
 
     const docTabs: TabItem[] = docs.map(d => ({
         title: d.title,
+        value: d.value || d.title,
         icon: <MdStickyNote2 size={22} />,
     }))
 
     const tabs: TabItem[] = [
         ...docTabs,
-        ...(hasPublicationChangelog ? [{ title: PUBLICATION_CHANGELOG_TAB, icon: <MdStickyNote2 size={22} /> }] : []),
+        ...(hasPublicationChangelog ? [{ title: t('extensions.tabs.changelog'), value: PUBLICATION_CHANGELOG_TAB, icon: <MdStickyNote2 size={22} /> }] : []),
         ...(hasRelations ? [{ title: t('extensions.tabs.relations'), value: RELATIONS_TAB, icon: <MdFactCheck size={22} /> }] : []),
         { title: t('extensions.tabs.settings'), value: 'Settings', icon: <MdSettings size={22} /> },
         ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata', icon: <MdConstruction size={22} /> }] : []),

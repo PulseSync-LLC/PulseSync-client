@@ -68,6 +68,9 @@ function createTray() {
 
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
+    tray.on('click', event => {
+        mainWindow.show()
+    })
 }
 
 export default createTray

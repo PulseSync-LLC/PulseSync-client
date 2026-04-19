@@ -17,6 +17,7 @@ import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
 import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
 import type { SortState, UserGridMetrics } from '@pages/users/model/userList'
 import { SORT_FIELDS, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH, getUserGridMetrics, sortUsers } from '@pages/users/model/userList'
+import { getProfileSlug } from '@shared/lib/profileSlug'
 
 export default function UsersPage() {
     const INITIAL_SHIMMER_FADE_MS = 180
@@ -59,7 +60,7 @@ export default function UsersPage() {
 
     const openProfile = useCallback(
         (u: any) => {
-            const name: string | undefined = typeof u === 'string' ? u : u?.username
+            const name: string | undefined = typeof u === 'string' ? u : getProfileSlug(u)
             if (!name) return
             nav(`/profile/${encodeURIComponent(name)}`)
         },

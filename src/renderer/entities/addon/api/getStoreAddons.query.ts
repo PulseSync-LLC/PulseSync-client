@@ -37,6 +37,23 @@ export default gql`
                     createdAt
                     updatedAt
                 }
+                releases {
+                    id
+                    version
+                    description
+                    authors
+                    changelog
+                    usedAiDuringDevelopment
+                    avatarUrl
+                    bannerUrl
+                    downloadUrl
+                    githubUrl
+                    approvedAt
+                    status
+                    moderationNote
+                    createdAt
+                    updatedAt
+                }
                 createdAt
                 updatedAt
             }

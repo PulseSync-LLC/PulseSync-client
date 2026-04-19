@@ -427,6 +427,8 @@
             "confirm": "Enable anyway"
         },
         "tabs": {
+            "changelog": "Changelog",
+            "license": "License",
             "metadata": "Metadata",
             "relations": "Compatibility",
             "settings": "Settings"
@@ -504,7 +506,8 @@
         "developmentBuild": "DEVELOPMENT BUILD #{{branch}}",
         "errorWithMessage": "Error: {{message}}",
         "fileNotImage": "The file is not an image",
-        "fileTooLarge": "File size exceeds 10MB",
+        "avatarFileTooLarge": "Avatar size exceeds 5 MB",
+        "bannerFileTooLarge": "Banner size exceeds 5 MB",
         "friends": "Friends",
         "latestModUpdatesTitle": "Latest mod updates",
         "latestUpdatesTitle": "Latest updates",
@@ -761,6 +764,21 @@
         "settings": "Settings"
     },
     "metadata": {
+        "authorsEditor": {
+            "title": "Authors",
+            "pulseTitle": "PulseSync users",
+            "pulseHint": "Search by username and nickname. Click a user to add them as an add-on author.",
+            "searchPlaceholder": "Find a user",
+            "requiredPlaceholder": "Add at least one author",
+            "searchHint": "Start typing a username or nickname.",
+            "noSearchResults": "No users found",
+            "loading": "Loading users...",
+            "add": "Add",
+            "added": "Added",
+            "previewEmpty": "Not set",
+            "minimumOneAuthor": "An add-on must have at least one author.",
+            "selfRemovalBlocked": "You cannot remove yourself from the add-on authors."
+        },
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru",

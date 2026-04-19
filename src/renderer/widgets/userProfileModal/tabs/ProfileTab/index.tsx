@@ -12,10 +12,10 @@ interface ProfileTabProps {
     userProfile: any
     loading: boolean
     error: any
-    username: string
+    profileName: string
 }
 
-const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, username }) => {
+const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, profileName }) => {
     const { user } = useContext(userContext)
     const { t } = useTranslation()
 
@@ -33,9 +33,9 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, us
         <>
             <UserStatus userProfile={userProfile} />
             <ProfileHeader userProfile={userProfile} user={user}>
-                <FriendButton userProfile={userProfile} user={user} username={username} />
+                <FriendButton userProfile={userProfile} user={user} profileName={profileName} />
             </ProfileHeader>
-            <AchievementsSection userProfile={userProfile} username={username} />
+            <AchievementsSection userProfile={userProfile} profileName={profileName} />
         </>
     )
 }
