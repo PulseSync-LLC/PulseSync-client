@@ -1,19 +1,25 @@
 import type { ReactNode } from 'react'
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
 
-export type ExperimentValue = Record<string, unknown> | null
-
-export type ExperimentRollout = {
-    percentage: number
-} | null
+export type ExperimentMeta = Record<string, unknown>
 
 export type DesktopExperiment = {
     key: ClientExperimentKey
-    group?: string | null
-    description?: string | null
-    enabled?: boolean | null
-    value?: ExperimentValue
-    rollout?: ExperimentRollout
+    group: string
+    meta: ExperimentMeta
+}
+
+export type DesktopDetailedExperimentGroup = {
+    group: string
+    meta: ExperimentMeta
+    description: string
+    rollout: number
+}
+
+export type DesktopDetailedExperiment = {
+    key: ClientExperimentKey
+    description: string
+    groups: DesktopDetailedExperimentGroup[]
 }
 
 export type ExperimentOverrideMap = Record<string, DesktopExperiment>
@@ -33,8 +39,4 @@ export type ExperimentsContextValue = {
 export type ExperimentsProviderProps = {
     children: ReactNode
     userId?: string | null
-}
-
-export type GetExperimentsData = {
-    getExperiments: DesktopExperiment[]
 }

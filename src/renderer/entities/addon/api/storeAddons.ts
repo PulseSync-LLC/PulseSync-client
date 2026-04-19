@@ -1,7 +1,6 @@
-import config from '@common/appConfig'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import rendererHttpClient from '@shared/api/http/client'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
@@ -103,14 +102,6 @@ function pickErrorCode(payload: AddonStoreErrorPayload | null): { code: string; 
     }
 }
 
-function getAuthHeaders(extra?: HeadersInit): HeadersInit {
-    const token = getUserToken()
-    return {
-        authorization: token ? `Bearer ${token}` : '',
-        ...(extra || {}),
-    }
-}
-
 function extractStoreAddonId(payload: AddonStoreSubmitSuccessPayload | null): string | null {
     const candidates = [payload?.addon?.id, payload?.addonId, payload?.id, payload?.data?.addon?.id, payload?.data?.addonId, payload?.data?.id]
 
@@ -149,14 +140,14 @@ async function packageAddon(addon: Addon): Promise<{ blob: Blob; fileName: strin
 }
 
 export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
-    const response = await fetch(`${config.SERVER_URL}/extensions/mine`, {
+    const response = await rendererHttpClient.get<OwnAddonsResponse>('/extensions/mine', {
+        auth: true,
         headers: {
             Accept: 'application/json',
-            ...getAuthHeaders(),
         },
     })
 
-    const payload = (await response.json().catch((): null => null)) as OwnAddonsResponse | null
+    const payload = response.data ?? null
     if (!response.ok || payload?.ok === false) {
         throw new Error('FAILED_TO_LOAD_OWN_ADDONS')
     }
@@ -171,17 +162,15 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
         return []
     }
 
-    const response = await fetch(`${config.SERVER_URL}/extensions/updates`, {
-        method: 'POST',
+    const response = await rendererHttpClient.post<StoreAddonUpdatesResponse>('/extensions/updates', {
+        auth: true,
         headers: {
             Accept: 'application/json',
-            'Content-Type': 'application/json',
-            ...getAuthHeaders(),
         },
-        body: JSON.stringify({ ids: normalizedIds }),
+        body: { ids: normalizedIds },
     })
 
-    const payload = (await response.json().catch((): null => null)) as StoreAddonUpdatesResponse | null
+    const payload = response.data ?? null
     if (!response.ok || payload?.ok === false) {
         throw new Error('FAILED_TO_LOAD_STORE_ADDON_UPDATES')
     }
@@ -214,15 +203,22 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
     }
 }
 
-export async function submitAddonForStore(addon: Addon, changelog: string, githubUrl: string, existingAddonId?: string): Promise<string | null> {
+export async function submitAddonForStore(
+    addon: Addon,
+    changelog: string,
+    githubUrl: string,
+    usedAiDuringDevelopment: boolean,
+    existingAddonId?: string,
+): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl })
+    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment })
 }
 
 export async function submitAddonArchiveForStore(options: {
     addon: Addon
     changelog: string
     githubUrl: string
+    usedAiDuringDevelopment: boolean
     existingAddonId?: string
     blob: Blob
     fileName: string
@@ -232,19 +228,17 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('description', options.addon.description || '')
     formData.append('githubUrl', options.githubUrl.trim())
     formData.append('changelog', options.changelog)
+    formData.append('usedAiDuringDevelopment', String(options.usedAiDuringDevelopment))
     formData.append('zipFile', options.blob, options.fileName)
 
-    const targetUrl = options.existingAddonId
-        ? `${config.SERVER_URL}/extensions/${encodeURIComponent(options.existingAddonId)}/update`
-        : `${config.SERVER_URL}/extensions/create`
+    const targetUrl = options.existingAddonId ? `/extensions/${encodeURIComponent(options.existingAddonId)}/update` : '/extensions/create'
 
-    const response = await fetch(targetUrl, {
-        method: 'POST',
-        headers: getAuthHeaders(),
+    const response = await rendererHttpClient.post<AddonStoreErrorPayload & AddonStoreSubmitSuccessPayload>(targetUrl, {
+        auth: true,
         body: formData,
     })
 
-    const payload = (await response.json().catch((): null => null)) as (AddonStoreErrorPayload & AddonStoreSubmitSuccessPayload) | null
+    const payload = response.data ?? null
     if (!response.ok || payload?.ok === false) {
         const resolvedError = pickErrorCode(payload)
         throw new AddonStoreSubmitError(resolvedError.code, {

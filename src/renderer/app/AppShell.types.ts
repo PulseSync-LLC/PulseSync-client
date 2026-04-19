@@ -18,7 +18,6 @@ export type AppProvidersProps = {
     setUser: Dispatch<SetStateAction<UserInterface>>
     authorize: () => Promise<void>
     loading: boolean
-    meLoading: boolean
     musicInstalled: boolean
     setMusicInstalled: Dispatch<SetStateAction<boolean>>
     musicVersion: string | null

@@ -6,6 +6,9 @@ import type Addon from '@entities/addon/model/addon.interface'
 export type ModalName = (typeof Modals)[keyof typeof Modals]
 
 export type ModalAdditionalStateMap = {
+    [Modals.YANDEX_MUSIC_CHANGELOG]: {
+        currentVersion?: string | null
+    }
     [Modals.PEXT_DND_MODAL]: {
         isValidFileType: boolean
     }
@@ -18,8 +21,8 @@ export type ModalAdditionalStateMap = {
         githubUrlText: string
         onChangeChangelog?: ((value: string) => void) | null
         onChangeGithubUrl?: ((value: string) => void) | null
-        onPublish?: ((changelogText: string, githubUrl: string) => void) | null
-        onUpdate?: ((changelogText: string, githubUrl: string) => void) | null
+        onPublish?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
+        onUpdate?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
     }
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string

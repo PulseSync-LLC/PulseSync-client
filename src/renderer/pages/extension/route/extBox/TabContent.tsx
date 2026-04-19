@@ -9,12 +9,13 @@ import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
 import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
+import AddonRelationsPanel from '@pages/extension/route/extBox/AddonRelationsPanel'
 
 import ConfigurationSettings from '@features/configurationSettings/ConfigurationSettings'
 import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
 import { AddonConfig } from '@features/configurationSettings/types'
 
-import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB } from '@pages/extension/route/extBox/types'
+import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
@@ -35,6 +36,9 @@ interface Props {
     }
     editMode: boolean
     addon: Addon
+    addonRelationsEnabled?: boolean
+    relationLabels?: Record<string, string>
+    canEditMetadata?: boolean
     publicationReleases?: StoreAddonRelease[]
 }
 
@@ -234,7 +238,19 @@ const createDefaultTemplate = (): AddonConfig => ({
     ],
 })
 
-const TabContent: React.FC<Props> = ({ active, docs, config, editConfig, configApi, editMode, addon, publicationReleases = [] }) => {
+const TabContent: React.FC<Props> = ({
+    active,
+    docs,
+    config,
+    editConfig,
+    configApi,
+    editMode,
+    addon,
+    addonRelationsEnabled = false,
+    relationLabels,
+    canEditMetadata = false,
+    publicationReleases = [],
+}) => {
     const { t } = useTranslation()
     const [creating, setCreating] = useState(false)
     const [settingsKey, setSettingsKey] = useState(0)
@@ -313,7 +329,21 @@ const TabContent: React.FC<Props> = ({ active, docs, config, editConfig, configA
         }
     }
 
-    if (active === 'Metadata') return <MetadataEditor addonPath={addon.path} />
+    if (active === 'Metadata') {
+        if (!canEditMetadata) {
+            return <div className={styles.alertContent}>{t('metadata.authorOnlyAccess')}</div>
+        }
+
+        return <MetadataEditor addonPath={addon.path} addonRelationsEnabled={addonRelationsEnabled} />
+    }
+
+    if (active === RELATIONS_TAB && addonRelationsEnabled) {
+        return (
+            <div className={styles.galleryContainer}>
+                <AddonRelationsPanel addon={addon} relationLabels={relationLabels} />
+            </div>
+        )
+    }
 
     if (active === PUBLICATION_CHANGELOG_TAB && addon.installSource === 'store' && publicationReleases.length > 0) {
         return (

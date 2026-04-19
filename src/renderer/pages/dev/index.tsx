@@ -11,6 +11,7 @@ import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
 import AddonUploadModal, { UploadStep } from '@shared/ui/PSUI/AddonUploadModal'
 import Loader from '@shared/ui/PSUI/Loader'
+import rendererHttpClient from '@shared/api/http/client'
 import { Line } from 'react-chartjs-2'
 import { useTranslation } from 'react-i18next'
 import {
@@ -32,11 +33,22 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 type StatPoint = { time: string | number | Date; online: number }
 
 const API = {
-    stats: 'https://ru-node-1.pulsesync.dev/api/v1/users/stats',
-    count: 'https://ru-node-1.pulsesync.dev/api/v1/users/count',
+    stats: '/api/v1/users/stats',
+    count: '/api/v1/users/count',
 }
 
 const RANGES = [12, 24, 48, 0] as const
+
+type StatsResponse = {
+    data?: StatPoint[]
+    ok?: boolean
+}
+
+type CountResponse = {
+    ok?: boolean
+    online?: number
+    users?: number
+}
 
 function Dev() {
     const { t } = useTranslation()
@@ -56,14 +68,18 @@ function Dev() {
     const loadAll = useCallback(async () => {
         setLoading(true)
         try {
-            const [sRes, cRes] = await Promise.all([fetch(API.stats), fetch(API.count)])
-            const sJson = await sRes.json()
-            const cJson = await cRes.json()
+            const [sRes, cRes] = await Promise.all([
+                rendererHttpClient.get<StatsResponse>(API.stats, { auth: true }),
+                rendererHttpClient.get<CountResponse>(API.count, { auth: true }),
+            ])
 
-            if (sJson?.ok) setStats(sJson.data as StatPoint[])
+            const sJson = sRes.data
+            const cJson = cRes.data
+
+            if (sRes.ok && sJson?.ok) setStats(sJson.data || [])
             else toast.custom('error', t('common.errorTitle'), t('dev.errors.statsLoad'))
 
-            if (cJson?.ok) setCount({ users: cJson.users, online: cJson.online })
+            if (cRes.ok && cJson?.ok) setCount({ users: cJson.users || 0, online: cJson.online || 0 })
             else toast.custom('error', t('common.errorTitle'), t('dev.errors.onlineLoad'))
 
             setLastUpdated(new Date())
@@ -387,7 +403,7 @@ function Dev() {
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/users')}>
                             {t('dev.navigation.users')}
                         </ButtonV2>
-                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/')}>
+                        <ButtonV2 className={styles.navBtn} onClick={() => navigate('/extensions')}>
                             {t('dev.navigation.extension')}
                         </ButtonV2>
                         <ButtonV2 className={styles.navBtn} onClick={() => navigate('/joint')}>

@@ -1,7 +1,6 @@
 import MainEvents from '@common/types/mainEvents'
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import config from '@common/appConfig'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
 import { getNotificationPresentation } from '@app/providers/notifications/presentation'
 import type { NotificationsContextValue, NotificationItem } from '@app/providers/notifications/types'
@@ -59,30 +58,27 @@ export function useNotificationsController(userId: string): NotificationsControl
     const [notificationsLoading, setNotificationsLoading] = useState(false)
     const [notificationsUnreadCount, setNotificationsUnreadCount] = useState(0)
 
-    const requestNotifications = useCallback(async <T>(path: string, init?: RequestInit): Promise<T> => {
-        const token = getUserToken()
-        if (!token) {
-            throw new Error('Session token is missing')
-        }
+    const requestNotifications = useCallback(
+        async <T>(path: string, options?: { body?: unknown; method?: 'GET' | 'PATCH' | 'POST' | 'PUT' | 'DELETE' }): Promise<T> => {
+            const response = await rendererHttpClient.request<T>({
+                url: path,
+                method: options?.method || 'GET',
+                auth: true,
+                body: options?.body,
+                headers: {
+                    Accept: 'application/json',
+                },
+            })
 
-        const response = await fetch(`${config.SERVER_URL}${path}`, {
-            cache: 'no-store',
-            ...init,
-            headers: {
-                Accept: 'application/json',
-                ...(init?.body ? { 'Content-Type': 'application/json' } : {}),
-                authorization: `Bearer ${token}`,
-                ...(init?.headers || {}),
-            },
-        })
+            const payload = response.data as any
+            if (!response.ok || payload?.ok === false) {
+                throw new Error(payload?.message || payload?.error || 'Request failed')
+            }
 
-        const payload = await response.json().catch((): null => null)
-        if (!response.ok || payload?.ok === false) {
-            throw new Error(payload?.message || payload?.error || 'Request failed')
-        }
-
-        return payload as T
-    }, [])
+            return payload as T
+        },
+        [],
+    )
 
     const resetNotifications = useCallback((): void => {
         setNotifications([])

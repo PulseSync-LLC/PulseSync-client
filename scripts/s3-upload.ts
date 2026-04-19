@@ -249,6 +249,7 @@ function resolveArtifactPlatform(suffix: string): ArtifactPlatform | null {
         case 'deb':
         case 'rpm':
         case 'appimage':
+        case 'tar.gz':
             return 'linux'
         default:
             return null

@@ -1,7 +1,7 @@
 import React, { useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import MainEvents from '@common/types/mainEvents'
-import { MdDownload, MdHandyman, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
+import { MdDownload, MdHandyman, MdHome, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
 import Header from '@widgets/layout/header'
 import NavButtonPulse from '@shared/ui/PSUI/NavButton'
 import Preloader from '@widgets/preloader'
@@ -66,7 +66,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
-                            <NavButtonPulse to="/" end text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
+                            <NavButtonPulse to="/home" text={t('layout.nav.home')}>
+                                <MdHome size={24} />
+                            </NavButtonPulse>
+                            <NavButtonPulse to="/extensions" text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>

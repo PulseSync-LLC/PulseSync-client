@@ -2,6 +2,7 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { FaGithub } from 'react-icons/fa'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
@@ -17,6 +18,7 @@ import { useModalContext } from '@app/providers/modal'
 interface Props {
     addon: AddonInterface
     isEnabled: boolean
+    enableBlockedReason?: string | null
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
     onStoreUpdate?: () => void
@@ -29,8 +31,8 @@ interface Props {
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
     onPublicationGithubUrlChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string, githubUrl: string) => void
-    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
     onBottomBarHeightChange?: (height: number) => void
@@ -77,6 +79,7 @@ function normalizeAuthorNames(author: AddonInterface['author']): string[] {
 const ThemeInfo: React.FC<Props> = ({
     addon,
     isEnabled,
+    enableBlockedReason = null,
     hasStoreUpdate = false,
     storeUpdateBusy = false,
     onStoreUpdate,
@@ -160,7 +163,11 @@ const ThemeInfo: React.FC<Props> = ({
         if (!node || !onBottomBarHeightChange) return
 
         const emitHeight = () => {
-            onBottomBarHeightChange(Math.ceil(node.getBoundingClientRect().height))
+            const styles = window.getComputedStyle(node)
+            const paddingTop = Number.parseFloat(styles.paddingTop || '0') || 0
+            const paddingBottom = Number.parseFloat(styles.paddingBottom || '0') || 0
+            const nextTop = Math.max(0, Math.ceil(node.offsetHeight - paddingTop - paddingBottom))
+            onBottomBarHeightChange(nextTop)
         }
 
         emitHeight()
@@ -178,11 +185,27 @@ const ThemeInfo: React.FC<Props> = ({
             observer.disconnect()
             window.removeEventListener('resize', emitHeight)
         }
-    }, [onBottomBarHeightChange, addon.directoryName, addon.author, addon.size, addon.version, addon.lastModified, addon.installSource])
+    }, [
+        onBottomBarHeightChange,
+        addon.directoryName,
+        addon.author,
+        addon.size,
+        addon.version,
+        addon.lastModified,
+        addon.installSource,
+        addon.dependencies?.length,
+        addon.conflictsWith?.length,
+        enableBlockedReason,
+        canManagePublication,
+        hasStoreUpdate,
+        publication?.currentRelease?.githubUrl,
+        publicationGithubUrlText,
+    ])
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
-
+    const resolvedGithubUrl = (publication?.currentRelease?.githubUrl || publicationGithubUrlText || '').trim()
+    const hasGithubUrl = Boolean(resolvedGithubUrl)
     return (
         <>
             <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
@@ -277,6 +300,7 @@ const ThemeInfo: React.FC<Props> = ({
                             {addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}
                         </span>
                     </div>
+
                 </div>
 
                 <div className={s.sideActions} ref={actionsRef}>
@@ -312,15 +336,33 @@ const ThemeInfo: React.FC<Props> = ({
                         ) : (
                             <Button
                                 className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
+                                disabled={!isEnabled && !!enableBlockedReason}
+                                title={!isEnabled && enableBlockedReason ? enableBlockedReason : undefined}
                                 onClick={() => onToggleEnabled(!isEnabled)}
                             >
-                                {isEnabled ? t('common.disable') : t('common.enable')}
+                                {isEnabled ? t('common.disable') : enableBlockedReason ? t('extensions.relations.enableBlockedButtonLabel') : t('common.enable')}
                             </Button>
                         )}
 
-                        {canAccessStore && (
-                            <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>
-                                <MdStoreMallDirectory size={20} />
+                        {/*{canAccessStore && (*/}
+                        {/*    <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>*/}
+                        {/*        <MdStoreMallDirectory size={20} />*/}
+                        {/*    </Button>*/}
+                        {/*)}*/}
+
+                        {addon.installSource === 'store' && (
+                            <Button
+                                className={s.miniButton}
+                                title={t('extensions.actions.github')}
+                                aria-label={t('extensions.actions.github')}
+                                disabled={!hasGithubUrl}
+                                onClick={() => {
+                                    if (resolvedGithubUrl) {
+                                        window.open(resolvedGithubUrl, '_blank', 'noopener,noreferrer')
+                                    }
+                                }}
+                            >
+                                <FaGithub size={18} />
                             </Button>
                         )}
 

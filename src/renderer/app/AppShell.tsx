@@ -365,7 +365,6 @@ function App() {
         router,
         setAddons,
         setAllAchievements,
-        setAppInfo,
         setModInfoFetched,
         setMusicInstalled,
         setMusicVersion,
@@ -421,7 +420,6 @@ function App() {
                 setUser={setUser}
                 authorize={authorize}
                 loading={loading}
-                meLoading={meLoading}
                 musicInstalled={musicInstalled}
                 setMusicInstalled={setMusicInstalled}
                 musicVersion={musicVersion}

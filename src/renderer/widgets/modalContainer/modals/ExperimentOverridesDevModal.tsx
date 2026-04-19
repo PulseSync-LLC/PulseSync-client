@@ -1,52 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
 import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
+import { fetchDetailedExperiments } from '@entities/experiment/api/experiments'
 import { useExperiments } from '@app/providers/experiments'
-import type { DesktopExperiment } from '@app/providers/experiments/types'
+import type { DesktopDetailedExperiment, DesktopExperiment } from '@app/providers/experiments/types'
 import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
 import { IoCloseSharp } from 'react-icons/io5'
 import { MdContentCopy } from 'react-icons/md'
 import * as styles from '@widgets/modalContainer/modals/ExperimentOverridesDevModal.module.scss'
 
-type EnabledMode = 'inherit' | 'true' | 'false'
-
 type OverrideDraft = {
     group: string
-    enabledMode: EnabledMode
-    valueText: string
+    metaText: string
 }
 
 const EMPTY_DRAFT: OverrideDraft = {
     group: '',
-    enabledMode: 'inherit',
-    valueText: '',
+    metaText: '',
 }
 
-function stringifyValue(value: DesktopExperiment['value']) {
+function stringifyMeta(value: DesktopExperiment['meta']) {
     if (!value || Object.keys(value).length === 0) {
         return ''
     }
 
     return JSON.stringify(value, null, 2)
-}
-
-function getEnabledMode(experiment?: DesktopExperiment | null): EnabledMode {
-    if (typeof experiment?.enabled === 'boolean') {
-        return experiment.enabled ? 'true' : 'false'
-    }
-
-    return 'inherit'
-}
-
-function getExperimentStateLabel(experiment: DesktopExperiment, t: (key: string, options?: any) => string) {
-    if (typeof experiment.enabled === 'boolean') {
-        return experiment.enabled ? t('header.devOverrides.enabled.on') : t('header.devOverrides.enabled.off')
-    }
-
-    return t('header.devOverrides.enabled.inherit')
 }
 
 const ExperimentOverridesDevModal: React.FC = () => {
@@ -55,19 +35,13 @@ const ExperimentOverridesDevModal: React.FC = () => {
     const { experiments, loading, localOverrides, setLocalOverride, clearLocalOverride } = useExperiments()
     const [selectedKey, setSelectedKey] = useState<string | null>(null)
     const [draft, setDraft] = useState<OverrideDraft>(EMPTY_DRAFT)
+    const [detailedExperiments, setDetailedExperiments] = useState<DesktopDetailedExperiment[]>([])
+    const [detailedLoading, setDetailedLoading] = useState(false)
+    const [detailedError, setDetailedError] = useState<string | null>(null)
 
     const isOpen = isModalOpen(Modals.EXPERIMENT_OVERRIDES_DEV)
 
-    const enabledOptions = useMemo(
-        () => [
-            { value: 'inherit', label: t('header.devOverrides.enabled.inherit') },
-            { value: 'true', label: t('header.devOverrides.enabled.on') },
-            { value: 'false', label: t('header.devOverrides.enabled.off') },
-        ],
-        [t],
-    )
-
-    const sortedExperiments = useMemo(() => [...experiments].sort((a, b) => a.key.localeCompare(b.key)), [experiments])
+    const sortedExperiments = useMemo(() => [...detailedExperiments].sort((a, b) => a.key.localeCompare(b.key)), [detailedExperiments])
 
     const selectedExperiment = useMemo(() => {
         if (!selectedKey) {
@@ -77,7 +51,52 @@ const ExperimentOverridesDevModal: React.FC = () => {
         return sortedExperiments.find(experiment => experiment.key === selectedKey)
     }, [selectedKey, sortedExperiments])
 
+    const selectedActiveExperiment = useMemo(() => {
+        if (!selectedKey) {
+            return undefined
+        }
+
+        return experiments.find(experiment => experiment.key === selectedKey)
+    }, [experiments, selectedKey])
+
     const selectedOverride = selectedKey ? localOverrides[selectedKey] : undefined
+
+    useEffect(() => {
+        if (!isOpen) {
+            return
+        }
+
+        let active = true
+
+        setDetailedLoading(true)
+        setDetailedError(null)
+
+        void fetchDetailedExperiments()
+            .then(nextExperiments => {
+                if (!active) {
+                    return
+                }
+
+                setDetailedExperiments(nextExperiments)
+            })
+            .catch(error => {
+                if (!active) {
+                    return
+                }
+
+                setDetailedExperiments([])
+                setDetailedError(error instanceof Error ? error.message : null)
+            })
+            .finally(() => {
+                if (active) {
+                    setDetailedLoading(false)
+                }
+            })
+
+        return () => {
+            active = false
+        }
+    }, [isOpen])
 
     useEffect(() => {
         if (!sortedExperiments.length) {
@@ -95,18 +114,24 @@ const ExperimentOverridesDevModal: React.FC = () => {
     }, [localOverrides, selectedKey, sortedExperiments])
 
     useEffect(() => {
-        const source = selectedOverride ?? selectedExperiment
-        if (!source) {
+        if (!selectedExperiment) {
             setDraft(EMPTY_DRAFT)
             return
         }
 
+        const matchedGroup =
+            selectedExperiment.groups.find(group => group.group === selectedOverride?.group) ??
+            selectedExperiment.groups.find(group => group.group === selectedActiveExperiment?.group) ??
+            selectedExperiment.groups[0]
+
+        const nextGroup = selectedOverride?.group ?? selectedActiveExperiment?.group ?? matchedGroup?.group ?? ''
+        const nextMeta = selectedOverride?.meta ?? selectedActiveExperiment?.meta ?? matchedGroup?.meta ?? {}
+
         setDraft({
-            group: source.group ?? '',
-            enabledMode: getEnabledMode(source),
-            valueText: stringifyValue(source.value),
+            group: nextGroup,
+            metaText: stringifyMeta(nextMeta),
         })
-    }, [selectedExperiment, selectedOverride])
+    }, [selectedActiveExperiment, selectedExperiment, selectedOverride])
 
     const handleClose = useCallback(() => {
         closeModal(Modals.EXPERIMENT_OVERRIDES_DEV)
@@ -117,16 +142,22 @@ const ExperimentOverridesDevModal: React.FC = () => {
             return
         }
 
-        let parsedValue: Record<string, unknown> | null = null
-        if (draft.valueText.trim()) {
+        const normalizedGroup = draft.group.trim()
+        if (!normalizedGroup) {
+            toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.groupRequired'))
+            return
+        }
+
+        let parsedMeta: Record<string, unknown> = {}
+        if (draft.metaText.trim()) {
             try {
-                const parsed = JSON.parse(draft.valueText)
+                const parsed = JSON.parse(draft.metaText)
                 if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-                    toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.valueObjectError'))
+                    toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.metaObjectError'))
                     return
                 }
 
-                parsedValue = parsed as Record<string, unknown>
+                parsedMeta = parsed as Record<string, unknown>
             } catch {
                 toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.invalidJson'))
                 return
@@ -134,10 +165,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
         }
 
         setLocalOverride({
-            ...selectedExperiment,
-            group: draft.group.trim() || null,
-            enabled: draft.enabledMode === 'inherit' ? null : draft.enabledMode === 'true',
-            value: parsedValue,
+            key: selectedExperiment.key,
+            group: normalizedGroup,
+            meta: parsedMeta,
         })
 
         toast.custom('success', t('common.successTitleShort'), t('header.devOverrides.applied'))
@@ -164,6 +194,13 @@ const ExperimentOverridesDevModal: React.FC = () => {
             toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.copyNameError'))
         }
     }, [selectedExperiment?.key, t])
+
+    const handleApplyGroupPreset = useCallback((group: DesktopDetailedExperiment['groups'][number]) => {
+        setDraft({
+            group: group.group,
+            metaText: stringifyMeta(group.meta),
+        })
+    }, [])
 
     return (
         <CustomModalPS
@@ -197,10 +234,12 @@ const ExperimentOverridesDevModal: React.FC = () => {
                     : []
             }
         >
-            {loading ? (
+            {loading || detailedLoading ? (
                 <div className={styles.empty}>
                     <Loader variant="panel" />
                 </div>
+            ) : detailedError ? (
+                <div className={styles.empty}>{detailedError || t('common.fetchFailed')}</div>
             ) : sortedExperiments.length === 0 ? (
                 <div className={styles.empty}>{t('header.devOverrides.empty')}</div>
             ) : (
@@ -209,6 +248,7 @@ const ExperimentOverridesDevModal: React.FC = () => {
                         {sortedExperiments.map(experiment => {
                             const isSelected = experiment.key === selectedKey
                             const hasOverride = Boolean(localOverrides[experiment.key])
+                            const activeExperiment = hasOverride ? localOverrides[experiment.key] : experiments.find(active => active.key === experiment.key)
 
                             return (
                                 <button
@@ -222,8 +262,8 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                         {hasOverride && <span className={styles.itemBadge}>{t('header.devOverrides.overrideBadge')}</span>}
                                     </div>
                                     <div className={styles.metaRow}>
-                                        <span className={styles.metaChip}>{experiment.group || t('header.devOverrides.noGroup')}</span>
-                                        <span className={styles.metaChip}>{getExperimentStateLabel(experiment, t)}</span>
+                                        <span className={styles.metaChip}>{activeExperiment?.group || t('header.devOverrides.noGroup')}</span>
+                                        <span className={styles.metaChip}>{t('header.devOverrides.groupsCount', { count: experiment.groups.length })}</span>
                                     </div>
                                 </button>
                             )
@@ -251,10 +291,30 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                         {selectedExperiment.description && <p className={styles.formDescription}>{selectedExperiment.description}</p>}
                                     </div>
                                     <div className={styles.metaRow}>
-                                        <span className={styles.metaChip}>
-                                            {t('header.devOverrides.rollout', { percentage: selectedExperiment.rollout?.percentage ?? 0 })}
-                                        </span>
+                                        <span className={styles.metaChip}>{t('header.devOverrides.groupsCount', { count: selectedExperiment.groups.length })}</span>
                                         {selectedOverride && <span className={styles.metaChipActive}>{t('header.devOverrides.overrideActive')}</span>}
+                                    </div>
+                                </div>
+
+                                <div className={styles.editorSection}>
+                                    <span className={styles.fieldLabel}>{t('header.devOverrides.availableGroups')}</span>
+                                    <div className={styles.groupsGrid}>
+                                        {selectedExperiment.groups.map(group => (
+                                            <button
+                                                key={group.group}
+                                                type="button"
+                                                className={`${styles.groupButton} ${draft.group === group.group ? styles.groupButtonActive : ''}`}
+                                                onClick={() => handleApplyGroupPreset(group)}
+                                            >
+                                                <div className={styles.itemTop}>
+                                                    <span className={styles.groupButtonName}>{group.group}</span>
+                                                    <span className={styles.metaChip}>{t('header.devOverrides.groupRollout', { percentage: group.rollout })}</span>
+                                                </div>
+                                                <div className={styles.groupDescription}>
+                                                    {group.description || t('header.devOverrides.groupDescriptionEmpty')}
+                                                </div>
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
 
@@ -269,23 +329,13 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                         />
                                     </label>
 
-                                    <SelectInput
-                                        className={styles.selectField}
-                                        label={t('header.devOverrides.enabledLabel')}
-                                        value={draft.enabledMode}
-                                        onChange={value => setDraft(prev => ({ ...prev, enabledMode: value as EnabledMode }))}
-                                        options={enabledOptions}
-                                    />
-                                </div>
-
-                                <div className={styles.editorSection}>
                                     <label className={styles.field}>
-                                        <span className={styles.fieldLabel}>{t('header.devOverrides.valueLabel')}</span>
+                                        <span className={styles.fieldLabel}>{t('header.devOverrides.metaLabel')}</span>
                                         <textarea
                                             className={styles.textarea}
-                                            value={draft.valueText}
-                                            onChange={event => setDraft(prev => ({ ...prev, valueText: event.target.value }))}
-                                            placeholder='{"enabled": true}'
+                                            value={draft.metaText}
+                                            onChange={event => setDraft(prev => ({ ...prev, metaText: event.target.value }))}
+                                            placeholder='{"variant":"new"}'
                                             rows={12}
                                         />
                                     </label>

@@ -1,7 +1,6 @@
 import React from 'react'
-import axios from 'axios'
 
-import config from '@common/appConfig'
+import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
 
 type UploadKind = 'avatar' | 'banner'
@@ -37,6 +36,13 @@ const uploadConfig = {
     },
 } as const
 
+type UploadProfileMediaResponse = {
+    hash?: string
+    message?: string
+    ok?: boolean
+    type?: string
+}
+
 export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }: UploadProfileMediaParams) {
     if (!file) return
 
@@ -45,11 +51,9 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
     formData.append('file', file)
 
     try {
-        const response = await axios.post(`${config.SERVER_URL}/cdn/${currentConfig.endpoint}/upload`, formData, {
-            headers: {
-                'Content-Type': 'multipart/form-data',
-                Authorization: `Bearer ${window.electron.store.get('tokens.token')}`,
-            },
+        const response = await rendererHttpClient.post<UploadProfileMediaResponse>(`/cdn/${currentConfig.endpoint}/upload`, {
+            auth: true,
+            body: formData,
             onUploadProgress: progressEvent => {
                 const { loaded, total } = progressEvent
                 const percentCompleted = Math.floor((loaded * 100) / (total || 1))
@@ -59,7 +63,7 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
 
         const data = response.data
 
-        if (data?.ok) {
+        if (response.ok && data?.ok) {
             setProgress(-1)
             setUser((prev: any) => ({
                 ...prev,
@@ -70,10 +74,13 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
             return
         }
 
-        setProgress(-1)
-        toast.custom('error', t('common.oopsTitle'), t(currentConfig.unknownKey))
-    } catch (error: any) {
-        switch (error.response?.data?.message) {
+        if (response.ok) {
+            setProgress(-1)
+            toast.custom('error', t('common.oopsTitle'), t(currentConfig.unknownKey))
+            return
+        }
+
+        switch (data?.message) {
             case 'FILE_TOO_LARGE':
                 toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
                 break
@@ -92,6 +99,10 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
                 break
         }
 
+        setProgress(-1)
+    } catch (error) {
+        console.error('Failed to upload profile media:', error)
+        toast.custom('error', t('common.oopsTitle'), t(currentConfig.retryKey))
         setProgress(-1)
     }
 }

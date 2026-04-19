@@ -93,7 +93,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
             ;(async () => {
                 if (shouldRedirectToHomeAfterAuth()) {
-                    await router.navigate('/', { replace: true })
+                    await router.navigate('/home', { replace: true })
                 }
                 sendAuthStatus(meData.getMe)
                 setLoading(false)
@@ -190,7 +190,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                 if (data?.getMe && data.getMe.id) {
                     setUser(prev => ({ ...prev, ...data.getMe }) as UserInterface)
                     if (shouldRedirectToHomeAfterAuth()) {
-                        await router.navigate('/', { replace: true })
+                        await router.navigate('/home', { replace: true })
                     }
                     sendAuthStatus(data.getMe)
                     return true

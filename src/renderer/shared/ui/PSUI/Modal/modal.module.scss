@@ -38,6 +38,10 @@
     }
 }
 
+.updateModalMaxedHeight {
+    height: calc(80vh - 80px);
+}
+
 .updateItem {
     display: flex;
     padding: 24px;

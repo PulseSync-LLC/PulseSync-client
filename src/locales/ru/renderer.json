@@ -146,6 +146,7 @@
         "resetToDefault": "Сбросить к эталону"
     },
     "contextMenu": {
+        "boostyUrl": "Страница на Boosty",
         "appDirectory": "Директория приложения",
         "appSettings": {
             "autoStartApp": "Автозапуск приложения",
@@ -317,7 +318,8 @@
     },
     "extensions": {
         "actions": {
-            "store": "Каталог"
+            "store": "Каталог",
+            "github": "GitHub"
         },
         "addonCreateFailed": "Не удалось скачать шаблон аддона",
         "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
@@ -333,10 +335,33 @@
         "meta": {
             "author": "Автор",
             "authors": "Авторы:",
+            "conflictsWith": "Несовместимо с",
+            "dependencies": "Зависимости",
+            "relations": "Связи",
             "source": "Источник",
             "size": "Размер",
             "updated": "Обновлено",
             "version": "Версия"
+        },
+        "relations": {
+            "autoDisabled": "Автоматически отключено: {{value}}",
+            "autoDisabledDependents": "Отключены аддоны, зависящие от {{dependency}}: {{value}}",
+            "autoEnabled": "Автоматически включено: {{value}}",
+            "blockedByConflicts": "Мешают несовместимые аддоны: {{value}}",
+            "blockedByDependencies": "Не хватает зависимостей: {{value}}",
+            "disableBlockedByDependents": "Нельзя отключить: этот аддон нужен для {{value}}",
+            "disableBlockedResolved": "Не удалось отключить аддон {{name}}.",
+            "conflictsHint": "Если этот аддон активен, текущий аддон не сможет работать одновременно с ним.",
+            "dependenciesHint": "Эти аддоны должны быть установлены, чтобы текущий аддон можно было включить.",
+            "enableBlockedButtonLabel": "Нужна зависимость",
+            "enableBlockedHintMissing": "Нужно установить: {{value}}",
+            "enableBlockedMissing": "Нельзя включить аддон: не установлены обязательные зависимости: {{value}}",
+            "enableBlockedResolved": "Не удалось включить аддон {{name}}. Проверь зависимости и несовместимые аддоны.",
+            "statusConflictActive": "сейчас конфликтует",
+            "statusEnabled": "включён",
+            "statusInstalled": "установлен",
+            "statusMissing": "не установлен",
+            "statusNotInstalled": "не установлен"
         },
         "source": {
             "local": "Локально",
@@ -355,6 +380,7 @@
             "githubUrlInvalid": "Укажи корректную ссылку на GitHub.",
             "rulesAgreementPrefix": "Я ознакомился и согласен с",
             "rulesAgreementLink": "правилами публикации аддонов",
+            "aiUsageLabel": "При разработке использовался ИИ",
             "changelogTabTitle": "Изменения этой версии",
             "changelogEmpty": "Для этой версии список изменений пока не добавлен.",
             "cooldownLabel": "Повторная отправка",
@@ -401,7 +427,9 @@
             "confirm": "Включить всё равно"
         },
         "tabs": {
-            "metadata": "Metadata"
+            "metadata": "Метадата",
+            "relations": "Совместимость",
+            "settings": "Настройки"
         },
         "storeUpdateAvailableTitle": "Доступно обновление аддона",
         "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
@@ -411,11 +439,13 @@
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
         "scriptDisabled": "Скрипт отключен",
+        "scriptDisabledMessage": "Скрипт {{name}} отключён.",
         "scriptEnabled": "Скрипт включен",
-        "scriptStatusMessage": "Скрипт {{name}} {{status}}",
+        "scriptEnabledMessage": "Скрипт {{name}} включён.",
         "themeActivated": "Тема активирована",
         "themeActivatedMessage": "Тема {{name}} активирована",
         "themeDeactivated": "Тема деактивирована",
+        "themeDeactivatedMessage": "Включена тема по умолчанию.",
         "noResults": "Ничего не найдено",
         "analyzingAddons": "Анализирую аддоны…",
         "confirmTitle": "Вы уверены?",
@@ -527,15 +557,13 @@
             "overrideActive": "Override активен",
             "group": "Группа",
             "groupPlaceholder": "on / variant_name",
-            "enabledLabel": "Состояние",
-            "valueLabel": "Value (JSON)",
-            "enabled": {
-                "inherit": "Наследовать",
-                "on": "Включено",
-                "off": "Выключено"
-            },
+            "metaLabel": "Meta (JSON)",
+            "availableGroups": "Доступные группы",
+            "groupsCount": "Групп: {{count}}",
+            "groupRollout": "{{percentage}}%",
+            "groupDescriptionEmpty": "Без описания",
+            "groupRequired": "Укажи группу перед применением override",
             "noGroup": "Без группы",
-            "rollout": "Rollout: {{percentage}}%",
             "copyName": "Скопировать ключ",
             "copyNameSuccess": "Ключ скопирован",
             "copyNameError": "Не удалось скопировать ключ",
@@ -543,8 +571,8 @@
             "clear": "Очистить override",
             "applied": "Override применён",
             "cleared": "Override очищен",
-            "invalidJson": "В поле value должен быть валидный JSON",
-            "valueObjectError": "Value должен быть JSON-объектом"
+            "invalidJson": "В поле meta должен быть валидный JSON",
+            "metaObjectError": "Meta должен быть JSON-объектом"
         },
         "updateChannel": {
             "open": "Канал обновлений",
@@ -712,6 +740,7 @@
             "addonsBeta": "Аддоны",
             "development": "Development",
             "extensionsStore": "Каталог расширений",
+            "home": "Главная",
             "trackInfo": "Информация о треке",
             "users": "Пользователи"
         },
@@ -734,13 +763,32 @@
     "metadata": {
         "examples": {
             "addonName": "My Awesome Addon",
-            "allowedUrls": "https://music.yandex.ru/*",
+            "allowedUrls": "https://music.yandex.ru",
             "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
         },
         "fixErrors": "Исправьте ошибки",
-        "listEditor": {
-            "title": "Разрешённые URL и версии",
+        "relationsEditor": {
+            "title": "Связи аддона",
+            "description": "Здесь можно указать обязательные зависимости и аддоны, которые нельзя использовать вместе с текущим.",
+            "dependenciesTitle": "Зависимости",
+            "dependenciesHint": "Выберите обязательный аддон из установленного каталога. В `metadata.json` будет сохранён его `id`.",
+            "dependenciesSelectLabel": "Аддон",
+            "dependenciesPlaceholder": "Выберите аддон",
+            "searchPlaceholder": "Поиск по названию",
+            "conflictsTitle": "Запрещённые аддоны",
+            "conflictsHint": "Pulse сможет отключать эти аддоны автоматически при конфликте.",
+            "conflictsSelectLabel": "Запрещённый аддон",
+            "conflictsPlaceholder": "Выберите аддон",
+            "add": "Добавить",
+            "edit": "Настроить",
+            "dependenciesSummary": "Добавлено зависимостей: {{count}}",
+            "conflictsSummary": "Добавлено конфликтов: {{count}}",
+            "noSearchResults": "Ничего не найдено",
+            "previewEmpty": "Не задано"
+        },
+        "compatibilityEditor": {
+            "title": "URL и версии",
             "description": "URL, к которым может обращаться аддон, и версии Яндекс Музыки, с которыми он совместим.",
             "allowedUrlsTitle": "Разрешённые URL",
             "supportedVersionsTitle": "Поддерживаемые версии Яндекс Музыки",
@@ -753,12 +801,14 @@
             "invalidSupportedVersions": "Некорректные диапазоны версий: {{versions}}",
             "previewEmpty": "Не задано"
         },
+        "authorOnlyAccess": "Редактировать metadata может только автор аддона.",
         "labels": {
             "allowedUrls": "Разрешённые URL",
             "author": "Автор",
             "banner": "Баннер",
             "css": "CSS",
-            "dependencies": "Зависимости (через запятую)",
+            "conflictsWith": "Запрещённые аддоны",
+            "dependencies": "Зависимости",
             "description": "Описание",
             "image": "Изображение",
             "libraryLogo": "Логотип библиотеки",
@@ -810,6 +860,28 @@
         "title": "Опции"
     },
     "pages": {
+        "home": {
+            "title": "Главная",
+            "mainComponents": "Основные компоненты",
+            "auxiliaryComponents": "Вспомогательные компоненты",
+            "news": "Новости",
+            "newsSubtitle": "Последние обновления проекта и важные анонсы.",
+            "newsOpenAll": "Открыть все",
+            "newsReadArticle": "Читать статью",
+            "newsReadTime": "{{count}} мин чтения",
+            "newsEmpty": "Пока новостей нет",
+            "newsEmptyDescription": "Как только команда PulseSync опубликует новый материал, он появится здесь.",
+            "newsError": "Не удалось загрузить новости",
+            "whatsNew": "Что нового?",
+            "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
+            "musicReleaseNotesFallbackVersion": "По умолчанию",
+            "installed": "Установлено",
+            "notInstalled": "Не установлено",
+            "onDemandInstallHint": "Этот компонент устанавливается автоматически из самой Яндекс Музыки при необходимости.",
+            "musicName": "Яндекс Музыка",
+            "modName": "PulseSync Мод",
+            "clientName": "PulseSync Клиент"
+        },
         "joint": {
             "comingSoon": "Скоро",
             "title": "Joint"
@@ -985,6 +1057,16 @@
         "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",
+        "filters": {
+            "type": "Тип",
+            "sort": "Сортировка",
+            "latestRelease": "Последний релиз",
+            "name": "Название",
+            "downloads": "Скачивания",
+            "order": "Порядок сортировки",
+            "orderAsc": "По возрастанию",
+            "orderDesc": "По убыванию"
+        },
         "pendingSectionTitle": "Аддоны на модерации",
         "pendingSectionSubtitle": "Аддоны проходящие модерацию",
         "pendingEmpty": "По текущему запросу аддоны на модерации не найдены.",
@@ -993,6 +1075,7 @@
         "approvedAt": "Проверено {{date}}",
         "submittedAt": "Отправлено {{date}}",
         "installed": "Уже установлен",
+        "notInstalled": "Не установлен",
         "localVersionLinked": "Локальная версия аддона {{title}} уже установлена и связана с публикацией.",
         "installComplete": "Аддон {{title}} установлен.",
         "installFailed": "Не удалось установить аддон {{title}}.",

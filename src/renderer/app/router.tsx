@@ -5,6 +5,7 @@ import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import Dev from '@pages/dev'
 import AuthPage from '@pages/auth'
 import CallbackPage from '@pages/auth/callback'
+import HomePage from '@pages/home'
 import UsersPage from '@pages/users'
 import ExtensionPage from '@pages/extension'
 import JointPage from '@pages/joint'
@@ -25,7 +26,7 @@ function StoreRoute() {
     }
 
     if (!storeEnabled) {
-        return <Navigate to="/" replace />
+        return <Navigate to="/home" replace />
     }
 
     return <StorePage />
@@ -40,7 +41,7 @@ function UsersRoute() {
     }
 
     if (!usersPageEnabled) {
-        return <Navigate to="/" replace />
+        return <Navigate to="/home" replace />
     }
 
     return <UsersPage />
@@ -48,7 +49,9 @@ function UsersRoute() {
 
 export function createAppRouter() {
     return createHashRouter([
-        { path: '/', element: withErrorBoundary(<ExtensionPage />) },
+        { path: '/', element: <Navigate to="/home" replace /> },
+        { path: '/home', element: withErrorBoundary(<HomePage />) },
+        { path: '/extensions', element: withErrorBoundary(<ExtensionPage />) },
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },

@@ -1,3 +1,5 @@
+@use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
+
 :root {
     --cfg-text: var(--text-primary, #e7ecf3);
     --cfg-muted: var(--text-secondary, #9fb0c6);
@@ -19,6 +21,31 @@
     background: #3b4052;
     border: 1px solid #4a526d;
     border-radius: 12px;
+}
+
+.skeletonFieldLarge,
+.skeletonFieldMedium,
+.skeletonFieldTall,
+.skeletonCard {
+    @include shimmer.surface(rgba(129, 141, 179, 0.14));
+    border: 1px solid rgba(74, 82, 109, 0.5);
+    border-radius: 14px;
+}
+
+.skeletonFieldLarge {
+    min-height: 64px;
+}
+
+.skeletonFieldMedium {
+    min-height: 64px;
+}
+
+.skeletonFieldTall {
+    min-height: 92px;
+}
+
+.skeletonCard {
+    min-height: 98px;
 }
 
 .metaGrid {
@@ -77,7 +104,7 @@
     grid-column: 1 / -1;
 }
 
-.listEditorCard {
+.editorCard {
     grid-column: 1 / -1;
     display: grid;
     gap: 14px;
@@ -88,10 +115,16 @@
 }
 
 .listEditorHeader {
-    display: flex;
-    align-items: flex-start;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 16px;
+    align-items: start;
+}
+
+.listEditorHeaderContent {
+    display: grid;
+    gap: 6px;
+    min-width: 0;
 }
 
 .listEditorTitle {
@@ -100,7 +133,6 @@
 }
 
 .listEditorDescription {
-    margin-top: 4px;
     color: var(--cfg-muted);
     font-size: 13px;
     line-height: 1.5;
@@ -125,7 +157,7 @@
 .listSummaryRow {
     display: grid;
     gap: 12px;
-    grid-template-columns: repeat(2, minmax(220px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
     padding-top: 2px;
 }
 
@@ -157,6 +189,32 @@
     max-width: 1040px !important;
 }
 
+.relationsModal {
+    min-width: min(760px, calc(100vw - 32px)) !important;
+    max-width: min(760px, calc(100vw - 32px)) !important;
+    padding: 24px !important;
+    gap: 16px !important;
+    align-items: stretch !important;
+}
+
+.relationsModalHeader {
+    display: grid;
+    gap: 8px;
+}
+
+.relationsModalTitle {
+    font-size: 24px;
+    font-weight: 800;
+    line-height: 1.2;
+    color: #ffffff;
+}
+
+.relationsModalDescription {
+    color: #cfd8ea;
+    font-size: 15px;
+    line-height: 1.45;
+}
+
 .listEditorModalBody {
     display: grid;
     gap: 16px;
@@ -164,10 +222,14 @@
     align-items: start;
 }
 
+.stackedEditorBody {
+    grid-template-columns: 1fr;
+}
+
 .listEditorSection {
     display: grid;
     gap: 12px;
-    padding: 14px;
+    padding: 12px;
     border-radius: 14px;
     background: #282e3d;
     border: 1px solid #3d4458;
@@ -195,6 +257,11 @@
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
+    align-items: end;
+}
+
+.listEditorSelect {
+    min-width: 0;
 }
 
 .listEditorInput {
@@ -228,7 +295,7 @@
 .listEditorItems {
     display: grid;
     gap: 0;
-    max-height: 280px;
+    max-height: 180px;
     overflow: auto;
     padding-right: 2px;
     border: 1px solid #343c50;
@@ -352,7 +419,7 @@
     }
 
     .listEditorHeader {
-        flex-direction: column;
+        grid-template-columns: 1fr;
     }
 
     .listEditorButton {

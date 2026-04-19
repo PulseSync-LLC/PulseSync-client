@@ -8,6 +8,7 @@ export interface StoreAddonRelease {
     githubUrl?: string | null
     authors: string[]
     changelog?: string[] | string | null
+    usedAiDuringDevelopment: boolean
     avatarUrl?: string | null
     bannerUrl?: string | null
     downloadUrl?: string | null

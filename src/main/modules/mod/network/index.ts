@@ -4,6 +4,7 @@ import * as fs from 'original-fs'
 import * as path from 'path'
 import logger from '../../logger'
 import config from '@common/appConfig'
+import mainHttpClient from '../../../http/client'
 import RendererEvents from '../../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
 import { isCompressedArchiveLink, writePatchedAsarAndPatchBundle } from '../mod-files'
@@ -38,10 +39,18 @@ const USER_AGENT = () =>
 
 export async function checkModCompatibility(modVersion: string, ymVersion: string): Promise<ModCompatibilityResult> {
     try {
-        const resp = await axios.get(`${config.SERVER_URL}/api/v1/mod/v2/check`, {
-            params: { yandexVersion: ymVersion, modVersion },
+        const response = await mainHttpClient.get<{
+            code?: string
+            error?: string
+            message?: string
+            recommendedVersion?: string
+            requiredVersion?: string
+            success?: boolean
+            url?: string
+        }>('/api/v1/mod/v2/check', {
+            query: { yandexVersion: ymVersion, modVersion },
         })
-        const d = resp.data
+        const d = response.data
         if (d.error) return { success: false, message: d.error }
         return {
             success: d.success ?? false,

@@ -2,6 +2,7 @@ import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
+export const RELATIONS_TAB = 'Relations'
 
 export interface DocTab {
     title: string
@@ -14,6 +15,10 @@ export type ActiveTab = string
 export interface ExtensionViewProps {
     addon: AddonInterface
     isEnabled: boolean
+    addonRelationsEnabled?: boolean
+    relationLabels?: Record<string, string>
+    enableBlockedReason?: string | null
+    canEditMetadata?: boolean
     onToggleEnabled: (enabled: boolean) => void
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
@@ -26,8 +31,8 @@ export interface ExtensionViewProps {
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
     onPublicationGithubUrlChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string, githubUrl: string) => void
-    onUpdateAddon?: (changelogText: string, githubUrl: string) => void
+    onPublishAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
+    onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
 
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void

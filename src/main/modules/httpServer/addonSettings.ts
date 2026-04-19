@@ -15,6 +15,19 @@ import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addo
 export type AddonSettingsPayload = Record<string, any>
 
 const getAddonRoot = () => path.join(app.getPath('appData'), 'PulseSync', 'addons')
+const readStoredValue = (storedValues: AddonSettingsValues | undefined, keys: string[]): unknown => {
+    if (!storedValues) {
+        return undefined
+    }
+
+    for (const key of keys) {
+        if (key && Object.prototype.hasOwnProperty.call(storedValues, key)) {
+            return storedValues[key]
+        }
+    }
+
+    return undefined
+}
 
 const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => {
     const valuesPath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
@@ -42,6 +55,16 @@ export const transformAddonHandleConfig = (input: HandleConfig | null | undefine
             if (!item?.id || typeof item.id !== 'string') continue
 
             if (item.type === 'text' && Array.isArray(item.buttons)) {
+                if (item.buttons.length === 1 && (!item.buttons[0]?.id || typeof item.buttons[0].id !== 'string')) {
+                    const button = item.buttons[0]
+                    const storedValue = readStoredValue(storedValues, [item.id, `${item.id}_1`])
+                    result[item.id] = {
+                        value: typeof storedValue !== 'undefined' ? storedValue : (button?.value ?? button?.text),
+                        default: button?.defaultValue ?? button?.defaultParameter,
+                    }
+                    continue
+                }
+
                 result[item.id] = item.buttons.reduce(
                     (acc, button) => {
                         if (!button?.id || typeof button.id !== 'string') return acc

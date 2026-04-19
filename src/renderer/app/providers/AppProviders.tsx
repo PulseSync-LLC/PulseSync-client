@@ -7,6 +7,7 @@ import { SkeletonTheme } from 'react-loading-skeleton'
 import UserContext from '@entities/user/model/context'
 import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
 import { NotificationsProvider } from '@app/providers/notifications'
+import { NewsProvider } from '@app/providers/news'
 import { useSocketContext } from '@app/providers/socket'
 import { ExperimentsProvider } from '@app/providers/experiments'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
@@ -21,7 +22,6 @@ export default function AppProviders({
     setUser,
     authorize,
     loading,
-    meLoading,
     musicInstalled,
     setMusicInstalled,
     musicVersion,
@@ -64,7 +64,7 @@ export default function AppProviders({
             user,
             setUser,
             authorize,
-            loading: loading || meLoading,
+            loading,
             musicInstalled,
             setMusicInstalled,
             musicVersion,
@@ -98,7 +98,6 @@ export default function AppProviders({
             isAppDeprecated,
             loading,
             allAchievements,
-            meLoading,
             modInfo,
             modInfoFetched,
             musicInstalled,
@@ -129,17 +128,19 @@ export default function AppProviders({
                 }}
             />
             <UserContext.Provider value={userContextValue}>
-                <ExperimentsProvider userId={user.id}>
-                    <ExperimentOverridesDevModal />
-                    <UpdateChannelOverrideModal />
-                    <NotificationsProvider value={notificationsValue}>
-                        <PlayerProvider>
-                            <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                                <CssVarsProvider>{loading || meLoading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
-                            </SkeletonTheme>
-                        </PlayerProvider>
-                    </NotificationsProvider>
-                </ExperimentsProvider>
+                <NewsProvider key={user.id} enabled={!loading}>
+                    <ExperimentsProvider userId={user.id}>
+                        <ExperimentOverridesDevModal />
+                        <UpdateChannelOverrideModal />
+                        <NotificationsProvider value={notificationsValue}>
+                            <PlayerProvider>
+                                <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
+                                    <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
+                                </SkeletonTheme>
+                            </PlayerProvider>
+                        </NotificationsProvider>
+                    </ExperimentsProvider>
+                </NewsProvider>
             </UserContext.Provider>
         </div>
     )

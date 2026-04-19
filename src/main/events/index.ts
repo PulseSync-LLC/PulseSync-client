@@ -37,6 +37,7 @@ import { getMacUpdater } from '../modules/updater/macOsUpdater'
 import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
+import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
@@ -49,6 +50,7 @@ import {
     setUpdateChannelOverride,
     shouldAllowDowngradeForCurrentChannel,
 } from '../modules/updater/updateChannel'
+import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 
 const updater = getUpdater()
 const State = getState()
@@ -997,6 +999,14 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
                 message: t('main.events.yandexUninstallError'),
             })
         }
+    })
+    ipcMain.handle(MainEvents.GET_SUBCOMPONENTS_META, async () => {
+        const meta: SubcomponentsMeta = {
+            ffmpeg: await getFfmpegMeta(),
+            ytdlp: await getYtDlpMeta(),
+        }
+
+        return meta
     })
 }
 

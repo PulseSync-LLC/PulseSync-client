@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdFolderOpen } from 'react-icons/md'
+import { SiBoosty } from 'react-icons/si'
 
 import MainEvents from '@common/types/mainEvents'
 import ArrowContext from '@shared/assets/icons/arrowContext.svg'
@@ -58,6 +58,7 @@ type Params = {
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
     openAppDirectory: () => void
+    openBoostyUrl: () => void
     openModal: (modal: ModalName) => void
     openUpdateModal: () => void
     removeObsWidget: () => void
@@ -80,6 +81,7 @@ export function buildContextMenuSections({
     deleteMod,
     downloadObsWidget,
     openAppDirectory,
+    openBoostyUrl,
     openModal,
     openUpdateModal,
     removeObsWidget,
@@ -92,9 +94,9 @@ export function buildContextMenuSections({
 }: Params): SectionConfig[] {
     return [
         createContentSection(
-            <button className={menuStyles.contextButton} onClick={openAppDirectory}>
-                <span>{t('contextMenu.appDirectory')}</span>
-                <MdFolderOpen size={18} />
+            <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
+                <span>{t('contextMenu.boostyUrl')}</span>
+                <SiBoosty size={18} />
             </button>,
         ),
         createButtonSection(t('contextMenu.obsWidget.title'), [
@@ -209,6 +211,10 @@ export function buildContextMenuSections({
                 },
                 true,
             ),
+            {
+                label: t('contextMenu.appDirectory'),
+                onClick: openAppDirectory,
+            },
         ]),
     ]
 }

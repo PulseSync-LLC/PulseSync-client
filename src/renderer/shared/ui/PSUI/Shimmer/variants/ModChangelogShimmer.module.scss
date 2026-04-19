@@ -1,0 +1,109 @@
+@use '../styles/skeleton' as shimmer;
+
+.shell {
+    @include shimmer.shell;
+    gap: 0;
+}
+
+.item {
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+    padding: 24px;
+    outline: 1px solid var(--modal-border);
+
+    &:nth-child(odd) {
+        background: linear-gradient(90deg, #577eff24 0%, rgba(87, 126, 255, 0) 100%);
+    }
+
+    &:nth-child(even) {
+        background: linear-gradient(90deg, #577eff10 0%, rgba(87, 126, 255, 0) 100%);
+    }
+}
+
+.versionInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    width: 120px;
+    flex-shrink: 0;
+}
+
+.versionBadge {
+    @include shimmer.text-surface(#3468f2);
+    width: 58px;
+    height: 20px;
+}
+
+.date {
+    @include shimmer.text-surface;
+    width: 84px;
+    height: 10px;
+}
+
+.content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 0;
+    padding-top: 2px;
+}
+
+.section {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sectionTitle {
+    @include shimmer.text-surface;
+    width: 180px;
+    height: 24px;
+}
+
+.bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.bulletRow {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+}
+
+.bulletDot {
+    @include shimmer.text-surface;
+    width: 6px;
+    height: 6px;
+    flex-shrink: 0;
+}
+
+.bulletLine {
+    @include shimmer.text-surface;
+    width: 100%;
+    height: 16px;
+}
+
+.bulletLineShort {
+    @extend .bulletLine;
+    width: 64%;
+}
+
+@media (max-width: 640px) {
+    .item {
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .versionInfo {
+        width: auto;
+    }
+
+    .content {
+        width: 100%;
+    }
+}

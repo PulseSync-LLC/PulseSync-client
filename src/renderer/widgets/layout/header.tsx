@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
@@ -13,9 +13,9 @@ import userContext from '@entities/user/model/context'
 import ContextMenu from '@features/context_menu'
 import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
+import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import config, { isDev, isDevmark } from '@common/appConfig'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { isDevmark } from '@common/appConfig'
 import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -27,7 +27,7 @@ import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
 import { useModalContext } from '@app/providers/modal'
 import playerContext from '@entities/track/model/player.context'
 import { MdSettings } from 'react-icons/md'
-import { useQuery } from '@apollo/client/react'
+import { useLazyQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
@@ -37,6 +37,7 @@ import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout
 import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
 import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
 interface p {
     goBack?: boolean
@@ -55,16 +56,16 @@ const Header: React.FC<p> = () => {
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, appInfo, app, setUser, updateAvailable } = useContext(userContext)
+    const { user, app, setUser, updateAvailable } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
-    const [modal, setModal] = useState(false)
     const updateModalRef = useRef<{
         openUpdateModal: () => void
         closeUpdateModal: () => void
     }>(null)
 
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
+    const isAppChangelogModalOpen = isModalOpen(Modals.APP_CHANGELOG)
     const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
@@ -74,13 +75,13 @@ const Header: React.FC<p> = () => {
 
     const [playStatus, setPlayStatus] = useState<PlayStatus>('null')
 
-    const openUpdateModal = useCallback(() => setModal(true), [])
-    const closeUpdateModal = useCallback(() => setModal(false), [])
+    const openAppChangelogModal = useCallback(() => openModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, openModal])
+    const closeAppChangelogModal = useCallback(() => closeModal(Modals.APP_CHANGELOG), [Modals.APP_CHANGELOG, closeModal])
 
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
     const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
-    updateModalRef.current = { openUpdateModal, closeUpdateModal }
+    updateModalRef.current = { openUpdateModal: openAppChangelogModal, closeUpdateModal: closeAppChangelogModal }
     const toggleMenu = useCallback(() => {
         setIsUserCardOpen(false)
         setIsMenuOpen(current => !current)
@@ -142,7 +143,7 @@ const Header: React.FC<p> = () => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
                 if (value && user.id !== '-1') {
-                    openUpdateModal()
+                    openAppChangelogModal()
                 }
             })
             window.desktopEvents?.on(RendererEvents.SHOW_MOD_MODAL, () => {
@@ -153,23 +154,21 @@ const Header: React.FC<p> = () => {
                 window.desktopEvents?.removeAllListeners(MainEvents.NEED_MODAL_UPDATE)
             }
         }
-    }, [])
+    }, [openAppChangelogModal, openModModal, user.id])
 
     const logout = () => {
-        fetch(config.SERVER_URL + '/auth/logout', {
-            method: 'PUT',
-            headers: {
-                authorization: `Bearer ${getUserToken()}`,
-            },
-        }).then(async r => {
-            const res = await r.json()
-            if (res.ok) {
-                toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
-                window.electron.store.delete('tokens.token')
-                setUser(userInitials)
-                await client.clearStore()
-            }
-        })
+        rendererHttpClient
+            .put<{ ok?: boolean }>('/auth/logout', {
+                auth: true,
+            })
+            .then(async ({ data: res }) => {
+                if (res.ok) {
+                    toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
+                    window.electron.store.delete('tokens.token')
+                    setUser(userInitials)
+                    await client.clearStore()
+                }
+            })
     }
 
     const formatDate = useCallback((timestamp: any) => {
@@ -217,46 +216,91 @@ const Header: React.FC<p> = () => {
         [setUser, t],
     )
 
-    const memoizedAppInfo = useMemo(() => appInfo, [appInfo])
-
-    const [appUpdatesInfo, setAppUpdatesInfo] = useState<typeof appInfo>([])
-    const [loadingAppUpdates, setLoadingAppUpdates] = useState(true)
+    const [appUpdatesInfo, setAppUpdatesInfo] = useState<AppInfoInterface[]>([])
+    const [loadingAppUpdates, setLoadingAppUpdates] = useState(false)
     const [appError, setAppError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
+    const appUpdatesLoadedRef = useRef(false)
+    const appUpdatesLoadingRef = useRef(false)
 
     useEffect(() => {
+        if (!isAppChangelogModalOpen || appUpdatesLoadedRef.current || appUpdatesLoadingRef.current) {
+            return
+        }
 
-        setLoadingAppUpdates(true)
-        setAppError(null)
+        let active = true
 
-        Promise.resolve(memoizedAppInfo)
-            .then(data => {
-                setAppUpdatesInfo(data || [])
-            })
-            .catch(e => {
-                setAppError(e.message)
-            })
-            .finally(() => {
-                setLoadingAppUpdates(false)
-            })
-    }, [memoizedAppInfo])
+        const loadAppUpdates = async () => {
+            appUpdatesLoadingRef.current = true
+            setLoadingAppUpdates(true)
+            setAppError(null)
+
+            try {
+                const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
+                const data = response.data
+
+                if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
+                    throw new Error('Failed to fetch app info')
+                }
+
+                if (!active) {
+                    return
+                }
+
+                const sortedAppInfos = [...data.appInfo].sort((a, b) => b.id - a.id)
+                setAppUpdatesInfo(sortedAppInfos)
+                appUpdatesLoadedRef.current = true
+            } catch (error) {
+                if (!active) {
+                    return
+                }
+
+                console.error('Failed to fetch app info:', error)
+                setAppError(error instanceof Error ? error.message : 'Failed to fetch app info')
+            } finally {
+                appUpdatesLoadingRef.current = false
+                if (active) {
+                    setLoadingAppUpdates(false)
+                }
+            }
+        }
+
+        void loadAppUpdates()
+
+        return () => {
+            active = false
+        }
+    }, [isAppChangelogModalOpen])
 
     const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
-    const {
-        data: modData,
-        loading: loadingModChanges,
-        error: modError,
-    } = useQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
-        variables: { modVersion: app.mod.version || '' },
-        skip: !shouldFetchModChanges,
-        fetchPolicy: 'no-cache',
+    const [
+        loadModChanges,
+        {
+            called: modChangesCalled,
+            data: modData,
+            loading: loadingModChanges,
+            error: modError,
+        },
+    ] = useLazyQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
+        fetchPolicy: 'cache-first',
     })
+
+    useEffect(() => {
+        if (!isModModalOpen || !shouldFetchModChanges) {
+            return
+        }
+
+        void loadModChanges({
+            variables: { modVersion: app.mod.version || '' },
+        })
+    }, [app.mod.version, isModModalOpen, loadModChanges, shouldFetchModChanges])
 
     const modChangesInfoRaw: ModChangelogEntry[] =
         shouldFetchModChanges && Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []
-    const modChangesLoading = shouldFetchModChanges && loadingModChanges && modChangesInfoRaw.length === 0
-    const modChangesError = shouldFetchModChanges ? modError : undefined
+    const modChangesLoading =
+        isModModalOpen && shouldFetchModChanges && modChangesInfoRaw.length === 0 && (!modChangesCalled || loadingModChanges)
+    const modChangesError = isModModalOpen && shouldFetchModChanges ? modError : undefined
 
     useEffect(() => {
 
@@ -279,12 +323,12 @@ const Header: React.FC<p> = () => {
                 appUpdatesInfo={appUpdatesInfo}
                 appVersion={app.info.version}
                 closeModModal={closeModModal}
-                closeUpdateModal={closeUpdateModal}
+                closeAppChangelogModal={closeAppChangelogModal}
                 formatDate={formatDate}
+                isAppChangelogModalOpen={isAppChangelogModalOpen}
                 isModModalOpen={isModModalOpen}
                 loadingAppUpdates={loadingAppUpdates}
                 loadingModChanges={modChangesLoading}
-                modal={modal}
                 modChangesInfo={modChangesInfoRaw}
                 modError={modChangesError}
             />
@@ -315,7 +359,7 @@ const Header: React.FC<p> = () => {
                             {user.id !== '-1' && (
                                 <>
                                     <UpdateChannelOverrideButton />
-                                    {(user.perms === 'developer' || isDev) && <ExperimentOverridesDevButton />}
+                                    {user.perms === 'developer' && <ExperimentOverridesDevButton />}
                                     <NotificationsBell />
                                     <div
                                         className={styles.user_container}

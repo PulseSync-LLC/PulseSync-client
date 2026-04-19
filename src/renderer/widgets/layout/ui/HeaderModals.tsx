@@ -6,7 +6,6 @@ import remarkGfm from 'remark-gfm'
 import remarkBreaks from 'remark-breaks'
 import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 import Loader from '@shared/ui/PSUI/Loader'
-import Shimmer from '@shared/ui/PSUI/Shimmer'
 import { useTranslation } from 'react-i18next'
 import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
@@ -22,12 +21,12 @@ type Props = {
     appUpdatesInfo: AppInfoInterface[]
     appVersion: string
     closeModModal: () => void
-    closeUpdateModal: () => void
+    closeAppChangelogModal: () => void
     formatDate: (timestamp: any) => string
+    isAppChangelogModalOpen: boolean
     isModModalOpen: boolean
     loadingAppUpdates: boolean
     loadingModChanges: boolean
-    modal: boolean
     modChangesInfo: ModChangelogEntry[]
     modError?: Error
 }
@@ -53,12 +52,12 @@ export default function HeaderModals({
     appUpdatesInfo,
     appVersion,
     closeModModal,
-    closeUpdateModal,
+    closeAppChangelogModal,
     formatDate,
+    isAppChangelogModalOpen,
     isModModalOpen,
     loadingAppUpdates,
     loadingModChanges,
-    modal,
     modChangesInfo,
     modError,
 }: Props) {
@@ -66,9 +65,9 @@ export default function HeaderModals({
 
     return (
         <>
-            <Modal title={t('header.latestUpdatesTitle')} isOpen={modal} reqClose={closeUpdateModal}>
+            <Modal title={t('header.latestUpdatesTitle')} isOpen={isAppChangelogModalOpen} reqClose={closeAppChangelogModal}>
                 <div className={modalStyles.updateModal}>
-                    {loadingAppUpdates && <Loader variant="panel" />}
+                    {loadingAppUpdates && <Loader variant="modChangelog" />}
                     {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
@@ -94,6 +93,7 @@ export default function HeaderModals({
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
+                    {loadingModChanges && <Loader variant="modChangelog" />}
                     {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
                     {!loadingModChanges &&
                         !modError &&

@@ -11,6 +11,7 @@ import PextDNDModal from '@widgets/modalContainer/modals/PextDNDModal'
 import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
 import UntrustedLocalAddonModal from '@widgets/modalContainer/modals/UntrustedLocalAddonModal'
 import BasicConfirmationModal from '@widgets/modalContainer/modals/BasicConfirmationModal'
+import YandexMusicChangelogModal from '@widgets/modalContainer/modals/YandexMusicChangelogModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -19,6 +20,7 @@ const ModalContainer: React.FC = () => {
             <LinuxAsarPathDialog />
             <AppUpdateDialog />
             <YandexMusicUpdateDialog />
+            <YandexMusicChangelogModal />
             <MacPermissionsModal />
             <LinuxPermissionsModal />
             <PremiumPromoModal />

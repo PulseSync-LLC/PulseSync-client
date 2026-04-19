@@ -59,7 +59,7 @@
 
 .modalBody {
     display: grid;
-    grid-template-columns: minmax(248px, 300px) minmax(0, 1fr);
+    grid-template-columns: minmax(300px, 340px) minmax(0, 1fr);
     align-items: start;
     gap: 18px;
     width: 100%;
@@ -77,10 +77,11 @@
     width: 100%;
     padding: 14px;
     display: grid;
+    grid-template-columns: 1fr;
     gap: 10px;
     align-content: start;
     grid-auto-rows: min-content;
-    max-height: min(420px, calc(100vh - 220px));
+    max-height: calc(100vh - 180px);
     overflow: auto;
     overflow-x: hidden;
     border: 1px solid #353946;
@@ -263,6 +264,56 @@
     box-shadow: 0 0 0 3px rgba(87, 126, 255, 0.14);
 }
 
+.groupsGrid {
+    display: grid;
+    gap: 10px;
+}
+
+.groupButton {
+    display: grid;
+    gap: 10px;
+    width: 100%;
+    min-width: 0;
+    padding: 12px;
+    border-radius: 12px;
+    border: 1px solid #363944;
+    background: #1f232d;
+    text-align: left;
+    color: inherit;
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        transform 0.15s ease,
+        background 0.15s ease,
+        box-shadow 0.15s ease;
+    box-sizing: border-box;
+}
+
+.groupButton:hover {
+    transform: translateY(-1px);
+    border-color: #4a4f5d;
+    background: #232834;
+}
+
+.groupButtonActive {
+    border-color: #577eff;
+    background: linear-gradient(180deg, rgba(87, 126, 255, 0.14) 0%, rgba(87, 126, 255, 0.05) 100%), #232834;
+    box-shadow: inset 0 0 0 1px rgba(87, 126, 255, 0.18);
+}
+
+.groupButtonName {
+    font-size: 14px;
+    font-weight: 800;
+    color: #ffffff;
+    overflow-wrap: anywhere;
+}
+
+.groupDescription {
+    color: #b6bfd4;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+}
+
 .editorSection {
     display: grid;
     gap: 14px;
@@ -307,15 +358,10 @@
     padding: 0 14px;
 }
 
-.selectField {
-    width: 100%;
-    min-width: 0;
-}
-
 .textarea {
-    min-height: 150px;
-    height: 180px;
-    max-height: 240px;
+    min-height: 96px;
+    height: 112px;
+    max-height: 152px;
     padding: 12px 14px;
     resize: vertical;
     font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
@@ -405,8 +451,8 @@
     }
 
     .textarea {
-        min-height: 132px;
-        height: 150px;
-        max-height: 220px;
+        min-height: 88px;
+        height: 104px;
+        max-height: 136px;
     }
 }

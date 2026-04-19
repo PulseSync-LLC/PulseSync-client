@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useContext, useEffect, useMemo, useState } from 'react'
 import cn from 'clsx'
 import { MdEdit } from 'react-icons/md'
 
@@ -8,7 +8,8 @@ import TabContent from '@pages/extension/route/extBox/TabContent'
 import ThemeInfo from '@pages/extension/route/extBox/ThemeInfo'
 import { useAddonFiles } from '@pages/extension/route/extBox/hooks'
 import { useConfig } from '@pages/extension/route/extBox/useConfig'
-import { ExtensionViewProps, ActiveTab } from '@pages/extension/route/extBox/types'
+import { ExtensionViewProps, ActiveTab, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+import UserContext from '@entities/user/model/context'
 import { useTranslation } from 'react-i18next'
 
 import * as s from '@pages/extension/route/extensionview.module.scss'
@@ -16,6 +17,9 @@ import * as s from '@pages/extension/route/extensionview.module.scss'
 const ExtensionView: React.FC<ExtensionViewProps> = ({
     addon,
     isEnabled,
+    addonRelationsEnabled = false,
+    relationLabels,
+    enableBlockedReason,
     hasStoreUpdate,
     storeUpdateBusy,
     onStoreUpdate,
@@ -34,18 +38,72 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     onUpdateAddon,
 }) => {
     const { t } = useTranslation()
+    const { user } = useContext(UserContext)
     const { docs } = useAddonFiles(addon)
     const { configExists, config, editConfig, configApi } = useConfig(addon.path)
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
     const [tabStickyTop, setTabStickyTop] = useState(66)
+    const hasRelations = useMemo(
+        () => Boolean(addonRelationsEnabled && (addon.dependencies?.length || addon.conflictsWith?.length)),
+        [addon.conflictsWith?.length, addon.dependencies?.length, addonRelationsEnabled],
+    )
+    const shouldOpenRelationsByDefault = useMemo(() => Boolean(hasRelations && enableBlockedReason), [enableBlockedReason, hasRelations])
 
     useEffect(() => {
         setEditMode(false)
-        if (docs.length) setActiveTab(docs[0].title as ActiveTab)
+        if (shouldOpenRelationsByDefault) {
+            setActiveTab(RELATIONS_TAB)
+        } else if (docs.length) {
+            setActiveTab(docs[0].title as ActiveTab)
+        }
         else setActiveTab('Settings')
-    }, [addon.path, docs])
+    }, [addon.path, docs, shouldOpenRelationsByDefault])
+
+    const canEditMetadata = useMemo(() => {
+        const currentUserCandidates = [user.username, user.nickname, user.id]
+            .map(value => String(value || '').trim().toLowerCase())
+            .filter(Boolean)
+
+        if (!currentUserCandidates.length) {
+            return false
+        }
+
+        const addonAuthors =
+            Array.isArray(addon.author) ?
+                addon.author
+            : typeof addon.author === 'string' ?
+                addon.author.split(',')
+            :   []
+
+        const normalizedAuthors = addonAuthors.map(author => String(author || '').trim().toLowerCase()).filter(Boolean)
+        if (!normalizedAuthors.length) {
+            return false
+        }
+
+        return currentUserCandidates.some(candidate => normalizedAuthors.includes(candidate))
+    }, [addon.author, user.id, user.nickname, user.username])
+
+    useEffect(() => {
+        if (activeTab === 'Metadata' && !canEditMetadata) {
+            if (docs.length) {
+                setActiveTab(docs[0].title as ActiveTab)
+            } else {
+                setActiveTab('Settings')
+            }
+        }
+    }, [activeTab, canEditMetadata, docs])
+
+    useEffect(() => {
+        if (activeTab === RELATIONS_TAB && !hasRelations) {
+            if (docs.length) {
+                setActiveTab(docs[0].title as ActiveTab)
+            } else {
+                setActiveTab('Settings')
+            }
+        }
+    }, [activeTab, docs, hasRelations])
 
     const themeActive = useMemo(() => isEnabled && addon.type === 'theme', [isEnabled, addon.type])
 
@@ -69,6 +127,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                 <ThemeInfo
                     addon={addon}
                     isEnabled={isEnabled}
+                    enableBlockedReason={enableBlockedReason}
                     hasStoreUpdate={hasStoreUpdate}
                     storeUpdateBusy={storeUpdateBusy}
                     onStoreUpdate={onStoreUpdate}
@@ -94,6 +153,8 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         onChange={setActiveTab}
                         docs={docs}
                         hasPublicationChangelog={publicationReleases.length > 0}
+                        hasRelations={hasRelations}
+                        showMetadataTab={canEditMetadata}
                         stickyTop={tabStickyTop}
                     />
                     <TabContent
@@ -106,6 +167,9 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         configApi={configApi}
                         editMode={editMode}
                         addon={addon}
+                        addonRelationsEnabled={addonRelationsEnabled}
+                        relationLabels={relationLabels}
+                        canEditMetadata={canEditMetadata}
                         publicationReleases={publicationReleases}
                     />
                 </div>

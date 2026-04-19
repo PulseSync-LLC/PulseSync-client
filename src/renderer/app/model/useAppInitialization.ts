@@ -1,11 +1,8 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
 import MainEvents from '@common/types/mainEvents'
-import config from '@common/appConfig'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
     fetchAchievements: () => Promise<void>
@@ -13,7 +10,6 @@ type Params = {
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
     setAddons: Dispatch<SetStateAction<Addon[]>>
     setAllAchievements: Dispatch<SetStateAction<any[]>>
-    setAppInfo: Dispatch<SetStateAction<AppInfoInterface[]>>
     setModInfoFetched: Dispatch<SetStateAction<boolean>>
     setMusicInstalled: Dispatch<SetStateAction<boolean>>
     setMusicVersion: Dispatch<SetStateAction<string | null>>
@@ -28,7 +24,6 @@ export function useAppInitialization({
     router,
     setAddons,
     setAllAchievements,
-    setAppInfo,
     setModInfoFetched,
     setMusicInstalled,
     setMusicVersion,
@@ -66,17 +61,6 @@ export function useAppInitialization({
                     setWidgetInstalled(false)
                 }
 
-                try {
-                    const res = await fetch(`${config.SERVER_URL}/api/v1/app/info`)
-                    const data = await res.json()
-                    if (data.ok && Array.isArray(data.appInfo)) {
-                        const sortedAppInfos = data.appInfo.sort((a: any, b: any) => b.id - a.id)
-                        setAppInfo(sortedAppInfos)
-                    }
-                } catch (error) {
-                    console.error('Failed to fetch app info:', error)
-                }
-
                 await Promise.all([fetchModInfo(appRef.current), fetchAchievements()])
             }
 
@@ -99,7 +83,6 @@ export function useAppInitialization({
         router,
         setAddons,
         setAllAchievements,
-        setAppInfo,
         setMusicInstalled,
         setMusicVersion,
         setWidgetInstalled,
