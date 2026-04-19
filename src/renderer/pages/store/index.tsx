@@ -1,7 +1,7 @@
 import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
-import { MdSearch } from 'react-icons/md'
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
 import { isDev } from '@common/appConfig'
 import PageLayout from '@widgets/layout/PageLayout'
 import * as st from '@pages/store/store.module.scss'
@@ -26,6 +26,9 @@ type StoreAddonsQuery = {
 type ModerationAddonsQuery = {
     getModerationAddons: StoreAddon[]
 }
+
+type StoreTypeFilter = 'all' | 'theme' | 'script'
+type StoreSortKey = 'latestRelease' | 'name' | 'downloads'
 
 const STORE_CARD_MIN_HEIGHT = 238
 const STORE_GRID_ROW_GAP = 16
@@ -53,6 +56,10 @@ function formatDate(value: string, locale?: string): string {
     }).format(date)
 }
 
+function getDefaultSortOrder(sortKey: StoreSortKey): 'asc' | 'desc' {
+    return sortKey === 'name' ? 'asc' : 'desc'
+}
+
 export default function StorePage() {
     const INITIAL_SHIMMER_FADE_MS = 180
 
@@ -61,8 +68,13 @@ export default function StorePage() {
     const { addons: installedAddons, setAddons: setInstalledAddons, user } = useContext(UserContext)
     const { Modals, openModal, setModalState } = useModalContext()
     const [addons, setAddons] = useState<StoreAddon[]>([])
+    const [storeTotalCount, setStoreTotalCount] = useState(0)
     const [pendingAddons, setPendingAddons] = useState<StoreAddon[]>([])
     const [searchQuery, setSearchQuery] = useState('')
+    const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+    const [typeFilter, setTypeFilter] = useState<StoreTypeFilter>('all')
+    const [sortKey, setSortKey] = useState<StoreSortKey>('latestRelease')
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => getDefaultSortOrder('latestRelease'))
     const [loading, setLoading] = useState(true)
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
     const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
@@ -79,6 +91,14 @@ export default function StorePage() {
     const isDeveloperUser = user?.perms === 'developer' || isDev
 
     useEffect(() => {
+        const timeoutId = window.setTimeout(() => {
+            setDebouncedSearchQuery(searchQuery.trim())
+        }, 250)
+
+        return () => window.clearTimeout(timeoutId)
+    }, [searchQuery])
+
+    useEffect(() => {
         let active = true
 
         const loadAddons = async () => {
@@ -89,16 +109,22 @@ export default function StorePage() {
                     variables: {
                         page: 1,
                         pageSize: 50,
+                        search: debouncedSearchQuery || undefined,
+                        sortBy: sortKey,
+                        sortOrder,
+                        type: typeFilter === 'all' ? undefined : typeFilter,
                     },
                     fetchPolicy: 'no-cache',
                 })
 
                 if (!active) return
                 setAddons(Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : [])
+                setStoreTotalCount(Number(response.data?.getStoreAddons?.totalCount) || 0)
             } catch (error) {
                 console.error('[Store] failed to load addons', error)
                 if (active) {
                     setAddons([])
+                    setStoreTotalCount(0)
                 }
             } finally {
                 if (active) {
@@ -112,7 +138,7 @@ export default function StorePage() {
         return () => {
             active = false
         }
-    }, [])
+    }, [debouncedSearchQuery, sortKey, sortOrder, typeFilter])
 
     useEffect(() => {
         let active = true
@@ -129,7 +155,11 @@ export default function StorePage() {
                 const response = await apolloClient.query<ModerationAddonsQuery>({
                     query: GetModerationAddonsQuery,
                     variables: {
+                        search: debouncedSearchQuery || undefined,
+                        sortBy: sortKey,
+                        sortOrder,
                         status: 'pending',
+                        type: typeFilter === 'all' ? undefined : typeFilter,
                     },
                     fetchPolicy: 'no-cache',
                 })
@@ -155,56 +185,27 @@ export default function StorePage() {
         return () => {
             active = false
         }
-    }, [isDeveloperUser, user?.id])
+    }, [debouncedSearchQuery, isDeveloperUser, sortKey, sortOrder, typeFilter, user?.id])
 
     const installedStoreAddons = useMemo(
         () => new Map(installedAddons.filter(addon => addon.storeAddonId).map(addon => [addon.storeAddonId!, addon])),
         [installedAddons],
     )
 
-    const filteredAddons = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase()
-        if (!query) {
-            return addons
-        }
+    const shouldRenderCards = addons.length > 0
+    const hasSearchOrFilter = Boolean(debouncedSearchQuery) || typeFilter !== 'all'
+    const shouldShowPendingSection = isDeveloperUser && (pendingAddons.length > 0 || hasSearchOrFilter)
 
-        return addons.filter(addon => {
-            const haystack = [
-                addon.name,
-                addon.currentRelease?.description || '',
-                addon.type,
-                addon.currentRelease?.version || '',
-                ...(addon.currentRelease?.authors || []),
-            ]
-                .join(' ')
-                .toLowerCase()
-            return haystack.includes(query)
+    const handleSortOptionClick = useCallback((option: StoreSortKey) => {
+        setSortKey(option)
+        setSortOrder(currentOrder => {
+            if (sortKey === option) {
+                return currentOrder === 'asc' ? 'desc' : 'asc'
+            }
+
+            return getDefaultSortOrder(option)
         })
-    }, [addons, searchQuery])
-
-    const filteredPendingAddons = useMemo(() => {
-        const query = searchQuery.trim().toLowerCase()
-        if (!query) {
-            return pendingAddons
-        }
-
-        return pendingAddons.filter(addon => {
-            const release = addon.currentRelease
-            const haystack = [
-                addon.name,
-                release?.description || '',
-                addon.type,
-                release?.version || '',
-                ...(release?.authors || []),
-            ]
-                .join(' ')
-                .toLowerCase()
-
-            return haystack.includes(query)
-        })
-    }, [pendingAddons, searchQuery])
-
-    const shouldRenderCards = filteredAddons.length > 0
+    }, [sortKey])
 
     const handleStoreAddonAction = useCallback(
         async (addon: StoreAddon, release: StoreAddon['currentRelease'], installedStoreAddon?: Addon) => {
@@ -382,7 +383,7 @@ export default function StorePage() {
     }, [measureVirtualGrid])
 
     const virtualizedGrid = useMemo(() => {
-        if (!filteredAddons.length) {
+        if (!addons.length) {
             return {
                 startIndex: 0,
                 topSpacerHeight: 0,
@@ -392,7 +393,7 @@ export default function StorePage() {
         }
 
         const columns = Math.max(1, gridColumns)
-        const totalRows = Math.ceil(filteredAddons.length / columns)
+        const totalRows = Math.ceil(addons.length / columns)
         const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
         const totalHeight = totalRows * STORE_CARD_MIN_HEIGHT + Math.max(0, totalRows - 1) * STORE_GRID_ROW_GAP
         const relativeScrollTop = Math.max(0, scrollTop - gridTopOffset)
@@ -400,8 +401,8 @@ export default function StorePage() {
         const startRow = Math.min(totalRows, Math.max(0, Math.floor(relativeScrollTop / rowHeight) - STORE_GRID_OVERSCAN_ROWS))
         const endRow = Math.min(totalRows, Math.ceil((relativeScrollTop + visibleHeight) / rowHeight) + STORE_GRID_OVERSCAN_ROWS)
         const startIndex = startRow * columns
-        const endIndex = Math.min(filteredAddons.length, endRow * columns)
-        const visibleAddons = filteredAddons.slice(startIndex, endIndex)
+        const endIndex = Math.min(addons.length, endRow * columns)
+        const visibleAddons = addons.slice(startIndex, endIndex)
         const visibleRowCount = Math.ceil(visibleAddons.length / columns)
         const topSpacerHeight = Math.min(totalHeight, startRow * rowHeight)
         const renderedHeight = visibleRowCount * STORE_CARD_MIN_HEIGHT + Math.max(0, visibleRowCount - 1) * STORE_GRID_ROW_GAP
@@ -413,7 +414,7 @@ export default function StorePage() {
             bottomSpacerHeight,
             visibleAddons,
         }
-    }, [filteredAddons, gridColumns, gridTopOffset, scrollTop, scrollViewportHeight])
+    }, [addons, gridColumns, gridTopOffset, scrollTop, scrollViewportHeight])
 
     const shimmerCount = useMemo(() => {
         const columns = Math.max(1, gridColumns)
@@ -477,11 +478,7 @@ export default function StorePage() {
         }
 
         if (!addons.length) {
-            return <div className={st.store_state}>{t('store.empty')}</div>
-        }
-
-        if (!filteredAddons.length) {
-            return <div className={st.store_state}>{t('store.noResults')}</div>
+            return <div className={st.store_state}>{t(hasSearchOrFilter ? 'store.noResults' : 'store.empty')}</div>
         }
 
         return (
@@ -511,7 +508,7 @@ export default function StorePage() {
         )
     }, [
         addons,
-        filteredAddons,
+        hasSearchOrFilter,
         i18n.language,
         installedStoreAddons,
         installingAddonId,
@@ -545,25 +542,71 @@ export default function StorePage() {
                     <header className={st.store_header}>
                         <div className={st.store_title}>{t('pages.store.headerTitle')}</div>
                         <div className={st.store_subtitle}>{t('pages.store.headerSubtitle')}</div>
-                        <div
-                            className={st.store_search}
-                            onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus()}
-                        >
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={event => setSearchQuery(event.target.value)}
-                                placeholder={t('store.searchPlaceholder')}
-                                className={st.store_search_input}
-                            />
-                            <MdSearch className={st.store_search_icon} />
+                        <div className={st.store_toolbar}>
+                            <div className={cn(st.store_toolbarSide, st.store_toolbarSideStart)}>
+                                <div className={st.store_filterOptions}>
+                                    {(['all', 'theme', 'script'] as const).map(option => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            className={cn(st.store_filterChip, st.store_typeChip, typeFilter === option && st.store_filterChipActive)}
+                                            onClick={() => setTypeFilter(option)}
+                                        >
+                                            {option === 'all'
+                                                ? t('filters.type.all')
+                                                : option === 'theme'
+                                                  ? t('filters.type.themes')
+                                                  : t('filters.type.scripts')}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div
+                                className={st.store_search}
+                                onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus()}
+                            >
+                                <input
+                                    type="text"
+                                    value={searchQuery}
+                                    onChange={event => setSearchQuery(event.target.value)}
+                                    placeholder={t('store.searchPlaceholder')}
+                                    className={st.store_search_input}
+                                />
+                                <MdSearch className={st.store_search_icon} />
+                            </div>
+                            <div className={cn(st.store_toolbarSide, st.store_toolbarSideEnd)}>
+                                <div className={st.store_filterOptions}>
+                                    {(['latestRelease', 'name', 'downloads'] as const).map(option => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            className={cn(st.store_filterChip, sortKey === option && st.store_filterChipActive)}
+                                            onClick={() => handleSortOptionClick(option)}
+                                        >
+                                            <span className={st.store_filterChipContent}>
+                                                <span>
+                                                    {option === 'latestRelease'
+                                                        ? t('store.filters.latestRelease')
+                                                        : option === 'name'
+                                                          ? t('store.filters.name')
+                                                          : t('store.filters.downloads')}
+                                                </span>
+                                                {sortKey === option &&
+                                                    (sortOrder === 'asc' ?
+                                                        <MdKeyboardArrowUp className={st.store_filterChipDirection} />
+                                                    :   <MdKeyboardArrowDown className={st.store_filterChipDirection} />)}
+                                            </span>
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                        <div className={st.store_subtitle_stats}>{''.concat(String(filteredAddons?.length)).concat('/').concat(String(addons?.length))}</div>
+                        <div className={st.store_subtitle_stats}>{''.concat(String(addons?.length)).concat('/').concat(String(storeTotalCount))}</div>
                     </header>
 
                     <div ref={storeContentRef}>{content}</div>
 
-                    {isDeveloperUser && pendingAddons.length > 0 ? (
+                    {shouldShowPendingSection ? (
                         <section className={st.store_section}>
                             <div className={st.store_sectionHeader}>
                                 <div>
@@ -572,9 +615,9 @@ export default function StorePage() {
                                 </div>
                             </div>
 
-                            {filteredPendingAddons.length ? (
+                            {pendingAddons.length ? (
                                 <div className={st.store_sectionGrid}>
-                                    {filteredPendingAddons.map((addon, index) =>
+                                    {pendingAddons.map((addon, index) =>
                                         renderStoreCard(addon, index, {
                                             forceStatus: 'pending',
                                         }),
