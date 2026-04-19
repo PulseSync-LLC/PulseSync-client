@@ -233,10 +233,10 @@ jobs:
           cp packaging/aur/pulsesync.xml aur-repo/pulsesync.xml
 
           docker run --rm \
-            -v "$PWD/aur-repo:/work" \
+            -v "$PWD/aur-repo:/work:ro" \
             -w /work \
             archlinux:latest \
-            bash -lc "pacman -Sy --noconfirm base-devel && useradd -m builder && chown -R builder:builder /work && su builder -c 'makepkg --printsrcinfo > .SRCINFO'"
+            bash -lc "pacman -Sy --noconfirm base-devel && useradd -m builder && su builder -c 'makepkg --printsrcinfo'" > aur-repo/.SRCINFO
 
       - name: Commit and push AUR update
         shell: bash
