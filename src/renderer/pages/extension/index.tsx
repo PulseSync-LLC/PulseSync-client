@@ -770,7 +770,11 @@ export default function ExtensionPage() {
             return []
         }
 
-        return selectedPublishedAddon?.releases ?? []
+        if (Array.isArray(selectedPublishedAddon?.releases) && selectedPublishedAddon.releases.length > 0) {
+            return selectedPublishedAddon.releases
+        }
+
+        return selectedPublishedAddon?.currentRelease ? [selectedPublishedAddon.currentRelease] : []
     }, [selectedAddon, selectedPublishedAddon])
 
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
