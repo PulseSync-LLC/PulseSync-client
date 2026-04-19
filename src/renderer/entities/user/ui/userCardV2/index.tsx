@@ -10,10 +10,11 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 import { useTranslation } from 'react-i18next'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import { getProfileSlug } from '@shared/lib/profileSlug'
 
 interface UserCardProps {
     user: Partial<UserInterface>
-    onClick: (username: string) => void
+    onClick: (profileSlug: string) => void
     animationsEnabledRef: React.MutableRefObject<boolean>
     scrollDirectionRef: React.MutableRefObject<'up' | 'down'>
     eagerVisible?: boolean
@@ -109,6 +110,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
     const statusColor = getStatusColor(user as UserInterface)
     const statusColorDark = getStatusColor(user as UserInterface, true)
     const typedUser = user as UserInterface
+    const profileSlug = getProfileSlug(typedUser)
     const levelInfo = useMemo(() => getEffectiveLevelInfo(typedUser), [typedUser.levelInfoV2])
 
     const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
@@ -124,7 +126,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                             visibilityState.entryDirection === 'up' &&
                             styles.enterFromTop,
                     )}
-                    onClick={() => onClick(user.username!)}
+                    onClick={() => onClick(profileSlug)}
                     onMouseEnter={() => setIsHovered(true)}
                     onMouseLeave={() => setIsHovered(false)}
                     style={

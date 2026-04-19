@@ -88,6 +88,93 @@
     line-height: 1.35;
 }
 
+.authorField {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+    padding: 10px 16px;
+    background: #3b4052;
+    border-radius: 8px;
+    outline: transparent solid 2px;
+    transition: var(--transition);
+}
+
+.authorField:hover {
+    outline: #8d9dd6 solid 2px;
+}
+
+.authorFieldLabel {
+    font-size: 12px;
+    line-height: 1.4;
+    color: #fff;
+}
+
+.authorSearchWrap {
+    position: relative;
+}
+
+.authorCombobox {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    min-height: 24px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    padding: 0;
+    cursor: text;
+}
+
+.authorCombobox:focus-within {
+    box-shadow: none;
+}
+
+.authorSearchInput {
+    flex: 1 1 56px;
+    min-width: 48px;
+    height: auto;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: var(--cfg-text);
+    padding: 0;
+    font-size: 14px;
+    font-weight: 500;
+    line-height: 1.35;
+}
+
+.authorSearchInput::placeholder {
+    color: #7d849d;
+}
+
+.authorSearchInput:focus {
+    outline: none;
+}
+
+.authorSearchDropdown {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    z-index: 12;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #3e465f;
+    border-radius: 12px;
+    background: #2b3042;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+    padding: 6px;
+    overflow: hidden;
+}
+
+.authorSearchState {
+    padding: 10px 12px;
+    color: #9fb0c6;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
 .fileCol {
     display: grid;
     gap: 8px;
@@ -284,6 +371,121 @@
     outline: none;
     border-color: var(--cfg-accent);
     box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.18);
+}
+
+.authorSearchResults {
+    display: grid;
+    gap: 4px;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.authorSearchOption {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+    padding: 8px 10px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: #dfe7f8;
+    cursor: pointer;
+    transition:
+        background 0.16s ease,
+        border-color 0.16s ease,
+        color 0.16s ease;
+    text-align: left;
+}
+
+.authorSearchOption:hover {
+    background: #3a4057;
+    border-color: #4a5473;
+}
+
+.authorSearchOptionSelected {
+    background: #3a4057;
+    border-color: #8d9dd6;
+    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+}
+
+.authorSearchBody {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+}
+
+.authorSearchPrimary,
+.authorSearchSecondary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.authorSearchPrimary {
+    font-size: 13px;
+    font-weight: 700;
+    color: #f4f7ff;
+}
+
+.authorSearchSecondary {
+    font-size: 12px;
+    color: #9fb0c6;
+}
+
+.authorSearchAction {
+    font-size: 12px;
+    font-weight: 700;
+    color: #6ea8fe;
+    white-space: nowrap;
+}
+
+.authorChips {
+    display: contents;
+}
+
+.authorChip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    max-width: 100%;
+    padding: 1px 7px;
+    background: rgba(110, 168, 254, 0.12);
+    border: 1px solid rgba(141, 157, 214, 0.22);
+    border-radius: 999px;
+}
+
+.authorChipText {
+    font-size: 13px;
+    line-height: 1.3;
+    color: #e6eeff;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.authorChipRemove {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    color: #7d849d;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex: 0 0 auto;
+    padding: 0;
+    opacity: 0.72;
+}
+
+.authorChipRemove:hover {
+    background: transparent;
+    color: #c8d2ea;
+    opacity: 1;
 }
 
 .listEditorAddButton {

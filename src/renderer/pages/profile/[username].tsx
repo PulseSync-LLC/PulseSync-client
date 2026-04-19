@@ -18,30 +18,29 @@ import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
 import { ExtendedUser } from '@entities/user/model/extendUser.interface'
 import userContext from '@entities/user/model/context'
 import { useTranslation } from 'react-i18next'
+import { getProfileSlug, isProfileSlugForUser } from '@shared/lib/profileSlug'
 
 const ProfilePage: React.FC = () => {
-    const { username: raw } = useParams()
+    const { profileName: raw } = useParams()
     const navigate = useNavigate()
-    const username = decodeURIComponent(raw || '')
+    const profileName = decodeURIComponent(raw || '')
     const { user, allAchievements, socketConnected } = useContext(userContext)
     const { t } = useTranslation()
 
     const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
     const isSelf = useMemo(() => {
-        if (!username) return false
-        const u = user?.username || ''
-        return u.toLowerCase() === username.toLowerCase()
-    }, [user?.username, username])
+        return isProfileSlugForUser(profileName, user)
+    }, [profileName, user])
 
     const queryDoc = useMemo(() => (isSelf ? getMeProfileQuery : getUserProfileQuery), [isSelf])
 
-    const variables = useMemo(() => (isSelf ? undefined : { name: username }), [isSelf, username])
+    const variables = useMemo(() => (isSelf ? undefined : { name: profileName }), [isSelf, profileName])
 
     const { data, loading, error, refetch } = useQuery<any>(queryDoc, {
         variables,
         fetchPolicy: 'no-cache',
-        skip: !username,
+        skip: !profileName,
     })
 
     const payload: ExtendedUser | null = useMemo(() => {
@@ -118,9 +117,11 @@ const ProfilePage: React.FC = () => {
 
     const normalizedError: string | null = useMemo(() => {
         if (error) return error.message || t('profile.errors.loadFailed')
-        if (!loading && username && !payload) return t('profile.errors.userNotFound')
+        if (!loading && profileName && !payload) return t('profile.errors.userNotFound')
         return null
-    }, [error, loading, payload, t, username])
+    }, [error, loading, payload, t, profileName])
+
+    const displayName = useMemo(() => getProfileSlug(livePayload) || profileName, [livePayload, profileName])
 
     const onEscPress = useCallback(
         (e: KeyboardEvent) => {
@@ -139,14 +140,14 @@ const ProfilePage: React.FC = () => {
             return (
                 <>
                     <MdPersonOutline size={34} />
-                    <span>{t('profile.tabs.profileWithName', { username })}</span>
+                    <span>{t('profile.tabs.profileWithName', { username: displayName })}</span>
                 </>
             )
         if (activeTab === 'friends')
             return (
                 <>
                     <MdPeopleOutline size={34} />
-                    <span>{t('profile.tabs.friendsWithName', { username })}</span>
+                    <span>{t('profile.tabs.friendsWithName', { username: displayName })}</span>
                 </>
             )
         if (activeTab === 'settings')
@@ -157,7 +158,7 @@ const ProfilePage: React.FC = () => {
                 </>
             )
         return null
-    }, [activeTab, username])
+    }, [activeTab, displayName, t])
 
     return (
         <PageLayout title={t('profile.pageTitle')}>
@@ -171,7 +172,7 @@ const ProfilePage: React.FC = () => {
 
                 <div className={styles.content}>
                     {activeTab === 'profile' && (
-                        <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} username={username} />
+                        <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} profileName={profileName} />
                     )}
                     {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
                     {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}

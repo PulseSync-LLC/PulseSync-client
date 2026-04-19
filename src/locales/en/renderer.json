@@ -761,6 +761,19 @@
         "settings": "Settings"
     },
     "metadata": {
+        "authorsEditor": {
+            "title": "Authors",
+            "description": "Find a user in PulseSync and add them to the author list. When saving, matched users are stored by username.",
+            "pulseTitle": "PulseSync users",
+            "pulseHint": "Search by username and nickname. Click a user to add them as an add-on author.",
+            "searchPlaceholder": "Find a user",
+            "searchHint": "Start typing a username or nickname.",
+            "noSearchResults": "No users found",
+            "loading": "Loading users...",
+            "add": "Add",
+            "added": "Added",
+            "previewEmpty": "Not set"
+        },
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru",

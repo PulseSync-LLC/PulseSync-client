@@ -761,6 +761,19 @@
         "settings": "Настройки"
     },
     "metadata": {
+        "authorsEditor": {
+            "title": "Авторы",
+            "description": "Найдите пользователя в PulseSync и добавьте его в список авторов. При сохранении совпавшие пользователи будут сохранены по username.",
+            "pulseTitle": "Пользователи PulseSync",
+            "pulseHint": "Поиск по username и nickname. Нажмите на пользователя, чтобы добавить его в авторы аддона.",
+            "searchPlaceholder": "Найти пользователя",
+            "searchHint": "Начните вводить username или nickname.",
+            "noSearchResults": "Пользователи не найдены",
+            "loading": "Загрузка пользователей...",
+            "add": "Добавить",
+            "added": "Добавлен",
+            "previewEmpty": "Не задано"
+        },
         "examples": {
             "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru",
