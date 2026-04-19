@@ -384,7 +384,7 @@ const TabContent: React.FC<Props> = ({
         )
     }
 
-    const doc = docs.find(d => d.title === active)
+    const doc = docs.find(d => (d.value || d.title) === active)
     if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
 
     return (

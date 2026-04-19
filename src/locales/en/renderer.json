@@ -427,6 +427,8 @@
             "confirm": "Enable anyway"
         },
         "tabs": {
+            "changelog": "Changelog",
+            "license": "License",
             "metadata": "Metadata",
             "relations": "Compatibility",
             "settings": "Settings"
@@ -764,16 +766,18 @@
     "metadata": {
         "authorsEditor": {
             "title": "Authors",
-            "description": "Find a user in PulseSync and add them to the author list. When saving, matched users are stored by username.",
             "pulseTitle": "PulseSync users",
             "pulseHint": "Search by username and nickname. Click a user to add them as an add-on author.",
             "searchPlaceholder": "Find a user",
+            "requiredPlaceholder": "Add at least one author",
             "searchHint": "Start typing a username or nickname.",
             "noSearchResults": "No users found",
             "loading": "Loading users...",
             "add": "Add",
             "added": "Added",
-            "previewEmpty": "Not set"
+            "previewEmpty": "Not set",
+            "minimumOneAuthor": "An add-on must have at least one author.",
+            "selfRemovalBlocked": "You cannot remove yourself from the add-on authors."
         },
         "examples": {
             "addonName": "My Awesome Addon",

@@ -427,6 +427,8 @@
             "confirm": "Включить всё равно"
         },
         "tabs": {
+            "changelog": "Патчноуты",
+            "license": "Лицензия",
             "metadata": "Метадата",
             "relations": "Совместимость",
             "settings": "Настройки"
@@ -764,16 +766,18 @@
     "metadata": {
         "authorsEditor": {
             "title": "Авторы",
-            "description": "Найдите пользователя в PulseSync и добавьте его в список авторов. При сохранении совпавшие пользователи будут сохранены по username.",
             "pulseTitle": "Пользователи PulseSync",
             "pulseHint": "Поиск по username и nickname. Нажмите на пользователя, чтобы добавить его в авторы аддона.",
             "searchPlaceholder": "Найти пользователя",
+            "requiredPlaceholder": "Добавьте хотя бы одного автора",
             "searchHint": "Начните вводить username или nickname.",
             "noSearchResults": "Пользователи не найдены",
             "loading": "Загрузка пользователей...",
             "add": "Добавить",
             "added": "Добавлен",
-            "previewEmpty": "Не задано"
+            "previewEmpty": "Не задано",
+            "minimumOneAuthor": "У аддона должен быть минимум один автор.",
+            "selfRemovalBlocked": "Вы не можете удалить себя из авторов аддона."
         },
         "examples": {
             "addonName": "My Awesome Addon",

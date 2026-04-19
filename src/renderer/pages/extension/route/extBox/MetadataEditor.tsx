@@ -19,6 +19,7 @@ import FindUserByNameQuery from '@entities/user/api/findUserByName.query'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { getProfileSlug } from '@shared/lib/profileSlug'
+import toast from '@shared/ui/toast'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -257,7 +258,7 @@ const MetadataSkeleton: React.FC = () => (
 
 const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) => {
     const { t } = useTranslation()
-    const { setAddons } = useContext(UserContext)
+    const { setAddons, user } = useContext(UserContext)
     const { isExperimentEnabled } = useExperiments()
     const relationsEnabled = addonRelationsEnabled ?? isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
@@ -284,10 +285,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     const [modalAllowedUrlsInput, setModalAllowedUrlsInput] = useState('')
     const [modalSupportedVersionsInput, setModalSupportedVersionsInput] = useState('')
     const authorFieldRef = useRef<HTMLDivElement>(null)
+    const selfAuthorSlug = useMemo(() => getProfileSlug(user), [user])
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
         if (!draft.name.trim()) return false
+        if (splitAuthorEntries(draft.author).length === 0) return false
         if (!SEMVER.test(draft.version.trim())) return false
         if (!['theme', 'script', 'library'].includes(draft.type)) return false
         if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(version => semver.validRange(version))) return false
@@ -737,6 +740,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     }, [])
 
     const selectedAuthors = useMemo(() => splitAuthorEntries(draft.author), [draft.author])
+    const minimumAuthorReached = selectedAuthors.length <= 1
     const knownAuthorsMap = useMemo(() => {
         const entries = new Map<string, PulseAuthorOption>()
 
@@ -779,13 +783,23 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     )
 
     const removeAuthor = useCallback((value: string) => {
+        if (normalizeComparableText(value) === normalizeComparableText(selfAuthorSlug)) {
+            toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.selfRemovalBlocked'))
+            return
+        }
+
+        if (selectedAuthors.length <= 1) {
+            toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.minimumOneAuthor'))
+            return
+        }
+
         setDraft(prev => ({
             ...prev,
             author: splitAuthorEntries(prev.author)
                 .filter(entry => normalizeComparableText(entry) !== normalizeComparableText(value))
                 .join(', '),
         }))
-    }, [])
+    }, [selectedAuthors.length, selfAuthorSlug, t])
 
     if (loading) {
         return <MetadataSkeleton />
@@ -822,16 +836,20 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                     {selectedAuthors.map(author => (
                                         <div key={author} className={css.authorChip}>
                                             <span className={css.authorChipText}>{buildAuthorDisplayLabel(author, knownAuthorsMap)}</span>
-                                            <button
-                                                type="button"
-                                                className={css.authorChipRemove}
-                                                onClick={event => {
-                                                    event.stopPropagation()
-                                                    removeAuthor(author)
-                                                }}
-                                            >
-                                                <MdClose size={14} />
-                                            </button>
+                                            {normalizeComparableText(author) !== normalizeComparableText(selfAuthorSlug) && (
+                                                <button
+                                                    type="button"
+                                                    className={css.authorChipRemove}
+                                                    disabled={minimumAuthorReached}
+                                                    title={minimumAuthorReached ? t('metadata.authorsEditor.minimumOneAuthor') : undefined}
+                                                    onClick={event => {
+                                                        event.stopPropagation()
+                                                        removeAuthor(author)
+                                                    }}
+                                                >
+                                                    <MdClose size={14} />
+                                                </button>
+                                            )}
                                         </div>
                                     ))}
 
@@ -843,7 +861,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                             setAuthorSearchOpen(true)
                                         }}
                                         onFocus={() => setAuthorSearchOpen(true)}
-                                        placeholder={selectedAuthors.length ? '' : t('metadata.authorsEditor.searchPlaceholder')}
+                                        placeholder={selectedAuthors.length ? t('metadata.authorsEditor.searchPlaceholder') : t('metadata.authorsEditor.requiredPlaceholder')}
                                     />
                                 </div>
 
