@@ -146,7 +146,7 @@ jobs:
             -v "$PWD/aur-repo:/src:ro" \
             archlinux:latest \
             bash -lc "set -euo pipefail
-              pacman -Sy --noconfirm base-devel
+              pacman -Sy --noconfirm base-devel >/dev/null
               useradd -m builder
               install -d -o builder -g builder /tmp/work
               cp /src/PKGBUILD /src/pulsesync-bin.install /src/pulsesync.desktop /src/pulsesync.xml /tmp/work/
