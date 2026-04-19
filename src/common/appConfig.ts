@@ -1,4 +1,4 @@
-export const isDev = false
+export const isDev = true
 export const isDevmark = true
 export const branch = "beta"
 
