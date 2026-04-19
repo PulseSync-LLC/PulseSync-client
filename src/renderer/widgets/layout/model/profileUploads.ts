@@ -23,6 +23,8 @@ const uploadConfig = {
         forbiddenKey: 'header.avatarUploadForbidden',
         retryKey: 'header.avatarUploadRetry',
         allowFileNotImageError: true,
+        tooLargeKey: 'header.avatarFileTooLarge',
+        maxFileSize: 5 * 1024 * 1024,
     },
     banner: {
         endpoint: 'banner',
@@ -33,6 +35,8 @@ const uploadConfig = {
         forbiddenKey: 'header.bannerUploadForbidden',
         retryKey: 'header.bannerUploadRetry',
         allowFileNotImageError: false,
+        tooLargeKey: 'header.bannerFileTooLarge',
+        maxFileSize: 5 * 1024 * 1024,
     },
 } as const
 
@@ -47,6 +51,13 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
     if (!file) return
 
     const currentConfig = uploadConfig[kind]
+
+    if (file.size > currentConfig.maxFileSize) {
+        toast.custom('error', t('header.uploadAttentionTitle'), t(currentConfig.tooLargeKey))
+        setProgress(-1)
+        return
+    }
+
     const formData = new FormData()
     formData.append('file', file)
 
@@ -82,7 +93,7 @@ export async function uploadProfileMedia({ kind, file, setProgress, setUser, t }
 
         switch (data?.message) {
             case 'FILE_TOO_LARGE':
-                toast.custom('error', t('header.uploadAttentionTitle'), t('header.fileTooLarge'))
+                toast.custom('error', t('header.uploadAttentionTitle'), t(currentConfig.tooLargeKey))
                 break
             case 'FILE_NOT_ALLOWED':
                 toast.custom(
