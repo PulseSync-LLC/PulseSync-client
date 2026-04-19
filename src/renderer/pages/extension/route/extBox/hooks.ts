@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import path from 'path'
+import { useTranslation } from 'react-i18next'
 
 import appConfig from '@common/appConfig'
 import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
@@ -66,12 +67,13 @@ const fetchAddonDocs = async (addon: AddonInterface): Promise<DocTab[]> => {
                 })
                 if (!res.ok) return
                 const text = res.data
-                fetched.push({ title: prettify(file), content: text, isMarkdown: file.toLowerCase().endsWith('.md') })
+                const value = prettify(file)
+                fetched.push({ title: value, value, content: text, isMarkdown: file.toLowerCase().endsWith('.md') })
             } catch {}
         }),
     )
 
-    fetched.sort((a, b) => (a.title === 'README' ? -1 : b.title === 'README' ? 1 : a.title.localeCompare(b.title)))
+    fetched.sort((a, b) => (a.value === 'README' ? -1 : b.value === 'README' ? 1 : (a.value || a.title).localeCompare(b.value || b.title)))
     return fetched
 }
 
@@ -164,7 +166,20 @@ function prettify(file: string): string {
     return base.replace(/\.[^.]+$/, '')
 }
 
+function localizeDocTitle(title: string, t: (key: string) => string): string {
+    if (title === 'Changelog') {
+        return t('extensions.tabs.changelog')
+    }
+
+    if (title === 'License') {
+        return t('extensions.tabs.license')
+    }
+
+    return title
+}
+
 export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
+    const { t } = useTranslation()
     const [docs, setDocs] = useState<DocTab[]>([])
     const [config, setConfig] = useState<AddonConfig | null>(null)
     const [configExists, setConfigExists] = useState<boolean | null>(null)
@@ -226,5 +241,14 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
         }
     }, [addon])
 
-    return { docs, config, configExists }
+    const localizedDocs = useMemo(
+        () =>
+            docs.map(doc => ({
+                ...doc,
+                title: localizeDocTitle(doc.value || doc.title, t),
+            })),
+        [docs, t],
+    )
+
+    return { docs: localizedDocs, config, configExists }
 }

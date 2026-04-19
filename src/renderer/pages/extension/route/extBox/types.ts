@@ -6,6 +6,7 @@ export const RELATIONS_TAB = 'Relations'
 
 export interface DocTab {
     title: string
+    value?: string
     content: string
     isMarkdown: boolean
 }

@@ -56,7 +56,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
         if (shouldOpenRelationsByDefault) {
             setActiveTab(RELATIONS_TAB)
         } else if (docs.length) {
-            setActiveTab(docs[0].title as ActiveTab)
+            setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
         }
         else setActiveTab('Settings')
     }, [addon.path, docs, shouldOpenRelationsByDefault])
@@ -88,7 +88,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     useEffect(() => {
         if (activeTab === 'Metadata' && !canEditMetadata) {
             if (docs.length) {
-                setActiveTab(docs[0].title as ActiveTab)
+                setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
             } else {
                 setActiveTab('Settings')
             }
@@ -98,7 +98,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     useEffect(() => {
         if (activeTab === RELATIONS_TAB && !hasRelations) {
             if (docs.length) {
-                setActiveTab(docs[0].title as ActiveTab)
+                setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
             } else {
                 setActiveTab('Settings')
             }
