@@ -1,4 +1,5 @@
 import React, { ReactElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import clsx from 'clsx'
 import * as s from '@shared/ui/PSUI/SelectInput/SelectInput.module.scss'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -36,9 +37,11 @@ const SelectInput: React.FC<Props> = ({
     const placeholderText = placeholder ?? t('common.selectPlaceholder')
     const searchPlaceholderText = searchPlaceholder ?? t('common.selectPlaceholder')
     const [open, setOpen] = useState(false)
-    const [alignRight, setAlignRight] = useState(false)
     const [openUpward, setOpenUpward] = useState(false)
-    const [panelW, setPanelW] = useState<number | undefined>(undefined)
+    const [panelLeft, setPanelLeft] = useState(12)
+    const [panelTop, setPanelTop] = useState<number | undefined>(undefined)
+    const [panelBottom, setPanelBottom] = useState<number | undefined>(undefined)
+    const [panelW, setPanelW] = useState(260)
     const [panelMaxHeight, setPanelMaxHeight] = useState<number>(360)
     const [listMaxHeight, setListMaxHeight] = useState<number>(280)
     const [hover, setHover] = useState<number>(-1)
@@ -65,7 +68,8 @@ const SelectInput: React.FC<Props> = ({
 
         const viewportPadding = 12
         const panelGap = 8
-        const panelWidth = rect.width
+        const desiredPanelWidth = Math.max(rect.width, 260)
+        const panelWidth = Math.min(desiredPanelWidth, window.innerWidth - viewportPadding * 2)
         const availableBelow = window.innerHeight - rect.bottom - panelGap - viewportPadding
         const availableAbove = rect.top - panelGap - viewportPadding
         const estimatedPanelHeight = searchable ? 360 : 300
@@ -73,21 +77,23 @@ const SelectInput: React.FC<Props> = ({
         const availableSpace = preferUpward ? availableAbove : availableBelow
         const reservedHeight = searchable ? 76 : 12
         const nextPanelMaxHeight = Math.max(140, Math.min(360, availableSpace))
+        const nextPanelLeft = Math.min(Math.max(viewportPadding, rect.left), window.innerWidth - viewportPadding - panelWidth)
 
         setPanelW(panelWidth)
-        setAlignRight(rect.left + panelWidth > window.innerWidth - viewportPadding && rect.right - panelWidth >= viewportPadding)
+        setPanelLeft(nextPanelLeft)
         setOpenUpward(preferUpward)
+        setPanelTop(preferUpward ? undefined : rect.bottom + panelGap)
+        setPanelBottom(preferUpward ? window.innerHeight - rect.top + panelGap : undefined)
         setPanelMaxHeight(nextPanelMaxHeight)
         setListMaxHeight(Math.max(72, nextPanelMaxHeight - reservedHeight))
     }, [searchable])
 
     useEffect(() => {
         const h = (e: MouseEvent) => {
-            if (!wrapRef.current) return
-            if (!wrapRef.current.contains(e.target as Node)) {
-                setOpen(false)
-                setSearchQuery('')
-            }
+            const target = e.target as Node
+            if (wrapRef.current?.contains(target) || listRef.current?.contains(target)) return
+            setOpen(false)
+            setSearchQuery('')
         }
         document.addEventListener('mousedown', h)
         return () => document.removeEventListener('mousedown', h)
@@ -183,47 +189,55 @@ const SelectInput: React.FC<Props> = ({
                 <MdKeyboardArrowDown className={clsx(s.arrow, open && s.arrowOpen)} size={18} />
             </div>
 
-            {open && (
-                <div
-                    ref={listRef}
-                    className={clsx(s.panel, alignRight && s.right, openUpward && s.up)}
-                    style={{ minWidth: panelW, maxHeight: panelMaxHeight }}
-                    onClick={e => e.stopPropagation()}
-                >
-                    {searchable && (
-                        <div className={s.searchWrap}>
-                            <input
-                                className={s.searchInput}
-                                value={searchQuery}
-                                onChange={event => {
-                                    setSearchQuery(event.target.value)
-                                    setHover(0)
-                                }}
-                                placeholder={searchPlaceholderText}
-                            />
+            {open &&
+                createPortal(
+                    <div
+                        ref={listRef}
+                        className={clsx(s.panel, openUpward && s.up)}
+                        style={{
+                            left: panelLeft,
+                            top: panelTop,
+                            bottom: panelBottom,
+                            width: panelW,
+                            maxHeight: panelMaxHeight,
+                        }}
+                        onClick={e => e.stopPropagation()}
+                    >
+                        {searchable && (
+                            <div className={s.searchWrap}>
+                                <input
+                                    className={s.searchInput}
+                                    value={searchQuery}
+                                    onChange={event => {
+                                        setSearchQuery(event.target.value)
+                                        setHover(0)
+                                    }}
+                                    placeholder={searchPlaceholderText}
+                                />
+                            </div>
+                        )}
+                        <div className={s.list} role="listbox" style={{ maxHeight: listMaxHeight }}>
+                            {filteredOptions.map((o, i) => {
+                                const active = String(o.value) === String(value)
+                                return (
+                                    <button
+                                        key={String(o.value)}
+                                        type="button"
+                                        className={clsx(s.option, active && s.active, hover === i && s.hover)}
+                                        role="option"
+                                        aria-selected={active}
+                                        onMouseEnter={() => setHover(i)}
+                                        onClick={() => commit(i)}
+                                    >
+                                        <span className={s.optionLabel}>{o.label}</span>
+                                        {active && <MdCheck className={s.check} size={16} />}
+                                    </button>
+                                )
+                            })}
                         </div>
-                    )}
-                    <div className={s.list} role="listbox" style={{ maxHeight: listMaxHeight }}>
-                        {filteredOptions.map((o, i) => {
-                            const active = String(o.value) === String(value)
-                            return (
-                                <button
-                                    key={String(o.value)}
-                                    type="button"
-                                    className={clsx(s.option, active && s.active, hover === i && s.hover)}
-                                    role="option"
-                                    aria-selected={active}
-                                    onMouseEnter={() => setHover(i)}
-                                    onClick={() => commit(i)}
-                                >
-                                    <span className={s.optionLabel}>{o.label}</span>
-                                    {active && <MdCheck className={s.check} size={16} />}
-                                </button>
-                            )
-                        })}
-                    </div>
-                </div>
-            )}
+                    </div>,
+                    document.body,
+                )}
         </div>
     )
 }
