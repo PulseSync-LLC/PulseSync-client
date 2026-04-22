@@ -99,7 +99,7 @@ class Updater {
         }
 
         autoUpdater.allowPrerelease = source === 'github' && channel === 'dev'
-        autoUpdater.channel = source === 'github' && channel === 'dev' ? 'dev' : null
+        autoUpdater.channel = source === 'github' && channel === 'dev' ? 'dev' : 'latest'
         autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
 
         if (source === 'github') {
