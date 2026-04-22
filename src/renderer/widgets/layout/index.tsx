@@ -25,7 +25,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion } =
+    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
@@ -69,13 +69,17 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
                                 <MdHome size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensions" text={t('layout.nav.addonsBeta')} disabled={!musicInstalled}>
+                            <NavButtonPulse to="/extensions" text={t('layout.nav.addonsBeta')} disabled={isAutonomousMode || !musicInstalled}>
                                 <MdPower size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/store" text={t('layout.nav.extensionsStore')} disabled={!storePageEnabled || !musicInstalled}>
+                            <NavButtonPulse
+                                to="/store"
+                                text={t('layout.nav.extensionsStore')}
+                                disabled={isAutonomousMode || !storePageEnabled || !musicInstalled}
+                            >
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={!usersPageEnabled || !musicInstalled}>
+                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={isAutonomousMode || !usersPageEnabled || !musicInstalled}>
                                 <MdPeople size={24} />
                             </NavButtonPulse>
                         </div>

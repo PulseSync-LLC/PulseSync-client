@@ -12,6 +12,7 @@ const noopAsync = async (): Promise<void> => {}
 const defaultUserContextValue: UserContextValue = {
     user: userInitials,
     setUser: () => void 0,
+    isAutonomousMode: true,
     authorize: noopAsync,
     loading: true,
     musicInstalled: false,

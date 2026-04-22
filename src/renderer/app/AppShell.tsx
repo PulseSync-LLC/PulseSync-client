@@ -80,6 +80,7 @@ function App() {
 
     const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
     const appRef = useRef(app)
+    const isAutonomousMode = user.id === '-1'
 
     useEffect(() => {
         tRef.current = t
@@ -108,8 +109,15 @@ function App() {
         const silentNotInstalled = !!options?.silentNotInstalled
         try {
             const mods = (await window.desktopEvents?.invoke(MainEvents.GET_MOD_RELEASES)) as ModInterface[] | undefined
-            if (!mods || mods.length === 0) {
+            if (!mods) {
                 console.error('Invalid response format for mod releases:', mods)
+                return
+            }
+
+            if (mods.length === 0) {
+                if (isManualCheck) {
+                    toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
+                }
                 return
             }
 
@@ -193,6 +201,10 @@ function App() {
     }, [])
 
     const syncStoreAddonUpdates = useCallback(async (installedAddons: Addon[]) => {
+        if (isAutonomousMode) {
+            return
+        }
+
         const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
         if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
             return
@@ -288,7 +300,7 @@ function App() {
         } finally {
             storeAddonUpdateCheckInFlightRef.current = false
         }
-    }, [setAddons])
+    }, [isAutonomousMode, setAddons])
 
     const handleSocketAchievementsUpdate = useCallback(
         async (payload: unknown) => {
@@ -324,17 +336,17 @@ function App() {
     )
 
     const handleSocketStoreAddonUpdated = useCallback(async () => {
-        if (!addons.length) {
+        if (isAutonomousMode || !addons.length) {
             return
         }
 
         await syncStoreAddonUpdates(addons)
-    }, [addons, syncStoreAddonUpdates])
+    }, [addons, isAutonomousMode, syncStoreAddonUpdates])
 
     useEffect(() => {
-        if (!addons.length) return
+        if (isAutonomousMode || !addons.length) return
         void syncStoreAddonUpdates(addons)
-    }, [addons, syncStoreAddonUpdates])
+    }, [addons, isAutonomousMode, syncStoreAddonUpdates])
 
     useEffect(() => {
         if (user.id === '-1') {
@@ -393,7 +405,7 @@ function App() {
         await client.clearStore()
         setUser(userInitials)
         setAllAchievements([])
-        await router.navigate('/auth', { replace: true })
+        await router.navigate('/home', { replace: true })
     }, [router])
 
     return (
@@ -412,6 +424,7 @@ function App() {
             <AppProviders
                 user={user}
                 setUser={setUser}
+                isAutonomousMode={isAutonomousMode}
                 authorize={authorize}
                 loading={loading}
                 musicInstalled={musicInstalled}

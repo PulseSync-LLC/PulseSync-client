@@ -13,6 +13,7 @@ export type EmitGateway = (event: OutgoingGatewayEvent, payload: unknown) => voi
 export type UserContextValue = {
     user: UserInterface
     setUser: Dispatch<SetStateAction<UserInterface>>
+    isAutonomousMode: boolean
     authorize: () => Promise<void>
     loading: boolean
     musicInstalled: boolean

@@ -20,6 +20,7 @@ import PlayerProvider from '@app/providers/PlayerProvider'
 export default function AppProviders({
     user,
     setUser,
+    isAutonomousMode,
     authorize,
     loading,
     musicInstalled,
@@ -63,6 +64,7 @@ export default function AppProviders({
         () => ({
             user,
             setUser,
+            isAutonomousMode,
             authorize,
             loading,
             musicInstalled,
@@ -109,6 +111,7 @@ export default function AppProviders({
             socketConnected,
             updateAvailable,
             user,
+            isAutonomousMode,
             widgetInstalled,
         ],
     )

@@ -52,7 +52,7 @@ import {
 } from '../modules/updater/updateChannel'
 import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
-import { resolveClientGitHubMacManifest } from '../modules/updater/githubReleaseResolver'
+import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion, resolveClientGitHubMacManifest } from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 
 const updater = getUpdater()
@@ -64,6 +64,10 @@ let pendingAddonOpen: string | null = null
 let updaterStartListenerBound = false
 const ADDON_TEMPLATE_DOWNLOAD_URL = 'https://codeload.github.com/PulseSync-LLC/PulseSync-ExampleAddon/zip/refs/heads/main'
 const ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME = 'PulseSync-ExampleAddon'
+const MOD_REPO = {
+    owner: 'PulseSync-LLC',
+    repo: 'PulseSync-mod',
+} as const
 
 const macUpdater = isMac()
     ? getMacUpdater({
@@ -368,6 +372,26 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_UPDATE_SOURCE, async () => getUpdateSource())
     ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => getCurrentUpdateStatus())
     ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => getModReleasesForSource(getUpdateSource(), getEffectiveUpdateChannel()))
+    ipcMain.handle(MainEvents.GET_CLIENT_CHANGELOG, async () => {
+        const releases = await listStableGitHubReleases(CLIENT_REPO)
+
+        return releases.map(release => ({
+            id: release.id,
+            version: normalizeGitHubTagVersion(release.tag_name),
+            changelog: release.body ?? '',
+            createdAt: release.published_at ? new Date(release.published_at).getTime() : 0,
+        }))
+    })
+    ipcMain.handle(MainEvents.GET_MOD_CHANGELOG, async () => {
+        const releases = await listStableGitHubReleases(MOD_REPO)
+
+        return releases.map(release => ({
+            id: String(release.id),
+            version: normalizeGitHubTagVersion(release.tag_name),
+            description: release.body ?? '',
+            createdAt: release.published_at ? new Date(release.published_at).getTime() : 0,
+        }))
+    })
     ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
         const previousEffectiveChannel = getEffectiveUpdateChannel()
         const nextOverride = setUpdateChannelOverride(channel)

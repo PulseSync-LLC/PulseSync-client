@@ -119,6 +119,7 @@ export async function fetchBackendModReleases(): Promise<ModReleaseEntry[]> {
 
 export async function fetchGithubModReleases(channel: UpdateChannel): Promise<ModReleaseEntry[]> {
     const release = await resolveGitHubRelease(MOD_REPO, channel)
+
     const asarAsset =
         findGitHubAsset(release, ['app.asar.zst', 'app.asar', 'app.asar.gz']) ??
         release.assets.find(asset => asset.name.toLowerCase().startsWith('app.asar')) ??

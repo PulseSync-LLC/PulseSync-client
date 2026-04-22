@@ -16,6 +16,7 @@ export type GetMeVars = Record<string, never>
 export type AppProvidersProps = {
     user: UserInterface
     setUser: Dispatch<SetStateAction<UserInterface>>
+    isAutonomousMode: boolean
     authorize: () => Promise<void>
     loading: boolean
     musicInstalled: boolean

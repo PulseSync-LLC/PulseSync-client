@@ -522,6 +522,7 @@
         "avatarFileTooLarge": "Размер аватара превышает 5 МБ",
         "bannerFileTooLarge": "Размер баннера превышает 5 МБ",
         "friends": "Друзья",
+        "login": "Войти",
         "latestModUpdatesTitle": "Последние обновления мода",
         "latestUpdatesTitle": "Последние обновления",
         "logout": "Выйти",

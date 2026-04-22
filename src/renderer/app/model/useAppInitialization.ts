@@ -7,7 +7,14 @@ type Params = {
     appRef: MutableRefObject<SettingsInterface>
     fetchAchievements: () => Promise<void>
     fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
-    router: { navigate: (to: string, options?: any) => Promise<void> | void }
+    router: {
+        navigate: (to: string, options?: any) => Promise<void> | void
+        state?: {
+            location?: {
+                pathname?: string
+            }
+        }
+    }
     setAddons: Dispatch<SetStateAction<Addon[]>>
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     setModInfoFetched: Dispatch<SetStateAction<boolean>>
@@ -37,45 +44,52 @@ export function useAppInitialization({
     }, [setModInfoFetched, userId])
 
     useEffect(() => {
-        if (userId !== '-1') {
-            const initializeApp = async () => {
-                window.desktopEvents?.send(MainEvents.UPDATER_START)
-                window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
-                window.desktopEvents?.send(MainEvents.UI_READY)
+        const initializeApp = async () => {
+            window.desktopEvents?.send(MainEvents.UPDATER_START)
+            window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
+            window.desktopEvents?.send(MainEvents.UI_READY)
 
-                const [musicStatus, musicVersion, fetchedAddons] = await Promise.all([
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
-                    window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
-                ])
+            const [musicStatus, musicVersion, fetchedAddons] = await Promise.all([
+                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
+                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
+                window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
+            ])
 
-                setMusicInstalled(!!musicStatus)
-                setMusicVersion(musicVersion || null)
-                setAddons((fetchedAddons as Addon[]) || [])
+            setMusicInstalled(!!musicStatus)
+            setMusicVersion(musicVersion || null)
+            setAddons((fetchedAddons as Addon[]) || [])
 
-                try {
-                    const widgetExists = await window.desktopEvents?.invoke(MainEvents.CHECK_OBS_WIDGET_INSTALLED)
-                    setWidgetInstalled(widgetExists || false)
-                } catch (error) {
-                    console.error('Failed to check widget installation:', error)
-                    setWidgetInstalled(false)
-                }
-
-                await Promise.all([fetchModInfo(appRef.current), fetchAchievements()])
+            try {
+                const widgetExists = await window.desktopEvents?.invoke(MainEvents.CHECK_OBS_WIDGET_INSTALLED)
+                setWidgetInstalled(widgetExists || false)
+            } catch (error) {
+                console.error('Failed to check widget installation:', error)
+                setWidgetInstalled(false)
             }
 
-            void initializeApp()
+            await fetchModInfo(appRef.current)
 
-            const modCheckId = setInterval(() => {
-                void fetchModInfo(appRef.current)
-            }, 10 * 60 * 1000)
-            return () => {
-                clearInterval(modCheckId)
+            if (userId !== '-1') {
+                await fetchAchievements()
+                return
+            }
+
+            setAllAchievements([])
+            const routerPath = router && 'state' in router ? router.state?.location?.pathname : undefined
+            if (routerPath === '/auth/callback') {
+                await router.navigate('/home', { replace: true })
             }
         }
 
-        setAllAchievements([])
-        router.navigate('/auth', { replace: true })
+        void initializeApp()
+
+        const modCheckId = setInterval(() => {
+            void fetchModInfo(appRef.current)
+        }, 10 * 60 * 1000)
+
+        return () => {
+            clearInterval(modCheckId)
+        }
     }, [
         appRef,
         fetchAchievements,

@@ -24,7 +24,7 @@ type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
-    const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
+    const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(userContext)
     const { Modals, openModal } = useModalContext()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
     const [updateSource, setUpdateSourceState] = React.useState<UpdateSource>('backend')
@@ -392,6 +392,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         copyWidgetPath,
         deleteMod,
         downloadObsWidget,
+        isAutonomousMode,
         openAppDirectory,
         openBoostyUrl,
         openUpdateChannelModal,

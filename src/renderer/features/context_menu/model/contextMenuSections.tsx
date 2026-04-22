@@ -64,6 +64,7 @@ type Params = {
     copyWidgetPath: () => void
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
+    isAutonomousMode: boolean
     openAppDirectory: () => void
     openBoostyUrl: () => void
     openUpdateChannelModal: () => void
@@ -93,6 +94,7 @@ export function buildContextMenuSections({
     copyWidgetPath,
     deleteMod,
     downloadObsWidget,
+    isAutonomousMode,
     openAppDirectory,
     openBoostyUrl,
     openUpdateChannelModal,
@@ -109,6 +111,28 @@ export function buildContextMenuSections({
     widgetInstalled,
     modals,
 }: Params): SectionConfig[] {
+    const updateSourceButtons =
+        isAutonomousMode ?
+            [
+                createToggleButton(t('contextMenu.updates.sourceGithub'), true, () => void 0, undefined, true),
+            ]
+        :   [
+                createToggleButton(
+                    t('contextMenu.updates.sourceBackend'),
+                    updateSource === 'backend',
+                    () => setUpdateSource('backend'),
+                    undefined,
+                    updateSourceSwitchBlocked,
+                ),
+                createToggleButton(
+                    t('contextMenu.updates.sourceGithub'),
+                    updateSource === 'github',
+                    () => setUpdateSource('github'),
+                    undefined,
+                    updateSourceSwitchBlocked,
+                ),
+            ]
+
     return [
         createContentSection(
             <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
@@ -177,20 +201,7 @@ export function buildContextMenuSections({
             ),
         ]),
         createButtonSection(t('contextMenu.updates.title'), [
-            createToggleButton(
-                t('contextMenu.updates.sourceBackend'),
-                updateSource === 'backend',
-                () => setUpdateSource('backend'),
-                undefined,
-                updateSourceSwitchBlocked,
-            ),
-            createToggleButton(
-                t('contextMenu.updates.sourceGithub'),
-                updateSource === 'github',
-                () => setUpdateSource('github'),
-                undefined,
-                updateSourceSwitchBlocked,
-            ),
+            ...updateSourceButtons,
             {
                 label: t('contextMenu.updates.channel'),
                 onClick: openUpdateChannelModal,

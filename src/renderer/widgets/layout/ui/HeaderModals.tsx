@@ -8,6 +8,7 @@ import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 import Loader from '@shared/ui/PSUI/Loader'
 import { useTranslation } from 'react-i18next'
 import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import { compareVersions } from '@shared/lib/utils'
 
 export type ModChangelogEntry = {
     id: string
@@ -28,7 +29,7 @@ type Props = {
     loadingAppUpdates: boolean
     loadingModChanges: boolean
     modChangesInfo: ModChangelogEntry[]
-    modError?: Error
+    modError?: string | null
 }
 
 const LinkRenderer: Components['a'] = props => {
@@ -62,6 +63,7 @@ export default function HeaderModals({
     modError,
 }: Props) {
     const { t } = useTranslation()
+    const visibleAppUpdates = appUpdatesInfo.filter(info => compareVersions(info.version, appVersion) <= 0)
 
     return (
         <>
@@ -71,9 +73,7 @@ export default function HeaderModals({
                     {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
-                        appUpdatesInfo
-                            .filter(info => info.version <= appVersion)
-                            .map(info => (
+                        visibleAppUpdates.map(info => (
                                 <div key={info.id} className={modalStyles.updateItem}>
                                     <div className={modalStyles.version_info}>
                                         <h3>{info.version}</h3>
@@ -86,15 +86,13 @@ export default function HeaderModals({
                                     </div>
                                 </div>
                             ))}
-                    {!loadingAppUpdates && !appError && appUpdatesInfo.filter(info => info.version <= appVersion).length === 0 && (
-                        <p>{t('header.noChangelogFound')}</p>
-                    )}
+                    {!loadingAppUpdates && !appError && visibleAppUpdates.length === 0 && <p>{t('header.noChangelogFound')}</p>}
                 </div>
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
                 <div className={modalStyles.updateModal}>
                     {loadingModChanges && <Loader variant="modChangelog" />}
-                    {modError && <p>{t('header.errorWithMessage', { message: modError.message })}</p>}
+                    {modError && <p>{t('header.errorWithMessage', { message: modError })}</p>}
                     {!loadingModChanges &&
                         !modError &&
                         modChangesInfo.length > 0 &&

@@ -27,7 +27,7 @@ export type GitHubRelease = {
     tag_name: string
 }
 
-const CLIENT_REPO: GitHubRepo = {
+export const CLIENT_REPO: GitHubRepo = {
     owner: 'PulseSync-LLC',
     repo: 'PulseSync-client',
 }
@@ -55,6 +55,11 @@ export async function listGitHubReleases(repo: GitHubRepo, perPage = 20): Promis
     })
 
     return Array.isArray(response.data) ? response.data : []
+}
+
+export async function listStableGitHubReleases(repo: GitHubRepo, perPage = 50): Promise<GitHubRelease[]> {
+    const releases = await listGitHubReleases(repo, perPage)
+    return releases.filter(release => !release.draft && !release.prerelease)
 }
 
 export function findGitHubReleaseForChannel(releases: GitHubRelease[], channel: UpdateChannel): GitHubRelease | null {

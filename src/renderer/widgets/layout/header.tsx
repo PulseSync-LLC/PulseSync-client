@@ -27,17 +27,18 @@ import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
 import { useModalContext } from '@app/providers/modal'
 import playerContext from '@entities/track/model/player.context'
 import { MdSettings } from 'react-icons/md'
-import { useLazyQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
-import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import { Avatar } from '@shared/ui/PSUI/Image'
 import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout/model/playStatus'
 import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
 import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import ButtonV2 from '@shared/ui/buttonV2'
+import { compareVersions } from '@shared/lib/utils'
 
 interface p {
     goBack?: boolean
@@ -56,7 +57,7 @@ const Header: React.FC<p> = () => {
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
-    const { user, app, setUser, updateAvailable } = useContext(userContext)
+    const { user, app, setUser, isAutonomousMode } = useContext(userContext)
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const updateModalRef = useRef<{
@@ -91,6 +92,9 @@ const Header: React.FC<p> = () => {
         setIsMenuOpen(false)
         setIsUserCardOpen(current => !current)
     }, [])
+    const openLogin = useCallback(() => {
+        void nav('/auth')
+    }, [nav])
 
     useEffect(() => {
         const handlePointerDown = (event: PointerEvent) => {
@@ -142,7 +146,7 @@ const Header: React.FC<p> = () => {
     useEffect(() => {
         if (typeof window !== 'undefined' && window.desktopEvents) {
             window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
-                if (value && user.id !== '-1') {
+                if (value) {
                     openAppChangelogModal()
                 }
             })
@@ -219,9 +223,21 @@ const Header: React.FC<p> = () => {
     const [appUpdatesInfo, setAppUpdatesInfo] = useState<AppInfoInterface[]>([])
     const [loadingAppUpdates, setLoadingAppUpdates] = useState(false)
     const [appError, setAppError] = useState<string | null>(null)
+    const [modChangesInfo, setModChangesInfo] = useState<ModChangelogEntry[]>([])
+    const [loadingModChanges, setLoadingModChanges] = useState(false)
+    const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
+    const modChangesLoadedKeyRef = useRef<string | null>(null)
+    const modChangesLoadingRef = useRef(false)
+
+    useEffect(() => {
+        appUpdatesLoadedRef.current = false
+        modChangesLoadedKeyRef.current = null
+        setAppUpdatesInfo([])
+        setModChangesInfo([])
+    }, [isAutonomousMode])
 
     useEffect(() => {
         if (!isAppChangelogModalOpen || appUpdatesLoadedRef.current || appUpdatesLoadingRef.current) {
@@ -236,18 +252,24 @@ const Header: React.FC<p> = () => {
             setAppError(null)
 
             try {
-                const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
-                const data = response.data
+                const nextAppUpdates = isAutonomousMode ?
+                        (((await window.desktopEvents?.invoke(MainEvents.GET_CLIENT_CHANGELOG)) as AppInfoInterface[] | undefined) ?? [])
+                    :   await (async () => {
+                            const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
+                            const data = response.data
 
-                if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
-                    throw new Error('Failed to fetch app info')
-                }
+                            if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
+                                throw new Error('Failed to fetch app info')
+                            }
+
+                            return data.appInfo
+                        })()
 
                 if (!active) {
                     return
                 }
 
-                const sortedAppInfos = [...data.appInfo].sort((a, b) => b.id - a.id)
+                const sortedAppInfos = [...nextAppUpdates].sort((a, b) => b.createdAt - a.createdAt)
                 setAppUpdatesInfo(sortedAppInfos)
                 appUpdatesLoadedRef.current = true
             } catch (error) {
@@ -270,50 +292,80 @@ const Header: React.FC<p> = () => {
         return () => {
             active = false
         }
-    }, [isAppChangelogModalOpen])
+    }, [isAppChangelogModalOpen, isAutonomousMode])
 
     const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
-    const [
-        loadModChanges,
-        {
-            called: modChangesCalled,
-            data: modData,
-            loading: loadingModChanges,
-            error: modError,
-        },
-    ] = useLazyQuery<GetModUpdatesResponse, { modVersion: string }>(GetModUpdates, {
-        fetchPolicy: 'cache-first',
-    })
-
     useEffect(() => {
-        if (!isModModalOpen || !shouldFetchModChanges) {
+        const modChangesKey = `${isAutonomousMode ? 'autonomous' : 'authorized'}:${app.mod.version || ''}`
+        if (!isModModalOpen || !shouldFetchModChanges || modChangesLoadingRef.current || modChangesLoadedKeyRef.current === modChangesKey) {
             return
         }
 
-        void loadModChanges({
-            variables: { modVersion: app.mod.version || '' },
-        })
-    }, [app.mod.version, isModModalOpen, loadModChanges, shouldFetchModChanges])
+        let active = true
 
-    const modChangesInfoRaw: ModChangelogEntry[] =
-        shouldFetchModChanges && Array.isArray(modData?.getChangelogEntries) ? modData.getChangelogEntries : []
-    const modChangesLoading =
-        isModModalOpen && shouldFetchModChanges && modChangesInfoRaw.length === 0 && (!modChangesCalled || loadingModChanges)
-    const modChangesError = isModModalOpen && shouldFetchModChanges ? modError : undefined
+        const loadModChanges = async () => {
+            modChangesLoadingRef.current = true
+            setLoadingModChanges(true)
+            setModError(null)
+
+            try {
+                const nextModChanges = isAutonomousMode ?
+                        ((((await window.desktopEvents?.invoke(MainEvents.GET_MOD_CHANGELOG)) as ModChangelogEntry[] | undefined) ?? []).filter(
+                            entry => compareVersions(entry.version, app.mod.version || '') <= 0,
+                        ))
+                    :   await (async () => {
+                            const result = await client.query<GetModUpdatesResponse, { modVersion: string }>({
+                                query: GetModUpdates,
+                                variables: { modVersion: app.mod.version || '' },
+                                fetchPolicy: 'no-cache',
+                            })
+
+                            return Array.isArray(result.data?.getChangelogEntries) ? result.data.getChangelogEntries : []
+                        })()
+
+                if (!active) {
+                    return
+                }
+
+                setModChangesInfo(nextModChanges)
+                modChangesLoadedKeyRef.current = modChangesKey
+            } catch (error) {
+                if (!active) {
+                    return
+                }
+
+                console.error('Failed to fetch mod changelog:', error)
+                setModError(error instanceof Error ? error.message : 'Failed to fetch mod changelog')
+            } finally {
+                modChangesLoadingRef.current = false
+                if (active) {
+                    setLoadingModChanges(false)
+                }
+            }
+        }
+
+        void loadModChanges()
+
+        return () => {
+            active = false
+        }
+    }, [app.mod.version, isAutonomousMode, isModModalOpen, shouldFetchModChanges])
 
     useEffect(() => {
+        window.electron.window.isMaximized().then(value => setIsMaximized(value))
 
-        window.electron.window.isMaximized().then((value)=> setIsMaximized(value))
-
-        const unsub1 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_MAXIMIZED, () => {setIsMaximized(true)})
-        const unsub2 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED, () => {setIsMaximized(false)})
+        const unsub1 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_MAXIMIZED, () => {
+            setIsMaximized(true)
+        })
+        const unsub2 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED, () => {
+            setIsMaximized(false)
+        })
 
         return () => {
             unsub1()
             unsub2()
         }
-
     }, [])
 
     return (
@@ -328,27 +380,27 @@ const Header: React.FC<p> = () => {
                 isAppChangelogModalOpen={isAppChangelogModalOpen}
                 isModModalOpen={isModModalOpen}
                 loadingAppUpdates={loadingAppUpdates}
-                loadingModChanges={modChangesLoading}
-                modChangesInfo={modChangesInfoRaw}
-                modError={modChangesError}
+                loadingModChanges={loadingModChanges}
+                modChangesInfo={modChangesInfo}
+                modError={modError}
             />
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
-                    {(user.id !== '-1' && (
-                        <div className={styles.app_menu}>
-                            <TooltipButton tooltipText="В разработке" side="bottom" dataSide={'top'} as="div" className={styles.settingsTooltip}>
-                                <button className={styles.settingsButton} disabled={!settingsAvailable}>
-                                    <MdSettings size={22} />
-                                </button>
-                            </TooltipButton>
-                            <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu} disabled={user.id === '-1'}>
-                                <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
-                                <span>PulseSync</span>
-                                <div className={isMenuOpen ? styles.true : styles.false}>{user.id != '-1' && <ArrowDown />}</div>
+                    <div className={styles.app_menu}>
+                        <TooltipButton tooltipText="В разработке" side="bottom" dataSide={'top'} as="div" className={styles.settingsTooltip}>
+                            <button className={styles.settingsButton} disabled={!settingsAvailable}>
+                                <MdSettings size={22} />
                             </button>
-                            <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
-                        </div>
-                    )) || <div></div>}
+                        </TooltipButton>
+                        <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu}>
+                            <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
+                            <span>PulseSync</span>
+                            <div className={isMenuOpen ? styles.true : styles.false}>
+                                <ArrowDown />
+                            </div>
+                        </button>
+                        <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
+                    </div>
                     <div className={styles.event_container}>
                         {isDevmark && (
                             <div className={styles.dev}>
@@ -356,7 +408,7 @@ const Header: React.FC<p> = () => {
                             </div>
                         )}
                         <div className={styles.menu} ref={userCardRef}>
-                            {user.id !== '-1' && (
+                            {!isAutonomousMode ? (
                                 <>
                                     <UpdateChannelOverrideButton />
                                     {user.perms === 'developer' && <ExperimentOverridesDevButton />}
@@ -410,6 +462,13 @@ const Header: React.FC<p> = () => {
                                             />
                                         )}
                                     </AnimatePresence>
+                                </>
+                            ) : (
+                                <>
+                                    <UpdateChannelOverrideButton />
+                                    <ButtonV2 className={styles.loginButton} onClick={openLogin}>
+                                        {t('header.login')}
+                                    </ButtonV2>
                                 </>
                             )}
                         </div>
