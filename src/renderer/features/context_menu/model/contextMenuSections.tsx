@@ -111,27 +111,27 @@ export function buildContextMenuSections({
     widgetInstalled,
     modals,
 }: Params): SectionConfig[] {
-    const updateSourceButtons =
-        isAutonomousMode ?
-            [
-                createToggleButton(t('contextMenu.updates.sourceGithub'), true, () => void 0, undefined, true),
-            ]
-        :   [
-                createToggleButton(
-                    t('contextMenu.updates.sourceBackend'),
-                    updateSource === 'backend',
-                    () => setUpdateSource('backend'),
-                    undefined,
-                    updateSourceSwitchBlocked,
-                ),
-                createToggleButton(
-                    t('contextMenu.updates.sourceGithub'),
-                    updateSource === 'github',
-                    () => setUpdateSource('github'),
-                    undefined,
-                    updateSourceSwitchBlocked,
-                ),
-            ]
+    const updateSourceButtons = isAutonomousMode
+        ? [
+              createToggleButton(t('contextMenu.updates.sourceBackend'), false, () => void 0, undefined, true),
+              createToggleButton(t('contextMenu.updates.sourceGithub'), true, () => void 0, undefined, true),
+          ]
+        : [
+              createToggleButton(
+                  t('contextMenu.updates.sourceBackend'),
+                  updateSource === 'backend',
+                  () => setUpdateSource('backend'),
+                  undefined,
+                  updateSourceSwitchBlocked,
+              ),
+              createToggleButton(
+                  t('contextMenu.updates.sourceGithub'),
+                  updateSource === 'github',
+                  () => setUpdateSource('github'),
+                  undefined,
+                  updateSourceSwitchBlocked,
+              ),
+          ]
 
     return [
         createContentSection(

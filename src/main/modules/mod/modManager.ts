@@ -24,8 +24,7 @@ import {
     setProgressPercent,
     tryUseCacheOrDownload,
 } from './mod-manager.helpers'
-import { getGithubModReleaseForChannel } from './network/releaseCatalog'
-import { getEffectiveUpdateChannel } from '../updater/updateChannel'
+import { getGithubModRelease } from './network/releaseCatalog'
 import type { UpdateSource } from '../updater/updateSource'
 import type { ModDownloadFailure } from './network/types'
 
@@ -263,7 +262,7 @@ export const modManager = (window: BrowserWindow): void => {
                         const backendFailure = primaryFailure
                         try {
                             logger.modManager.warn('Backend mod download failed, trying GitHub fallback', backendFailure)
-                            const fallbackRelease = await getGithubModReleaseForChannel(getEffectiveUpdateChannel())
+                            const fallbackRelease = await getGithubModRelease()
                             let fallbackFailure: ModDownloadFailure | null = null
 
                             if (!fallbackRelease?.downloadUrl) {

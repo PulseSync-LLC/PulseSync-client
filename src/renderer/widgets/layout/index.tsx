@@ -69,17 +69,25 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
                                 <MdHome size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/extensions" text={t('layout.nav.addonsBeta')} disabled={isAutonomousMode || !musicInstalled}>
+                            <NavButtonPulse
+                                to="/extensions"
+                                text={t('layout.nav.addonsBeta').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
+                                disabled={isAutonomousMode || !musicInstalled}
+                            >
                                 <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/store"
-                                text={t('layout.nav.extensionsStore')}
+                                text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
                                 disabled={isAutonomousMode || !storePageEnabled || !musicInstalled}
                             >
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
-                            <NavButtonPulse to="/users" text={t('layout.nav.users')} disabled={isAutonomousMode || !usersPageEnabled || !musicInstalled}>
+                            <NavButtonPulse
+                                to="/users"
+                                text={t('layout.nav.users').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
+                                disabled={isAutonomousMode || !usersPageEnabled || !musicInstalled}
+                            >
                                 <MdPeople size={24} />
                             </NavButtonPulse>
                         </div>

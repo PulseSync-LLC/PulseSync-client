@@ -54,6 +54,7 @@ import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSourc
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
 import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion, resolveClientGitHubMacManifest } from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
+import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
 
 const updater = getUpdater()
 const State = getState()
@@ -371,7 +372,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
     ipcMain.handle(MainEvents.GET_UPDATE_SOURCE, async () => getUpdateSource())
     ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => getCurrentUpdateStatus())
-    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => getModReleasesForSource(getUpdateSource(), getEffectiveUpdateChannel()))
+    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => getModReleasesForSource(getUpdateSource()))
     ipcMain.handle(MainEvents.GET_CLIENT_CHANGELOG, async () => {
         const releases = await listStableGitHubReleases(CLIENT_REPO)
 
@@ -796,6 +797,16 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
         tryOpenPendingAddon()
+    })
+    ipcMain.handle(MainEvents.START_BROWSER_AUTH, async () => {
+        beginBrowserAuthFlow()
+        return { success: true }
+    })
+    ipcMain.handle(MainEvents.CANCEL_BROWSER_AUTH, async () => {
+        cancelBrowserAuthFlow()
+        State.delete('tokens.token')
+        authorized = false
+        return { success: true }
     })
 
     ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {

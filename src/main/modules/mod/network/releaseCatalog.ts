@@ -3,8 +3,7 @@ import * as semver from 'semver'
 
 import config from '@common/appConfig'
 import { getState } from '../../state'
-import { findGitHubAsset, normalizeGitHubTagVersion, resolveGitHubRelease } from '../../updater/githubReleaseResolver'
-import type { UpdateChannel } from '../../updater/updateChannel'
+import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } from '../../updater/githubReleaseResolver'
 import type { UpdateSource } from '../../updater/updateSource'
 
 export type ModReleaseEntry = {
@@ -117,8 +116,12 @@ export async function fetchBackendModReleases(): Promise<ModReleaseEntry[]> {
     return sortModReleases(entries)
 }
 
-export async function fetchGithubModReleases(channel: UpdateChannel): Promise<ModReleaseEntry[]> {
-    const release = await resolveGitHubRelease(MOD_REPO, channel)
+export async function fetchGithubModReleases(): Promise<ModReleaseEntry[]> {
+    const [release] = await listStableGitHubReleases(MOD_REPO)
+
+    if (!release) {
+        return []
+    }
 
     const asarAsset =
         findGitHubAsset(release, ['app.asar.zst', 'app.asar', 'app.asar.gz']) ??
@@ -154,15 +157,15 @@ export async function fetchGithubModReleases(channel: UpdateChannel): Promise<Mo
     ]
 }
 
-export async function getModReleasesForSource(source: UpdateSource, channel: UpdateChannel): Promise<ModReleaseEntry[]> {
+export async function getModReleasesForSource(source: UpdateSource): Promise<ModReleaseEntry[]> {
     if (source === 'github') {
-        return fetchGithubModReleases(channel)
+        return fetchGithubModReleases()
     }
 
     return fetchBackendModReleases()
 }
 
-export async function getGithubModReleaseForChannel(channel: UpdateChannel): Promise<ModReleaseEntry | null> {
-    const releases = await fetchGithubModReleases(channel)
+export async function getGithubModRelease(): Promise<ModReleaseEntry | null> {
+    const releases = await fetchGithubModReleases()
     return releases[0] ?? null
 }

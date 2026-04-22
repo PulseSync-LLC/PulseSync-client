@@ -19,8 +19,10 @@ export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
 }
 
 export const openAuthCallback = (navigate: NavigateFunction) => {
-    window.open(config.WEBSITE_URL + '/callback?source=app')
-    navigate('/auth/callback', { replace: true })
+    void Promise.resolve(window.desktopEvents?.invoke(MainEvents.START_BROWSER_AUTH)).finally(() => {
+        window.open(config.WEBSITE_URL + '/callback?source=app')
+        navigate('/auth/callback', { replace: true })
+    })
 }
 
 export const checkUpdateHard = () => {

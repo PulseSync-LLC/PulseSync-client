@@ -521,6 +521,7 @@
         "fileNotImage": "The file is not an image",
         "avatarFileTooLarge": "Avatar size exceeds 5 MB",
         "bannerFileTooLarge": "Banner size exceeds 5 MB",
+        "back": "Back",
         "friends": "Friends",
         "login": "Sign in",
         "latestModUpdatesTitle": "Latest mod updates",
@@ -759,7 +760,8 @@
             "extensionsStore": "Extension store",
             "home": "Home",
             "trackInfo": "Track info",
-            "users": "Users"
+            "users": "Users",
+            "unavailableInAutonomous": "Unavailable in autonomous mode"
         },
         "newVersionFound": "New version {{version}} found. Running auto-update...",
         "noModInstallsAvailable": "No mod installations available.",

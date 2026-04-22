@@ -51,7 +51,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                     <div className={styles.badges_container}>
                         {user.badges.length > 0 &&
                             user.badges
-                                .sort((a, b) => b.level - a.level)
+                                .toSorted((a, b) => b.level - a.level)
                                 .map(badge => (
                                     <TooltipButton tooltipText={badge.name} side="bottom" key={badge.type}>
                                         <div className={styles.badge}>

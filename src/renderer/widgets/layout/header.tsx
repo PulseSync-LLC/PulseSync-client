@@ -20,7 +20,7 @@ import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
 import { AnimatePresence, motion } from 'framer-motion'
 import TooltipButton from '@shared/ui/tooltip_button'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import client from '@shared/api/apolloClient'
 import { staticAsset } from '@shared/lib/staticAssets'
 import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
@@ -71,6 +71,7 @@ const Header: React.FC<p> = () => {
     const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
     const nav = useNavigate()
+    const location = useLocation()
 
     const fixedAddon = { charCount: inputStyle.charCount }
 
@@ -95,6 +96,14 @@ const Header: React.FC<p> = () => {
     const openLogin = useCallback(() => {
         void nav('/auth')
     }, [nav])
+    const cancelLoginFlow = useCallback(async () => {
+        await window.desktopEvents?.invoke(MainEvents.CANCEL_BROWSER_AUTH)
+        window.electron.store.delete('tokens.token')
+        setUser(userInitials)
+        await client.clearStore()
+        await nav('/home', { replace: true })
+    }, [nav, setUser])
+    const isAuthFlowRoute = location.pathname === '/auth' || location.pathname === '/auth/callback'
 
     useEffect(() => {
         const handlePointerDown = (event: PointerEvent) => {
@@ -466,8 +475,8 @@ const Header: React.FC<p> = () => {
                             ) : (
                                 <>
                                     <UpdateChannelOverrideButton />
-                                    <ButtonV2 className={styles.loginButton} onClick={openLogin}>
-                                        {t('header.login')}
+                                    <ButtonV2 className={styles.loginButton} onClick={isAuthFlowRoute ? () => void cancelLoginFlow() : openLogin}>
+                                        {isAuthFlowRoute ? t('header.back') : t('header.login')}
                                     </ButtonV2>
                                 </>
                             )}

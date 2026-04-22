@@ -521,6 +521,7 @@
         "fileNotImage": "Файл не является изображением",
         "avatarFileTooLarge": "Размер аватара превышает 5 МБ",
         "bannerFileTooLarge": "Размер баннера превышает 5 МБ",
+        "back": "Назад",
         "friends": "Друзья",
         "login": "Войти",
         "latestModUpdatesTitle": "Последние обновления мода",
@@ -759,7 +760,8 @@
             "extensionsStore": "Каталог расширений",
             "home": "Главная",
             "trackInfo": "Информация о треке",
-            "users": "Пользователи"
+            "users": "Пользователи",
+            "unavailableInAutonomous": "Недоступно в автономном режиме"
         },
         "newVersionFound": "Найдена новая версия {{version}}. Выполняю автообновление...",
         "noModInstallsAvailable": "Нет доступных модификаций для установки.",
