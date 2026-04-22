@@ -179,6 +179,19 @@
             "showChangelog": "Показывать список изменений после установки",
             "title": "Мод"
         },
+        "updates": {
+            "title": "Обновления",
+            "sourceBackend": "Источник: Сервер PulseSync",
+            "sourceGithub": "Источник: GitHub",
+            "backend": "Сервер PulseSync",
+            "github": "GitHub",
+            "channel": "Канал обновлений",
+            "checkAppUpdates": "Проверить обновления клиента",
+            "checkModUpdates": "Проверить обновления мода",
+            "sourceChanged": "Источник обновлений переключён на {{source}}.",
+            "sourceChangeError": "Не удалось переключить источник обновлений.",
+            "busy": "Переключение источника недоступно, пока обновление проверяется или скачивается."
+        },
         "obsWidget": {
             "copyPath": "Скопировать путь до виджета",
             "download": "Скачать виджет OBS ({{status}})",

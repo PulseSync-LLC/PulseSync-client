@@ -65,6 +65,7 @@ export async function tryUseCacheOrDownload(
     checksum: string,
     cacheDir: string,
     progress?: { base?: number; scale?: number; resetOnComplete?: boolean },
+    onFailure?: (failure: { error: string; type: string }) => void,
 ): Promise<boolean> {
     if (fileExists(cacheFile)) {
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
@@ -83,7 +84,7 @@ export async function tryUseCacheOrDownload(
             resetProgress(window)
         }
     }
-    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress, 'app.asar')
+    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress, 'app.asar', onFailure)
 }
 
 export function readChecksum(filePath: string): string | null {

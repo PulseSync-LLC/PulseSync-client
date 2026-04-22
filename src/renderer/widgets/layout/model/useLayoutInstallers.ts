@@ -406,8 +406,18 @@ export function useLayoutInstallers({
             const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'))
             downloadToastIdRef.current = id
 
-            const { modVersion, realMusicVersion, downloadUrl, checksum_v2, spoof, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum } =
-                modInfo[0]
+            const {
+                modVersion,
+                realMusicVersion,
+                downloadUrl,
+                checksum_v2,
+                spoof,
+                name,
+                shouldReinstall,
+                downloadUnpackedUrl,
+                unpackedChecksum,
+                source,
+            } = modInfo[0]
 
             window.desktopEvents?.send(MainEvents.INSTALL_MOD, {
                 version: modVersion,
@@ -420,6 +430,7 @@ export function useLayoutInstallers({
                 shouldReinstall,
                 force: force || false,
                 spoof: spoof || false,
+                source: source || 'backend',
             })
         },
         [app.mod.installed, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t],

@@ -15,4 +15,5 @@ export interface ModInterface {
     shouldReinstall: boolean
     spoof: boolean
     deprecated: boolean
+    source?: 'backend' | 'github'
 }

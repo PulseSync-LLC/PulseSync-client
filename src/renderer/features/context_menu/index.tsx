@@ -19,14 +19,23 @@ interface ContextMenuProps {
     } | null>
 }
 
+type UpdateSource = 'backend' | 'github'
+type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
+
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled } = useContext(userContext)
     const { Modals, openModal } = useModalContext()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
+    const [updateSource, setUpdateSourceState] = React.useState<UpdateSource>('backend')
+    const [updateStatus, setUpdateStatus] = React.useState<UpdateStatus>('IDLE')
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
+    }
+
+    const openUpdateChannelModal = () => {
+        openModal(Modals.UPDATE_CHANNEL_OVERRIDE)
     }
 
     const openAppDirectory = () => {
@@ -38,6 +47,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
+    const updateSourceSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
 
     const resetAsarPath = () => {
         if (!window.electron.isLinux()) return
@@ -305,9 +315,78 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         toast.custom('success', t('common.doneTitle'), t('contextMenu.misc.logsReady'))
     }
 
+    React.useEffect(() => {
+        const loadUpdateState = async () => {
+            try {
+                const [nextSource, nextStatus] = await Promise.all([
+                    window.desktopEvents?.invoke(MainEvents.GET_UPDATE_SOURCE),
+                    window.desktopEvents?.invoke(MainEvents.GET_UPDATE_STATUS),
+                ])
+
+                setUpdateSourceState((nextSource as UpdateSource) || 'backend')
+                setUpdateStatus((nextStatus as UpdateStatus) || 'IDLE')
+            } catch {
+                setUpdateSourceState('backend')
+                setUpdateStatus('IDLE')
+            }
+        }
+
+        void loadUpdateState()
+
+        const handleCheckUpdate = (_event: unknown, data?: { checking?: boolean; updateAvailable?: boolean }) => {
+            if (data?.checking) {
+                setUpdateStatus('CHECKING')
+                return
+            }
+
+            if (!data?.updateAvailable) {
+                setUpdateStatus('IDLE')
+            }
+        }
+
+        const handleDownloadProgress = () => setUpdateStatus('DOWNLOADING')
+        const handleDownloadFinished = () => setUpdateStatus('DOWNLOADED')
+        const handleDownloadFailed = () => setUpdateStatus('IDLE')
+
+        const unsubscribers = [
+            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
+            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
+        ].filter(Boolean) as Array<() => void>
+
+        return () => {
+            unsubscribers.forEach(unsubscribe => unsubscribe())
+        }
+    }, [])
+
+    const setReleaseSource = async (nextSource: UpdateSource) => {
+        if (nextSource === updateSource) {
+            return
+        }
+
+        try {
+            const response = (await window.desktopEvents?.invoke(MainEvents.SET_UPDATE_SOURCE, nextSource)) as { source?: UpdateSource } | undefined
+            const appliedSource = response?.source || nextSource
+            setUpdateSourceState(appliedSource)
+            toast.custom('success', t('common.doneTitle'), t('contextMenu.updates.sourceChanged', { source: t(`contextMenu.updates.${appliedSource}`) }))
+            window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true })
+            void window.getModInfo(app, { silentNotInstalled: true })
+        } catch (error: any) {
+            const isBusy = error instanceof Error && error.message === 'UPDATE_SOURCE_BUSY'
+            toast.custom(
+                'error',
+                t('common.errorTitle'),
+                isBusy ? t('contextMenu.updates.busy') : t('contextMenu.updates.sourceChangeError'),
+            )
+        }
+    }
+
     const buttonConfigs = buildContextMenuSections({
         app,
         canResetAsarPath,
+        checkAppUpdates: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
+        checkModUpdates: () => (window as any).getModInfo(app, { manual: true }),
         clearModCache,
         collectLogs,
         copyWidgetPath,
@@ -315,13 +394,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         downloadObsWidget,
         openAppDirectory,
         openBoostyUrl,
+        openUpdateChannelModal,
         openModal,
         openUpdateModal,
         removeObsWidget,
         resetAsarPath,
         setLanguage,
+        setUpdateSource: setReleaseSource,
         t,
         toggleSetting,
+        updateSource,
+        updateSourceSwitchBlocked,
         widgetInstalled,
         modals: {
             MOD_CHANGELOG: Modals.MOD_CHANGELOG,

@@ -10,6 +10,7 @@ import isAppDev from '../../utils/isAppDev'
 import { mainWindow } from '../createWindow'
 import { t } from '../../i18n'
 import { getEffectiveUpdateChannel, getUpdateFeedUrl, shouldAllowDowngradeForCurrentChannel } from './updateChannel'
+import { getUpdateSource, type UpdateSource } from './updateSource'
 
 type CommonConfig = Record<string, unknown>
 
@@ -32,7 +33,7 @@ class Updater {
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
     private commonConfig: CommonConfig = {}
-    private configuredChannel: string | null = null
+    private configuredFeedKey: string | null = null
 
     constructor() {
         autoUpdater.logger = logger.updater
@@ -88,25 +89,40 @@ class Updater {
         })
     }
 
-    private configureFeed(force = false) {
+    private configureFeed(force = false, sourceOverride?: UpdateSource) {
         const channel = getEffectiveUpdateChannel()
-        if (!force && this.configuredChannel === channel) {
-            return channel
+        const source = sourceOverride ?? getUpdateSource()
+        const feedKey = `${source}:${channel}`
+
+        if (!force && this.configuredFeedKey === feedKey) {
+            return { channel, source }
         }
 
-        const feedUrl = getUpdateFeedUrl(channel)
-        autoUpdater.setFeedURL({
-            provider: 'generic',
-            url: feedUrl,
-            channel: 'latest',
-            updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-            useMultipleRangeRequest: false,
-        })
+        autoUpdater.allowPrerelease = source === 'github' && channel === 'dev'
+        autoUpdater.channel = source === 'github' && channel === 'dev' ? 'dev' : null
         autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
 
-        this.configuredChannel = channel
-        logger.updater.info('Configured updater feed', { channel, feedUrl, allowDowngrade: autoUpdater.allowDowngrade })
-        return channel
+        if (source === 'github') {
+            autoUpdater.setFeedURL({
+                provider: 'github',
+                owner: 'PulseSync-LLC',
+                repo: 'PulseSync-client',
+                updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
+            })
+        } else {
+            const feedUrl = getUpdateFeedUrl(channel)
+            autoUpdater.setFeedURL({
+                provider: 'generic',
+                url: feedUrl,
+                channel: 'latest',
+                updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
+                useMultipleRangeRequest: false,
+            })
+        }
+
+        this.configuredFeedKey = feedKey
+        logger.updater.info('Configured updater feed', { channel, source, allowDowngrade: autoUpdater.allowDowngrade })
+        return { channel, source }
     }
 
     private getWindow(): BrowserWindow | null {
@@ -156,7 +172,7 @@ class Updater {
         }
     }
 
-    private updateApplier(updateResult: UpdateResult, manual = false) {
+    private updateApplier(updateResult: UpdateResult, manual = false, source: UpdateSource = getUpdateSource(), isFallbackAttempt = false) {
         const { downloadPromise, updateInfo } = updateResult
 
         if (!downloadPromise) {
@@ -196,16 +212,34 @@ class Updater {
 
                 this.safeSend(RendererEvents.UPDATE_APP_DATA, { update: true })
             })
-            .catch((error: unknown) => {
+            .catch(async (error: unknown) => {
                 this.updateStatus = UpdateStatus.IDLE
                 logger.updater.error('Downloader error', error)
                 this.setProgressBar(-1)
+
+                if (source === 'backend' && !isFallbackAttempt) {
+                    try {
+                        logger.updater.warn('Primary backend download failed, trying GitHub fallback')
+                        await this.check(manual, { isFallbackAttempt: true, sourceOverride: 'github' })
+                        return
+                    } catch (fallbackError) {
+                        logger.updater.error('GitHub fallback after backend download failure also failed', fallbackError)
+                    }
+                }
+
                 this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
             })
     }
 
-    async check(manual = false): Promise<UpdateStatus | null> {
-        this.configureFeed()
+    async check(
+        manual = false,
+        options?: {
+            isFallbackAttempt?: boolean
+            sourceOverride?: UpdateSource
+        },
+    ): Promise<UpdateStatus | null> {
+        const source = options?.sourceOverride ?? getUpdateSource()
+        this.configureFeed(false, source)
 
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
@@ -234,7 +268,7 @@ class Updater {
                 return null
             }
 
-            this.updateApplier(updateResult, manual)
+            this.updateApplier(updateResult, manual, source, options?.isFallbackAttempt === true)
         } catch (error: unknown) {
             this.updateStatus = UpdateStatus.IDLE
             const e = error as any

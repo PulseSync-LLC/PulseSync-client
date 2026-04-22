@@ -20,7 +20,6 @@ import AddonInitials from '@entities/addon/model/addon.initials'
 import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import { ModInterface } from '@entities/mod/model/modInterface'
 import modInitials from '@entities/mod/model/mod.initials'
-import GetModQuery from '@entities/mod/api/getMod.query'
 import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
 import { useTranslation } from 'react-i18next'
 import { createAppRouter } from '@app/router'
@@ -108,14 +107,9 @@ function App() {
         const isManualCheck = !!options?.manual
         const silentNotInstalled = !!options?.silentNotInstalled
         try {
-            const res = await apolloClient.query<{ getMod: ModInterface[] }>({
-                query: GetModQuery,
-                fetchPolicy: 'no-cache',
-            })
-
-            const mods = res.data?.getMod
+            const mods = (await window.desktopEvents?.invoke(MainEvents.GET_MOD_RELEASES)) as ModInterface[] | undefined
             if (!mods || mods.length === 0) {
-                console.error('Invalid response format for getMod:', res.data)
+                console.error('Invalid response format for mod releases:', mods)
                 return
             }
 

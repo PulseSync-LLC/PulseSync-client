@@ -179,6 +179,19 @@
             "showChangelog": "Show changelog after install",
             "title": "Mod"
         },
+        "updates": {
+            "title": "Updates",
+            "sourceBackend": "Source: PulseSync server",
+            "sourceGithub": "Source: GitHub",
+            "backend": "PulseSync server",
+            "github": "GitHub",
+            "channel": "Update channel",
+            "checkAppUpdates": "Check app updates",
+            "checkModUpdates": "Check mod updates",
+            "sourceChanged": "Update source switched to {{source}}.",
+            "sourceChangeError": "Failed to switch update source.",
+            "busy": "Source switching is unavailable while an update is being checked or downloaded."
+        },
         "obsWidget": {
             "copyPath": "Copy widget path",
             "download": "Download OBS widget ({{status}})",
