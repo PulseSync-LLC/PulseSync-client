@@ -6,6 +6,7 @@ import { getState } from '../state'
 
 const State = getState()
 const BROWSER_AUTH_ACTION = 'BROWSER_AUTH'
+const BROWSER_AUTH_CANCELLED_KEY = 'auth.browserAuthCancelled'
 
 export interface BrowserAuthCredentials {
     userId: string
@@ -21,6 +22,16 @@ const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/
 const normalizeActionToken = (value: string): string => trimQuotes(value).replace(/-/g, '_').toUpperCase()
 
 const isBrowserAuthAction = (value: string): boolean => normalizeActionToken(value) === BROWSER_AUTH_ACTION
+
+export const beginBrowserAuthFlow = (): void => {
+    State.set(BROWSER_AUTH_CANCELLED_KEY, false)
+}
+
+export const cancelBrowserAuthFlow = (): void => {
+    State.set(BROWSER_AUTH_CANCELLED_KEY, true)
+}
+
+export const isBrowserAuthFlowCancelled = (): boolean => State.get(BROWSER_AUTH_CANCELLED_KEY) === true
 
 const pickAuthCredentials = (raw: unknown): BrowserAuthCredentials | null => {
     if (!raw || typeof raw !== 'object') return null
@@ -104,6 +115,7 @@ const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: Br
     window?.webContents.send(RendererEvents.AUTH_SUCCESS)
     client?.send(RendererEvents.AUTH_SUCCESS)
     window?.show()
+    window?.focus()
 }
 
 export const processBrowserAuth = async (
@@ -123,8 +135,14 @@ export const processBrowserAuth = async (
         return false
     }
 
+    if (isBrowserAuthFlowCancelled()) {
+        logger.socketManager.info(`Ignored browser auth for user ${userId}: auth flow was cancelled.`)
+        return false
+    }
+
     try {
         State.set('tokens.token', token)
+        State.set(BROWSER_AUTH_CANCELLED_KEY, false)
         logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${userId}.`)
         notifyAuthSuccess(window, client)
         return true

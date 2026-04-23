@@ -725,6 +725,13 @@
     -webkit-app-region: no-drag;
 }
 
+.loginButton {
+    -webkit-app-region: no-drag;
+    padding: 8px 18px;
+    align-items: center;
+    border-radius: 10px;
+}
+
 .devOverridesBadge {
     position: absolute;
     top: -5px;

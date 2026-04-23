@@ -8,6 +8,11 @@ export type RetryStageResult = { success: true } | RetryStageFailure
 
 export type DownloadProgress = { base?: number; scale?: number; resetOnComplete?: boolean }
 
+export type ModDownloadFailure = {
+    error: string
+    type: string
+}
+
 export type ModCompatibilityResult = {
     success: boolean
     message?: string

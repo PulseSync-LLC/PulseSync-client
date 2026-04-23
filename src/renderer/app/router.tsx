@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useContext } from 'react'
 import { Navigate, createHashRouter } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -12,12 +12,24 @@ import JointPage from '@pages/joint'
 import StorePage from '@pages/store'
 import ProfilePage from '@pages/profile/[username]'
 import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
+import UserContext from '@entities/user/model/context'
 
 function withErrorBoundary(node: React.ReactNode) {
     return <ErrorBoundary>{node}</ErrorBoundary>
 }
 
+function RequireAuthorized({ children }: { children: React.ReactNode }) {
+    const { isAutonomousMode } = useContext(UserContext)
+
+    if (isAutonomousMode) {
+        return <Navigate to="/home" replace />
+    }
+
+    return <>{children}</>
+}
+
 function StoreRoute() {
+    const { isAutonomousMode } = useContext(UserContext)
     const { isExperimentEnabled, loading } = useExperiments()
     const storeEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
 
@@ -25,7 +37,7 @@ function StoreRoute() {
         return null
     }
 
-    if (!storeEnabled) {
+    if (isAutonomousMode || !storeEnabled) {
         return <Navigate to="/home" replace />
     }
 
@@ -33,6 +45,7 @@ function StoreRoute() {
 }
 
 function UsersRoute() {
+    const { isAutonomousMode } = useContext(UserContext)
     const { isExperimentEnabled, loading } = useExperiments()
     const usersPageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
 
@@ -40,7 +53,7 @@ function UsersRoute() {
         return null
     }
 
-    if (!usersPageEnabled) {
+    if (isAutonomousMode || !usersPageEnabled) {
         return <Navigate to="/home" replace />
     }
 
@@ -51,14 +64,14 @@ export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: <Navigate to="/home" replace /> },
         { path: '/home', element: withErrorBoundary(<HomePage />) },
-        { path: '/extensions', element: withErrorBoundary(<ExtensionPage />) },
+        { path: '/extensions', element: withErrorBoundary(<RequireAuthorized><ExtensionPage /></RequireAuthorized>) },
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },
         { path: '/users', element: withErrorBoundary(<UsersRoute />) },
-        { path: '/:contactId', element: withErrorBoundary(<ExtensionPage />) },
+        { path: '/:contactId', element: withErrorBoundary(<RequireAuthorized><ExtensionPage /></RequireAuthorized>) },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
-        { path: '/profile/:profileName', element: withErrorBoundary(<ProfilePage />) },
+        { path: '/profile/:profileName', element: withErrorBoundary(<RequireAuthorized><ProfilePage /></RequireAuthorized>) },
     ])
 }

@@ -241,12 +241,17 @@ const schema = {
                 type: 'string',
                 default: '',
             },
+            updateSource: {
+                type: 'string',
+                default: 'backend',
+            },
         },
-        required: ['version', 'updateChannelOverride'],
+        required: ['version', 'updateChannelOverride', 'updateSource'],
         additionalProperties: false,
         default: {
             version: '',
             updateChannelOverride: '',
+            updateSource: 'backend',
         },
     },
 

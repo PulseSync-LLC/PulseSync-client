@@ -20,7 +20,7 @@ import {
     DownloadError,
 } from '../download.helpers'
 import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
-import type { DownloadProgress, ModCompatibilityResult } from './types'
+import type { DownloadProgress, ModCompatibilityResult, ModDownloadFailure } from './types'
 import {
     decompressArchive,
     ensureDir,
@@ -36,6 +36,16 @@ import {
 } from './helpers'
 const USER_AGENT = () =>
     `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
+
+function reportFailure(window: BrowserWindow, failure: ModDownloadFailure, onFailure?: (failure: ModDownloadFailure) => void) {
+    if (onFailure) {
+        onFailure(failure)
+        resetProgress(window)
+        return
+    }
+
+    sendFailure(window, failure)
+}
 
 export async function checkModCompatibility(modVersion: string, ymVersion: string): Promise<ModCompatibilityResult> {
     try {
@@ -76,6 +86,7 @@ export async function downloadAndUpdateFile(
     cacheDir?: string,
     progress?: DownloadProgress,
     name?: string,
+    onFailure?: (failure: ModDownloadFailure) => void,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(savePath) && !isCompressedArchiveLink(link)) {
@@ -120,7 +131,7 @@ export async function downloadAndUpdateFile(
         unlinkIfExists(tempFilePath)
 
         if (!ok) {
-            sendFailure(window, { error: t('main.modNetwork.patchError'), type: 'patch_error' })
+            reportFailure(window, { error: t('main.modNetwork.patchError'), type: 'patch_error' }, onFailure)
             return false
         }
 
@@ -140,20 +151,14 @@ export async function downloadAndUpdateFile(
         HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
 
         if (isLinuxAccessError(err)) {
-            sendFailure(window, {
-                error: t('main.modManager.linuxPermissionsRequired'),
-                type: 'linux_permissions_required',
-            })
+            reportFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' }, onFailure)
             return false
         }
 
         if (err instanceof DownloadError && err.code === 'checksum_mismatch') {
-            sendFailure(window, {
-                error: t('main.modNetwork.integrityError'),
-                type: 'checksum_mismatch',
-            })
+            reportFailure(window, { error: t('main.modNetwork.integrityError'), type: 'checksum_mismatch' }, onFailure)
         } else {
-            sendFailure(window, { error: err?.message || t('main.modDownload.networkError'), type: 'download_error' })
+            reportFailure(window, { error: err?.message || t('main.modDownload.networkError'), type: 'download_error' }, onFailure)
         }
         return false
     }
@@ -168,6 +173,7 @@ export async function downloadAndExtractUnpacked(
     checksum?: string,
     cacheDir?: string,
     progress?: DownloadProgress,
+    onFailure?: (failure: ModDownloadFailure) => void,
 ): Promise<boolean> {
     try {
         if (checksum && fs.existsSync(targetPath)) {
@@ -253,12 +259,12 @@ export async function downloadAndExtractUnpacked(
         const moved = await tryReplaceDir(extractedRoot, targetPath, tempExtractPath)
         if (isReplaceDirFailure(moved)) {
             if (isLinuxAccessError(moved.error)) {
-                sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+                reportFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' }, onFailure)
                 return false
             }
             const messageKey = moved.stage === 'copy' ? 'main.modNetwork.unpackedCopyError' : 'main.modNetwork.unpackedMoveError'
             logger.modManager.error('Failed to replace unpacked dir:', moved.error)
-            sendFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' })
+            reportFailure(window, { error: moved.error?.message || t(messageKey), type: 'download_unpacked_error' }, onFailure)
             return false
         }
 
@@ -273,10 +279,10 @@ export async function downloadAndExtractUnpacked(
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)
         if (isLinuxAccessError(err)) {
-            sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+            reportFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' }, onFailure)
             return false
         }
-        sendFailure(window, { error: err?.message || t('main.modNetwork.unpackedDownloadError'), type: 'download_unpacked_error' })
+        reportFailure(window, { error: err?.message || t('main.modNetwork.unpackedDownloadError'), type: 'download_unpacked_error' }, onFailure)
         return false
     } finally {
         unlinkIfExists(tempArchivePath)

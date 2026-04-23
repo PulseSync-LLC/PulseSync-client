@@ -27,7 +27,7 @@ function createContentSection(content: React.ReactNode): SectionConfig {
     return { content }
 }
 
-function createToggleButton(title: string, checked: boolean, onToggle: () => void, isDev?: boolean): SectionItem {
+function createToggleButton(title: string, checked: boolean, onToggle: () => void, isDev?: boolean, disabled = false): SectionItem {
     if (isDev && !window.electron.isAppDev()) {
         return null as any
     }
@@ -43,29 +43,41 @@ function createToggleButton(title: string, checked: boolean, onToggle: () => voi
                 </div>
             </>
         ),
-        onClick: () => {
-            onToggle()
-        },
+        onClick: disabled
+            ? undefined
+            : () => {
+                  onToggle()
+              },
+        disabled,
     }
 }
+
+type UpdateSource = 'backend' | 'github'
 
 type Params = {
     app: any
     canResetAsarPath: boolean
+    checkAppUpdates: () => void
+    checkModUpdates: () => void
     clearModCache: () => void
     collectLogs: () => void
     copyWidgetPath: () => void
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
+    isAutonomousMode: boolean
     openAppDirectory: () => void
     openBoostyUrl: () => void
+    openUpdateChannelModal: () => void
     openModal: (modal: ModalName) => void
     openUpdateModal: () => void
     removeObsWidget: () => void
     resetAsarPath: () => void
     setLanguage: (language: string) => void
+    setUpdateSource: (source: UpdateSource) => void
     t: (key: string, options?: any) => string
     toggleSetting: (type: string, status: boolean) => void
+    updateSource: UpdateSource
+    updateSourceSwitchBlocked: boolean
     widgetInstalled: boolean
     modals: {
         MOD_CHANGELOG: ModalName
@@ -75,23 +87,52 @@ type Params = {
 export function buildContextMenuSections({
     app,
     canResetAsarPath,
+    checkAppUpdates,
+    checkModUpdates,
     clearModCache,
     collectLogs,
     copyWidgetPath,
     deleteMod,
     downloadObsWidget,
+    isAutonomousMode,
     openAppDirectory,
     openBoostyUrl,
+    openUpdateChannelModal,
     openModal,
     openUpdateModal,
     removeObsWidget,
     resetAsarPath,
     setLanguage,
+    setUpdateSource,
     t,
     toggleSetting,
+    updateSource,
+    updateSourceSwitchBlocked,
     widgetInstalled,
     modals,
 }: Params): SectionConfig[] {
+    const updateSourceButtons = isAutonomousMode
+        ? [
+              createToggleButton(t('contextMenu.updates.sourceBackend'), false, () => void 0, undefined, true),
+              createToggleButton(t('contextMenu.updates.sourceGithub'), true, () => void 0, undefined, true),
+          ]
+        : [
+              createToggleButton(
+                  t('contextMenu.updates.sourceBackend'),
+                  updateSource === 'backend',
+                  () => setUpdateSource('backend'),
+                  undefined,
+                  updateSourceSwitchBlocked,
+              ),
+              createToggleButton(
+                  t('contextMenu.updates.sourceGithub'),
+                  updateSource === 'github',
+                  () => setUpdateSource('github'),
+                  undefined,
+                  updateSourceSwitchBlocked,
+              ),
+          ]
+
     return [
         createContentSection(
             <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
@@ -159,6 +200,22 @@ export function buildContextMenuSections({
                 toggleSetting('showModModalAfterInstall', !app.settings.showModModalAfterInstall),
             ),
         ]),
+        createButtonSection(t('contextMenu.updates.title'), [
+            ...updateSourceButtons,
+            {
+                label: t('contextMenu.updates.channel'),
+                onClick: openUpdateChannelModal,
+                disabled: updateSourceSwitchBlocked,
+            },
+            {
+                label: t('contextMenu.updates.checkAppUpdates'),
+                onClick: checkAppUpdates,
+            },
+            {
+                label: t('contextMenu.updates.checkModUpdates'),
+                onClick: checkModUpdates,
+            },
+        ]),
         createButtonSection(t('contextMenu.appSettings.title'), [
             createToggleButton(t('contextMenu.appSettings.autoStartApp'), app.settings.autoStartApp, () =>
                 toggleSetting('autoStart', !app.settings.autoStartApp),
@@ -195,10 +252,6 @@ export function buildContextMenuSections({
         ]),
         createButtonSection(t('contextMenu.misc.title'), [
             { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
-            {
-                label: t('contextMenu.misc.checkUpdates'),
-                onClick: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
-            },
             {
                 label: t('contextMenu.misc.collectLogs'),
                 onClick: collectLogs,

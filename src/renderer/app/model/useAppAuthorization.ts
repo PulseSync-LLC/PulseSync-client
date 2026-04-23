@@ -45,6 +45,13 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         }
     }, [])
 
+    useEffect(() => {
+        if (userId === '-1' && !getUserToken()) {
+            setHasToken(false)
+            setTokenReady(true)
+        }
+    }, [userId])
+
     const {
         data: meData,
         loading: meLoading,
@@ -81,10 +88,11 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
     const redirectToAuth = useCallback(async () => {
         window.electron.store.delete('tokens.token')
-        await router.navigate('/auth', { replace: true })
+        setHasToken(false)
+        await router.navigate('/home', { replace: true })
         setUser(userInitials)
         sendAuthStatus(null)
-    }, [router, sendAuthStatus, setUser])
+    }, [router, sendAuthStatus, setUser, setHasToken])
 
     useEffect(() => {
         if (!meData || !tokenReady) return

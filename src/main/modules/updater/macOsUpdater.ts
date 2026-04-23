@@ -109,19 +109,14 @@ export class MacOSUpdater extends EventEmitter {
         this.emit('log', msg)
     }
 
-    async checkForUpdates(): Promise<MacUpdateManifest | null> {
-        if (process.platform !== 'darwin') {
-            this.log(t('main.macUpdater.skipNonMac'))
-            return null
-        }
-        const { manifestUrl } = this.options
-        const res = await axios.get<MacUpdateManifest>(manifestUrl, { timeout: 15000 })
-        const manifest = res.data
+    checkManifest(manifest: MacUpdateManifest): MacUpdateManifest | null {
         if (!manifest?.version || (!manifest?.url && !(manifest as any)?.assets?.length)) {
             throw new Error(t('main.macUpdater.invalidManifest'))
         }
+
         const current = app.getVersion()
         this.log(t('main.macUpdater.currentVersionAvailable', { current, version: manifest.version }))
+
         if (semver.valid(manifest.version) && semver.valid(current)) {
             const isNewer = semver.gt(manifest.version, current)
             const isOlder = semver.lt(manifest.version, current)
@@ -129,12 +124,24 @@ export class MacOSUpdater extends EventEmitter {
         } else {
             if (!(this.options.allowDowngrade && manifest.version < current) && manifest.version <= current) return null
         }
+
         if (manifest.minOsVersion) {
             const release = os.release()
             this.log(`minOsVersion=${manifest.minOsVersion}, os.release=${release}`)
         }
+
         this.currentManifest = manifest
         return manifest
+    }
+
+    async checkForUpdates(): Promise<MacUpdateManifest | null> {
+        if (process.platform !== 'darwin') {
+            this.log(t('main.macUpdater.skipNonMac'))
+            return null
+        }
+        const { manifestUrl } = this.options
+        const res = await axios.get<MacUpdateManifest>(manifestUrl, { timeout: 15000 })
+        return this.checkManifest(res.data)
     }
 
     async downloadUpdate(manifest?: MacUpdateManifest) {

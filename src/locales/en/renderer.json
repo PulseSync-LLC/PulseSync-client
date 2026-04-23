@@ -179,6 +179,19 @@
             "showChangelog": "Show changelog after install",
             "title": "Mod"
         },
+        "updates": {
+            "title": "Updates",
+            "sourceBackend": "Source: PulseSync server",
+            "sourceGithub": "Source: GitHub",
+            "backend": "PulseSync server",
+            "github": "GitHub",
+            "channel": "Update channel",
+            "checkAppUpdates": "Check app updates",
+            "checkModUpdates": "Check mod updates",
+            "sourceChanged": "Update source switched to {{source}}.",
+            "sourceChangeError": "Failed to switch update source.",
+            "busy": "Source switching is unavailable while an update is being checked or downloaded."
+        },
         "obsWidget": {
             "copyPath": "Copy widget path",
             "download": "Download OBS widget ({{status}})",
@@ -508,7 +521,9 @@
         "fileNotImage": "The file is not an image",
         "avatarFileTooLarge": "Avatar size exceeds 5 MB",
         "bannerFileTooLarge": "Banner size exceeds 5 MB",
+        "back": "Back",
         "friends": "Friends",
+        "login": "Sign in",
         "latestModUpdatesTitle": "Latest mod updates",
         "latestUpdatesTitle": "Latest updates",
         "logout": "Log out",
@@ -745,7 +760,8 @@
             "extensionsStore": "Extension store",
             "home": "Home",
             "trackInfo": "Track info",
-            "users": "Users"
+            "users": "Users",
+            "unavailableInAutonomous": "Unavailable in autonomous mode"
         },
         "newVersionFound": "New version {{version}} found. Running auto-update...",
         "noModInstallsAvailable": "No mod installations available.",
