@@ -12,12 +12,3 @@ export type ModDownloadFailure = {
     error: string
     type: string
 }
-
-export type ModCompatibilityResult = {
-    success: boolean
-    message?: string
-    code?: string
-    url?: string
-    requiredVersion?: string
-    recommendedVersion?: string
-}

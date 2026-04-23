@@ -17,7 +17,7 @@ import HomePrimaryComponentsSection from '@pages/home/ui/HomePrimaryComponentsSe
 import * as styles from './home.module.scss'
 
 export default function HomePage() {
-    const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled } = useContext(UserContext)
+    const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(UserContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
 
@@ -56,11 +56,11 @@ export default function HomePage() {
 
     const primaryComponentVersions = useMemo<Record<string, string>>(
         () => ({
-            music: musicInstalled && musicVersion ? musicVersion : t('contextMenu.mod.notInstalled'),
+            music: (isAutonomousMode || musicInstalled) && musicVersion ? musicVersion : t('contextMenu.mod.notInstalled'),
             mod: app.mod.installed && app.mod.version ? app.mod.version : t('contextMenu.mod.notInstalled'),
             client: app.info.version || t('contextMenu.mod.notInstalled'),
         }),
-        [app.info.version, app.mod.installed, app.mod.version, musicInstalled, musicVersion, t],
+        [app.info.version, app.mod.installed, app.mod.version, isAutonomousMode, musicInstalled, musicVersion, t],
     )
 
     const secondaryComponentsWithVersionLabels = useMemo<HomeSecondaryComponent[]>(
@@ -166,7 +166,7 @@ export default function HomePage() {
                             items={primaryComponents}
                             versions={primaryComponentVersions}
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
-                            isMusicInstalled={Boolean(musicInstalled && musicVersion)}
+                            isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
                         />
                         <HomeSecondaryComponentsSection

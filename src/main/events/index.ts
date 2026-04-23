@@ -633,7 +633,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
         try {
             await fs.promises.mkdir(path.dirname(downloadPath), { recursive: true })
             const response = await axios.get(exeUrl, { responseType: 'stream' })
-            const totalLength = parseInt(response.headers['content-length'] || '0', 10)
+            const totalLength = parseInt(<string>response.headers['content-length'] || '0', 10)
             let downloadedLength = 0
             const writer = fs.createWriteStream(downloadPath)
 

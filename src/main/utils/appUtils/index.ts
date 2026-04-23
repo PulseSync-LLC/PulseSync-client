@@ -282,7 +282,7 @@ export const downloadYandexMusic = async (type?: string) => {
 
     await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })
     const response = await axios.get(downloadUrl, { responseType: 'stream' })
-    const total = parseInt(response.headers['content-length'], 10)
+    const total = parseInt(<string>response.headers['content-length'], 10)
     let received = 0
     const writer = fso.createWriteStream(downloadPath)
     response.data.on('data', (chunk: Buffer) => {
