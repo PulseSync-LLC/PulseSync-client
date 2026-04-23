@@ -42,17 +42,10 @@ export function useLayoutInstallers({
     modals,
 }: Params) {
     const [isUpdating, setIsUpdating] = useState(false)
-    const [isMusicUpdating, setIsMusicUpdating] = useState(false)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
-    const [isForceInstallEnabled, setForceInstallEnabled] = useState(false)
     const [modInstallError, setModInstallError] = useState<{ details: string; showProxyHint: boolean; title: string } | null>(null)
-    const [modUpdateState, setModUpdateState] = useState({
-        isVersionOutdated: false,
-        updateUrl: '',
-    })
 
     const downloadToastIdRef = useRef<string | null>(null)
-    const toastReference = useRef<string | null>(null)
     const appRef = useRef(app)
     const modInfoRef = useRef(modInfo)
     const currentModActionRef = useRef<'install' | 'update'>(app.mod.installed ? 'update' : 'install')
@@ -208,7 +201,6 @@ export function useLayoutInstallers({
                 openModal(modals.MOD_CHANGELOG)
             }
 
-            setForceInstallEnabled(false)
             Promise.all([window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS), window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION)]).then(
                 ([status, version]) => {
                     setMusicInstalled(Boolean(status))
@@ -220,6 +212,11 @@ export function useLayoutInstallers({
 
         const handleFailure = (_: any, error: any) => {
             const errorPresentation = getModInstallErrorText(error)
+            console.error('[LayoutInstallers] Mod install failed', {
+                action: currentModActionRef.current,
+                error,
+                errorPresentation,
+            })
             setModInstallError(errorPresentation)
 
             if (downloadToastIdRef.current) {
@@ -236,15 +233,6 @@ export function useLayoutInstallers({
                 toast.custom('error', errorPresentation.title, errorPresentation.details, undefined, undefined, 15000)
             }
 
-            if (error.type === 'version_too_new') {
-                setForceInstallEnabled(true)
-            }
-            if (error.type === 'version_outdated') {
-                setModUpdateState({
-                    isVersionOutdated: true,
-                    updateUrl: error.url,
-                })
-            }
             if (error.type === 'linux_permissions_required' && window.electron.isLinux()) {
                 openModal(modals.LINUX_PERMISSIONS_MODAL)
             }
@@ -274,108 +262,8 @@ export function useLayoutInstallers({
         t,
     ])
 
-    useEffect(() => {
-        if ((window as any).__musicEventListeners) return
-        ;(window as any).__musicEventListeners = true
-
-        const onProgressUpdate = (_: any, { progress }: { progress: number }) => {
-            if (toastReference.current) {
-                toast.update(toastReference.current, {
-                    kind: 'loading',
-                    title: t('layout.musicDownloadProgressLabel'),
-                    msg: t('layout.downloading', { name: t('layout.musicAppName') }),
-                    value: progress,
-                })
-            } else {
-                const id = toast.custom(
-                    'loading',
-                    t('layout.musicDownloadProgressLabel'),
-                    t('layout.downloading', { name: t('layout.musicAppName') }),
-                    { duration: Infinity },
-                    progress,
-                )
-                toastReference.current = id
-            }
-        }
-
-        const onUpdateFailure = (_: any, error: any) => {
-            if (toastReference.current) {
-                toast.update(toastReference.current, {
-                    kind: 'error',
-                    title: t('layout.errorWithMessage', { message: error.error }),
-                    msg: !musicInstalled ? t('layout.musicInstallFailed') : t('layout.musicUpdateFailed'),
-                    sticky: false,
-                    value: 0,
-                })
-                toastReference.current = null
-            } else {
-                toast.custom(
-                    'error',
-                    t('layout.errorWithMessage', { message: error.error }),
-                    !musicInstalled ? t('layout.musicInstallFailed') : t('layout.musicUpdateFailed'),
-                )
-            }
-            setIsMusicUpdating(false)
-        }
-
-        const onExecutionComplete = async (_: any, data: any) => {
-            if (toastReference.current) {
-                toast.custom(
-                    'success',
-                    t('common.successTitle'),
-                    !musicInstalled || !data?.installed ? t('layout.musicInstallSuccess') : t('layout.musicUpdateSuccess'),
-                    { id: toastReference.current },
-                )
-                toastReference.current = null
-                setModUpdateState({ isVersionOutdated: false, updateUrl: '' })
-                setIsMusicUpdating(false)
-                const [status, version] = await Promise.all([
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
-                    window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
-                ])
-                setMusicInstalled(Boolean(status))
-                setMusicVersion(version ?? null)
-                if (data?.type === 'reinstall') {
-                    setApp(prevApp => {
-                        const updatedApp = {
-                            ...prevApp,
-                            mod: {
-                                ...prevApp.mod,
-                                installed: false,
-                                version: '',
-                            },
-                        }
-                        window.getModInfo(updatedApp)
-                        window.electron.store.delete('mod')
-                        return updatedApp
-                    })
-                }
-            }
-        }
-
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, onProgressUpdate)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_FAILURE, onUpdateFailure)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, onExecutionComplete)
-
-        return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_PROGRESS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_FAILURE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS)
-            ;(window as any).__musicEventListeners = false
-        }
-    }, [musicInstalled, setApp, setMusicInstalled, setMusicVersion, t])
-
-    const updateYandexMusic = useCallback(() => {
-        if (isMusicUpdating) {
-            toast.custom('info', t('layout.infoTitle'), t('layout.updateAlreadyRunning'))
-            return
-        }
-        window.desktopEvents?.send(MainEvents.DOWNLOAD_YANDEX_MUSIC, modUpdateState.updateUrl)
-        setIsMusicUpdating(true)
-    }, [isMusicUpdating, modUpdateState.updateUrl, t])
-
     const startUpdate = useCallback(
-        (force?: boolean) => {
+        () => {
             if (window.electron.isLinux()) {
                 const savedPath = window.electron.store.get('settings.modSavePath')
                 if (!savedPath) {
@@ -411,7 +299,6 @@ export function useLayoutInstallers({
                 realMusicVersion,
                 downloadUrl,
                 checksum_v2,
-                spoof,
                 name,
                 shouldReinstall,
                 downloadUnpackedUrl,
@@ -428,8 +315,6 @@ export function useLayoutInstallers({
                 unpackedChecksum,
                 checksum: checksum_v2,
                 shouldReinstall,
-                force: force || false,
-                spoof: spoof || false,
                 source: source || 'backend',
             })
         },
@@ -467,12 +352,9 @@ export function useLayoutInstallers({
     }, [])
 
     return {
-        isForceInstallEnabled,
         isModUpdateAvailable,
         modInstallError,
-        modUpdateState,
         startUpdate,
-        updateYandexMusic,
         isUserDeveloper,
     }
 }

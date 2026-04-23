@@ -66,11 +66,8 @@ export const timeAgo = (timestamp: number) => {
 }
 
 export const errorTypesToShow = new Set([
-    'version_too_new',
-    'version_outdated',
     'checksum_mismatch',
     'mod_filename_missing',
-    'compatibility_check_error',
     'file_not_found',
     'file_copy_error',
     'unexpected_error',

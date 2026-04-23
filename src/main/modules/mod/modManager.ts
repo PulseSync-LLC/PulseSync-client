@@ -7,7 +7,7 @@ import { getState } from '../state'
 import logger from '../logger'
 import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../../utils/appUtils'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
-import { checkModCompatibility, downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
+import { downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
 import { nativeRenameFile } from '../nativeModules'
 import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
@@ -25,7 +25,6 @@ import {
     tryUseCacheOrDownload,
 } from './mod-manager.helpers'
 import { getGithubModRelease } from './network/releaseCatalog'
-import type { UpdateSource } from '../updater/updateSource'
 import type { ModDownloadFailure } from './network/types'
 
 const State = getState()
@@ -66,9 +65,9 @@ export const modManager = (window: BrowserWindow): void => {
 
     ipcMain.on(
         MainEvents.INSTALL_MOD,
-        async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, force, spoof, source }) => {
+        async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source }) => {
             try {
-                const installSource = (source === 'github' ? 'github' : 'backend') as UpdateSource
+                const installSource = source === 'github' ? 'github' : 'backend'
 
                 if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                     State.set('settings', { musicReinstalled: true })
@@ -82,29 +81,6 @@ export const modManager = (window: BrowserWindow): void => {
 
                 const ymMetadata = await getInstalledYmMetadata()
                 const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
-                if (!force && !spoof) {
-                    if (!resolvedMusicVersion) {
-                        sendFailure(window, { error: t('main.modNetwork.compatibilityCheckError'), type: 'compatibility_error' })
-                        return
-                    }
-
-                    const comp = await checkModCompatibility(version, resolvedMusicVersion)
-                    if (!comp.success) {
-                        const type =
-                            comp.code === 'YANDEX_VERSION_OUTDATED'
-                                ? 'version_outdated'
-                                : comp.code === 'YANDEX_VERSION_TOO_NEW'
-                                  ? 'version_too_new'
-                                  : 'unknown'
-                        return sendFailure(window, {
-                            error: comp.message || t('main.modManager.incompatibleMod'),
-                            type,
-                            url: comp.url,
-                            requiredVersion: comp.requiredVersion,
-                            recommendedVersion: comp.recommendedVersion,
-                        })
-                    }
-                }
 
                 try {
                     await ensureBackup(paths)
@@ -270,31 +246,6 @@ export const modManager = (window: BrowserWindow): void => {
                                 return
                             }
 
-                            if (!force && !spoof) {
-                                if (!resolvedMusicVersion) {
-                                    sendFailure(window, { error: t('main.modNetwork.compatibilityCheckError'), type: 'compatibility_error' })
-                                    return
-                                }
-
-                                const comp = await checkModCompatibility(fallbackRelease.modVersion, resolvedMusicVersion)
-                                if (!comp.success) {
-                                    const type =
-                                        comp.code === 'YANDEX_VERSION_OUTDATED'
-                                            ? 'version_outdated'
-                                            : comp.code === 'YANDEX_VERSION_TOO_NEW'
-                                              ? 'version_too_new'
-                                              : 'unknown'
-                                    sendFailure(window, {
-                                        error: comp.message || t('main.modManager.incompatibleMod'),
-                                        type,
-                                        url: comp.url,
-                                        requiredVersion: comp.requiredVersion,
-                                        recommendedVersion: comp.recommendedVersion,
-                                    })
-                                    return
-                                }
-                            }
-
                             if (
                                 !(await applyReleaseArtifacts(
                                     {
@@ -303,7 +254,7 @@ export const modManager = (window: BrowserWindow): void => {
                                         link: fallbackRelease.downloadUrl,
                                         unpackLink: fallbackRelease.downloadUnpackedUrl || undefined,
                                         unpackedChecksum: fallbackRelease.unpackedChecksum || undefined,
-                                        checksum: fallbackRelease.checksum_v2 || fallbackRelease.checksum || undefined,
+                                        checksum: fallbackRelease.checksum_v2 || undefined,
                                     },
                                     failure => {
                                         fallbackFailure = failure

@@ -3,8 +3,6 @@ import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
 import logger from '../../logger'
-import config from '@common/appConfig'
-import mainHttpClient from '../../../http/client'
 import RendererEvents from '../../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
 import { isCompressedArchiveLink, writePatchedAsarAndPatchBundle } from '../mod-files'
@@ -20,7 +18,7 @@ import {
     DownloadError,
 } from '../download.helpers'
 import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
-import type { DownloadProgress, ModCompatibilityResult, ModDownloadFailure } from './types'
+import type { DownloadProgress, ModDownloadFailure } from './types'
 import {
     decompressArchive,
     ensureDir,
@@ -45,35 +43,6 @@ function reportFailure(window: BrowserWindow, failure: ModDownloadFailure, onFai
     }
 
     sendFailure(window, failure)
-}
-
-export async function checkModCompatibility(modVersion: string, ymVersion: string): Promise<ModCompatibilityResult> {
-    try {
-        const response = await mainHttpClient.get<{
-            code?: string
-            error?: string
-            message?: string
-            recommendedVersion?: string
-            requiredVersion?: string
-            success?: boolean
-            url?: string
-        }>('/api/v1/mod/v2/check', {
-            query: { yandexVersion: ymVersion, modVersion },
-        })
-        const d = response.data
-        if (d.error) return { success: false, message: d.error }
-        return {
-            success: d.success ?? false,
-            message: d.message,
-            code: d.code,
-            url: d.url,
-            requiredVersion: d.requiredVersion,
-            recommendedVersion: d.recommendedVersion || modVersion,
-        }
-    } catch (err) {
-        logger.modManager.error('Mod compatibility check failed:', err)
-        return { success: false, message: t('main.modNetwork.compatibilityCheckError') }
-    }
 }
 
 export async function downloadAndUpdateFile(

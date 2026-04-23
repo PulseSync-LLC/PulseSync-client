@@ -1,5 +1,6 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
+import config from '@common/appConfig'
 import MainEvents from '@common/types/mainEvents'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
@@ -54,9 +55,10 @@ export function useAppInitialization({
                 window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
                 window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
             ])
+            const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : ((musicVersion as string | null | undefined) || null)
 
             setMusicInstalled(!!musicStatus)
-            setMusicVersion(musicVersion || null)
+            setMusicVersion(resolvedMusicVersion)
             setAddons((fetchedAddons as Addon[]) || [])
 
             try {

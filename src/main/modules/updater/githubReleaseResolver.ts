@@ -12,6 +12,7 @@ export type GitHubRepo = {
 export type GitHubReleaseAsset = {
     browser_download_url: string
     content_type?: string
+    digest?: string
     name: string
     size?: number
 }

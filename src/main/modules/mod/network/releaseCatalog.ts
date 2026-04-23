@@ -7,7 +7,6 @@ import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } 
 import type { UpdateSource } from '../../updater/updateSource'
 
 export type ModReleaseEntry = {
-    checksum: string
     checksum_v2: string
     changelog: string
     createdAt: string
@@ -20,7 +19,7 @@ export type ModReleaseEntry = {
     name: string
     realMusicVersion: string
     shouldReinstall: boolean
-    showModal: string
+    showModal: boolean
     source: UpdateSource
     spoof: boolean
     unpackedChecksum: string
@@ -55,6 +54,20 @@ const GET_MODS_QUERY = `
 
 const USER_AGENT = () =>
     `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
+
+function normalizeGitHubAssetDigest(digest?: string): string {
+    const rawDigest = String(digest || '').trim()
+    if (!rawDigest) {
+        return ''
+    }
+
+    const [algorithm, value] = rawDigest.split(':', 2)
+    if (!value) {
+        return ''
+    }
+
+    return algorithm.toLowerCase() === 'sha256' ? value.trim().toLowerCase() : ''
+}
 
 function resolveTokenHeader(): Record<string, string> {
     const token = getState().get('tokens.token')
@@ -139,16 +152,15 @@ export async function fetchGithubModReleases(): Promise<ModReleaseEntry[]> {
             id: release.id,
             musicVersion: '',
             realMusicVersion: '',
-            name: release.name?.trim() || 'PulseSync Mod',
+            name: 'Eclipse',
             modVersion: normalizeGitHubTagVersion(release.tag_name),
             downloadUrl: asarAsset.browser_download_url,
             downloadUnpackedUrl: unpackedAsset?.browser_download_url ?? '',
-            unpackedChecksum: '',
+            unpackedChecksum: normalizeGitHubAssetDigest(unpackedAsset?.digest),
             createdAt: release.published_at ?? '',
-            showModal: '',
+            showModal: true,
             shouldReinstall: false,
-            checksum: '',
-            checksum_v2: '',
+            checksum_v2: normalizeGitHubAssetDigest(asarAsset.digest),
             spoof: false,
             deprecated: false,
             changelog: release.body ?? '',

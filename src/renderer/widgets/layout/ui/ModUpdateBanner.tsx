@@ -1,5 +1,5 @@
 import React from 'react'
-import { MdKeyboardArrowRight, MdOutlineInstallDesktop, MdOutlineWarningAmber, MdUpdate } from 'react-icons/md'
+import { MdKeyboardArrowRight, MdOutlineWarningAmber, MdUpdate } from 'react-icons/md'
 
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
@@ -9,7 +9,6 @@ const modInstallProxyDomains = ['pulsesync.dev', 'ru-node-1.pulsesync.dev', 'wor
 
 type Props = {
     app: SettingsInterface
-    isForceInstallEnabled: boolean
     isModUpdateAvailable: boolean
     modInstallError: {
         details: string
@@ -17,24 +16,16 @@ type Props = {
         title: string
     } | null
     modInfo: ModInterface[]
-    modUpdateState: {
-        isVersionOutdated: boolean
-        updateUrl: string
-    }
-    onStartUpdate: (force?: boolean) => void
-    onUpdateMusic: () => void
+    onStartUpdate: () => void
     t: (key: string, options?: Record<string, any>) => string
 }
 
 export default function ModUpdateBanner({
     app,
-    isForceInstallEnabled,
     isModUpdateAvailable,
     modInstallError,
     modInfo,
-    modUpdateState,
     onStartUpdate,
-    onUpdateMusic,
     t,
 }: Props) {
     if (!isModUpdateAvailable) return null
@@ -58,22 +49,10 @@ export default function ModUpdateBanner({
                             </div>
                         </div>
                         <div className={pageStyles.button_container}>
-                            <button className={pageStyles.patch_button} onClick={() => onStartUpdate()}>
+                            <button className={pageStyles.patch_button} onClick={onStartUpdate}>
                                 <MdUpdate size={20} />
                                 {app.mod.installed && app.mod.version ? t('layout.updateAction') : t('layout.installAction')}
                             </button>
-                            {isForceInstallEnabled && !modUpdateState.isVersionOutdated && (
-                                <button className={pageStyles.patch_button} onClick={() => onStartUpdate(true)}>
-                                    <MdOutlineWarningAmber size={20} />
-                                    {app.mod.installed ? t('layout.forceUpdateAction') : t('layout.forceInstallAction')}
-                                </button>
-                            )}
-                            {modUpdateState.isVersionOutdated && (
-                                <button className={pageStyles.patch_button} onClick={onUpdateMusic}>
-                                    <MdOutlineInstallDesktop size={20} />
-                                    {t('layout.updateMusicAction')}
-                                </button>
-                            )}
                         </div>
                     </div>
                     {modInstallError && (

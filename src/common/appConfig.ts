@@ -4,6 +4,7 @@ export const branch = "beta"
 
 const PORT = '2007'
 const MAIN_PORT = 2007
+const AUTONOMOUS_MUSIC_VERSION = '5.90.0'
 
 const config = {
     PORT,
@@ -16,6 +17,7 @@ const config = {
     RETRY_INTERVAL_MS: 15000,
     MAX_RETRY_COUNT: 15,
     MAIN_PORT,
+    AUTONOMOUS_MUSIC_VERSION,
     BOOSTY_PURCHASE_URL: 'https://boosty.to/evt/purchase/2634425',
     BOOSTY_URL: 'https://boosty.to/evt',
 }

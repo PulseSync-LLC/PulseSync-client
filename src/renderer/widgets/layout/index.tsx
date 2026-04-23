@@ -30,25 +30,23 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
-    const { isForceInstallEnabled, isModUpdateAvailable, modInstallError, modUpdateState, startUpdate, updateYandexMusic, isUserDeveloper } = useLayoutInstallers(
-        {
-            app,
-            modInfo,
-            modInfoFetched,
-            musicInstalled,
-            openModal,
-            setApp,
-            setMusicInstalled,
-            setMusicVersion,
-            setUpdate,
-            t,
-            modals: {
-                LINUX_ASAR_PATH: Modals.LINUX_ASAR_PATH,
-                LINUX_PERMISSIONS_MODAL: Modals.LINUX_PERMISSIONS_MODAL,
-                MOD_CHANGELOG: Modals.MOD_CHANGELOG,
-            },
+    const { isModUpdateAvailable, modInstallError, startUpdate, isUserDeveloper } = useLayoutInstallers({
+        app,
+        modInfo,
+        modInfoFetched,
+        musicInstalled,
+        openModal,
+        setApp,
+        setMusicInstalled,
+        setMusicVersion,
+        setUpdate,
+        t,
+        modals: {
+            LINUX_ASAR_PATH: Modals.LINUX_ASAR_PATH,
+            LINUX_PERMISSIONS_MODAL: Modals.LINUX_PERMISSIONS_MODAL,
+            MOD_CHANGELOG: Modals.MOD_CHANGELOG,
         },
-    )
+    })
     const storePageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
     const usersPageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
 
@@ -114,13 +112,10 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     </div>
                     <ModUpdateBanner
                         app={app}
-                        isForceInstallEnabled={isForceInstallEnabled}
                         isModUpdateAvailable={isModUpdateAvailable}
                         modInstallError={modInstallError}
                         modInfo={modInfo}
-                        modUpdateState={modUpdateState}
                         onStartUpdate={startUpdate}
-                        onUpdateMusic={updateYandexMusic}
                         t={t}
                     />
                     {children}
