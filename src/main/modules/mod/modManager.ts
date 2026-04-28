@@ -82,6 +82,16 @@ export const modManager = (window: BrowserWindow): void => {
                 const ymMetadata = await getInstalledYmMetadata()
                 const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
 
+                if (isMac()) {
+                    try {
+                        await copyFile(paths.modAsar, paths.modAsar)
+                        await copyFile(paths.infoPlist, paths.infoPlist)
+                    } catch {
+                        window.webContents.send(RendererEvents.REQUEST_MAC_PERMISSIONS)
+                        return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
+                    }
+                }
+
                 try {
                     await ensureBackup(paths)
                 } catch (e: any) {
@@ -99,16 +109,6 @@ export const modManager = (window: BrowserWindow): void => {
                     }
                     sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
                     return
-                }
-
-                if (isMac()) {
-                    try {
-                        await copyFile(paths.modAsar, paths.modAsar)
-                        await copyFile(paths.infoPlist, paths.infoPlist)
-                    } catch {
-                        window.webContents.send(RendererEvents.REQUEST_MAC_PERMISSIONS)
-                        return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
-                    }
                 }
 
                 const applyReleaseArtifacts = async (
