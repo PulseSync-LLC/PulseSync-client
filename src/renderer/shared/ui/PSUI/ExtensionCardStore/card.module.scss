@@ -79,6 +79,10 @@
     padding: 72px 14px 14px;
 }
 
+.card_with_tags {
+    padding-top: 72px;
+}
+
 .card_theme_purple {
     background: linear-gradient(0deg, #252735 0%, rgba(48, 51, 70, 0.85) 39.42%, rgba(54, 58, 78, 0.3) 100%),
         radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), #232632;
@@ -451,6 +455,10 @@
         padding: 62px 12px 12px;
     }
 
+    .card_with_tags {
+        padding-top: 62px;
+    }
+
     .download_button {
         justify-self: stretch;
         flex-basis: 140px;
@@ -573,4 +581,15 @@
 
 .badge_both {
     background-color: #9333ea;
+}
+
+.badge_tag {
+    background: rgba(17, 24, 39, 0.74);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #dbeafe;
+}
+
+.badge_warningTag {
+    background: #f59e0b;
+    color: #111827;
 }

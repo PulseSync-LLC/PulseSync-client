@@ -14,6 +14,10 @@ type StoreAddonUpdatesResponse = {
     ok?: boolean
 }
 
+type StoreAddonPatchResponse = StoreAddon & {
+    ok?: boolean
+}
+
 type PackageArchiveResponse = {
     base64?: string
     fileName?: string
@@ -176,6 +180,23 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
     }
 
     return Array.isArray(payload?.addons) ? payload.addons : []
+}
+
+export async function patchStoreAddonReleaseTags(addonId: string, releaseId: string, tags: string[]): Promise<StoreAddon> {
+    const response = await rendererHttpClient.patch<StoreAddonPatchResponse>(`/extensions/${encodeURIComponent(addonId)}`, {
+        auth: true,
+        body: {
+            releaseId,
+            tags,
+        },
+    })
+
+    const payload = response.data ?? null
+    if (!response.ok || payload?.ok === false || !payload?.id) {
+        throw new Error('FAILED_TO_UPDATE_STORE_ADDON_TAGS')
+    }
+
+    return payload
 }
 
 export async function persistAddonStoreLink(addon: Addon, storeAddonId: string): Promise<void> {

@@ -26,6 +26,7 @@ export interface ExtensionCardStoreProps {
     status?: ExtensionStatus
     type?: ExtensionType
     kind?: AddonKind
+    tags?: string[]
     onDownloadClick?: () => void
     onAuthorClick?: (author: string) => void
     downloadLabel?: string
@@ -113,6 +114,35 @@ const TypeBadge: React.FC<{ type: ExtensionType }> = ({ type }) => {
     return <div className={[st.card_badge, typeClass].join(' ')}>{text}</div>
 }
 
+const normalizeTagKey = (tag: string) => tag.trim().toLowerCase().replace(/[-_]+/g, ' ')
+
+const isWarningTag = (tag: string) => {
+    const normalized = normalizeTagKey(tag)
+    return normalized === 'low quality' || normalized === 'unstable'
+}
+
+const StoreTagBadges: React.FC<{ tags: string[] }> = ({ tags }) => {
+    const normalizedTags = Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).sort((left, right) => {
+        const leftWarning = isWarningTag(left)
+        const rightWarning = isWarningTag(right)
+        if (leftWarning === rightWarning) return 0
+        return leftWarning ? -1 : 1
+    })
+    const visibleTags = normalizedTags.slice(0, 3)
+    const hiddenCount = Math.max(0, normalizedTags.length - visibleTags.length)
+
+    return (
+        <>
+            {visibleTags.map(tag => (
+                <div key={tag} className={cn(st.card_badge, st.badge_tag, isWarningTag(tag) && st.badge_warningTag)}>
+                    {tag}
+                </div>
+            ))}
+            {hiddenCount > 0 ? <div className={cn(st.card_badge, st.badge_tag)}>+{hiddenCount}</div> : null}
+        </>
+    )
+}
+
 const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     <div className={st.card_icon}>
         {imageSrc ? <img src={imageSrc} alt="Icon" className={st.card_icon_image} /> : <div className={st.card_icon_placeholder} />}
@@ -192,6 +222,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     status,
     type,
     kind,
+    tags = [],
     onAuthorClick,
     onDownloadClick,
     downloadLabel,
@@ -204,7 +235,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, { threshold: 0.1 })
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
     const sizeClass = size === 'large' ? st.card_large : ''
-    const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, sizeClass, className ? className : '']
+    const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, tags.length > 0 ? st.card_with_tags : '', sizeClass, className ? className : '']
         .filter(Boolean)
         .join(' ')
 
@@ -221,6 +252,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                             {status && <ReleaseStatusBadge status={status} />}
                             {kind && <KindBadge kind={kind} />}
                             {type && <TypeBadge type={type} />}
+                            {tags.length > 0 && <StoreTagBadges tags={tags} />}
                         </div>
                         {topRightMeta ? (
                             <div className={st.card_header_meta}>
