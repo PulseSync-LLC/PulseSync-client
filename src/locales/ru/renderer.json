@@ -50,7 +50,6 @@
         "selectFile": "Выберите файл",
         "selectPlaceholder": "Выберите",
         "serverUnavailable": "Сервер недоступен",
-        "save": "Сохранить",
         "somethingWrongTitle": "Что-то не так",
         "submit": "Отправить",
         "successTitle": "Успех",
@@ -1105,9 +1104,6 @@
         "pendingSectionTitle": "Аддоны на модерации",
         "pendingSectionSubtitle": "Аддоны проходящие модерацию",
         "pendingEmpty": "По текущему запросу аддоны на модерации не найдены.",
-        "moderationTagsPlaceholder": "low quality, unstable",
-        "moderationTagsUpdated": "Теги аддона {{title}} сохранены.",
-        "moderationTagsUpdateFailed": "Не удалось сохранить теги аддона {{title}}.",
         "searchPlaceholder": "Найти аддон...",
         "downloadCount": "{{count}} скачиваний",
         "approvedAt": "Проверено {{date}}",
@@ -1140,6 +1136,11 @@
         "kind": {
             "theme": "Тема",
             "script": "Скрипт"
+        },
+        "badges": {
+            "officialTemplate": "Официальный шаблон",
+            "aiUsage": "AI",
+            "aiUsageTooltip": "При разработке этого аддона использовался AI"
         },
         "type": {
             "both": "CSS + JS",

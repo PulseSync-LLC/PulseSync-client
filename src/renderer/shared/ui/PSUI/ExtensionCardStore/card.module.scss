@@ -200,6 +200,14 @@
     white-space: nowrap;
 }
 
+.card_title_verified {
+    flex: 0 0 auto;
+    width: 20px;
+    height: 20px;
+    color: #8fd4ff;
+    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+}
+
 .card_subtitle {
     margin: 0;
     font-weight: 400;
@@ -592,4 +600,13 @@
 .badge_warningTag {
     background: #f59e0b;
     color: #111827;
+}
+
+.aiTooltipTrigger {
+    display: inline-flex;
+}
+
+.badge_aiUsage {
+    background: #7dd3fc;
+    color: #082f49;
 }

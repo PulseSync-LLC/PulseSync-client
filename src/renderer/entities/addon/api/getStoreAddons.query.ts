@@ -28,6 +28,7 @@ export default gql`
                     changelog
                     tags
                     usedAiDuringDevelopment
+                    usesOfficialTemplate
                     avatarUrl
                     bannerUrl
                     downloadUrl
@@ -46,6 +47,7 @@ export default gql`
                     changelog
                     tags
                     usedAiDuringDevelopment
+                    usesOfficialTemplate
                     avatarUrl
                     bannerUrl
                     downloadUrl

@@ -13,7 +13,6 @@ import type Addon from '@entities/addon/model/addon.interface'
 import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
-import { patchStoreAddonReleaseTags } from '@entities/addon/api/storeAddons'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
 import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
@@ -61,18 +60,6 @@ function getDefaultSortOrder(sortKey: StoreSortKey): 'asc' | 'desc' {
     return sortKey === 'name' ? 'asc' : 'desc'
 }
 
-function parseTagsInput(value: string): string[] {
-    return Array.from(
-        new Set(
-            value
-                .split(',')
-                .map(tag => tag.trim())
-                .filter(Boolean)
-                .slice(0, 16),
-        ),
-    )
-}
-
 export default function StorePage() {
     const INITIAL_SHIMMER_FADE_MS = 180
 
@@ -90,8 +77,6 @@ export default function StorePage() {
     const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => getDefaultSortOrder('latestRelease'))
     const [loading, setLoading] = useState(true)
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
-    const [savingTagsAddonId, setSavingTagsAddonId] = useState<string | null>(null)
-    const [tagDrafts, setTagDrafts] = useState<Record<string, string>>({})
     const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
     const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
     const [scrollTop, setScrollTop] = useState(0)
@@ -298,72 +283,6 @@ export default function StorePage() {
         [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t],
     )
 
-    const handleModerationTagsSave = useCallback(
-        async (addon: StoreAddon) => {
-            const release = addon.currentRelease
-            if (!release || savingTagsAddonId === addon.id) return
-
-            const draftValue = tagDrafts[release.id] ?? (release.tags || []).join(', ')
-            const tags = parseTagsInput(draftValue)
-            setSavingTagsAddonId(addon.id)
-
-            try {
-                const updatedAddon = await patchStoreAddonReleaseTags(addon.id, release.id, tags)
-                setPendingAddons(currentAddons => currentAddons.map(item => (item.id === updatedAddon.id ? updatedAddon : item)))
-                setAddons(currentAddons => currentAddons.map(item => (item.id === updatedAddon.id ? updatedAddon : item)))
-                setTagDrafts(currentDrafts => ({
-                    ...currentDrafts,
-                    [release.id]: tags.join(', '),
-                }))
-                toast.custom('success', t('common.doneTitle'), t('store.moderationTagsUpdated', { title: addon.name }))
-            } catch (error) {
-                toast.custom('error', t('common.errorTitle'), t('store.moderationTagsUpdateFailed', { title: addon.name }))
-                console.error('[Store] failed to update addon moderation tags', error)
-            } finally {
-                setSavingTagsAddonId(current => (current === addon.id ? null : current))
-            }
-        },
-        [savingTagsAddonId, t, tagDrafts],
-    )
-
-    const renderModerationTagsEditor = useCallback(
-        (addon: StoreAddon) => {
-            const release = addon.currentRelease
-            if (!release) return null
-
-            const value = tagDrafts[release.id] ?? (release.tags || []).join(', ')
-            const saving = savingTagsAddonId === addon.id
-
-            return (
-                <div className={st.moderationTagsEditor}>
-                    <input
-                        className={st.moderationTagsInput}
-                        value={value}
-                        onChange={event => {
-                            const nextValue = event.currentTarget.value
-                            setTagDrafts(currentDrafts => ({
-                                ...currentDrafts,
-                                [release.id]: nextValue,
-                            }))
-                        }}
-                        placeholder={t('store.moderationTagsPlaceholder')}
-                    />
-                    <button
-                        type="button"
-                        className={st.moderationTagsSaveButton}
-                        disabled={saving}
-                        onClick={() => {
-                            void handleModerationTagsSave(addon)
-                        }}
-                    >
-                        {saving ? t('common.saving') : t('common.save')}
-                    </button>
-                </div>
-            )
-        },
-        [handleModerationTagsSave, savingTagsAddonId, t, tagDrafts],
-    )
-
     const renderStoreCard = useCallback(
         (addon: StoreAddon, index: number, options?: { forceStatus?: 'pending' | 'rejected' | 'accepted'; topRightMeta?: string }) => {
             const release = addon.currentRelease
@@ -395,6 +314,8 @@ export default function StorePage() {
                     type={resolveType(addon.type)}
                     kind={addon.type}
                     tags={release.tags || []}
+                    usedAiDuringDevelopment={release.usedAiDuringDevelopment}
+                    usesOfficialTemplate={release.usesOfficialTemplate}
                     backgroundImage={release.bannerUrl || undefined}
                     iconImage={release.avatarUrl || undefined}
                     downloadInstalled={isInstalled}
@@ -700,14 +621,9 @@ export default function StorePage() {
                             {pendingAddons.length ? (
                                 <div className={st.store_sectionGrid}>
                                     {pendingAddons.map((addon, index) =>
-                                        (
-                                            <div key={addon.id} className={st.moderationCardShell}>
-                                                {renderStoreCard(addon, index, {
-                                                    forceStatus: 'pending',
-                                                })}
-                                                {renderModerationTagsEditor(addon)}
-                                            </div>
-                                        ),
+                                        renderStoreCard(addon, index, {
+                                            forceStatus: 'pending',
+                                        }),
                                     )}
                                 </div>
                             ) : (

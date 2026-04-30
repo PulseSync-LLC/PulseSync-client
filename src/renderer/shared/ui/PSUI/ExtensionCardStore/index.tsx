@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
-import { MdDeleteForever } from 'react-icons/md'
+import { MdDeleteForever, MdVerifiedUser } from 'react-icons/md'
 import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 import { t } from '@app/i18n'
+import TooltipButton from '@shared/ui/tooltip_button'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
@@ -27,6 +28,8 @@ export interface ExtensionCardStoreProps {
     type?: ExtensionType
     kind?: AddonKind
     tags?: string[]
+    usedAiDuringDevelopment?: boolean
+    usesOfficialTemplate?: boolean
     onDownloadClick?: () => void
     onAuthorClick?: (author: string) => void
     downloadLabel?: string
@@ -143,6 +146,16 @@ const StoreTagBadges: React.FC<{ tags: string[] }> = ({ tags }) => {
     )
 }
 
+const TrustBadges: React.FC<{ usedAiDuringDevelopment?: boolean }> = ({ usedAiDuringDevelopment }) => (
+    <>
+        {usedAiDuringDevelopment ? (
+            <TooltipButton as="span" className={st.aiTooltipTrigger} tooltipText={t('store.badges.aiUsageTooltip')} side="bottom">
+                <span className={cn(st.card_badge, st.badge_aiUsage)}>{t('store.badges.aiUsage')}</span>
+            </TooltipButton>
+        ) : null}
+    </>
+)
+
 const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
     <div className={st.card_icon}>
         {imageSrc ? <img src={imageSrc} alt="Icon" className={st.card_icon_image} /> : <div className={st.card_icon_placeholder} />}
@@ -176,10 +189,7 @@ const useIntersectionObserver = (
                             shouldAnimate: animationsEnabledRef?.current ?? true,
                         }
 
-                        if (
-                            prevState.isIntersecting === nextState.isIntersecting &&
-                            prevState.shouldAnimate === nextState.shouldAnimate
-                        ) {
+                        if (prevState.isIntersecting === nextState.isIntersecting && prevState.shouldAnimate === nextState.shouldAnimate) {
                             return prevState
                         }
 
@@ -223,6 +233,8 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     type,
     kind,
     tags = [],
+    usedAiDuringDevelopment = false,
+    usesOfficialTemplate = false,
     onAuthorClick,
     onDownloadClick,
     downloadLabel,
@@ -235,7 +247,14 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, { threshold: 0.1 })
     const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
     const sizeClass = size === 'large' ? st.card_large : ''
-    const rootClassName = [st.card, backgroundImage ? st.card_with_image_bg : themeClass, tags.length > 0 ? st.card_with_tags : '', sizeClass, className ? className : '']
+    const hasTopBadges = tags.length > 0 || usedAiDuringDevelopment
+    const rootClassName = [
+        st.card,
+        backgroundImage ? st.card_with_image_bg : themeClass,
+        hasTopBadges ? st.card_with_tags : '',
+        sizeClass,
+        className ? className : '',
+    ]
         .filter(Boolean)
         .join(' ')
 
@@ -252,6 +271,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                             {status && <ReleaseStatusBadge status={status} />}
                             {kind && <KindBadge kind={kind} />}
                             {type && <TypeBadge type={type} />}
+                            <TrustBadges usedAiDuringDevelopment={usedAiDuringDevelopment} />
                             {tags.length > 0 && <StoreTagBadges tags={tags} />}
                         </div>
                         {topRightMeta ? (
@@ -265,6 +285,9 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                     <div className={st.card_content}>
                         <div className={st.card_title_row}>
                             <h3 className={st.card_title}>{title}</h3>
+                            {usesOfficialTemplate ? (
+                                <MdVerifiedUser className={st.card_title_verified} aria-label={t('store.badges.officialTemplate')} />
+                            ) : null}
                             <span className={st.card_title_version}>{version}</span>
                         </div>
 

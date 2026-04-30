@@ -10,6 +10,7 @@ export interface StoreAddonRelease {
     changelog?: string[] | string | null
     tags: string[]
     usedAiDuringDevelopment: boolean
+    usesOfficialTemplate: boolean
     avatarUrl?: string | null
     bannerUrl?: string | null
     downloadUrl?: string | null

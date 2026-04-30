@@ -243,70 +243,6 @@
     justify-content: center;
 }
 
-.moderationCardShell {
-    display: flex;
-    min-width: 0;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.moderationTagsEditor {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-    padding: 10px;
-    border-radius: 10px;
-    background: rgba(18, 21, 31, 0.72);
-    border: 1px solid rgba(105, 115, 148, 0.24);
-}
-
-.moderationTagsInput {
-    flex: 1 1 auto;
-    min-width: 0;
-    height: 36px;
-    box-sizing: border-box;
-    padding: 0 12px;
-    border: 1px solid rgba(105, 115, 148, 0.3);
-    border-radius: 8px;
-    background: rgba(10, 12, 18, 0.48);
-    color: #f8faff;
-    font-size: 13px;
-    font-weight: 600;
-    outline: none;
-
-    &::placeholder {
-        color: #8e98ba;
-    }
-}
-
-.moderationTagsSaveButton {
-    flex: 0 0 auto;
-    min-width: 104px;
-    height: 36px;
-    padding: 0 14px;
-    border: none;
-    border-radius: 8px;
-    background: rgba(168, 255, 102, 0.16);
-    color: #a8ff66;
-    font-size: 13px;
-    font-weight: 800;
-    cursor: pointer;
-    transition:
-        background 0.18s ease,
-        color 0.18s ease;
-
-    &:hover:not(:disabled) {
-        background: rgb(168 255 102);
-        color: #000000;
-    }
-
-    &:disabled {
-        cursor: default;
-        opacity: 0.62;
-    }
-}
-
 .initialContentShell {
     position: relative;
     width: 100%;
@@ -416,14 +352,6 @@
         grid-template-columns: minmax(0, 1fr);
     }
 
-    .moderationTagsEditor {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .moderationTagsSaveButton {
-        width: 100%;
-    }
 }
 
 @media (max-width: 640px) {
