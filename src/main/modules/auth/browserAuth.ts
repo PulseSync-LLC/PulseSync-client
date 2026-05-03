@@ -112,10 +112,11 @@ export const extractBrowserAuthFromDeepLink = (rawUrl: string): BrowserAuthCrede
 }
 
 const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: BrowserAuthClientLike | null): void => {
-    window?.webContents.send(RendererEvents.AUTH_SUCCESS)
-    client?.send(RendererEvents.AUTH_SUCCESS)
     window?.show()
     window?.focus()
+    window?.moveTop()
+    window?.webContents.send(RendererEvents.AUTH_SUCCESS)
+    client?.send(RendererEvents.AUTH_SUCCESS)
 }
 
 export const processBrowserAuth = async (
