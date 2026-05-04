@@ -135,7 +135,7 @@ export default function HomeNewsSection() {
     const renderState = () => {
         if (loading) {
             return (
-                <div className={styles.newsState} aria-hidden="true">
+                <div className={styles.newsState} aria-hidden="true" style={{ justifyContent: 'start' }}>
                     <div className={styles.newsSkeletonFeatured}>
                         <div className={styles.newsSkeletonImage} />
                         <div className={styles.newsSkeletonContent}>
@@ -146,7 +146,7 @@ export default function HomeNewsSection() {
                         </div>
                     </div>
                     <div className={styles.newsSkeletonList}>
-                        {Array.from({ length: 3 }).map((_, index) => (
+                        {Array.from({ length: 6 }).map((_, index) => (
                             <div key={index} className={styles.newsSkeletonItem}>
                                 <div className={styles.newsSkeletonThumb} />
                                 <div className={styles.newsSkeletonItemContent}>

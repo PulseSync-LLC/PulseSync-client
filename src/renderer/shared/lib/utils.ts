@@ -9,6 +9,7 @@ export const checkInternetAccess = async (): Promise<boolean> => {
     try {
         const response = await rendererHttpClient.get(`${config.SERVER_v2_URL}/api/v2/health`, {
             responseType: 'text',
+            timeoutMs: 10000
         })
         return response.status === 200
     } catch (error) {

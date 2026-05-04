@@ -580,7 +580,7 @@
 .newsState {
     display: flex;
     height: 100%;
-    min-height: 240px;
+    min-height: 1950px;
     padding: 18px;
     border-radius: 18px;
     flex-direction: column;
@@ -632,6 +632,7 @@
 
 .newsSkeletonFeatured {
     display: flex;
+    width: 100%;
     flex-direction: column;
 }
 
@@ -644,11 +645,12 @@
 .newsSkeletonItemTitle {
     background: linear-gradient(90deg, rgba(115, 127, 164, 0.18) 0%, rgba(159, 173, 214, 0.28) 50%, rgba(115, 127, 164, 0.18) 100%);
     background-size: 220% 100%;
-    animation: newsShimmer 1.35s ease-in-out infinite;
+    animation: newsShimmer 1.35s ease-in-out .75s infinite;
 }
 
 .newsSkeletonImage {
     height: 220px;
+    min-height: 220px;
 }
 
 .newsSkeletonContent,
@@ -688,6 +690,7 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 12px;
     margin-top: 14px;
+    width: 100%;
 }
 
 .newsSkeletonItem {
