@@ -5,7 +5,7 @@ import userContext from '@entities/user/model/context'
 import Addon from '@entities/addon/model/addon.interface'
 import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
-import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
 
 import toast from '@shared/ui/toast'
@@ -70,6 +70,44 @@ function isGithubUrl(value: string): boolean {
     }
 }
 
+function getStoreAddonReleaseTimestamp(release: StoreAddonRelease | null | undefined): number {
+    if (!release) {
+        return 0
+    }
+
+    const timestamp = new Date(release.updatedAt || release.createdAt).getTime()
+    return Number.isFinite(timestamp) ? timestamp : 0
+}
+
+function getStoreAddonDisplayRelease(addon: StoreAddon | null | undefined): StoreAddonRelease | null {
+    if (!addon) {
+        return null
+    }
+
+    if (addon.currentRelease) {
+        return addon.currentRelease
+    }
+
+    const releases = Array.isArray(addon.releases) ? addon.releases : []
+    if (!releases.length) {
+        return null
+    }
+
+    return [...releases].sort((a, b) => getStoreAddonReleaseTimestamp(b) - getStoreAddonReleaseTimestamp(a))[0] ?? null
+}
+
+function withDisplayRelease(addon: StoreAddon): StoreAddon {
+    const release = getStoreAddonDisplayRelease(addon)
+    if (!release || addon.currentRelease?.id === release.id) {
+        return addon
+    }
+
+    return {
+        ...addon,
+        currentRelease: release,
+    }
+}
+
 function readEnabledScriptsState(): string[] {
     const rawValue = safeStoreGet<string[] | string>('addons.scripts', [])
 
@@ -124,6 +162,7 @@ export default function ExtensionPage() {
     const [publicationChangelogText, setPublicationChangelogText] = useState('')
     const [publicationGithubUrlText, setPublicationGithubUrlText] = useState('')
     const [storeUpdateBusy, setStoreUpdateBusy] = useState(false)
+    const publicationSubmitBusyRef = useRef(false)
 
     const filterButtonRef = useRef<HTMLButtonElement>(null)
     const optionButtonRef = useRef<HTMLButtonElement>(null)
@@ -728,15 +767,12 @@ export default function ExtensionPage() {
         const addonName = selectedAddon.name.trim().toLowerCase()
         const exactVersion = selectedAddon.version?.trim().toLowerCase()
 
-        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName)
+        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName).map(withDisplayRelease)
         if (!sameName.length) return null
 
         return (
             sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
-            sameName.sort(
-                (a, b) =>
-                    new Date(b.currentRelease?.updatedAt || b.updatedAt).getTime() - new Date(a.currentRelease?.updatedAt || a.updatedAt).getTime(),
-            )[0]
+            sameName.sort((a, b) => getStoreAddonReleaseTimestamp(b.currentRelease) - getStoreAddonReleaseTimestamp(a.currentRelease))[0]
         )
     }, [selectedAddon, storePublications])
 
@@ -797,18 +833,6 @@ export default function ExtensionPage() {
         selectedPublishedAddon?.currentRelease?.githubUrl,
     ])
 
-    useEffect(() => {
-        if (!isPublicationModalOpen) {
-            return
-        }
-
-        setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
-            publication: selectedPublication ?? null,
-            publicationBusy,
-            githubUrlText: publicationGithubUrlText,
-        })
-    }, [Modals.EXTENSION_PUBLICATION_MODAL, isPublicationModalOpen, publicationBusy, publicationGithubUrlText, selectedPublication, setModalState])
-
     const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
         if (!selectedAddon) {
             return 'none'
@@ -840,6 +864,7 @@ export default function ExtensionPage() {
     const handleSubmitAddon = useCallback(
         async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
             if (!selectedAddon || !storePublishingEnabled) return
+            if (publicationSubmitBusyRef.current) return
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
             if (!changelog) {
@@ -862,6 +887,7 @@ export default function ExtensionPage() {
                 return
             }
 
+            publicationSubmitBusyRef.current = true
             setPublicationBusy(true)
             try {
                 let linkedStoreAddonId = await submitAddonForStore(
@@ -916,6 +942,7 @@ export default function ExtensionPage() {
 
                 toast.custom('error', t('common.errorTitle'), message)
             } finally {
+                publicationSubmitBusyRef.current = false
                 setPublicationBusy(false)
             }
         },
@@ -926,10 +953,55 @@ export default function ExtensionPage() {
             publicationGithubUrlText,
             selectedAddon,
             selectedPublication?.id,
+            selectedPublication?.currentRelease?.githubUrl,
+            selectedPublication?.currentRelease?.usedAiDuringDevelopment,
             storePublishingEnabled,
             t,
         ],
     )
+
+    const handlePublishAddon = useMemo(
+        () =>
+            publicationActionMode === 'publish'
+                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
+                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment)
+                  }
+                : undefined,
+        [handleSubmitAddon, publicationActionMode],
+    )
+
+    const handleUpdateAddon = useMemo(
+        () =>
+            publicationActionMode === 'update'
+                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
+                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment)
+                  }
+                : undefined,
+        [handleSubmitAddon, publicationActionMode],
+    )
+
+    useEffect(() => {
+        if (!isPublicationModalOpen) {
+            return
+        }
+
+        setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
+            publication: selectedPublication ?? null,
+            publicationBusy,
+            githubUrlText: publicationGithubUrlText,
+            onPublish: handlePublishAddon ?? null,
+            onUpdate: handleUpdateAddon ?? null,
+        })
+    }, [
+        Modals.EXTENSION_PUBLICATION_MODAL,
+        handlePublishAddon,
+        handleUpdateAddon,
+        isPublicationModalOpen,
+        publicationBusy,
+        publicationGithubUrlText,
+        selectedPublication,
+        setModalState,
+    ])
 
     const handleStoreAddonUpdate = useCallback(async () => {
         if (!selectedAddon || !selectedStoreUpdate || !window.desktopEvents) {
@@ -1163,20 +1235,8 @@ export default function ExtensionPage() {
                             publicationBusy={publicationBusy}
                             onPublicationChangelogChange={setPublicationChangelogText}
                             onPublicationGithubUrlChange={setPublicationGithubUrlText}
-                            onPublishAddon={
-                                publicationActionMode === 'publish'
-                                    ? (changelogText, githubUrl, usedAiDuringDevelopment) => {
-                                          void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment)
-                                      }
-                                    : undefined
-                            }
-                            onUpdateAddon={
-                                publicationActionMode === 'update'
-                                    ? (changelogText, githubUrl, usedAiDuringDevelopment) => {
-                                          void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment)
-                                      }
-                                    : undefined
-                            }
+                            onPublishAddon={handlePublishAddon}
+                            onUpdateAddon={handleUpdateAddon}
                             onToggleEnabled={enabled => {
                                 if (enabled) {
                                     handleEnableAddon(selectedAddon)
