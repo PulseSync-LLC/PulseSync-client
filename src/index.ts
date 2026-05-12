@@ -34,6 +34,7 @@ import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFro
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
 import { runWhenUiReady } from './main/modules/uiReady'
 import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
+import { enableSystemProxySupport } from './main/modules/network/systemProxy'
 
 export let updated = false
 export let musicPath: string
@@ -109,6 +110,7 @@ if (isAppDev && (isWindows() || isMac())) {
 
 app.on('ready', async () => {
     try {
+        await enableSystemProxySupport()
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
