@@ -26,6 +26,8 @@ const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
 
 const State = getState()
+let yandexMusicInstallPromptOpen = false
+let yandexMusicDownloadInFlight = false
 
 export type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
@@ -242,156 +244,194 @@ export const checkAsar = () => {
 }
 
 export const checkMusic = () => {
-    if (!fso.existsSync(musicPath) && !isLinux()) {
-        dialog
-            .showMessageBox(mainWindow, {
-                type: 'info',
-                title: t('main.appUtils.yandexNotInstalledTitle'),
-                message: t('main.appUtils.yandexNotInstalledMessage'),
-                buttons: [t('main.common.start'), t('main.common.cancel')],
-                cancelId: 1,
-            })
-            .then(async result => {
-                if (result.response === 0) await downloadYandexMusic()
-                else app.quit()
-            })
-    }
+    if (isLinux() || fso.existsSync(musicPath) || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
+
+    yandexMusicInstallPromptOpen = true
+    dialog
+        .showMessageBox(mainWindow, {
+            type: 'info',
+            title: t('main.appUtils.yandexNotInstalledTitle'),
+            message: t('main.appUtils.yandexNotInstalledMessage'),
+            buttons: [t('main.common.start'), t('main.common.cancel')],
+            cancelId: 1,
+        })
+        .then(async result => {
+            if (result.response === 0) {
+                await downloadYandexMusic()
+                return
+            }
+
+            app.quit()
+        })
+        .catch(error => {
+            logger.main.error('Failed to show Yandex Music install prompt:', error)
+        })
+        .finally(() => {
+            yandexMusicInstallPromptOpen = false
+        })
 }
 
 export const downloadYandexMusic = async (type?: string) => {
     const sendDownloadFailure = (err: Error | string) => {
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
-            success: false,
-            error: typeof err === 'string' ? err : t('main.appUtils.executeFailed', { message: err.message }),
-        })
+        try {
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                success: false,
+                error: typeof err === 'string' ? err : t('main.appUtils.executeFailed', { message: err.message }),
+            })
+        } catch (sendError) {
+            logger.main.error('Failed to send Yandex Music download failure:', sendError)
+        }
     }
 
-    const downloadUrl = await (async () => {
-        if (isLinux()) {
-            return await getLinuxInstallerUrl()
-        }
-        const yml = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
-        const match = yml.data.match(/version:\s*([\d.]+)/)
-        if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
-        const version = match[1]
-        const fileName = isMac() ? `Yandex_Music_universal_${version}.dmg` : `Yandex_Music_x64_${version}.exe`
-        return `https://desktop.app.music.yandex.net/stable/${fileName}`
-    })()
-    const fileName = path.basename(downloadUrl)
-    const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
-
-    await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })
-    const response = await axios.get(downloadUrl, { responseType: 'stream' })
-    const total = parseInt(<string>response.headers['content-length'], 10)
-    let received = 0
-    const writer = fso.createWriteStream(downloadPath)
-    response.data.on('data', (chunk: Buffer) => {
-        received += chunk.length
-        const p = received / total
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(p * 100) })
-        mainWindow.setProgressBar(p)
-    })
-    await new Promise<void>((res, rej) => {
-        writer.on('finish', res)
-        writer.on('error', rej)
-        response.data.pipe(writer)
-    })
-    writer.close()
-    mainWindow.setProgressBar(-1)
-    fso.chmodSync(downloadPath, 0o755)
-
-    if (isLinux()) {
-        const openError = await shell.openPath(downloadPath)
-        if (openError) {
-            sendDownloadFailure(new Error(openError))
-            return
-        }
+    const unlinkDownload = (downloadPath: string) => {
         try {
             fso.unlinkSync(downloadPath)
-        } catch {}
-        mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-            success: true,
-            message: t('main.appUtils.fileOpenedSuccessfully'),
-            type: type || 'update',
-        })
-        return
+        } catch (error: any) {
+            if (error?.code !== 'ENOENT') {
+                logger.main.warn('Failed to remove Yandex Music installer:', error)
+            }
+        }
     }
 
-    if (isMac()) {
-        const mountPoint = `/Volumes/YandexMusic-${Date.now()}`
-        const detach = async () => {
+    const sendExecutionSuccess = (message: string) => {
+        try {
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                success: true,
+                message,
+                type: type || 'update',
+            })
+        } catch (sendError) {
+            logger.main.error('Failed to send Yandex Music install success:', sendError)
+        }
+    }
+
+    if (yandexMusicDownloadInFlight) return
+
+    yandexMusicDownloadInFlight = true
+    let downloadPath = ''
+
+    try {
+        const downloadUrl = await (async () => {
+            if (isLinux()) {
+                return await getLinuxInstallerUrl()
+            }
+            const yml = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
+            const match = yml.data.match(/version:\s*([\d.]+)/)
+            if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
+            const version = match[1]
+            const fileName = isMac() ? `Yandex_Music_universal_${version}.dmg` : `Yandex_Music_x64_${version}.exe`
+            return `https://desktop.app.music.yandex.net/stable/${fileName}`
+        })()
+        const fileName = path.basename(downloadUrl)
+        downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
+
+        await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })
+        const response = await axios.get(downloadUrl, { responseType: 'stream' })
+        const total = parseInt(<string>response.headers['content-length'] || '0', 10)
+        let received = 0
+        const writer = fso.createWriteStream(downloadPath)
+        response.data.on('data', (chunk: Buffer) => {
+            received += chunk.length
+            if (total <= 0) return
+
+            const p = Math.min(received / total, 1)
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(p * 100) })
+            mainWindow.setProgressBar(p)
+        })
+        await new Promise<void>((res, rej) => {
+            writer.on('finish', res)
+            writer.on('error', rej)
+            response.data.on('error', rej)
+            response.data.pipe(writer)
+        })
+        mainWindow.setProgressBar(-1)
+        fso.chmodSync(downloadPath, 0o755)
+
+        if (isLinux()) {
+            const openError = await shell.openPath(downloadPath)
+            if (openError) {
+                sendDownloadFailure(new Error(openError))
+                return
+            }
+            unlinkDownload(downloadPath)
+            sendExecutionSuccess(t('main.appUtils.fileOpenedSuccessfully'))
+            return
+        }
+
+        if (isMac()) {
+            const mountPoint = `/Volumes/YandexMusic-${Date.now()}`
+            const detach = async () => {
+                try {
+                    await execFileAsync('hdiutil', ['detach', mountPoint])
+                } catch {
+                    await new Promise(r => setTimeout(r, 500))
+                    try {
+                        await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
+                    } catch {}
+                }
+            }
             try {
-                await execFileAsync('hdiutil', ['detach', mountPoint])
-            } catch {
-                await new Promise(r => setTimeout(r, 500))
+                await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
+                const entries = await fso.promises.readdir(mountPoint)
+                const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
+                if (!appName) throw new Error(t('main.appUtils.dmgAppNotFound'))
+                const appBundlePath = path.join(mountPoint, appName)
+
+                let targetDir = '/Applications'
+                let targetAppPath = path.join(targetDir, appName)
+
+                try {
+                    await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+                } catch {
+                    targetDir = path.join(app.getPath('home'), 'Applications')
+                    await fsp.mkdir(targetDir, { recursive: true })
+                    targetAppPath = path.join(targetDir, appName)
+                    await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+                }
+
+                await detach()
+                unlinkDownload(downloadPath)
+
+                try {
+                    await execFileAsync('open', [targetAppPath])
+                } catch (e) {
+                    sendDownloadFailure(e as Error)
+                    return
+                }
+
+                checkAsar()
+                sendExecutionSuccess(t('main.appUtils.appInstalledAndLaunched'))
+            } catch (error) {
                 try {
                     await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
                 } catch {}
+                sendDownloadFailure(error as Error)
             }
+            return
         }
-        try {
-            await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
-            const entries = await fso.promises.readdir(mountPoint)
-            const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
-            if (!appName) throw new Error(t('main.appUtils.dmgAppNotFound'))
-            const appBundlePath = path.join(mountPoint, appName)
 
-            let targetDir = '/Applications'
-            let targetAppPath = path.join(targetDir, appName)
-
-            try {
-                await execFileAsync('cp', ['-R', appBundlePath, targetDir])
-            } catch {
-                targetDir = path.join(app.getPath('home'), 'Applications')
-                await fsp.mkdir(targetDir, { recursive: true })
-                targetAppPath = path.join(targetDir, appName)
-                await execFileAsync('cp', ['-R', appBundlePath, targetDir])
-            }
-
-            await detach()
-            try {
-                fso.unlinkSync(downloadPath)
-            } catch {}
-
-            try {
-                await execFileAsync('open', [targetAppPath])
-            } catch (e) {
-                sendDownloadFailure(e as Error)
-                return
-            }
-
-            checkAsar()
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-                success: true,
-                message: t('main.appUtils.appInstalledAndLaunched'),
-                type: type || 'update',
-            })
-        } catch (error) {
-            try {
-                await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
-            } catch {}
-            sendDownloadFailure(error as Error)
-        }
-        return
-    }
-
-    setTimeout(() => {
-        execFile(downloadPath, error => {
-            if (error) {
-                sendDownloadFailure(error)
-                return
-            }
-            try {
-                fso.unlinkSync(downloadPath)
-            } catch {}
-            checkAsar()
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-                success: true,
-                message: t('main.appUtils.fileExecutedSuccessfully'),
-                type: type || 'update',
-            })
+        await new Promise<void>(resolve => {
+            setTimeout(() => {
+                execFile(downloadPath, error => {
+                    if (error) {
+                        sendDownloadFailure(error)
+                        resolve()
+                        return
+                    }
+                    unlinkDownload(downloadPath)
+                    checkAsar()
+                    sendExecutionSuccess(t('main.appUtils.fileExecutedSuccessfully'))
+                    resolve()
+                })
+            }, 100)
         })
-    }, 100)
+    } catch (error) {
+        mainWindow.setProgressBar(-1)
+        if (downloadPath) unlinkDownload(downloadPath)
+        sendDownloadFailure(error as Error)
+    } finally {
+        yandexMusicDownloadInFlight = false
+    }
 }
 
 export async function updateIntegrityHashInExe(exePath: string, newHash: string): Promise<void> {

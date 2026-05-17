@@ -70,7 +70,7 @@ export const modManager = (window: BrowserWindow): void => {
                 const installSource = source === 'github' ? 'github' : 'backend'
 
                 if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
-                    State.set('settings', { musicReinstalled: true })
+                    State.set('settings.musicReinstalled', true)
                     await downloadYandexMusic('reinstall')
                     return
                 }
