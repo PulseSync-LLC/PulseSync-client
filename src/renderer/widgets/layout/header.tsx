@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
+import SubscriptionGiveawaysButton from '@widgets/layout/SubscriptionGiveawaysButton'
 import { Avatar } from '@shared/ui/PSUI/Image'
 import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout/model/playStatus'
 import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
@@ -421,6 +422,7 @@ const Header: React.FC<p> = () => {
                                 <>
                                     <UpdateChannelOverrideButton />
                                     {user.perms === 'developer' && <ExperimentOverridesDevButton />}
+                                    <SubscriptionGiveawaysButton />
                                     <NotificationsBell />
                                     <div
                                         className={styles.user_container}
