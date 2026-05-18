@@ -1,7 +1,7 @@
 appId: pulsesync.app
 productName: PulseSync
 artifactName: pulsesync-app-${version}-${arch}.${ext}
-copyright: 'Copyright (C) 2025 ИП «Деднев Григорий Дмитриевич»'
+copyright: 'Copyright (C) 2026 Матвиенко Артём Евгеньевич'
 
 directories:
   output: release
