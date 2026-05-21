@@ -143,7 +143,7 @@ export function useNotificationsController(userId: string): NotificationsControl
             setNotificationsUnreadCount(data.unreadCount)
         }
 
-        if (data.notification.type === 'achievement.completed' && !data.notification.read) {
+        if ((data.notification.type === 'achievement.completed' || data.notification.type === 'subscription.giveaway.won') && !data.notification.read) {
             const presentation = getNotificationPresentation(data.notification)
             toast.custom(presentation.tone, presentation.title, presentation.body)
             window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {

@@ -213,7 +213,7 @@
 .card {
     display: grid;
     grid-template-columns: 1fr;
-    padding: 12px 13px;
+    padding: 13px 14px;
     border-radius: 8px;
     border: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(255, 255, 255, 0.028);
@@ -239,11 +239,10 @@
 .cardMain {
     min-width: 0;
     display: grid;
-    gap: 7px;
+    gap: 8px;
 }
 
-.titleRow,
-.metaRow {
+.titleRow {
     display: flex;
     align-items: center;
     flex-wrap: wrap;
@@ -252,29 +251,12 @@
 }
 
 .titleRow {
-    align-items: flex-start;
-    justify-content: space-between;
-    gap: 10px;
-}
-
-.cardActions {
-    flex: 0 0 auto;
-    display: inline-flex;
     align-items: center;
 }
 
 .remaining {
-    min-height: 22px;
     display: inline-flex;
     align-items: center;
-    border-radius: 999px;
-    padding: 0 8px;
-    font-size: 11px;
-    font-weight: 900;
-    line-height: 1;
-}
-
-.remaining {
     gap: 5px;
     background: transparent;
     color: #bdc5d8;
@@ -289,19 +271,66 @@
 }
 
 .titleRow .title {
-    flex: 1 1 180px;
-    padding-top: 2px;
+    flex: 1 1 auto;
 }
 
 .description {
-    color: #bdc5d8;
+    color: #aeb7c9;
     font-size: 12px;
-    line-height: 1.4;
+    line-height: 1.45;
     overflow-wrap: anywhere;
+
+    p {
+        margin: 0;
+    }
+
+    p + p,
+    ul,
+    ol {
+        margin-top: 6px;
+    }
+
+    ul,
+    ol {
+        padding-left: 18px;
+    }
+
+    li + li {
+        margin-top: 3px;
+    }
+
+    strong {
+        color: #eef3ff;
+        font-weight: 900;
+    }
+
+    a {
+        color: #c8d5ff;
+        text-decoration: none;
+        border-bottom: 1px solid rgba(200, 213, 255, 0.45);
+
+        &:hover {
+            color: #ffffff;
+            border-bottom-color: rgba(255, 255, 255, 0.78);
+        }
+    }
+
+    code {
+        border-radius: 5px;
+        background: rgba(255, 255, 255, 0.06);
+        padding: 1px 5px;
+        color: #eef3ff;
+        font-size: 11px;
+    }
 }
 
 .metaRow {
-    color: #9099af;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px 9px;
+    color: #8f98ac;
     font-size: 11px;
     font-weight: 800;
 
@@ -312,19 +341,29 @@
 
     span:not(:last-child)::after {
         content: "";
-        width: 4px;
-        height: 4px;
+        width: 3px;
+        height: 3px;
         display: inline-flex;
-        margin-left: 8px;
+        margin-left: 9px;
         border-radius: 999px;
         background: #4b5262;
         vertical-align: middle;
     }
 }
 
-.metaRow .remaining {
-    padding: 0;
-    background: transparent;
+.cardFooter {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-width: 0;
+}
+
+.cardActions {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
 }
 
 .action,
@@ -332,14 +371,14 @@
 .actionMuted {
     width: auto;
     min-width: 0;
-    min-height: 28px;
+    min-height: 30px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
     border: 1px solid transparent;
-    border-radius: 999px;
-    padding: 0 9px;
+    border-radius: 8px;
+    padding: 0 11px;
     background: rgba(87, 126, 255, 0.18);
     color: #dbe4ff;
     font-size: 11px;
@@ -350,7 +389,10 @@
 }
 
 .action {
-    border-color: rgba(87, 126, 255, 0.24);
+    min-width: 100px;
+    border-color: rgba(111, 145, 255, 0.36);
+    background: rgba(91, 126, 255, 0.74);
+    color: #ffffff;
 
     &:disabled {
         background: #2f3440;
@@ -359,16 +401,16 @@
     }
 
     &:hover:not(:disabled) {
-        border-color: rgba(87, 126, 255, 0.44);
-        background: rgba(87, 126, 255, 0.28);
+        border-color: rgba(139, 166, 255, 0.5);
+        background: rgba(103, 136, 255, 0.82);
         color: #ffffff;
     }
 }
 
 .actionEntered {
-    border-color: rgba(115, 255, 145, 0.18);
-    background: rgba(115, 255, 145, 0.09);
-    color: #a7ffb2;
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+    color: #c8d1e6;
     cursor: default;
     pointer-events: none;
 }
@@ -459,5 +501,10 @@
     .actionEntered,
     .actionMuted {
         min-width: 94px;
+    }
+
+    .cardFooter {
+        grid-template-columns: 1fr;
+        align-items: stretch;
     }
 }

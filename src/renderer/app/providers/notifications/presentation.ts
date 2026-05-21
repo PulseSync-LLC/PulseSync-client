@@ -73,6 +73,21 @@ export function getNotificationPresentation(notification: NotificationItem): Not
             }
         }
 
+        case 'subscription.giveaway.won': {
+            const giveawayTitle = String(notification.payload?.['giveawayTitle'] || t('header.notifications.items.giveawayFallbackTitle'))
+            const planName = String(notification.payload?.['planName'] || t('header.notifications.items.giveawayFallbackPrize'))
+            const durationMonths = Number(notification.payload?.['durationMonths'] || 0)
+            const prize = durationMonths > 0 ? t('header.notifications.items.giveawayWonPrize', { name: planName, months: durationMonths }) : planName
+            return {
+                tone: 'success',
+                title: t('header.notifications.items.giveawayWonTitle'),
+                body: t('header.notifications.items.giveawayWonBody', {
+                    giveaway: giveawayTitle,
+                    prize,
+                }),
+            }
+        }
+
         default:
             return {
                 tone: 'warning',

@@ -561,6 +561,11 @@
                 "localizationApprovedBody": "Your changes passed review and are already published.",
                 "localizationRejectedTitle": "Localization suggestion rejected",
                 "localizationRejectedBody": "Open the notification to review the feedback.",
+                "giveawayWonTitle": "You won a giveaway",
+                "giveawayWonBody": "You won \"{{prize}}\" in \"{{giveaway}}\".",
+                "giveawayWonPrize": "{{name}} for {{months}} mo",
+                "giveawayFallbackTitle": "Subscription giveaway",
+                "giveawayFallbackPrize": "PulseSync subscription",
                 "genericTitle": "New notification",
                 "genericBody": "Open the notification to view details."
             }
@@ -579,10 +584,22 @@
             "emptyTitle": "No active giveaways yet",
             "emptyText": "New subscription giveaways will appear here.",
             "plan": "Plan: {{plan}}",
-            "winners": "Winners: {{count}}",
+            "planDisplay": "{{type}} · {{duration}}",
+            "winners": "Subscriptions to win: {{count}}",
             "endsAt": "Until {{date}}",
             "planLabel": "Plan",
+            "planTypes": {
+                "basic": "Basic",
+                "infinite": "Lifetime"
+            },
+            "planDurations": {
+                "monthly": "1 month",
+                "quarterly": "3 months",
+                "yearly": "12 months",
+                "custom": "{{months}} mo"
+            },
             "winnersLabel": "Winners",
+            "timeLeftLabel": "Left",
             "endsLabel": "Ends",
             "statusLive": "Live",
             "statusEntered": "Joined",

@@ -1,6 +1,10 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import cn from 'clsx'
-import { MdAccessTime, MdCheck, MdClose, MdRefresh, MdRedeem } from 'react-icons/md'
+import { MdAccessTime, MdClose, MdRefresh, MdRedeem } from 'react-icons/md'
+import ReactMarkdown from 'react-markdown'
+import type { Components } from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
 import { useTranslation } from 'react-i18next'
 import { useModalContext } from '@app/providers/modal'
 import rendererHttpClient from '@shared/api/http/client'
@@ -13,6 +17,7 @@ type SubscriptionGiveaway = {
     title: string
     description?: string | null
     planCode: string
+    durationMonths?: number | null
     winnersCount: number
     status: string
     startsAt: string
@@ -57,6 +62,40 @@ const formatDate = (value: string) => {
         month: 'short',
     }).format(date)
 }
+
+const getPlanParts = (planCode: string, durationMonths?: number | null) => {
+    const normalized = planCode.trim().toLowerCase()
+    const type = normalized.includes('infinite') ? 'infinite' : normalized.includes('basic') ? 'basic' : ''
+    const duration =
+        durationMonths === 12
+            ? 'yearly'
+            : durationMonths === 3
+              ? 'quarterly'
+              : durationMonths === 1
+                ? 'monthly'
+                : normalized.includes('year') || normalized.includes('annual')
+                  ? 'yearly'
+                  : normalized.includes('quarter') || normalized.includes('3m')
+                    ? 'quarterly'
+                    : normalized.includes('month')
+                      ? 'monthly'
+                      : ''
+    return { duration, type }
+}
+
+const MarkdownLink: Components['a'] = ({ href, children }) => (
+    <a href={href ?? '#'} target="_blank" rel="noreferrer">
+        {children}
+    </a>
+)
+
+const GiveawayDescription = ({ text }: { text: string }) => (
+    <div className={styles.description}>
+        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: MarkdownLink, img: () => null }}>
+            {text}
+        </ReactMarkdown>
+    </div>
+)
 
 const SkeletonList = () => (
     <div className={styles.skeletonList}>
@@ -144,6 +183,22 @@ const SubscriptionGiveawaysModal: React.FC = () => {
         [currentTime, t],
     )
 
+    const formatPlanCode = useCallback(
+        (planCode: string, durationMonths?: number | null) => {
+            const { duration, type } = getPlanParts(planCode, durationMonths)
+            if (!type) return planCode
+
+            const typeLabel = t(`header.giveaways.planTypes.${type}`)
+            const durationLabel = duration
+                ? t(`header.giveaways.planDurations.${duration}`)
+                : durationMonths
+                  ? t('header.giveaways.planDurations.custom', { months: durationMonths })
+                  : ''
+            return durationLabel ? t('header.giveaways.planDisplay', { duration: durationLabel, type: typeLabel }) : typeLabel
+        },
+        [t],
+    )
+
     const giveawayItems = useMemo<GiveawayViewModel[]>(() => {
         return giveaways
             .map(giveaway => {
@@ -223,6 +278,7 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                 {giveawayItems.map(item => {
                     const { giveaway } = item
                     const isJoining = joiningId === giveaway.uuid
+                    const description = giveaway.description?.trim() ?? ''
 
                     return (
                         <article
@@ -235,6 +291,19 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                             <div className={styles.cardMain}>
                                 <div className={styles.titleRow}>
                                     <div className={styles.title}>{giveaway.title}</div>
+                                </div>
+
+                                {description && <GiveawayDescription text={description} />}
+
+                                <div className={styles.cardFooter}>
+                                    <div className={styles.metaRow}>
+                                        <span>{formatPlanCode(giveaway.planCode, giveaway.durationMonths)}</span>
+                                        <span>{t('header.giveaways.winners', { count: giveaway.winnersCount })}</span>
+                                        <span className={styles.remaining}>
+                                            <MdAccessTime size={13} />
+                                            {item.remainingLabel}
+                                        </span>
+                                    </div>
                                     <div className={styles.cardActions}>
                                         {item.isEnterable || isJoining ? (
                                             <button type="button" className={styles.action} disabled={isJoining} onClick={() => void handleEnter(item)}>
@@ -242,23 +311,10 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                                             </button>
                                         ) : (
                                             <span className={item.hasEntered ? styles.actionEntered : styles.actionMuted}>
-                                                {item.hasEntered && <MdCheck size={14} />}
                                                 {item.actionLabel}
                                             </span>
                                         )}
                                     </div>
-                                </div>
-
-                                {giveaway.description && <div className={styles.description}>{giveaway.description}</div>}
-
-                                <div className={styles.metaRow}>
-                                    <span>{giveaway.planCode}</span>
-                                    <span>{t('header.giveaways.winners', { count: giveaway.winnersCount })}</span>
-                                    <span className={styles.remaining}>
-                                        <MdAccessTime size={14} />
-                                        {item.remainingLabel}
-                                    </span>
-                                    <span>{item.endsAtLabel}</span>
                                 </div>
                             </div>
                         </article>

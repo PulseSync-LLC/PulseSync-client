@@ -561,6 +561,11 @@
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
                 "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "giveawayWonTitle": "Вы выиграли розыгрыш",
+                "giveawayWonBody": "Вы выиграли «{{prize}}» в розыгрыше «{{giveaway}}».",
+                "giveawayWonPrize": "{{name}} на {{months}} мес.",
+                "giveawayFallbackTitle": "Розыгрыш подписки",
+                "giveawayFallbackPrize": "подписку PulseSync",
                 "genericTitle": "Новое уведомление",
                 "genericBody": "Открой уведомление, чтобы посмотреть подробности."
             }
@@ -579,10 +584,22 @@
             "emptyTitle": "Пока нет активных розыгрышей",
             "emptyText": "Когда появится новый розыгрыш подписки, он будет здесь.",
             "plan": "План: {{plan}}",
-            "winners": "Победителей: {{count}}",
+            "planDisplay": "{{type}} · {{duration}}",
+            "winners": "Подписок в розыгрыше: {{count}}",
             "endsAt": "До {{date}}",
             "planLabel": "План",
+            "planTypes": {
+                "basic": "Basic",
+                "infinite": "Бессрочная"
+            },
+            "planDurations": {
+                "monthly": "1 месяц",
+                "quarterly": "3 месяца",
+                "yearly": "12 месяцев",
+                "custom": "{{months}} мес."
+            },
             "winnersLabel": "Победителей",
+            "timeLeftLabel": "Осталось",
             "endsLabel": "Завершение",
             "statusLive": "Идёт",
             "statusEntered": "Участвуете",
