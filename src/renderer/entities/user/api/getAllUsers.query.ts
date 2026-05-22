@@ -24,10 +24,18 @@ export default gql`
                     createdAt
                 }
                 badges {
+                    uuid
                     name
                     type
                     level
                     createdAt
+                }
+                subscription {
+                    uuid
+                    name
+                    type
+                    createdAt
+                    expireAt
                 }
                 levelInfoV2 {
                     totalPoints

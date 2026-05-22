@@ -11,6 +11,7 @@ import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 import { useTranslation } from 'react-i18next'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import { getProfileSlug } from '@shared/lib/profileSlug'
+import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
 
 interface UserCardProps {
     user: Partial<UserInterface>
@@ -113,7 +114,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
     const profileSlug = getProfileSlug(typedUser)
     const levelInfo = useMemo(() => getEffectiveLevelInfo(typedUser), [typedUser.levelInfoV2])
 
-    const sortedBadges = useMemo(() => (user as UserInterface).badges?.slice().sort((a, b) => b.level - a.level) || [], [user.badges])
+    const sortedBadges = useMemo(() => getUserBadgesWithSubscription(typedUser).sort((a, b) => (b.level ?? 0) - (a.level ?? 0)), [typedUser])
 
     return (
         <div ref={containerRef} style={{ width: '100%', height: '150px' }} aria-hidden={!visibilityState.isIntersecting}>
@@ -161,7 +162,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                                     <LevelBadge level={levelInfo.currentLevel} />
                                 </TooltipButton>
                                 {sortedBadges.map(b => (
-                                    <TooltipButton key={`${b.type}-${b.level}`} tooltipText={b.name} side="bottom">
+                                    <TooltipButton key={`${b.type}-${b.level ?? 0}-${b.uuid || ''}`} tooltipText={b.name} side="bottom">
                                         <div className={styles.badge}>
                                             <img src={staticAsset(`assets/badges/${b.type}.svg`)} alt={b.name} className={styles.badgeIcon} />
                                         </div>
