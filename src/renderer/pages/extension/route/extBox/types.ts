@@ -1,4 +1,4 @@
-import AddonInterface from '@entities/addon/model/addon.interface'
+import type AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
