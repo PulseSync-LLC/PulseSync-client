@@ -28,7 +28,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
-    const [sorting, setSorting] = useState<SortState>([{ id: 'lastOnline', desc: true }])
+    const [sorting, setSorting] = useState<SortState>([{ id: 'level', desc: true }])
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [indicatorStyle, setIndicatorStyle] = useState({ left: 0, width: 0 })
