@@ -3,14 +3,9 @@ import * as fs from 'original-fs'
 import * as path from 'path'
 import { app } from 'electron'
 import { parse } from 'url'
-import { Track } from '@entities/track/model/track.interface'
-import {
-    applyAddonSettingsValuesToConfig,
-    HANDLE_EVENTS_FILENAME,
-    HANDLE_EVENTS_SETTINGS_FILENAME,
-    normalizeAddonSettingsValues,
-} from '@common/addons/handleEvents'
+import type { Track } from '@entities/track/model/track.interface'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
+import { buildCorsHeaders } from './cors'
 
 interface LoggerLike {
     http: {
@@ -38,11 +33,12 @@ const sendJson = (res: http.ServerResponse, status: number, payload: unknown) =>
 
 const setCorsHeaders = (req: http.IncomingMessage, res: http.ServerResponse, allowedOrigins: string[]) => {
     const origin = req.headers.origin as string | undefined
-    if (origin && allowedOrigins.includes(origin)) {
-        res.setHeader('Access-Control-Allow-Origin', origin)
+    const headers = buildCorsHeaders(origin, allowedOrigins)
+
+    for (const [key, value] of Object.entries(headers)) {
+        res.setHeader(key, value)
     }
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Credentials', 'true')
+
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
     res.setHeader(
         'Access-Control-Allow-Headers',
@@ -111,30 +107,6 @@ const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
 }
 
 export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized, getTrackData }: CreateHttpRequestHandlerOptions) => {
-    const handleGetHandleRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
-        try {
-            const { query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
-
-            if (!directory) return sendJson(res, 400, { error: 'Missing query parameters: directory, id or name' })
-
-            const handlePath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_FILENAME)
-            if (!fs.existsSync(handlePath)) return sendJson(res, 404, { error: 'Handle events data not found' })
-
-            const handleSettingsPath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
-            const rawHandleConfig = JSON.parse(fs.readFileSync(handlePath, 'utf8'))
-            const storedValues =
-                fs.existsSync(handleSettingsPath) && fs.statSync(handleSettingsPath).isFile()
-                    ? normalizeAddonSettingsValues(JSON.parse(fs.readFileSync(handleSettingsPath, 'utf8')))
-                    : {}
-            const data = applyAddonSettingsValuesToConfig(rawHandleConfig, storedValues)
-            return sendJson(res, 200, { ok: true, data })
-        } catch (err) {
-            logger.http.error('Error processing get_handle:', err)
-            sendJson(res, 500, { error: 'Internal server error' })
-        }
-    }
-
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { query } = parse(req.url || '', true)
@@ -229,7 +201,6 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
     }
 
     const routes: Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => void> = {
-        '/get_handle': handleGetHandleRequest,
         '/assets': handleGetAssetsRequest,
         '/addon_file': handleGetAddonRootFileRequest,
         '/get_track': handleGetTrack,
