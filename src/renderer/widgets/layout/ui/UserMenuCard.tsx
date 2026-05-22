@@ -7,6 +7,7 @@ import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { getProfileSlug } from '@shared/lib/profileSlug'
+import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
 import * as styles from '@widgets/layout/header.module.scss'
 
 type Props = {
@@ -24,6 +25,7 @@ type Props = {
 export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInputRef, bannerProgress, isOpen, logout, onClose, t, user }: Props) {
     const nav = useNavigate()
     const profileSlug = getProfileSlug(user)
+    const visibleBadges = getUserBadgesWithSubscription(user)
 
     return (
         <motion.div
@@ -49,11 +51,11 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                         {t('header.uploadBanner')}
                     </div>
                     <div className={styles.badges_container}>
-                        {user.badges.length > 0 &&
-                            user.badges
-                                .toSorted((a, b) => b.level - a.level)
+                        {visibleBadges.length > 0 &&
+                            visibleBadges
+                                .toSorted((a, b) => (b.level ?? 0) - (a.level ?? 0))
                                 .map(badge => (
-                                    <TooltipButton tooltipText={badge.name} side="bottom" key={badge.type}>
+                                    <TooltipButton tooltipText={badge.name} side="bottom" key={badge.uuid || badge.type}>
                                         <div className={styles.badge}>
                                             <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
                                         </div>

@@ -612,6 +612,16 @@ const registerFileOperations = (window: BrowserWindow): void => {
 
 const registerMediaEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
+        const unlinkDownload = (downloadPath: string) => {
+            try {
+                fs.unlinkSync(downloadPath)
+            } catch (error: any) {
+                if (error?.code !== 'ENOENT') {
+                    logger.main.warn('Failed to remove downloaded Yandex Music installer:', error)
+                }
+            }
+        }
+
         let exeUrl = downloadUrl
         if (!exeUrl) {
             const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
@@ -639,7 +649,9 @@ const registerMediaEvents = (window: BrowserWindow): void => {
 
             response.data.on('data', (chunk: Buffer) => {
                 downloadedLength += chunk.length
-                const progress = downloadedLength / totalLength
+                if (totalLength <= 0) return
+
+                const progress = Math.min(downloadedLength / totalLength, 1)
                 event.reply(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(progress * 100) })
                 mainWindow.setProgressBar(progress)
             })
@@ -668,7 +680,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                             success: true,
                             message: t('main.events.fileExecutedSuccessfully'),
                         })
-                        fs.unlinkSync(downloadPath)
+                        unlinkDownload(downloadPath)
                     })
                     return
                 }
@@ -685,11 +697,11 @@ const registerMediaEvents = (window: BrowserWindow): void => {
                     success: true,
                     message: t('main.events.fileOpenedSuccessfully'),
                 })
-                fs.unlinkSync(downloadPath)
+                unlinkDownload(downloadPath)
             }, 100)
         } catch (error: any) {
             mainWindow.setProgressBar(-1)
-            if (fs.existsSync(downloadPath)) fs.unlinkSync(downloadPath)
+            unlinkDownload(downloadPath)
             event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
                 success: false,
                 error: t('main.events.fileDownloadError', { message: error.message }),

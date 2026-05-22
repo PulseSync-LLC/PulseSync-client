@@ -9,6 +9,8 @@ import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
 import { fetchSettings } from '@entities/settings/api/settings'
 
+const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
+
 type Params = {
     appRef: React.MutableRefObject<SettingsInterface>
     authorize: () => Promise<void>
@@ -134,7 +136,10 @@ export function useAppDesktopBindings({
             }
 
             if (isManualCheck && isChecking && !toastReference.current) {
-                toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'))
+                toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'), {
+                    id: CLIENT_UPDATE_TOAST_ID,
+                    duration: Infinity,
+                })
             }
 
             if (data?.updateAvailable === false) {
@@ -162,7 +167,10 @@ export function useAppDesktopBindings({
 
         const onDownloadProgress = (_event: any, value: number) => {
             if (!toastReference.current) {
-                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'))
+                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'), {
+                    id: CLIENT_UPDATE_TOAST_ID,
+                    duration: Infinity,
+                })
             }
             toast.update(toastReference.current, {
                 kind: 'loading',

@@ -28,7 +28,7 @@ const MacPermissionsModal: React.FC = () => {
     }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 
     const handleOpenSettings = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, 'privacySettings')
+        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'privacySettings' })
         closeModal(Modals.MAC_PERMISSIONS_MODAL)
     }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 

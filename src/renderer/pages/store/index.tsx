@@ -313,6 +313,9 @@ export default function StorePage() {
                     topRightMeta={options?.topRightMeta}
                     type={resolveType(addon.type)}
                     kind={addon.type}
+                    tags={release.tags || []}
+                    usedAiDuringDevelopment={release.usedAiDuringDevelopment}
+                    usesOfficialTemplate={release.usesOfficialTemplate}
                     backgroundImage={release.bannerUrl || undefined}
                     iconImage={release.avatarUrl || undefined}
                     downloadInstalled={isInstalled}

@@ -561,9 +561,62 @@
                 "localizationApprovedBody": "Your changes passed review and are already published.",
                 "localizationRejectedTitle": "Localization suggestion rejected",
                 "localizationRejectedBody": "Open the notification to review the feedback.",
+                "giveawayWonTitle": "You won a giveaway",
+                "giveawayWonBody": "You won \"{{prize}}\" in \"{{giveaway}}\".",
+                "giveawayWonPrize": "{{name}} for {{months}} mo",
+                "giveawayFallbackTitle": "Subscription giveaway",
+                "giveawayFallbackPrize": "PulseSync subscription",
                 "genericTitle": "New notification",
                 "genericBody": "Open the notification to view details."
             }
+        },
+        "giveaways": {
+            "open": "Open subscription giveaways",
+            "eyebrow": "Subscriptions",
+            "title": "Subscription giveaways",
+            "subtitle": "Join active giveaways and get a subscription if you win.",
+            "count": "Active giveaways: {{count}}",
+            "availableCount": "Available to join: {{count}}",
+            "refresh": "Refresh",
+            "loading": "Loading giveaways...",
+            "loadError": "Failed to load subscription giveaways.",
+            "errorTitle": "Giveaways unavailable",
+            "emptyTitle": "No active giveaways yet",
+            "emptyText": "New subscription giveaways will appear here.",
+            "plan": "Plan: {{plan}}",
+            "planDisplay": "{{type}} · {{duration}}",
+            "winners": "Subscriptions to win: {{count}}",
+            "endsAt": "Until {{date}}",
+            "planLabel": "Plan",
+            "planTypes": {
+                "basic": "Basic",
+                "infinite": "Lifetime"
+            },
+            "planDurations": {
+                "monthly": "1 month",
+                "quarterly": "3 months",
+                "yearly": "12 months",
+                "custom": "{{months}} mo"
+            },
+            "winnersLabel": "Winners",
+            "timeLeftLabel": "Left",
+            "endsLabel": "Ends",
+            "statusLive": "Live",
+            "statusEntered": "Joined",
+            "statusEnded": "Ended",
+            "timeUnknown": "Time unknown",
+            "ended": "Ended",
+            "remainingDays": "{{days}}d {{hours}}h",
+            "remainingHours": "{{hours}}h {{minutes}}m",
+            "remainingMinutes": "{{minutes}}m",
+            "join": "Join",
+            "joining": "Joining...",
+            "entered": "Joined",
+            "notStarted": "Soon",
+            "enteredTitle": "Entry accepted",
+            "enteredText": "You joined “{{title}}”.",
+            "enterErrorTitle": "Could not join",
+            "enterErrorText": "Check your connection and try again."
         },
         "devOverrides": {
             "open": "Open local experiment overrides",
@@ -1136,6 +1189,11 @@
         "kind": {
             "theme": "Theme",
             "script": "Script"
+        },
+        "badges": {
+            "officialTemplate": "Official template",
+            "aiUsage": "AI",
+            "aiUsageTooltip": "AI was used during development of this add-on"
         },
         "type": {
             "both": "CSS + JS",

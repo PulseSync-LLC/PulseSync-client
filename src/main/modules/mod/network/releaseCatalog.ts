@@ -7,6 +7,7 @@ import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } 
 import type { UpdateSource } from '../../updater/updateSource'
 
 export type ModReleaseEntry = {
+    checksum?: string | null
     checksum_v2: string
     changelog: string
     createdAt: string

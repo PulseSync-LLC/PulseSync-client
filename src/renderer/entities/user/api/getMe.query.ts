@@ -26,6 +26,13 @@ export default gql`
                 level
                 createdAt
             }
+            subscription {
+                uuid
+                name
+                type
+                createdAt
+                expireAt
+            }
         }
     }
 `

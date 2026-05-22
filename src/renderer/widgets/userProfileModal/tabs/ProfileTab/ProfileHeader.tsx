@@ -7,6 +7,7 @@ import { useTranslation } from 'react-i18next'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import * as scrollbarStyles from '@shared/ui/PSUI/Scrollbar/Scrollbar.module.scss'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
 
 interface ProfileHeaderProps {
     userProfile: any
@@ -19,6 +20,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
     const headerRef = useRef<HTMLDivElement>(null)
     const [allowAnimate, setAllowAnimate] = useState(true)
     const levelInfo = useMemo(() => getEffectiveLevelInfo(userProfile), [userProfile?.levelInfoV2])
+    const visibleBadges = useMemo(() => getUserBadgesWithSubscription(userProfile), [userProfile])
 
     useEffect(() => {
         const threshold = 380
@@ -145,11 +147,11 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                             <TooltipButton tooltipText={t('profile.level', { level: levelInfo.currentLevel })} side="top">
                                 <LevelBadge level={levelInfo.currentLevel} />
                             </TooltipButton>
-                            {Array.isArray(userProfile.badges) &&
-                                userProfile.badges
-                                    .sort((a: any, b: any) => b.level - a.level)
+                            {visibleBadges.length > 0 &&
+                                visibleBadges
+                                    .sort((a: any, b: any) => (b.level ?? 0) - (a.level ?? 0))
                                     .map((badge: any) => (
-                                        <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid}>
+                                        <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid || badge.type}>
                                             <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
                                         </TooltipButton>
                                     ))}

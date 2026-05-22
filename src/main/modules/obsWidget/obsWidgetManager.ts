@@ -58,7 +58,14 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
         tempZipPath = path.join(installDir, 'widget.zip')
 
         const response = await axios.get(downloadUrl, { responseType: 'stream' })
-        const totalLength = parseInt(response.headers['content-length'] || '0', 10)
+        const contentLengthHeader = response.headers['content-length']
+        const contentLengthValue =
+            typeof contentLengthHeader === 'string' || typeof contentLengthHeader === 'number'
+                ? String(contentLengthHeader)
+                : Array.isArray(contentLengthHeader)
+                  ? contentLengthHeader[0] || '0'
+                  : '0'
+        const totalLength = parseInt(contentLengthValue, 10)
         let downloadedLength = 0
 
         const writer = fs.createWriteStream(tempZipPath)

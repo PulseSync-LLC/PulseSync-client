@@ -13,9 +13,9 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             {
                 name: 'forge-vite8-preload-compat',
                 config(config) {
-                    const output = config.build?.rollupOptions?.output
+                    const output = config.build?.rolldownOptions?.output
                     if (output && !Array.isArray(output)) {
-                        delete output.inlineDynamicImports
+                        delete (output as Record<string, unknown>)['inlineDynamicImports']
                     }
                 },
             },

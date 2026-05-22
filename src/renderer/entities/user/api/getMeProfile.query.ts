@@ -20,6 +20,13 @@ const GET_ME_PROFILE_QUERY = gql`
                 type
                 level
             }
+            subscription {
+                uuid
+                name
+                type
+                createdAt
+                expireAt
+            }
             userAchievements {
                 achievement {
                     id

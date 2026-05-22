@@ -15,7 +15,9 @@ export default gql`
                 description
                 authors
                 changelog
+                tags
                 usedAiDuringDevelopment
+                usesOfficialTemplate
                 avatarUrl
                 bannerUrl
                 downloadUrl
@@ -31,7 +33,9 @@ export default gql`
                 description
                 authors
                 changelog
+                tags
                 usedAiDuringDevelopment
+                usesOfficialTemplate
                 avatarUrl
                 bannerUrl
                 downloadUrl

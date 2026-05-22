@@ -30,6 +30,7 @@ const initialModalsState: ModalsState = {
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: { isOpen: false, addonName: '', onConfirm: null },
     [Modals.EXPERIMENT_OVERRIDES_DEV]: { isOpen: false },
     [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
+    [Modals.SUBSCRIPTION_GIVEAWAYS]: { isOpen: false },
     [Modals.BASIC_CONFIRMATION]: { isOpen: false, title: '', description: '', confirmLabel: undefined, onConfirm: undefined },
 }
 

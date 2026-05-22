@@ -57,12 +57,12 @@ const forgeConfig: ForgeConfig = {
         icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
         name: 'PulseSync',
         executableName: process.platform === 'linux' ? 'pulsesync' : 'PulseSync',
-        appCopyright: `Copyright (C) ${new Date().getFullYear()} ИП «Деднев Григорий Дмитриевич»`,
+        appCopyright: `Copyright (C) ${new Date().getFullYear()} Матвиенко Артём Евгеньевич`,
         asar: {
             unpack: '**/.vite/renderer/**/static/assets/icon/**',
         },
         win32metadata: {
-            CompanyName: 'ИП «Деднев Григорий Дмитриевич»',
+            CompanyName: 'Матвиенко Артём Евгеньевич',
         },
         appBundleId: 'pulsesync.app',
         extendInfo: 'Info.plist',

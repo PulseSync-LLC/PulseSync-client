@@ -561,9 +561,62 @@
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
                 "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "giveawayWonTitle": "Вы выиграли розыгрыш",
+                "giveawayWonBody": "Вы выиграли «{{prize}}» в розыгрыше «{{giveaway}}».",
+                "giveawayWonPrize": "{{name}} на {{months}} мес.",
+                "giveawayFallbackTitle": "Розыгрыш подписки",
+                "giveawayFallbackPrize": "подписку PulseSync",
                 "genericTitle": "Новое уведомление",
                 "genericBody": "Открой уведомление, чтобы посмотреть подробности."
             }
+        },
+        "giveaways": {
+            "open": "Открыть розыгрыши подписок",
+            "eyebrow": "Подписки",
+            "title": "Розыгрыши подписок",
+            "subtitle": "Участвуй в активных розыгрышах и получай подписку при победе.",
+            "count": "Активных розыгрышей: {{count}}",
+            "availableCount": "Доступно для участия: {{count}}",
+            "refresh": "Обновить",
+            "loading": "Загружаю розыгрыши...",
+            "loadError": "Не удалось загрузить розыгрыши подписок.",
+            "errorTitle": "Розыгрыши недоступны",
+            "emptyTitle": "Пока нет активных розыгрышей",
+            "emptyText": "Когда появится новый розыгрыш подписки, он будет здесь.",
+            "plan": "План: {{plan}}",
+            "planDisplay": "{{type}} · {{duration}}",
+            "winners": "Подписок в розыгрыше: {{count}}",
+            "endsAt": "До {{date}}",
+            "planLabel": "План",
+            "planTypes": {
+                "basic": "Basic",
+                "infinite": "Бессрочная"
+            },
+            "planDurations": {
+                "monthly": "1 месяц",
+                "quarterly": "3 месяца",
+                "yearly": "12 месяцев",
+                "custom": "{{months}} мес."
+            },
+            "winnersLabel": "Победителей",
+            "timeLeftLabel": "Осталось",
+            "endsLabel": "Завершение",
+            "statusLive": "Идёт",
+            "statusEntered": "Участвуете",
+            "statusEnded": "Завершён",
+            "timeUnknown": "Срок неизвестен",
+            "ended": "Завершён",
+            "remainingDays": "{{days}} д. {{hours}} ч.",
+            "remainingHours": "{{hours}} ч. {{minutes}} мин.",
+            "remainingMinutes": "{{minutes}} мин.",
+            "join": "Участвовать",
+            "joining": "Отправляю...",
+            "entered": "Вы участвуете",
+            "notStarted": "Скоро",
+            "enteredTitle": "Заявка принята",
+            "enteredText": "Ты участвуешь в розыгрыше «{{title}}».",
+            "enterErrorTitle": "Не удалось участвовать",
+            "enterErrorText": "Проверь подключение и попробуй еще раз."
         },
         "devOverrides": {
             "open": "Локальные overrides experiments",
@@ -1136,6 +1189,11 @@
         "kind": {
             "theme": "Тема",
             "script": "Скрипт"
+        },
+        "badges": {
+            "officialTemplate": "Официальный шаблон",
+            "aiUsage": "AI",
+            "aiUsageTooltip": "При разработке этого аддона использовался AI"
         },
         "type": {
             "both": "CSS + JS",

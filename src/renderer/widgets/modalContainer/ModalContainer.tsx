@@ -12,6 +12,7 @@ import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionP
 import UntrustedLocalAddonModal from '@widgets/modalContainer/modals/UntrustedLocalAddonModal'
 import BasicConfirmationModal from '@widgets/modalContainer/modals/BasicConfirmationModal'
 import YandexMusicChangelogModal from '@widgets/modalContainer/modals/YandexMusicChangelogModal'
+import SubscriptionGiveawaysModal from '@widgets/modalContainer/modals/SubscriptionGiveawaysModal'
 
 const ModalContainer: React.FC = () => {
     return (
@@ -28,6 +29,7 @@ const ModalContainer: React.FC = () => {
             <PextDNDModal />
             <ExtensionPublicationModal />
             <UntrustedLocalAddonModal />
+            <SubscriptionGiveawaysModal />
             <BasicConfirmationModal />
         </>
     )

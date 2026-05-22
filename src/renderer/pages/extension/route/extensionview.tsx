@@ -7,6 +7,7 @@ import TabNavigation from '@pages/extension/route/extBox/TabNavigation'
 import TabContent from '@pages/extension/route/extBox/TabContent'
 import ThemeInfo from '@pages/extension/route/extBox/ThemeInfo'
 import { useAddonFiles } from '@pages/extension/route/extBox/hooks'
+import { selectDefaultExtensionTab } from '@pages/extension/route/extBox/tabSelection'
 import { useConfig } from '@pages/extension/route/extBox/useConfig'
 import { ExtensionViewProps, ActiveTab, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import UserContext from '@entities/user/model/context'
@@ -50,16 +51,12 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
         [addon.conflictsWith?.length, addon.dependencies?.length, addonRelationsEnabled],
     )
     const shouldOpenRelationsByDefault = useMemo(() => Boolean(hasRelations && enableBlockedReason), [enableBlockedReason, hasRelations])
+    const hasPublicationChangelog = publicationReleases.length > 0
 
     useEffect(() => {
         setEditMode(false)
-        if (shouldOpenRelationsByDefault) {
-            setActiveTab(RELATIONS_TAB)
-        } else if (docs.length) {
-            setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
-        }
-        else setActiveTab('Settings')
-    }, [addon.path, docs, shouldOpenRelationsByDefault])
+        setActiveTab(selectDefaultExtensionTab({ docs, hasPublicationChangelog, shouldOpenRelationsByDefault }))
+    }, [addon.path, docs, hasPublicationChangelog, shouldOpenRelationsByDefault])
 
     const canEditMetadata = useMemo(() => {
         const currentUserCandidates = [user.username, user.nickname, user.id]
@@ -87,23 +84,15 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
     useEffect(() => {
         if (activeTab === 'Metadata' && !canEditMetadata) {
-            if (docs.length) {
-                setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
-            } else {
-                setActiveTab('Settings')
-            }
+            setActiveTab(selectDefaultExtensionTab({ docs, hasPublicationChangelog, shouldOpenRelationsByDefault }))
         }
-    }, [activeTab, canEditMetadata, docs])
+    }, [activeTab, canEditMetadata, docs, hasPublicationChangelog, shouldOpenRelationsByDefault])
 
     useEffect(() => {
         if (activeTab === RELATIONS_TAB && !hasRelations) {
-            if (docs.length) {
-                setActiveTab((docs[0].value || docs[0].title) as ActiveTab)
-            } else {
-                setActiveTab('Settings')
-            }
+            setActiveTab(selectDefaultExtensionTab({ docs, hasPublicationChangelog }))
         }
-    }, [activeTab, docs, hasRelations])
+    }, [activeTab, docs, hasPublicationChangelog, hasRelations])
 
     const themeActive = useMemo(() => isEnabled && addon.type === 'theme', [isEnabled, addon.type])
 

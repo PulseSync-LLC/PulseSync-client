@@ -10,6 +10,8 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type { ModalName } from '@app/providers/modal/types'
 
+const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
+
 type Params = {
     app: SettingsInterface
     modInfo: ModInterface[]
@@ -133,7 +135,7 @@ export function useLayoutInstallers({
                 'loading',
                 isUpdate ? t('layout.modUpdateStart') : t('layout.modInstallStart'),
                 t('layout.modInstallDescription'),
-                { duration: Infinity },
+                { id: MOD_DOWNLOAD_TOAST_ID, duration: Infinity },
             )
         }
 
@@ -150,7 +152,7 @@ export function useLayoutInstallers({
                     'loading',
                     t('layout.downloadProgressLabel'),
                     t('layout.downloading', { name }),
-                    { duration: Infinity },
+                    { id: MOD_DOWNLOAD_TOAST_ID, duration: Infinity },
                     progress,
                 )
                 downloadToastIdRef.current = id
@@ -291,7 +293,10 @@ export function useLayoutInstallers({
             setIsUpdating(true)
             setModInstallError(null)
             currentModActionRef.current = app.mod.installed ? 'update' : 'install'
-            const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'))
+            const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'), {
+                id: MOD_DOWNLOAD_TOAST_ID,
+                duration: Infinity,
+            })
             downloadToastIdRef.current = id
 
             const {

@@ -89,7 +89,7 @@ export const iToast = {
                 return existing.id
             }
         }
-        if (sticky) {
+        if (sticky && !optionId) {
             const existing = queue.find(t => t.kind === kind && t.sticky && (t.value ?? 0) < 100)
             if (existing) {
                 Object.assign(existing, { title, msg, value, duration, ts: now })
@@ -170,6 +170,7 @@ const ToastStack: React.FC = () => {
 
     const list = toasts.slice(0, MAX_VISIBLE_TOASTS)
     const renderList = list
+    const layoutSignature = list.map(t => [t.id, t.kind, t.title, String(t.msg ?? ''), String(t.value ?? '')].join(':')).join('|')
 
     const cardRefs = useRef<(HTMLDivElement | null)[]>([])
     const nodeRefs = useRef(new Map<string, React.RefObject<HTMLDivElement>>())
@@ -196,7 +197,7 @@ const ToastStack: React.FC = () => {
         } else {
             setOffsets(Array(list.length).fill(0))
         }
-    }, [list.length, toasts.map(t => t.id).join('|')])
+    }, [list.length, layoutSignature])
 
     if (!toasts.length) return null
 
@@ -274,6 +275,10 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
     const [show, setShow] = useState(false)
 
     const memoizedOnDismiss = useCallback(onDismiss, [data.id])
+    const hideToast = useCallback(() => {
+        setShow(false)
+        setTimeout(memoizedOnDismiss, 220)
+    }, [memoizedOnDismiss])
 
     useEffect(() => {
         const t = setTimeout(() => setShow(true), 60)
@@ -322,12 +327,13 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                 if (e.button === 1) {
                     e.preventDefault()
                     e.stopPropagation()
-                    requestCloseAll()
+                    hideToast()
                 }
             }}
             onWheel={() => {
                 requestCloseAll()
             }}
+            onClick={hideToast}
         >
             <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>
@@ -338,8 +344,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                 className={styles.hide}
                 onClick={e => {
                     e.stopPropagation()
-                    setShow(false)
-                    setTimeout(onDismiss, 220)
+                    hideToast()
                 }}
             >
                 <MdClose size={18} />
