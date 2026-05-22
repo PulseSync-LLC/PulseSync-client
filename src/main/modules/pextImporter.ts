@@ -10,6 +10,7 @@ import { getState } from './state'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
 import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
+import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
@@ -110,6 +111,8 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
                 preferStoreId: metadata.installSource === 'store',
             })
         const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
+        const preservedSettings = await readPreservedAddonSettings(outputDir)
+
         if (fs.existsSync(outputDir)) {
             await clearDirectory(outputDir)
         } else {
@@ -117,6 +120,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         }
 
         zip.extractAllTo(outputDir, true)
+        await restorePreservedAddonSettings(outputDir, preservedSettings)
         fs.writeFileSync(path.join(outputDir, 'metadata.json'), JSON.stringify(metadata, null, 4))
         logger.main.info(`Extension imported successfully from ${ext} archive to ${outputDir}`)
 
