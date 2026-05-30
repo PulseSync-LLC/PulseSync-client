@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next'
 
+import { HiQuestionMarkCircle } from 'react-icons/hi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -51,14 +52,14 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                 </ButtonV2>
                             ) : isMetadataBackedSubcomponent(item.id) ? (
                                 <TooltipButton
-                                    side={'top'}
-                                    dataSide={'bottom'}
+                                    side={'right'}
                                     tooltipText={t('pages.home.onDemandInstallHint')}
                                     as="div"
                                     className={styles.secondaryActionTooltip}
                                 >
                                     <div className={styles.secondaryActionStatusLabel}>
                                         {item.version ? t('pages.home.installed') : t('pages.home.notInstalled')}
+                                        <HiQuestionMarkCircle />
                                     </div>
                                 </TooltipButton>
                             ) : (

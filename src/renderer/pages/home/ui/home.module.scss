@@ -312,6 +312,10 @@
     line-height: 110%;
 
     color: rgba(244, 246, 251, 0.72);
+
+    display: flex;
+    align-items: center;
+    gap: 4px;
 }
 
 .secondaryActionButton {
