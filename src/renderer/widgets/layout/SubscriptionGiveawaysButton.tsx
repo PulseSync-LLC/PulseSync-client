@@ -10,7 +10,7 @@ const SubscriptionGiveawaysButton: React.FC = () => {
     const { Modals, openModal } = useModalContext()
 
     return (
-        <TooltipButton tooltipText={t('header.giveaways.open')} dataSide={'top'} side="bottom" as="div" className={styles.devOverridesTrigger}>
+        <TooltipButton tooltipText={t('header.giveaways.open')} side="bottom" as="div" className={styles.devOverridesTrigger}>
             <button type="button" className={styles.headerIconButton} aria-label={t('header.giveaways.open')} onClick={() => openModal(Modals.SUBSCRIPTION_GIVEAWAYS)}>
                 <MdRedeem size={18} />
             </button>

@@ -397,7 +397,7 @@ const Header: React.FC<p> = () => {
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
-                        <TooltipButton tooltipText="В разработке" side="bottom" dataSide={'top'} as="div" className={styles.settingsTooltip}>
+                        <TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>
                             <button className={styles.settingsButton} disabled={!settingsAvailable}>
                                 <MdSettings size={22} />
                             </button>
