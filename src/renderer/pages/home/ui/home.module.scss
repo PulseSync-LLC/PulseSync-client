@@ -233,15 +233,8 @@
     font-weight: 700;
     font-size: 18px;
     line-height: 110%;
-    /* identical to box height, or 20px */
-
     color: #FFFFFF;
-
-
-    /* Inside auto layout */
-    flex: none;
-    order: 0;
-    flex-grow: 0;
+    user-select: text;
 
 }
 
@@ -251,6 +244,7 @@
     font-weight: 600;
     line-height: 1.15;
     color: rgba(241, 244, 251, 0.92);
+    user-select: text;
 }
 
 .animatedComponentVersion {

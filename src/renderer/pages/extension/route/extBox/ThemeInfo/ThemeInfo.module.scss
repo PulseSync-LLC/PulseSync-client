@@ -101,13 +101,14 @@
     text-shadow:
         0 2px 8px rgba(8, 10, 18, 0.5),
         0 12px 32px rgba(8, 10, 18, 0.38);
+    user-select: text;
 }
 
 .invisible {
     background: transparent;
     height: 266px;
     width: -webkit-fill-available;
-    z-index: 1;
+    z-index: 0;
     position: relative;
 }
 
