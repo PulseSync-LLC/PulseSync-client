@@ -55,7 +55,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
     }, [refreshStatus])
 
     return (
-        <TooltipButton tooltipText={label} dataSide={'top'} side="bottom" as="div" className={styles.devOverridesTrigger}>
+        <TooltipButton tooltipText={label} side="bottom" as="div" className={styles.devOverridesTrigger}>
             <button
                 disabled={isSwitchBlocked}
                 type="button"
