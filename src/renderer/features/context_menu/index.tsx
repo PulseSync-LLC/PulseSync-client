@@ -8,6 +8,7 @@ import RendererEvents from '@common/types/rendererEvents'
 import toast from '@shared/ui/toast'
 import SettingsInterface from '@entities/settings/model/settings.interface'
 import { useModalContext } from '@app/providers/modal'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useTranslation } from 'react-i18next'
 import { buildContextMenuSections, renderContextMenuSections } from '@features/context_menu/model/contextMenuSections'
 import config from '@common/appConfig'
@@ -26,9 +27,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
     const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(userContext)
     const { Modals, openModal } = useModalContext()
+    const { isExperimentEnabled } = useExperiments()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
     const [updateSource, setUpdateSourceState] = React.useState<UpdateSource>('backend')
     const [updateStatus, setUpdateStatus] = React.useState<UpdateStatus>('IDLE')
+    const subscriptionPageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.WebSubscriptionsPage, false)
 
     const openUpdateModal = () => {
         modalRef.current?.openUpdateModal()
@@ -42,8 +45,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
     }
 
-    const openBoostyUrl = () => {
-        window.open(config.BOOSTY_URL)
+    const openSubscriptionPage = () => {
+        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/subscription`)
     }
 
     const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
@@ -394,7 +397,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         downloadObsWidget,
         isAutonomousMode,
         openAppDirectory,
-        openBoostyUrl,
+        openSubscriptionPage,
+        subscriptionPageEnabled,
         openUpdateChannelModal,
         openModal,
         openUpdateModal,
