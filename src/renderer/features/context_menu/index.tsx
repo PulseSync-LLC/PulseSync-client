@@ -49,6 +49,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/subscription`)
     }
 
+    const openBoostyUrl = () => {
+        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, config.BOOSTY_URL)
+    }
+
     const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
     const updateSourceSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
 
@@ -397,6 +401,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         downloadObsWidget,
         isAutonomousMode,
         openAppDirectory,
+        openBoostyUrl,
         openSubscriptionPage,
         subscriptionPageEnabled,
         openUpdateChannelModal,
