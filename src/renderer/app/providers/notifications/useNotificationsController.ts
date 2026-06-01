@@ -43,6 +43,12 @@ type NotificationsControllerResult = {
 }
 
 const MAX_NOTIFICATIONS = 20
+const REALTIME_TOAST_NOTIFICATION_TYPES = new Set([
+    'achievement.completed',
+    'subscription.giveaway.won',
+    'subscription.purchase.succeeded',
+    'subscription.expiring.soon',
+])
 
 function dedupeNotifications(items: NotificationItem[]): NotificationItem[] {
     const seen = new Set<string>()
@@ -143,7 +149,7 @@ export function useNotificationsController(userId: string): NotificationsControl
             setNotificationsUnreadCount(data.unreadCount)
         }
 
-        if ((data.notification.type === 'achievement.completed' || data.notification.type === 'subscription.giveaway.won') && !data.notification.read) {
+        if (REALTIME_TOAST_NOTIFICATION_TYPES.has(data.notification.type) && !data.notification.read) {
             const presentation = getNotificationPresentation(data.notification)
             toast.custom(presentation.tone, presentation.title, presentation.body)
             window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {

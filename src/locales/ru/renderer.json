@@ -566,9 +566,18 @@
                 "giveawayWonPrize": "{{name}} на {{months}} мес.",
                 "giveawayFallbackTitle": "Розыгрыш подписки",
                 "giveawayFallbackPrize": "подписку PulseSync",
+                "subscriptionPurchaseSucceededTitle": "Подписка оформлена",
+                "subscriptionPurchaseSucceededBody": "{{plan}} активна до {{date}}. Спасибо за поддержку.",
+                "subscriptionExpiringSoonTitle": "Подписка скоро закончится",
+                "subscriptionExpiringSoonBody": "{{plan}} заканчивается {{date}}. Можно продлить её заранее.",
+                "subscriptionFallbackPlan": "Подписка PulseSync",
+                "subscriptionFallbackDate": "скоро",
                 "genericTitle": "Новое уведомление",
                 "genericBody": "Открой уведомление, чтобы посмотреть подробности."
             }
+        },
+        "subscription": {
+            "open": "Купить подписку"
         },
         "giveaways": {
             "open": "Открыть розыгрыши подписок",

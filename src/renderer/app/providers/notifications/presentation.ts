@@ -9,6 +9,20 @@ export type NotificationPresentation = {
     tone: NotificationTone
 }
 
+function formatPayloadDate(value: unknown): string {
+    const rawValue = typeof value === 'string' ? value : ''
+    const date = new Date(rawValue)
+    if (Number.isNaN(date.getTime())) {
+        return t('header.notifications.items.subscriptionFallbackDate')
+    }
+
+    return new Intl.DateTimeFormat(undefined, {
+        day: '2-digit',
+        month: 'short',
+        year: 'numeric',
+    }).format(date)
+}
+
 export function getNotificationPresentation(notification: NotificationItem): NotificationPresentation {
     switch (notification.type) {
         case 'addon.review.pending':
@@ -84,6 +98,30 @@ export function getNotificationPresentation(notification: NotificationItem): Not
                 body: t('header.notifications.items.giveawayWonBody', {
                     giveaway: giveawayTitle,
                     prize,
+                }),
+            }
+        }
+
+        case 'subscription.purchase.succeeded': {
+            const planName = String(notification.payload?.['planName'] || notification.payload?.['subscriptionName'] || t('header.notifications.items.subscriptionFallbackPlan'))
+            return {
+                tone: 'success',
+                title: t('header.notifications.items.subscriptionPurchaseSucceededTitle'),
+                body: t('header.notifications.items.subscriptionPurchaseSucceededBody', {
+                    plan: planName,
+                    date: formatPayloadDate(notification.payload?.['expireAt']),
+                }),
+            }
+        }
+
+        case 'subscription.expiring.soon': {
+            const planName = String(notification.payload?.['subscriptionName'] || notification.payload?.['planName'] || t('header.notifications.items.subscriptionFallbackPlan'))
+            return {
+                tone: 'warning',
+                title: t('header.notifications.items.subscriptionExpiringSoonTitle'),
+                body: t('header.notifications.items.subscriptionExpiringSoonBody', {
+                    plan: planName,
+                    date: formatPayloadDate(notification.payload?.['expireAt']),
                 }),
             }
         }

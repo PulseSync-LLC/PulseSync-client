@@ -1,5 +1,5 @@
 import React from 'react'
-import { SiBoosty } from 'react-icons/si'
+import { MdWorkspacePremium } from 'react-icons/md'
 
 import MainEvents from '@common/types/mainEvents'
 import ArrowContext from '@shared/assets/icons/arrowContext.svg'
@@ -66,7 +66,8 @@ type Params = {
     downloadObsWidget: () => void
     isAutonomousMode: boolean
     openAppDirectory: () => void
-    openBoostyUrl: () => void
+    openSubscriptionPage: () => void
+    subscriptionPageEnabled: boolean
     openUpdateChannelModal: () => void
     openModal: (modal: ModalName) => void
     openUpdateModal: () => void
@@ -96,7 +97,8 @@ export function buildContextMenuSections({
     downloadObsWidget,
     isAutonomousMode,
     openAppDirectory,
-    openBoostyUrl,
+    openSubscriptionPage,
+    subscriptionPageEnabled,
     openUpdateChannelModal,
     openModal,
     openUpdateModal,
@@ -134,11 +136,17 @@ export function buildContextMenuSections({
           ]
 
     return [
-        createContentSection(
-            <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
-                <span>{t('contextMenu.boostyUrl')}</span>
-                <SiBoosty size={18} />
-            </button>,
+        ...(
+            subscriptionPageEnabled ?
+                [
+                    createContentSection(
+                        <button className={menuStyles.contextButton} onClick={openSubscriptionPage}>
+                            <span>{t('header.subscription.open')}</span>
+                            <MdWorkspacePremium size={18} />
+                        </button>,
+                    ),
+                ]
+            :   []
         ),
         createButtonSection(t('contextMenu.obsWidget.title'), [
             {

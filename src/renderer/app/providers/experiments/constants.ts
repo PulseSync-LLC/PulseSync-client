@@ -8,6 +8,7 @@ export const CLIENT_EXPERIMENTS = {
     ClientMetricsSending: 'ClientMetricsSending',
     WebLocalizationContribution: 'WebLocalizationContribution',
     WebHomeSections: 'WebHomeSections',
+    WebSubscriptionsPage: 'WebSubscriptionsPage',
 } as const
 
 export const KNOWN_CLIENT_EXPERIMENT_KEYS = Object.values(CLIENT_EXPERIMENTS)

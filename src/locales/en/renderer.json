@@ -566,9 +566,18 @@
                 "giveawayWonPrize": "{{name}} for {{months}} mo",
                 "giveawayFallbackTitle": "Subscription giveaway",
                 "giveawayFallbackPrize": "PulseSync subscription",
+                "subscriptionPurchaseSucceededTitle": "Subscription purchased",
+                "subscriptionPurchaseSucceededBody": "{{plan}} is active until {{date}}. Thanks for your support.",
+                "subscriptionExpiringSoonTitle": "Subscription ends soon",
+                "subscriptionExpiringSoonBody": "{{plan}} ends on {{date}}. You can extend it early.",
+                "subscriptionFallbackPlan": "PulseSync subscription",
+                "subscriptionFallbackDate": "soon",
                 "genericTitle": "New notification",
                 "genericBody": "Open the notification to view details."
             }
+        },
+        "subscription": {
+            "open": "Buy subscription"
         },
         "giveaways": {
             "open": "Open subscription giveaways",
