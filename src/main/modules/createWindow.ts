@@ -153,6 +153,7 @@ export async function createWindow(): Promise<void> {
         ...(position ? { x: position.x, y: position.y } : { center: true }),
         minWidth: minMain.width,
         minHeight: minMain.height,
+        titleBarStyle: 'hidden',
         trafficLightPosition: { x: 16, y: 10 },
         icon,
         webPreferences: {

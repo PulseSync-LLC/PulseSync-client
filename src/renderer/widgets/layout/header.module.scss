@@ -2,7 +2,7 @@
     display: flex;
     justify-content: center;
     color: var(--color1);
-    height: fit-content;
+    height: 50px;
     -webkit-app-region: drag;
     padding: 0 0 0 21px;
     width: -webkit-fill-available;
@@ -116,16 +116,17 @@
             flex-direction: row;
             justify-content: flex-end;
             align-items: center;
-            gap: 11px;
 
             width: fit-content;
-            height: fit-content;
+            height: 100%;
 
             .menu {
+                height: 100%;
                 position: relative;
                 display: flex;
                 align-items: center;
                 gap: 6px;
+                margin-right: 17px;
                 .rpcStatus {
                     cursor: pointer;
                     position: relative;
