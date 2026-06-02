@@ -237,6 +237,7 @@ const Header: React.FC<p> = () => {
     const [loadingModChanges, setLoadingModChanges] = useState(false)
     const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
+    const [isMac, setIsMac] = useState(window.electron.isMac());
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
     const modChangesLoadedKeyRef = useRef<string | null>(null)
@@ -483,7 +484,7 @@ const Header: React.FC<p> = () => {
                                 </>
                             )}
                         </div>
-                        <div className={styles.button_container}>
+                        {!isMac && <div className={styles.button_container}>
                             <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
                                 <Minus />
                             </button>
@@ -497,7 +498,7 @@ const Header: React.FC<p> = () => {
                             >
                                 <Close />
                             </button>
-                        </div>
+                        </div>}
                     </div>
                 </div>
             </header>
