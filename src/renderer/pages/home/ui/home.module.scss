@@ -46,7 +46,8 @@
     min-height: 0;
     width: 100%;
     background: #434962;
-    padding-inline: 25px;
+    padding-inline-start: 25px;
+    padding-inline-end: 10px;
     padding-block-start: 15px;
     position: relative;
     overflow: hidden;
@@ -58,6 +59,7 @@
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 14px;
+    margin-right: 18px;
 }
 
 .panelTitle {
