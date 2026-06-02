@@ -154,7 +154,7 @@ export async function createWindow(): Promise<void> {
         minWidth: minMain.width,
         minHeight: minMain.height,
         titleBarStyle: 'hidden',
-        trafficLightPosition: { x: 14, y: 24 },
+        trafficLightPosition: { x: 15, y: 20 },
         icon,
         webPreferences: {
             preload: path.join(__dirname, 'mainWindowPreload.cjs'),
