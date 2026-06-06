@@ -94,16 +94,16 @@ const AchievementsSection: React.FC<AchievementsSectionProps> = ({ userProfile, 
                 </div>
             )}
             <div className={styles.achievementsSection}>
-                <div>
-                    <div className={styles.titleHeader}>{t('profile.achievements.title')}</div>
-                    <div className={styles.descriptionHeader}>{t('profile.achievements.subtitle')}</div>
-                </div>
                 <LevelProgress
                     totalPoints={levelInfo.totalPoints}
                     currentLevel={levelInfo.currentLevel}
                     progressInCurrentLevel={levelInfo.progressInCurrentLevel}
                     currentLevelThreshold={levelInfo.currentLevelThreshold}
                 />
+                <div>
+                    <div className={styles.titleHeader}>{t('profile.achievements.title')}</div>
+                    <div className={styles.descriptionHeader}>{t('profile.achievements.subtitle')}</div>
+                </div>
                 {userProfile.allAchievements && userProfile.allAchievements.length > 0 ? (
                     <>
                         <div className={styles.achievementsListContainer}>

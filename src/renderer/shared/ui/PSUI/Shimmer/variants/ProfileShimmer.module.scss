@@ -41,11 +41,20 @@
     gap: 15px;
 }
 
+.profileMetaContainer {
+    display: flex;
+    width: 100%;
+    flex-direction: row;
+    gap: 15px;
+    align-items: center;
+    justify-content: space-between;
+}
+
 .identity {
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
+    flex-direction: row;
+    align-items: center;
+    justify-content: start;
     gap: 15px;
     position: relative;
     z-index: 1;
@@ -120,12 +129,12 @@
     position: relative;
     z-index: 1;
     width: 100%;
-    margin-top: 4px;
+    justify-content: end;
 }
 
 .buttonFull {
     @include shimmer.surface;
-    width: 100%;
+    width: 200px;
     height: 40px;
     border-radius: 8px;
 }
@@ -133,7 +142,7 @@
 .section {
     @include shimmer.surface(#292c36);
     min-height: 240px;
-    padding: 20px 40px;
+    padding: 10px 40px;
     display: flex;
     flex-direction: column;
     gap: 15px;
