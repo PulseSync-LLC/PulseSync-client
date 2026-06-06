@@ -819,7 +819,7 @@
         "nav": {
             "addonsBeta": "Аддоны",
             "development": "Development",
-            "extensionsStore": "Каталог расширений",
+            "extensionsStore": "Каталог аддонов",
             "home": "Главная",
             "trackInfo": "Информация о треке",
             "users": "Пользователи",
@@ -996,7 +996,7 @@
                 "volumeControl": "Контроль громкости"
             },
             "headerSubtitle": "Обновляйте интерфейс, открывайте новые возможности",
-            "headerTitle": "Каталог расширений",
+            "headerTitle": "Каталог аддонов",
             "title": "Store"
         }
     },
