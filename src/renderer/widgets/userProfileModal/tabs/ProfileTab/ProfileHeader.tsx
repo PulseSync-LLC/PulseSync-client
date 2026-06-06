@@ -45,7 +45,7 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
         const updateAllowAnimate = () => {
             const scrollTop = useWindowScroll
                 ? window.scrollY || window.pageYOffset || document.documentElement.scrollTop || 0
-                : scrollContainer?.scrollTop ?? 0
+                : (scrollContainer?.scrollTop ?? 0)
 
             setAllowAnimate(scrollTop < threshold)
         }
@@ -76,91 +76,98 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, childr
                 allowAnimate={allowAnimate}
             />
             <div className={styles.bannerGradient} />
-            <div className={styles.userImage}>
-                <Avatar
-                    className={styles.avatarWrapper}
-                    hash={userProfile.avatarHash}
-                    ext={userProfile.avatarType}
-                    sizes="84px"
-                    alt="Avatar"
-                    width="84"
-                    height="84"
-                    allowAnimate={allowAnimate}
-                />
-                <div className={styles.userInfo}>
-                    <div className={styles.dateCreate}>
+            <div className={styles.profileMetaContainer}>
+                <div className={styles.userImage}>
+                    <Avatar
+                        className={styles.avatarWrapper}
+                        hash={userProfile.avatarHash}
+                        ext={userProfile.avatarType}
+                        sizes="84px"
+                        alt="Avatar"
+                        width="84"
+                        height="84"
+                        allowAnimate={allowAnimate}
+                    />
+                    <div className={styles.userInfo}>
                         <div className={styles.dateCreate}>
-                            {new Date(userProfile.createdAt) <= new Date(2025, 0, 17) ? (
-                                <TooltipButton
-                                    styleComponent={{
-                                        padding: 0,
-                                        background: 'transparent',
-                                    }}
-                                    tooltipText={
-                                        <div className={styles.dateCreateTooltip}>
-                                            {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                            })}
-                                        </div>
-                                    }
-                                    side="top"
-                                >
-                                    {t('profile.sinceBeginning')}
-                                </TooltipButton>
-                            ) : (
-                                <TooltipButton
-                                    styleComponent={{
-                                        padding: 0,
-                                        background: 'transparent',
-                                    }}
-                                    tooltipText={
-                                        <div className={styles.dateCreateTooltip}>
-                                            {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
-                                                year: 'numeric',
-                                                month: 'long',
-                                                day: 'numeric',
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                second: '2-digit',
-                                            })}
-                                        </div>
-                                    }
-                                    side="top"
-                                >
-                                    {t('profile.registrationDate')}{' '}
-                                    {new Date(userProfile.createdAt).toLocaleDateString(i18n.language, {
-                                        month: 'long',
-                                        year: 'numeric',
-                                    })}
-                                </TooltipButton>
-                            )}
+                            <div className={styles.dateCreate}>
+                                {new Date(userProfile.createdAt) <= new Date(2025, 0, 17) ? (
+                                    <TooltipButton
+                                        styleComponent={{
+                                            padding: 0,
+                                            background: 'transparent',
+                                        }}
+                                        tooltipText={
+                                            <div className={styles.dateCreateTooltip}>
+                                                {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit',
+                                                })}
+                                            </div>
+                                        }
+                                        side="top"
+                                    >
+                                        {t('profile.sinceBeginning')}
+                                    </TooltipButton>
+                                ) : (
+                                    <TooltipButton
+                                        styleComponent={{
+                                            padding: 0,
+                                            background: 'transparent',
+                                        }}
+                                        tooltipText={
+                                            <div className={styles.dateCreateTooltip}>
+                                                {new Date(userProfile.createdAt).toLocaleString(i18n.language, {
+                                                    year: 'numeric',
+                                                    month: 'long',
+                                                    day: 'numeric',
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    second: '2-digit',
+                                                })}
+                                            </div>
+                                        }
+                                        side="top"
+                                    >
+                                        {t('profile.registrationDate')}{' '}
+                                        {new Date(userProfile.createdAt).toLocaleDateString(i18n.language, {
+                                            month: 'long',
+                                            year: 'numeric',
+                                        })}
+                                    </TooltipButton>
+                                )}
+                            </div>
                         </div>
-                    </div>
-                    <div className={styles.userName}>
-                        {userProfile.nickname || t('profile.noNickname')}
-                        <div className={styles.userBadges}>
-                            <TooltipButton tooltipText={t('profile.level', { level: levelInfo.currentLevel })} side="top">
-                                <LevelBadge level={levelInfo.currentLevel} />
-                            </TooltipButton>
-                            {visibleBadges.length > 0 &&
-                                visibleBadges
-                                    .sort((a: any, b: any) => (b.level ?? 0) - (a.level ?? 0))
-                                    .map((badge: any) => (
-                                        <TooltipButton tooltipText={badge.name} side="top" className={styles.badge} key={badge.uuid || badge.type}>
-                                            <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
-                                        </TooltipButton>
-                                    ))}
+                        <div className={styles.userName}>
+                            {userProfile.nickname || t('profile.noNickname')}
+                            <div className={styles.userBadges}>
+                                <TooltipButton tooltipText={t('profile.level', { level: levelInfo.currentLevel })} side="top">
+                                    <LevelBadge level={levelInfo.currentLevel} />
+                                </TooltipButton>
+                                {visibleBadges.length > 0 &&
+                                    visibleBadges
+                                        .sort((a: any, b: any) => (b.level ?? 0) - (a.level ?? 0))
+                                        .map((badge: any) => (
+                                            <TooltipButton
+                                                tooltipText={badge.name}
+                                                side="top"
+                                                className={styles.badge}
+                                                key={badge.uuid || badge.type}
+                                            >
+                                                <img src={staticAsset(`assets/badges/${badge.type}.svg`)} alt={badge.type} />
+                                            </TooltipButton>
+                                        ))}
+                            </div>
                         </div>
+                        <div className={styles.userUsername}>@{userProfile.username}</div>
                     </div>
-                    <div className={styles.userUsername}>@{userProfile.username}</div>
                 </div>
+                <div className={styles.userButtons}>{children}</div>
             </div>
-            <div className={styles.userButtons}>{children}</div>
         </div>
     )
 }

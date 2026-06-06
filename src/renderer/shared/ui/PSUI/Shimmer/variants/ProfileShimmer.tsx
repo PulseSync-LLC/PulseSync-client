@@ -10,34 +10,30 @@ export default function ProfileShimmer() {
             </div>
 
             <div className={styles.banner}>
-                <div className={styles.identity}>
-                    <div className={styles.avatar} />
-                    <div className={styles.identityText}>
-                        <div className={styles.dateLine} />
-                        <div className={styles.nameRow}>
-                            <div className={styles.nameLine} />
-                            <div className={styles.badgesRow}>
-                                <div className={styles.badgeWide} />
-                                <div className={styles.badgeSmall} />
-                                <div className={styles.badgeSmall} />
-                                <div className={styles.badgeSmall} />
+                <div className={styles.profileMetaContainer}>
+                    <div className={styles.identity}>
+                        <div className={styles.avatar} />
+                        <div className={styles.identityText}>
+                            <div className={styles.dateLine} />
+                            <div className={styles.nameRow}>
+                                <div className={styles.nameLine} />
+                                <div className={styles.badgesRow}>
+                                    <div className={styles.badgeWide} />
+                                    <div className={styles.badgeSmall} />
+                                    <div className={styles.badgeSmall} />
+                                    <div className={styles.badgeSmall} />
+                                </div>
                             </div>
+                            <div className={styles.usernameLine} />
                         </div>
-                        <div className={styles.usernameLine} />
                     </div>
-                </div>
-
-                <div className={styles.buttons}>
-                    <div className={styles.buttonFull} />
+                    <div className={styles.buttons}>
+                        <div className={styles.buttonFull} />
+                    </div>
                 </div>
             </div>
 
             <div className={styles.section}>
-                <div className={styles.sectionHeader}>
-                    <div className={styles.sectionTitle} />
-                    <div className={styles.sectionSubtitle} />
-                </div>
-
                 <div className={styles.progressCard}>
                     <div className={styles.progressHeader}>
                         <div className={styles.progressLabel} />
@@ -50,6 +46,11 @@ export default function ProfileShimmer() {
                         <div className={styles.progressValue} />
                         <div className={styles.progressLevelRight} />
                     </div>
+                </div>
+
+                <div className={styles.sectionHeader}>
+                    <div className={styles.sectionTitle} />
+                    <div className={styles.sectionSubtitle} />
                 </div>
 
                 <div className={styles.achievementList}>

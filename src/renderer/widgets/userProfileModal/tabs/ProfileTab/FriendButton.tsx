@@ -60,7 +60,7 @@ const FriendButton: React.FC<FriendButtonProps> = ({ userProfile, user, profileN
     }
 
     let buttonTextNormal = t('profile.friendButton.addFriend')
-    let buttonTextHover = t('profile.friendButton.follow')
+    let buttonTextHover = t('profile.friendButton.addFriend')
     let normalIcon = <MdPersonAdd size={20} />
     let hoverIcon = <MdPersonAdd size={20} />
     let buttonClass = styles.buttonAddFriendWhite
