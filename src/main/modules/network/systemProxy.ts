@@ -118,7 +118,13 @@ function rejectForStatus<TResponse>(response: TResponse, status: number, config:
         return response
     }
 
-    throw new AxiosError(`Request failed with status code ${status}`, status >= 500 ? AxiosError.ERR_BAD_RESPONSE : AxiosError.ERR_BAD_REQUEST, config, null, response as any)
+    throw new AxiosError(
+        `Request failed with status code ${status}`,
+        status >= 500 ? AxiosError.ERR_BAD_RESPONSE : AxiosError.ERR_BAD_REQUEST,
+        config,
+        null,
+        response as any,
+    )
 }
 
 async function requestBuffer(options: ElectronRequestOptions): Promise<ElectronBufferedResponse> {
@@ -195,10 +201,21 @@ async function requestStream(options: ElectronRequestOptions): Promise<ElectronS
             options.signal?.removeEventListener?.('abort', abortListener)
 
             const stream = new PassThrough()
+            let responseEnded = false
             response.on('data', chunk => stream.write(chunk))
-            response.on('end', () => stream.end())
+            response.on('end', () => {
+                responseEnded = true
+                stream.end()
+            })
             response.on('aborted', () => stream.destroy(new Error('Response aborted')))
             response.on('error', error => stream.destroy(error))
+            stream.on('close', () => {
+                if (!responseEnded) {
+                    try {
+                        request.abort()
+                    } catch {}
+                }
+            })
 
             resolve({
                 data: stream,

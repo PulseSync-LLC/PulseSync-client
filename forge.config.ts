@@ -59,7 +59,7 @@ const forgeConfig: ForgeConfig = {
         executableName: process.platform === 'linux' ? 'pulsesync' : 'PulseSync',
         appCopyright: `Copyright (C) ${new Date().getFullYear()} Матвиенко Артём Евгеньевич`,
         asar: {
-            unpack: '**/.vite/renderer/**/static/assets/icon/**',
+            unpack: '{**/.vite/renderer/**/static/assets/icon/**,**/.vite/worker/**}',
         },
         win32metadata: {
             CompanyName: 'Матвиенко Артём Евгеньевич',
@@ -82,6 +82,10 @@ const forgeConfig: ForgeConfig = {
                     entry: 'src/main/mainWindowPreload.ts',
                     config: 'vite.preload.config.ts',
                     target: 'preload',
+                },
+                {
+                    entry: 'src/main/modules/mod/network/artifactWorker.ts',
+                    config: 'vite.worker.config.ts',
                 },
             ],
             renderer: [

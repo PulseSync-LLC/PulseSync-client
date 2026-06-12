@@ -3,12 +3,15 @@ import * as fs from 'original-fs'
 import axios from 'axios'
 import * as https from 'https'
 import crypto from 'crypto'
-import { Transform, pipeline as nodePipeline } from 'stream'
+import { Readable, Transform, pipeline as nodePipeline } from 'stream'
 import { promisify } from 'util'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { t } from '../../i18n'
+import logger from '../logger'
 
 const pipeline = promisify(nodePipeline)
+const DOWNLOAD_REQUEST_TIMEOUT_MS = 30_000
+const DOWNLOAD_INACTIVITY_TIMEOUT_MS = 30_000
 
 export function sendToRenderer(window: BrowserWindow | null | undefined, channel: RendererEvent, payload: any) {
     window?.webContents.send(channel, payload)
@@ -42,7 +45,7 @@ export function unlinkIfExists(p: string) {
 
 export function restoreBackupIfExists(savePath: string, backupPath: string) {
     try {
-        if (fs.existsSync(backupPath)) fs.renameSync(backupPath, savePath)
+        if (fs.existsSync(backupPath)) fs.copyFileSync(backupPath, savePath)
     } catch {}
 }
 
@@ -67,43 +70,89 @@ export async function downloadToTempWithProgress(args: {
     name: string
 }): Promise<{ totalBytes: number; computedHash?: string }> {
     const { window, url, tempFilePath, expectedChecksum, progressScale = 0.6, progressBase = 0, userAgent, rejectUnauthorized = true, name } = args
+    const startedAt = Date.now()
+    const downloadHost = (() => {
+        try {
+            return new URL(url).host
+        } catch {
+            return 'unknown-host'
+        }
+    })()
 
     const headers: Record<string, string> = {
         'User-Agent': userAgent,
         Accept: 'application/octet-stream',
     }
     const httpsAgent = new https.Agent({ rejectUnauthorized })
-
-    const response = await axios.get(url, { httpsAgent, responseType: 'stream', headers })
-
-    const total = Number(response.headers['content-length'] || 0)
     let downloaded = 0
-
     const hasher = expectedChecksum ? crypto.createHash('sha256') : null
+    let inactivityTimer: NodeJS.Timeout | null = null
+    let responseStream: Readable | null = null
 
-    const progressTap = new Transform({
-        transform(chunk, _enc, cb) {
-            downloaded += chunk.length
-            if (total > 0) {
-                const frac = downloaded / total
-                const scaled = Math.min(frac * progressScale, progressScale)
-                const combined = Math.min(progressBase + scaled, progressBase + progressScale)
-                setProgress(window, combined)
-                sendProgress(window, Math.round(Math.min(progressBase + Math.min(frac, 1) * progressScale, 1) * 100), name)
-            }
-            if (hasher) hasher.update(chunk)
-            this.push(chunk)
-            cb()
-        },
-    })
+    const clearInactivityTimer = () => {
+        if (!inactivityTimer) return
+        clearTimeout(inactivityTimer)
+        inactivityTimer = null
+    }
 
-    const writer = fs.createWriteStream(tempFilePath)
+    const resetInactivityTimer = () => {
+        clearInactivityTimer()
+        inactivityTimer = setTimeout(() => {
+            const error = new DownloadError(t('main.modDownload.networkError'), 'network')
+            responseStream?.destroy(error)
+        }, DOWNLOAD_INACTIVITY_TIMEOUT_MS)
+    }
+
+    logger.modManager.info(`Starting ${name} download from ${downloadHost}`)
 
     try {
+        const response = await axios.get(url, {
+            httpsAgent,
+            responseType: 'stream',
+            headers,
+            timeout: DOWNLOAD_REQUEST_TIMEOUT_MS,
+        })
+
+        const total = Number(response.headers['content-length'] || 0)
+        responseStream = response.data as Readable
+
+        const progressTap = new Transform({
+            transform(chunk, _enc, cb) {
+                resetInactivityTimer()
+                downloaded += chunk.length
+                if (total > 0) {
+                    const frac = downloaded / total
+                    const scaled = Math.min(frac * progressScale, progressScale)
+                    const combined = Math.min(progressBase + scaled, progressBase + progressScale)
+                    setProgress(window, combined)
+                    sendProgress(window, Math.round(Math.min(progressBase + Math.min(frac, 1) * progressScale, 1) * 100), name)
+                }
+                if (hasher) hasher.update(chunk)
+                this.push(chunk)
+                cb()
+            },
+        })
+
+        const writer = fs.createWriteStream(tempFilePath)
+        resetInactivityTimer()
         await pipeline(response.data, progressTap, writer)
-    } catch (e: any) {
-        throw new DownloadError(e?.message || t('main.modDownload.networkError'), 'network')
+    } catch (error: any) {
+        logger.modManager.warn(`${name} download failed from ${downloadHost}`, {
+            bytes: downloaded,
+            durationMs: Date.now() - startedAt,
+            code: error?.code,
+            message: error?.message,
+        })
+        if (error instanceof DownloadError) throw error
+        throw new DownloadError(error?.message || t('main.modDownload.networkError'), 'network')
+    } finally {
+        clearInactivityTimer()
     }
+
+    logger.modManager.info(`Completed ${name} download from ${downloadHost}`, {
+        bytes: downloaded,
+        durationMs: Date.now() - startedAt,
+    })
 
     let digest: string | undefined
     if (expectedChecksum && hasher) {
