@@ -9,7 +9,7 @@ import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, 
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import { downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
 import { nativeRenameFile } from '../nativeModules'
-import { resetProgress, sendFailure, sendToRenderer } from './download.helpers'
+import { sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
 import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../../utils/appUtils/elevation'
@@ -28,9 +28,9 @@ import { getGithubModRelease } from './network/releaseCatalog'
 import type { ModDownloadFailure } from './network/types'
 
 const State = getState()
-const PROGRESS_ASAR_ONLY = { base: 0, scale: 1, resetOnComplete: true }
-const PROGRESS_ASAR_WITH_UNPACKED = { base: 0, scale: 0.6, resetOnComplete: false }
-const PROGRESS_UNPACKED = { base: 0.6, scale: 0.4, resetOnComplete: true }
+const PROGRESS_ASAR_ONLY = { base: 0, scale: 0.95, resetOnComplete: false }
+const PROGRESS_ASAR_WITH_UNPACKED = { base: 0, scale: 0.58, resetOnComplete: false }
+const PROGRESS_UNPACKED = { base: 0.6, scale: 0.39, resetOnComplete: false }
 const MOD_DOWNLOAD_FALLBACK_TYPES = new Set(['download_error', 'download_unpacked_error', 'checksum_mismatch'])
 
 const isFallbackEligibleDownloadFailure = (failure: ModDownloadFailure | null): failure is ModDownloadFailure =>
@@ -81,6 +81,7 @@ export const modManager = (window: BrowserWindow): void => {
 
                 const ymMetadata = await getInstalledYmMetadata()
                 const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
+                let finalProgressName = 'app.asar'
 
                 if (isMac()) {
                     try {
@@ -124,6 +125,7 @@ export const modManager = (window: BrowserWindow): void => {
                 ): Promise<boolean> => {
                     const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
                     const hasUnpacked = Boolean(releaseData.unpackLink)
+                    finalProgressName = hasUnpacked ? 'app.asar.unpacked' : 'app.asar'
                     const asarProgress = hasUnpacked ? PROGRESS_ASAR_WITH_UNPACKED : PROGRESS_ASAR_ONLY
                     const unpackedProgress = hasUnpacked ? PROGRESS_UNPACKED : undefined
 
@@ -133,14 +135,14 @@ export const modManager = (window: BrowserWindow): void => {
                             logger.modManager.warn('Failed to create cache dir:', err)
                         })
 
-                        const currentHash = fileExists(paths.modAsar) ? readChecksum(paths.modAsar) : null
+                        const currentHash = fileExists(paths.modAsar) ? await readChecksum(paths.modAsar) : null
                         if (currentHash === releaseData.checksum) {
                             logger.modManager.info('app.asar hash matches, skipping download')
                             sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
                             if (hasUnpacked) {
                                 setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
                             } else {
-                                resetProgress(window)
+                                setProgressPercent(window, PROGRESS_ASAR_ONLY.scale, 'app.asar')
                             }
                         } else if (
                             !(await tryUseCacheOrDownload(
@@ -177,11 +179,15 @@ export const modManager = (window: BrowserWindow): void => {
                     }
 
                     if (releaseData.unpackLink) {
+                        const unpackedBoundaryStartedAt = Date.now()
                         setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
+                        logger.modManager.info('Starting app.asar.unpacked stage', {
+                            progressUpdateMs: Date.now() - unpackedBoundaryStartedAt,
+                        })
 
                         const unpackName = path.basename(new URL(releaseData.unpackLink).pathname)
                         const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
-                        const tempUnpackedDir = path.join(TEMP_DIR, 'app.asar.unpacked')
+                        const tempUnpackedDir = path.join(TEMP_DIR, `pulsesync-unpacked-${process.pid}-${Date.now()}`)
                         const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
 
                         const unpackedOk = await downloadAndExtractUnpacked(
@@ -198,7 +204,7 @@ export const modManager = (window: BrowserWindow): void => {
                         if (!unpackedOk) return false
                     }
 
-                    const actualAsarChecksum = readChecksum(paths.modAsar) ?? releaseData.checksum
+                    const actualAsarChecksum = (await readChecksum(paths.modAsar)) ?? releaseData.checksum
                     if (actualAsarChecksum) {
                         logger.modManager.info('Calculated actual asar checksum:', actualAsarChecksum)
                     }
@@ -292,6 +298,7 @@ export const modManager = (window: BrowserWindow): void => {
                     logger.modManager.warn('Skipping version.bin update because no Yandex Music version was resolved')
                 }
 
+                setProgressPercent(window, 1, finalProgressName)
                 if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
             } catch (error: any) {
                 logger.modManager.error('Unexpected error:', error)

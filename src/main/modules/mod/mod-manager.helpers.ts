@@ -2,25 +2,18 @@ import { app, BrowserWindow } from 'electron'
 import * as path from 'path'
 import * as fs from 'original-fs'
 import os from 'os'
-import crypto from 'crypto'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { getState } from '../state'
 import logger from '../logger'
-import {
-    closeYandexMusic,
-    copyFile,
-    getInstalledYmMetadata,
-    getYandexMusicProcesses,
-    isYandexMusicRunning,
-    launchYandexMusic,
-} from '../../utils/appUtils'
-import { Paths, writePatchedAsarAndPatchBundle } from './mod-files'
-import { downloadAndUpdateFile } from './network'
+import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
+import { Paths } from './mod-files'
+import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
 import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
 import { CACHE_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
 import type { RemoteModInfo } from './network/modCatalog'
+import { hashArtifactInWorker } from './network/artifactWorkerClient'
 
 const State = getState()
 
@@ -71,10 +64,17 @@ export async function tryUseCacheOrDownload(
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
         try {
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
-            await copyFile(cacheFile, tempFilePath)
-            const fileBuffer = fs.readFileSync(tempFilePath)
-            const ok = await writePatchedAsarAndPatchBundle(paths.modAsar, fileBuffer, link, paths.backupAsar, checksum)
+            const progressBase = progress?.base ?? 0
+            const progressScale = progress?.scale ?? 1
+            const processingProgress = progressBase + progressScale * 0.85
+            setProgress(window, processingProgress)
+            sendProgress(window, Math.round(processingProgress * 100), 'app.asar')
+            const preparedFilePath = `${tempFilePath}.prepared.${process.pid}.${Date.now()}.asar`
+            const ok = await prepareAndInstallAsarArtifact(cacheFile, preparedFilePath, link, paths.modAsar, paths.backupAsar, checksum)
             if (ok) {
+                const completedProgress = progressBase + progressScale
+                setProgress(window, completedProgress)
+                sendProgress(window, Math.round(completedProgress * 100), 'app.asar')
                 logger.modManager.info('Successfully restored app.asar from cache')
                 return true
             }
@@ -84,13 +84,30 @@ export async function tryUseCacheOrDownload(
             resetProgress(window)
         }
     }
-    return await downloadAndUpdateFile(window, link, tempFilePath, paths.modAsar, paths.backupAsar, checksum, cacheDir, progress, 'app.asar', onFailure)
+    return await downloadAndUpdateFile(
+        window,
+        link,
+        tempFilePath,
+        paths.modAsar,
+        paths.backupAsar,
+        checksum,
+        cacheDir,
+        progress,
+        'app.asar',
+        onFailure,
+    )
 }
 
-export function readChecksum(filePath: string): string | null {
+export async function readChecksum(filePath: string): Promise<string | null> {
     try {
-        const buf = fs.readFileSync(filePath)
-        return crypto.createHash('sha256').update(buf).digest('hex')
+        const startedAt = Date.now()
+        const result = await hashArtifactInWorker({ filePath })
+        logger.modManager.info('Hashed artifact in worker', {
+            totalMs: Date.now() - startedAt,
+            workerThreadId: result.workerThreadId,
+            checksum: result.durationMs,
+        })
+        return result.checksum
     } catch (err: any) {
         logger.modManager.warn('Failed to verify existing file:', err)
         return null
@@ -165,11 +182,19 @@ export async function sendSuccessAfterLaunch(
     channel: RendererEvent,
     payload: { success: true },
 ): Promise<boolean> {
-    if (!(await isYandexMusicRunning()) && wasClosed) {
-        await launchYandexMusic()
-        setTimeout(() => sendToRenderer(window, channel, payload), 1500)
-        return true
-    }
     sendToRenderer(window, channel, payload)
-    return false
+    resetProgress(window)
+
+    if (!wasClosed) return false
+
+    void (async () => {
+        try {
+            if (!(await isYandexMusicRunning())) {
+                await launchYandexMusic()
+            }
+        } catch (error) {
+            logger.modManager.warn('Failed to relaunch Yandex Music after mod operation:', error)
+        }
+    })()
+    return true
 }

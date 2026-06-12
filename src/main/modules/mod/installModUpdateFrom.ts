@@ -198,7 +198,7 @@ export const installModUpdateFromAsar = async (
             return { success: false, type: 'patch_error', error }
         }
 
-        const checksum = readChecksum(paths.modAsar)
+        const checksum = await readChecksum(paths.modAsar)
         const resolvedChecksum = checksum ?? incomingChecksum
         await persistInstalledModState(paths, matchedMod, resolvedChecksum)
 

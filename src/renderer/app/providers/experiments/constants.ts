@@ -6,8 +6,6 @@ export const CLIENT_EXPERIMENTS = {
     ClientUsersPageAccess: 'ClientUsersPageAccess',
     ClientTrackSending: 'ClientTrackSending',
     ClientMetricsSending: 'ClientMetricsSending',
-    WebLocalizationContribution: 'WebLocalizationContribution',
-    WebHomeSections: 'WebHomeSections',
     WebSubscriptionsPage: 'WebSubscriptionsPage',
 } as const
 

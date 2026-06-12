@@ -101,7 +101,24 @@ export async function writePatchedAsarAndPatchBundle(
         ok = false
     }
     if (!ok) {
-        if (fs.existsSync(backupPath)) fs.renameSync(backupPath, savePath)
+        if (fs.existsSync(backupPath)) await copyFile(backupPath, savePath)
+        return false
+    }
+    return true
+}
+
+export async function installPreparedAsarAndPatchBundle(savePath: string, preparedAsarPath: string, backupPath: string): Promise<boolean> {
+    await copyFile(preparedAsarPath, savePath)
+
+    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
+    let ok: boolean
+    try {
+        ok = await patcher.patch(() => {})
+    } catch {
+        ok = false
+    }
+    if (!ok) {
+        if (fs.existsSync(backupPath)) await copyFile(backupPath, savePath)
         return false
     }
     return true
