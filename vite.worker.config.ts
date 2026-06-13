@@ -15,7 +15,6 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
             outDir: path.resolve(__dirname, '.vite/worker'),
             ssr: entry,
             rolldownOptions: {
-                external: ['original-fs'],
                 output: {
                     format: 'cjs' as const,
                     entryFileNames: 'artifactWorker.cjs',
