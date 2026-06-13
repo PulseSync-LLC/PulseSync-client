@@ -1,67 +1,15 @@
-import isAppDev from '../../utils/isAppDev'
 import path from 'path'
-import fs from 'fs'
-import logger from '../logger'
 import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
+import logger from '../logger'
+import { loadPulseSyncNative } from './pulsesyncNative'
 
-declare const __non_vite_require__: (moduleId: string) => any
-
-interface FileOperationsAddon {
-    watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
-    readFile(target: string): Buffer
-    deleteFile(target: string): void
-    renameFile(oldPath: string, newPath: string): void
-    moveFile(src: string, dest: string): void
-    fileExists(target: string): boolean
+const nativeModule = loadPulseSyncNative()
+if (nativeModule) {
+    logger.nativeModuleManager.info(`Loaded pulsesyncNative v${nativeModule.nativeVersion()}`)
+} else {
+    logger.nativeModuleManager.error('pulsesyncNative addon was not found')
 }
-
-interface NativeModules {
-    fileOperations?: FileOperationsAddon
-    [addonName: string]: any
-}
-
-const loadNativeModules = (): NativeModules => {
-    const baseDir = isAppDev ? path.resolve(process.cwd(), 'nativeModules') : path.join(process.resourcesPath, 'modules')
-
-    const modules: NativeModules = {}
-
-    if (!fs.existsSync(baseDir)) {
-        return modules
-    }
-
-    const scanDir = (dir: string) => {
-        fs.readdirSync(dir, { withFileTypes: true }).forEach(entry => {
-            const fullPath = path.join(dir, entry.name)
-
-            if (entry.isDirectory()) {
-                scanDir(fullPath)
-            } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.node') {
-                const relative = path.relative(baseDir, fullPath)
-                const parts = relative.split(path.sep)
-                const addonName = parts[0]
-
-                logger.nativeModuleManager.info(`Native module found: ${relative}`)
-                try {
-                    modules[addonName] = __non_vite_require__(fullPath)
-                    logger.nativeModuleManager.info(`Loaded native module '${addonName}' from ${fullPath}`)
-                } catch (err) {
-                    logger.nativeModuleManager.error(`Failed to load native module '${addonName}': ${err}`)
-                }
-            }
-        })
-    }
-
-    try {
-        scanDir(baseDir)
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error scanning native modules directory: ${err}`)
-    }
-
-    return modules
-}
-
-const nativeModules = loadNativeModules()
 
 const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
 
@@ -69,24 +17,20 @@ const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
     if (!filename) return null
 
     const normalized = path.normalize(filename)
-    if (!handleSettingsFilenames.has(path.basename(normalized).toLowerCase())) {
-        return null
-    }
+    if (!handleSettingsFilenames.has(path.basename(normalized).toLowerCase())) return null
 
     const parts = normalized.split(/[\\/]+/).filter(Boolean)
     if (parts.length < 2) return null
-
     return parts[parts.length - 2] || null
 }
 
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.main.warn('fileOperations addon not loaded. startThemeWatcher will not watch files.')
+    if (!nativeModule) {
+        logger.main.warn('pulsesyncNative addon not loaded. startThemeWatcher will not watch files.')
         return
     }
     logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
-    addon.watch(themesPath, intervalMs, (eventType, filename) => {
+    nativeModule.watch(themesPath, intervalMs, (eventType, filename) => {
         const watchedAddonName = tryExtractAddonNameFromWatchPath(filename)
         if (watchedAddonName) {
             sendAddonSettings({ addonName: watchedAddonName, force: true })
@@ -120,13 +64,9 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
 }
 
 export const nativeReadFile = (filePath: string): Buffer | null => {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeReadFile will return null.')
-        return null
-    }
+    if (!nativeModule) return null
     try {
-        return addon.readFile(filePath)
+        return nativeModule.readFile(filePath)
     } catch (err) {
         logger.nativeModuleManager.error(`Error in nativeReadFile for '${filePath}': ${err}`)
         return null
@@ -134,13 +74,9 @@ export const nativeReadFile = (filePath: string): Buffer | null => {
 }
 
 export const nativeDeleteFile = (filePath: string): boolean => {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeDeleteFile will be a no-op.')
-        return false
-    }
+    if (!nativeModule) return false
     try {
-        addon.deleteFile(filePath)
+        nativeModule.deleteFile(filePath)
         return true
     } catch (err) {
         logger.nativeModuleManager.error(`Error in nativeDeleteFile for '${filePath}': ${err}`)
@@ -149,13 +85,9 @@ export const nativeDeleteFile = (filePath: string): boolean => {
 }
 
 export const nativeRenameFile = (oldPath: string, newPath: string): boolean => {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeRenameFile will be a no-op.')
-        return false
-    }
+    if (!nativeModule) return false
     try {
-        addon.renameFile(oldPath, newPath)
+        nativeModule.renameFile(oldPath, newPath)
         return true
     } catch (err) {
         logger.nativeModuleManager.error(`Error in nativeRenameFile from '${oldPath}' to '${newPath}': ${err}`)
@@ -163,33 +95,46 @@ export const nativeRenameFile = (oldPath: string, newPath: string): boolean => {
     }
 }
 
-export const nativeMoveFile = (src: string, dest: string): boolean => {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeMoveFile will be a no-op.')
-        return false
-    }
+export const nativeMoveFile = (source: string, destination: string): boolean => {
+    if (!nativeModule) return false
     try {
-        addon.moveFile(src, dest)
+        nativeModule.moveFile(source, destination)
         return true
     } catch (err) {
-        logger.nativeModuleManager.error(`Error in nativeMoveFile from '${src}' to '${dest}': ${err}`)
+        logger.nativeModuleManager.error(`Error in nativeMoveFile from '${source}' to '${destination}': ${err}`)
+        return false
+    }
+}
+
+export const nativeCopyFile = (source: string, destination: string): boolean => {
+    if (!nativeModule) return false
+    try {
+        nativeModule.copyFile(source, destination)
+        return true
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeCopyFile from '${source}' to '${destination}': ${err}`)
         return false
     }
 }
 
 export const nativeFileExists = (filePath: string): boolean => {
-    const addon = nativeModules['fileOperations'] as FileOperationsAddon | undefined
-    if (!addon) {
-        logger.nativeModuleManager.warn('fileOperations addon not loaded. nativeFileExists will return false.')
-        return false
-    }
+    if (!nativeModule) return false
     try {
-        return addon.fileExists(filePath)
+        return nativeModule.fileExists(filePath)
     } catch (err) {
         logger.nativeModuleManager.error(`Error in nativeFileExists for '${filePath}': ${err}`)
         return false
     }
 }
 
-export default nativeModules as NativeModules
+export const nativeCalculateAsarHeaderHash = (filePath: string): string => {
+    if (!nativeModule) throw new Error('pulsesyncNative addon is not available')
+    return nativeModule.calculateAsarHeaderHash(filePath)
+}
+
+export const nativePatchWindowsIntegrity = (exePath: string, asarPath: string): string => {
+    if (!nativeModule) throw new Error('pulsesyncNative addon is not available')
+    return nativeModule.patchWindowsIntegrity(exePath, asarPath)
+}
+
+export default { pulsesyncNative: nativeModule }

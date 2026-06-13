@@ -2,7 +2,6 @@ import { exec, execFile, spawn, execSync } from 'child_process'
 import { promisify } from 'util'
 import os from 'os'
 import path from 'path'
-import crypto from 'crypto'
 import fso, { promises as fsp } from 'original-fs'
 import { asarBackup, musicPath } from '../../../index'
 import { app, dialog, shell } from 'electron'
@@ -15,8 +14,7 @@ import { getState } from '../../modules/state'
 import { t } from '../../i18n'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
-import asar from '@electron/asar'
-import { nativeFileExists } from '../../modules/nativeModules'
+import { nativeCalculateAsarHeaderHash, nativeCopyFile, nativeFileExists, nativePatchWindowsIntegrity } from '../../modules/nativeModules'
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
 import { isLinuxAccessError } from './elevation'
@@ -167,6 +165,7 @@ export function getYandexMusicLogsPath(): string {
 }
 export async function copyFile(target: string, dest: string): Promise<void> {
     try {
+        if (nativeCopyFile(target, dest)) return
         await fsp.copyFile(target, dest)
     } catch (error: any) {
         if (isLinuxAccessError(error)) {
@@ -434,28 +433,9 @@ export const downloadYandexMusic = async (type?: string) => {
     }
 }
 
-export async function updateIntegrityHashInExe(exePath: string, newHash: string): Promise<void> {
+export async function updateIntegrityHashInExe(exePath: string, asarPath: string): Promise<void> {
     try {
-        const rawBuf = await fsp.readFile(exePath)
-        const buf = rawBuf as Buffer
-        const marker = Buffer.from('"file":"resources\\\\app.asar"', 'utf8')
-        const markerIdx = buf.indexOf(marker)
-        if (markerIdx < 0) throw new Error(t('main.appUtils.rcdataJsonNotFound'))
-        const startIdx = buf.lastIndexOf(Buffer.from('[', 'utf8'), markerIdx)
-        if (startIdx < 0) throw new Error(t('main.appUtils.jsonArrayStartNotFound'))
-        const endIdx = buf.indexOf(Buffer.from(']', 'utf8'), markerIdx + marker.length)
-        if (endIdx < 0) throw new Error(t('main.appUtils.jsonArrayEndNotFound'))
-        const jsonBuf = buf.subarray(startIdx, endIdx + 1)
-        const arr = JSON.parse(jsonBuf.toString('utf8')) as Array<{ file: string; alg: string; value: string }>
-        const entry = arr.find(e => e.file.replace(/\\\\/g, '\\').toLowerCase() === 'resources\\app.asar')
-        if (!entry) throw new Error(t('main.appUtils.resourcesAsarNotFound'))
-        entry.value = newHash
-        const newJson = JSON.stringify(arr)
-        if (Buffer.byteLength(newJson, 'utf8') !== jsonBuf.length) {
-            throw new Error(t('main.appUtils.jsonLengthMismatch'))
-        }
-        Buffer.from(newJson, 'utf8').copy(buf, startIdx)
-        await fsp.writeFile(exePath, buf)
+        nativePatchWindowsIntegrity(exePath, asarPath)
     } catch (err) {
         logger.main.error(t('main.appUtils.updateIntegrityError'), err)
         await downloadYandexMusic('reinstall')
@@ -484,8 +464,7 @@ export class AsarPatcher {
     }
 
     private calcAsarHeaderHash(archivePath: string): string {
-        const headerString = asar.getRawHeader(archivePath).headerString
-        return crypto.createHash('sha256').update(headerString).digest('hex')
+        return nativeCalculateAsarHeaderHash(archivePath)
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
@@ -500,8 +479,7 @@ export class AsarPatcher {
             try {
                 callback?.(0, t('main.appUtils.readingExe'))
                 const asarPathFull = path.join(localAppData, 'Programs', 'YandexMusic', 'resources', 'app.asar')
-                const newHash = this.calcAsarHeaderHash(asarPathFull)
-                await updateIntegrityHashInExe(exePath, newHash)
+                await updateIntegrityHashInExe(exePath, asarPathFull)
                 callback?.(1, t('main.appUtils.windowsPatchSuccess'))
                 return true
             } catch (err) {

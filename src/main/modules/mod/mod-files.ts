@@ -1,18 +1,10 @@
 import * as path from 'path'
 import * as fs from 'original-fs'
-import * as zlib from 'node:zlib'
-import { promisify } from 'util'
-import crypto from 'crypto'
-import os from 'os'
-import asar from '@electron/asar'
 import logger from '../logger'
 import { getState } from '../state'
 import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, resolveModAsarPath, updateIntegrityHashInExe } from '../../utils/appUtils'
-import { DownloadError } from './download.helpers'
 import { t } from '../../i18n'
 
-export const gunzipAsync = promisify(zlib.gunzip)
-export const zstdDecompressAsync = promisify((zlib as any).zstdDecompress || ((b: Buffer, cb: any) => cb(new Error('zstd not available'))))
 const State = getState()
 
 export type Paths = {
@@ -61,52 +53,6 @@ export async function ensureBackup(paths: Paths): Promise<void> {
     logger.modManager.info(`Backup created ${path.basename(source)} -> ${path.basename(paths.backupAsar)}`)
 }
 
-export async function writePatchedAsarAndPatchBundle(
-    savePath: string,
-    rawDownloaded: Buffer,
-    link: string,
-    backupPath: string,
-    expectedChecksum?: string,
-): Promise<boolean> {
-    let asarBuf: Buffer = rawDownloaded
-    const ext = path.extname(new URL(link).pathname).toLowerCase()
-    if (ext === '.gz') asarBuf = await gunzipAsync(rawDownloaded)
-    else if (ext === '.zst' || ext === '.zstd') asarBuf = (await zstdDecompressAsync(rawDownloaded as any)) as any
-    if (expectedChecksum) {
-        const checksumTarget = ext === '.gz' || ext === '.zst' || ext === '.zstd' ? rawDownloaded : asarBuf
-        const actualHash = crypto.createHash('sha256').update(checksumTarget).digest('hex')
-        if (actualHash !== expectedChecksum) {
-            console.error(`[CHECKSUM ERROR] Expected: ${expectedChecksum}, Got: ${actualHash}, Size: ${checksumTarget.length} bytes, URL: ${link}`)
-            throw new DownloadError(
-                `checksum mismatch (expected: ${expectedChecksum.substring(0, 8)}..., got: ${actualHash.substring(0, 8)}...)`,
-                'checksum_mismatch',
-            )
-        }
-    }
-    const tempAsarPath = path.join(os.tmpdir(), `pulsesync-${Date.now()}-${process.pid}.asar`)
-    await fs.promises.writeFile(tempAsarPath, asarBuf)
-    try {
-        await copyFile(tempAsarPath, savePath)
-    } finally {
-        try {
-            await fs.promises.unlink(tempAsarPath)
-        } catch {}
-    }
-
-    const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
-    let ok: boolean
-    try {
-        ok = await patcher.patch(() => {})
-    } catch {
-        ok = false
-    }
-    if (!ok) {
-        if (fs.existsSync(backupPath)) await copyFile(backupPath, savePath)
-        return false
-    }
-    return true
-}
-
 export async function installPreparedAsarAndPatchBundle(savePath: string, preparedAsarPath: string, backupPath: string): Promise<boolean> {
     await copyFile(preparedAsarPath, savePath)
 
@@ -127,9 +73,7 @@ export async function installPreparedAsarAndPatchBundle(savePath: string, prepar
 export async function restoreWindowsIntegrity(paths: Paths): Promise<void> {
     try {
         const exePath = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
-        const header = asar.getRawHeader(paths.modAsar)
-        const newHash = crypto.createHash('sha256').update(header.headerString).digest('hex')
-        await updateIntegrityHashInExe(exePath, newHash)
+        await updateIntegrityHashInExe(exePath, paths.modAsar)
         logger.modManager.info('Windows Integrity hash restored.')
     } catch (err) {
         logger.modManager.error('Error restoring Integrity hash in exe:', err)

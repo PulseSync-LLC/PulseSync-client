@@ -1,16 +1,18 @@
 import { BrowserWindow } from 'electron'
 import * as fs from 'original-fs'
+import os from 'node:os'
 import * as path from 'path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { t } from '../../i18n'
 import { isLinuxAccessError } from '../../utils/appUtils/elevation'
 import logger from '../logger'
 import { sendToRenderer } from './download.helpers'
 import { closeMusicIfRunning, persistInstalledModState, readChecksum, sendSuccessAfterLaunch } from './mod-manager.helpers'
-import { ensureBackup, ensureLinuxModPath, resolveBasePaths, writePatchedAsarAndPatchBundle } from './mod-files'
+import { ensureBackup, ensureLinuxModPath, installPreparedAsarAndPatchBundle, resolveBasePaths } from './mod-files'
 import { resolveInstallModMatch } from './network/modCatalog'
 import { getState } from '../state'
+import { prepareAsarArtifactInWorker } from './network/artifactWorkerClient'
 
 const ACTION_PATCH = 'PATCH'
 const PATCH_TYPE_FROM_MOD = 'FROM_MOD'
@@ -177,7 +179,7 @@ export const installModUpdateFromAsar = async (
     let wasClosed = false
 
     try {
-        const { incomingAsar, incomingChecksum, matchedMod } = await resolveInstallModMatch(asarPath)
+        const { incomingChecksum, matchedMod } = await resolveInstallModMatch(asarPath)
 
         if (!matchedMod) {
             const error = t('main.modManager.modVersionNotFoundByChecksum')
@@ -189,8 +191,19 @@ export const installModUpdateFromAsar = async (
         wasClosed = await closeMusicIfRunning(window)
         await ensureBackup(paths)
 
-        const sourceUrl = pathToFileURL(asarPath).toString()
-        const patched = await writePatchedAsarAndPatchBundle(paths.modAsar, incomingAsar, sourceUrl, paths.backupAsar)
+        const preparedAsarPath = path.join(os.tmpdir(), `pulsesync-local-${process.pid}-${Date.now()}.asar`)
+        let patched = false
+        try {
+            const prepared = await prepareAsarArtifactInWorker({
+                archivePath: asarPath,
+                archiveExtension: '.asar',
+                expectedChecksum: incomingChecksum,
+                outputPath: preparedAsarPath,
+            })
+            patched = await installPreparedAsarAndPatchBundle(paths.modAsar, prepared.preparedPath, paths.backupAsar)
+        } finally {
+            await fs.promises.rm(preparedAsarPath, { force: true }).catch(() => {})
+        }
 
         if (!patched) {
             const error = t('main.modNetwork.patchError')

@@ -1,11 +1,9 @@
-import * as fs from 'original-fs'
-import crypto from 'crypto'
 import { fetchBackendModReleases, type ModReleaseEntry } from './releaseCatalog'
+import { hashArtifactInWorker } from './artifactWorkerClient'
 
 export type RemoteModInfo = Pick<ModReleaseEntry, 'modVersion' | 'musicVersion' | 'realMusicVersion' | 'name' | 'checksum' | 'checksum_v2'>
 
 export type ResolvedInstallModMatch = {
-    incomingAsar: Buffer
     incomingChecksum: string
     matchedMod: RemoteModInfo | null
 }
@@ -34,8 +32,7 @@ const findRemoteModByChecksum = async (checksum: string): Promise<RemoteModInfo 
 }
 
 export const resolveInstallModMatch = async (asarPath: string): Promise<ResolvedInstallModMatch> => {
-    const incomingAsar = await fs.promises.readFile(asarPath)
-    const incomingChecksum = crypto.createHash('sha256').update(incomingAsar).digest('hex')
+    const { checksum: incomingChecksum } = await hashArtifactInWorker({ filePath: asarPath })
     const matchedMod = await findRemoteModByChecksum(incomingChecksum)
-    return { incomingAsar, incomingChecksum, matchedMod }
+    return { incomingChecksum, matchedMod }
 }
