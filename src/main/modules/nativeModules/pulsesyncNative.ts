@@ -67,6 +67,7 @@ export interface PulseSyncNativeAddon {
     installUnpackedArtifact(request: NativeInstallUnpackedArtifactRequest): NativeArtifactResult
     calculateAsarHeaderHash(target: string): string
     patchWindowsIntegrity(exePath: string, asarPath: string): string
+    patchMacIntegrity(appBundlePath: string, asarPath: string, entitlementsPath: string): string
 }
 
 let cachedAddon: PulseSyncNativeAddon | null | undefined

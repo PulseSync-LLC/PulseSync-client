@@ -1,10 +1,12 @@
 use memmap2::MmapOptions;
 use napi::{Error, Result};
 use napi_derive::napi;
+use plist::Value;
 use sha2::{Digest, Sha256};
-use std::fs::{File, OpenOptions};
+use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+use std::process::Command;
 
 const MAX_ASAR_HEADER_SIZE: usize = 128 * 1024 * 1024;
 const INTEGRITY_MARKER: &[u8] = br#""file":"resources\\app.asar""#;
@@ -133,5 +135,127 @@ pub fn patch_windows_integrity(exe_path: String, asar_path: String) -> Result<St
                 "Failed to flush executable integrity patch: {error}"
             ))
         })?;
+    Ok(hash)
+}
+
+fn update_mac_info_plist(
+    info_plist_path: &Path,
+    asar_path: &Path,
+) -> std::result::Result<String, String> {
+    let hash = calculate_header_hash(asar_path)?;
+    let mut plist = Value::from_file(info_plist_path).map_err(|error| {
+        format!(
+            "Failed to read Info.plist '{}': {error}",
+            info_plist_path.display()
+        )
+    })?;
+    let root = plist
+        .as_dictionary_mut()
+        .ok_or_else(|| "Info.plist root is not a dictionary".to_owned())?;
+    let integrity = root
+        .get_mut("ElectronAsarIntegrity")
+        .and_then(Value::as_dictionary_mut)
+        .ok_or_else(|| "ElectronAsarIntegrity is missing from Info.plist".to_owned())?;
+    let app_asar = integrity
+        .get_mut("Resources/app.asar")
+        .and_then(Value::as_dictionary_mut)
+        .ok_or_else(|| {
+            "Resources/app.asar integrity entry is missing from Info.plist".to_owned()
+        })?;
+
+    app_asar.insert("hash".to_owned(), Value::String(hash.clone()));
+    let output = File::create(info_plist_path).map_err(|error| {
+        format!(
+            "Failed to open Info.plist '{}' for writing: {error}",
+            info_plist_path.display()
+        )
+    })?;
+    plist
+        .to_writer_xml(output)
+        .map_err(|error| format!("Failed to write Info.plist: {error}"))?;
+    Ok(hash)
+}
+
+fn command_output(command: &mut Command, action: &str) -> std::result::Result<Vec<u8>, String> {
+    let output = command
+        .output()
+        .map_err(|error| format!("Failed to run {action}: {error}"))?;
+    if output.status.success() {
+        return Ok(output.stdout);
+    }
+
+    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_owned();
+    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_owned();
+    let detail = if !stderr.is_empty() {
+        stderr
+    } else if !stdout.is_empty() {
+        stdout
+    } else {
+        format!("exit status {}", output.status)
+    };
+    Err(format!("Failed to {action}: {detail}"))
+}
+
+fn dump_mac_entitlements(
+    app_bundle_path: &Path,
+    entitlements_path: &Path,
+) -> std::result::Result<(), String> {
+    let mut command = Command::new("codesign");
+    command
+        .arg("-d")
+        .arg("--entitlements")
+        .arg(":-")
+        .arg(app_bundle_path);
+    let entitlements = command_output(&mut command, "dump macOS code signing entitlements")?;
+    if entitlements.is_empty() {
+        return Err("codesign returned empty entitlements".to_owned());
+    }
+    if let Some(parent) = entitlements_path.parent() {
+        fs::create_dir_all(parent).map_err(|error| {
+            format!(
+                "Failed to create entitlements directory '{}': {error}",
+                parent.display()
+            )
+        })?;
+    }
+    fs::write(entitlements_path, entitlements).map_err(|error| {
+        format!(
+            "Failed to write entitlements '{}': {error}",
+            entitlements_path.display()
+        )
+    })
+}
+
+fn sign_mac_app(
+    app_bundle_path: &Path,
+    entitlements_path: &Path,
+) -> std::result::Result<(), String> {
+    let mut command = Command::new("codesign");
+    command
+        .arg("--force")
+        .arg("--entitlements")
+        .arg(entitlements_path)
+        .arg("--sign")
+        .arg("-")
+        .arg(app_bundle_path);
+    command_output(&mut command, "re-sign macOS application").map(|_| ())
+}
+
+#[napi]
+pub fn patch_mac_integrity(
+    app_bundle_path: String,
+    asar_path: String,
+    entitlements_path: String,
+) -> Result<String> {
+    let app_bundle_path = Path::new(&app_bundle_path);
+    let asar_path = Path::new(&asar_path);
+    let entitlements_path = Path::new(&entitlements_path);
+    let info_plist_path = app_bundle_path.join("Contents").join("Info.plist");
+
+    let hash = update_mac_info_plist(&info_plist_path, asar_path).map_err(Error::from_reason)?;
+    let result = dump_mac_entitlements(app_bundle_path, entitlements_path)
+        .and_then(|_| sign_mac_app(app_bundle_path, entitlements_path));
+    let _ = fs::remove_file(entitlements_path);
+    result.map_err(Error::from_reason)?;
     Ok(hash)
 }
