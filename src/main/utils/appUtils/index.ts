@@ -7,14 +7,13 @@ import { asarBackup, musicPath } from '../../../index'
 import { app, dialog, shell } from 'electron'
 import RendererEvents from '../../../common/types/rendererEvents'
 import axios from 'axios'
-import * as plist from 'plist'
 import { mainWindow } from '../../modules/createWindow'
 import logger from '../../modules/logger'
 import { getState } from '../../modules/state'
 import { t } from '../../i18n'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
-import { nativeCalculateAsarHeaderHash, nativeCopyFile, nativeFileExists, nativePatchWindowsIntegrity } from '../../modules/nativeModules'
+import { nativeCopyFile, nativeFileExists, nativePatchMacIntegrity, nativePatchWindowsIntegrity } from '../../modules/nativeModules'
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
 import { isLinuxAccessError } from './elevation'
@@ -446,7 +445,6 @@ export async function updateIntegrityHashInExe(exePath: string, asarPath: string
 export class AsarPatcher {
     private readonly appBundlePath: string
     private readonly resourcesDir: string
-    private readonly infoPlistPath: string
     private readonly asarRelPath = 'app.asar'
     private readonly asarPath: string
     private readonly tmpEntitlements: string
@@ -454,17 +452,12 @@ export class AsarPatcher {
     constructor(appBundlePath: string) {
         this.appBundlePath = appBundlePath
         this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources')
-        this.infoPlistPath = path.join(appBundlePath, 'Contents', 'Info.plist')
         this.asarPath = path.join(this.resourcesDir, this.asarRelPath)
         this.tmpEntitlements = path.join(os.tmpdir(), 'extracted_entitlements.xml')
     }
 
     private get isMacPlatform(): boolean {
         return os.platform() === 'darwin'
-    }
-
-    private calcAsarHeaderHash(archivePath: string): string {
-        return nativeCalculateAsarHeaderHash(archivePath)
     }
 
     public async patch(callback?: PatchCallback): Promise<boolean> {
@@ -523,23 +516,8 @@ export class AsarPatcher {
         }
 
         try {
-            const raw = await fsp.readFile(this.infoPlistPath, 'utf8')
-            const data = plist.parse(raw) as any
-
-            if (data.ElectronAsarIntegrity && data.ElectronAsarIntegrity['Resources/app.asar']) {
-                callback?.(0.2, t('main.appUtils.updatingInfoPlistHash'))
-                data.ElectronAsarIntegrity['Resources/app.asar'].hash = this.calcAsarHeaderHash(this.asarPath)
-                await fsp.writeFile(this.infoPlistPath, plist.build(data), 'utf8')
-                callback?.(0.5, t('main.appUtils.hashUpdated'))
-            }
-
-            callback?.(0.6, t('main.appUtils.dumpingEntitlements'))
-            execSync(`codesign -d --entitlements :- '${this.appBundlePath}' > '${this.tmpEntitlements}'`, { stdio: 'ignore' })
-
-            callback?.(0.7, t('main.appUtils.reSigningApp'))
-            execSync(`codesign --force --entitlements '${this.tmpEntitlements}' --sign - '${this.appBundlePath}'`, { stdio: 'ignore' })
-            await fsp.unlink(this.tmpEntitlements)
-
+            callback?.(0.2, t('main.appUtils.updatingInfoPlistHash'))
+            nativePatchMacIntegrity(this.appBundlePath, this.asarPath, this.tmpEntitlements)
             callback?.(1, t('main.appUtils.macPatchSuccess'))
             return true
         } catch (err) {

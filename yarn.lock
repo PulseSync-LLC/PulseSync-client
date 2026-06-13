@@ -3107,11 +3107,6 @@
   resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.8.11.tgz#b79de2d67389734c57c52595f7a7305e30c2d608"
   integrity sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==
 
-"@xmldom/xmldom@^0.9.10":
-  version "0.9.10"
-  resolved "https://registry.yarnpkg.com/@xmldom/xmldom/-/xmldom-0.9.10.tgz#a0ad5a26fe8aa996310870726e1704977f769dee"
-  integrity sha512-A9gOqLdi6cV4ibazAjcQufGj0B1y/vDqYrcuP6d/6x8P27gRS8643Dj9o1dEKtB6O7fwxb2FgBmJS2mX7gpvdw==
-
 "@xtuc/ieee754@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@xtuc/ieee754/-/ieee754-1.2.0.tgz#eef014a3145ae477a1cbc00cd1e552336dceb790"
@@ -8122,14 +8117,6 @@ plist@3.1.0, plist@^3.0.0, plist@^3.0.5, plist@^3.1.0:
   dependencies:
     "@xmldom/xmldom" "^0.8.8"
     base64-js "^1.5.1"
-    xmlbuilder "^15.1.1"
-
-plist@^5.0.0:
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/plist/-/plist-5.0.0.tgz#a0a0db9d31667d43e11a4b8e3795af4d76bc0804"
-  integrity sha512-20N+g1DvMm/DFRbsvER7tT4wDryq0WunK7VMkDaiJcKNapAnUMkTsAnacFYf8n420F4Hf6/hefgmJRkMb1M0fg==
-  dependencies:
-    "@xmldom/xmldom" "^0.9.10"
     xmlbuilder "^15.1.1"
 
 possible-typed-array-names@^1.0.0:

@@ -107,7 +107,6 @@
         "log4js": "^6.9.1",
         "net": "^1.0.2",
         "path-browserify": "^1.0.1",
-        "plist": "^5.0.0",
         "react": "^19.2.7",
         "react-chartjs-2": "^5.3.1",
         "react-dom": "^19.2.7",

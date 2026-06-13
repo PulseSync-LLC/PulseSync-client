@@ -137,4 +137,9 @@ export const nativePatchWindowsIntegrity = (exePath: string, asarPath: string): 
     return nativeModule.patchWindowsIntegrity(exePath, asarPath)
 }
 
+export const nativePatchMacIntegrity = (appBundlePath: string, asarPath: string, entitlementsPath: string): string => {
+    if (!nativeModule) throw new Error('pulsesyncNative addon is not available')
+    return nativeModule.patchMacIntegrity(appBundlePath, asarPath, entitlementsPath)
+}
+
 export default { pulsesyncNative: nativeModule }
