@@ -50,7 +50,10 @@ pub fn watch(
     interval_ms: u32,
     callback: Function<'_, FnArgs<(String, String)>, ()>,
 ) -> Result<()> {
-    let callback = callback.build_threadsafe_function().build()?;
+    let callback = callback
+        .build_threadsafe_function()
+        .weak::<true>()
+        .build()?;
     let root = PathBuf::from(path);
     let interval = Duration::from_millis(u64::from(interval_ms.max(50)));
 
