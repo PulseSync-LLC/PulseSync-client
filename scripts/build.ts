@@ -383,6 +383,9 @@ async function main(): Promise<void> {
                 if (!fs.existsSync(modulePath) || !fs.statSync(modulePath).isDirectory()) {
                     continue
                 }
+                if (!fs.existsSync(path.join(modulePath, 'package.json'))) {
+                    continue
+                }
 
                 const releasePath = path.join(modulePath, 'build', 'Release')
                 if (!fs.existsSync(releasePath) || !fs.statSync(releasePath).isDirectory()) {

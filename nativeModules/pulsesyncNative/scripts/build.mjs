@@ -15,7 +15,6 @@ if (process.argv.includes('--clean')) {
 const cargo = spawnSync('cargo', ['build', '--release', '--locked'], {
     cwd: moduleRoot,
     stdio: 'inherit',
-    shell: process.platform === 'win32',
 })
 
 if (cargo.status !== 0) {
