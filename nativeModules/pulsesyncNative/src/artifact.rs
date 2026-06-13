@@ -110,9 +110,46 @@ impl ArtifactError {
     fn from_io(stage: &'static str, error: io::Error) -> Self {
         Self {
             stage,
-            code: error.raw_os_error().map(|code| code.to_string()),
+            code: Some(io_error_code(&error)),
             message: error.to_string(),
         }
+    }
+}
+
+fn io_error_code(error: &io::Error) -> String {
+    match error.kind() {
+        io::ErrorKind::NotFound => "ENOENT".to_owned(),
+        io::ErrorKind::PermissionDenied => "EACCES".to_owned(),
+        io::ErrorKind::AlreadyExists => "EEXIST".to_owned(),
+        _ => platform_io_error_code(error.raw_os_error()),
+    }
+}
+
+#[cfg(windows)]
+fn platform_io_error_code(raw_code: Option<i32>) -> String {
+    match raw_code {
+        Some(2 | 3) => "ENOENT".to_owned(),
+        Some(5) => "EACCES".to_owned(),
+        Some(17) => "EXDEV".to_owned(),
+        Some(32 | 33) => "EBUSY".to_owned(),
+        Some(80 | 183) => "EEXIST".to_owned(),
+        Some(code) => format!("WIN32_{code}"),
+        None => "EIO".to_owned(),
+    }
+}
+
+#[cfg(not(windows))]
+fn platform_io_error_code(raw_code: Option<i32>) -> String {
+    match raw_code {
+        Some(1) => "EPERM".to_owned(),
+        Some(2) => "ENOENT".to_owned(),
+        Some(13) => "EACCES".to_owned(),
+        Some(16) => "EBUSY".to_owned(),
+        Some(17) => "EEXIST".to_owned(),
+        Some(18) => "EXDEV".to_owned(),
+        Some(39 | 66) => "ENOTEMPTY".to_owned(),
+        Some(code) => format!("ERRNO_{code}"),
+        None => "EIO".to_owned(),
     }
 }
 
@@ -241,13 +278,19 @@ fn stream_archive_to_file(
         let mut decoder = GzDecoder::new(hashing_reader);
         io::copy(&mut decoder, &mut output)
             .map_err(|error| ArtifactError::from_io("decompress", error))?;
-        decoder.into_inner().finish()
+        let mut reader = decoder.into_inner();
+        io::copy(&mut reader, &mut io::sink())
+            .map_err(|error| ArtifactError::from_io("read", error))?;
+        reader.finish()
     } else if extension == ".zst" || extension == ".zstd" {
         let mut decoder = zstd::stream::read::Decoder::new(hashing_reader)
             .map_err(|error| ArtifactError::from_io("decompress", error))?;
         io::copy(&mut decoder, &mut output)
             .map_err(|error| ArtifactError::from_io("decompress", error))?;
-        decoder.finish().into_inner().finish()
+        let mut reader = decoder.finish().into_inner();
+        io::copy(&mut reader, &mut io::sink())
+            .map_err(|error| ArtifactError::from_io("read", error))?;
+        reader.finish()
     } else {
         let mut reader = hashing_reader;
         io::copy(&mut reader, &mut output)
@@ -391,13 +434,17 @@ fn run_unpacked_install(
         let temporary_zip = unique_sibling(&staging_path, "archive.zip");
         let zip_path = if extension == ".gz" || extension == ".zst" || extension == ".zstd" {
             let started_at = Instant::now();
-            stream_archive_to_file(
+            let prepare_result = stream_archive_to_file(
                 &archive_path,
                 &extension,
                 &temporary_zip,
                 request.expected_checksum.as_deref(),
-            )?;
+            );
             durations.decompress_ms = elapsed_ms(started_at);
+            if let Err(error) = prepare_result {
+                let _ = fs::remove_file(&temporary_zip);
+                return Err(error);
+            }
             temporary_zip.clone()
         } else {
             if let Some(expected) = request.expected_checksum.as_deref() {
@@ -460,7 +507,7 @@ fn run_unpacked_install(
     if let Err(error) = transaction.commit() {
         warnings.push(NativeArtifactWarning {
             stage: "cleanup".to_owned(),
-            code: error.raw_os_error().map(|code| code.to_string()),
+            code: Some(io_error_code(&error)),
             message: error.to_string(),
         });
     }
@@ -468,7 +515,7 @@ fn run_unpacked_install(
         if let Err(error) = delete_path(&staging_path) {
             warnings.push(NativeArtifactWarning {
                 stage: "cleanup".to_owned(),
-                code: error.raw_os_error().map(|code| code.to_string()),
+                code: Some(io_error_code(&error)),
                 message: error.to_string(),
             });
         }

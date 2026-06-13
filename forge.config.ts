@@ -39,6 +39,7 @@ const copyNativeModules = (resourcesPath: string): void => {
     for (const addonName of fs.readdirSync(nativeModulesRoot)) {
         const addonPath = path.join(nativeModulesRoot, addonName)
         if (!fs.statSync(addonPath).isDirectory()) continue
+        if (!fs.existsSync(path.join(addonPath, 'package.json'))) continue
 
         const nodeFiles = collectNativeNodeFiles(addonPath)
         if (nodeFiles.length === 0) continue
