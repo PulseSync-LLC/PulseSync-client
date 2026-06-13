@@ -1,11 +1,15 @@
 use memmap2::MmapOptions;
 use napi::{Error, Result};
 use napi_derive::napi;
+#[cfg(target_os = "macos")]
 use plist::Value;
 use sha2::{Digest, Sha256};
-use std::fs::{self, File, OpenOptions};
+#[cfg(target_os = "macos")]
+use std::fs;
+use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
+#[cfg(target_os = "macos")]
 use std::process::Command;
 
 const MAX_ASAR_HEADER_SIZE: usize = 128 * 1024 * 1024;
@@ -138,6 +142,7 @@ pub fn patch_windows_integrity(exe_path: String, asar_path: String) -> Result<St
     Ok(hash)
 }
 
+#[cfg(target_os = "macos")]
 fn update_mac_info_plist(
     info_plist_path: &Path,
     asar_path: &Path,
@@ -176,6 +181,7 @@ fn update_mac_info_plist(
     Ok(hash)
 }
 
+#[cfg(target_os = "macos")]
 fn command_output(command: &mut Command, action: &str) -> std::result::Result<Vec<u8>, String> {
     let output = command
         .output()
@@ -196,6 +202,7 @@ fn command_output(command: &mut Command, action: &str) -> std::result::Result<Ve
     Err(format!("Failed to {action}: {detail}"))
 }
 
+#[cfg(target_os = "macos")]
 fn dump_mac_entitlements(
     app_bundle_path: &Path,
     entitlements_path: &Path,
@@ -226,6 +233,7 @@ fn dump_mac_entitlements(
     })
 }
 
+#[cfg(target_os = "macos")]
 fn sign_mac_app(
     app_bundle_path: &Path,
     entitlements_path: &Path,
@@ -242,6 +250,7 @@ fn sign_mac_app(
 }
 
 #[napi]
+#[cfg(target_os = "macos")]
 pub fn patch_mac_integrity(
     app_bundle_path: String,
     asar_path: String,
@@ -258,4 +267,16 @@ pub fn patch_mac_integrity(
     let _ = fs::remove_file(entitlements_path);
     result.map_err(Error::from_reason)?;
     Ok(hash)
+}
+
+#[napi]
+#[cfg(not(target_os = "macos"))]
+pub fn patch_mac_integrity(
+    _app_bundle_path: String,
+    _asar_path: String,
+    _entitlements_path: String,
+) -> Result<String> {
+    Err(Error::from_reason(
+        "macOS integrity patching is only available on macOS",
+    ))
 }
