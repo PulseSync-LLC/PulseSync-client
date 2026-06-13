@@ -4,7 +4,7 @@ export const branch = "beta"
 
 const PORT = '2007'
 const MAIN_PORT = 2007
-const AUTONOMOUS_MUSIC_VERSION = '5.90.0'
+const AUTONOMOUS_MUSIC_VERSION = '5.105.3'
 
 const config = {
     PORT,

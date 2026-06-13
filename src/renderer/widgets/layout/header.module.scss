@@ -641,7 +641,6 @@
                             background-color: red;
                         }
                     }
-
                 }
             }
         }
@@ -756,4 +755,24 @@
 
 .devOverridesBadge {
     background: #4c79ff;
+}
+
+.giveawaysBadge {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #ff5b6e;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 0 0 2px #16181f;
+    pointer-events: none;
 }
