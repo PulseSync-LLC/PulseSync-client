@@ -6,6 +6,7 @@ import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import { useNotifications } from '@app/providers/notifications'
+import { useModalContext } from '@app/providers/modal'
 import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
 import Loader from '@shared/ui/PSUI/Loader'
@@ -56,6 +57,7 @@ const NotificationsBell: React.FC = () => {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const notificationsContext = useNotifications()
+    const { Modals, openModal } = useModalContext()
     const [isOpen, setOpen] = useState(false)
     const rootRef = useRef<HTMLDivElement>(null)
     const notificationItems = notificationsContext.notifications
@@ -128,22 +130,30 @@ const NotificationsBell: React.FC = () => {
         return read ? styles.notificationItemWarning : styles.notificationItemUnreadWarning
     }, [])
 
-    const openNotificationTarget = useCallback((notification: NotificationItem) => {
-        const internalPath = getInternalNotificationPath(notification.link)
-        if (internalPath) {
-            void navigate(internalPath)
-            return
-        }
+    const openNotificationTarget = useCallback(
+        (notification: NotificationItem) => {
+            if (notification.type === 'subscription.giveaway.started') {
+                openModal(Modals.SUBSCRIPTION_GIVEAWAYS)
+                return
+            }
 
-        const rawLink = notification.link?.trim()
-        const externalUrl = !rawLink
-            ? `${config.WEBSITE_URL}/contribute/localization`
-            : /^https?:\/\//i.test(rawLink)
-              ? rawLink
-              : `${config.WEBSITE_URL}${rawLink.startsWith('/') ? rawLink : `/${rawLink}`}`
+            const internalPath = getInternalNotificationPath(notification.link)
+            if (internalPath) {
+                void navigate(internalPath)
+                return
+            }
 
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, externalUrl)
-    }, [navigate])
+            const rawLink = notification.link?.trim()
+            const externalUrl = !rawLink
+                ? `${config.WEBSITE_URL}/contribute/localization`
+                : /^https?:\/\//i.test(rawLink)
+                  ? rawLink
+                  : `${config.WEBSITE_URL}${rawLink.startsWith('/') ? rawLink : `/${rawLink}`}`
+
+            window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, externalUrl)
+        },
+        [Modals.SUBSCRIPTION_GIVEAWAYS, navigate, openModal],
+    )
 
     const handleNotificationClick = useCallback(
         async (notification: NotificationItem) => {

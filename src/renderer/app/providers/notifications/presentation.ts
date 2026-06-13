@@ -102,8 +102,24 @@ export function getNotificationPresentation(notification: NotificationItem): Not
             }
         }
 
+        case 'subscription.giveaway.started': {
+            const giveawayTitle = String(notification.payload?.['giveawayTitle'] || t('header.notifications.items.giveawayFallbackTitle'))
+            return {
+                tone: 'success',
+                title: t('header.notifications.items.giveawayStartedTitle'),
+                body: t('header.notifications.items.giveawayStartedBody', {
+                    giveaway: giveawayTitle,
+                    date: formatPayloadDate(notification.payload?.['endsAt']),
+                }),
+            }
+        }
+
         case 'subscription.purchase.succeeded': {
-            const planName = String(notification.payload?.['planName'] || notification.payload?.['subscriptionName'] || t('header.notifications.items.subscriptionFallbackPlan'))
+            const planName = String(
+                notification.payload?.['planName'] ||
+                    notification.payload?.['subscriptionName'] ||
+                    t('header.notifications.items.subscriptionFallbackPlan'),
+            )
             return {
                 tone: 'success',
                 title: t('header.notifications.items.subscriptionPurchaseSucceededTitle'),
@@ -115,7 +131,11 @@ export function getNotificationPresentation(notification: NotificationItem): Not
         }
 
         case 'subscription.expiring.soon': {
-            const planName = String(notification.payload?.['subscriptionName'] || notification.payload?.['planName'] || t('header.notifications.items.subscriptionFallbackPlan'))
+            const planName = String(
+                notification.payload?.['subscriptionName'] ||
+                    notification.payload?.['planName'] ||
+                    t('header.notifications.items.subscriptionFallbackPlan'),
+            )
             return {
                 tone: 'warning',
                 title: t('header.notifications.items.subscriptionExpiringSoonTitle'),

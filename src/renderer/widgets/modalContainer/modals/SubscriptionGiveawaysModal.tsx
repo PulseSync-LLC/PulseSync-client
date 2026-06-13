@@ -8,26 +8,14 @@ import remarkGfm from 'remark-gfm'
 import { useTranslation } from 'react-i18next'
 import { useModalContext } from '@app/providers/modal'
 import rendererHttpClient from '@shared/api/http/client'
+import {
+    invalidateSubscriptionGiveawaysSnapshot,
+    loadSubscriptionGiveawaysSnapshot,
+    type SubscriptionGiveaway,
+} from '@shared/api/subscriptionGiveaways'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
 import * as styles from '@widgets/modalContainer/modals/SubscriptionGiveawaysModal.module.scss'
-
-type SubscriptionGiveaway = {
-    uuid: string
-    title: string
-    description?: string | null
-    planCode: string
-    durationMonths?: number | null
-    winnersCount: number
-    status: string
-    startsAt: string
-    endsAt: string
-}
-
-type SubscriptionGiveawaysResponse = {
-    ok?: boolean
-    giveaways?: SubscriptionGiveaway[]
-}
 
 type SubscriptionGiveawayEntryResponse = {
     ok?: boolean
@@ -137,12 +125,9 @@ const SubscriptionGiveawaysModal: React.FC = () => {
         setError(null)
 
         try {
-            const response = await rendererHttpClient.get<SubscriptionGiveawaysResponse>('/subscription/giveaways')
-            if (!response.ok || !response.data?.ok || !Array.isArray(response.data.giveaways)) {
-                throw new Error('Failed to load subscription giveaways')
-            }
-
-            setGiveaways(response.data.giveaways)
+            const snapshot = await loadSubscriptionGiveawaysSnapshot({ force: true })
+            setGiveaways(snapshot.giveaways)
+            setEnteredIds(new Set(snapshot.enteredIds))
         } catch (loadError) {
             console.error('Failed to load subscription giveaways:', loadError)
             setError(t('header.giveaways.loadError'))
@@ -217,7 +202,13 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                     hasEntered,
                     remainingLabel: formatRemaining(endsAtTime),
                     endsAtLabel: formatDate(giveaway.endsAt),
-                    actionLabel: hasEntered ? t('header.giveaways.entered') : hasEnded ? t('header.giveaways.ended') : !hasStarted ? t('header.giveaways.notStarted') : t('header.giveaways.join'),
+                    actionLabel: hasEntered
+                        ? t('header.giveaways.entered')
+                        : hasEnded
+                          ? t('header.giveaways.ended')
+                          : !hasStarted
+                            ? t('header.giveaways.notStarted')
+                            : t('header.giveaways.join'),
                 }
             })
             .sort((a, b) => a.endsAtTime - b.endsAtTime)
@@ -240,6 +231,7 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                     throw new Error('Failed to enter subscription giveaway')
                 }
 
+                invalidateSubscriptionGiveawaysSnapshot()
                 setEnteredIds(current => new Set(current).add(giveaway.uuid))
                 toast.custom('success', t('header.giveaways.enteredTitle'), t('header.giveaways.enteredText', { title: giveaway.title }))
             } catch (enterError) {
@@ -306,13 +298,16 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                                     </div>
                                     <div className={styles.cardActions}>
                                         {item.isEnterable || isJoining ? (
-                                            <button type="button" className={styles.action} disabled={isJoining} onClick={() => void handleEnter(item)}>
+                                            <button
+                                                type="button"
+                                                className={styles.action}
+                                                disabled={isJoining}
+                                                onClick={() => void handleEnter(item)}
+                                            >
                                                 {isJoining ? t('header.giveaways.joining') : item.actionLabel}
                                             </button>
                                         ) : (
-                                            <span className={item.hasEntered ? styles.actionEntered : styles.actionMuted}>
-                                                {item.actionLabel}
-                                            </span>
+                                            <span className={item.hasEntered ? styles.actionEntered : styles.actionMuted}>{item.actionLabel}</span>
                                         )}
                                     </div>
                                 </div>
@@ -337,7 +332,13 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                     </div>
 
                     <div className={styles.headerActions}>
-                        <button type="button" className={cn(styles.refreshButton, { [styles.refreshButtonLoading]: isLoading })} disabled={isLoading} onClick={() => void loadGiveaways()} aria-label={t('header.giveaways.refresh')}>
+                        <button
+                            type="button"
+                            className={cn(styles.refreshButton, { [styles.refreshButtonLoading]: isLoading })}
+                            disabled={isLoading}
+                            onClick={() => void loadGiveaways()}
+                            aria-label={t('header.giveaways.refresh')}
+                        >
                             <MdRefresh size={16} />
                         </button>
                         <button type="button" className={styles.closeButton} onClick={close} aria-label={t('common.ok')}>

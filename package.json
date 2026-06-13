@@ -28,7 +28,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1067.0",
+        "@aws-sdk/client-s3": "^3.1068.0",
         "@babel/core": "7.29.7",
         "@electron-forge/cli": "^7.11.2",
         "@electron-forge/maker-deb": "^7.11.2",
@@ -65,7 +65,7 @@
         "babel-plugin-react-compiler": "^1.0.0",
         "electron": "42.4.0",
         "electron-builder": "^26.15.3",
-        "eslint": "^10.4.1",
+        "eslint": "^10.5.0",
         "eslint-plugin-import": "^2.32.0",
         "iconv-lite": "^0.7.2",
         "prettier": "^3.8.4",

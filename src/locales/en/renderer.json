@@ -561,6 +561,8 @@
                 "localizationApprovedBody": "Your changes passed review and are already published.",
                 "localizationRejectedTitle": "Localization suggestion rejected",
                 "localizationRejectedBody": "Open the notification to review the feedback.",
+                "giveawayStartedTitle": "A new giveaway has started",
+                "giveawayStartedBody": "The \"{{giveaway}}\" giveaway is live. You can enter until {{date}}.",
                 "giveawayWonTitle": "You won a giveaway",
                 "giveawayWonBody": "You won \"{{prize}}\" in \"{{giveaway}}\".",
                 "giveawayWonPrize": "{{name}} for {{months}} mo",

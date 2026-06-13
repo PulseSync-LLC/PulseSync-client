@@ -45,6 +45,7 @@ type NotificationsControllerResult = {
 const MAX_NOTIFICATIONS = 20
 const REALTIME_TOAST_NOTIFICATION_TYPES = new Set([
     'achievement.completed',
+    'subscription.giveaway.started',
     'subscription.giveaway.won',
     'subscription.purchase.succeeded',
     'subscription.expiring.soon',

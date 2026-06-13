@@ -561,6 +561,8 @@
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
                 "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "giveawayStartedTitle": "Начался новый розыгрыш",
+                "giveawayStartedBody": "Розыгрыш «{{giveaway}}» уже идёт. Участвовать можно до {{date}}.",
                 "giveawayWonTitle": "Вы выиграли розыгрыш",
                 "giveawayWonBody": "Вы выиграли «{{prize}}» в розыгрыше «{{giveaway}}».",
                 "giveawayWonPrize": "{{name}} на {{months}} мес.",
