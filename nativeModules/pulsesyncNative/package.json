@@ -1,0 +1,9 @@
+{
+    "name": "pulsesync-native",
+    "version": "1.0.0",
+    "private": true,
+    "scripts": {
+        "clean": "node scripts/build.mjs --clean",
+        "build": "node scripts/build.mjs"
+    }
+}
