@@ -1,20 +1,12 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
-import crypto from 'crypto'
 import logger from '../../logger'
+import { hashArtifactInWorker } from './artifactWorkerClient'
 
 export const UNPACKED_MARKER_FILE = '.pulsesync_unpacked_checksum'
 
-export function sha256Hex(buf: Buffer): string {
-    return crypto.createHash('sha256').update(buf).digest('hex')
-}
-
 export async function sha256File(filePath: string): Promise<string> {
-    const hasher = crypto.createHash('sha256')
-    for await (const chunk of fs.createReadStream(filePath)) {
-        hasher.update(chunk)
-    }
-    return hasher.digest('hex')
+    return (await hashArtifactInWorker({ filePath })).checksum
 }
 
 export async function ensureDir(dir: string): Promise<void> {

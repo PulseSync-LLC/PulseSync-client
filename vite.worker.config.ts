@@ -9,9 +9,6 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const entry = forgeConfigSelf?.entry ?? 'src/main/modules/mod/network/artifactWorker.ts'
 
     return {
-        ssr: {
-            noExternal: ['adm-zip', 'zstd-codec'],
-        },
         build: {
             sourcemap: isDevMode,
             target: 'node24.14',
@@ -25,6 +22,9 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
                     preserveModules: false,
                 },
             },
+        },
+        define: {
+            __non_vite_require__: 'require',
         },
     }
 })
