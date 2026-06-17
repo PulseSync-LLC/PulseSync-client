@@ -1,5 +1,7 @@
 import { AxiosRequestConfig, AxiosResponse } from 'axios'
 import { Track } from './src/renderer/api/interfaces/track.interface'
+import type { ClientBuildIdentity } from './src/common/types/clientBuildIdentity'
+import type { ClientHardwareIdentity } from './src/common/types/clientHardwareIdentity'
 
 interface DesktopEvents {
     emit(channel: string, ...args: any[]): void
@@ -47,6 +49,8 @@ declare global {
         appInfo: {
             getBranch: () => string
             getVersion: () => string
+            getHardwareIdentity: () => ClientHardwareIdentity | null
+            getBuildIdentity: () => ClientBuildIdentity
         }
     }
 }

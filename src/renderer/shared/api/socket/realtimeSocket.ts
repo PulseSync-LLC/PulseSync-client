@@ -1,5 +1,7 @@
 import { io, Socket } from 'socket.io-client'
 import config from '@common/appConfig'
+import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
+import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
 
 export type GatewayFrame<T = any> = {
     e?: string
@@ -10,6 +12,8 @@ export type RealtimeSocketAuth = {
     page: string
     token: string | null
     version: string
+    buildIdentity?: ClientBuildIdentity
+    hardwareIdentity?: ClientHardwareIdentity | null
     compression: 'zstd-stream'
     inboundCompression: 'zstd-stream'
 }

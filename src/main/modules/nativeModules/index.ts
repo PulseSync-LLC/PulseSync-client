@@ -63,6 +63,16 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
     })
 }
 
+export const nativeGetHardwareIdentity = (): { hash: string; source: string; algorithm: 'sha256' } | null => {
+    if (!nativeModule) return null
+    try {
+        return nativeModule.getHardwareIdentity()
+    } catch (err) {
+        logger.nativeModuleManager.error(`Error in nativeGetHardwareIdentity: ${err}`)
+        return null
+    }
+}
+
 export const nativeReadFile = (filePath: string): Buffer | null => {
     if (!nativeModule) return null
     try {

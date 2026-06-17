@@ -256,10 +256,6 @@ export async function createWindow(): Promise<void> {
         State.set('settings.lastDisplayId', disp.id)
     })
 
-    if (isAppDev) {
-        Object.defineProperty(app, 'isPackaged', { get: () => true })
-    }
-
     powerMonitor.on('suspend', () => {
         inSleepMode = true
     })

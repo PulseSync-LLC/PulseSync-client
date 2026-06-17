@@ -1,6 +1,17 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
+import type { ClientBuildIdentity } from '../common/types/clientBuildIdentity'
+import type { ClientHardwareIdentity } from '../common/types/clientHardwareIdentity'
+
+const buildPackageJson = packageJson as typeof packageJson & {
+    buildInfo?: {
+        VERSION?: string
+        BRANCH?: string
+        BUILD_TIME?: string
+        SIGNATURE?: string
+    }
+}
 
 export interface DesktopEvents {
     emit(channel: string, ...args: any[]): void
@@ -53,7 +64,22 @@ contextBridge.exposeInMainWorld('electron', {
 })
 contextBridge.exposeInMainWorld('appInfo', {
     getBranch: () => ipcRenderer.sendSync(MainEvents.GET_LAST_BRANCH),
-    getVersion: () => packageJson.version,
+    getVersion: () => buildPackageJson.version,
+    getHardwareIdentity: (): ClientHardwareIdentity | null => {
+        try {
+            return ipcRenderer.sendSync(MainEvents.GET_CLIENT_HARDWARE_IDENTITY) ?? null
+        } catch {
+            return null
+        }
+    },
+    getBuildIdentity: (): ClientBuildIdentity => ({
+        origin: 'PulseSync-LLC/PulseSync-client',
+        version: buildPackageJson.buildInfo?.VERSION || buildPackageJson.version,
+        commit: buildPackageJson.buildInfo?.BRANCH || 'unknown',
+        builtAt: buildPackageJson.buildInfo?.BUILD_TIME || '',
+        signatureAlgorithm: 'ed25519',
+        signature: buildPackageJson.buildInfo?.SIGNATURE || '',
+    }),
 })
 const desktopEvents: DesktopEvents = {
     emit: (channel, ...args) => {

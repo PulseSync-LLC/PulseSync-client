@@ -38,6 +38,7 @@ import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
+import { nativeGetHardwareIdentity } from '../modules/nativeModules'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
@@ -366,6 +367,9 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
     ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
         event.returnValue = process.env.BRANCH
+    })
+    ipcMain.on(MainEvents.GET_CLIENT_HARDWARE_IDENTITY, event => {
+        event.returnValue = nativeGetHardwareIdentity()
     })
     ipcMain.handle(MainEvents.GET_BUILD_CHANNEL, async () => getBuildUpdateChannel())
     ipcMain.handle(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL, async () => getEffectiveUpdateChannel())
