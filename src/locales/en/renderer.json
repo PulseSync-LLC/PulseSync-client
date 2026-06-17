@@ -74,6 +74,7 @@
         "deprecatedRequiresUpdate": "The app is outdated and requires an update 😡😡😡",
         "deprecatedRequiresUpdateShort": "The app is outdated and requires an update",
         "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
+        "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
         "failedToFetchUser": "Failed to fetch user data. Please log in again.",
         "images": {

@@ -59,6 +59,14 @@ export function createGatewayHandler({
                     body: t('auth.deprecatedSoon'),
                 })
                 break
+            case IncomingGatewayEvents.HARDWARE_IDENTITY_WARNING:
+                console.debug('Gateway hardware identity warning', gatewayPayload)
+                toast.custom('error', t('common.attentionTitle'), t('auth.hardwareIdentityWarning'), undefined, undefined, 15000)
+                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                    title: t('common.attentionTitle'),
+                    body: t('auth.hardwareIdentityWarning'),
+                })
+                break
             case IncomingGatewayEvents.ERROR_MESSAGE: {
                 console.debug('Gateway error message', gatewayPayload)
                 const message = getGatewayErrorMessage(gatewayPayload)

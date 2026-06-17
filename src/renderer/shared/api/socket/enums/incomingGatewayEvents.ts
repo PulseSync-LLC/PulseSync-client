@@ -1,5 +1,6 @@
 const IncomingGatewayEvents = {
     DEPRECATED_VERSION: 'deprecated_version',
+    HARDWARE_IDENTITY_WARNING: 'hardware_identity_warning',
     ERROR_MESSAGE: 'error_message',
     LOGOUT: 'logout',
     USER_UPDATE: 'user_update',

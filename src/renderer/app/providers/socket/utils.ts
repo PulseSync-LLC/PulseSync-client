@@ -19,6 +19,8 @@ export function buildRealtimeSocketAuth(appVersion: string): RealtimeSocketAuth 
         page,
         token: getUserToken(),
         version,
+        buildIdentity: window.appInfo?.getBuildIdentity?.(),
+        hardwareIdentity: window.appInfo?.getHardwareIdentity?.() ?? null,
         compression: 'zstd-stream',
         inboundCompression: 'zstd-stream',
     }

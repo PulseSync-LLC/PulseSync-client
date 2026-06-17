@@ -55,6 +55,7 @@ export type NativeInstallUnpackedArtifactRequest = {
 
 export interface PulseSyncNativeAddon {
     nativeVersion(): string
+    getHardwareIdentity(): { hash: string; source: string; algorithm: 'sha256' } | null
     watch(target: string, intervalMs: number, callback: (eventType: string, filename: string) => void): void
     readFile(target: string): Buffer
     deleteFile(target: string): void

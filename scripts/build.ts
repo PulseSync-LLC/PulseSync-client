@@ -118,6 +118,24 @@ function resolvePublishedVersion(currentVersion: string, targetBranch: string): 
     return `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}-${targetBranch}`
 }
 
+function normalizePemEnv(value: string): string {
+    return value.replace(/\\n/g, '\n').trim()
+}
+
+function createBuildIdentityPayload(identity: { origin: string; version: string; commit: string; builtAt: string }): Buffer {
+    return Buffer.from(`${identity.origin}\n${identity.version}\n${identity.commit}\n${identity.builtAt}`, 'utf8')
+}
+
+function signBuildIdentity(identity: { origin: string; version: string; commit: string; builtAt: string }): string {
+    const privateKeyRaw = process.env.CLIENT_BUILD_IDENTITY_PRIVATE_KEY?.trim()
+    if (!privateKeyRaw) {
+        return ''
+    }
+
+    const privateKey = crypto.createPrivateKey(normalizePemEnv(privateKeyRaw))
+    return crypto.sign(null, createBuildIdentityPayload(identity), privateKey).toString('base64')
+}
+
 function generateBuildInfo(): { version: string } {
     const pkgPath = path.resolve(__dirname, '../package.json')
     log(LogLevel.INFO, `Reading package.json from ${pkgPath}`)
@@ -149,14 +167,28 @@ function generateBuildInfo(): { version: string } {
         pkg.version = newVersion
     }
 
+    const builtAt = new Date().toISOString()
+    const buildIdentity = {
+        origin: 'PulseSync-LLC/PulseSync-client',
+        version: pkg.version,
+        commit: branchHash,
+        builtAt,
+    }
+    const signature = signBuildIdentity(buildIdentity)
+
     pkg.buildInfo = {
-        VERSION: pkg.version,
-        BRANCH: branchHash,
-        BUILD_TIME: new Date().toLocaleString(),
+        VERSION: buildIdentity.version,
+        BRANCH: buildIdentity.commit,
+        BUILD_TIME: buildIdentity.builtAt,
+        SIGNATURE_ALGORITHM: 'ed25519',
+        SIGNATURE: signature,
     }
 
     fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 4), 'utf-8')
-    log(LogLevel.SUCCESS, `Updated package.json → version=${newVersion}, buildInfo.BRANCH=${branchHash}`)
+    log(
+        LogLevel.SUCCESS,
+        `Updated package.json → version=${newVersion}, buildInfo.BRANCH=${branchHash}, buildIdentity=${signature ? 'signed' : 'unsigned'}`,
+    )
     return { version: newVersion }
 }
 
