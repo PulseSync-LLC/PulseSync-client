@@ -79,7 +79,7 @@ export const registerSocketClientEvents = ({
     })
 
     socket.on('UPDATE_DATA', (payload: any) => {
-        if (!getAuthorized()) return
+        if ((socket as any).clientType !== 'yaMusic') return
         logger.http.log('UPDATE_DATA received:', payload)
         updateData(payload)
     })
