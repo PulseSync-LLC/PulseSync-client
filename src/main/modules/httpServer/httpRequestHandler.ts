@@ -20,7 +20,6 @@ interface LoggerLike {
 interface CreateHttpRequestHandlerOptions {
     logger: LoggerLike
     allowedOrigins: string[]
-    getAuthorized: () => boolean
     getTrackData: () => Track
 }
 
@@ -106,7 +105,7 @@ const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
     return ''
 }
 
-export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized, getTrackData }: CreateHttpRequestHandlerOptions) => {
+export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData }: CreateHttpRequestHandlerOptions) => {
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const { query } = parse(req.url || '', true)
@@ -192,7 +191,6 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getAuthorized
 
     const handleGetTrack = (_req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            if (!getAuthorized()) return sendJson(res, 403, { error: 'Unauthorized' })
             sendJson(res, 200, getTrackData())
         } catch (err) {
             logger.http.error('Error processing get_track:', err)

@@ -62,7 +62,6 @@ const initializeServer = () => {
     const handleHttpRequest = createHttpRequestHandler({
         logger,
         allowedOrigins,
-        getAuthorized: () => authorized,
         getTrackData: () => data,
     })
 
