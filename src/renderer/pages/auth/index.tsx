@@ -5,12 +5,13 @@ import AuthDefault from '@pages/auth/default/Auth'
 import { getSeasonByMSK } from '@shared/lib/seasonDetector'
 
 export default function AuthPage() {
-    const AUTH_THEME = useMemo(() => getSeasonByMSK(), [])
-    if (AUTH_THEME === 'summer') {
-        return <AuthSummer />
-    } else if (AUTH_THEME === 'winter') {
-        return <AuthWinter />
-    } else {
-        return <AuthDefault />
-    }
+    return <AuthDefault />
+    // const AUTH_THEME = useMemo(() => getSeasonByMSK(), [])
+    // if (AUTH_THEME === 'summer') {
+    //     return <AuthSummer />
+    // } else if (AUTH_THEME === 'winter') {
+    //     return <AuthWinter />
+    // } else {
+    //     return <AuthDefault />
+    // }
 }

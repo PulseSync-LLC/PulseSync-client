@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'
-import type { ClientBuildIdentity } from '../common/types/clientBuildIdentity'
-import type { ClientHardwareIdentity } from '../common/types/clientHardwareIdentity'
+import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
+import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
 
 const buildPackageJson = packageJson as typeof packageJson & {
     buildInfo?: {

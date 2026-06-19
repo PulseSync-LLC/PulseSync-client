@@ -13,7 +13,13 @@ import { getState } from '../../modules/state'
 import { t } from '../../i18n'
 import * as yaml from 'yaml'
 import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
-import { nativeCopyFile, nativeFileExists, nativePatchMacIntegrity, nativePatchWindowsIntegrity } from '../../modules/nativeModules'
+import {
+    nativeCopyFile,
+    nativeFileExists,
+    nativePatchMacIntegrity,
+    nativePatchWindowsIntegrity,
+    nativeReadAsarVersion,
+} from '../../modules/nativeModules'
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
 import { isLinuxAccessError } from './elevation'
@@ -590,15 +596,15 @@ export async function getInstalledYmMetadata() {
             logger.modManager.warn('getPathToYandexMusic returned empty path')
             return null
         }
-        const versionFilePath = path.join(ymDir, 'version.bin')
-        if (!nativeFileExists(versionFilePath)) {
-            logger.modManager.warn('version file not found in Yandex Music directory')
+        const asarPath = path.join(ymDir, 'app.asar')
+        if (!nativeFileExists(asarPath)) {
+            logger.modManager.warn('app.asar not found in Yandex Music directory')
             return null
         }
-        const version = (await fso.promises.readFile(versionFilePath, 'utf8')).trim()
+        const version = nativeReadAsarVersion(asarPath)
         return { version }
     } catch (error) {
-        logger.modManager.error('Error reading version file:', error)
+        logger.modManager.warn('Error reading Yandex Music version from app.asar:', error)
         return null
     }
 }
