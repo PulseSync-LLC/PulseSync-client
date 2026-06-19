@@ -3,6 +3,7 @@ use napi::{Error, Result};
 use napi_derive::napi;
 #[cfg(target_os = "macos")]
 use plist::Value;
+use serde_json::Value;
 use sha2::{Digest, Sha256};
 #[cfg(target_os = "macos")]
 use std::fs;
@@ -16,6 +17,12 @@ const MAX_ASAR_HEADER_SIZE: usize = 128 * 1024 * 1024;
 const INTEGRITY_MARKER: &[u8] = br#""file":"resources\\app.asar""#;
 const VALUE_MARKER: &[u8] = br#""value":""#;
 const SHA256_HEX_LENGTH: usize = 64;
+const MAX_ASAR_PACKAGE_JSON_SIZE: usize = 1024 * 1024;
+
+struct AsarHeader {
+    json: Vec<u8>,
+    pickle_size: usize,
+}
 
 fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
     if needle.is_empty() || needle.len() > haystack.len() {
@@ -37,9 +44,7 @@ fn digest_hex(bytes: &[u8]) -> String {
     output
 }
 
-fn read_asar_header_string(path: &Path) -> std::result::Result<Vec<u8>, String> {
-    let mut file = File::open(path)
-        .map_err(|error| format!("Failed to open ASAR '{}': {error}", path.display()))?;
+fn read_asar_header(file: &mut File) -> std::result::Result<AsarHeader, String> {
     let mut size_pickle = [0_u8; 8];
     file.read_exact(&mut size_pickle)
         .map_err(|error| format!("Unable to read ASAR header size: {error}"))?;
@@ -74,7 +79,16 @@ fn read_asar_header_string(path: &Path) -> std::result::Result<Vec<u8>, String> 
     let header_string = header_pickle[8..string_end].to_vec();
     std::str::from_utf8(&header_string)
         .map_err(|error| format!("ASAR header is not valid UTF-8: {error}"))?;
-    Ok(header_string)
+    Ok(AsarHeader {
+        json: header_string,
+        pickle_size: header_size,
+    })
+}
+
+fn read_asar_header_string(path: &Path) -> std::result::Result<Vec<u8>, String> {
+    let mut file = File::open(path)
+        .map_err(|error| format!("Failed to open ASAR '{}': {error}", path.display()))?;
+    read_asar_header(&mut file).map(|header| header.json)
 }
 
 fn calculate_header_hash(path: &Path) -> std::result::Result<String, String> {
@@ -84,6 +98,72 @@ fn calculate_header_hash(path: &Path) -> std::result::Result<String, String> {
 #[napi]
 pub fn calculate_asar_header_hash(path: String) -> Result<String> {
     calculate_header_hash(Path::new(&path)).map_err(Error::from_reason)
+}
+
+fn read_asar_version_impl(path: &Path) -> std::result::Result<String, String> {
+    let package_json = {
+        let mut file = File::open(path)
+            .map_err(|error| format!("Failed to open ASAR '{}': {error}", path.display()))?;
+        let header = read_asar_header(&mut file)?;
+        let header_json: Value = serde_json::from_slice(&header.json)
+            .map_err(|error| format!("Failed to parse ASAR header JSON: {error}"))?;
+        let package_entry = header_json
+            .get("files")
+            .and_then(Value::as_object)
+            .and_then(|files| files.get("package.json"))
+            .ok_or_else(|| "package.json was not found in ASAR header".to_owned())?;
+        if package_entry
+            .get("unpacked")
+            .and_then(Value::as_bool)
+            .unwrap_or(false)
+        {
+            return Err("Unpacked package.json is not supported".to_owned());
+        }
+
+        let package_size = package_entry
+            .get("size")
+            .and_then(Value::as_u64)
+            .ok_or_else(|| "ASAR package.json size is missing".to_owned())?;
+        let package_size = usize::try_from(package_size)
+            .map_err(|_| "ASAR package.json size is too large".to_owned())?;
+        if package_size == 0 || package_size > MAX_ASAR_PACKAGE_JSON_SIZE {
+            return Err(format!("Invalid ASAR package.json size: {package_size}"));
+        }
+        let package_offset = package_entry
+            .get("offset")
+            .and_then(Value::as_str)
+            .ok_or_else(|| "ASAR package.json offset is missing".to_owned())?
+            .parse::<u64>()
+            .map_err(|error| format!("Invalid ASAR package.json offset: {error}"))?;
+        let data_offset = 8_u64
+            .checked_add(header.pickle_size as u64)
+            .and_then(|offset| offset.checked_add(package_offset))
+            .ok_or_else(|| "ASAR package.json offset overflow".to_owned())?;
+
+        file.seek(SeekFrom::Start(data_offset))
+            .map_err(|error| format!("Unable to seek to ASAR package.json: {error}"))?;
+        let mut package_json = vec![0_u8; package_size];
+        file.read_exact(&mut package_json)
+            .map_err(|error| format!("Unable to read ASAR package.json: {error}"))?;
+        package_json
+    };
+
+    let package: Value = serde_json::from_slice(&package_json)
+        .map_err(|error| format!("Failed to parse ASAR package.json: {error}"))?;
+    let version = package
+        .get("modification")
+        .and_then(|modification| modification.get("realYMVersion"))
+        .and_then(Value::as_str)
+        .or_else(|| package.get("version").and_then(Value::as_str))
+        .map(str::trim)
+        .filter(|version| !version.is_empty())
+        .ok_or_else(|| "ASAR package.json does not contain a version".to_owned())?;
+    Ok(version.to_owned())
+}
+
+#[napi]
+pub fn read_asar_version(path: String) -> Result<String> {
+    read_asar_version_impl(Path::new(&path)).map_err(Error::from_reason)
 }
 
 #[napi]

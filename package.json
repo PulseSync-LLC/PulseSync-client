@@ -28,7 +28,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1070.0",
+        "@aws-sdk/client-s3": "^3.1072.0",
         "@babel/core": "8.0.1",
         "@electron-forge/cli": "^7.11.2",
         "@electron-forge/maker-deb": "^7.11.2",
@@ -43,7 +43,7 @@
         "@types/fs-extra": "^11.0.4",
         "@types/glob": "^9.0.0",
         "@types/lodash.debounce": "^4.0.9",
-        "@types/node": "^25.9.3",
+        "@types/node": "^26.0.0",
         "@types/plist": "^3.0.5",
         "@types/react": "^19.2.17",
         "@types/react-dom": "^19.2.3",
@@ -140,15 +140,15 @@
     "resolutions": {
         "@electron/rebuild": "4.0.4",
         "@parcel/watcher": "2.5.6",
-        "node-gyp": "12.3.0"
+        "node-gyp": "13.0.0"
     },
     "config": {
         "forge": "./forge.config.ts"
     },
     "buildInfo": {
         "VERSION": "2.17.0-beta",
-        "BRANCH": "da1a489d",
-        "BUILD_TIME": "12.06.2026, 20:29:39"
+        "BRANCH": "59a31975",
+        "BUILD_TIME": "2026-06-19T16:23:06.741Z"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",

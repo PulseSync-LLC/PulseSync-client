@@ -10,7 +10,7 @@ use napi_derive::napi;
 pub use artifact::{hash_file, install_unpacked_artifact, prepare_asar_artifact};
 pub use file_ops::{copy_file, delete_file, file_exists, move_file, read_file, rename_file};
 pub use hardware_identity::get_hardware_identity;
-pub use integrity::{calculate_asar_header_hash, patch_windows_integrity};
+pub use integrity::{calculate_asar_header_hash, patch_windows_integrity, read_asar_version};
 pub use watcher::watch;
 
 #[napi]
