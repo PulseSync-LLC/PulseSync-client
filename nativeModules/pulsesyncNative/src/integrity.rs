@@ -2,7 +2,7 @@ use memmap2::MmapOptions;
 use napi::{Error, Result};
 use napi_derive::napi;
 #[cfg(target_os = "macos")]
-use plist::Value;
+use plist::Value as PlistValue;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 #[cfg(target_os = "macos")]
@@ -228,7 +228,7 @@ fn update_mac_info_plist(
     asar_path: &Path,
 ) -> std::result::Result<String, String> {
     let hash = calculate_header_hash(asar_path)?;
-    let mut plist = Value::from_file(info_plist_path).map_err(|error| {
+    let mut plist = PlistValue::from_file(info_plist_path).map_err(|error| {
         format!(
             "Failed to read Info.plist '{}': {error}",
             info_plist_path.display()
@@ -239,16 +239,16 @@ fn update_mac_info_plist(
         .ok_or_else(|| "Info.plist root is not a dictionary".to_owned())?;
     let integrity = root
         .get_mut("ElectronAsarIntegrity")
-        .and_then(Value::as_dictionary_mut)
+        .and_then(PlistValue::as_dictionary_mut)
         .ok_or_else(|| "ElectronAsarIntegrity is missing from Info.plist".to_owned())?;
     let app_asar = integrity
         .get_mut("Resources/app.asar")
-        .and_then(Value::as_dictionary_mut)
+        .and_then(PlistValue::as_dictionary_mut)
         .ok_or_else(|| {
             "Resources/app.asar integrity entry is missing from Info.plist".to_owned()
         })?;
 
-    app_asar.insert("hash".to_owned(), Value::String(hash.clone()));
+    app_asar.insert("hash".to_owned(), PlistValue::String(hash.clone()));
     let output = File::create(info_plist_path).map_err(|error| {
         format!(
             "Failed to open Info.plist '{}' for writing: {error}",
