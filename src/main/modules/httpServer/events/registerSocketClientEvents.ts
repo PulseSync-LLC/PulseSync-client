@@ -24,7 +24,7 @@ interface RegisterSocketClientEventsOptions {
     mainWindow: BrowserWindow
     getAuthorized: () => boolean
     getTrackData: () => Track
-    sendDataToMusic: (options?: { targetSocket?: Socket }) => void
+    sendDataToMusic: (options?: { targetSocket?: Socket; currentAddonStateHashVersion?: number; currentAddonStateHash?: string }) => void
     updateData: (newData: any) => void
     handleBrowserAuth: (payload: any, client: Socket) => void
 }
@@ -48,14 +48,18 @@ export const registerSocketClientEvents = ({
     logger.http.log(`New client connected: version=${version}, type=${clientType}`)
     socket.emit('PING', { message: 'Connected to server' })
 
-    socket.on('READY', async () => {
+    socket.on('READY', async (payload?: { addonStateHashVersion?: number; addonStateHash?: string }) => {
         logger.http.log('READY received from client')
         if ((socket as any).clientType !== 'yaMusic') return
 
         mainWindow.webContents.send(RendererEvents.CLIENT_READY)
         ;(socket as any).hasPong = true
         if (getAuthorized()) {
-            sendDataToMusic({ targetSocket: socket })
+            sendDataToMusic({
+                targetSocket: socket,
+                currentAddonStateHashVersion: payload?.addonStateHashVersion,
+                currentAddonStateHash: typeof payload?.addonStateHash === 'string' ? payload.addonStateHash : undefined,
+            })
         }
     })
 
