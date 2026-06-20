@@ -28,7 +28,7 @@
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1072.0",
+        "@aws-sdk/client-s3": "^3.1073.0",
         "@babel/core": "8.0.1",
         "@electron-forge/cli": "^7.11.2",
         "@electron-forge/maker-deb": "^7.11.2",
@@ -123,7 +123,7 @@
         "remark-gfm": "^4.0.1",
         "resedit": "^3.0.2",
         "rxjs": "^7.8.2",
-        "semver": "^7.8.4",
+        "semver": "^7.8.5",
         "socket.io": "^4.8.3",
         "socket.io-client": "^4.8.3",
         "source-map-support": "^0.5.21",
@@ -132,7 +132,7 @@
         "systeminformation": "^5.31.7",
         "tar": "^7.5.16",
         "url": "^0.11.4",
-        "uuid": "^14.0.0",
+        "uuid": "^14.0.1",
         "yaml": "^2.9.0",
         "yup": "^1.7.1",
         "zstd-codec": "^0.1.5"
