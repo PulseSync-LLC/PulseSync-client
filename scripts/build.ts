@@ -13,6 +13,7 @@ import * as tar from 'tar'
 import { fileURLToPath } from 'node:url'
 import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
+import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -315,6 +316,9 @@ async function main(): Promise<void> {
         return
     }
     ensureNodeHeapForMac()
+    if (buildApplication) {
+        assertGlitchTipSourceMapConfig()
+    }
 
     log(LogLevel.INFO, `Platform: ${os.platform()}, Arch: ${os.arch()}`)
     log(LogLevel.INFO, `CWD: ${process.cwd()}`)
@@ -508,6 +512,8 @@ async function main(): Promise<void> {
         }
 
         fs.unlinkSync(tmpPath)
+
+        await uploadGlitchTipSourceMaps(version)
 
         if (publishBranch) {
             await publishToS3(publishBranch, releaseDir, version)

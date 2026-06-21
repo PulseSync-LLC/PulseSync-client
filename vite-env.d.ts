@@ -10,6 +10,9 @@ declare const SETTINGS_WINDOW_VITE_NAME: string
 declare const PRELOADER_VITE_DEV_SERVER_URL: string
 declare const PRELOADER_VITE_NAME: string
 
+declare const PULSESYNC_VERSION: string
+declare const PULSESYNC_BRANCH: string
+
 interface ImportMetaEnv {
     readonly VITE_APP_TITLE: string
 }

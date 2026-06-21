@@ -43,6 +43,7 @@ jobs:
               - 'vite.main.config.ts'
               - 'vite.preload.config.ts'
               - 'vite.renderer.config.ts'
+              - 'vite.worker.config.ts'
               - 'electron-builder.yml'
               - 'tsconfig*.json'
               - 'Info.plist'
@@ -149,11 +150,20 @@ jobs:
       - name: Install deps
         run: yarn install --frozen-lockfile
 
+      - name: Check Sentry CLI
+        run: yarn -s sentry-cli --version
+
       - name: Build and publish dev
         run: yarn build:package --nativeModules --publish dev
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           S3_KEEP_RECENT_VERSIONS: 3
+          GLITCHTIP_SOURCEMAPS: "1"
+          GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
       - name: Show release contents
         shell: bash

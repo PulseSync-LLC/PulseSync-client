@@ -35,6 +35,8 @@ import { processBrowserAuth } from './main/modules/auth/browserAuth'
 import { runWhenUiReady } from './main/modules/uiReady'
 import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
+import { initMainErrorTracking } from './main/modules/errorTracking'
+import { handleUncaughtException } from './main/modules/handlers/handleError'
 
 export let updated = false
 export let musicPath: string
@@ -42,6 +44,8 @@ export let asarFilename = 'app.backup.asar'
 export let asarBackup: string
 export let selectedAddon: string
 
+initMainErrorTracking()
+handleUncaughtException()
 registerSchemes()
 const State = getState()
 initMainI18n(State.get('settings.language'))

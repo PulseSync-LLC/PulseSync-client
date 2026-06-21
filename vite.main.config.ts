@@ -11,11 +11,12 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
 
 export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const isDevMode = mode === 'development'
+    const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const entry = forgeConfigSelf?.entry ?? 'src/index.ts'
 
     return {
         build: {
-            sourcemap: isDevMode,
+            sourcemap: sourceMapMode,
             target: 'node24.14',
             outDir: path.resolve(__dirname, `.vite/main`),
             lib: {
@@ -33,6 +34,8 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
         },
 
         define: {
+            PULSESYNC_VERSION: JSON.stringify(packageJson.version),
+            PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
             'process.env.BRANCH': JSON.stringify((packageJson as any).buildInfo?.BRANCH),
             'process.env.VERSION': JSON.stringify(packageJson.version),
             'import.meta.env.DEV': JSON.stringify(isDevMode),

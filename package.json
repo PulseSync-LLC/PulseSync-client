@@ -38,6 +38,7 @@
         "@electron-forge/maker-zip": "^7.11.2",
         "@electron-forge/plugin-vite": "^7.11.2",
         "@rolldown/plugin-babel": "^0.2.3",
+        "@sentry/cli": "3.5.1",
         "@types/adm-zip": "^0.5.8",
         "@types/electron": "^1.6.12",
         "@types/fs-extra": "^11.0.4",
@@ -85,6 +86,7 @@
         "@emotion/styled": "^11.14.1",
         "@mui/joy": "^5.0.0-beta.52",
         "@radix-ui/react-tooltip": "^1.2.10",
+        "@sentry/electron": "7.13.0",
         "acorn": "^8.17.0",
         "acorn-walk": "^8.3.5",
         "adm-zip": "^0.5.17",
@@ -147,8 +149,8 @@
     },
     "buildInfo": {
         "VERSION": "2.17.0-beta",
-        "BRANCH": "59a31975",
-        "BUILD_TIME": "2026-06-19T16:23:06.741Z"
+        "BRANCH": "fb384f80",
+        "BUILD_TIME": "2026-06-21T11:33:36.092Z"
     },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",
