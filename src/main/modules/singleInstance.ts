@@ -1,7 +1,6 @@
 import { app, BrowserWindow } from 'electron'
 import logger from './logger'
 import { prestartCheck } from '../../index'
-import { handleUncaughtException } from './handlers/handleError'
 import { queueAddonOpen } from '../events'
 import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporter'
 import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
@@ -79,8 +78,6 @@ export const checkForSingleInstance = async (): Promise<void> => {
                 await handlePextFile(pextPath)
             }
         }
-
-        handleUncaughtException()
     } else {
         logger.main.info('Another instance is already running, quitting this instance.')
         app.quit()

@@ -5,6 +5,7 @@ import { FuseV1Options, FuseVersion } from '@electron/fuses'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'node:url'
+import { prepareGlitchTipSourceMaps } from './scripts/glitchtip-sourcemaps.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -130,6 +131,7 @@ const forgeConfig: ForgeConfig = {
             fs.writeFileSync(packageJsonPath, JSON.stringify(pkg, null, '\t'))
         },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
+            prepareGlitchTipSourceMaps(buildPath, platform, arch)
             const resourcesPath = path.resolve(buildPath, '..')
             const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')

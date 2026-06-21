@@ -1,3 +1,5 @@
+import '@sentry/electron/preload'
+
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
 import packageJson from '../../package.json'
 import MainEvents from '../common/types/mainEvents'

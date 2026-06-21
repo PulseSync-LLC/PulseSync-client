@@ -6,6 +6,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevMode = mode === 'development'
+    const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const entry = forgeConfigSelf?.entry ?? 'src/main/mainWindowPreload.ts'
 
     return {
@@ -30,7 +31,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             },
         },
         build: {
-            sourcemap: isDevMode,
+            sourcemap: sourceMapMode,
             target: 'node24.14',
             outDir: path.resolve(__dirname, `.vite/main`),
             rolldownOptions: {

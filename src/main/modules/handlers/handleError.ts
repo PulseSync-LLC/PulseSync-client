@@ -1,6 +1,7 @@
 import logger from '../logger'
 import { app } from 'electron'
 import { HandleErrorsElectron } from './handleErrorsElectron'
+import { captureMainException, captureRendererTermination, flushErrorTracking } from '../errorTracking'
 
 const firstLine = (message: string | Error) => {
     if (typeof message === 'string') {
@@ -18,14 +19,25 @@ export const toPlainError = (error: Error | any) => {
 }
 
 export const handleUncaughtException = () => {
-    process.on('uncaughtException', (error: Error) => {
+    process.on('uncaughtException', async (error: Error) => {
         logger.main.error('Uncaught Exception:', toPlainError(error))
         HandleErrorsElectron.handleError('error_handler', error?.name, firstLine(error?.message), error)
+        captureMainException(error, 'uncaught_exception')
+        await flushErrorTracking()
         process.exit(1)
     })
+
+    process.on('unhandledRejection', reason => {
+        const error = reason instanceof Error ? reason : new Error(String(reason))
+        logger.main.error('Unhandled Rejection:', toPlainError(error))
+        HandleErrorsElectron.handleError('error_handler', error.name, firstLine(error.message), error)
+        captureMainException(error, 'unhandled_rejection')
+    })
+
     app.on('render-process-gone', (event, webContents, detailed) => {
         const REASON_CRASHED = 'crashed'
         const REASON_OOM = 'oom'
+        captureRendererTermination(detailed)
         HandleErrorsElectron.handleError('error_handler', 'render_process_gone', 'render_process_gone', detailed)
         logger.renderer.error('Error in renderer: ' + detailed)
         if ([REASON_CRASHED, REASON_OOM].includes(detailed?.reason)) {

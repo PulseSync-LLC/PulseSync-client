@@ -7,6 +7,10 @@ import fs from 'fs'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
+    version: string
+    buildInfo?: { BRANCH?: string }
+}
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -23,6 +27,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
 
     const isDevMode = mode === 'development'
     const isDevSourceMapMode = process.env.NODE_ENV === 'development'
+    const sourceMapMode = isDevSourceMapMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const rendererAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
     const staticAssetsDir = path.resolve(__dirname, 'static/assets')
     const publicDir: string | false = isDevMode ? path.resolve(__dirname, 'static') : false
@@ -32,6 +37,8 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         base: isDevMode ? '/' : './',
         publicDir,
         define: {
+            PULSESYNC_VERSION: JSON.stringify(packageJson.version),
+            PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
         },
@@ -44,7 +51,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             cors: true,
         },
         build: {
-            sourcemap: isDevSourceMapMode,
+            sourcemap: sourceMapMode,
             target: 'chrome146',
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: '../assets',
