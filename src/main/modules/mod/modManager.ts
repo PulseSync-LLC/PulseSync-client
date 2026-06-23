@@ -26,6 +26,7 @@ import {
 } from './mod-manager.helpers'
 import { getGithubModRelease } from './network/releaseCatalog'
 import type { ModDownloadFailure } from './network/types'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const State = getState()
 const PROGRESS_ASAR_ONLY = { base: 0, scale: 0.95, resetOnComplete: false }
@@ -108,6 +109,7 @@ export const modManager = (window: BrowserWindow): void => {
                         sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
                         return
                     }
+                    HandleErrorsElectron.handleError('modManager', 'install', 'backup', e)
                     sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
                     return
                 }
@@ -272,6 +274,7 @@ export const modManager = (window: BrowserWindow): void => {
                             }
                         } catch (fallbackError) {
                             logger.modManager.error('GitHub fallback for mod update failed', fallbackError)
+                            HandleErrorsElectron.handleError('modManager', 'install', 'github_fallback', fallbackError)
                             sendFailure(window, backendFailure)
                             return
                         }
@@ -306,6 +309,7 @@ export const modManager = (window: BrowserWindow): void => {
                     sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
                     return
                 }
+                HandleErrorsElectron.handleError('modManager', 'install', 'unexpected', error)
                 sendFailure(window, { error: error.message, type: 'unexpected_error' })
             }
         },
@@ -346,6 +350,7 @@ export const modManager = (window: BrowserWindow): void => {
                 })
                 return
             }
+            HandleErrorsElectron.handleError('modManager', 'remove', 'unexpected', error)
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })
         }
     })
@@ -355,6 +360,7 @@ export const modManager = (window: BrowserWindow): void => {
             sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_SUCCESS, { success: true })
         } catch (error: any) {
             logger.modManager.error('Failed to clear mod cache:', error)
+            HandleErrorsElectron.handleError('modManager', 'clear_cache', 'unexpected', error)
             sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_FAILURE, {
                 success: false,
                 error: error?.message || 'Failed to clear mod cache',

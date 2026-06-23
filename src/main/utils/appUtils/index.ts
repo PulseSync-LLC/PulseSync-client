@@ -24,6 +24,7 @@ import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
 import { isLinuxAccessError } from './elevation'
 import { runPowerShell } from './powershell'
+import { HandleErrorsElectron } from '../../modules/handlers/handleErrorsElectron'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
@@ -482,6 +483,7 @@ export class AsarPatcher {
                 callback?.(1, t('main.appUtils.windowsPatchSuccess'))
                 return true
             } catch (err) {
+                HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'windows_integrity', err)
                 callback?.(0, t('main.appUtils.windowsPatchError', { message: (err as Error).message }))
                 return false
             }
@@ -530,6 +532,8 @@ export class AsarPatcher {
             try {
                 await fsp.unlink(this.tmpEntitlements)
             } catch {}
+            logger.main.error(t('main.appUtils.macPatchError', { message: (err as Error).message }), err)
+            HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'mac_integrity', err)
             callback?.(0, t('main.appUtils.macPatchError', { message: (err as Error).message }))
             return false
         }
