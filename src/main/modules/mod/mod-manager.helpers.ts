@@ -14,6 +14,7 @@ import { CACHE_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
 import type { RemoteModInfo } from './network/modCatalog'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const State = getState()
 
@@ -194,6 +195,7 @@ export async function sendSuccessAfterLaunch(
             }
         } catch (error) {
             logger.modManager.warn('Failed to relaunch Yandex Music after mod operation:', error)
+            HandleErrorsElectron.handleError('mod-manager.helpers', 'sendSuccessAfterLaunch', 'relaunch', error)
         }
     })()
     return true

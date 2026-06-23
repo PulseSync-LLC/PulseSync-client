@@ -13,6 +13,7 @@ import { ensureBackup, ensureLinuxModPath, installPreparedAsarAndPatchBundle, re
 import { resolveInstallModMatch } from './network/modCatalog'
 import { getState } from '../state'
 import { prepareAsarArtifactInWorker } from './network/artifactWorkerClient'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const ACTION_PATCH = 'PATCH'
 const PATCH_TYPE_FROM_MOD = 'FROM_MOD'
@@ -233,6 +234,7 @@ export const installModUpdateFromAsar = async (
             sendInstallFailure(window, { error: message, type: 'linux_permissions_required' })
             return { success: false, type: 'linux_permissions_required', error: message }
         }
+        HandleErrorsElectron.handleError('installModUpdateFrom', source, 'pipeline', error)
         const message = error?.message || String(error)
         sendInstallFailure(window, { error: message, type: 'install_mod_update_from_error' })
         return { success: false, type: 'install_mod_update_from_error', error: message }

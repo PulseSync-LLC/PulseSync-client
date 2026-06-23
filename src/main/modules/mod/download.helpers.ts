@@ -8,6 +8,7 @@ import { promisify } from 'util'
 import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
 import { t } from '../../i18n'
 import logger from '../logger'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const pipeline = promisify(nodePipeline)
 const DOWNLOAD_REQUEST_TIMEOUT_MS = 30_000
@@ -46,7 +47,9 @@ export function unlinkIfExists(p: string) {
 export function restoreBackupIfExists(savePath: string, backupPath: string) {
     try {
         if (fs.existsSync(backupPath)) fs.copyFileSync(backupPath, savePath)
-    } catch {}
+    } catch (error) {
+        HandleErrorsElectron.handleError('download.helpers', 'restoreBackupIfExists', 'copy', error)
+    }
 }
 
 export class DownloadError extends Error {

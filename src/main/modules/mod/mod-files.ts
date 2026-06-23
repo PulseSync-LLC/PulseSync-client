@@ -4,6 +4,7 @@ import logger from '../logger'
 import { getState } from '../state'
 import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, resolveModAsarPath, updateIntegrityHashInExe } from '../../utils/appUtils'
 import { t } from '../../i18n'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const State = getState()
 
@@ -60,7 +61,8 @@ export async function installPreparedAsarAndPatchBundle(savePath: string, prepar
     let ok: boolean
     try {
         ok = await patcher.patch(() => {})
-    } catch {
+    } catch (error) {
+        HandleErrorsElectron.handleError('mod-files', 'installPreparedAsarAndPatchBundle', 'patch', error)
         ok = false
     }
     if (!ok) {
@@ -77,6 +79,7 @@ export async function restoreWindowsIntegrity(paths: Paths): Promise<void> {
         logger.modManager.info('Windows Integrity hash restored.')
     } catch (err) {
         logger.modManager.error('Error restoring Integrity hash in exe:', err)
+        HandleErrorsElectron.handleError('mod-files', 'restoreWindowsIntegrity', 'catch', err)
     }
 }
 
@@ -88,5 +91,6 @@ export async function restoreMacIntegrity(paths: Paths): Promise<void> {
         logger.modManager.info('macOS Integrity hash restored.')
     } catch (err) {
         logger.modManager.error('Error restoring Integrity hash in Info.plist:', err)
+        HandleErrorsElectron.handleError('mod-files', 'restoreMacIntegrity', 'catch', err)
     }
 }

@@ -8,6 +8,8 @@ use sha2::{Digest, Sha256};
 #[cfg(target_os = "macos")]
 use std::fs;
 use std::fs::{File, OpenOptions};
+#[cfg(target_os = "macos")]
+use std::io::Write;
 use std::io::{Read, Seek, SeekFrom};
 use std::path::Path;
 #[cfg(target_os = "macos")]
@@ -226,9 +228,16 @@ pub fn patch_windows_integrity(exe_path: String, asar_path: String) -> Result<St
 fn update_mac_info_plist(
     info_plist_path: &Path,
     asar_path: &Path,
-) -> std::result::Result<String, String> {
+) -> std::result::Result<(String, Vec<u8>), String> {
     let hash = calculate_header_hash(asar_path)?;
-    let mut plist = PlistValue::from_file(info_plist_path).map_err(|error| {
+    let original = fs::read(info_plist_path).map_err(|error| {
+        format!(
+            "Failed to read Info.plist '{}': {error}",
+            info_plist_path.display()
+        )
+    })?;
+    let is_binary = original.starts_with(b"bplist");
+    let mut plist = PlistValue::from_reader(std::io::Cursor::new(&original)).map_err(|error| {
         format!(
             "Failed to read Info.plist '{}': {error}",
             info_plist_path.display()
@@ -249,16 +258,75 @@ fn update_mac_info_plist(
         })?;
 
     app_asar.insert("hash".to_owned(), PlistValue::String(hash.clone()));
-    let output = File::create(info_plist_path).map_err(|error| {
-        format!(
-            "Failed to open Info.plist '{}' for writing: {error}",
-            info_plist_path.display()
-        )
-    })?;
-    plist
-        .to_writer_xml(output)
-        .map_err(|error| format!("Failed to write Info.plist: {error}"))?;
-    Ok(hash)
+    let mut output = Vec::new();
+    if is_binary {
+        plist.to_writer_binary(&mut output)
+    } else {
+        plist.to_writer_xml(&mut output)
+    }
+    .map_err(|error| format!("Failed to serialize Info.plist: {error}"))?;
+
+    write_file_atomically(info_plist_path, &output)?;
+    Ok((hash, original))
+}
+
+#[cfg(target_os = "macos")]
+fn write_file_atomically(path: &Path, contents: &[u8]) -> std::result::Result<(), String> {
+    let parent = path
+        .parent()
+        .ok_or_else(|| format!("File '{}' has no parent directory", path.display()))?;
+    let file_name = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| format!("File '{}' has an invalid name", path.display()))?;
+    let permissions = fs::metadata(path)
+        .map(|metadata| metadata.permissions())
+        .map_err(|error| {
+            format!(
+                "Failed to read permissions for '{}': {error}",
+                path.display()
+            )
+        })?;
+
+    for attempt in 0..10 {
+        let temporary_path = parent.join(format!(
+            ".{file_name}.pulsesync-{}-{attempt}.tmp",
+            std::process::id()
+        ));
+        let mut temporary = match fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary_path)
+        {
+            Ok(file) => file,
+            Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => continue,
+            Err(error) => {
+                return Err(format!(
+                    "Failed to create temporary file '{}': {error}",
+                    temporary_path.display()
+                ));
+            }
+        };
+
+        let result = temporary
+            .write_all(contents)
+            .and_then(|_| temporary.sync_all())
+            .and_then(|_| fs::set_permissions(&temporary_path, permissions.clone()))
+            .and_then(|_| fs::rename(&temporary_path, path));
+        if let Err(error) = result {
+            let _ = fs::remove_file(&temporary_path);
+            return Err(format!(
+                "Failed to replace '{}' atomically: {error}",
+                path.display()
+            ));
+        }
+        return Ok(());
+    }
+
+    Err(format!(
+        "Failed to create a unique temporary file for '{}'",
+        path.display()
+    ))
 }
 
 #[cfg(target_os = "macos")]
@@ -341,11 +409,24 @@ pub fn patch_mac_integrity(
     let entitlements_path = Path::new(&entitlements_path);
     let info_plist_path = app_bundle_path.join("Contents").join("Info.plist");
 
-    let hash = update_mac_info_plist(&info_plist_path, asar_path).map_err(Error::from_reason)?;
-    let result = dump_mac_entitlements(app_bundle_path, entitlements_path)
-        .and_then(|_| sign_mac_app(app_bundle_path, entitlements_path));
+    dump_mac_entitlements(app_bundle_path, entitlements_path).map_err(Error::from_reason)?;
+    let (hash, original_info_plist) = match update_mac_info_plist(&info_plist_path, asar_path) {
+        Ok(result) => result,
+        Err(error) => {
+            let _ = fs::remove_file(entitlements_path);
+            return Err(Error::from_reason(error));
+        }
+    };
+    let result = sign_mac_app(app_bundle_path, entitlements_path);
     let _ = fs::remove_file(entitlements_path);
-    result.map_err(Error::from_reason)?;
+    if let Err(error) = result {
+        return match write_file_atomically(&info_plist_path, &original_info_plist) {
+            Ok(()) => Err(Error::from_reason(error)),
+            Err(rollback_error) => Err(Error::from_reason(format!(
+                "{error}; failed to restore Info.plist: {rollback_error}"
+            ))),
+        };
+    }
     Ok(hash)
 }
 
@@ -359,4 +440,104 @@ pub fn patch_mac_integrity(
     Err(Error::from_reason(
         "macOS integrity patching is only available on macOS",
     ))
+}
+
+#[cfg(all(test, target_os = "macos"))]
+mod tests {
+    use super::*;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    const INFO_PLIST_XML: &[u8] = br#"<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>ElectronAsarIntegrity</key>
+    <dict>
+        <key>Resources/app.asar</key>
+        <dict>
+            <key>algorithm</key>
+            <string>SHA256</string>
+            <key>hash</key>
+            <string>old</string>
+        </dict>
+    </dict>
+</dict>
+</plist>
+"#;
+
+    fn test_directory(name: &str) -> std::path::PathBuf {
+        let nonce = SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system clock should be after UNIX epoch")
+            .as_nanos();
+        std::env::temp_dir().join(format!(
+            "pulsesync-integrity-{name}-{}-{nonce}",
+            std::process::id()
+        ))
+    }
+
+    fn write_test_asar(path: &Path) {
+        let header = br#"{"files":{}}"#;
+        let header_size = 8 + header.len();
+        let mut archive = Vec::new();
+        archive.extend_from_slice(&0_u32.to_le_bytes());
+        archive.extend_from_slice(&(header_size as u32).to_le_bytes());
+        archive.extend_from_slice(&((header_size - 4) as u32).to_le_bytes());
+        archive.extend_from_slice(&(header.len() as u32).to_le_bytes());
+        archive.extend_from_slice(header);
+        fs::write(path, archive).expect("test ASAR should be written");
+    }
+
+    fn installed_hash(path: &Path) -> String {
+        let plist = PlistValue::from_file(path).expect("updated plist should parse");
+        plist
+            .as_dictionary()
+            .and_then(|root| root.get("ElectronAsarIntegrity"))
+            .and_then(PlistValue::as_dictionary)
+            .and_then(|integrity| integrity.get("Resources/app.asar"))
+            .and_then(PlistValue::as_dictionary)
+            .and_then(|entry| entry.get("hash"))
+            .and_then(PlistValue::as_string)
+            .expect("updated plist should contain integrity hash")
+            .to_owned()
+    }
+
+    fn assert_plist_update(name: &str, original: Vec<u8>, expected_prefix: &[u8]) {
+        let directory = test_directory(name);
+        fs::create_dir_all(&directory).expect("test directory should be created");
+        let plist_path = directory.join("Info.plist");
+        let asar_path = directory.join("app.asar");
+        fs::write(&plist_path, &original).expect("test plist should be written");
+        write_test_asar(&asar_path);
+
+        let (hash, preserved_original) =
+            update_mac_info_plist(&plist_path, &asar_path).expect("plist update should succeed");
+
+        assert_eq!(preserved_original, original);
+        assert!(
+            fs::read(&plist_path)
+                .expect("updated plist should be readable")
+                .starts_with(expected_prefix)
+        );
+        assert_eq!(installed_hash(&plist_path), hash);
+        assert_eq!(hash.len(), SHA256_HEX_LENGTH);
+        fs::remove_dir_all(directory).expect("test directory should be removed");
+    }
+
+    #[test]
+    fn updates_xml_plist_atomically() {
+        assert_plist_update("xml", INFO_PLIST_XML.to_vec(), b"<?xml");
+    }
+
+    #[test]
+    fn preserves_binary_plist_format() {
+        let plist = PlistValue::from_reader(std::io::Cursor::new(INFO_PLIST_XML))
+            .expect("test XML plist should parse");
+        let mut binary = Vec::new();
+        plist
+            .to_writer_binary(&mut binary)
+            .expect("test binary plist should serialize");
+
+        assert_plist_update("binary", binary, b"bplist");
+    }
 }

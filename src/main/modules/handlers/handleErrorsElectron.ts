@@ -3,17 +3,27 @@ import path from 'path'
 import logger from '../logger'
 import { app } from 'electron'
 import { t } from '../../i18n'
+import { captureMainException } from '../errorTracking'
 
 const CRASH_FILE = path.join(app.getPath('appData'), 'PulseSync', 'logs', 'crash_app.log')
 
 export class HandleErrorsElectron {
-    public static handleError(className: string, method: string, block: string, error: unknown): void {
+    public static handleError(
+        className: string,
+        method: string,
+        block: string,
+        error: unknown,
+        options: { capture: boolean } = { capture: true },
+    ): void {
         try {
             const errorObj = error instanceof Error ? error : new Error(String(error))
             const errorContext = `${className}/${method}/${block}:${errorObj.message}`
             const errorMessage = HandleErrorsElectron.formatLogMessage('ERROR', errorContext, errorObj.stack || errorObj.message)
 
             HandleErrorsElectron.storeCrash(errorMessage)
+            if (options.capture) {
+                captureMainException(errorObj, `${className}/${method}/${block}`)
+            }
         } catch (internalError) {
             logger.main.error(t('main.handleErrors.internalError'), internalError)
         }

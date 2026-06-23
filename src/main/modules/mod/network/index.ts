@@ -448,6 +448,7 @@ export async function downloadAndExtractUnpacked(
         return true
     } catch (err: any) {
         logger.modManager.error('Failed to download/extract unpacked:', err)
+        HandleErrorsElectron.handleError('downloadAndExtractUnpacked', 'pipeline', 'catch', err)
         if (isLinuxAccessError(err)) {
             reportFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' }, onFailure)
             return false
