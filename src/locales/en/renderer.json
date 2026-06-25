@@ -793,6 +793,10 @@
         "installAction": "Install",
         "installErrorTitle": "Install error",
         "installUpdateTooltip": "Install update",
+        "authRequired": {
+            "description": "This section is available only after you sign in. Sign in first, then open it again.",
+            "title": "Sign in required"
+        },
         "installedVersionOutdated": "Installed version ({{version}}) is outdated",
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
