@@ -1,4 +1,4 @@
-import React, { useContext } from 'react'
+import React, { useCallback, useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import MainEvents from '@common/types/mainEvents'
 import { MdDownload, MdHandyman, MdHome, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
@@ -17,6 +17,7 @@ import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
 import ModUpdateBanner from '@widgets/layout/ui/ModUpdateBanner'
+import { useNavigate } from 'react-router-dom'
 
 interface LayoutProps {
     title: string
@@ -29,6 +30,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
+    const navigate = useNavigate()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { isModUpdateAvailable, modInstallError, startUpdate, isUserDeveloper } = useLayoutInstallers({
         app,
@@ -49,6 +51,18 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     })
     const storePageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
     const usersPageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
+    const openAuthRequiredModal = useCallback(
+        (event: React.MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault()
+            openModal(Modals.BASIC_CONFIRMATION, {
+                title: t('layout.authRequired.title'),
+                description: t('layout.authRequired.description'),
+                confirmLabel: t('header.login'),
+                onConfirm: () => navigate('/auth'),
+            })
+        },
+        [Modals.BASIC_CONFIRMATION, navigate, openModal, t],
+    )
 
     if (!modInfoFetched) {
         return <Preloader />
@@ -70,21 +84,24 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                             <NavButtonPulse
                                 to="/extensions"
                                 text={t('layout.nav.addonsBeta').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
-                                disabled={isAutonomousMode || !musicInstalled}
+                                disabled={!musicInstalled}
+                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
                                 <MdPower size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/store"
                                 text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
-                                disabled={isAutonomousMode || !storePageEnabled || !musicInstalled}
+                                disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
+                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
                                 <MdStoreMallDirectory size={24} />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/users"
                                 text={t('layout.nav.users').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
-                                disabled={isAutonomousMode || !usersPageEnabled || !musicInstalled}
+                                disabled={!musicInstalled || (!isAutonomousMode && !usersPageEnabled)}
+                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
                                 <MdPeople size={24} />
                             </NavButtonPulse>

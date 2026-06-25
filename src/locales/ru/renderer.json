@@ -793,6 +793,10 @@
         "installAction": "Установить",
         "installErrorTitle": "Ошибка установки",
         "installUpdateTooltip": "Установить обновление",
+        "authRequired": {
+            "description": "Этот раздел доступен только после входа в учётную запись. Сначала войди, потом открой его снова.",
+            "title": "Нужен вход в аккаунт"
+        },
         "installedVersionOutdated": "Установленная версия ({{version}}) устарела",
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",

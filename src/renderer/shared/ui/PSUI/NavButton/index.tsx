@@ -8,7 +8,7 @@ interface NavButtonPulseProps {
     text: string
     children: React.ReactNode
     disabled?: boolean
-    onClick?: () => void
+    onClick?: React.MouseEventHandler<HTMLAnchorElement>
     tipEnabled?: boolean
     end?: boolean
 }
