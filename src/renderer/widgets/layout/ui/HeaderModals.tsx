@@ -74,18 +74,18 @@ export default function HeaderModals({
                     {!loadingAppUpdates &&
                         !appError &&
                         visibleAppUpdates.map(info => (
-                                <div key={info.id} className={modalStyles.updateItem}>
-                                    <div className={modalStyles.version_info}>
-                                        <h3>{info.version}</h3>
-                                        <span>{formatDate(info.createdAt)}</span>
-                                    </div>
-                                    <div className={modalStyles.remerkStyle}>
-                                        <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
-                                            {info.changelog}
-                                        </ReactMarkdown>
-                                    </div>
+                            <div key={info.id} className={modalStyles.updateItem}>
+                                <div className={modalStyles.version_info}>
+                                    <h3>{info.version}</h3>
+                                    <span>{formatDate(info.createdAt)}</span>
                                 </div>
-                            ))}
+                                <div className={modalStyles.remerkStyle}>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={{ a: LinkRenderer }}>
+                                        {info.changelog}
+                                    </ReactMarkdown>
+                                </div>
+                            </div>
+                        ))}
                     {!loadingAppUpdates && !appError && visibleAppUpdates.length === 0 && <p>{t('header.noChangelogFound')}</p>}
                 </div>
             </Modal>

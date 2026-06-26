@@ -81,7 +81,8 @@ const ProfilePage: React.FC = () => {
             return payload
         }
 
-        const hasLiveAchievementData = (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
+        const hasLiveAchievementData =
+            (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
         const liveStatus = socketConnected ? 'online' : user.status || payload.status
         const liveLastOnline = user.lastOnline || payload.lastOnline
 

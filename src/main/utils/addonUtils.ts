@@ -1,4 +1,3 @@
-import { app } from 'electron'
 import path from 'path'
 import * as fs from 'original-fs'
 import { getFolderSize, formatSizeUnits } from './appUtils'
@@ -9,6 +8,7 @@ import { getState } from '../modules/state'
 import * as acorn from 'acorn'
 import { simple as walkSimple } from 'acorn-walk'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
+import { getAddonsRoot } from './addonPaths'
 
 const State = getState()
 const defaultAddon: Partial<Addon> = {
@@ -35,9 +35,7 @@ let loadAddonsInFlight: Promise<Addon[]> | null = null
 const normalizeRelationValues = (value: unknown): string[] => {
     if (!Array.isArray(value)) return []
 
-    return value
-        .map(entry => String(entry || '').trim())
-        .filter(Boolean)
+    return value.map(entry => String(entry || '').trim()).filter(Boolean)
 }
 
 export function createDefaultAddonIfNotExists(themesFolderPath: string) {
@@ -84,7 +82,7 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
 }
 
 async function loadAddonsInternal(): Promise<Addon[]> {
-    const addonsFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const addonsFolderPath = getAddonsRoot()
 
     createDefaultAddonIfNotExists(addonsFolderPath)
 
@@ -161,11 +159,9 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                     metadata.installSource === 'store' || metadata.installSource === 'local' ? metadata.installSource : null
                 const inferredLegacyStoreInstall =
                     !!metadata.storeAddonId &&
-                    (currentFolder === String(metadata.storeAddonId).trim() || String(metadata.id || '').trim() === String(metadata.storeAddonId).trim())
-                const resolvedInstallSource =
-                    normalizedInstallSource || inferredLegacyStoreInstall
-                        ? normalizedInstallSource || 'store'
-                        : 'local'
+                    (currentFolder === String(metadata.storeAddonId).trim() ||
+                        String(metadata.id || '').trim() === String(metadata.storeAddonId).trim())
+                const resolvedInstallSource = normalizedInstallSource || inferredLegacyStoreInstall ? normalizedInstallSource || 'store' : 'local'
                 if (metadata.installSource !== resolvedInstallSource) {
                     metadata.installSource = resolvedInstallSource
                     metadataChanged = true
@@ -231,6 +227,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 }
 
                 metadata.lastModified = diffString
+                metadata.lastModifiedAt = modificationDate.getTime()
                 metadata.path = addonFolderPath
                 metadata.size = formatSizeUnits(folderSize)
                 metadata.directoryName = currentFolder
@@ -290,13 +287,9 @@ async function loadAddonsInternal(): Promise<Addon[]> {
 
         try {
             await fs.promises.rm(shadowedPath, { recursive: true, force: true })
-            logger.main.info(
-                `Addons: removed duplicate ${reason} folder ${shadowedAddon.directoryName}. Keeping ${preferredAddon.directoryName}.`,
-            )
+            logger.main.info(`Addons: removed duplicate ${reason} folder ${shadowedAddon.directoryName}. Keeping ${preferredAddon.directoryName}.`)
         } catch (error) {
-            logger.main.warn(
-                `Addons: failed to remove duplicate ${reason} folder ${shadowedAddon.directoryName}: ${String(error)}`,
-            )
+            logger.main.warn(`Addons: failed to remove duplicate ${reason} folder ${shadowedAddon.directoryName}: ${String(error)}`)
         }
     }
 
@@ -487,7 +480,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
         return true
     }
 
-    const requestedTheme = selectedTheme !== 'Default' ? addonByDirectory.get(selectedTheme) ?? null : null
+    const requestedTheme = selectedTheme !== 'Default' ? (addonByDirectory.get(selectedTheme) ?? null) : null
     if (requestedTheme && !activateAddon(requestedTheme)) {
         selectedTheme = 'Default'
     }

@@ -66,11 +66,7 @@ const buildExecutablePathMap = (entries: Array<[ExecutableTargetKey, string | nu
     return new Map(entries.filter((entry): entry is [ExecutableTargetKey, string] => typeof entry[1] === 'string'))
 }
 
-const getInstallerBaseDir = (
-    toolName: 'ffmpeg' | 'yt-dlp',
-    platform: SupportedPlatform,
-    context: Required<SubmoduleContext>,
-): string | null => {
+const getInstallerBaseDir = (toolName: 'ffmpeg' | 'yt-dlp', platform: SupportedPlatform, context: Required<SubmoduleContext>): string | null => {
     if (platform === 'linux') {
         return context.userDataPath ? path.join(context.userDataPath, toolName) : null
     }

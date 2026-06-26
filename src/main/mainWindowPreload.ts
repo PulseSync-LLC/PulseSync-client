@@ -52,7 +52,7 @@ contextBridge.exposeInMainWorld('electron', {
         },
         isMaximized() {
             return ipcRenderer.invoke(MainEvents.ELECTRON_WINDOW_IS_MAXIMIZED)
-        }
+        },
     },
     isAppDev() {
         return ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)

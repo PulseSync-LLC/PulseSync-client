@@ -56,7 +56,12 @@ const SelectInput: React.FC<Props> = ({
             return options
         }
 
-        return options.filter(option => String(option.searchText ?? option.label).trim().toLowerCase().includes(normalizedQuery))
+        return options.filter(option =>
+            String(option.searchText ?? option.label)
+                .trim()
+                .toLowerCase()
+                .includes(normalizedQuery),
+        )
     }, [options, searchable, searchQuery])
 
     const idxByValue = useMemo(() => filteredOptions.findIndex(o => String(o.value) === String(value)), [filteredOptions, value])
@@ -127,8 +132,7 @@ const SelectInput: React.FC<Props> = ({
             if (next) {
                 updatePanelLayout()
                 setHover(idxByValue >= 0 ? idxByValue : 0)
-            }
-            else setSearchQuery('')
+            } else setSearchQuery('')
             return next
         })
     }

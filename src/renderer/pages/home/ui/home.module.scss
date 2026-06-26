@@ -12,9 +12,7 @@
     min-height: 0;
     padding: 18px;
     border-radius: 14px;
-    background:
-        linear-gradient(180deg, rgba(79, 87, 116, 0.08) 0%, rgba(79, 87, 116, 0) 100%),
-        #2f3446;
+    background: linear-gradient(180deg, rgba(79, 87, 116, 0.08) 0%, rgba(79, 87, 116, 0) 100%), #2f3446;
     border: 1px solid rgba(91, 100, 128, 0.55);
     box-sizing: border-box;
 }
@@ -36,7 +34,7 @@
 
 .panelHollow {
     min-height: 0;
-    gap: 10px
+    gap: 10px;
 }
 
 .newsPanel {
@@ -73,7 +71,7 @@
     font-weight: 900;
     font-size: 24px;
     line-height: 33px;
-    color: #F2F3F5;
+    color: #f2f3f5;
 }
 
 .newsSubtitle {
@@ -144,25 +142,46 @@
 }
 
 .ymItem {
-    background: conic-gradient(from 0deg at 100% 100%, #FED42B -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #FED42B 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg), #232632;
+    background: conic-gradient(
+            from 0deg at 100% 100%,
+            #fed42b -1.26deg,
+            rgba(0, 0, 0, 0.31) 8.08deg,
+            #fed42b 358.74deg,
+            rgba(0, 0, 0, 0.31) 368.08deg
+        ),
+        #232632;
 }
 
 .modItem {
-    background: conic-gradient(from 0deg at 100% 100%, #5865F2 -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #5865F2 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg), #232632;
+    background: conic-gradient(
+            from 0deg at 100% 100%,
+            #5865f2 -1.26deg,
+            rgba(0, 0, 0, 0.31) 8.08deg,
+            #5865f2 358.74deg,
+            rgba(0, 0, 0, 0.31) 368.08deg
+        ),
+        #232632;
     .actionButton {
-        color: #505BD8;
+        color: #505bd8;
         &:not(:disabled):active {
-            color: #505BD8;
+            color: #505bd8;
         }
     }
 }
 
 .clientItem {
-    background: conic-gradient(from 0deg at 100% 100%, #5865F2 -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #5865F2 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg), #232632;
+    background: conic-gradient(
+            from 0deg at 100% 100%,
+            #5865f2 -1.26deg,
+            rgba(0, 0, 0, 0.31) 8.08deg,
+            #5865f2 358.74deg,
+            rgba(0, 0, 0, 0.31) 368.08deg
+        ),
+        #232632;
     .actionButton {
-        color: #505BD8;
+        color: #505bd8;
         &:not(:disabled):active {
-            color: #505BD8;
+            color: #505bd8;
         }
     }
 }
@@ -179,12 +198,11 @@
     align-items: center;
     flex-grow: 0;
 
-    background: #3B4052;
+    background: #3b4052;
 
     .componentLogo {
         box-shadow: none;
     }
-
 }
 
 .secondaryItemMain {
@@ -225,7 +243,6 @@
     flex: none;
     order: 0;
     flex-grow: 1;
-
 }
 
 .componentTitle {
@@ -235,9 +252,8 @@
     font-weight: 700;
     font-size: 18px;
     line-height: 110%;
-    color: #FFFFFF;
+    color: #ffffff;
     user-select: text;
-
 }
 
 .componentVersion,
@@ -266,7 +282,7 @@
     padding: 10px;
     gap: 4px;
 
-    background: #FFFFFF;
+    background: #ffffff;
     border-radius: 8px;
 
     flex: none;
@@ -278,21 +294,21 @@
     font-size: 14px;
     line-height: 110%;
 
-    color: #C8A826;
+    color: #c8a826;
 
     transition:
         transform 0.16s ease,
         background-color 0.16s ease;
 
     &:not(:disabled):hover {
-        background: #FFFFFF;
+        background: #ffffff;
         transform: translateY(-1px);
     }
 
     &:not(:disabled):active {
         background: #ececec;
         transform: translateY(0);
-        color: #C8A826;
+        color: #c8a826;
     }
 
     &:disabled {
@@ -321,7 +337,7 @@
     padding: 10px;
     gap: 4px;
 
-    background: #FFFFFF;
+    background: #ffffff;
     border-radius: 8px;
 
     flex: none;
@@ -337,11 +353,11 @@
     margin-left: auto;
 
     transition:
-            transform 0.16s ease,
-            background-color 0.16s ease;
+        transform 0.16s ease,
+        background-color 0.16s ease;
 
     &:not(:disabled):hover {
-        background: #FFFFFF;
+        background: #ffffff;
         transform: translateY(-1px);
     }
 
@@ -420,8 +436,8 @@
 .newsFeaturedCard {
     overflow: hidden;
     border-radius: 16px;
-    background-color: #4D536B;
-    border: 1px solid #2A2A2A;
+    background-color: #4d536b;
+    border: 1px solid #2a2a2a;
     transition:
         transform 0.22s ease,
         border-color 0.22s ease;
@@ -448,8 +464,7 @@
 .newsListItemMediaFallback {
     position: absolute;
     inset: 0;
-    background:
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 30%),
+    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 30%),
         linear-gradient(135deg, #6073a7 0%, #32394f 55%, #232836 100%);
 }
 
@@ -558,10 +573,9 @@
 .newsListItem {
     overflow: hidden;
     border-radius: 16px;
-    background: #4D536B;
-    border: 1px solid #2A2A2A;
-    transition:
-        transform 0.18s ease;
+    background: #4d536b;
+    border: 1px solid #2a2a2a;
+    transition: transform 0.18s ease;
 
     &:hover,
     &:focus-visible {
@@ -587,9 +601,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    background:
-        radial-gradient(circle at top, rgba(144, 161, 214, 0.2) 0%, rgba(144, 161, 214, 0) 45%),
-        rgba(34, 39, 55, 0.76);
+    background: radial-gradient(circle at top, rgba(144, 161, 214, 0.2) 0%, rgba(144, 161, 214, 0) 45%), rgba(34, 39, 55, 0.76);
     border: 1px solid rgba(118, 131, 172, 0.24);
 }
 
@@ -645,7 +657,7 @@
 .newsSkeletonItemTitle {
     background: linear-gradient(90deg, rgba(115, 127, 164, 0.18) 0%, rgba(159, 173, 214, 0.28) 50%, rgba(115, 127, 164, 0.18) 100%);
     background-size: 220% 100%;
-    animation: newsShimmer 1.35s ease-in-out .75s infinite;
+    animation: newsShimmer 1.35s ease-in-out 0.75s infinite;
 }
 
 .newsSkeletonImage {

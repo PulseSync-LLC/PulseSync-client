@@ -166,8 +166,8 @@ export function filterAndSortAddons({
             })
         case 'date':
             return result.slice().sort((a, b) => {
-                const dateA = parseFloat(a.lastModified || '0') || 0
-                const dateB = parseFloat(b.lastModified || '0') || 0
+                const dateA = Number(a.lastModifiedAt) || 0
+                const dateB = Number(b.lastModifiedAt) || 0
                 return sortOrder === 'asc' ? dateA - dateB : dateB - dateA
             })
         case 'size':

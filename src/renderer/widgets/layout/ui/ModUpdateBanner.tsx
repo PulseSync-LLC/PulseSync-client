@@ -20,14 +20,7 @@ type Props = {
     t: (key: string, options?: Record<string, any>) => string
 }
 
-export default function ModUpdateBanner({
-    app,
-    isModUpdateAvailable,
-    modInstallError,
-    modInfo,
-    onStartUpdate,
-    t,
-}: Props) {
+export default function ModUpdateBanner({ app, isModUpdateAvailable, modInstallError, modInfo, onStartUpdate, t }: Props) {
     if (!isModUpdateAvailable) return null
 
     return (
@@ -65,7 +58,7 @@ export default function ModUpdateBanner({
                             {modInstallError?.showProxyHint && (
                                 <div className={pageStyles.patch_error_message}>
                                     <div>{t('layout.modInstallErrorProxyHint')}</div>
-                                    {modInstallProxyDomains.map((domain) => (
+                                    {modInstallProxyDomains.map(domain => (
                                         <div key={domain}>{domain}</div>
                                     ))}
                                 </div>

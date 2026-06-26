@@ -196,16 +196,19 @@ export default function StorePage() {
     const hasSearchOrFilter = Boolean(debouncedSearchQuery) || typeFilter !== 'all'
     const shouldShowPendingSection = isDeveloperUser && (pendingAddons.length > 0 || hasSearchOrFilter)
 
-    const handleSortOptionClick = useCallback((option: StoreSortKey) => {
-        setSortKey(option)
-        setSortOrder(currentOrder => {
-            if (sortKey === option) {
-                return currentOrder === 'asc' ? 'desc' : 'asc'
-            }
+    const handleSortOptionClick = useCallback(
+        (option: StoreSortKey) => {
+            setSortKey(option)
+            setSortOrder(currentOrder => {
+                if (sortKey === option) {
+                    return currentOrder === 'asc' ? 'desc' : 'asc'
+                }
 
-            return getDefaultSortOrder(option)
-        })
-    }, [sortKey])
+                return getDefaultSortOrder(option)
+            })
+        },
+        [sortKey],
+    )
 
     const handleStoreAddonAction = useCallback(
         async (addon: StoreAddon, release: StoreAddon['currentRelease'], installedStoreAddon?: Addon) => {
@@ -422,7 +425,8 @@ export default function StorePage() {
     const shimmerCount = useMemo(() => {
         const columns = Math.max(1, gridColumns)
         const fallbackViewportHeight =
-            scrollViewportHeight || (typeof window === 'undefined' ? STORE_CARD_MIN_HEIGHT * 2 : Math.max(window.innerHeight - 220, STORE_CARD_MIN_HEIGHT * 2))
+            scrollViewportHeight ||
+            (typeof window === 'undefined' ? STORE_CARD_MIN_HEIGHT * 2 : Math.max(window.innerHeight - 220, STORE_CARD_MIN_HEIGHT * 2))
         const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
         const rows = Math.max(2, Math.ceil(fallbackViewportHeight / rowHeight) + 1)
 
@@ -595,9 +599,11 @@ export default function StorePage() {
                                                           : t('store.filters.downloads')}
                                                 </span>
                                                 {sortKey === option &&
-                                                    (sortOrder === 'asc' ?
+                                                    (sortOrder === 'asc' ? (
                                                         <MdKeyboardArrowUp className={st.store_filterChipDirection} />
-                                                    :   <MdKeyboardArrowDown className={st.store_filterChipDirection} />)}
+                                                    ) : (
+                                                        <MdKeyboardArrowDown className={st.store_filterChipDirection} />
+                                                    ))}
                                             </span>
                                         </button>
                                     ))}

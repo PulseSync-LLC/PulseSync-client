@@ -6,11 +6,7 @@ export interface StoreAddonMetric {
 }
 
 export function buildStoreAddonMetrics(addons: Addon[], currentTheme: string, enabledScripts: string[]): StoreAddonMetric[] {
-    const enabledScriptsSet = new Set(
-        enabledScripts
-            .map(script => String(script || '').trim())
-            .filter(Boolean),
-    )
+    const enabledScriptsSet = new Set(enabledScripts.map(script => String(script || '').trim()).filter(Boolean))
     const metricsMap = new Map<string, StoreAddonMetric>()
 
     for (const addon of addons) {

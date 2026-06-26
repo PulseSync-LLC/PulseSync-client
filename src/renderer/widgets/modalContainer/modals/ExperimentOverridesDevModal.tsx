@@ -248,7 +248,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
                         {sortedExperiments.map(experiment => {
                             const isSelected = experiment.key === selectedKey
                             const hasOverride = Boolean(localOverrides[experiment.key])
-                            const activeExperiment = hasOverride ? localOverrides[experiment.key] : experiments.find(active => active.key === experiment.key)
+                            const activeExperiment = hasOverride
+                                ? localOverrides[experiment.key]
+                                : experiments.find(active => active.key === experiment.key)
 
                             return (
                                 <button
@@ -263,7 +265,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                     </div>
                                     <div className={styles.metaRow}>
                                         <span className={styles.metaChip}>{activeExperiment?.group || t('header.devOverrides.noGroup')}</span>
-                                        <span className={styles.metaChip}>{t('header.devOverrides.groupsCount', { count: experiment.groups.length })}</span>
+                                        <span className={styles.metaChip}>
+                                            {t('header.devOverrides.groupsCount', { count: experiment.groups.length })}
+                                        </span>
                                     </div>
                                 </button>
                             )
@@ -291,7 +295,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                         {selectedExperiment.description && <p className={styles.formDescription}>{selectedExperiment.description}</p>}
                                     </div>
                                     <div className={styles.metaRow}>
-                                        <span className={styles.metaChip}>{t('header.devOverrides.groupsCount', { count: selectedExperiment.groups.length })}</span>
+                                        <span className={styles.metaChip}>
+                                            {t('header.devOverrides.groupsCount', { count: selectedExperiment.groups.length })}
+                                        </span>
                                         {selectedOverride && <span className={styles.metaChipActive}>{t('header.devOverrides.overrideActive')}</span>}
                                     </div>
                                 </div>
@@ -308,7 +314,9 @@ const ExperimentOverridesDevModal: React.FC = () => {
                                             >
                                                 <div className={styles.itemTop}>
                                                     <span className={styles.groupButtonName}>{group.group}</span>
-                                                    <span className={styles.metaChip}>{t('header.devOverrides.groupRollout', { percentage: group.rollout })}</span>
+                                                    <span className={styles.metaChip}>
+                                                        {t('header.devOverrides.groupRollout', { percentage: group.rollout })}
+                                                    </span>
                                                 </div>
                                                 <div className={styles.groupDescription}>
                                                     {group.description || t('header.devOverrides.groupDescriptionEmpty')}

@@ -31,7 +31,6 @@ export default function HomePrimaryComponentsSection({ items, versions, isModIns
             <div className={styles.primaryList}>
                 {items.map(item => (
                     <article className={cn(styles.primaryItem, itemClassnameMap[item.id])} key={item.id}>
-
                         <img className={styles.componentLogo} src={staticAsset(`assets/${item.iconAsset}`)} alt="" aria-hidden="true" />
 
                         <div className={styles.componentMeta}>

@@ -306,7 +306,12 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
                 return item.defaultValue !== (base as ButtonItem).defaultValue
             case 'slider': {
                 const baseSlider = base as SliderItem
-                return item.min !== baseSlider.min || item.max !== baseSlider.max || item.step !== baseSlider.step || item.defaultValue !== baseSlider.defaultValue
+                return (
+                    item.min !== baseSlider.min ||
+                    item.max !== baseSlider.max ||
+                    item.step !== baseSlider.step ||
+                    item.defaultValue !== baseSlider.defaultValue
+                )
             }
             case 'color':
                 return item.defaultValue !== (base as ColorItem).defaultValue

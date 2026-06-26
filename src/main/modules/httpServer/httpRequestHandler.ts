@@ -1,11 +1,11 @@
 import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { app } from 'electron'
 import { parse } from 'url'
 import type { Track } from '@entities/track/model/track.interface'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
 import { buildCorsHeaders } from './cors'
+import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../../utils/addonPaths'
 
 interface LoggerLike {
     http: {
@@ -82,8 +82,6 @@ const findAssetsDirectory = (basePath: string): string | null => {
     return null
 }
 
-const getAddonRoot = () => path.join(app.getPath('appData'), 'PulseSync', 'addons')
-
 const imageMimes: Record<string, string> = {
     jpg: 'image/jpeg',
     png: 'image/png',
@@ -113,7 +111,8 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
-            const addonPath = path.join(getAddonRoot(), directory)
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
             const assetsDir = findAssetsDirectory(addonPath)
             if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
 
@@ -135,14 +134,17 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
             const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
-            const assetsDir = findAssetsDirectory(path.join(getAddonRoot(), directory))
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
+
+            const assetsDir = findAssetsDirectory(addonPath)
             if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
 
             const fileName = pathname!.substring(ASSET_PREFIX.length)
             const filePath = findFileInDirectory(fileName, assetsDir)
             logger.http.log('File Path:', filePath)
 
-            if (!filePath) return sendJson(res, 404, { error: 'File not found' })
+            if (!filePath || !resolveExistingPathInsideBase(assetsDir, filePath)) return sendJson(res, 404, { error: 'File not found' })
 
             const ext = path.extname(filePath).slice(1)
             res.writeHead(200, { 'Content-Type': imageMimes[ext] || 'application/octet-stream' })
@@ -165,8 +167,11 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
                 return sendJson(res, 400, { ok: false, error: 'Remote URLs are not served by this endpoint.' })
             }
 
-            const targetPath = path.join(getAddonRoot(), directory, fileName)
-            if (!fs.existsSync(targetPath) || !fs.statSync(targetPath).isFile()) {
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
+
+            const targetPath = resolveExistingFileInsideBase(addonPath, fileName)
+            if (!targetPath) {
                 return sendJson(res, 404, { error: 'File not found in addon root' })
             }
 

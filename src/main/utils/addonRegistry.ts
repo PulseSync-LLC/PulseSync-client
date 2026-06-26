@@ -1,7 +1,7 @@
-import { app } from 'electron'
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { resolveAddonPublicationFingerprint } from './addonIdentity'
+import { getAddonsRoot } from './addonPaths'
 
 type AddonMetadataRecord = {
     author?: string | string[]
@@ -14,12 +14,10 @@ type AddonMetadataRecord = {
     type?: string
 }
 
-const getAddonRoot = () => path.join(app.getPath('appData'), 'PulseSync', 'addons')
-
 const readText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
 
 export const listAddonMetadata = (): AddonMetadataRecord[] => {
-    const addonsRoot = getAddonRoot()
+    const addonsRoot = getAddonsRoot()
 
     let folders: string[] = []
     try {
@@ -56,7 +54,7 @@ export const resolveAddonDirectory = (ref: unknown): string => {
     const raw = readText(ref)
     if (!raw) return ''
 
-    const directPath = path.join(getAddonRoot(), raw)
+    const directPath = path.join(getAddonsRoot(), raw)
     if (fs.existsSync(directPath) && fs.statSync(directPath).isDirectory()) {
         return raw
     }

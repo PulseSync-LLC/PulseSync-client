@@ -90,7 +90,13 @@ export function createHttpClient({ baseUrl, defaultHeaders, getAuthToken, transp
 
         let body: BodyInit | string | undefined
 
-        if (typeof options.body === 'string' || isFormData(options.body) || isBlob(options.body) || isArrayBuffer(options.body) || isUrlSearchParams(options.body)) {
+        if (
+            typeof options.body === 'string' ||
+            isFormData(options.body) ||
+            isBlob(options.body) ||
+            isArrayBuffer(options.body) ||
+            isUrlSearchParams(options.body)
+        ) {
             body = options.body
         } else if (isJsonBody(options.body)) {
             body = JSON.stringify(options.body)

@@ -39,9 +39,18 @@ function PublicationCheckbox({ checked, onChange, children }: PublicationCheckbo
 const ExtensionPublicationModal: React.FC = () => {
     const { t, i18n } = useTranslation()
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
-    const { addon, authorsDisplay, publication, publicationBusy, changelogText, githubUrlText, onChangeChangelog, onChangeGithubUrl, onPublish, onUpdate } = getModalState(
-        Modals.EXTENSION_PUBLICATION_MODAL,
-    )
+    const {
+        addon,
+        authorsDisplay,
+        publication,
+        publicationBusy,
+        changelogText,
+        githubUrlText,
+        onChangeChangelog,
+        onChangeGithubUrl,
+        onPublish,
+        onUpdate,
+    } = getModalState(Modals.EXTENSION_PUBLICATION_MODAL)
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)

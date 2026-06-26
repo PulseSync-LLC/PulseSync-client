@@ -95,7 +95,7 @@
     }
 
     span:not(:last-child)::after {
-        content: "";
+        content: '';
         width: 4px;
         height: 4px;
         display: inline-flex;
@@ -173,7 +173,7 @@
     background: #2c313d;
 
     &::after {
-        content: "";
+        content: '';
         position: absolute;
         inset: 0;
         transform: translateX(-100%);
@@ -340,7 +340,7 @@
     }
 
     span:not(:last-child)::after {
-        content: "";
+        content: '';
         width: 3px;
         height: 3px;
         display: inline-flex;

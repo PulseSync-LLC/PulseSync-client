@@ -451,7 +451,9 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
             const foundUser = response.data?.findUserByName
             const normalizedInput = normalizeComparableText(trimmedValue)
-            const exactMatchExists = [foundUser?.username, foundUser?.nickname].some(candidate => normalizeComparableText(candidate) === normalizedInput)
+            const exactMatchExists = [foundUser?.username, foundUser?.nickname].some(
+                candidate => normalizeComparableText(candidate) === normalizedInput,
+            )
             const canonicalAuthor = getProfileSlug(foundUser)
 
             if (!exactMatchExists || !canonicalAuthor) {
@@ -513,23 +515,17 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             .filter(addon => !(draft.storeAddonId && addon.id === draft.storeAddonId))
             .filter(addon => !(draft.id && addon.id === draft.id))
 
-        const normalizedNameCounts = relationCandidates.reduce(
-            (acc, addon) => {
-                const key = addon.name.trim().toLowerCase()
-                acc.set(key, (acc.get(key) || 0) + 1)
-                return acc
-            },
-            new Map<string, number>(),
-        )
+        const normalizedNameCounts = relationCandidates.reduce((acc, addon) => {
+            const key = addon.name.trim().toLowerCase()
+            acc.set(key, (acc.get(key) || 0) + 1)
+            return acc
+        }, new Map<string, number>())
 
         return relationCandidates
             .map(addon => {
                 const normalizedName = addon.name.trim().toLowerCase()
                 const hasDuplicateName = (normalizedNameCounts.get(normalizedName) || 0) > 1
-                const suffixParts = [
-                    hasDuplicateName ? addon.type : '',
-                    addon.currentRelease?.version?.trim() || '',
-                ].filter(Boolean)
+                const suffixParts = [hasDuplicateName ? addon.type : '', addon.currentRelease?.version?.trim() || ''].filter(Boolean)
                 const label = suffixParts.length ? `${addon.name} (${suffixParts.join(' • ')})` : addon.name
 
                 return {
@@ -541,7 +537,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             .sort((left, right) => left.label.localeCompare(right.label))
     }, [availableAddons, draft.id, draft.storeAddonId])
 
-    const relationOptions = useMemo(() => relationOptionRecords.map(({ value, label, searchText }) => ({ value, label, searchText })), [relationOptionRecords])
+    const relationOptions = useMemo(
+        () => relationOptionRecords.map(({ value, label, searchText }) => ({ value, label, searchText })),
+        [relationOptionRecords],
+    )
 
     const relationLabelMap = useMemo(() => {
         const entries = new Map<string, string>()
@@ -648,13 +647,19 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
         setter(prev => prev.filter(entry => entry !== value))
     }, [])
 
-    const removeDependency = useCallback((value: string) => {
-        removeRelation(value, setModalDependenciesDraft)
-    }, [removeRelation])
+    const removeDependency = useCallback(
+        (value: string) => {
+            removeRelation(value, setModalDependenciesDraft)
+        },
+        [removeRelation],
+    )
 
-    const removeConflict = useCallback((value: string) => {
-        removeRelation(value, setModalConflictsDraft)
-    }, [removeRelation])
+    const removeConflict = useCallback(
+        (value: string) => {
+            removeRelation(value, setModalConflictsDraft)
+        },
+        [removeRelation],
+    )
 
     const removeAllowedUrl = useCallback((value: string) => {
         setModalAllowedUrlsDraft(prev => prev.filter(entry => entry !== value))
@@ -782,24 +787,27 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
         [resolvePulseAuthor],
     )
 
-    const removeAuthor = useCallback((value: string) => {
-        if (normalizeComparableText(value) === normalizeComparableText(selfAuthorSlug)) {
-            toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.selfRemovalBlocked'))
-            return
-        }
+    const removeAuthor = useCallback(
+        (value: string) => {
+            if (normalizeComparableText(value) === normalizeComparableText(selfAuthorSlug)) {
+                toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.selfRemovalBlocked'))
+                return
+            }
 
-        if (selectedAuthors.length <= 1) {
-            toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.minimumOneAuthor'))
-            return
-        }
+            if (selectedAuthors.length <= 1) {
+                toast.custom('info', t('common.attentionTitle'), t('metadata.authorsEditor.minimumOneAuthor'))
+                return
+            }
 
-        setDraft(prev => ({
-            ...prev,
-            author: splitAuthorEntries(prev.author)
-                .filter(entry => normalizeComparableText(entry) !== normalizeComparableText(value))
-                .join(', '),
-        }))
-    }, [selectedAuthors.length, selfAuthorSlug, t])
+            setDraft(prev => ({
+                ...prev,
+                author: splitAuthorEntries(prev.author)
+                    .filter(entry => normalizeComparableText(entry) !== normalizeComparableText(value))
+                    .join(', '),
+            }))
+        },
+        [selectedAuthors.length, selfAuthorSlug, t],
+    )
 
     if (loading) {
         return <MetadataSkeleton />
@@ -812,7 +820,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             <div className={css.metaGrid}>
                 <div className={`${css.metaWide} ${css.metaSplit}`}>
                     <div className={css.metaMainColumn}>
-                        <TextInput name="meta-name" label={t('metadata.labels.name')} value={draft.name} onChange={value => setField('name', value)} />
+                        <TextInput
+                            name="meta-name"
+                            label={t('metadata.labels.name')}
+                            value={draft.name}
+                            onChange={value => setField('name', value)}
+                        />
                         <TextInput
                             name="meta-description"
                             label={t('metadata.labels.description')}
@@ -861,7 +874,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                             setAuthorSearchOpen(true)
                                         }}
                                         onFocus={() => setAuthorSearchOpen(true)}
-                                        placeholder={selectedAuthors.length ? t('metadata.authorsEditor.searchPlaceholder') : t('metadata.authorsEditor.requiredPlaceholder')}
+                                        placeholder={
+                                            selectedAuthors.length
+                                                ? t('metadata.authorsEditor.searchPlaceholder')
+                                                : t('metadata.authorsEditor.requiredPlaceholder')
+                                        }
                                     />
                                 </div>
 
@@ -1120,7 +1137,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                     {modalDependenciesDraft.map(dependencyId => (
                                         <div key={dependencyId} className={css.listEditorRow}>
                                             <div className={css.listEditorRowValue}>{relationLabelMap.get(dependencyId) || dependencyId}</div>
-                                            <button type="button" className={css.listEditorRemoveButton} onClick={() => removeDependency(dependencyId)}>
+                                            <button
+                                                type="button"
+                                                className={css.listEditorRemoveButton}
+                                                onClick={() => removeDependency(dependencyId)}
+                                            >
                                                 <MdClose size={16} />
                                             </button>
                                         </div>

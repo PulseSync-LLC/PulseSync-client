@@ -43,7 +43,9 @@ function getGithubRequestHeaders(): Record<string, string> {
 }
 
 export function normalizeGitHubTagVersion(tagName: string): string {
-    return String(tagName || '').trim().replace(/^v(?=\d)/u, '')
+    return String(tagName || '')
+        .trim()
+        .replace(/^v(?=\d)/u, '')
 }
 
 export async function listGitHubReleases(repo: GitHubRepo, perPage = 20): Promise<GitHubRelease[]> {

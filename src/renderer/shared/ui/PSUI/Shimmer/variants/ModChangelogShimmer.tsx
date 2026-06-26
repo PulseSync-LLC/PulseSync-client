@@ -18,11 +18,7 @@ export default function ModChangelogShimmer() {
                                     {Array.from({ length: bulletCount }, (_, bulletIndex) => (
                                         <div key={bulletIndex} className={styles.bulletRow}>
                                             <div className={styles.bulletDot} />
-                                            <div
-                                                className={
-                                                    bulletIndex === bulletCount - 1 ? styles.bulletLineShort : styles.bulletLine
-                                                }
-                                            />
+                                            <div className={bulletIndex === bulletCount - 1 ? styles.bulletLineShort : styles.bulletLine} />
                                         </div>
                                     ))}
                                 </div>

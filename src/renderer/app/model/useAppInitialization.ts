@@ -55,7 +55,7 @@ export function useAppInitialization({
                 window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
                 window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
             ])
-            const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : ((musicVersion as string | null | undefined) || null)
+            const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : (musicVersion as string | null | undefined) || null
 
             setMusicInstalled(!!musicStatus)
             setMusicVersion(resolvedMusicVersion)
@@ -85,9 +85,12 @@ export function useAppInitialization({
 
         void initializeApp()
 
-        const modCheckId = setInterval(() => {
-            void fetchModInfo(appRef.current)
-        }, 10 * 60 * 1000)
+        const modCheckId = setInterval(
+            () => {
+                void fetchModInfo(appRef.current)
+            },
+            10 * 60 * 1000,
+        )
 
         return () => {
             clearInterval(modCheckId)

@@ -237,7 +237,7 @@ const Header: React.FC<p> = () => {
     const [loadingModChanges, setLoadingModChanges] = useState(false)
     const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
-    const [isMac, setIsMac] = useState(window.electron.isMac());
+    const [isMac, setIsMac] = useState(window.electron.isMac())
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
     const modChangesLoadedKeyRef = useRef<string | null>(null)
@@ -263,18 +263,18 @@ const Header: React.FC<p> = () => {
             setAppError(null)
 
             try {
-                const nextAppUpdates = isAutonomousMode ?
-                        (((await window.desktopEvents?.invoke(MainEvents.GET_CLIENT_CHANGELOG)) as AppInfoInterface[] | undefined) ?? [])
-                    :   await (async () => {
-                            const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
-                            const data = response.data
+                const nextAppUpdates = isAutonomousMode
+                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_CLIENT_CHANGELOG)) as AppInfoInterface[] | undefined) ?? [])
+                    : await (async () => {
+                          const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
+                          const data = response.data
 
-                            if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
-                                throw new Error('Failed to fetch app info')
-                            }
+                          if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
+                              throw new Error('Failed to fetch app info')
+                          }
 
-                            return data.appInfo
-                        })()
+                          return data.appInfo
+                      })()
 
                 if (!active) {
                     return
@@ -321,19 +321,19 @@ const Header: React.FC<p> = () => {
             setModError(null)
 
             try {
-                const nextModChanges = isAutonomousMode ?
-                        ((((await window.desktopEvents?.invoke(MainEvents.GET_MOD_CHANGELOG)) as ModChangelogEntry[] | undefined) ?? []).filter(
-                            entry => compareVersions(entry.version, app.mod.version || '') <= 0,
-                        ))
-                    :   await (async () => {
-                            const result = await client.query<GetModUpdatesResponse, { modVersion: string }>({
-                                query: GetModUpdates,
-                                variables: { modVersion: app.mod.version || '' },
-                                fetchPolicy: 'no-cache',
-                            })
+                const nextModChanges = isAutonomousMode
+                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_MOD_CHANGELOG)) as ModChangelogEntry[] | undefined) ?? []).filter(
+                          entry => compareVersions(entry.version, app.mod.version || '') <= 0,
+                      )
+                    : await (async () => {
+                          const result = await client.query<GetModUpdatesResponse, { modVersion: string }>({
+                              query: GetModUpdates,
+                              variables: { modVersion: app.mod.version || '' },
+                              fetchPolicy: 'no-cache',
+                          })
 
-                            return Array.isArray(result.data?.getChangelogEntries) ? result.data.getChangelogEntries : []
-                        })()
+                          return Array.isArray(result.data?.getChangelogEntries) ? result.data.getChangelogEntries : []
+                      })()
 
                 if (!active) {
                     return
@@ -484,21 +484,23 @@ const Header: React.FC<p> = () => {
                                 </>
                             )}
                         </div>
-                        {!isMac && <div className={styles.button_container}>
-                            <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
-                                <Minus />
-                            </button>
-                            <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
-                                {isMaximized ? <Minimize /> : <Maximize />}
-                            </button>
-                            <button
-                                id="close"
-                                className={styles.button_title}
-                                onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
-                            >
-                                <Close />
-                            </button>
-                        </div>}
+                        {!isMac && (
+                            <div className={styles.button_container}>
+                                <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
+                                    <Minus />
+                                </button>
+                                <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
+                                    {isMaximized ? <Minimize /> : <Maximize />}
+                                </button>
+                                <button
+                                    id="close"
+                                    className={styles.button_title}
+                                    onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
+                                >
+                                    <Close />
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>

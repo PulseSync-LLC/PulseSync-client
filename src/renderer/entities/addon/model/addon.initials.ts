@@ -15,6 +15,7 @@ const AddonInitials: Addon[] = [
         version: '1.0.0',
         path: 'local',
         lastModified: '0',
+        lastModifiedAt: 0,
         size: '0',
         tags: [],
         type: 'theme',

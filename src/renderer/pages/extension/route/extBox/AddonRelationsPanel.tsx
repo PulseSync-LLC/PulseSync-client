@@ -59,7 +59,10 @@ const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) =>
             }
         })
 
-    const dependencyItems = useMemo(() => buildRelationItems(addon.dependencies, 'dependency'), [addon.dependencies, installedAddonMap, relationLabels])
+    const dependencyItems = useMemo(
+        () => buildRelationItems(addon.dependencies, 'dependency'),
+        [addon.dependencies, installedAddonMap, relationLabels],
+    )
     const conflictItems = useMemo(() => buildRelationItems(addon.conflictsWith, 'conflict'), [addon.conflictsWith, installedAddonMap, relationLabels])
 
     if (!dependencyItems.length && !conflictItems.length) {
@@ -69,40 +72,41 @@ const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) =>
     const renderCard = (item: RelationItem) => {
         const isConflictActive = item.kind === 'conflict' && item.isEnabled
         const statusText =
-            item.kind === 'dependency' ?
-                item.isEnabled ?
-                    t('extensions.relations.statusEnabled')
-                : item.isInstalled ?
-                    t('extensions.relations.statusInstalled')
-                :   t('extensions.relations.statusMissing')
-            : item.isEnabled ?
-                t('extensions.relations.statusConflictActive')
-            : item.isInstalled ?
-                t('extensions.relations.statusInstalled')
-            :   t('extensions.relations.statusNotInstalled')
+            item.kind === 'dependency'
+                ? item.isEnabled
+                    ? t('extensions.relations.statusEnabled')
+                    : item.isInstalled
+                      ? t('extensions.relations.statusInstalled')
+                      : t('extensions.relations.statusMissing')
+                : item.isEnabled
+                  ? t('extensions.relations.statusConflictActive')
+                  : item.isInstalled
+                    ? t('extensions.relations.statusInstalled')
+                    : t('extensions.relations.statusNotInstalled')
 
         const statusToneClass =
-            item.kind === 'dependency' ?
-                item.isEnabled ?
-                    s.relationCardStatusSuccess
-                : item.isInstalled ?
-                    s.relationCardStatusNeutral
-                :   s.relationCardStatusMuted
-            : isConflictActive ? s.relationCardStatusDanger
-            : item.isInstalled ? s.relationCardStatusNeutral
-            :   s.relationCardStatusMuted
+            item.kind === 'dependency'
+                ? item.isEnabled
+                    ? s.relationCardStatusSuccess
+                    : item.isInstalled
+                      ? s.relationCardStatusNeutral
+                      : s.relationCardStatusMuted
+                : isConflictActive
+                  ? s.relationCardStatusDanger
+                  : item.isInstalled
+                    ? s.relationCardStatusNeutral
+                    : s.relationCardStatusMuted
 
-        const sourceText =
-            item.isInstalled ?
-                item.installSource === 'store' ?
-                    t('extensions.source.store')
-                :   t('extensions.source.local')
-            :   item.id
+        const sourceText = item.isInstalled ? (item.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')) : item.id
 
         const icon =
-            item.addonType === 'theme' ? <MdInvertColors size={18} />
-            : item.addonType === 'script' ? <MdIntegrationInstructions size={18} />
-            : <MdExtension size={18} />
+            item.addonType === 'theme' ? (
+                <MdInvertColors size={18} />
+            ) : item.addonType === 'script' ? (
+                <MdIntegrationInstructions size={18} />
+            ) : (
+                <MdExtension size={18} />
+            )
 
         const isInteractive = !!item.directoryName
 
