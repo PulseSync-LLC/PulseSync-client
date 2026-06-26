@@ -26,8 +26,19 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const { user, app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
-        useContext(userContext)
+    const {
+        user,
+        app,
+        setApp,
+        updateAvailable,
+        setUpdate,
+        modInfo,
+        modInfoFetched,
+        musicInstalled,
+        setMusicInstalled,
+        setMusicVersion,
+        isAutonomousMode,
+    } = useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const navigate = useNavigate()

@@ -29,8 +29,7 @@ async function parseResponseBody<TResponse>(response: Response, responseType: Ht
 
 async function fetchTransport<TResponse = unknown>(request: PreparedHttpRequest): Promise<HttpResponse<TResponse>> {
     const controller = new AbortController()
-    const timeoutId =
-        typeof request.timeoutMs === 'number' && request.timeoutMs > 0 ? setTimeout(() => controller.abort(), request.timeoutMs) : null
+    const timeoutId = typeof request.timeoutMs === 'number' && request.timeoutMs > 0 ? setTimeout(() => controller.abort(), request.timeoutMs) : null
 
     try {
         const response = await fetch(request.url, {

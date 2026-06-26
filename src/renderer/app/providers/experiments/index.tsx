@@ -1,12 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { fetchExperiments } from '@entities/experiment/api/experiments'
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
-import type {
-    DesktopExperiment,
-    ExperimentOverrideMap,
-    ExperimentsContextValue,
-    ExperimentsProviderProps,
-} from '@app/providers/experiments/types'
+import type { DesktopExperiment, ExperimentOverrideMap, ExperimentsContextValue, ExperimentsProviderProps } from '@app/providers/experiments/types'
 
 const STORAGE_KEY = 'pulsesync.desktop.experimentOverrides.v2'
 

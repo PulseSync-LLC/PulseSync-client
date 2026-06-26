@@ -200,107 +200,108 @@ function App() {
         }
     }, [])
 
-    const syncStoreAddonUpdates = useCallback(async (installedAddons: Addon[]) => {
-        if (isAutonomousMode) {
-            return
-        }
-
-        const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-        if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
-            return
-        }
-
-        storeAddonUpdateCheckInFlightRef.current = true
-
-        try {
-            const updates = await fetchStoreAddonUpdates(storeInstalledAddons.map(addon => addon.storeAddonId || ''))
-            const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
-            const outdatedAddons = updates.filter(publishedAddon => {
-                const installedAddon = installedByStoreId.get(publishedAddon.id)
-                return (
-                    !!installedAddon &&
-                    !!publishedAddon.currentRelease?.downloadUrl &&
-                    compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
-                )
-            })
-
-            if (!outdatedAddons.length) {
+    const syncStoreAddonUpdates = useCallback(
+        async (installedAddons: Addon[]) => {
+            if (isAutonomousMode) {
                 return
             }
 
-            const canAutoUpdate = appRef.current.settings.autoUpdateStoreAddons !== false
-            const musicRunning = canAutoUpdate
-                ? Boolean(await window.desktopEvents.invoke(MainEvents.GET_MUSIC_RUNNING_STATUS))
-                : true
+            const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
+            if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
+                return
+            }
 
-            let hasInstalledUpdates = false
+            storeAddonUpdateCheckInFlightRef.current = true
 
-            for (const publishedAddon of outdatedAddons) {
-                const release = publishedAddon.currentRelease
-                const installedAddon = installedByStoreId.get(publishedAddon.id)
-                if (!release?.downloadUrl || !installedAddon) {
-                    continue
+            try {
+                const updates = await fetchStoreAddonUpdates(storeInstalledAddons.map(addon => addon.storeAddonId || ''))
+                const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
+                const outdatedAddons = updates.filter(publishedAddon => {
+                    const installedAddon = installedByStoreId.get(publishedAddon.id)
+                    return (
+                        !!installedAddon &&
+                        !!publishedAddon.currentRelease?.downloadUrl &&
+                        compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
+                    )
+                })
+
+                if (!outdatedAddons.length) {
+                    return
                 }
 
-                const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
+                const canAutoUpdate = appRef.current.settings.autoUpdateStoreAddons !== false
+                const musicRunning = canAutoUpdate ? Boolean(await window.desktopEvents.invoke(MainEvents.GET_MUSIC_RUNNING_STATUS)) : true
 
-                if (!musicRunning && canAutoUpdate) {
-                    if (autoUpdatingStoreAddonIdsRef.current.has(publishedAddon.id)) {
+                let hasInstalledUpdates = false
+
+                for (const publishedAddon of outdatedAddons) {
+                    const release = publishedAddon.currentRelease
+                    const installedAddon = installedByStoreId.get(publishedAddon.id)
+                    if (!release?.downloadUrl || !installedAddon) {
                         continue
                     }
 
-                    autoUpdatingStoreAddonIdsRef.current.add(publishedAddon.id)
-                    try {
-                        const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
-                            id: publishedAddon.id,
-                            downloadUrl: release.downloadUrl,
-                            title: publishedAddon.name,
-                        })
+                    const notificationKey = `lastNotifiedStoreAddonVersion:${publishedAddon.id}`
 
-                        if (!result?.success) {
-                            throw new Error(result?.reason || 'STORE_ADDON_AUTO_UPDATE_FAILED')
+                    if (!musicRunning && canAutoUpdate) {
+                        if (autoUpdatingStoreAddonIdsRef.current.has(publishedAddon.id)) {
+                            continue
                         }
 
-                        const title = tRef.current('common.doneTitle')
-                        const body = tRef.current('extensions.storeUpdateComplete', { name: publishedAddon.name })
-                        window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
-                        toast.custom('success', title, body)
-                        localStorage.setItem(notificationKey, release.version)
-                        hasInstalledUpdates = true
-                    } catch (error) {
-                        console.error(`Failed to auto-update store addon "${publishedAddon.name}":`, error)
-                    } finally {
-                        autoUpdatingStoreAddonIdsRef.current.delete(publishedAddon.id)
+                        autoUpdatingStoreAddonIdsRef.current.add(publishedAddon.id)
+                        try {
+                            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                                id: publishedAddon.id,
+                                downloadUrl: release.downloadUrl,
+                                title: publishedAddon.name,
+                            })
+
+                            if (!result?.success) {
+                                throw new Error(result?.reason || 'STORE_ADDON_AUTO_UPDATE_FAILED')
+                            }
+
+                            const title = tRef.current('common.doneTitle')
+                            const body = tRef.current('extensions.storeUpdateComplete', { name: publishedAddon.name })
+                            window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                            toast.custom('success', title, body)
+                            localStorage.setItem(notificationKey, release.version)
+                            hasInstalledUpdates = true
+                        } catch (error) {
+                            console.error(`Failed to auto-update store addon "${publishedAddon.name}":`, error)
+                        } finally {
+                            autoUpdatingStoreAddonIdsRef.current.delete(publishedAddon.id)
+                        }
+
+                        continue
                     }
 
-                    continue
+                    if (localStorage.getItem(notificationKey) === release.version) {
+                        continue
+                    }
+
+                    const title = tRef.current('extensions.storeUpdateAvailableTitle')
+                    const body = tRef.current('extensions.storeUpdateAvailableMessage', {
+                        name: publishedAddon.name,
+                        version: release.version,
+                    })
+
+                    window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                    toast.custom('info', title, body)
+                    localStorage.setItem(notificationKey, release.version)
                 }
 
-                if (localStorage.getItem(notificationKey) === release.version) {
-                    continue
+                if (hasInstalledUpdates) {
+                    const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                    setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
                 }
-
-                const title = tRef.current('extensions.storeUpdateAvailableTitle')
-                const body = tRef.current('extensions.storeUpdateAvailableMessage', {
-                    name: publishedAddon.name,
-                    version: release.version,
-                })
-
-                window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
-                toast.custom('info', title, body)
-                localStorage.setItem(notificationKey, release.version)
+            } catch (error) {
+                console.error('Failed to check store addon updates:', error)
+            } finally {
+                storeAddonUpdateCheckInFlightRef.current = false
             }
-
-            if (hasInstalledUpdates) {
-                const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
-                setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-            }
-        } catch (error) {
-            console.error('Failed to check store addon updates:', error)
-        } finally {
-            storeAddonUpdateCheckInFlightRef.current = false
-        }
-    }, [isAutonomousMode, setAddons])
+        },
+        [isAutonomousMode, setAddons],
+    )
 
     const handleSocketAchievementsUpdate = useCallback(
         async (payload: unknown) => {

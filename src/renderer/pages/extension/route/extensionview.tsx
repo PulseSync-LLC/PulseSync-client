@@ -60,21 +60,26 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
     const canEditMetadata = useMemo(() => {
         const currentUserCandidates = [user.username, user.nickname, user.id]
-            .map(value => String(value || '').trim().toLowerCase())
+            .map(value =>
+                String(value || '')
+                    .trim()
+                    .toLowerCase(),
+            )
             .filter(Boolean)
 
         if (!currentUserCandidates.length) {
             return false
         }
 
-        const addonAuthors =
-            Array.isArray(addon.author) ?
-                addon.author
-            : typeof addon.author === 'string' ?
-                addon.author.split(',')
-            :   []
+        const addonAuthors = Array.isArray(addon.author) ? addon.author : typeof addon.author === 'string' ? addon.author.split(',') : []
 
-        const normalizedAuthors = addonAuthors.map(author => String(author || '').trim().toLowerCase()).filter(Boolean)
+        const normalizedAuthors = addonAuthors
+            .map(author =>
+                String(author || '')
+                    .trim()
+                    .toLowerCase(),
+            )
+            .filter(Boolean)
         if (!normalizedAuthors.length) {
             return false
         }

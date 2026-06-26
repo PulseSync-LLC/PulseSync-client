@@ -123,9 +123,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                     className={cn(
                         styles.container,
                         !visibilityState.shouldAnimate && styles.softFadeIn,
-                        visibilityState.shouldAnimate &&
-                            visibilityState.entryDirection === 'up' &&
-                            styles.enterFromTop,
+                        visibilityState.shouldAnimate && visibilityState.entryDirection === 'up' && styles.enterFromTop,
                     )}
                     onClick={() => onClick(profileSlug)}
                     onMouseEnter={() => setIsHovered(true)}

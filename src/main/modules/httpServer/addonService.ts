@@ -1,14 +1,13 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
 import { createHash } from 'node:crypto'
-import { app } from 'electron'
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { sanitizeScript } from '../../utils/addonUtils'
 import { Server as IOServer, Socket } from 'socket.io'
-import { mainWindow } from '../createWindow'
 import { readAddonSettings } from './addonSettings'
 import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
+import { getAddonsRoot } from '../../utils/addonPaths'
 
 interface StateLike {
     get: (key: string) => any
@@ -88,6 +87,39 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     const lastAddonSettings = new Map<string, string>()
     const pendingDataSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
+    const readStoredAddonScripts = (): string[] => {
+        const scripts = state.get('addons.scripts')
+        if (typeof scripts === 'string') {
+            return scripts
+                .split(',')
+                .map((script: string) => script.trim())
+                .filter(Boolean)
+        }
+
+        return Array.isArray(scripts) ? scripts.map(script => String(script || '').trim()).filter(Boolean) : []
+    }
+
+    const getSelectedThemeDirectory = (): string => {
+        const stateTheme = state.get('addons.theme')
+        const selectedTheme =
+            typeof stateTheme === 'string' && stateTheme.trim()
+                ? stateTheme.trim()
+                : typeof getSelectedAddon() === 'string' && getSelectedAddon().trim()
+                  ? getSelectedAddon().trim()
+                  : 'Default'
+
+        return resolveAddonDirectory(selectedTheme) || 'Default'
+    }
+
+    const getSelectedScriptDirectories = (): string[] =>
+        Array.from(
+            new Set(
+                readStoredAddonScripts()
+                    .map(script => resolveAddonDirectory(script))
+                    .filter(Boolean),
+            ),
+        )
+
     const getMusicRecipients = (targetSocket?: Socket): Socket[] => {
         const io = getIo()
         if (!io) return []
@@ -100,7 +132,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     }
 
     const getAllAllowedUrls = (): string[] => {
-        const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonsFolder = getAddonsRoot()
         const urls = new Set<string>()
 
         let folders: string[] = []
@@ -110,14 +142,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             return []
         }
 
-        const stateTheme = state.get('addons.theme')
-        const selected = getSelectedAddon()
-        const themeFolder =
-            typeof stateTheme === 'string' && stateTheme.trim()
-                ? stateTheme.trim()
-                : typeof selected === 'string' && selected.trim()
-                  ? selected.trim()
-                  : 'Default'
+        const themeFolder = getSelectedThemeDirectory()
 
         const themeMetaPath = path.join(addonsFolder, themeFolder, 'metadata.json')
         if (fs.existsSync(themeMetaPath)) {
@@ -133,14 +158,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             } catch {}
         }
 
-        let scripts = state.get('addons.scripts')
-        if (typeof scripts === 'string') {
-            scripts = scripts
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-        }
-        if (!Array.isArray(scripts)) scripts = []
+        const scripts = getSelectedScriptDirectories()
 
         for (const folder of folders) {
             if (!scripts.includes(folder)) continue
@@ -164,38 +182,15 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     const getEnabledAddonNames = (): string[] => {
         const enabled = new Set<string>()
 
-        const stateTheme = state.get('addons.theme')
-        const selectedTheme =
-            typeof stateTheme === 'string' && stateTheme.trim()
-                ? stateTheme.trim()
-                : typeof getSelectedAddon() === 'string' && getSelectedAddon().trim()
-                  ? getSelectedAddon().trim()
-                  : 'Default'
-
-        enabled.add(selectedTheme)
-
-        let scripts = state.get('addons.scripts')
-        if (typeof scripts === 'string') {
-            scripts = scripts
-                .split(',')
-                .map((s: string) => s.trim())
-                .filter(Boolean)
-        }
-
-        if (Array.isArray(scripts)) {
-            scripts.forEach(scriptName => {
-                if (typeof scriptName === 'string' && scriptName.trim()) {
-                    enabled.add(scriptName.trim())
-                }
-            })
-        }
+        enabled.add(getSelectedThemeDirectory())
+        getSelectedScriptDirectories().forEach(scriptName => enabled.add(scriptName))
 
         return Array.from(enabled)
     }
 
     const readThemePayload = (useDefault = false): ThemePayload | null => {
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-        const themeFolder = useDefault ? 'Default' : state.get('addons.theme') || 'Default'
+        const themesPath = getAddonsRoot()
+        const themeFolder = useDefault ? 'Default' : getSelectedThemeDirectory()
         const themePath = path.join(themesPath, themeFolder)
         const metadataPath = path.join(themePath, 'metadata.json')
         if (!fs.existsSync(metadataPath)) return null
@@ -223,17 +218,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     }
 
     const readExtensionPayloads = (): RefreshedAddonPayload[] => {
-        let scripts = state.get('addons.scripts')
-        if (typeof scripts === 'string') {
-            scripts = scripts
-                .split(',')
-                .map((script: string) => script.trim())
-                .filter(Boolean)
-        } else if (!Array.isArray(scripts)) {
-            scripts = []
-        }
+        const scripts = getSelectedScriptDirectories()
 
-        const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonsFolder = getAddonsRoot()
         let dirs: string[] = []
         try {
             dirs = fs.readdirSync(addonsFolder)
@@ -295,8 +282,8 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const io = getIo()
         if (!getAuthorized() || !io) return
 
-        const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-        const selected = getSelectedAddon()
+        const themesPath = getAddonsRoot()
+        const selected = getSelectedThemeDirectory()
         const themePath = path.join(themesPath, selected)
         const metadataPath = path.join(themePath, 'metadata.json')
         if (!fs.existsSync(metadataPath)) return

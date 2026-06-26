@@ -5,15 +5,16 @@ import fs from 'original-fs'
 import * as fsp from 'fs/promises'
 import { fileURLToPath } from 'node:url'
 import logger from './logger'
-import { clearDirectory } from '../utils/appUtils'
 import { getState } from './state'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
 import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
 import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
+import { getAddonsRoot } from '../utils/addonPaths'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
+const MAX_ADDON_ARCHIVE_BYTES = 100 * 1024 * 1024
 type ImportAddonArchiveOptions = {
     installSource?: 'store' | 'local'
     storeAddonId?: string | null
@@ -52,6 +53,79 @@ const removeSourcePextIfNeeded = async (filePath: string): Promise<void> => {
     }
 }
 
+const normalizeArchiveEntryName = (entryName: string): string | null => {
+    const rawName = String(entryName || '').replace(/\\/g, '/')
+    if (!rawName || rawName.includes('\0') || rawName.startsWith('/') || rawName.startsWith('//') || /^[a-zA-Z]:/.test(rawName)) {
+        return null
+    }
+
+    const normalizedName = path.posix.normalize(rawName)
+    if (
+        !normalizedName ||
+        normalizedName === '.' ||
+        normalizedName === '..' ||
+        normalizedName.startsWith('../') ||
+        path.posix.isAbsolute(normalizedName)
+    ) {
+        return null
+    }
+
+    return normalizedName
+}
+
+const validateAddonArchive = (zip: AdmZip): boolean => {
+    let hasRootMetadata = false
+    let totalUncompressedSize = 0
+
+    for (const entry of zip.getEntries()) {
+        const normalizedName = normalizeArchiveEntryName(entry.entryName)
+        if (!normalizedName) {
+            logger.main.warn(`Rejected addon archive with unsafe entry: ${entry.entryName}`)
+            return false
+        }
+
+        if (!entry.isDirectory && normalizedName === 'metadata.json') {
+            hasRootMetadata = true
+        }
+
+        totalUncompressedSize += Number((entry.header as { size?: number }).size) || 0
+        if (totalUncompressedSize > MAX_ADDON_ARCHIVE_BYTES) {
+            logger.main.warn('Rejected addon archive because its unpacked size is too large')
+            return false
+        }
+    }
+
+    if (!hasRootMetadata) {
+        logger.main.error('Missing metadata.json in addon archive')
+        return false
+    }
+
+    return true
+}
+
+const replaceAddonDirectory = async (stagingDir: string, outputDir: string): Promise<void> => {
+    await fsp.mkdir(path.dirname(outputDir), { recursive: true })
+
+    if (!fs.existsSync(outputDir)) {
+        await fsp.rename(stagingDir, outputDir)
+        return
+    }
+
+    const backupDir = path.join(path.dirname(outputDir), `.${path.basename(outputDir)}.backup-${Date.now()}-${process.pid}`)
+    await fsp.rename(outputDir, backupDir)
+
+    try {
+        await fsp.rename(stagingDir, outputDir)
+        await fsp.rm(backupDir, { recursive: true, force: true })
+    } catch (error) {
+        if (fs.existsSync(outputDir)) {
+            await fsp.rm(outputDir, { recursive: true, force: true })
+        }
+        await fsp.rename(backupDir, outputDir)
+        throw error
+    }
+}
+
 export const importAddonArchive = async (rawPath: string, options: ImportAddonArchiveOptions = {}): Promise<string | null> => {
     const filePath = normalizePextPath(rawPath)
     if (!isAddonArchivePath(filePath)) return null
@@ -65,11 +139,21 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
 
     try {
         const archiveBuffer = await fsp.readFile(filePath)
-        const zip = new AdmZip(filePath)
-        tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'pext-import-'))
-        zip.extractAllTo(tempDir, true)
+        if (archiveBuffer.byteLength > MAX_ADDON_ARCHIVE_BYTES) {
+            logger.main.warn(`Rejected addon archive because it is too large: ${filePath}`)
+            return null
+        }
 
-        const metadataPath = path.join(tempDir, 'metadata.json')
+        const zip = new AdmZip(filePath)
+        if (!validateAddonArchive(zip)) {
+            return null
+        }
+
+        tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'pext-import-'))
+        const stagingDir = path.join(tempDir, 'staging')
+        zip.extractAllTo(stagingDir, true)
+
+        const metadataPath = path.join(stagingDir, 'metadata.json')
         if (!fs.existsSync(metadataPath)) {
             logger.main.error('Missing metadata.json in .pext archive')
             return null
@@ -110,18 +194,12 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             resolveAddonDirectoryKey(metadata, metadata.id, {
                 preferStoreId: metadata.installSource === 'store',
             })
-        const outputDir = path.join(app.getPath('userData'), 'addons', addonDirectory)
+        const outputDir = path.join(getAddonsRoot(), addonDirectory)
         const preservedSettings = await readPreservedAddonSettings(outputDir)
 
-        if (fs.existsSync(outputDir)) {
-            await clearDirectory(outputDir)
-        } else {
-            await fsp.mkdir(outputDir, { recursive: true })
-        }
-
-        zip.extractAllTo(outputDir, true)
-        await restorePreservedAddonSettings(outputDir, preservedSettings)
-        fs.writeFileSync(path.join(outputDir, 'metadata.json'), JSON.stringify(metadata, null, 4))
+        await restorePreservedAddonSettings(stagingDir, preservedSettings)
+        await fsp.writeFile(path.join(stagingDir, 'metadata.json'), JSON.stringify(metadata, null, 4), 'utf8')
+        await replaceAddonDirectory(stagingDir, outputDir)
         logger.main.info(`Extension imported successfully from ${ext} archive to ${outputDir}`)
 
         if (ext === '.pext') {

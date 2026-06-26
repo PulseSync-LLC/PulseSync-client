@@ -300,7 +300,6 @@ const ThemeInfo: React.FC<Props> = ({
                             {addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}
                         </span>
                     </div>
-
                 </div>
 
                 <div className={s.sideActions} ref={actionsRef}>
@@ -340,7 +339,11 @@ const ThemeInfo: React.FC<Props> = ({
                                 title={!isEnabled && enableBlockedReason ? enableBlockedReason : undefined}
                                 onClick={() => onToggleEnabled(!isEnabled)}
                             >
-                                {isEnabled ? t('common.disable') : enableBlockedReason ? t('extensions.relations.enableBlockedButtonLabel') : t('common.enable')}
+                                {isEnabled
+                                    ? t('common.disable')
+                                    : enableBlockedReason
+                                      ? t('extensions.relations.enableBlockedButtonLabel')
+                                      : t('common.enable')}
                             </Button>
                         )}
 

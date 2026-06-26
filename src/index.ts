@@ -9,7 +9,7 @@ import {
     consumePendingInstallModUpdateFromPath,
     isFirstInstance,
 } from './main/modules/singleInstance'
-import { sendAddonSettings, sendAllAddonSettings, setAddon } from './main/modules/httpServer'
+import { sendAddonSettings, sendAllAddonSettings, sendExtensions, setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
 import logger from './main/modules/logger'
 import isAppDev from './main/utils/isAppDev'
@@ -18,7 +18,7 @@ import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectr
 
 import { checkCLIArguments } from './main/utils/processUtils'
 import { registerSchemes } from './main/utils/serverUtils'
-import { createDefaultAddonIfNotExists } from './main/utils/addonUtils'
+import { createDefaultAddonIfNotExists, loadAddons } from './main/utils/addonUtils'
 import { migrateLegacyAddonSettings } from './main/utils/addonSettingsMigration'
 import { createWindow, mainWindow } from './main/modules/createWindow'
 import { handleEvents } from './main/events'
@@ -37,6 +37,7 @@ import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
+import { getAddonsRoot, resolveExistingDirectoryInsideBase } from './main/utils/addonPaths'
 
 export let updated = false
 export let musicPath: string
@@ -263,6 +264,26 @@ const mimeFromExt = (p: string) => {
 
 const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
 
+const readStoredAddonScripts = (): string[] => {
+    const scripts = State.get('addons.scripts')
+
+    if (typeof scripts === 'string') {
+        return scripts
+            .split(',')
+            .map(script => script.trim())
+            .filter(Boolean)
+    }
+
+    return Array.isArray(scripts) ? scripts.map(script => String(script || '').trim()).filter(Boolean) : []
+}
+
+const syncAddonClients = async (): Promise<void> => {
+    selectedAddon = State.get('addons.theme') || 'Default'
+    setAddon(selectedAddon)
+    await sendExtensions()
+    sendAllAddonSettings({ force: true })
+}
+
 const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
     if (!writtenPath) return
 
@@ -271,7 +292,7 @@ const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
         return
     }
 
-    const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const addonsRoot = getAddonsRoot()
     const relativePath = path.relative(addonsRoot, normalizedPath)
     const isOutsideAddonsRoot = relativePath.startsWith('..') || path.isAbsolute(relativePath)
     if (isOutsideAddonsRoot) {
@@ -437,19 +458,84 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
     }
 })
 
-ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryPath) => {
+ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryPath: string) => {
     try {
-        if (fs.existsSync(themeDirectoryPath)) {
-            await fsp.rm(themeDirectoryPath, {
-                recursive: true,
-                force: true,
-            })
-            return { success: true }
-        } else {
-            logger.main.error('Директория темы не найдена.')
+        const addonsRoot = getAddonsRoot()
+        const addonDirectoryPath = resolveExistingDirectoryInsideBase(addonsRoot, String(themeDirectoryPath || ''))
+        if (!addonDirectoryPath) {
+            return { success: false, reason: 'INVALID_ADDON_PATH' }
+        }
+
+        const addonDirectoryName = path.basename(addonDirectoryPath)
+        if (addonDirectoryName === 'Default') {
+            return { success: false, reason: 'DEFAULT_ADDON_DELETE_BLOCKED' }
+        }
+
+        if (State.get('addons.theme') === addonDirectoryName) {
+            State.set('addons.theme', 'Default')
+        }
+
+        const nextScripts = readStoredAddonScripts().filter(script => script !== addonDirectoryName)
+        State.set('addons.scripts', nextScripts)
+
+        await fsp.rm(addonDirectoryPath, {
+            recursive: true,
+            force: true,
+        })
+
+        const addons = await loadAddons()
+        await syncAddonClients()
+
+        return {
+            success: true,
+            addons,
+            scripts: State.get('addons.scripts') || [],
+            theme: State.get('addons.theme') || 'Default',
         }
     } catch (error) {
         logger.main.error('Ошибка при удалении директории темы:', error)
+        return { success: false, reason: error instanceof Error ? error.message : 'DELETE_FAILED' }
+    }
+})
+
+ipcMain.handle(MainEvents.SET_ADDON_ENABLED, async (_event, payload: { directoryName?: string; enabled?: boolean }) => {
+    try {
+        const directoryName = String(payload?.directoryName || '').trim()
+        if (!directoryName) {
+            return { success: false, reason: 'ADDON_DIRECTORY_REQUIRED' }
+        }
+
+        const addons = await loadAddons()
+        const addon = addons.find(item => item.directoryName === directoryName)
+        if (!addon) {
+            return { success: false, reason: 'ADDON_NOT_FOUND' }
+        }
+
+        const enabled = Boolean(payload?.enabled)
+        if (addon.type === 'theme') {
+            State.set('addons.theme', enabled ? addon.directoryName : 'Default')
+        } else {
+            const scripts = new Set(readStoredAddonScripts())
+            if (enabled) {
+                scripts.add(addon.directoryName)
+            } else {
+                scripts.delete(addon.directoryName)
+            }
+            State.set('addons.scripts', Array.from(scripts))
+        }
+
+        const nextAddons = await loadAddons()
+        await syncAddonClients()
+
+        return {
+            success: true,
+            addons: nextAddons,
+            scripts: State.get('addons.scripts') || [],
+            theme: State.get('addons.theme') || 'Default',
+        }
+    } catch (error) {
+        logger.main.error('Ошибка при изменении состояния аддона:', error)
+        return { success: false, reason: error instanceof Error ? error.message : 'SET_ADDON_ENABLED_FAILED' }
     }
 })
 
@@ -459,7 +545,7 @@ ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
             logger.main.error('Addons: No addon data received')
             return
         }
-        const addonsFolder = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+        const addonsFolder = getAddonsRoot()
         const addonFolder = path.join(addonsFolder, addon.directoryName)
         const metadataPath = path.join(addonFolder, 'metadata.json')
 
@@ -515,7 +601,7 @@ export async function prestartCheck() {
     checkAsar()
     initializeAddon()
 
-    const themesPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
+    const themesPath = getAddonsRoot()
     createDefaultAddonIfNotExists(themesPath)
     await migrateLegacyAddonSettings(themesPath)
     try {

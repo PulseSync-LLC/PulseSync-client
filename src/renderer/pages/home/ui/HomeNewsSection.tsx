@@ -115,10 +115,7 @@ export default function HomeNewsSection() {
         return `${day}.${month}.${year}`
     }, [])
 
-    const formatCompactReadTime = useCallback(
-        (value: number) => `${value} ${i18n.language === 'ru' ? 'мин' : 'min'}`,
-        [i18n.language],
-    )
+    const formatCompactReadTime = useCallback((value: number) => `${value} ${i18n.language === 'ru' ? 'мин' : 'min'}`, [i18n.language])
 
     const openArticle = useCallback((slug: string) => {
         if (!slug) {

@@ -101,7 +101,10 @@ export const createContextMenuActions = (
                         const themeDirPath = currentAddon.path
                         window.desktopEvents
                             .invoke(MainEvents.DELETE_ADDON_DIRECTORY, themeDirPath)
-                            .then(() => {
+                            .then(result => {
+                                if (!result?.success) {
+                                    throw new Error(result?.reason || 'DELETE_FAILED')
+                                }
                                 window.refreshAddons()
                                 console.log(t('contextMenuThemes.deleteSuccess', { name: currentAddon.name }))
                             })
@@ -109,7 +112,7 @@ export const createContextMenuActions = (
                                 console.error(t('contextMenuThemes.deleteError', { name: currentAddon.name }), error)
                             })
                     },
-                    isOpen: true
+                    isOpen: true,
                 })
             },
             show: actionVisibility.showDelete ?? false,

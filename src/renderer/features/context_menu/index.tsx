@@ -376,16 +376,16 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             const response = (await window.desktopEvents?.invoke(MainEvents.SET_UPDATE_SOURCE, nextSource)) as { source?: UpdateSource } | undefined
             const appliedSource = response?.source || nextSource
             setUpdateSourceState(appliedSource)
-            toast.custom('success', t('common.doneTitle'), t('contextMenu.updates.sourceChanged', { source: t(`contextMenu.updates.${appliedSource}`) }))
+            toast.custom(
+                'success',
+                t('common.doneTitle'),
+                t('contextMenu.updates.sourceChanged', { source: t(`contextMenu.updates.${appliedSource}`) }),
+            )
             window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true })
             void window.getModInfo(app, { silentNotInstalled: true })
         } catch (error: any) {
             const isBusy = error instanceof Error && error.message === 'UPDATE_SOURCE_BUSY'
-            toast.custom(
-                'error',
-                t('common.errorTitle'),
-                isBusy ? t('contextMenu.updates.busy') : t('contextMenu.updates.sourceChangeError'),
-            )
+            toast.custom('error', t('common.errorTitle'), isBusy ? t('contextMenu.updates.busy') : t('contextMenu.updates.sourceChangeError'))
         }
     }
 

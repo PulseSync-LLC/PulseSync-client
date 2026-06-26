@@ -244,12 +244,7 @@ async function sendEvent(installId: string, event: string, apiKey: string): Prom
     await postTelemetry('/metrics/app', { ...buildBasePayload(installId), event }, apiKey)
 }
 
-async function sendFeatureSnapshotIfChanged(
-    statePath: string,
-    state: TelemetryState,
-    installId: string,
-    apiKey: string,
-): Promise<TelemetryState> {
+async function sendFeatureSnapshotIfChanged(statePath: string, state: TelemetryState, installId: string, apiKey: string): Promise<TelemetryState> {
     const normalizedFeatures = normalizeBooleanFeatureTree(buildFeatureSnapshot())
     if (!normalizedFeatures) {
         return state

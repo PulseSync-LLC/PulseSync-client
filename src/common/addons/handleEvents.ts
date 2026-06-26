@@ -105,16 +105,13 @@ export const normalizeAddonSettingsValues = (input: unknown): AddonSettingsValue
         return {}
     }
 
-    return Object.entries(input as Record<string, unknown>).reduce(
-        (acc, [key, value]) => {
-            const normalizedKey = String(key || '').trim()
-            if (normalizedKey) {
-                acc[normalizedKey] = value
-            }
-            return acc
-        },
-        {} as AddonSettingsValues,
-    )
+    return Object.entries(input as Record<string, unknown>).reduce((acc, [key, value]) => {
+        const normalizedKey = String(key || '').trim()
+        if (normalizedKey) {
+            acc[normalizedKey] = value
+        }
+        return acc
+    }, {} as AddonSettingsValues)
 }
 
 export const extractHandleConfigItemValue = (item: HandleConfigItem, storedValues?: AddonSettingsValues): unknown => {

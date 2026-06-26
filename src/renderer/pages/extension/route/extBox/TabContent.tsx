@@ -278,7 +278,7 @@ const TabContent: React.FC<Props> = ({
         return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
     }
 
-    const activeConfig = editMode ? editConfig ?? config : config
+    const activeConfig = editMode ? (editConfig ?? config) : config
     const isConfigEmpty = !activeConfig || !Array.isArray(activeConfig.sections) || activeConfig.sections.length === 0
 
     if (active === 'Settings') {

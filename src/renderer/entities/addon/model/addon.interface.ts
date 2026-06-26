@@ -15,6 +15,7 @@ export default interface Addon {
 
     path: string
     lastModified: string
+    lastModifiedAt?: number
     size: string
 
     type: 'theme' | 'script'

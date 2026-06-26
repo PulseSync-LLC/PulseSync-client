@@ -1,5 +1,5 @@
 export type HomePrimaryComponent = {
-    id: 'mod' | 'client' | 'music',
+    id: 'mod' | 'client' | 'music'
     titleKey: string
     iconAsset: string
 }

@@ -1,6 +1,5 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { app } from 'electron'
 import {
     type AddonSettingsValues,
     type HandleConfig,
@@ -11,10 +10,10 @@ import {
     normalizeAddonSettingsValues,
 } from '@common/addons/handleEvents'
 import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
+import { getAddonsRoot } from '../../utils/addonPaths'
 
 export type AddonSettingsPayload = Record<string, any>
 
-const getAddonRoot = () => path.join(app.getPath('appData'), 'PulseSync', 'addons')
 const readStoredValue = (storedValues: AddonSettingsValues | undefined, keys: string[]): unknown => {
     if (!storedValues) {
         return undefined
@@ -30,7 +29,7 @@ const readStoredValue = (storedValues: AddonSettingsValues | undefined, keys: st
 }
 
 const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => {
-    const valuesPath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
+    const valuesPath = path.join(getAddonsRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
     if (!fs.existsSync(valuesPath)) {
         return {}
     }
@@ -98,7 +97,7 @@ export const readAddonSettings = (addonName: string): AddonSettingsPayload => {
     const directory = resolveAddonDirectory(addonName)
     if (!directory) return {}
 
-    const handlePath = path.join(getAddonRoot(), directory, HANDLE_EVENTS_FILENAME)
+    const handlePath = path.join(getAddonsRoot(), directory, HANDLE_EVENTS_FILENAME)
     if (!fs.existsSync(handlePath)) return {}
 
     try {
@@ -110,7 +109,7 @@ export const readAddonSettings = (addonName: string): AddonSettingsPayload => {
 }
 
 export const readAllAddonSettings = (): Record<string, AddonSettingsPayload> => {
-    const addonsRoot = getAddonRoot()
+    const addonsRoot = getAddonsRoot()
     const result: Record<string, AddonSettingsPayload> = {}
 
     let folders: string[] = []

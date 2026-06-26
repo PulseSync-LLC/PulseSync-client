@@ -36,10 +36,7 @@ const normalizeAuthors = (value: unknown): string[] => {
     return author ? [author.toLowerCase()] : []
 }
 
-const normalizeAddonName = (value: unknown): string =>
-    readText(value)
-        .toLowerCase()
-        .replace(/\s+/g, ' ')
+const normalizeAddonName = (value: unknown): string => readText(value).toLowerCase().replace(/\s+/g, ' ')
 
 const normalizeAddonType = (value: unknown): string => readText(value).toLowerCase()
 
@@ -108,11 +105,7 @@ export const resolveAddonCanonicalId = (source: AddonIdentitySource, fallbackId?
     return resolveAddonStableId(source, fallbackId)
 }
 
-export const resolveAddonDirectoryKey = (
-    source: AddonIdentitySource,
-    fallbackId?: string,
-    options?: { preferStoreId?: boolean },
-): string => {
+export const resolveAddonDirectoryKey = (source: AddonIdentitySource, fallbackId?: string, options?: { preferStoreId?: boolean }): string => {
     if (isDefaultAddon(source)) {
         return DEFAULT_ADDON_NAME
     }

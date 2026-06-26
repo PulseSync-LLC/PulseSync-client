@@ -53,7 +53,12 @@ import {
 } from '../modules/updater/updateChannel'
 import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
-import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion, resolveClientGitHubMacManifest } from '../modules/updater/githubReleaseResolver'
+import {
+    CLIENT_REPO,
+    listStableGitHubReleases,
+    normalizeGitHubTagVersion,
+    resolveClientGitHubMacManifest,
+} from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
 
@@ -109,7 +114,7 @@ const syncMacUpdaterFeed = () => {
     macUpdater.setAllowDowngrade(shouldAllowDowngradeForCurrentChannel())
 }
 
-const getCurrentUpdateStatus = () => (isMac() ? macUpdater?.getStatus() ?? UpdateStatus.IDLE : updater.getStatus())
+const getCurrentUpdateStatus = () => (isMac() ? (macUpdater?.getStatus() ?? UpdateStatus.IDLE) : updater.getStatus())
 
 const ensureUpdateSourceSwitchAllowed = () => {
     const status = getCurrentUpdateStatus()

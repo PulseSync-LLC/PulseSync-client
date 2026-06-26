@@ -79,7 +79,9 @@ export function useLayoutInstallers({
         (error: any) => {
             const rawMessage = typeof error?.error === 'string' ? error.error.trim() : ''
             const normalizedMessage =
-                rawMessage && rawMessage.toLowerCase().includes('aborted') ? t('layout.modInstallInterrupted') : rawMessage || t('layout.unknownError')
+                rawMessage && rawMessage.toLowerCase().includes('aborted')
+                    ? t('layout.modInstallInterrupted')
+                    : rawMessage || t('layout.unknownError')
             const isUpdate = currentModActionRef.current === 'update'
 
             const details = errorTypesToShow.has(error?.type)
@@ -253,78 +255,57 @@ export function useLayoutInstallers({
             window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
             ;(window as any).__listenersAdded = false
         }
-    }, [
-        modals.LINUX_PERMISSIONS_MODAL,
-        modals.MOD_CHANGELOG,
-        openModal,
-        readInstalledModFromStore,
-        setApp,
-        setMusicInstalled,
-        setMusicVersion,
-        t,
-    ])
+    }, [modals.LINUX_PERMISSIONS_MODAL, modals.MOD_CHANGELOG, openModal, readInstalledModFromStore, setApp, setMusicInstalled, setMusicVersion, t])
 
-    const startUpdate = useCallback(
-        () => {
-            if (window.electron.isLinux()) {
-                const savedPath = window.electron.store.get('settings.modSavePath')
-                if (!savedPath) {
-                    openModal(modals.LINUX_ASAR_PATH)
-                    return
-                }
-            }
-            if (isUpdating) {
-                toast.custom(
-                    'error',
-                    t('common.errorTitle'),
-                    app.mod.installed ? t('layout.modUpdateAlreadyRunning') : t('layout.modInstallAlreadyRunning'),
-                )
+    const startUpdate = useCallback(() => {
+        if (window.electron.isLinux()) {
+            const savedPath = window.electron.store.get('settings.modSavePath')
+            if (!savedPath) {
+                openModal(modals.LINUX_ASAR_PATH)
                 return
             }
-            if (modInfo.length === 0) {
-                toast.custom(
-                    'error',
-                    app.mod.installed ? t('layout.noModUpdatesAvailable') : t('layout.noModInstallsAvailable'),
-                    app.mod.installed ? t('layout.modUpdateLoadError') : t('layout.modInstallErrorTitle'),
-                )
-                return
-            }
+        }
+        if (isUpdating) {
+            toast.custom(
+                'error',
+                t('common.errorTitle'),
+                app.mod.installed ? t('layout.modUpdateAlreadyRunning') : t('layout.modInstallAlreadyRunning'),
+            )
+            return
+        }
+        if (modInfo.length === 0) {
+            toast.custom(
+                'error',
+                app.mod.installed ? t('layout.noModUpdatesAvailable') : t('layout.noModInstallsAvailable'),
+                app.mod.installed ? t('layout.modUpdateLoadError') : t('layout.modInstallErrorTitle'),
+            )
+            return
+        }
 
-            setIsUpdating(true)
-            setModInstallError(null)
-            currentModActionRef.current = app.mod.installed ? 'update' : 'install'
-            const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'), {
-                id: MOD_DOWNLOAD_TOAST_ID,
-                duration: Infinity,
-            })
-            downloadToastIdRef.current = id
+        setIsUpdating(true)
+        setModInstallError(null)
+        currentModActionRef.current = app.mod.installed ? 'update' : 'install'
+        const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'), {
+            id: MOD_DOWNLOAD_TOAST_ID,
+            duration: Infinity,
+        })
+        downloadToastIdRef.current = id
 
-            const {
-                modVersion,
-                realMusicVersion,
-                downloadUrl,
-                checksum_v2,
-                name,
-                shouldReinstall,
-                downloadUnpackedUrl,
-                unpackedChecksum,
-                source,
-            } = modInfo[0]
+        const { modVersion, realMusicVersion, downloadUrl, checksum_v2, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum, source } =
+            modInfo[0]
 
-            window.desktopEvents?.send(MainEvents.INSTALL_MOD, {
-                version: modVersion,
-                musicVersion: realMusicVersion,
-                name,
-                link: downloadUrl,
-                unpackLink: downloadUnpackedUrl,
-                unpackedChecksum,
-                checksum: checksum_v2,
-                shouldReinstall,
-                source: source || 'backend',
-            })
-        },
-        [app.mod.installed, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t],
-    )
+        window.desktopEvents?.send(MainEvents.INSTALL_MOD, {
+            version: modVersion,
+            musicVersion: realMusicVersion,
+            name,
+            link: downloadUrl,
+            unpackLink: downloadUnpackedUrl,
+            unpackedChecksum,
+            checksum: checksum_v2,
+            shouldReinstall,
+            source: source || 'backend',
+        })
+    }, [app.mod.installed, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t])
 
     useEffect(() => {
         if (!modInfoFetched || modInfo.length === 0 || isUpdating || !app.mod.installed || !app.mod.version) return

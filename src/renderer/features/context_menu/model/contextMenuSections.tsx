@@ -140,15 +140,17 @@ export function buildContextMenuSections({
 
     return [
         createContentSection(
-            subscriptionPageEnabled ?
+            subscriptionPageEnabled ? (
                 <button className={menuStyles.contextButton} onClick={openSubscriptionPage}>
                     <span>{t('header.subscription.open')}</span>
                     <MdWorkspacePremium size={18} />
                 </button>
-            :   <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
+            ) : (
+                <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
                     <span>{t('contextMenu.boostyUrl')}</span>
                     <SiBoosty size={18} />
-                </button>,
+                </button>
+            ),
         ),
         createButtonSection(t('contextMenu.obsWidget.title'), [
             {

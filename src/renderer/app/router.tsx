@@ -64,14 +64,35 @@ export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: <Navigate to="/home" replace /> },
         { path: '/home', element: withErrorBoundary(<HomePage />) },
-        { path: '/extensions', element: withErrorBoundary(<RequireAuthorized><ExtensionPage /></RequireAuthorized>) },
+        {
+            path: '/extensions',
+            element: withErrorBoundary(
+                <RequireAuthorized>
+                    <ExtensionPage />
+                </RequireAuthorized>,
+            ),
+        },
         { path: '/auth', element: withErrorBoundary(<AuthPage />) },
         { path: '/dev', element: withErrorBoundary(<Dev />) },
         { path: '/auth/callback', element: withErrorBoundary(<CallbackPage />) },
         { path: '/users', element: withErrorBoundary(<UsersRoute />) },
-        { path: '/:contactId', element: withErrorBoundary(<RequireAuthorized><ExtensionPage /></RequireAuthorized>) },
+        {
+            path: '/:contactId',
+            element: withErrorBoundary(
+                <RequireAuthorized>
+                    <ExtensionPage />
+                </RequireAuthorized>,
+            ),
+        },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
-        { path: '/profile/:profileName', element: withErrorBoundary(<RequireAuthorized><ProfilePage /></RequireAuthorized>) },
+        {
+            path: '/profile/:profileName',
+            element: withErrorBoundary(
+                <RequireAuthorized>
+                    <ProfilePage />
+                </RequireAuthorized>,
+            ),
+        },
     ])
 }
