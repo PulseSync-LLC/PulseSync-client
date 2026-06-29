@@ -19,6 +19,17 @@ fn remove_existing(path: &Path) -> io::Result<()> {
 }
 
 pub(crate) fn copy_path(source: &Path, destination: &Path) -> io::Result<()> {
+    if source == destination {
+        fs::symlink_metadata(source)?;
+        return Ok(());
+    }
+    if let (Ok(source), Ok(destination)) = (source.canonicalize(), destination.canonicalize()) {
+        if source == destination {
+            fs::symlink_metadata(source)?;
+            return Ok(());
+        }
+    }
+
     let metadata = fs::symlink_metadata(source)?;
     if metadata.is_dir() {
         fs::create_dir_all(destination)?;

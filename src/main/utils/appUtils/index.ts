@@ -175,6 +175,14 @@ export function getYandexMusicLogsPath(): string {
 }
 export async function copyFile(target: string, dest: string): Promise<void> {
     try {
+        if (path.resolve(target) === path.resolve(dest)) {
+            const handle = await fsp.open(target, 'r+')
+            try {
+                return
+            } finally {
+                await handle.close()
+            }
+        }
         if (nativeCopyFile(target, dest)) return
         await fsp.copyFile(target, dest)
     } catch (error: any) {
