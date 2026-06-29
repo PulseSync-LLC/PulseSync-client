@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next'
 
 import { HiQuestionMarkCircle } from 'react-icons/hi'
+import { MdFolderOpen } from 'react-icons/md'
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -15,13 +16,14 @@ type Props = {
     isObsInstalled: boolean
     isObsInstalling: boolean
     onInstallObsWidget: () => void
+    onOpenObsWidgetFolder: () => void
 }
 
 const isMetadataBackedSubcomponent = (itemId: HomeSecondaryComponentId): boolean => {
     return itemId === 'ffmpeg' || itemId === 'ytdlp'
 }
 
-export default function HomeSecondaryComponentsSection({ items, isObsInstalled, isObsInstalling, onInstallObsWidget }: Props) {
+export default function HomeSecondaryComponentsSection({ items, isObsInstalled, isObsInstalling, onInstallObsWidget, onOpenObsWidgetFolder }: Props) {
     const { t } = useTranslation()
 
     return (
@@ -42,14 +44,31 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                 </div>
                             </div>
                             {item.id === 'obs-widget' ? (
-                                <ButtonV2
-                                    type="button"
-                                    className={styles.secondaryActionButton}
-                                    onClick={onInstallObsWidget}
-                                    disabled={isObsInstalled || isObsInstalling}
-                                >
-                                    {isObsInstalled ? t('pages.home.installed') : isObsInstalling ? t('common.loading') : t('layout.installAction')}
-                                </ButtonV2>
+                                <div className={styles.secondaryActions}>
+                                    {isObsInstalled && (
+                                        <ButtonV2
+                                            type="button"
+                                            className={styles.secondaryFolderButton}
+                                            onClick={onOpenObsWidgetFolder}
+                                            aria-label={t('contextMenu.obsWidget.openFolder')}
+                                            title={t('contextMenu.obsWidget.openFolder')}
+                                        >
+                                            <MdFolderOpen aria-hidden="true" />
+                                        </ButtonV2>
+                                    )}
+                                    <ButtonV2
+                                        type="button"
+                                        className={styles.secondaryActionButton}
+                                        onClick={onInstallObsWidget}
+                                        disabled={isObsInstalled || isObsInstalling}
+                                    >
+                                        {isObsInstalled
+                                            ? t('pages.home.installed')
+                                            : isObsInstalling
+                                              ? t('common.loading')
+                                              : t('layout.installAction')}
+                                    </ButtonV2>
+                                </div>
                             ) : isMetadataBackedSubcomponent(item.id) ? (
                                 <TooltipButton
                                     side={'right'}

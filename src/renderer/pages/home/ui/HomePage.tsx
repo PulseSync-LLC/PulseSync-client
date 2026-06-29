@@ -138,6 +138,12 @@ export default function HomePage() {
         window.desktopEvents?.send(MainEvents.DOWNLOAD_OBS_WIDGET)
     }, [isObsInstalling, setWidgetInstalled, t, widgetInstalled])
 
+    const openObsWidgetFolder = useCallback(() => {
+        if (!widgetInstalled) return
+
+        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' })
+    }, [widgetInstalled])
+
     const handleWhatsNewClick = useCallback(
         (componentId: string) => {
             if (componentId === 'music') {
@@ -174,6 +180,7 @@ export default function HomePage() {
                             isObsInstalled={widgetInstalled}
                             isObsInstalling={isObsInstalling}
                             onInstallObsWidget={installObsWidget}
+                            onOpenObsWidgetFolder={openObsWidgetFolder}
                         />
                     </div>
                     <HomeNewsSection />
