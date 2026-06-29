@@ -225,6 +225,14 @@ export function isLinux() {
     return os.platform() === 'linux'
 }
 
+function isRecoverableMacInfoPlistReadFailure(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase()
+    return (
+        message.includes('failed to read info.plist') &&
+        (message.includes('unexpectedeof') || message.includes('unexpected eof') || message.includes('failed to fill whole buffer'))
+    )
+}
+
 export const formatSizeUnits = (bytes: number) => {
     if (bytes >= 1 << 30) return (bytes / (1 << 30)).toFixed(2) + ' GB'
     if (bytes >= 1 << 20) return (bytes / (1 << 20)).toFixed(2) + ' MB'
@@ -536,9 +544,14 @@ export class AsarPatcher {
             try {
                 await fsp.unlink(this.tmpEntitlements)
             } catch {}
-            logger.main.error(t('main.appUtils.macPatchError', { message: (err as Error).message }), err)
-            HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'mac_integrity', err)
-            callback?.(0, t('main.appUtils.macPatchError', { message: (err as Error).message }))
+            const message = err instanceof Error ? err.message : String(err)
+            if (isRecoverableMacInfoPlistReadFailure(err)) {
+                logger.main.warn(t('main.appUtils.macPatchError', { message }), err)
+            } else {
+                logger.main.error(t('main.appUtils.macPatchError', { message }), err)
+                HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'mac_integrity', err)
+            }
+            callback?.(0, t('main.appUtils.macPatchError', { message }))
             return false
         }
     }
