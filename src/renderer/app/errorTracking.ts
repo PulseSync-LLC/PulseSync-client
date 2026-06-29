@@ -21,7 +21,9 @@ export const initRendererErrorTracking = (): void => {
             release: ERROR_TRACKING_RELEASE,
             dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
-            sendDefaultPii: false,
+            dataCollection: {
+                userInfo: false,
+            },
             maxBreadcrumbs: 0,
             tracesSampleRate: 0,
             beforeSend: event => addErrorTrackingDebugIds(addErrorTrackingRuntimeTags(sanitizeErrorTrackingEvent(event))),
@@ -35,6 +37,21 @@ export const initRendererErrorTracking = (): void => {
     } catch (error) {
         console.warn('Failed to initialize error tracking:', error)
     }
+}
+
+export const setRendererErrorTrackingUser = (user?: { id?: string | null; email?: string | null } | null): void => {
+    if (!initialized) return
+    const id = user?.id?.trim()
+    if (!id || id === '-1') {
+        Sentry.setUser(null)
+        return
+    }
+
+    const email = user?.email?.trim()
+    Sentry.setUser({
+        id,
+        ...(email ? { email } : {}),
+    })
 }
 
 export const captureRendererException = (error: unknown, source: string): void => {

@@ -24,7 +24,9 @@ export const initMainErrorTracking = (): void => {
             release: ERROR_TRACKING_RELEASE,
             dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
-            sendDefaultPii: false,
+            dataCollection: {
+                userInfo: false,
+            },
             maxBreadcrumbs: 0,
             tracesSampleRate: 0,
             attachScreenshot: false,
@@ -49,6 +51,21 @@ export const initMainErrorTracking = (): void => {
     } catch (error) {
         logger.main.warn('Failed to initialize error tracking:', error)
     }
+}
+
+export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: string | null } | null): void => {
+    if (!initialized) return
+    const id = user?.id?.trim()
+    if (!id || id === '-1') {
+        Sentry.setUser(null)
+        return
+    }
+
+    const email = user?.email?.trim()
+    Sentry.setUser({
+        id,
+        ...(email ? { email } : {}),
+    })
 }
 
 export const captureMainException = (error: unknown, source: string): void => {

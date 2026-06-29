@@ -12,6 +12,7 @@ import getUserToken from '@shared/lib/auth/getUserToken'
 import config from '@common/appConfig'
 import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
 import type { GetMeData, GetMeVars } from '@app/AppShell.types'
+import { setRendererErrorTrackingUser } from '@app/errorTracking'
 
 type Params = {
     router: {
@@ -72,6 +73,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
     const sendAuthStatus = useCallback((user?: Partial<UserInterface> | null) => {
         if (user?.id) {
+            setRendererErrorTrackingUser({ id: user.id, email: user.email })
             window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
                 status: true,
                 user: {
@@ -83,6 +85,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             return
         }
 
+        setRendererErrorTrackingUser(null)
         window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
     }, [])
 
