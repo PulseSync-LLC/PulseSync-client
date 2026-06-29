@@ -106,8 +106,20 @@ const validateAddonArchive = (zip: AdmZip): boolean => {
 const replaceAddonDirectory = async (stagingDir: string, outputDir: string): Promise<void> => {
     await fsp.mkdir(path.dirname(outputDir), { recursive: true })
 
+    const moveAddonDirectory = async (sourceDir: string, destinationDir: string): Promise<void> => {
+        try {
+            await fsp.rename(sourceDir, destinationDir)
+            return
+        } catch (error: any) {
+            if (error?.code !== 'EXDEV') throw error
+        }
+
+        await fsp.cp(sourceDir, destinationDir, { recursive: true })
+        await fsp.rm(sourceDir, { recursive: true, force: true })
+    }
+
     if (!fs.existsSync(outputDir)) {
-        await fsp.rename(stagingDir, outputDir)
+        await moveAddonDirectory(stagingDir, outputDir)
         return
     }
 
@@ -115,7 +127,7 @@ const replaceAddonDirectory = async (stagingDir: string, outputDir: string): Pro
     await fsp.rename(outputDir, backupDir)
 
     try {
-        await fsp.rename(stagingDir, outputDir)
+        await moveAddonDirectory(stagingDir, outputDir)
         await fsp.rm(backupDir, { recursive: true, force: true })
     } catch (error) {
         if (fs.existsSync(outputDir)) {
