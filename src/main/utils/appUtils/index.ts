@@ -78,8 +78,10 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
         }
     } else {
         try {
-            const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
+            const { stdout } = (await execFileAsync('tasklist.exe', ['/FI', 'IMAGENAME eq Яндекс Музыка.exe', '/FO', 'CSV', '/NH'], {
+                encoding: 'utf8' as BufferEncoding,
+                windowsHide: true,
+            })) as { stdout: string }
             return parseWindowsTasklist(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes:', error)
