@@ -130,8 +130,6 @@
     padding: 15px;
     gap: 10px;
 
-    //width: 387px;
-    //height: 74px;
     border-radius: 16px;
 
     flex: none;
@@ -330,6 +328,13 @@
     gap: 4px;
 }
 
+.secondaryActions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
 .secondaryActionButton {
     display: flex;
     flex-direction: row;
@@ -350,7 +355,6 @@
     line-height: 110%;
 
     color: #3b4052;
-    margin-left: auto;
 
     transition:
         transform 0.16s ease,
@@ -370,6 +374,39 @@
     &:disabled {
         background: #6b7388;
         color: rgba(244, 246, 251, 0.72);
+    }
+}
+
+.secondaryFolderButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    border-radius: 8px;
+    flex: 0 0 36px;
+    line-height: 0;
+    color: rgba(244, 246, 251, 0.78);
+    background: rgba(255, 255, 255, 0.11);
+    transition: none;
+
+    svg {
+        display: block;
+        width: 20px;
+        height: 20px;
+    }
+
+    &:not(:disabled):hover {
+        color: rgba(244, 246, 251, 0.78);
+        background: rgba(255, 255, 255, 0.11);
+        transform: none;
+    }
+
+    &:not(:disabled):active {
+        color: rgba(244, 246, 251, 0.78);
+        background: rgba(255, 255, 255, 0.11);
+        transform: none;
     }
 }
 
