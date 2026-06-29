@@ -17,6 +17,8 @@ import { hashArtifactInWorker } from './network/artifactWorkerClient'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const State = getState()
+const MUSIC_CLOSE_TIMEOUT_MS = 5000
+const MUSIC_CLOSE_POLL_INTERVAL_MS = 250
 
 export const fileExists = (filePath: string) => nativeFileExists(filePath) || fs.existsSync(filePath)
 
@@ -44,7 +46,14 @@ export async function closeMusicIfRunning(window: BrowserWindow | null | undefin
     if (await isYandexMusicRunning()) {
         sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
         await closeYandexMusic()
-        await new Promise(r => setTimeout(r, 500))
+        const deadline = Date.now() + MUSIC_CLOSE_TIMEOUT_MS
+        while (Date.now() < deadline) {
+            if (!(await isYandexMusicRunning())) return true
+            await new Promise(r => setTimeout(r, MUSIC_CLOSE_POLL_INTERVAL_MS))
+        }
+        if (await isYandexMusicRunning()) {
+            logger.modManager.warn('Yandex Music is still running after close timeout')
+        }
         return true
     }
     return false

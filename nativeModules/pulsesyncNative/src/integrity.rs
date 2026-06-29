@@ -10,16 +10,20 @@ use std::fs;
 use std::fs::{File, OpenOptions};
 #[cfg(target_os = "macos")]
 use std::io::Write;
-use std::io::{Read, Seek, SeekFrom};
+use std::io::{self, Read, Seek, SeekFrom};
 use std::path::Path;
 #[cfg(target_os = "macos")]
 use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 const MAX_ASAR_HEADER_SIZE: usize = 128 * 1024 * 1024;
 const INTEGRITY_MARKER: &[u8] = br#""file":"resources\\app.asar""#;
 const VALUE_MARKER: &[u8] = br#""value":""#;
 const SHA256_HEX_LENGTH: usize = 64;
 const MAX_ASAR_PACKAGE_JSON_SIZE: usize = 1024 * 1024;
+const WINDOWS_INTEGRITY_OPEN_ATTEMPTS: u32 = 8;
+const WINDOWS_INTEGRITY_OPEN_BACKOFF_MS: u64 = 200;
 
 struct AsarHeader {
     json: Vec<u8>,
@@ -97,6 +101,45 @@ fn calculate_header_hash(path: &Path) -> std::result::Result<String, String> {
     read_asar_header_string(path).map(|header| digest_hex(&header))
 }
 
+fn is_windows_lock_error(error: &io::Error) -> bool {
+    cfg!(windows) && matches!(error.raw_os_error(), Some(32 | 33))
+}
+
+fn open_windows_integrity_executable(exe_path: &str) -> Result<File> {
+    let attempts = if cfg!(windows) {
+        WINDOWS_INTEGRITY_OPEN_ATTEMPTS
+    } else {
+        1
+    };
+
+    for attempt in 1..=attempts {
+        match OpenOptions::new().read(true).write(true).open(exe_path) {
+            Ok(file) => return Ok(file),
+            Err(error) => {
+                if is_windows_lock_error(&error) && attempt < attempts {
+                    thread::sleep(Duration::from_millis(
+                        WINDOWS_INTEGRITY_OPEN_BACKOFF_MS * u64::from(attempt),
+                    ));
+                    continue;
+                }
+
+                let attempts_suffix = if attempt > 1 {
+                    format!(" after {attempt} attempts")
+                } else {
+                    String::new()
+                };
+                return Err(Error::from_reason(format!(
+                    "Failed to open executable '{exe_path}'{attempts_suffix}: {error}"
+                )));
+            }
+        }
+    }
+
+    Err(Error::from_reason(format!(
+        "Failed to open executable '{exe_path}'"
+    )))
+}
+
 #[napi]
 pub fn calculate_asar_header_hash(path: String) -> Result<String> {
     calculate_header_hash(Path::new(&path)).map_err(Error::from_reason)
@@ -171,13 +214,7 @@ pub fn read_asar_version(path: String) -> Result<String> {
 #[napi]
 pub fn patch_windows_integrity(exe_path: String, asar_path: String) -> Result<String> {
     let hash = calculate_header_hash(Path::new(&asar_path)).map_err(Error::from_reason)?;
-    let file = OpenOptions::new()
-        .read(true)
-        .write(true)
-        .open(&exe_path)
-        .map_err(|error| {
-            Error::from_reason(format!("Failed to open executable '{exe_path}': {error}"))
-        })?;
+    let file = open_windows_integrity_executable(&exe_path)?;
     let mut map = unsafe { MmapOptions::new().map_mut(&file) }.map_err(|error| {
         Error::from_reason(format!("Failed to map executable '{exe_path}': {error}"))
     })?;
