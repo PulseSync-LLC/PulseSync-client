@@ -89,7 +89,7 @@ const checkOldYandexMusic = async () => {
             mainWindow.webContents.send('SHOW_YANDEX_MUSIC_UPDATE_DIALOG')
         }
     } catch (err) {
-        HandleErrorsElectron.handleError('prestartCheck', 'checkOldYandexMusic', 'app_startup', err)
+        logger.main.warn('Unable to check old Yandex Music AppX package:', err)
     }
 }
 
