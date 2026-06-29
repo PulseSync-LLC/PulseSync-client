@@ -61,7 +61,7 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     if (isMac()) {
         try {
             const command = `pgrep -f "Яндекс Музыка"`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
             return parseMacPgrep(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
@@ -70,7 +70,7 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     } else if (isLinux()) {
         try {
             const command = `pgrep -fa "yandexmusic"`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
             return parseLinuxPgrep(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
@@ -79,7 +79,7 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     } else {
         try {
             const command = `tasklist /FI "IMAGENAME eq Яндекс Музыка.exe" /FO CSV /NH`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding })) as { stdout: string }
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
             return parseWindowsTasklist(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes:', error)
@@ -108,13 +108,15 @@ export async function launchYandexMusic() {
 }
 
 export async function openExternalDetached(url: string) {
+    if (process.platform === 'win32') {
+        await shell.openExternal(url)
+        return
+    }
+
     let command: string
     let args: string[]
 
-    if (process.platform === 'win32') {
-        command = 'cmd.exe'
-        args = ['/c', 'start', '', url]
-    } else if (process.platform === 'darwin') {
+    if (process.platform === 'darwin') {
         command = 'open'
         args = [url]
     } else {
