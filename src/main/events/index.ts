@@ -53,6 +53,7 @@ import {
 } from '../modules/updater/updateChannel'
 import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
+import { setMainErrorTrackingUser } from '../modules/errorTracking'
 import {
     CLIENT_REPO,
     listStableGitHubReleases,
@@ -817,6 +818,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
 
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
+        setMainErrorTrackingUser(data.status ? data.user : null)
         tryOpenPendingAddon()
     })
     ipcMain.handle(MainEvents.START_BROWSER_AUTH, async () => {
