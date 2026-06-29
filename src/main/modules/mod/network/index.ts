@@ -37,6 +37,22 @@ const NETWORK_PROGRESS_RATIO = 0.85
 const DERIVED_UNPACKED_DIRECTORY_SUFFIX = '.unpacked-dir'
 const LEGACY_PREPARED_UNPACKED_SUFFIX = '.unpacked.zip'
 const DERIVED_CACHE_RECOVERY_STAGES = new Set(['read', 'decompress', 'extract'])
+const EXPECTED_ASAR_DOWNLOAD_FAILURE_STAGES = new Set(['read', 'checksum', 'decompress', 'write'])
+
+function isExpectedAsarDownloadFailure(error: unknown): boolean {
+    return (
+        error instanceof DownloadError ||
+        isLinuxAccessError(error) ||
+        (error instanceof ArtifactWorkerError && EXPECTED_ASAR_DOWNLOAD_FAILURE_STAGES.has(error.stage))
+    )
+}
+
+function isAsarIntegrityFailure(error: unknown): boolean {
+    return (
+        (error instanceof DownloadError && error.code === 'checksum_mismatch') ||
+        (error instanceof ArtifactWorkerError && (error.code === 'CHECKSUM_MISMATCH' || error.stage === 'decompress'))
+    )
+}
 
 function reportArtifactProgress(window: BrowserWindow, fraction: number, name: string): void {
     const boundedFraction = Math.min(Math.max(fraction, 0), 1)
@@ -138,18 +154,21 @@ export async function downloadAndUpdateFile(
             message: err?.message,
             stack: err?.stack,
         })
-        HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
+        if (!isExpectedAsarDownloadFailure(err)) {
+            HandleErrorsElectron.handleError('downloadAndUpdateFile', 'pipeline', 'catch', err)
+        }
 
         if (isLinuxAccessError(err)) {
             reportFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' }, onFailure)
             return false
         }
 
-        if (
-            (err instanceof DownloadError && err.code === 'checksum_mismatch') ||
-            (err instanceof ArtifactWorkerError && err.code === 'CHECKSUM_MISMATCH')
-        ) {
-            reportFailure(window, { error: t('main.modNetwork.integrityError'), type: 'checksum_mismatch' }, onFailure)
+        if (isAsarIntegrityFailure(err)) {
+            reportFailure(
+                window,
+                { error: t('main.modNetwork.integrityError'), type: err instanceof ArtifactWorkerError ? 'download_error' : 'checksum_mismatch' },
+                onFailure,
+            )
         } else {
             reportFailure(window, { error: err?.message || t('main.modDownload.networkError'), type: 'download_error' }, onFailure)
         }
