@@ -8,6 +8,7 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
     version: string
     buildInfo?: { BRANCH?: string }
 }
+const buildDist = process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
 
 export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const isDevMode = mode === 'development'
@@ -36,6 +37,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
         define: {
             PULSESYNC_VERSION: JSON.stringify(packageJson.version),
             PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
+            PULSESYNC_DIST: JSON.stringify(buildDist),
             'process.env.BRANCH': JSON.stringify((packageJson as any).buildInfo?.BRANCH),
             'process.env.VERSION': JSON.stringify(packageJson.version),
             'import.meta.env.DEV': JSON.stringify(isDevMode),

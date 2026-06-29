@@ -11,6 +11,7 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
     version: string
     buildInfo?: { BRANCH?: string }
 }
+const buildDist = process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
 
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
@@ -39,6 +40,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         define: {
             PULSESYNC_VERSION: JSON.stringify(packageJson.version),
             PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
+            PULSESYNC_DIST: JSON.stringify(buildDist),
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
         },

@@ -95,6 +95,15 @@ function getViteUrlPrefix(stagedDirectory: string): string {
     return `app:///.vite/${relativeParts.slice(1).join('/')}`
 }
 
+function getViteDist(stagedDirectory: string): string {
+    const [dist] = path.relative(stagingRoot, stagedDirectory).split(path.sep).filter(Boolean)
+    if (!dist) {
+        throw new Error(`Unexpected GlitchTip source-map staging directory: ${stagedDirectory}`)
+    }
+
+    return dist
+}
+
 async function ensureGlitchTipRelease(release: string): Promise<void> {
     const baseUrl = process.env.SENTRY_URL!.trim().replace(/\/$/u, '')
     const organization = process.env.SENTRY_ORG!.trim()
@@ -196,6 +205,8 @@ export async function uploadGlitchTipSourceMaps(version: string): Promise<void> 
             process.env.SENTRY_ORG!.trim(),
             '--project',
             process.env.SENTRY_PROJECT!.trim(),
+            '--dist',
+            getViteDist(sourceMapDirectory),
             '--url-prefix',
             getViteUrlPrefix(sourceMapDirectory),
             '--validate',
