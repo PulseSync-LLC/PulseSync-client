@@ -4,6 +4,7 @@ import {
     addErrorTrackingDebugIds,
     addErrorTrackingRuntimeTags,
     ERROR_TRACKING_BUILD_TAGS,
+    ERROR_TRACKING_DIST,
     ERROR_TRACKING_ENABLED,
     ERROR_TRACKING_ENVIRONMENT,
     ERROR_TRACKING_RELEASE,
@@ -18,6 +19,7 @@ export const initRendererErrorTracking = (): void => {
     try {
         Sentry.init({
             release: ERROR_TRACKING_RELEASE,
+            dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
             sendDefaultPii: false,
             maxBreadcrumbs: 0,

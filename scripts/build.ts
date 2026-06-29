@@ -226,6 +226,13 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
+function setBuildDist(platform: NodeJS.Platform, arch: string): string {
+    const dist = `${platform}-${arch}`
+    process.env.PULSESYNC_BUILD_DIST = dist
+    log(LogLevel.INFO, `GlitchTip dist: ${dist}`)
+    return dist
+}
+
 function ensureNodeHeapForMac(): void {
     if (os.platform() !== 'darwin') return
     const currentOptions = process.env.NODE_OPTIONS ?? ''
@@ -409,8 +416,10 @@ async function main(): Promise<void> {
 
         if (os.platform() === 'darwin') {
             const targetArch = macX64Build ? 'x64' : 'arm64'
+            setBuildDist('darwin', targetArch)
             await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
         } else {
+            setBuildDist(os.platform(), os.arch())
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 

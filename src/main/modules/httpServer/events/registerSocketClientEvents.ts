@@ -40,6 +40,11 @@ export const registerSocketClientEvents = ({
     updateData,
     handleBrowserAuth,
 }: RegisterSocketClientEventsOptions) => {
+    const sendToRenderer = (channel: string, ...args: any[]) => {
+        if (mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return
+        mainWindow.webContents.send(channel, ...args)
+    }
+
     const version = (socket.handshake.query.v as string) || state.get('mod.version')
     const clientType = (socket.handshake.query.type as string) || 'yaMusic'
     ;(socket as any).clientType = clientType
@@ -52,7 +57,7 @@ export const registerSocketClientEvents = ({
         logger.http.log('READY received from client')
         if ((socket as any).clientType !== 'yaMusic') return
 
-        mainWindow.webContents.send(RendererEvents.CLIENT_READY)
+        sendToRenderer(RendererEvents.CLIENT_READY)
         ;(socket as any).hasPong = true
         if (getAuthorized()) {
             sendDataToMusic({
@@ -68,7 +73,7 @@ export const registerSocketClientEvents = ({
         if (!getAuthorized()) {
             logger.http.warn('Unauthorized IS_PREMIUM_USER request, ignoring.')
         } else {
-            mainWindow.webContents.send(RendererEvents.IS_PREMIUM_USER)
+            sendToRenderer(RendererEvents.IS_PREMIUM_USER)
         }
     })
 
@@ -79,7 +84,7 @@ export const registerSocketClientEvents = ({
 
     socket.on('BROWSER_BAN', (args: any) => {
         logger.http.log('BROWSER_BAN received:', args)
-        mainWindow.webContents.send(RendererEvents.AUTH_BANNED, { reason: args.reason })
+        sendToRenderer(RendererEvents.AUTH_BANNED, { reason: args.reason })
     })
 
     socket.on('UPDATE_DATA', (payload: any) => {
@@ -91,7 +96,7 @@ export const registerSocketClientEvents = ({
     socket.on('UPDATE_DOWNLOAD_INFO', (payload: any) => {
         if (!getAuthorized()) return
         logger.http.log('UPDATE_DOWNLOAD_INFO received:', payload)
-        mainWindow.webContents.send(RendererEvents.TRACK_INFO, getTrackData())
+        sendToRenderer(RendererEvents.TRACK_INFO, getTrackData())
     })
 
     socket.on('INSTALL_MOD_UPDATE_FROM', async (payload: any) => {
@@ -112,12 +117,12 @@ export const registerSocketClientEvents = ({
     socket.on(RendererEvents.SEND_TRACK, (payload: any) => {
         if (!getAuthorized()) return
         logger.http.log('SEND_TRACK received:', payload)
-        mainWindow.webContents.send(RendererEvents.SEND_TRACK, payload.data)
+        sendToRenderer(RendererEvents.SEND_TRACK, payload.data)
     })
 
     socket.on('disconnect', () => {
         logger.http.log('Client disconnected')
-        mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
+        sendToRenderer(RendererEvents.TRACK_INFO, {
             type: 'refresh',
         })
     })
