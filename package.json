@@ -147,11 +147,6 @@
     "config": {
         "forge": "./forge.config.ts"
     },
-    "buildInfo": {
-        "VERSION": "2.17.0-beta",
-        "BRANCH": "fb384f80",
-        "BUILD_TIME": "2026-06-21T11:33:36.092Z"
-    },
     "optionalDependencies": {
         "bufferutil": "^4.1.0",
         "utf-8-validate": "^6.0.6"

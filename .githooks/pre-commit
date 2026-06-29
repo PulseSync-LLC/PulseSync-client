@@ -1,0 +1,44 @@
+#!/usr/bin/env node
+
+import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
+
+const stagedPackageJson = spawnSync('git', ['diff', '--cached', '--name-only', '--', 'package.json'], {
+    encoding: 'utf8',
+})
+
+if (stagedPackageJson.status !== 0) {
+    process.stderr.write(stagedPackageJson.stderr || 'Failed to inspect staged package.json\n')
+    process.exit(stagedPackageJson.status ?? 1)
+}
+
+const hasStagedPackageJson = stagedPackageJson.stdout
+    .split(/\r?\n/u)
+    .map(line => line.trim())
+    .includes('package.json')
+
+if (!hasStagedPackageJson) {
+    process.exit(0)
+}
+
+const packageJsonPath = 'package.json'
+const packageJson = fs.readFileSync(packageJsonPath, 'utf8')
+const strippedPackageJson = spawnSync(process.execPath, ['scripts/strip-package-buildinfo.cjs'], {
+    encoding: 'utf8',
+    input: packageJson,
+})
+
+if (strippedPackageJson.status !== 0) {
+    process.stderr.write(strippedPackageJson.stderr || 'Failed to strip package.json buildInfo\n')
+    process.exit(strippedPackageJson.status ?? 1)
+}
+
+if (strippedPackageJson.stdout !== packageJson) {
+    fs.writeFileSync(packageJsonPath, strippedPackageJson.stdout, 'utf8')
+}
+
+const addPackageJson = spawnSync('git', ['add', '--', packageJsonPath], {
+    stdio: 'inherit',
+})
+
+process.exit(addPackageJson.status ?? 1)
