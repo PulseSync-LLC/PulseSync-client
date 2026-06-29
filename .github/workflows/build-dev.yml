@@ -26,6 +26,7 @@ jobs:
       - uses: dorny/paths-filter@v4.0.1
         id: filter
         with:
+          base: ${{ github.ref_name }}
           list-files: shell
           filters: |
             build:
@@ -49,7 +50,6 @@ jobs:
               - 'Info.plist'
               - 'graphql.config.yml'
               - 'schema.graphql'
-              - '.github/workflows/build-dev-windows.yml'
 
       - name: Report changed build-related files
         shell: bash
