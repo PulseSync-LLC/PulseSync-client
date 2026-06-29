@@ -19,6 +19,9 @@ sha2 = "0.11.0"
 zstd = "0.13.3"
 zip = { version = "8.6.0", default-features = false, features = ["deflate"] }
 
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.61.2", features = ["Win32_System_Registry"] }
+
 [build-dependencies]
 napi-build = "2.3.2"
 
