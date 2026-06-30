@@ -42,7 +42,7 @@ export class ArtifactWorkerError extends Error {
 function resolveArtifactWorkerPath(): string {
     return isAppDev
         ? path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
-        : path.join(process.resourcesPath, 'app.asar.unpacked', '.vite', 'worker', 'artifactWorker.cjs')
+        : path.join(path.dirname(process.resourcesPath), 'modules', 'artifactWorker.cjs')
 }
 
 class ArtifactWorkerSession {

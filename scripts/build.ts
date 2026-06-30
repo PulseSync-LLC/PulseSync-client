@@ -27,6 +27,7 @@ const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.
 const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
 const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
 const ELECTRON_LOCALES_TO_KEEP = new Set(['en-US.pak', 'ru.pak'])
+const ARTIFACT_WORKER_FILE_NAME = 'artifactWorker.cjs'
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -318,8 +319,26 @@ function shouldCreateLinuxAurTarball(publishBranch: string | null): boolean {
     return publishBranch !== 'dev'
 }
 
+function getBuildTargetArch(): string {
+    return os.platform() === 'darwin' && macX64Build ? 'x64' : os.arch()
+}
+
+function getPackagedAppRoot(outDir: string): string {
+    if (os.platform() !== 'darwin') return outDir
+
+    return path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents')
+}
+
+function getPackagedResourcesDir(outDir: string): string {
+    return os.platform() === 'darwin' ? path.join(getPackagedAppRoot(outDir), 'Resources') : path.join(outDir, 'resources')
+}
+
+function getElectronLocalesDir(outDir: string): string {
+    return os.platform() === 'darwin' ? path.join(getPackagedResourcesDir(outDir), 'locales') : path.join(outDir, 'locales')
+}
+
 function pruneElectronLocales(outDir: string): void {
-    const localesDir = path.join(outDir, 'locales')
+    const localesDir = getElectronLocalesDir(outDir)
     if (!fs.existsSync(localesDir) || !fs.statSync(localesDir).isDirectory()) return
 
     let removed = 0
@@ -332,6 +351,54 @@ function pruneElectronLocales(outDir: string): void {
     }
 
     log(LogLevel.INFO, `Pruned ${removed} Electron locale packs from ${localesDir}`)
+}
+
+function copyRuntimeNativeModules(outDir: string): void {
+    const nativeDir = path.resolve(__dirname, '../nativeModules')
+    const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
+
+    fs.rmSync(modulesDir, { force: true, recursive: true })
+
+    for (const mod of fs.readdirSync(nativeDir)) {
+        const modulePath = path.join(nativeDir, mod)
+        if (!fs.existsSync(modulePath) || !fs.statSync(modulePath).isDirectory()) {
+            continue
+        }
+        if (!fs.existsSync(path.join(modulePath, 'package.json'))) {
+            continue
+        }
+
+        const releasePath = path.join(modulePath, 'build', 'Release')
+        if (!fs.existsSync(releasePath) || !fs.statSync(releasePath).isDirectory()) {
+            continue
+        }
+
+        const compiledArtifacts = fs
+            .readdirSync(releasePath, { withFileTypes: true })
+            .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.node')
+
+        for (const artifact of compiledArtifacts) {
+            const sourcePath = path.join(releasePath, artifact.name)
+            const dest = path.join(modulesDir, mod, artifact.name)
+
+            fs.mkdirSync(path.dirname(dest), { recursive: true })
+            fs.copyFileSync(sourcePath, dest)
+            log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
+        }
+    }
+}
+
+function copyArtifactWorker(outDir: string): void {
+    const source = path.resolve(__dirname, '..', '.vite', 'worker', ARTIFACT_WORKER_FILE_NAME)
+    if (!fs.existsSync(source)) {
+        throw new Error(`Artifact worker build output was not found: ${source}`)
+    }
+
+    const dest = path.join(getPackagedAppRoot(outDir), 'modules', ARTIFACT_WORKER_FILE_NAME)
+    fs.mkdirSync(path.dirname(dest), { recursive: true })
+    fs.copyFileSync(source, dest)
+    fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'app.asar.unpacked', '.vite', 'worker'), { force: true, recursive: true })
+    log(LogLevel.SUCCESS, `Copied artifact worker to ${dest}`)
 }
 
 async function main(): Promise<void> {
@@ -355,7 +422,7 @@ async function main(): Promise<void> {
         log(LogLevel.INFO, `Publish branch resolved from tag "${publishBranchTagSource}"`)
     }
     if (os.platform() === 'darwin') {
-        log(LogLevel.INFO, `Mac target arch: ${macX64Build ? 'x64' : 'arm64'}`)
+        log(LogLevel.INFO, `Mac target arch: ${getBuildTargetArch()}`)
     }
 
     const branchForConfig = publishBranch ?? 'beta'
@@ -388,6 +455,9 @@ async function main(): Promise<void> {
                 ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
         pruneElectronLocales(pdPath)
+        fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
+        copyRuntimeNativeModules(pdPath)
+        copyArtifactWorker(pdPath)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -428,53 +498,26 @@ async function main(): Promise<void> {
         }
 
         const baseOutDir = path.join('.', 'out')
-        const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${os.arch()}`)
+        const targetArch = getBuildTargetArch()
+        const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${targetArch}`)
         const releaseDir = path.join('.', 'release')
         const { version } = generateBuildInfo()
 
         if (os.platform() === 'darwin') {
-            const targetArch = macX64Build ? 'x64' : 'arm64'
             setBuildDist('darwin', targetArch)
             await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
         } else {
             setBuildDist(os.platform(), os.arch())
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
-            pruneElectronLocales(outDir)
-            const nativeDir = path.resolve(__dirname, '../nativeModules')
-
-            for (const mod of fs.readdirSync(nativeDir)) {
-                const modulePath = path.join(nativeDir, mod)
-                if (!fs.existsSync(modulePath) || !fs.statSync(modulePath).isDirectory()) {
-                    continue
-                }
-                if (!fs.existsSync(path.join(modulePath, 'package.json'))) {
-                    continue
-                }
-
-                const releasePath = path.join(modulePath, 'build', 'Release')
-                if (!fs.existsSync(releasePath) || !fs.statSync(releasePath).isDirectory()) {
-                    continue
-                }
-
-                const compiledArtifacts = fs
-                    .readdirSync(releasePath, { withFileTypes: true })
-                    .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.node')
-
-                for (const artifact of compiledArtifacts) {
-                    const sourcePath = path.join(releasePath, artifact.name)
-                    const dest = path.join(outDir, 'modules', mod, artifact.name)
-
-                    fs.mkdirSync(path.dirname(dest), { recursive: true })
-                    fs.copyFileSync(sourcePath, dest)
-                    log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
-                }
-            }
-
-            if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
-                await createLinuxAurTarball(version, outDir, releaseDir)
-            } else if (os.platform() === 'linux') {
-                log(LogLevel.INFO, 'Skipping Linux AUR tarball for dev publish branch')
-            }
+        }
+        pruneElectronLocales(outDir)
+        fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
+        copyRuntimeNativeModules(outDir)
+        copyArtifactWorker(outDir)
+        if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
+            await createLinuxAurTarball(version, outDir, releaseDir)
+        } else if (os.platform() === 'linux') {
+            log(LogLevel.INFO, 'Skipping Linux AUR tarball for dev publish branch')
         }
 
         const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
