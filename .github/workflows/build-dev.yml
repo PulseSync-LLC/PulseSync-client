@@ -49,6 +49,7 @@ jobs:
               - 'Info.plist'
               - 'graphql.config.yml'
               - 'schema.graphql'
+              - '.github/workflows/build-dev.yml'
 
       - name: Report changed build-related files
         shell: bash
@@ -108,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
 
     steps:
       - uses: actions/checkout@v6
@@ -153,7 +154,7 @@ jobs:
         run: yarn -s sentry-cli --version
 
       - name: Build and publish dev
-        run: yarn build:package --nativeModules --publish dev
+        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} --publish dev
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           S3_KEEP_RECENT_VERSIONS: 3
