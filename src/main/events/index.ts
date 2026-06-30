@@ -77,6 +77,15 @@ const MOD_REPO = {
     repo: 'PulseSync-mod',
 } as const
 
+const toUnixSeconds = (dateValue: string | null | undefined): number => {
+    if (!dateValue) {
+        return 0
+    }
+
+    const timestamp = new Date(dateValue).getTime()
+    return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : 0
+}
+
 const macUpdater = isMac()
     ? getMacUpdater({
           manifestUrl: getMacManifestUrl(getEffectiveUpdateChannel()),
@@ -390,7 +399,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
             id: release.id,
             version: normalizeGitHubTagVersion(release.tag_name),
             changelog: release.body ?? '',
-            createdAt: release.published_at ? new Date(release.published_at).getTime() : 0,
+            createdAt: toUnixSeconds(release.published_at),
         }))
     })
     ipcMain.handle(MainEvents.GET_MOD_CHANGELOG, async () => {
@@ -400,7 +409,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
             id: String(release.id),
             version: normalizeGitHubTagVersion(release.tag_name),
             description: release.body ?? '',
-            createdAt: release.published_at ? new Date(release.published_at).getTime() : 0,
+            createdAt: toUnixSeconds(release.published_at),
         }))
     })
     ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
