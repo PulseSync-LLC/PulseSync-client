@@ -54,7 +54,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         },
         build: {
             sourcemap: sourceMapMode,
-            target: 'chrome146',
+            target: 'chrome150',
             outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
             assetsDir: '../assets',
             emptyOutDir: true,

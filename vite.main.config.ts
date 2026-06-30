@@ -18,7 +18,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     return {
         build: {
             sourcemap: sourceMapMode,
-            target: 'node24.14',
+            target: 'node24.17',
             outDir: path.resolve(__dirname, `.vite/main`),
             lib: {
                 entry,
