@@ -1,10 +1,10 @@
-import { app } from 'electron'
 import * as semver from 'semver'
 
 import config from '@common/appConfig'
 import { getState } from '../../state'
 import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } from '../../updater/githubReleaseResolver'
 import type { UpdateSource } from '../../updater/updateSource'
+import { getPulseSyncUserAgent } from './userAgent'
 
 export type ModReleaseEntry = {
     checksum?: string | null
@@ -53,9 +53,6 @@ const GET_MODS_QUERY = `
     }
 `
 
-const USER_AGENT = () =>
-    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
-
 function normalizeGitHubAssetDigest(digest?: string): string {
     const rawDigest = String(digest || '').trim()
     if (!rawDigest) {
@@ -93,7 +90,7 @@ export async function fetchBackendModReleases(): Promise<ModReleaseEntry[]> {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'User-Agent': USER_AGENT(),
+            'User-Agent': getPulseSyncUserAgent(),
             ...resolveTokenHeader(),
         },
         body: JSON.stringify({

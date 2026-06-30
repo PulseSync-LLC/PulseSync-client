@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron'
+import { BrowserWindow } from 'electron'
 import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
@@ -31,8 +31,7 @@ import {
     writeUnpackedMarker,
 } from './helpers'
 import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
-const USER_AGENT = () =>
-    `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) PulseSync/${app.getVersion()} Chrome/142.0.7444.59 Electron/39.1.1 Safari/537.36`
+import { getPulseSyncUserAgent } from './userAgent'
 const NETWORK_PROGRESS_RATIO = 0.85
 const DERIVED_UNPACKED_DIRECTORY_SUFFIX = '.unpacked-dir'
 const LEGACY_PREPARED_UNPACKED_SUFFIX = '.unpacked.zip'
@@ -112,7 +111,7 @@ export async function downloadAndUpdateFile(
             url: link,
             tempFilePath,
             expectedChecksum: checksum,
-            userAgent: USER_AGENT(),
+            userAgent: getPulseSyncUserAgent(),
             progressScale: networkProgressScale,
             progressBase,
             rejectUnauthorized: false,
@@ -320,7 +319,7 @@ export async function downloadAndExtractUnpacked(
                 window,
                 url: link,
                 tempFilePath: tempArchivePath,
-                userAgent: USER_AGENT(),
+                userAgent: getPulseSyncUserAgent(),
                 progressScale: networkProgressScale,
                 progressBase,
                 rejectUnauthorized: false,

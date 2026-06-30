@@ -32,7 +32,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         },
         build: {
             sourcemap: sourceMapMode,
-            target: 'node24.14',
+            target: 'node24.17',
             outDir: path.resolve(__dirname, `.vite/main`),
             rolldownOptions: {
                 input: entry,
