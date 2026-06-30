@@ -77,7 +77,7 @@ let cachedAddon: PulseSyncNativeAddon | null | undefined
 function resolveNativeModulePath(): string | null {
     const candidates = [path.resolve(process.cwd(), 'nativeModules', 'pulsesyncNative', 'build', 'Release', 'pulsesyncNative.node')]
     if (typeof process.resourcesPath === 'string') {
-        candidates.push(path.join(process.resourcesPath, 'modules', 'pulsesyncNative', 'pulsesyncNative.node'))
+        candidates.push(path.join(path.dirname(process.resourcesPath), 'modules', 'pulsesyncNative', 'pulsesyncNative.node'))
     }
     return candidates.find(candidate => fs.existsSync(candidate)) ?? null
 }

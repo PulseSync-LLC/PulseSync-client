@@ -26,6 +26,7 @@ const buildNativeModules = process.argv.includes('--nativeModules') || process.a
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
 const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
+const ELECTRON_LOCALES_TO_KEEP = new Set(['en-US.pak', 'ru.pak'])
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -317,6 +318,22 @@ function shouldCreateLinuxAurTarball(publishBranch: string | null): boolean {
     return publishBranch !== 'dev'
 }
 
+function pruneElectronLocales(outDir: string): void {
+    const localesDir = path.join(outDir, 'locales')
+    if (!fs.existsSync(localesDir) || !fs.statSync(localesDir).isDirectory()) return
+
+    let removed = 0
+    for (const entry of fs.readdirSync(localesDir, { withFileTypes: true })) {
+        if (!entry.isFile() || path.extname(entry.name).toLowerCase() !== '.pak') continue
+        if (ELECTRON_LOCALES_TO_KEEP.has(entry.name)) continue
+
+        fs.rmSync(path.join(localesDir, entry.name), { force: true })
+        removed += 1
+    }
+
+    log(LogLevel.INFO, `Pruned ${removed} Electron locale packs from ${localesDir}`)
+}
+
 async function main(): Promise<void> {
     if (sendPatchNotesFlag && !buildApplication) {
         await publishPatchNotesToDiscord()
@@ -370,6 +387,7 @@ async function main(): Promise<void> {
             os.platform() === 'darwin'
                 ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
+        pruneElectronLocales(pdPath)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -421,6 +439,7 @@ async function main(): Promise<void> {
         } else {
             setBuildDist(os.platform(), os.arch())
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
+            pruneElectronLocales(outDir)
             const nativeDir = path.resolve(__dirname, '../nativeModules')
 
             for (const mod of fs.readdirSync(nativeDir)) {
