@@ -1,6 +1,5 @@
 import React from 'react'
 import { MdWorkspacePremium } from 'react-icons/md'
-import { SiBoosty } from 'react-icons/si'
 
 import MainEvents from '@common/types/mainEvents'
 import ArrowContext from '@shared/assets/icons/arrowContext.svg'
@@ -18,6 +17,18 @@ export interface SectionConfig {
     title?: string
     buttons?: SectionItem[]
     content?: React.ReactNode
+}
+
+type IconProps = React.SVGProps<SVGSVGElement> & {
+    size?: number | string
+}
+
+function BoostyIcon({ size = 18, ...props }: IconProps) {
+    return (
+        <svg viewBox="0 0 24 24" width={size} height={size} fill="currentColor" aria-hidden="true" focusable="false" {...props}>
+            <path d="M2.661 14.337 6.801 0h6.362L11.88 4.444l-.038.077-3.378 11.733h3.15c-1.321 3.289-2.35 5.867-3.086 7.733l-5.816-.063-7.442-4.228-6.02-9.155M8.554 24l7.67-11.035h-3.25l2.83-7.073c4.852.508 7.137 4.33 5.791 8.952C20.16 19.81 14.344 24 8.68 24h-.127z" />
+        </svg>
+    )
 }
 
 function createButtonSection(title: string, buttons: SectionItem[]): SectionConfig {
@@ -148,7 +159,7 @@ export function buildContextMenuSections({
             ) : (
                 <button className={menuStyles.contextButton} onClick={openBoostyUrl}>
                     <span>{t('contextMenu.boostyUrl')}</span>
-                    <SiBoosty size={18} />
+                    <BoostyIcon size={18} />
                 </button>
             ),
         ),
