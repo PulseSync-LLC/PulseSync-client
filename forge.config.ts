@@ -15,9 +15,7 @@ const forgeConfig: ForgeConfig = {
         name: 'PulseSync',
         executableName: process.platform === 'linux' ? 'pulsesync' : 'PulseSync',
         appCopyright: `Copyright (C) ${new Date().getFullYear()} Матвиенко Артём Евгеньевич`,
-        asar: {
-            unpack: '{**/.vite/renderer/**/static/assets/icon/**}',
-        },
+        asar: true,
         win32metadata: {
             CompanyName: 'Матвиенко Артём Евгеньевич',
         },
@@ -48,10 +46,6 @@ const forgeConfig: ForgeConfig = {
             renderer: [
                 {
                     name: 'preloader',
-                    config: 'vite.renderer.config.ts',
-                },
-                {
-                    name: 'main_window',
                     config: 'vite.renderer.config.ts',
                 },
             ],
@@ -88,6 +82,7 @@ const forgeConfig: ForgeConfig = {
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             prepareGlitchTipSourceMaps(buildPath, platform, arch)
             fs.rmSync(path.join(buildPath, '.vite', 'worker'), { force: true, recursive: true })
+            fs.rmSync(path.join(buildPath, '.vite', 'renderer', 'assets'), { force: true, recursive: true })
             const resourcesPath = path.resolve(buildPath, '..')
             const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')
