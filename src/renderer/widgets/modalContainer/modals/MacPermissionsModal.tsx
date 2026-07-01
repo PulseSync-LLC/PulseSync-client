@@ -1,25 +1,22 @@
 import React, { useCallback, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
-import RendererEvents from '@common/types/rendererEvents'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import MainEvents from '@common/types/mainEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const MacPermissionsModal: React.FC = () => {
     const { t } = useTranslation()
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
 
     useEffect(() => {
-        const handleRequestMacPermissions = (_: any) => {
+        const handleRequestMacPermissions = () => {
             openModal(Modals.MAC_PERMISSIONS_MODAL)
         }
 
-        const unsubscribe = window.desktopEvents?.on(RendererEvents.REQUEST_MAC_PERMISSIONS, handleRequestMacPermissions)
+        const unsubscribe = desktopApi.system.onMacPermissionsRequired(handleRequestMacPermissions)
 
         return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe()
-            }
+            unsubscribe()
         }
     }, [Modals.MAC_PERMISSIONS_MODAL, openModal])
 
@@ -28,7 +25,7 @@ const MacPermissionsModal: React.FC = () => {
     }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 
     const handleOpenSettings = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'privacySettings' })
+        desktopApi.system.openPrivacySettings()
         closeModal(Modals.MAC_PERMISSIONS_MODAL)
     }, [Modals.MAC_PERMISSIONS_MODAL, closeModal])
 

@@ -4,13 +4,12 @@ import trackInitials from '@entities/track/model/track.initials'
 import PlayerContext from '@entities/track/model/player.context'
 import UserContext from '@entities/user/model/context'
 import { Track } from '@entities/track/model/track.interface'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import { areTracksEqual, normalizeTrack } from '@shared/lib/utils'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import type { PlayerProps } from '@app/AppShell.types'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 export default function PlayerProvider({ children }: PlayerProps) {
     const { user, socket, socketConnected, emitGateway, addons } = useContext(UserContext)
@@ -23,7 +22,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
     const metricsSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientMetricsSending, false)
 
     const handleSendTrackPlayedEnough = useCallback(
-        (_event: any, data: any) => {
+        (data: any) => {
             if (!data) return
             if (!trackSendingEnabled) return
             if (socket && socket.connected) {
@@ -33,7 +32,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
         [socket, emitGateway, trackSendingEnabled],
     )
 
-    const handleTrackInfo = useCallback((_: any, data: any) => {
+    const handleTrackInfo = useCallback((data: any) => {
         setTrack(prev => {
             const next = normalizeTrack(prev, data)
             if (areTracksEqual(prev, next)) return prev
@@ -43,16 +42,14 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
     useEffect(() => {
         if (user.id === '-1') return
-        if (typeof window === 'undefined' || !(window as any).desktopEvents) return
 
-        const de = (window as any).desktopEvents
-        de.on(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
-        de.on(RendererEvents.TRACK_INFO, handleTrackInfo)
-        de.send(MainEvents.GET_TRACK_INFO)
+        const unsubscribeTrackPlayedEnough = desktopApi.music.onTrackPlayedEnough(handleSendTrackPlayedEnough)
+        const unsubscribeTrackInfo = desktopApi.music.onTrackInfo(handleTrackInfo)
+        desktopApi.music.requestTrackInfo()
 
         return () => {
-            de.removeListener(RendererEvents.SEND_TRACK, handleSendTrackPlayedEnough)
-            de.removeListener(RendererEvents.TRACK_INFO, handleTrackInfo)
+            unsubscribeTrackPlayedEnough()
+            unsubscribeTrackInfo()
         }
     }, [user.id, handleSendTrackPlayedEnough, handleTrackInfo])
 
@@ -83,20 +80,28 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
     useEffect(() => {
         if (!socket || !socketConnected || !metricsSendingEnabled) return
-        const enabledTheme = String((window as any)?.electron?.store?.get('addons.theme') || 'Default')
-        const enabledScripts = Array.isArray((window as any)?.electron?.store?.get('addons.scripts'))
-            ? ((window as any).electron.store.get('addons.scripts') as string[])
-            : []
-        const metrics = buildStoreAddonMetrics(addons, enabledTheme, enabledScripts)
-        const serializedMetrics = JSON.stringify(metrics)
+        let active = true
+        void (async () => {
+            const snapshot = await desktopApi.settings.getSnapshot()
+            if (!active) return
 
-        if (lastSentAddonMetrics.current === serializedMetrics) {
-            return
+            const enabledTheme = String(snapshot.addons.theme || 'Default')
+            const enabledScripts = Array.isArray(snapshot.addons.scripts) ? (snapshot.addons.scripts as string[]) : []
+            const metrics = buildStoreAddonMetrics(addons, enabledTheme, enabledScripts)
+            const serializedMetrics = JSON.stringify(metrics)
+
+            if (lastSentAddonMetrics.current === serializedMetrics) {
+                return
+            }
+
+            console.log('[AddonMetrics] send on socket connect/update', metrics)
+            emitGateway(OutgoingGatewayEvents.SEND_METRICS, { addons: metrics })
+            lastSentAddonMetrics.current = serializedMetrics
+        })()
+
+        return () => {
+            active = false
         }
-
-        console.log('[AddonMetrics] send on socket connect/update', metrics)
-        emitGateway(OutgoingGatewayEvents.SEND_METRICS, { addons: metrics })
-        lastSentAddonMetrics.current = serializedMetrics
     }, [addons, emitGateway, metricsSendingEnabled, socket, socketConnected])
 
     return (

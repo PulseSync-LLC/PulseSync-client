@@ -9,6 +9,7 @@ import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGate
 
 export type SettingsUpdater = SettingsInterface | ((prev: SettingsInterface) => SettingsInterface)
 export type EmitGateway = (event: OutgoingGatewayEvent, payload: unknown) => void
+export type CheckModUpdates = (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
 
 export type UserContextValue = {
     user: UserInterface
@@ -38,5 +39,7 @@ export type UserContextValue = {
     setMod: Dispatch<SetStateAction<ModInterface[]>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
+    checkModUpdates: CheckModUpdates
+    refreshAddons: () => Promise<void>
     emitGateway: EmitGateway
 }

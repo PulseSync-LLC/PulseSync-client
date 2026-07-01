@@ -1,7 +1,6 @@
 import React from 'react'
 import { MdWorkspacePremium } from 'react-icons/md'
 
-import MainEvents from '@common/types/mainEvents'
 import ArrowContext from '@shared/assets/icons/arrowContext.svg'
 import * as menuStyles from '@features/context_menu/context_menu.module.scss'
 import type { ModalName } from '@app/providers/modal/types'
@@ -39,8 +38,15 @@ function createContentSection(content: React.ReactNode): SectionConfig {
     return { content }
 }
 
-function createToggleButton(title: string, checked: boolean, onToggle: () => void, isDev?: boolean, disabled = false): SectionItem {
-    if (isDev && !window.electron.isAppDev()) {
+function createToggleButton(
+    title: string,
+    checked: boolean,
+    onToggle: () => void,
+    isDev?: boolean,
+    disabled = false,
+    isDevRuntime = false,
+): SectionItem {
+    if (isDev && !isDevRuntime) {
         return null as any
     }
 
@@ -77,8 +83,11 @@ type Params = {
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
     isAutonomousMode: boolean
+    isDevRuntime: boolean
+    isLinux: boolean
     openAppDirectory: () => void
     openBoostyUrl: () => void
+    openObsWidgetDirectory: () => void
     openSubscriptionPage: () => void
     subscriptionPageEnabled: boolean
     openUpdateChannelModal: () => void
@@ -93,6 +102,7 @@ type Params = {
     updateSource: UpdateSource
     updateSourceSwitchBlocked: boolean
     widgetInstalled: boolean
+    appBranch: string
     modals: {
         MOD_CHANGELOG: ModalName
     }
@@ -109,8 +119,11 @@ export function buildContextMenuSections({
     deleteMod,
     downloadObsWidget,
     isAutonomousMode,
+    isDevRuntime,
+    isLinux,
     openAppDirectory,
     openBoostyUrl,
+    openObsWidgetDirectory,
     openSubscriptionPage,
     subscriptionPageEnabled,
     openUpdateChannelModal,
@@ -125,6 +138,7 @@ export function buildContextMenuSections({
     updateSource,
     updateSourceSwitchBlocked,
     widgetInstalled,
+    appBranch,
     modals,
 }: Params): SectionConfig[] {
     const updateSourceButtons = isAutonomousMode
@@ -173,7 +187,7 @@ export function buildContextMenuSections({
             },
             {
                 label: t('contextMenu.obsWidget.openFolder'),
-                onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' }),
+                onClick: openObsWidgetDirectory,
                 disabled: !widgetInstalled,
             },
             {
@@ -203,14 +217,14 @@ export function buildContextMenuSections({
             },
             {
                 label: t('contextMenu.mod.checkUpdates'),
-                onClick: () => (window as any).getModInfo(app, { manual: true }),
+                onClick: checkModUpdates,
                 disabled: !app.mod.installed || !app.mod.version,
             },
             {
                 label: t('contextMenu.mod.clearCache'),
                 onClick: clearModCache,
             },
-            ...(window.electron.isLinux()
+            ...(isLinux
                 ? [
                       {
                           label: t('contextMenu.mod.resetAsarPath'),
@@ -274,7 +288,7 @@ export function buildContextMenuSections({
             createToggleButton(t('contextMenu.language.english'), app.settings.language === 'en', () => setLanguage('en')),
         ]),
         createButtonSection(t('contextMenu.misc.title'), [
-            { label: t('contextMenu.misc.version', { version: app.info.version, branch: window.appInfo.getBranch() }), onClick: openUpdateModal },
+            { label: t('contextMenu.misc.version', { version: app.info.version, branch: appBranch }), onClick: openUpdateModal },
             {
                 label: t('contextMenu.misc.collectLogs'),
                 onClick: collectLogs,
@@ -286,6 +300,8 @@ export function buildContextMenuSections({
                     toggleSetting('devSocket', !app.settings.devSocket)
                 },
                 true,
+                false,
+                isDevRuntime,
             ),
             {
                 label: t('contextMenu.appDirectory'),
@@ -312,7 +328,6 @@ export function renderContextMenuSections(buttonConfigs: SectionConfig[]) {
                         <div className={menuStyles.showButtons}>
                             {section.buttons
                                 ?.filter(Boolean)
-                                .filter(button => !button.isDev || (button.isDev && window.electron.isAppDev()))
                                 .map((button, i) => (
                                     <button key={i} className={menuStyles.contextButton} onClick={button.onClick} disabled={button.disabled}>
                                         {button.label}

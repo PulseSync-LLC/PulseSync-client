@@ -1,7 +1,5 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 
 import Minus from '@shared/assets/icons/minus.svg'
 import Minimize from '@shared/assets/icons/minimize.svg'
@@ -40,6 +38,8 @@ import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 import ButtonV2 from '@shared/ui/buttonV2'
 import { compareVersions } from '@shared/lib/utils'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
 
 interface p {
     goBack?: boolean
@@ -98,8 +98,9 @@ const Header: React.FC<p> = () => {
         void nav('/auth')
     }, [nav])
     const cancelLoginFlow = useCallback(async () => {
-        await window.desktopEvents?.invoke(MainEvents.CANCEL_BROWSER_AUTH)
-        window.electron.store.delete('tokens.token')
+        await desktopApi.auth.cancelBrowserAuth()
+        await desktopApi.auth.deleteToken()
+        clearCachedUserToken()
         setUser(userInitials)
         await client.clearStore()
         await nav('/home', { replace: true })
@@ -154,18 +155,15 @@ const Header: React.FC<p> = () => {
     }, [playStatus])
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
-                if (value) {
-                    openAppChangelogModal()
-                }
+        if (typeof window !== 'undefined') {
+            desktopApi.updates.needModalUpdate().then(value => {
+                if (value) openAppChangelogModal()
             })
-            window.desktopEvents?.on(RendererEvents.SHOW_MOD_MODAL, () => {
+            const unsubscribeShowMod = desktopApi.system.onShowModModal(() => {
                 openModModal()
             })
             return () => {
-                window.desktopEvents?.removeAllListeners(RendererEvents.SHOW_MOD_MODAL)
-                window.desktopEvents?.removeAllListeners(MainEvents.NEED_MODAL_UPDATE)
+                unsubscribeShowMod()
             }
         }
     }, [openAppChangelogModal, openModModal, user.id])
@@ -178,7 +176,8 @@ const Header: React.FC<p> = () => {
             .then(async ({ data: res }) => {
                 if (res.ok) {
                     toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
-                    window.electron.store.delete('tokens.token')
+                    await desktopApi.auth.deleteToken()
+                    clearCachedUserToken()
                     setUser(userInitials)
                     await client.clearStore()
                 }
@@ -237,7 +236,7 @@ const Header: React.FC<p> = () => {
     const [loadingModChanges, setLoadingModChanges] = useState(false)
     const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
-    const [isMac, setIsMac] = useState(window.electron.isMac())
+    const [isMac, setIsMac] = useState(false)
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
     const modChangesLoadedKeyRef = useRef<string | null>(null)
@@ -264,7 +263,7 @@ const Header: React.FC<p> = () => {
 
             try {
                 const nextAppUpdates = isAutonomousMode
-                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_CLIENT_CHANGELOG)) as AppInfoInterface[] | undefined) ?? [])
+                    ? (((await desktopApi.updates.getClientChangelog()) as AppInfoInterface[] | undefined) ?? [])
                     : await (async () => {
                           const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
                           const data = response.data
@@ -322,7 +321,7 @@ const Header: React.FC<p> = () => {
 
             try {
                 const nextModChanges = isAutonomousMode
-                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_MOD_CHANGELOG)) as ModChangelogEntry[] | undefined) ?? []).filter(
+                    ? (((await desktopApi.updates.getModChangelog()) as ModChangelogEntry[] | undefined) ?? []).filter(
                           entry => compareVersions(entry.version, app.mod.version || '') <= 0,
                       )
                     : await (async () => {
@@ -364,12 +363,13 @@ const Header: React.FC<p> = () => {
     }, [app.mod.version, isAutonomousMode, isModModalOpen, shouldFetchModChanges])
 
     useEffect(() => {
-        window.electron.window.isMaximized().then(value => setIsMaximized(value))
+        desktopApi.window.isMaximized().then(value => setIsMaximized(value))
+        desktopApi.getRuntimeInfo().then(runtimeInfo => setIsMac(runtimeInfo.isMac))
 
-        const unsub1 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_MAXIMIZED, () => {
+        const unsub1 = desktopApi.window.onMaximized(() => {
             setIsMaximized(true)
         })
-        const unsub2 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED, () => {
+        const unsub2 = desktopApi.window.onUnmaximized(() => {
             setIsMaximized(false)
         })
 
@@ -415,7 +415,7 @@ const Header: React.FC<p> = () => {
                     <div className={styles.event_container}>
                         {isDevmark && (
                             <div className={styles.dev}>
-                                {t('header.developmentBuild', { branch: window.appInfo.getBranch() ?? t('header.unknownBranch') })}
+                                {t('header.developmentBuild', { branch: app.info.branch || t('header.unknownBranch') })}
                             </div>
                         )}
                         <div className={styles.menu} ref={userCardRef}>
@@ -486,16 +486,16 @@ const Header: React.FC<p> = () => {
                         </div>
                         {!isMac && (
                             <div className={styles.button_container}>
-                                <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
+                                <button id="hide" className={styles.button_title} onClick={() => desktopApi.window.minimize()}>
                                     <Minus />
                                 </button>
-                                <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
+                                <button id="minimize" className={styles.button_title} onClick={() => desktopApi.window.maximize()}>
                                     {isMaximized ? <Minimize /> : <Maximize />}
                                 </button>
                                 <button
                                     id="close"
                                     className={styles.button_title}
-                                    onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
+                                    onClick={() => desktopApi.window.close(app.settings.closeAppInTray)}
                                 >
                                     <Close />
                                 </button>

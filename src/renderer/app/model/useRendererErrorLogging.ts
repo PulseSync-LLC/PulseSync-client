@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 
-import MainEvents from '@common/types/mainEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 export function useRendererErrorLogging() {
     const rendererLoggingInitialized = useRef(false)
@@ -11,7 +11,7 @@ export function useRendererErrorLogging() {
         if (typeof window === 'undefined') return
 
         const sendRendererError = (text: string) => {
-            window.desktopEvents?.send(MainEvents.RENDERER_LOG, { error: true, text })
+            desktopApi.logs.rendererError(text)
         }
 
         const formatLogValue = (value: any) => {

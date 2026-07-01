@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import UserInterface from '@entities/user/model/user.interface'
 import userInitials from '@entities/user/model/user.initials'
 import { useNotificationsController } from '@app/providers/notifications/useNotificationsController'
@@ -28,6 +26,8 @@ import { useRendererErrorLogging } from '@app/model/useRendererErrorLogging'
 import { useAppAuthorization } from '@app/model/useAppAuthorization'
 import { useAppInitialization } from '@app/model/useAppInitialization'
 import { useAppDesktopBindings } from '@app/model/useAppDesktopBindings'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { normalizeSupportedLanguage, rememberLanguage } from '@app/i18n'
 
 type AchievementCatalogItem = {
     id: string
@@ -57,7 +57,7 @@ type GetAchievementsVars = {
 const STORE_ADDON_UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000
 
 function App() {
-    const { t } = useTranslation()
+    const { i18n, t } = useTranslation()
     const tRef = useRef(t)
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
@@ -92,6 +92,14 @@ function App() {
         appRef.current = app
     }, [app])
 
+    useEffect(() => {
+        const language = normalizeSupportedLanguage(app.settings.language)
+        rememberLanguage(language)
+        if (i18n.language !== language) {
+            void i18n.changeLanguage(language)
+        }
+    }, [app.settings.language, i18n])
+
     const { notificationsValue, handleNotificationCreated, handleNotificationRead, handleNotificationsReadAll } = useNotificationsController(user.id)
 
     const router = useMemo(() => createAppRouter(), [])
@@ -108,7 +116,7 @@ function App() {
         const isManualCheck = !!options?.manual
         const silentNotInstalled = !!options?.silentNotInstalled
         try {
-            const mods = (await window.desktopEvents?.invoke(MainEvents.GET_MOD_RELEASES)) as ModInterface[] | undefined
+            const mods = (await desktopApi.mods.getReleases()) as ModInterface[] | undefined
             if (!mods) {
                 console.error('Invalid response format for mod releases:', mods)
                 return
@@ -137,7 +145,7 @@ function App() {
             if (compareVersions(latest.modVersion, app.mod.version) > 0) {
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
                 if (lastNotifiedModVersion !== latest.modVersion) {
-                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                    desktopApi.system.showNotification({
                         title: tRef.current('mod.updateAvailableTitle'),
                         body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
                     })
@@ -153,6 +161,12 @@ function App() {
             setModInfoFetched(true)
         }
     }, [])
+
+    const refreshAddons = useCallback(async () => {
+        const nextAddons = await desktopApi.addons.list()
+        setAddons(Array.isArray(nextAddons) ? nextAddons : [])
+        await router.navigate('/extensions', { replace: true })
+    }, [router])
 
     const fetchAchievements = useCallback(async () => {
         try {
@@ -207,7 +221,7 @@ function App() {
             }
 
             const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-            if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
+            if (!storeInstalledAddons.length || storeAddonUpdateCheckInFlightRef.current) {
                 return
             }
 
@@ -230,7 +244,7 @@ function App() {
                 }
 
                 const canAutoUpdate = appRef.current.settings.autoUpdateStoreAddons !== false
-                const musicRunning = canAutoUpdate ? Boolean(await window.desktopEvents.invoke(MainEvents.GET_MUSIC_RUNNING_STATUS)) : true
+                const musicRunning = canAutoUpdate ? Boolean(await desktopApi.music.getRunningStatus()) : true
 
                 let hasInstalledUpdates = false
 
@@ -250,11 +264,11 @@ function App() {
 
                         autoUpdatingStoreAddonIdsRef.current.add(publishedAddon.id)
                         try {
-                            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                            const result = (await desktopApi.addons.installStore({
                                 id: publishedAddon.id,
                                 downloadUrl: release.downloadUrl,
                                 title: publishedAddon.name,
-                            })
+                            })) as { reason?: string; success?: boolean } | null | undefined
 
                             if (!result?.success) {
                                 throw new Error(result?.reason || 'STORE_ADDON_AUTO_UPDATE_FAILED')
@@ -262,7 +276,7 @@ function App() {
 
                             const title = tRef.current('common.doneTitle')
                             const body = tRef.current('extensions.storeUpdateComplete', { name: publishedAddon.name })
-                            window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                            desktopApi.system.showNotification({ title, body })
                             toast.custom('success', title, body)
                             localStorage.setItem(notificationKey, release.version)
                             hasInstalledUpdates = true
@@ -285,13 +299,13 @@ function App() {
                         version: release.version,
                     })
 
-                    window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                    desktopApi.system.showNotification({ title, body })
                     toast.custom('info', title, body)
                     localStorage.setItem(notificationKey, release.version)
                 }
 
                 if (hasInstalledUpdates) {
-                    const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                    const nextInstalledAddons = await desktopApi.addons.list()
                     setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
                 }
             } catch (error) {
@@ -448,6 +462,8 @@ function App() {
                 modInfoFetched={modInfoFetched}
                 allAchievements={allAchievements}
                 setAllAchievements={setAllAchievements}
+                checkModUpdates={fetchModInfo}
+                refreshAddons={refreshAddons}
                 notificationsValue={notificationsValue}
                 router={router}
             />

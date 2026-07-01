@@ -1,9 +1,9 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import MainEvents from '@common/types/mainEvents'
 import UserContext from '@entities/user/model/context'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const AppUpdateDialog: React.FC = () => {
     const { t } = useTranslation()
@@ -33,7 +33,7 @@ const AppUpdateDialog: React.FC = () => {
     const handleInstall = () => {
         setUpdate(false)
         closeModal(Modals.APP_UPDATE_DIALOG)
-        window.desktopEvents?.send(MainEvents.UPDATE_INSTALL)
+        desktopApi.updates.install()
     }
 
     return (

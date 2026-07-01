@@ -1,6 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
@@ -8,6 +6,7 @@ import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
 import { IoCloseSharp } from 'react-icons/io5'
 import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideModal.module.scss'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type UpdateChannel = 'beta' | 'dev'
 type ChannelSelection = UpdateChannel | 'default'
@@ -42,21 +41,21 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
         try {
             const [buildChannel, effectiveChannel, overrideChannel, currentUpdateStatus] = await Promise.all([
-                window.desktopEvents.invoke(MainEvents.GET_BUILD_CHANNEL),
-                window.desktopEvents.invoke(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL),
-                window.desktopEvents.invoke(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE),
-                window.desktopEvents.invoke(MainEvents.GET_UPDATE_STATUS),
+                desktopApi.updates.getBuildChannel(),
+                desktopApi.updates.getEffectiveChannel(),
+                desktopApi.updates.getChannelOverride(),
+                desktopApi.updates.getStatus(),
             ])
 
             const nextState: ChannelStateResponse = {
-                buildChannel,
-                effectiveChannel,
-                overrideChannel,
+                buildChannel: buildChannel as UpdateChannel,
+                effectiveChannel: effectiveChannel as UpdateChannel,
+                overrideChannel: overrideChannel as UpdateChannel | null,
             }
 
             setChannelState(nextState)
-            setSelection(overrideChannel ?? 'default')
-            setUpdateStatus(currentUpdateStatus ?? 'IDLE')
+            setSelection((overrideChannel as ChannelSelection | null) ?? 'default')
+            setUpdateStatus((currentUpdateStatus as UpdateStatus | null) ?? 'IDLE')
         } catch (error) {
             console.error(error)
             toast.custom('error', t('common.errorTitleShort'), t('header.updateChannel.loadError'))
@@ -78,7 +77,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
             return
         }
 
-        const handleCheckUpdate = (_event: unknown, data?: { checking?: boolean; updateAvailable?: boolean }) => {
+        const handleCheckUpdate = (data?: { checking?: boolean; updateAvailable?: boolean }) => {
             if (data?.checking) {
                 setUpdateStatus('CHECKING')
                 return
@@ -93,11 +92,11 @@ const UpdateChannelOverrideModal: React.FC = () => {
         const handleDownloadFailed = () => setUpdateStatus('IDLE')
 
         const unsubscribers = [
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
-        ].filter(Boolean) as Array<() => void>
+            desktopApi.updates.onCheck(payload => handleCheckUpdate(payload as { checking?: boolean; updateAvailable?: boolean })),
+            desktopApi.updates.onDownloadProgress(handleDownloadProgress),
+            desktopApi.updates.onDownloadFinished(handleDownloadFinished),
+            desktopApi.updates.onDownloadFailed(handleDownloadFailed),
+        ]
 
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
@@ -131,12 +130,12 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
         try {
             const overrideChannel = selection === 'default' || selection === channelState.buildChannel ? null : selection
-            const nextState = (await window.desktopEvents.invoke(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, overrideChannel)) as ChannelStateResponse
+            const nextState = (await desktopApi.updates.setChannelOverride(overrideChannel)) as ChannelStateResponse
 
             setChannelState(nextState)
             setSelection(nextState.overrideChannel ?? 'default')
 
-            window.desktopEvents.send(MainEvents.CHECK_UPDATE, { manual: true })
+            desktopApi.updates.check({ manual: true })
 
             toast.custom('success', t('common.successTitleShort'), t('header.updateChannel.saved', { channel: nextState.effectiveChannel }))
 
