@@ -245,13 +245,18 @@ const schema = {
                 type: 'string',
                 default: 'backend',
             },
+            remoteRendererManifestUrl: {
+                type: 'string',
+                default: '',
+            },
         },
-        required: ['version', 'updateChannelOverride', 'updateSource'],
-        additionalProperties: false,
+        required: ['version', 'updateChannelOverride', 'updateSource', 'remoteRendererManifestUrl'],
+        additionalProperties: true,
         default: {
             version: '',
             updateChannelOverride: '',
             updateSource: 'backend',
+            remoteRendererManifestUrl: '',
         },
     },
 
@@ -284,6 +289,7 @@ class Store {
                 schema,
             })
             logger.main.info('Store initialized')
+            this.store.delete('app.rendererSourceMode')
         } catch (error) {
             logger.main.error('Error initializing ElectronStore:', error)
         }
