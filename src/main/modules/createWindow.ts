@@ -9,12 +9,18 @@ import path from 'path'
 import fs from 'original-fs'
 import logger from './logger'
 import { getState } from './state'
-import { t } from '../i18n'
 import { fileURLToPath } from 'node:url'
 import { importPextFile, isPextFilePath } from './pextImporter'
+import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
+import config from '@common/appConfig'
+import {
+    buildRemoteRendererContentSecurityPolicy,
+    getRemoteRendererUrlPattern,
+    getUrlOrigin,
+    isAllowedRemoteRendererNavigation,
+    isAllowedRemoteRendererWindowOpen,
+} from './security/remoteRendererPolicy'
 
-declare const MAIN_WINDOW_VITE_DEV_SERVER_URL: string
-declare const MAIN_WINDOW_VITE_NAME: string
 declare const PRELOADER_VITE_DEV_SERVER_URL: string
 declare const PRELOADER_VITE_NAME: string
 
@@ -69,6 +75,197 @@ const resolveDroppedPextPath = (navigationUrl: string): string | null => {
         return isPextFilePath(filePath) ? filePath : null
     } catch {
         return null
+    }
+}
+
+const escapeHtml = (value: string): string =>
+    value
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+
+const loadRemoteRendererErrorPage = async (window: BrowserWindow, error: unknown): Promise<void> => {
+    const message = error instanceof Error ? error.message : String(error || 'Remote renderer failed')
+    const html = `<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
+<title>PulseSync remote renderer blocked</title>
+<style>
+body{margin:0;min-height:100vh;background:#16181e;color:#f4f6fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center}
+main{max-width:560px;padding:32px}
+h1{font-size:24px;margin:0 0 12px}
+p{line-height:1.5;color:#c7cedd}
+code{display:block;margin-top:16px;padding:12px;border-radius:8px;background:#0e1015;color:#ffb4b4;white-space:pre-wrap}
+</style>
+</head>
+<body>
+<main>
+<h1>Remote renderer blocked</h1>
+<p>PulseSync could not load the configured remote renderer. Bundled renderer loading is intentionally disabled while remote mode is active.</p>
+<code>${escapeHtml(message)}</code>
+</main>
+</body>
+</html>`
+
+    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+}
+
+const getMainWindowPreloadPath = (): string => {
+    return path.join(__dirname, 'mainWindowPreload.cjs')
+}
+
+const registerRemoteMainWindowSecurity = (window: BrowserWindow): void => {
+    const mainWebContentsId = window.webContents.id
+    window.webContents.session.setPermissionRequestHandler((webContents, permission, callback, details) => {
+        if (webContents.id === mainWebContentsId) {
+            logger.main.warn('Blocked remote renderer permission request', { permission, requestingUrl: details.requestingUrl })
+        }
+        callback(false)
+    })
+    window.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
+        if (webContents?.id === mainWebContentsId) {
+            logger.main.warn('Blocked remote renderer permission check', { permission, requestingOrigin })
+        }
+        return false
+    })
+    window.webContents.on('will-attach-webview', event => {
+        event.preventDefault()
+        logger.main.warn('Blocked remote renderer webview attachment')
+    })
+}
+
+interface RemotePreloadSurfaceProbe {
+    appInfo: string
+    desktopEvents: string
+    electron: string
+    pulsesyncDesktop: string
+}
+
+const withOverriddenResponseHeaders = (
+    responseHeaders: Record<string, string[]> | undefined,
+    overriddenHeaders: Record<string, string[]>,
+): Record<string, string[]> => {
+    const overrideNames = new Set(Object.keys(overriddenHeaders).map(name => name.toLowerCase()))
+    const preservedHeaders = Object.fromEntries(Object.entries(responseHeaders || {}).filter(([name]) => !overrideNames.has(name.toLowerCase())))
+
+    return {
+        ...preservedHeaders,
+        ...overriddenHeaders,
+    }
+}
+
+const assertRemotePreloadSurface = async (window: BrowserWindow): Promise<void> => {
+    const surface = (await window.webContents.executeJavaScript(
+        `(() => ({
+            pulsesyncDesktop: typeof window.pulsesyncDesktop,
+            electron: typeof window.electron,
+            appInfo: typeof window.appInfo,
+            desktopEvents: typeof window.desktopEvents
+        }))()`,
+        true,
+    )) as RemotePreloadSurfaceProbe
+
+    const hasDesktopApi = surface.pulsesyncDesktop === 'object' || surface.pulsesyncDesktop === 'function'
+    if (!hasDesktopApi) {
+        throw new Error('Remote preload did not expose window.pulsesyncDesktop')
+    }
+
+    const exposedLegacyGlobals = (['electron', 'appInfo', 'desktopEvents'] as const).filter(key => surface[key] !== 'undefined')
+    if (exposedLegacyGlobals.length) {
+        throw new Error(`Remote preload exposed legacy globals: ${exposedLegacyGlobals.join(', ')}`)
+    }
+
+    logger.main.info('Remote preload surface verified')
+}
+
+const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemoteOrigin: string): void => {
+    const csp = buildRemoteRendererContentSecurityPolicy(isAppDev)
+    const apiOrigins = Array.from(
+        new Set(
+            [config.SERVER_URL, config.SERVER_v2_URL]
+                .map(rawUrl => getUrlOrigin(rawUrl))
+                .filter((origin): origin is string => Boolean(origin)),
+        ),
+    )
+    const apiUrlPatterns = apiOrigins.map(origin => getRemoteRendererUrlPattern(origin))
+    const apiCorsRequestHeaders = new Map<number, string>()
+    const devCacheHeaders: Record<string, string[]> = isAppDev
+        ? {
+              'Cache-Control': ['no-store'],
+              Pragma: ['no-cache'],
+        }
+        : {}
+
+    window.webContents.session.webRequest.onBeforeSendHeaders({ urls: apiUrlPatterns }, (details, callback) => {
+        const requestOrigin = details.requestHeaders.Origin || details.requestHeaders.origin
+        if (requestOrigin === activeRemoteOrigin) {
+            const requestedHeaders = details.requestHeaders['Access-Control-Request-Headers'] || details.requestHeaders['access-control-request-headers']
+            if (typeof requestedHeaders === 'string' && requestedHeaders.trim()) {
+                apiCorsRequestHeaders.set(details.id, requestedHeaders)
+            }
+        }
+
+        callback({ requestHeaders: details.requestHeaders })
+    })
+
+    window.webContents.session.webRequest.onHeadersReceived({ urls: [getRemoteRendererUrlPattern(activeRemoteOrigin), ...apiUrlPatterns] }, (details, callback) => {
+        const detailsOrigin = getUrlOrigin(details.url)
+        const isRemoteRendererResponse = detailsOrigin === activeRemoteOrigin
+        const isApiResponse = Boolean(detailsOrigin && apiOrigins.includes(detailsOrigin))
+
+        if (!isRemoteRendererResponse && !isApiResponse) {
+            callback({ responseHeaders: details.responseHeaders })
+            return
+        }
+
+        const corsHeaders: Record<string, string[]> = isApiResponse
+            ? {
+                  'Access-Control-Allow-Origin': [activeRemoteOrigin],
+                  'Access-Control-Allow-Credentials': ['true'],
+                  'Access-Control-Allow-Methods': ['GET, POST, PUT, PATCH, DELETE, OPTIONS'],
+                  'Access-Control-Allow-Headers': [apiCorsRequestHeaders.get(details.id) || 'Authorization, Content-Type, Accept'],
+                  Vary: ['Origin, Access-Control-Request-Headers'],
+              }
+            : {}
+        apiCorsRequestHeaders.delete(details.id)
+
+        callback({
+            responseHeaders: withOverriddenResponseHeaders(details.responseHeaders, {
+                ...corsHeaders,
+                ...(isRemoteRendererResponse
+                    ? {
+                          ...devCacheHeaders,
+                          'Content-Security-Policy': [csp],
+                          'Cross-Origin-Opener-Policy': ['same-origin'],
+                          'Referrer-Policy': ['no-referrer'],
+                          'X-Content-Type-Options': ['nosniff'],
+                          'X-Frame-Options': ['DENY'],
+                      }
+                    : {}),
+            }),
+        })
+    })
+    logger.main.info('Remote renderer response headers enforced', { origin: activeRemoteOrigin })
+}
+
+const loadMainWindowRenderer = async (window: BrowserWindow): Promise<MainRendererSource> => {
+    const source = await resolveMainRendererSource()
+
+    try {
+        if (isAppDev) {
+            await window.webContents.session.clearCache()
+        }
+        registerRemoteRendererResponseHeaders(window, source.origin)
+        await window.loadURL(source.url)
+        await assertRemotePreloadSurface(window)
+        return source
+    } catch (error) {
+        logger.main.error('Failed to load remote renderer', error)
+        throw error
     }
 }
 
@@ -157,20 +354,33 @@ export async function createWindow(): Promise<void> {
         trafficLightPosition: { x: 15, y: 20 },
         icon,
         webPreferences: {
-            preload: path.join(__dirname, 'mainWindowPreload.cjs'),
+            preload: getMainWindowPreloadPath(),
             contextIsolation: true,
             nodeIntegration: false,
             devTools: isAppDev || isDevmark,
         },
     })
+    registerRemoteMainWindowSecurity(mainWindow)
+    mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
+        logger.main.error('Main window preload failed', { preloadPath, error })
+    })
 
-    loadRendererWindow(
-        mainWindow,
-        MAIN_WINDOW_VITE_DEV_SERVER_URL,
-        MAIN_WINDOW_VITE_NAME,
-        'src/renderer/index.html',
-        'src/renderer/index.html',
-    ).catch(console.error)
+    let mainRendererSource: MainRendererSource | null = null
+    loadMainWindowRenderer(mainWindow)
+        .then(source => {
+            mainRendererSource = source
+            logger.main.info('Main renderer loaded', { source: source.kind })
+        })
+        .catch(error => {
+            logger.main.error('Failed to load main renderer', error)
+            void loadRemoteRendererErrorPage(mainWindow, error)
+                .then(() => {
+                    logger.main.info('Remote renderer error page loaded')
+                })
+                .catch(errorPageError => {
+                    logger.main.error('Failed to load remote renderer error page', errorPageError)
+                })
+        })
     let mainWindowReadyHandled = false
     const handleMainWindowReady = () => {
         if (mainWindowReadyHandled) {
@@ -196,6 +406,12 @@ export async function createWindow(): Promise<void> {
     })
 
     mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        if (mainRendererSource && !isAllowedRemoteRendererNavigation(navigationUrl, mainRendererSource.origin)) {
+            event.preventDefault()
+            logger.main.warn('Blocked remote renderer navigation', { navigationUrl })
+            return
+        }
+
         const droppedPextPath = resolveDroppedPextPath(navigationUrl)
         if (!droppedPextPath) return
 
@@ -210,22 +426,16 @@ export async function createWindow(): Promise<void> {
 
     mainWindow.webContents.setWindowOpenHandler(data => {
         const url = data.url
-        const marker = '/main_window/'
-        const idx = url.indexOf(marker)
-        if (idx !== -1) {
-            const after = url.slice(idx + marker.length)
-            const parts = after.split('/')
-            const addon = parts.shift()
-            const rel = parts.join(path.sep)
-            const dir = path.join(app.getPath('appData'), 'PulseSync', 'addons', addon!)
-            const full = path.join(dir, rel)
-            if (fs.existsSync(full)) {
-                shell.openExternal(`file://${full}`)
-            } else {
-                logger.renderer.error(t('main.createWindow.fileNotFound', { path: full }))
+        if (mainRendererSource) {
+            if (!isAllowedRemoteRendererWindowOpen(url, mainRendererSource.origin)) {
+                logger.main.warn('Blocked remote renderer window open', { url })
+                return { action: 'deny' }
             }
+
+            shell.openExternal(url)
             return { action: 'deny' }
         }
+
         shell.openExternal(url)
         return { action: 'deny' }
     })
