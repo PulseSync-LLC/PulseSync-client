@@ -7,7 +7,9 @@ import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } fr
 
 export { consumePendingInstallModUpdateFromPath, consumePendingBrowserAuthFromDeepLink } from './handleDeeplinks'
 
-export const isFirstInstance = app.requestSingleInstanceLock()
+const allowSecondInstance = !app.isPackaged && process.env.PULSESYNC_ALLOW_SECOND_INSTANCE === '1'
+
+export const isFirstInstance = allowSecondInstance || app.requestSingleInstanceLock()
 
 const findPextArg = (args: string[]): string | null => {
     for (const raw of [...args].reverse()) {
@@ -18,6 +20,12 @@ const findPextArg = (args: string[]): string | null => {
 }
 
 export const checkForSingleInstance = async (): Promise<void> => {
+    if (allowSecondInstance) {
+        logger.main.info('Single instance: bypassed by PULSESYNC_ALLOW_SECOND_INSTANCE')
+        await prestartCheck()
+        return
+    }
+
     logger.main.info('Single instance: ', isFirstInstance ? 'yes' : 'no')
     if (isFirstInstance) {
         const deeplinkCommandsHandler = await createDeeplinkCommandsHandler()
