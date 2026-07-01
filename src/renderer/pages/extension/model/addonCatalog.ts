@@ -17,15 +17,6 @@ export const defaultOrder = {
 export type SortKey = keyof typeof defaultOrder
 export type AddonTypeFilter = 'all' | 'theme' | 'script'
 
-export function safeStoreGet<T>(path: string, fallback: T): T {
-    try {
-        const value = window?.electron?.store?.get?.(path)
-        return (value ?? fallback) as T
-    } catch {
-        return fallback
-    }
-}
-
 export function useDebouncedValue<T>(value: T, delay: number) {
     const [debounced, setDebounced] = useState(value)
 

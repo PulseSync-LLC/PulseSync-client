@@ -39,6 +39,8 @@ export type AppProvidersProps = {
     modInfoFetched: boolean
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
+    checkModUpdates: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
+    refreshAddons: () => Promise<void>
     notificationsValue: NotificationsContextValue
     router: ReturnType<typeof createHashRouter>
 }

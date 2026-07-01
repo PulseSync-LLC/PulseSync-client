@@ -5,8 +5,6 @@ import remarkBreaks from 'remark-breaks'
 import rehypeRaw from 'rehype-raw'
 import path from 'path'
 import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 
 import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
 import AddonRelationsPanel from '@pages/extension/route/extBox/AddonRelationsPanel'
@@ -22,6 +20,7 @@ import Addon from '@entities/addon/model/addon.interface'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 import { useTranslation } from 'react-i18next'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface Props {
     active: ActiveTab
@@ -291,12 +290,7 @@ const TabContent: React.FC<Props> = ({
                         onClick={async () => {
                             setCreating(true)
                             const fp = path.join(addon.path, HANDLE_EVENTS_FILENAME)
-                            await window.desktopEvents?.invoke(
-                                MainEvents.FILE_EVENT,
-                                RendererEvents.WRITE_FILE,
-                                fp,
-                                JSON.stringify(createDefaultTemplate(), null, 4),
-                            )
+                            await desktopApi.addons.files.writeText(fp, JSON.stringify(createDefaultTemplate(), null, 4))
                             await configApi?.reload?.()
                             setSettingsKey(k => k + 1)
                         }}

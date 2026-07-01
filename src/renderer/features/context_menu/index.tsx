@@ -2,8 +2,6 @@ import React, { useContext, useRef } from 'react'
 import { motion } from 'framer-motion'
 import * as menuStyles from '@features/context_menu/context_menu.module.scss'
 import userContext from '@entities/user/model/context'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 
 import toast from '@shared/ui/toast'
 import SettingsInterface from '@entities/settings/model/settings.interface'
@@ -12,6 +10,7 @@ import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useTranslation } from 'react-i18next'
 import { buildContextMenuSections, renderContextMenuSections } from '@features/context_menu/model/contextMenuSections'
 import config from '@common/appConfig'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface ContextMenuProps {
     modalRef: React.RefObject<{
@@ -25,12 +24,13 @@ type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
 const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const { t, i18n } = useTranslation()
-    const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(userContext)
+    const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } = useContext(userContext)
     const { Modals, openModal } = useModalContext()
     const { isExperimentEnabled } = useExperiments()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
     const [updateSource, setUpdateSourceState] = React.useState<UpdateSource>('backend')
     const [updateStatus, setUpdateStatus] = React.useState<UpdateStatus>('IDLE')
+    const [desktopRuntime, setDesktopRuntime] = React.useState({ isLinux: false, isDev: false })
     const subscriptionPageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.WebSubscriptionsPage, false)
 
     const openUpdateModal = () => {
@@ -42,39 +42,43 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const openAppDirectory = () => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'appPath' })
+        desktopApi.system.openAppDirectory()
+    }
+
+    const openObsWidgetDirectory = () => {
+        desktopApi.system.openObsWidgetDirectory()
     }
 
     const openSubscriptionPage = () => {
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/subscription`)
+        desktopApi.system.openExternal(`${config.WEBSITE_URL}/subscription`)
     }
 
     const openBoostyUrl = () => {
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, config.BOOSTY_URL)
+        desktopApi.system.openExternal(config.BOOSTY_URL)
     }
 
-    const canResetAsarPath = window.electron.isLinux() && Boolean(window.electron.store.get('settings.modSavePath'))
+    const canResetAsarPath = desktopRuntime.isLinux && Boolean(app.settings.modSavePath)
     const updateSourceSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
 
     const resetAsarPath = () => {
-        if (!window.electron.isLinux()) return
-        window.electron.store.set('settings.modSavePath', '')
+        if (!desktopRuntime.isLinux) return
+        void desktopApi.settings.updatePreferences({ modSavePath: '' })
         toast.custom('success', t('common.doneTitle'), t('contextMenu.mod.resetAsarPathSuccess'))
     }
 
     const showLoadingToast = (event: any, message: string) => {
         const toastId = toast.custom('info', t('common.waitTitle'), message)
 
-        const handleFailure = (event: any, args: any) => {
+        const handleFailure = (args: any) => {
             toast.custom('error', t('common.somethingWrongTitle'), t('mod.removeError', { message: args.error }), {
                 id: toastId,
             })
-            if (args?.type === 'linux_permissions_required' && window.electron.isLinux()) {
+            if (args?.type === 'linux_permissions_required' && desktopRuntime.isLinux) {
                 openModal(Modals.LINUX_PERMISSIONS_MODAL)
             }
         }
 
-        const handleSuccess = (event: any, args: any) => {
+        const handleSuccess = () => {
             toast.custom('success', t('common.doneTitle'), t('mod.removedSuccess'), {
                 id: toastId,
             })
@@ -87,19 +91,29 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                         version: '',
                     },
                 }
-                window.getModInfo(updatedApp, { silentNotInstalled: true })
-                window.electron.store.delete('mod')
+                void checkModUpdates(updatedApp, { silentNotInstalled: true })
+                void desktopApi.settings.resetModState()
                 return updatedApp
             })
         }
 
-        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_SUCCESS, handleSuccess)
-        window.desktopEvents?.once(RendererEvents.REMOVE_MOD_FAILURE, handleFailure)
+        let unsubscribeSuccess = () => {}
+        let unsubscribeFailure = () => {}
+        unsubscribeSuccess = desktopApi.mods.onRemoveSuccess(payload => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleSuccess()
+        })
+        unsubscribeFailure = desktopApi.mods.onRemoveFailure(payload => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleFailure(payload)
+        })
     }
 
     const deleteMod = (e: any) => {
         showLoadingToast(e, t('mod.removing'))
-        window.desktopEvents?.send(MainEvents.REMOVE_MOD)
+        desktopApi.mods.remove()
         window.localStorage.removeItem('lastNotifiedModVersion')
     }
 
@@ -118,9 +132,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             }
         }
 
-        const cleanupListeners = () => {
-            window.desktopEvents?.removeListener(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
-        }
+        let unsubscribeProgress = () => {}
+        const cleanupListeners = () => unsubscribeProgress()
 
         const handleSuccess = () => {
             cleanupListeners()
@@ -133,7 +146,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             setWidgetInstalled(true)
         }
 
-        const handleFailure = (event: any, args: any) => {
+        const handleFailure = (args: any) => {
             cleanupListeners()
             if (widgetDownloadToastIdRef.current) {
                 toast.custom('error', t('common.errorTitle'), t('obsWidget.downloadError', { message: args.error }), {
@@ -145,10 +158,20 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             }
         }
 
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_OBS_WIDGET_PROGRESS, handleProgress)
-        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_SUCCESS, handleSuccess)
-        window.desktopEvents?.once(RendererEvents.DOWNLOAD_OBS_WIDGET_FAILURE, handleFailure)
-        window.desktopEvents?.send(MainEvents.DOWNLOAD_OBS_WIDGET)
+        let unsubscribeSuccess = () => {}
+        let unsubscribeFailure = () => {}
+        unsubscribeProgress = desktopApi.widgets.onDownloadProgress(payload => handleProgress(null, payload as { progress: number }))
+        unsubscribeSuccess = desktopApi.widgets.onDownloadSuccess(() => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleSuccess()
+        })
+        unsubscribeFailure = desktopApi.widgets.onDownloadFailure(payload => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleFailure(payload)
+        })
+        desktopApi.widgets.downloadObs()
     }
 
     const removeObsWidget = () => {
@@ -159,13 +182,23 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             setWidgetInstalled(false)
         }
 
-        const handleFailure = (event: any, args: any) => {
+        const handleFailure = (args: any) => {
             toast.custom('error', t('common.errorTitle'), t('obsWidget.removeError', { message: args.error }), { id: toastId })
         }
 
-        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_SUCCESS, handleSuccess)
-        window.desktopEvents?.once(RendererEvents.REMOVE_OBS_WIDGET_FAILURE, handleFailure)
-        window.desktopEvents?.send(MainEvents.REMOVE_OBS_WIDGET)
+        let unsubscribeSuccess = () => {}
+        let unsubscribeFailure = () => {}
+        unsubscribeSuccess = desktopApi.widgets.onRemoveSuccess(() => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleSuccess()
+        })
+        unsubscribeFailure = desktopApi.widgets.onRemoveFailure(payload => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleFailure(payload)
+        })
+        desktopApi.widgets.removeObs()
     }
 
     const clearModCache = () => {
@@ -175,18 +208,28 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
             toast.custom('success', t('common.doneTitle'), t('mod.cacheCleared'), { id: toastId })
         }
 
-        const handleFailure = (event: any, args: any) => {
+        const handleFailure = (args: any) => {
             toast.custom('error', t('common.errorTitle'), t('mod.cacheClearError', { message: args.error }), { id: toastId })
         }
 
-        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_SUCCESS, handleSuccess)
-        window.desktopEvents?.once(RendererEvents.CLEAR_MOD_CACHE_FAILURE, handleFailure)
-        window.desktopEvents?.send(MainEvents.CLEAR_MOD_CACHE)
+        let unsubscribeSuccess = () => {}
+        let unsubscribeFailure = () => {}
+        unsubscribeSuccess = desktopApi.mods.onClearCacheSuccess(() => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleSuccess()
+        })
+        unsubscribeFailure = desktopApi.mods.onClearCacheFailure(payload => {
+            unsubscribeSuccess()
+            unsubscribeFailure()
+            handleFailure(payload)
+        })
+        desktopApi.mods.clearCache()
     }
 
     const copyWidgetPath = async () => {
         try {
-            const widgetPath = await window.desktopEvents?.invoke(MainEvents.GET_OBS_WIDGET_PATH)
+            const widgetPath = await desktopApi.widgets.getObsPath()
             if (widgetPath) {
                 await navigator.clipboard.writeText(widgetPath)
                 toast.custom('success', t('common.doneTitle'), t('obsWidget.pathCopied'))
@@ -202,58 +245,55 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         const statusLabel = status ? t('common.enabled') : t('common.disabled')
         switch (type) {
             case 'autoTray':
-                window.electron.store.set('settings.autoStartInTray', status)
+                void desktopApi.settings.updatePreferences({ autoStartInTray: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoTray', { status: statusLabel }))
                 break
             case 'autoStart':
-                window.electron.store.set('settings.autoStartApp', status)
-                window.desktopEvents?.send(MainEvents.AUTO_START_APP, status)
+                void desktopApi.settings.updatePreferences({ autoStartApp: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartApp', { status: statusLabel }))
                 break
             case 'autoStartMusic':
-                window.electron.store.set('settings.autoStartMusic', status)
+                void desktopApi.settings.updatePreferences({ autoStartMusic: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoStartMusic', { status: statusLabel }))
                 break
             case 'askSavePath':
-                window.electron.store.set('settings.askSavePath', status)
+                void desktopApi.settings.updatePreferences({ askSavePath: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.askSavePath', { status: statusLabel }))
                 break
             case 'saveAsMp3':
-                window.electron.store.set('settings.saveAsMp3', status)
+                void desktopApi.settings.updatePreferences({ saveAsMp3: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveAsMp3', { status: statusLabel }))
                 break
             case 'closeAppInTray':
-                window.electron.store.set('settings.closeAppInTray', status)
+                void desktopApi.settings.updatePreferences({ closeAppInTray: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.closeAppInTray', { status: statusLabel }))
                 break
             case 'deletePextAfterImport':
-                window.electron.store.set('settings.deletePextAfterImport', status)
+                void desktopApi.settings.updatePreferences({ deletePextAfterImport: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.deletePextAfterImport'))
                 break
             case 'autoUpdateStoreAddons':
-                window.electron.store.set('settings.autoUpdateStoreAddons', status)
+                void desktopApi.settings.updatePreferences({ autoUpdateStoreAddons: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.autoUpdateStoreAddons', { status: statusLabel }))
                 break
             case 'hardwareAcceleration':
-                window.electron.store.set('settings.hardwareAcceleration', status)
+                void desktopApi.settings.updatePreferences({ hardwareAcceleration: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.restartRequired'))
                 break
             case 'devSocket':
-                window.electron.store.set('settings.devSocket', status)
-                console.log(status)
-                status ? window.desktopEvents?.send(MainEvents.WEBSOCKET_START) : window.desktopEvents?.send(MainEvents.WEBSOCKET_STOP)
+                void desktopApi.settings.updatePreferences({ devSocket: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.websocketStatusChanged'))
                 break
             case 'showModModalAfterInstall':
-                window.electron.store.set('settings.showModModalAfterInstall', status)
+                void desktopApi.settings.updatePreferences({ showModModalAfterInstall: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.showModChangelog', { status: statusLabel }))
                 break
             case 'saveWindowPositionOnRestart':
-                window.electron.store.set('settings.saveWindowPositionOnRestart', status)
+                void desktopApi.settings.updatePreferences({ saveWindowPositionOnRestart: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowPosition', { status: statusLabel }))
                 break
             case 'saveWindowDimensionsOnRestart':
-                window.electron.store.set('settings.saveWindowDimensionsOnRestart', status)
+                void desktopApi.settings.updatePreferences({ saveWindowDimensionsOnRestart: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.saveWindowDimensions', { status: statusLabel }))
                 break
         }
@@ -310,7 +350,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const setLanguage = async (language: string) => {
         if (app.settings.language === language) return
         await i18n.changeLanguage(language)
-        window.electron.store.set('settings.language', language)
+        await desktopApi.settings.setLanguage(language)
         setApp((prevApp: SettingsInterface) => ({
             ...prevApp,
             settings: { ...prevApp.settings, language },
@@ -318,17 +358,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     }
 
     const collectLogs = () => {
-        window.desktopEvents?.send(MainEvents.GET_LOG_ARCHIVE)
+        desktopApi.system.createLogArchive()
         toast.custom('success', t('common.doneTitle'), t('contextMenu.misc.logsReady'))
     }
 
     React.useEffect(() => {
         const loadUpdateState = async () => {
             try {
-                const [nextSource, nextStatus] = await Promise.all([
-                    window.desktopEvents?.invoke(MainEvents.GET_UPDATE_SOURCE),
-                    window.desktopEvents?.invoke(MainEvents.GET_UPDATE_STATUS),
-                ])
+                const [nextSource, nextStatus] = await Promise.all([desktopApi.updates.getSource(), desktopApi.updates.getStatus()])
 
                 setUpdateSourceState((nextSource as UpdateSource) || 'backend')
                 setUpdateStatus((nextStatus as UpdateStatus) || 'IDLE')
@@ -356,14 +393,25 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         const handleDownloadFailed = () => setUpdateStatus('IDLE')
 
         const unsubscribers = [
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
+            desktopApi.updates.onCheck(payload => handleCheckUpdate(null, payload as { checking?: boolean; updateAvailable?: boolean })),
+            desktopApi.updates.onDownloadProgress(handleDownloadProgress),
+            desktopApi.updates.onDownloadFinished(handleDownloadFinished),
+            desktopApi.updates.onDownloadFailed(handleDownloadFailed),
         ].filter(Boolean) as Array<() => void>
 
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
+        }
+    }, [])
+
+    React.useEffect(() => {
+        let mounted = true
+        desktopApi.getRuntimeInfo().then(runtimeInfo => {
+            if (!mounted) return
+            setDesktopRuntime({ isLinux: runtimeInfo.isLinux, isDev: runtimeInfo.isDev })
+        })
+        return () => {
+            mounted = false
         }
     }, [])
 
@@ -373,7 +421,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         }
 
         try {
-            const response = (await window.desktopEvents?.invoke(MainEvents.SET_UPDATE_SOURCE, nextSource)) as { source?: UpdateSource } | undefined
+            const response = (await desktopApi.updates.setSource(nextSource)) as { source?: UpdateSource } | undefined
             const appliedSource = response?.source || nextSource
             setUpdateSourceState(appliedSource)
             toast.custom(
@@ -381,8 +429,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 t('common.doneTitle'),
                 t('contextMenu.updates.sourceChanged', { source: t(`contextMenu.updates.${appliedSource}`) }),
             )
-            window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true })
-            void window.getModInfo(app, { silentNotInstalled: true })
+            desktopApi.updates.check({ manual: true })
+            void checkModUpdates(app, { silentNotInstalled: true })
         } catch (error: any) {
             const isBusy = error instanceof Error && error.message === 'UPDATE_SOURCE_BUSY'
             toast.custom('error', t('common.errorTitle'), isBusy ? t('contextMenu.updates.busy') : t('contextMenu.updates.sourceChangeError'))
@@ -392,16 +440,19 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const buttonConfigs = buildContextMenuSections({
         app,
         canResetAsarPath,
-        checkAppUpdates: () => window.desktopEvents?.send(MainEvents.CHECK_UPDATE, { manual: true }),
-        checkModUpdates: () => (window as any).getModInfo(app, { manual: true }),
+        checkAppUpdates: () => desktopApi.updates.check({ manual: true }),
+        checkModUpdates: () => checkModUpdates(app, { manual: true }),
         clearModCache,
         collectLogs,
         copyWidgetPath,
         deleteMod,
         downloadObsWidget,
         isAutonomousMode,
+        isDevRuntime: desktopRuntime.isDev,
+        isLinux: desktopRuntime.isLinux,
         openAppDirectory,
         openBoostyUrl,
+        openObsWidgetDirectory,
         openSubscriptionPage,
         subscriptionPageEnabled,
         openUpdateChannelModal,
@@ -416,6 +467,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         updateSource,
         updateSourceSwitchBlocked,
         widgetInstalled,
+        appBranch: app.info.branch,
         modals: {
             MOD_CHANGELOG: Modals.MOD_CHANGELOG,
         },

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as semver from 'semver'
 
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import { isDev, isDevmark } from '@common/appConfig'
 import toast from '@shared/ui/toast'
 import { errorTypesToShow } from '@shared/lib/utils'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type { ModalName } from '@app/providers/modal/types'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
 
@@ -54,11 +53,12 @@ export function useLayoutInstallers({
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
-    const readInstalledModFromStore = useCallback(() => {
-        const version = String(window.electron.store.get('mod.version') || '')
-        const name = String(window.electron.store.get('mod.name') || '')
-        const musicVersion = String(window.electron.store.get('mod.musicVersion') || '')
-        const installed = Boolean(window.electron.store.get('mod.installed'))
+    const readInstalledModSnapshot = useCallback(async () => {
+        const snapshot = await desktopApi.settings.getSnapshot()
+        const version = String(snapshot.mod.version || '')
+        const name = String(snapshot.mod.name || '')
+        const musicVersion = String(snapshot.mod.musicVersion || '')
+        const installed = Boolean(snapshot.mod.installed)
 
         return { version, name, musicVersion, installed }
     }, [])
@@ -117,7 +117,7 @@ export function useLayoutInstallers({
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
-        const handleModInstallStarted = (_: any, data?: { isUpdate?: boolean }) => {
+        const handleModInstallStarted = (data?: { isUpdate?: boolean }) => {
             const isUpdate = typeof data?.isUpdate === 'boolean' ? data.isUpdate : appRef.current.mod.installed
             currentModActionRef.current = isUpdate ? 'update' : 'install'
             setIsUpdating(true)
@@ -141,7 +141,7 @@ export function useLayoutInstallers({
             )
         }
 
-        const handleProgress = (_: any, { progress, name }: { progress: number; name: string }) => {
+        const handleProgress = ({ progress, name }: { progress: number; name: string }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     kind: 'loading',
@@ -161,8 +161,8 @@ export function useLayoutInstallers({
             }
         }
 
-        const handleSuccess = (_: any, data: any) => {
-            const installedMod = readInstalledModFromStore()
+        const handleSuccess = async (data: any) => {
+            const installedMod = await readInstalledModSnapshot()
             const installedEntry = modInfoRef.current.find(mod => mod.modVersion === installedMod.version)
             setModInstallError(null)
             const isUpdate = currentModActionRef.current === 'update'
@@ -205,16 +205,13 @@ export function useLayoutInstallers({
                 openModal(modals.MOD_CHANGELOG)
             }
 
-            Promise.all([window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS), window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION)]).then(
-                ([status, version]) => {
-                    setMusicInstalled(Boolean(status))
-                    setMusicVersion(version ?? null)
-                },
-            )
+            const [status, version] = await Promise.all([desktopApi.music.getStatus(), desktopApi.music.getVersion()])
+            setMusicInstalled(Boolean(status))
+            setMusicVersion(version ?? null)
             setIsUpdating(false)
         }
 
-        const handleFailure = (_: any, error: any) => {
+        const handleFailure = (error: any) => {
             const errorPresentation = getModInstallErrorText(error)
             console.error('[LayoutInstallers] Mod install failed', {
                 action: currentModActionRef.current,
@@ -237,29 +234,33 @@ export function useLayoutInstallers({
                 toast.custom('error', errorPresentation.title, errorPresentation.details, undefined, undefined, 15000)
             }
 
-            if (error.type === 'linux_permissions_required' && window.electron.isLinux()) {
-                openModal(modals.LINUX_PERMISSIONS_MODAL)
-            }
+            desktopApi.getRuntimeInfo().then(runtimeInfo => {
+                if (error.type === 'linux_permissions_required' && runtimeInfo.isLinux) {
+                    openModal(modals.LINUX_PERMISSIONS_MODAL)
+                }
+            })
             setIsUpdating(false)
         }
 
-        window.desktopEvents?.on(RendererEvents.MOD_INSTALL_STARTED, handleModInstallStarted)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_PROGRESS, handleProgress)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_SUCCESS, handleSuccess)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_FAILURE, handleFailure)
+        const unsubscribeInstallStarted = desktopApi.mods.onInstallStarted(handleModInstallStarted as (payload: unknown) => void)
+        const unsubscribeDownloadProgress = desktopApi.mods.onDownloadProgress(handleProgress as (payload: unknown) => void)
+        const unsubscribeDownloadSuccess = desktopApi.mods.onDownloadSuccess(handleSuccess)
+        const unsubscribeDownloadFailure = desktopApi.mods.onDownloadFailure(handleFailure)
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.MOD_INSTALL_STARTED)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_PROGRESS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_SUCCESS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.DOWNLOAD_FAILURE)
+            unsubscribeInstallStarted()
+            unsubscribeDownloadProgress()
+            unsubscribeDownloadSuccess()
+            unsubscribeDownloadFailure()
             ;(window as any).__listenersAdded = false
         }
-    }, [modals.LINUX_PERMISSIONS_MODAL, modals.MOD_CHANGELOG, openModal, readInstalledModFromStore, setApp, setMusicInstalled, setMusicVersion, t])
+    }, [getModInstallErrorText, modals.LINUX_PERMISSIONS_MODAL, modals.MOD_CHANGELOG, openModal, readInstalledModSnapshot, setApp, setMusicInstalled, setMusicVersion, t])
 
-    const startUpdate = useCallback(() => {
-        if (window.electron.isLinux()) {
-            const savedPath = window.electron.store.get('settings.modSavePath')
+    const startUpdate = useCallback(async () => {
+        const runtimeInfo = await desktopApi.getRuntimeInfo()
+        if (runtimeInfo.isLinux) {
+            const snapshot = await desktopApi.settings.getSnapshot()
+            const savedPath = snapshot.settings.modSavePath
             if (!savedPath) {
                 openModal(modals.LINUX_ASAR_PATH)
                 return
@@ -294,7 +295,7 @@ export function useLayoutInstallers({
         const { modVersion, realMusicVersion, downloadUrl, checksum_v2, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum, source } =
             modInfo[0]
 
-        window.desktopEvents?.send(MainEvents.INSTALL_MOD, {
+        desktopApi.mods.install({
             version: modVersion,
             musicVersion: realMusicVersion,
             name,

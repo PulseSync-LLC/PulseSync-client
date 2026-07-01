@@ -1,8 +1,6 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import path from 'path'
 import { MdAdd, MdClose } from 'react-icons/md'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import semver from 'semver'
 
 import TextInput from '@shared/ui/PSUI/TextInput'
@@ -20,6 +18,7 @@ import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { getProfileSlug } from '@shared/lib/profileSlug'
 import toast from '@shared/ui/toast'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
 import { useTranslation } from 'react-i18next'
@@ -120,32 +119,15 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     const ext = path.extname(baseName)
     const stem = baseName.slice(0, baseName.length - ext.length)
 
-    const safeExists = async (filePath: string) => {
-        try {
-            const res = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'exists', filePath)
-            return !!res
-        } catch {
-            return false
-        }
+    const result = await desktopApi.addons.files.copyInto({
+        addonPath,
+        preferredName: `${stem}${ext}`,
+        sourcePath: src,
+    })
+    if (!result.success || !result.relativePath) {
+        throw new Error(result.error || 'ADDON_FILE_COPY_FAILED')
     }
-
-    const MAX_TRIES = 500
-    let dest = path.join(addonPath, baseName)
-    let i = 1
-    while (i <= MAX_TRIES && (await safeExists(dest))) {
-        dest = path.join(addonPath, `${stem}_${i++}${ext}`)
-    }
-    if (i > MAX_TRIES) {
-        dest = path.join(addonPath, `${stem}_${Date.now()}${ext}`)
-    }
-
-    try {
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'copy-file', src, dest)
-    } catch {
-        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'read-file-base64', src)
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'write-file-base64', dest, data)
-    }
-    return path.basename(dest)
+    return result.relativePath
 }
 
 function deepEqual(a: any, b: any): boolean {
@@ -305,7 +287,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             setLoading(true)
             try {
                 const file = path.join(addonPath, 'metadata.json')
-                const raw = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, file)
+                const raw = await desktopApi.addons.files.readText(file)
                 const parsed = JSON.parse(raw ?? '{}')
                 const meta: Metadata = {
                     ...DEFAULT_META,
@@ -716,16 +698,16 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             }
 
             const file = path.join(addonPath, 'metadata.json')
-            await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(metadataToSave, null, 2))
+            await desktopApi.addons.files.writeText(file, JSON.stringify(metadataToSave, null, 2))
 
             baseRef.current = next
             setDraft(next)
 
             try {
-                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
-                window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+                desktopApi.music.refreshModInfo()
+                desktopApi.addons.refreshClients()
 
-                const nextAddons = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force: true })
+                const nextAddons = await desktopApi.addons.list()
                 if (Array.isArray(nextAddons)) {
                     setAddons(nextAddons.filter(addon => addon.name !== 'Default'))
                 }

@@ -1,9 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { Socket } from 'socket.io-client'
-import MainEvents from '@common/types/mainEvents'
 import { useTranslation } from 'react-i18next'
 import toast from '@shared/ui/toast'
-import getUserToken from '@shared/lib/auth/getUserToken'
 import { createRealtimeSocket, updateRealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
 import IncomingSocketEvents from '@shared/api/socket/enums/incomingSocketEvents'
 import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
@@ -11,6 +9,9 @@ import type { SocketContextValue, SocketProviderProps } from '@app/providers/soc
 import { createGatewayHandler } from '@app/providers/socket/gateway'
 import { buildRealtimeSocketAuth, CONNECTION_ERROR_TOAST_THRESHOLD, emitCompressedGateway } from '@app/providers/socket/utils'
 import { useZstdCodec } from '@app/providers/socket/useZstdCodec'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { useModalContext } from '@app/providers/modal'
+import type { DesktopRuntimeInfo } from '@common/desktopApi/contract'
 
 const noopEmitGateway = (_event: OutgoingGatewayEvent, _payload: unknown): void => {}
 
@@ -40,8 +41,10 @@ export function SocketProvider({
     children,
 }: SocketProviderProps) {
     const { t } = useTranslation()
+    const { Modals, openModal } = useModalContext()
     const [socket, setSocket] = useState<Socket | null>(null)
     const [socketConnected, setSocketConnected] = useState(false)
+    const [desktopRuntimeInfo, setDesktopRuntimeInfo] = useState<DesktopRuntimeInfo | null>(null)
     const { zstdReady, zstdRef } = useZstdCodec()
 
     const socketRef = useRef<Socket | null>(null)
@@ -67,29 +70,56 @@ export function SocketProvider({
         if (websocketStartedRef.current) return
 
         websocketStartedRef.current = true
-        window.desktopEvents?.send(MainEvents.WEBSOCKET_START)
+        desktopApi.system.startWebsocket()
     }, [])
 
     useEffect(() => {
-        if (!zstdReady) return
-
-        const socketAuth = buildRealtimeSocketAuth(appVersion)
-
-        if (!socketRef.current) {
-            const newSocket = createRealtimeSocket(socketAuth)
-            socketRef.current = newSocket
-            setSocket(newSocket)
-            return
+        let active = true
+        desktopApi.getRuntimeInfo().then(runtimeInfo => {
+            if (active) {
+                setDesktopRuntimeInfo(runtimeInfo)
+            }
+        })
+        return () => {
+            active = false
         }
+    }, [])
 
-        updateRealtimeSocketAuth(socketRef.current, socketAuth)
-    }, [appVersion, zstdReady])
+    useEffect(() => {
+        if (!zstdReady || !desktopRuntimeInfo) return
+
+        let active = true
+        void (async () => {
+            const token = await desktopApi.auth.getToken()
+            const socketAuth = buildRealtimeSocketAuth(appVersion, token, desktopRuntimeInfo)
+
+            if (!active) return
+
+            if (!socketRef.current) {
+                const newSocket = createRealtimeSocket(socketAuth)
+                socketRef.current = newSocket
+                setSocket(newSocket)
+                return
+            }
+
+            updateRealtimeSocketAuth(socketRef.current, socketAuth)
+        })()
+
+        return () => {
+            active = false
+        }
+    }, [appVersion, desktopRuntimeInfo, zstdReady])
 
     useEffect(() => {
         if (userId === '-1' || !socketRef.current) return
 
-        const newToken = getUserToken()
-        if (newToken && socketRef.current.auth) {
+        let active = true
+        void (async () => {
+            const newToken = await desktopApi.auth.getToken()
+            if (!active || !newToken || !socketRef.current?.auth) {
+                return
+            }
+
             const wasConnected = socketRef.current.connected
             socketRef.current.auth = {
                 ...socketRef.current.auth,
@@ -100,6 +130,10 @@ export function SocketProvider({
                 socketRef.current.disconnect()
                 socketRef.current.connect()
             }
+        })()
+
+        return () => {
+            active = false
         }
     }, [userId])
 
@@ -133,6 +167,7 @@ export function SocketProvider({
             onNotificationCreated,
             onNotificationRead,
             onNotificationsReadAll,
+            onPremiumUnlocked: () => openModal(Modals.PREMIUM_UNLOCKED),
             resetSocketFailures,
         })
 
@@ -172,6 +207,8 @@ export function SocketProvider({
         onNotificationCreated,
         onNotificationRead,
         onNotificationsReadAll,
+        Modals.PREMIUM_UNLOCKED,
+        openModal,
         setLoading,
         setUser,
         t,
@@ -184,15 +221,25 @@ export function SocketProvider({
         const currentSocket = socketRef.current
         if (!currentSocket) return
 
-        currentSocket.auth = {
-            ...(currentSocket.auth || {}),
-            token: getUserToken(),
-            compression: 'zstd-stream',
-            inboundCompression: 'zstd-stream',
-        }
+        let active = true
+        void (async () => {
+            const token = await desktopApi.auth.getToken()
+            if (!active) return
 
-        if (!currentSocket.connected) {
-            currentSocket.connect()
+            currentSocket.auth = {
+                ...(currentSocket.auth || {}),
+                token,
+                compression: 'zstd-stream',
+                inboundCompression: 'zstd-stream',
+            }
+
+            if (!currentSocket.connected) {
+                currentSocket.connect()
+            }
+        })()
+
+        return () => {
+            active = false
         }
     }, [userId, zstdReady])
 

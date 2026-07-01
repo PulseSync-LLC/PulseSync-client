@@ -2,7 +2,7 @@ import type { Socket } from 'socket.io-client'
 import type { RealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
 import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 import OutgoingSocketEvents from '@shared/api/socket/enums/outgoingSocketEvents'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import type { DesktopRuntimeInfo } from '@common/desktopApi/contract'
 
 const SOCKET_VERSION_FALLBACK = '0.0.0'
 const COMPRESSION_LEVEL = 3
@@ -10,17 +10,17 @@ const COMPRESSION_LEVEL = 3
 export const SOCKET_OFFLINE_CLEAR_AFTER_MS = 15000
 export const CONNECTION_ERROR_TOAST_THRESHOLD = 3
 
-export function buildRealtimeSocketAuth(appVersion: string): RealtimeSocketAuth {
+export function buildRealtimeSocketAuth(appVersion: string, token: string, runtimeInfo: DesktopRuntimeInfo): RealtimeSocketAuth {
     const rawHash = window.location?.hash || ''
     const page = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
     const version = (appVersion || SOCKET_VERSION_FALLBACK).split('-')[0]
 
     return {
         page,
-        token: getUserToken(),
+        token,
         version,
-        buildIdentity: window.appInfo?.getBuildIdentity?.(),
-        hardwareIdentity: window.appInfo?.getHardwareIdentity?.() ?? null,
+        buildIdentity: runtimeInfo.buildIdentity,
+        hardwareIdentity: runtimeInfo.hardwareIdentity,
         compression: 'zstd-stream',
         inboundCompression: 'zstd-stream',
     }

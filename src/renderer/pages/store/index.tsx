@@ -14,10 +14,10 @@ import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.qu
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
-import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
 import UserContext from '@entities/user/model/context'
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -212,7 +212,7 @@ export default function StorePage() {
 
     const handleStoreAddonAction = useCallback(
         async (addon: StoreAddon, release: StoreAddon['currentRelease'], installedStoreAddon?: Addon) => {
-            if (!window.desktopEvents || !release || !addon.id || installingAddonId === addon.id) return
+            if (!release || !addon.id || installingAddonId === addon.id) return
 
             if (installedStoreAddon) {
                 const removeInstalledAddon = async () => {
@@ -220,12 +220,15 @@ export default function StorePage() {
                     const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
 
                     try {
-                        const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, installedStoreAddon.path)
+                        const result = (await desktopApi.addons.deleteDirectory(installedStoreAddon.path)) as {
+                            reason?: string
+                            success?: boolean
+                        }
                         if (!result?.success) {
                             throw new Error(result?.reason || 'DELETE_FAILED')
                         }
 
-                        const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                        const nextInstalledAddons = await desktopApi.addons.list()
                         setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
                         toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
                             id: toastId,
@@ -262,17 +265,20 @@ export default function StorePage() {
             const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
 
             try {
-                const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                const result = (await desktopApi.addons.installStore({
                     id: addon.id,
                     downloadUrl,
                     title: addon.name,
-                })
+                })) as {
+                    reason?: string
+                    success?: boolean
+                }
 
                 if (!result?.success) {
                     throw new Error(result?.reason || 'INSTALL_FAILED')
                 }
 
-                const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                const nextInstalledAddons = await desktopApi.addons.list()
                 setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
 
                 toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
