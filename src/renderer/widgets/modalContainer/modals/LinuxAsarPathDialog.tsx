@@ -1,11 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import path from 'path'
 import { useTranslation } from 'react-i18next'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const LinuxAsarPathDialog: React.FC = () => {
     const { t } = useTranslation()
@@ -30,28 +28,23 @@ const LinuxAsarPathDialog: React.FC = () => {
 
         try {
             setErrorMessage(null)
-            const storedPath = window.electron?.store?.get?.('settings.modSavePath') as string | undefined
-            const defaultPath = storedPath || '/opt/Яндекс Музыка'
-            const selectedPath = await window.desktopEvents?.invoke(MainEvents.DIALOG_OPEN_DIRECTORY, {
-                defaultPath,
-            })
+            const snapshot = await desktopApi.settings.getSnapshot()
+            const storedPath = snapshot.settings.modSavePath as string | undefined
+            const result = await desktopApi.music.selectLinuxAsarPath(storedPath)
 
-            if (selectedPath) {
-                const asarCandidates = [path.join(selectedPath, 'app.asar'), path.join(selectedPath, 'resources', 'app.asar')]
-                const checkResults = await Promise.all(
-                    asarCandidates.map(candidate => window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.CHECK_FILE_EXISTS, candidate)),
-                )
-                const foundIndex = checkResults.findIndex(Boolean)
-                if (foundIndex === -1) {
-                    const message = t('modals.linuxAsarPath.errors.missingAsar')
-                    setErrorMessage(message)
-                    toast.custom('error', t('modals.linuxAsarPath.toasts.errorTitle'), message)
-                    return
-                }
-                const resolvedPath = path.dirname(asarCandidates[foundIndex])
-                window.electron?.store?.set?.('settings.modSavePath', resolvedPath)
-                closeModal(Modals.LINUX_ASAR_PATH)
+            if (result.canceled) {
+                return
             }
+
+            if (!result.path) {
+                const message = t('modals.linuxAsarPath.errors.missingAsar')
+                setErrorMessage(message)
+                toast.custom('error', t('modals.linuxAsarPath.toasts.errorTitle'), message)
+                return
+            }
+
+            await desktopApi.settings.updatePreferences({ modSavePath: result.path })
+            closeModal(Modals.LINUX_ASAR_PATH)
         } finally {
             setIsSaving(false)
         }

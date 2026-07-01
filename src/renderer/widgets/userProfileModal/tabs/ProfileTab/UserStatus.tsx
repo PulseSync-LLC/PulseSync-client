@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next'
 import { MdOpenInNew } from 'react-icons/md'
 import { getStatus, getStatusColor } from '@shared/lib/userStatus'
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
-import MainEvents from '@common/types/mainEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface UserStatusProps {
     userProfile: any
@@ -25,10 +25,7 @@ const UserStatus: React.FC<UserStatusProps> = ({ userProfile }) => {
             if (!canOpenTrack) return
             e.stopPropagation()
             const albumId = userProfile.currentTrack.albums[0].id
-            window.desktopEvents?.send(
-                MainEvents.OPEN_EXTERNAL,
-                `yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`,
-            )
+            desktopApi.system.openExternal(`yandexmusic://album/${encodeURIComponent(albumId)}/track/${userProfile.currentTrack.realId}`)
         },
         [canOpenTrack, userProfile.currentTrack],
     )

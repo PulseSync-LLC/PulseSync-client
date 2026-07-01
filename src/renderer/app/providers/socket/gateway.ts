@@ -1,14 +1,12 @@
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import type { Socket } from 'socket.io-client'
-import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
 import IncomingGatewayEvents from '@shared/api/socket/enums/incomingGatewayEvents'
 import { parseGatewayFrame } from '@shared/api/socket/realtimeSocket'
 import { applySubscriptionUpdate, applyUserUpdate, SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents'
 import type UserInterface from '@entities/user/model/user.interface'
 import { getGatewayErrorMessage } from '@app/providers/socket/utils'
-import RendererEvents from '@common/types/rendererEvents'
-import { Modals } from '@app/providers/modal/modals'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type CreateGatewayHandlerParams = {
     t: (key: string, options?: any) => string
@@ -23,6 +21,7 @@ type CreateGatewayHandlerParams = {
     onNotificationCreated?: (payload: unknown) => Promise<void> | void
     onNotificationRead?: (payload: unknown) => Promise<void> | void
     onNotificationsReadAll?: (payload: unknown) => Promise<void> | void
+    onPremiumUnlocked?: () => void
     resetSocketFailures: () => void
 }
 
@@ -39,6 +38,7 @@ export function createGatewayHandler({
     onNotificationCreated,
     onNotificationRead,
     onNotificationsReadAll,
+    onPremiumUnlocked,
     resetSocketFailures,
 }: CreateGatewayHandlerParams) {
     return async (buf: ArrayBuffer | Uint8Array) => {
@@ -54,7 +54,7 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.DEPRECATED_VERSION:
                 console.debug('Gateway deprecated version')
                 toast.custom('error', t('common.attentionTitle'), t('auth.deprecatedSoon'))
-                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                desktopApi.system.showNotification({
                     title: t('common.attentionTitle'),
                     body: t('auth.deprecatedSoon'),
                 })
@@ -62,7 +62,7 @@ export function createGatewayHandler({
             case IncomingGatewayEvents.HARDWARE_IDENTITY_WARNING:
                 console.debug('Gateway hardware identity warning', gatewayPayload)
                 toast.custom('error', t('common.attentionTitle'), t('auth.hardwareIdentityWarning'), undefined, undefined, 15000)
-                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                desktopApi.system.showNotification({
                     title: t('common.attentionTitle'),
                     body: t('auth.hardwareIdentityWarning'),
                 })
@@ -90,7 +90,7 @@ export function createGatewayHandler({
                 setUser(prev => applySubscriptionUpdate(prev, gatewayPayload as SubscriptionUpdatePayload))
                 console.debug('Gateway subscription update', gatewayPayload)
                 if (gatewayPayload?.hasSupporterBadge) {
-                    window?.desktopEvents?.emit(RendererEvents.OPEN_MODAL, null, Modals.PREMIUM_UNLOCKED)
+                    onPremiumUnlocked?.()
                 }
                 break
             case IncomingGatewayEvents.ACHIEVEMENTS_UPDATE:

@@ -1,8 +1,7 @@
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import rendererHttpClient from '@shared/api/http/client'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type OwnAddonsResponse = {
     addons?: StoreAddon[]
@@ -124,10 +123,10 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
 }
 
 async function packageAddon(addon: Addon): Promise<{ blob: Blob; fileName: string }> {
-    const packaged = (await window.desktopEvents?.invoke(MainEvents.PACKAGE_ADDON_ARCHIVE, {
+    const packaged = (await desktopApi.addons.packageArchive({
         name: addon.directoryName || addon.name,
         path: addon.path,
-    })) as PackageArchiveResponse | undefined
+    })) as PackageArchiveResponse
 
     if (!packaged?.success || !packaged.base64 || !packaged.fileName) {
         throw new AddonStoreSubmitError(packaged?.reason || 'PACKAGE_FAILED')
@@ -185,9 +184,7 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
 
     try {
         const metadataPath = `${addon.path}/metadata.json`
-        const rawMetadata = (await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, metadataPath, {
-            encoding: 'utf8',
-        })) as string | null
+        const rawMetadata = await desktopApi.addons.files.readText(metadataPath, 'utf8')
 
         if (!rawMetadata) {
             return
@@ -197,7 +194,7 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
         parsedMetadata.storeAddonId = storeAddonId.trim()
         parsedMetadata.installSource = parsedMetadata.installSource === 'store' ? 'store' : 'local'
 
-        await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, metadataPath, JSON.stringify(parsedMetadata, null, 4))
+        await desktopApi.addons.files.writeText(metadataPath, JSON.stringify(parsedMetadata, null, 4))
     } catch (error) {
         console.error('[AddonStore] failed to persist store addon link', error)
     }

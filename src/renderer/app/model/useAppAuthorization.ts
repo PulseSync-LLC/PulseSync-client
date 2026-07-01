@@ -5,14 +5,13 @@ import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
 import UserMeQuery from '@entities/user/api/getMe.query'
 import UserInterface from '@entities/user/model/user.interface'
 import userInitials from '@entities/user/model/user.initials'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import toast from '@shared/ui/toast'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { clearCachedUserToken, getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 import config from '@common/appConfig'
 import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
 import type { GetMeData, GetMeVars } from '@app/AppShell.types'
 import { setRendererErrorTrackingUser } from '@app/errorTracking'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type Params = {
     router: {
@@ -36,21 +35,25 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
     useEffect(() => {
         let mounted = true
-        const token = getUserToken()
-        if (mounted) {
-            setHasToken(!!token)
-            setTokenReady(true)
-        }
+        void getUserTokenAsync().then(token => {
+            if (mounted) {
+                setHasToken(!!token)
+                setTokenReady(true)
+            }
+        })
         return () => {
             mounted = false
         }
     }, [])
 
     useEffect(() => {
-        if (userId === '-1' && !getUserToken()) {
-            setHasToken(false)
-            setTokenReady(true)
-        }
+        if (userId !== '-1') return
+        void getUserTokenAsync().then(token => {
+            if (!token) {
+                setHasToken(false)
+                setTokenReady(true)
+            }
+        })
     }, [userId])
 
     const {
@@ -74,7 +77,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
     const sendAuthStatus = useCallback((user?: Partial<UserInterface> | null) => {
         if (user?.id) {
             setRendererErrorTrackingUser({ id: user.id, email: user.email })
-            window.desktopEvents?.send(MainEvents.AUTH_STATUS, {
+            desktopApi.auth.setStatus({
                 status: true,
                 user: {
                     id: user.id as string,
@@ -86,11 +89,12 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         }
 
         setRendererErrorTrackingUser(null)
-        window.desktopEvents?.send(MainEvents.AUTH_STATUS, { status: false })
+        desktopApi.auth.setStatus({ status: false })
     }, [])
 
     const redirectToAuth = useCallback(async () => {
-        window.electron.store.delete('tokens.token')
+        await desktopApi.auth.deleteToken()
+        clearCachedUserToken()
         setHasToken(false)
         await router.navigate('/home', { replace: true })
         setUser(userInitials)
@@ -145,7 +149,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                     undefined,
                     10000,
                 )
-                window.desktopEvents?.send(MainEvents.UPDATER_START)
+                desktopApi.updates.start()
                 setIsAppDeprecated(true)
                 ;(async () => {
                     await redirectToAuth()
@@ -164,7 +168,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         let retryCount = config.MAX_RETRY_COUNT
 
         const attemptAuthorization = async (): Promise<boolean> => {
-            const token = getUserToken()
+            const token = await getUserTokenAsync()
 
             if (!token) {
                 sendAuthStatus(null)
@@ -188,7 +192,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
             const sendErrorAuthNotify = (message: string, title?: string) => {
                 toast.custom('error', tRef.current('common.errorTitle'), message, undefined, undefined, 10000)
-                window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                desktopApi.system.showNotification({
                     title: tRef.current('auth.authErrorTitle', { title }),
                     body: message,
                 })
@@ -247,7 +251,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                             undefined,
                             10000,
                         )
-                        window.desktopEvents?.send(MainEvents.UPDATER_START)
+                        desktopApi.updates.start()
                         setIsAppDeprecated(true)
                         await redirectToAuth()
                         return false
@@ -266,7 +270,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
             if (!isAuthorized) {
                 const retryInterval = setInterval(async () => {
-                    const token = getUserToken()
+                    const token = await getUserTokenAsync()
 
                     if (!token) {
                         sendAuthStatus(null)
@@ -284,7 +288,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             }
         }
 
-        window.desktopEvents?.invoke(MainEvents.CHECK_SLEEP_MODE).then(async (res: boolean) => {
+        desktopApi.system.checkSleepMode().then(async (res: boolean) => {
             if (!res) {
                 await retryAuthorization()
             }
@@ -318,12 +322,12 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             await authorize()
         }
 
-        window.desktopEvents?.on(RendererEvents.AUTH_SUCCESS, handleAuthStatus)
+        const unsubscribeAuthSuccess = desktopApi.auth.onSuccess(handleAuthStatus)
         window.addEventListener('mouseup', handleMouseButton)
 
         return () => {
             clearInterval(intervalId)
-            window.desktopEvents?.removeAllListeners(RendererEvents.AUTH_SUCCESS)
+            unsubscribeAuthSuccess()
             window.removeEventListener('mouseup', handleMouseButton)
         }
     }, [authorize, userId])

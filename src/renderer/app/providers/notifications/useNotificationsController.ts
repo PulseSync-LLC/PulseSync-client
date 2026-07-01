@@ -1,9 +1,9 @@
-import MainEvents from '@common/types/mainEvents'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
 import { getNotificationPresentation } from '@app/providers/notifications/presentation'
 import type { NotificationsContextValue, NotificationItem } from '@app/providers/notifications/types'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type NotificationsListResponse = {
     notifications: NotificationItem[]
@@ -153,7 +153,7 @@ export function useNotificationsController(userId: string): NotificationsControl
         if (REALTIME_TOAST_NOTIFICATION_TYPES.has(data.notification.type) && !data.notification.read) {
             const presentation = getNotificationPresentation(data.notification)
             toast.custom(presentation.tone, presentation.title, presentation.body)
-            window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+            desktopApi.system.showNotification({
                 title: presentation.title,
                 body: presentation.body,
             })

@@ -24,7 +24,6 @@ import {
     getUniqueAddonCreators,
     getUniqueAddonTags,
     isAddonWhitelisted,
-    safeStoreGet,
     SortKey,
     useDebouncedValue,
 } from '@pages/extension/model/addonCatalog'
@@ -33,7 +32,6 @@ import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
 import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
-import MainEvents from '@common/types/mainEvents'
 import { staticAsset } from '@shared/lib/staticAssets'
 import apolloClient from '@shared/api/apolloClient'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
@@ -44,6 +42,7 @@ import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -106,9 +105,7 @@ function withDisplayRelease(addon: StoreAddon): StoreAddon {
     }
 }
 
-function readEnabledScriptsState(): string[] {
-    const rawValue = safeStoreGet<string[] | string>('addons.scripts', [])
-
+function readEnabledScriptsState(rawValue: unknown): string[] {
     if (typeof rawValue === 'string') {
         return rawValue
             .split(',')
@@ -142,8 +139,8 @@ export default function ExtensionPage() {
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
-    const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
-    const [enabledScripts, setEnabledScripts] = useState<string[]>(() => safeStoreGet<string[]>('addons.scripts', []))
+    const [currentTheme, setCurrentTheme] = useState<string>('Default')
+    const [enabledScripts, setEnabledScripts] = useState<string[]>([])
     const [searchQuery, setSearchQuery] = useState('')
     const debouncedSearchQuery = useDebouncedValue(searchQuery.toLowerCase(), 250)
 
@@ -300,13 +297,12 @@ export default function ExtensionPage() {
     const loadAddons = useCallback(
         async (force = false): Promise<Addon[]> => {
             try {
-                const result = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force })
+                const [result, snapshot] = await Promise.all([desktopApi.addons.list(), desktopApi.settings.getSnapshot()])
                 const fetchedAddons: Addon[] = Array.isArray(result) ? result : []
                 const filtered = fetchedAddons.filter(a => a.name !== 'Default')
                 setAddons(filtered)
-                const themeFromStore = safeStoreGet<string>('addons.theme', 'Default') || 'Default'
-                setCurrentTheme(themeFromStore)
-                setEnabledScripts(readEnabledScriptsState())
+                setCurrentTheme(String(snapshot.addons.theme || 'Default'))
+                setEnabledScripts(readEnabledScriptsState(snapshot.addons.scripts))
                 return filtered
             } catch (error) {
                 console.error(t('extensions.loadError'), error)
@@ -435,10 +431,16 @@ export default function ExtensionPage() {
             const previousScripts = [...enabledScripts]
             const previousEnabledKeys = buildEnabledAddonKeys(previousTheme, previousScripts)
 
-            const result = await window.desktopEvents?.invoke(MainEvents.SET_ADDON_ENABLED, {
+            const result = (await desktopApi.addons.setEnabled({
                 directoryName: addon.directoryName,
                 enabled: newChecked,
-            })
+            })) as {
+                addons?: Addon[]
+                reason?: string
+                scripts?: unknown[]
+                success?: boolean
+                theme?: string
+            }
             if (!result?.success) {
                 throw new Error(result?.reason || 'SET_ADDON_ENABLED_FAILED')
             }
@@ -448,10 +450,11 @@ export default function ExtensionPage() {
                 : await loadAddons(true)
             setAddons(refreshedAddons)
 
-            const nextTheme = String(result.theme || 'Default')
+            const enabledStateSnapshot = typeof result.theme !== 'string' || !Array.isArray(result.scripts) ? await desktopApi.settings.getSnapshot() : null
+            const nextTheme = typeof result.theme === 'string' ? result.theme : String(enabledStateSnapshot?.addons.theme || 'Default')
             const nextEnabledScripts = Array.isArray(result.scripts)
-                ? result.scripts.map((script: unknown) => String(script || '').trim()).filter(Boolean)
-                : readEnabledScriptsState()
+                ? readEnabledScriptsState(result.scripts)
+                : readEnabledScriptsState(enabledStateSnapshot?.addons.scripts)
             setCurrentTheme(nextTheme)
             setEnabledScripts(nextEnabledScripts)
             const nextEnabledKeys = buildEnabledAddonKeys(nextTheme, nextEnabledScripts)
@@ -682,7 +685,7 @@ export default function ExtensionPage() {
     const handleReloadAddons = useCallback(async () => {
         try {
             clearAddonFilesCache()
-            window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+            desktopApi.addons.refreshClients()
             await loadAddons(true)
             setSelectedAddonId(null)
             toast.custom('success', t('common.doneTitle'), t('extensions.reloadSuccess'))
@@ -693,13 +696,12 @@ export default function ExtensionPage() {
     }, [loadAddons, t])
 
     const handleOpenAddonsDirectory = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, {
-            action: 'addonsPath',
-        })
+        desktopApi.addons.openRootDirectory()
     }, [])
 
     const handleCreateNewAddon = useCallback(() => {
-        window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
+        desktopApi.addons.createNew().then(async response => {
+            const res = response as { canceled?: boolean; error?: string; name?: string; success?: boolean }
             if (res?.success) {
                 toast.custom('success', t('extensions.addonCreatedTitle'), t('extensions.addonCreatedMessage', { name: res.name }))
                 return
@@ -1016,7 +1018,7 @@ export default function ExtensionPage() {
     ])
 
     const handleStoreAddonUpdate = useCallback(async () => {
-        if (!selectedAddon || !selectedStoreUpdate || !window.desktopEvents) {
+        if (!selectedAddon || !selectedStoreUpdate) {
             return
         }
 
@@ -1024,17 +1026,20 @@ export default function ExtensionPage() {
         const toastId = toast.custom('loading', t('layout.updateAction'), t('common.pleaseWait'))
 
         try {
-            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+            const result = (await desktopApi.addons.installStore({
                 id: selectedStoreUpdate.id,
-                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl,
+                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl || undefined,
                 title: selectedStoreUpdate.name,
-            })
+            })) as {
+                reason?: string
+                success?: boolean
+            }
 
             if (!result?.success) {
                 throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
             }
 
-            const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+            const nextInstalledAddons = await desktopApi.addons.list()
             setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
             toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: selectedStoreUpdate.name }), { id: toastId })
         } catch (error) {

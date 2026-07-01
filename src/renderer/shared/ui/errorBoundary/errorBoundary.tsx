@@ -1,8 +1,8 @@
 import React from 'react'
 import * as styles from '@shared/ui/errorBoundary/errorBoundary.module.scss'
 import toast from '@shared/ui/toast'
-import MainEvents from '@common/types/mainEvents'
 import { t } from '@app/i18n'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface ErrorBoundaryProps {
     children: React.ReactNode
@@ -25,7 +25,7 @@ class ErrorBoundary extends React.Component<
     }
 
     componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-        window.desktopEvents?.send(MainEvents.LOG_ERROR, {
+        desktopApi.logs.reactError({
             type: 'react-error-boundary',
             message: error.message,
             stack: error.stack,

@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import RendererEvents from '@common/types/rendererEvents'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import MainEvents from '@common/types/mainEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type MacUpdateInfo = {
     type: 'dmg' | 'zip'
@@ -17,17 +16,17 @@ const MacUpdateDialog: React.FC = () => {
     const [updateInfo, setUpdateInfo] = useState<MacUpdateInfo | null>(null)
 
     useEffect(() => {
-        const handleMacUpdateReady = (_: any, data: MacUpdateInfo) => {
-            setUpdateInfo(data)
+        const handleMacUpdateReady = (data: unknown) => {
+            const updateData = data as MacUpdateInfo
+            if (!updateData?.openPath) return
+            setUpdateInfo(updateData)
             openModal(Modals.MAC_UPDATE_DIALOG)
         }
 
-        const unsubscribe = window.desktopEvents?.on(RendererEvents.MAC_UPDATE_READY, handleMacUpdateReady)
+        const unsubscribe = desktopApi.system.onMacUpdateReady(handleMacUpdateReady)
 
         return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe()
-            }
+            unsubscribe()
         }
     }, [Modals.MAC_UPDATE_DIALOG, openModal])
 
@@ -50,14 +49,13 @@ const MacUpdateDialog: React.FC = () => {
             buttons={[
                 {
                     text: t('modals.macUpdate.buttons.openFinder'),
-                    onClick: () =>
-                        updateInfo?.openPath && window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'openPath', path: updateInfo.openPath }),
+                    onClick: () => updateInfo?.openPath && desktopApi.system.openLastMacUpdatePath(),
                     variant: 'primary',
                     disabled: !updateInfo?.openPath,
                 },
                 {
                     text: t('modals.macUpdate.buttons.openApplications'),
-                    onClick: () => window.desktopEvents?.send(MainEvents.OPEN_PATH, { action: 'openApplications' }),
+                    onClick: () => desktopApi.system.openApplicationsDirectory(),
                     variant: 'secondary',
                 },
                 {

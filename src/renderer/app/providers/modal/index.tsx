@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import RendererEvents from '@common/types/rendererEvents'
 import { Modals } from '@app/providers/modal/modals'
 import type { ModalName, ModalProviderProps, ModalState, ModalStatePatch, ModalsContextValue, ModalsState } from '@app/providers/modal/types'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },
@@ -109,7 +109,10 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
     )
 
     useEffect(() => {
-        const unsubscribe = window.desktopEvents?.on(RendererEvents.OPEN_MODAL, (_event, modalName: string) => {
+        const unsubscribe = desktopApi.system.onOpenModal(modalName => {
+            if (typeof modalName !== 'string') {
+                return
+            }
             const ok = openModalByName(modalName)
             if (!ok) {
                 console.warn('[ModalProvider] Unknown modal name for open:', modalName)
@@ -117,9 +120,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         })
 
         return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe()
-            }
+            unsubscribe()
         }
     }, [openModalByName])
 

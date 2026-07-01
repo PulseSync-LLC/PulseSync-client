@@ -2,9 +2,9 @@ import { useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import config from '@common/appConfig'
-import MainEvents from '@common/types/mainEvents'
 import { useNews } from '@app/providers/news'
 import ButtonV2 from '@shared/ui/buttonV2'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 import * as styles from './home.module.scss'
 
@@ -122,11 +122,11 @@ export default function HomeNewsSection() {
             return
         }
 
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/news/${slug}`)
+        desktopApi.system.openExternal(`${config.WEBSITE_URL}/news/${slug}`)
     }, [])
 
     const openNewsList = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/news`)
+        desktopApi.system.openExternal(`${config.WEBSITE_URL}/news`)
     }, [])
 
     const renderState = () => {

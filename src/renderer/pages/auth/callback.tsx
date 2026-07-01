@@ -1,6 +1,5 @@
 import { useContext, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router'
-import RendererEvents from '@common/types/rendererEvents'
 
 import * as pageStyles from '@pages/auth/callback.module.scss'
 
@@ -11,6 +10,7 @@ import UserBlockIcon from '@shared/assets/icons/userBlock.svg'
 import userContext from '@entities/user/model/context'
 import Header from '@widgets/layout/header'
 import { useTranslation } from 'react-i18next'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 export default function CallbackPage() {
     const { t } = useTranslation()
@@ -26,13 +26,14 @@ export default function CallbackPage() {
 
     useEffect(() => {
         if (typeof window === 'undefined') return
-        const handleBanned = (_event: any, data: any) => {
-            setBanReason(data.reason)
-            setTimeout(() => window.electron.window.exit(), 10000)
+        const handleBanned = (data: unknown) => {
+            const ban = data as { reason?: string } | undefined
+            setBanReason(ban?.reason || '')
+            setTimeout(() => desktopApi.window.exit(), 10000)
         }
-        window.desktopEvents?.on(RendererEvents.AUTH_BANNED, handleBanned)
+        const unsubscribe = desktopApi.auth.onBanned(handleBanned)
         return () => {
-            window.desktopEvents?.removeListener(RendererEvents.AUTH_BANNED, handleBanned)
+            unsubscribe()
         }
     }, [])
 

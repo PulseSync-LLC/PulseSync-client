@@ -1,9 +1,9 @@
 import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
 import config from '@common/appConfig'
-import MainEvents from '@common/types/mainEvents'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
+import { desktopApi } from '@shared/desktop/desktopApi'
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
     fetchAchievements: () => Promise<void>
@@ -46,14 +46,14 @@ export function useAppInitialization({
 
     useEffect(() => {
         const initializeApp = async () => {
-            window.desktopEvents?.send(MainEvents.UPDATER_START)
-            window.desktopEvents?.send(MainEvents.CHECK_MUSIC_INSTALL)
-            window.desktopEvents?.send(MainEvents.UI_READY)
+            desktopApi.updates.start()
+            desktopApi.music.checkInstall()
+            desktopApi.lifecycle.ready()
 
             const [musicStatus, musicVersion, fetchedAddons] = await Promise.all([
-                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_STATUS),
-                window.desktopEvents?.invoke(MainEvents.GET_MUSIC_VERSION),
-                window.desktopEvents?.invoke(MainEvents.GET_ADDONS),
+                desktopApi.music.getStatus(),
+                desktopApi.music.getVersion(),
+                desktopApi.addons.list(),
             ])
             const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : (musicVersion as string | null | undefined) || null
 
@@ -62,7 +62,7 @@ export function useAppInitialization({
             setAddons((fetchedAddons as Addon[]) || [])
 
             try {
-                const widgetExists = await window.desktopEvents?.invoke(MainEvents.CHECK_OBS_WIDGET_INSTALLED)
+                const widgetExists = await desktopApi.widgets.checkObsInstalled()
                 setWidgetInstalled(widgetExists || false)
             } catch (error) {
                 console.error('Failed to check widget installation:', error)

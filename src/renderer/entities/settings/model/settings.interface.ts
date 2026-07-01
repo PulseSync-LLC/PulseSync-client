@@ -13,9 +13,11 @@ export interface Settings {
     saveAsMp3: boolean
     showModModalAfterInstall: boolean
     language: string
+    modSavePath?: string
 }
 export interface Info {
     version: string
+    branch: string
 }
 export interface Mod {
     musicVersion: string

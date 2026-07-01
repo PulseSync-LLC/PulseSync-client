@@ -43,6 +43,8 @@ export default function AppProviders({
     modInfoFetched,
     allAchievements,
     setAllAchievements,
+    checkModUpdates,
+    refreshAddons,
     notificationsValue,
     router,
 }: AppProvidersProps) {
@@ -89,6 +91,8 @@ export default function AppProviders({
             modInfoFetched,
             allAchievements,
             setAllAchievements,
+            checkModUpdates,
+            refreshAddons,
             emitGateway,
         }),
         [
@@ -96,6 +100,7 @@ export default function AppProviders({
             app,
             appInfo,
             authorize,
+            checkModUpdates,
             emitGateway,
             isAppDeprecated,
             loading,
@@ -104,6 +109,7 @@ export default function AppProviders({
             modInfoFetched,
             musicInstalled,
             musicVersion,
+            refreshAddons,
             setAppWithSocket,
             setAllAchievements,
             setIsAppDeprecated,

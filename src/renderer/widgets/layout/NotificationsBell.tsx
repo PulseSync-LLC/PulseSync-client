@@ -1,7 +1,6 @@
 import React, { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MdDoneAll, MdNotificationsNone } from 'react-icons/md'
-import MainEvents from '@common/types/mainEvents'
 import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -12,6 +11,7 @@ import type { NotificationItem } from '@app/providers/notifications/types'
 import Loader from '@shared/ui/PSUI/Loader'
 import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const WEBSITE_ORIGIN = (() => {
     try {
@@ -150,7 +150,7 @@ const NotificationsBell: React.FC = () => {
                   ? rawLink
                   : `${config.WEBSITE_URL}${rawLink.startsWith('/') ? rawLink : `/${rawLink}`}`
 
-            window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, externalUrl)
+            desktopApi.system.openExternal(externalUrl)
         },
         [Modals.SUBSCRIPTION_GIVEAWAYS, navigate, openModal],
     )

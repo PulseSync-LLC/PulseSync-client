@@ -37,6 +37,8 @@ const defaultUserContextValue: UserContextValue = {
     setMod: () => void 0,
     allAchievements: [],
     setAllAchievements: () => void 0,
+    checkModUpdates: noopAsync,
+    refreshAddons: noopAsync,
     emitGateway: (_event: OutgoingGatewayEvent, _payload: unknown) => void 0,
 }
 

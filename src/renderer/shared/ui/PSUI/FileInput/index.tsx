@@ -4,9 +4,8 @@ import path from 'path'
 import * as s from '@shared/ui/PSUI/FileInput/FileInput.module.scss'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { MdHelp, MdFolderOpen, MdClose } from 'react-icons/md'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import { useTranslation } from 'react-i18next'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type Props = {
     label: string
@@ -63,57 +62,24 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     const ext = path.extname(baseName)
     const stem = baseName.slice(0, baseName.length - ext.length)
 
-    const safeExists = async (p: string) => {
-        try {
-            return !!(await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.CHECK_FILE_EXISTS, p))
-        } catch {
-            return false
-        }
+    const result = await desktopApi.addons.files.copyInto({
+        addonPath,
+        preferredName: `${stem}${ext}`,
+        sourcePath: src,
+    })
+    if (!result.success || !result.relativePath) {
+        throw new Error(result.error || 'ADDON_FILE_COPY_FAILED')
     }
-
-    const MAX_TRIES = 500
-    let dest = path.join(addonPath, baseName)
-    let i = 1
-    while (i <= MAX_TRIES && (await safeExists(dest))) dest = path.join(addonPath, `${stem}_${i++}${ext}`)
-    if (i > MAX_TRIES) dest = path.join(addonPath, `${stem}_${Date.now()}${ext}`)
-
-    try {
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, src, { dest })
-    } catch {
-        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, src)
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE_BASE64, dest, data)
-    }
-    return path.basename(dest)
-}
-
-async function hashBase64(b64: string): Promise<string> {
-    if (!b64) return ''
-    const clean = b64.includes(',') ? b64.split(',').pop()! : b64
-    const bin = atob(clean)
-    const bytes = new Uint8Array(bin.length)
-    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
-    const digest = await crypto.subtle.digest('SHA-256', bytes)
-    return Array.from(new Uint8Array(digest))
-        .map(b => b.toString(16).padStart(2, '0'))
-        .join('')
-}
-
-async function fileHash(fullPath: string): Promise<string> {
-    try {
-        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
-        return b64 ? await hashBase64(b64) : ''
-    } catch {
-        return ''
-    }
+    return result.relativePath
 }
 
 async function getDataUrlSafe(fullPath: string): Promise<string | null> {
     try {
-        const url: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.AS_DATA_URL, fullPath)
+        const url = await desktopApi.addons.files.asDataUrl(fullPath)
         if (url) return url
     } catch {}
     try {
-        const b64: string | null = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE_BASE64, fullPath)
+        const b64 = await desktopApi.addons.files.readBase64(fullPath)
         if (!b64) return null
         const ext = path.extname(fullPath).toLowerCase()
         const mime =
@@ -233,13 +199,12 @@ const FileInput: React.FC<Props> = ({
     const openPicker = async () => {
         if (disabled) return
         const filters = toFilters(accept)
-        const channel = metadata ? MainEvents.DIALOG_OPEN_FILE_METADATA : MainEvents.DIALOG_OPEN_FILE
         let defaultPath: string | undefined = undefined
 
         if ((accept.includes('.css') || accept.includes('.js')) && addonPath) {
             defaultPath = addonPath
         }
-        const filePath = await window.desktopEvents?.invoke(channel, { filters, defaultPath })
+        const filePath = await desktopApi.addons.files.openDialog({ filters, defaultPath, metadata })
         if (!filePath) return
         if (metadata && addonPath) await commitPicked(String(filePath))
         else commitManual(String(filePath))
@@ -293,12 +258,12 @@ const FileInput: React.FC<Props> = ({
         try {
             if (isAbsPath(absNewPath)) {
                 if (prevShort) {
-                    const destFull = path.join(addonPath, prevShort)
-                    const [oldHash, newHash] = await Promise.all([fileHash(destFull), fileHash(absNewPath)])
-                    if (oldHash !== newHash) {
-                        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.COPY_FILE, absNewPath, { dest: destFull })
-                        setRev(r => r + 1)
-                    }
+                    await desktopApi.addons.files.copyInto({
+                        addonPath,
+                        existingRelativePath: prevShort,
+                        sourcePath: absNewPath,
+                    })
+                    setRev(r => r + 1)
                     finalShort = prevShort
                 } else {
                     const ext = path.extname(absNewPath)

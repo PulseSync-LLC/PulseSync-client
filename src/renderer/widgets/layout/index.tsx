@@ -1,6 +1,5 @@
 import React, { useCallback, useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
-import MainEvents from '@common/types/mainEvents'
 import { MdDownload, MdHandyman, MdHome, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
 import Header from '@widgets/layout/header'
 import NavButtonPulse from '@shared/ui/PSUI/NavButton'
@@ -18,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
 import ModUpdateBanner from '@widgets/layout/ui/ModUpdateBanner'
 import { useNavigate } from 'react-router-dom'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface LayoutProps {
     title: string
@@ -128,7 +128,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                     <button
                                         onClick={() => {
                                             setUpdate(false)
-                                            window.desktopEvents?.send(MainEvents.UPDATE_INSTALL)
+                                            desktopApi.updates.install()
                                         }}
                                         className={pageStyles.update_download}
                                     >

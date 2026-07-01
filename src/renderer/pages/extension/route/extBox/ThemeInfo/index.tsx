@@ -14,6 +14,8 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import { useTranslation } from 'react-i18next'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import userContext from '@entities/user/model/context'
 
 interface Props {
     addon: AddonInterface
@@ -101,6 +103,7 @@ const ThemeInfo: React.FC<Props> = ({
     const { t } = useTranslation()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal, setModalState } = useModalContext()
+    const { refreshAddons } = React.useContext(userContext)
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -128,8 +131,21 @@ const ThemeInfo: React.FC<Props> = ({
         return () => document.removeEventListener('mousedown', handler)
     }, [showAll])
 
-    const isMac = typeof window !== 'undefined' ? window.electron.isMac() : false
+    const [isMac, setIsMac] = useState(false)
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
+
+    useEffect(() => {
+        let active = true
+        desktopApi.getRuntimeInfo().then(runtimeInfo => {
+            if (active) {
+                setIsMac(runtimeInfo.isMac)
+            }
+        })
+
+        return () => {
+            active = false
+        }
+    }, [])
 
     const getAssetUrl = (file: string) =>
         `http://127.0.0.1:${config.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(file)}`
@@ -386,6 +402,7 @@ const ThemeInfo: React.FC<Props> = ({
                                     },
                                     addon,
                                     { Modals, openModal, setModalState },
+                                    refreshAddons,
                                 )}
                             />
                         )}

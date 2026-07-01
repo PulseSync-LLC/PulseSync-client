@@ -16,9 +16,11 @@ const settingsInitials: SettingsInterface = {
         devSocket: false,
         showModModalAfterInstall: true,
         language: 'ru',
+        modSavePath: '',
     },
     info: {
         version: '',
+        branch: '',
     },
     mod: {
         version: '',

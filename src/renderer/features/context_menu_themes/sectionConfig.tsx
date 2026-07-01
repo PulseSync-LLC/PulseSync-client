@@ -5,8 +5,8 @@ import Addon from '@entities/addon/model/addon.interface'
 import toast from '@shared/ui/toast'
 import type { ModalsContextValue } from '@app/providers/modal/types'
 import { MdDeleteForever, MdFileOpen, MdIosShare } from 'react-icons/md'
-import MainEvents from '@common/types/mainEvents'
 import { t } from '@app/i18n'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 export interface MenuItem {
     label?: string
@@ -30,6 +30,7 @@ export const createContextMenuActions = (
     actionVisibility: ActionVisibility = {},
     currentAddon: Addon,
     modalActions: ContextMenuModalActions,
+    onAddonListChanged?: () => void,
 ): MenuItem[] => {
     const { Modals, setModalState } = modalActions
     return [
@@ -47,19 +48,15 @@ export const createContextMenuActions = (
         },
         {
             label: t('contextMenuThemes.directory', { name: currentAddon.name }),
-            onClick: () =>
-                window.desktopEvents?.send(MainEvents.OPEN_PATH, {
-                    action: 'theme',
-                    themeName: currentAddon.directoryName,
-                }),
+            onClick: () => desktopApi.addons.openDirectory(currentAddon.directoryName),
             show: actionVisibility.showDirectory ?? false,
             icon: <MdFileOpen size={20} />,
         },
         {
             label: t('contextMenuThemes.export', { name: currentAddon.name }),
             onClick: () => {
-                window.desktopEvents
-                    .invoke(MainEvents.EXPORT_ADDON, {
+                desktopApi.addons
+                    .exportArchive({
                         path: currentAddon.path,
                         name: currentAddon.name,
                     })
@@ -99,13 +96,14 @@ export const createContextMenuActions = (
                     confirmVariant: 'danger',
                     onConfirm: () => {
                         const themeDirPath = currentAddon.path
-                        window.desktopEvents
-                            .invoke(MainEvents.DELETE_ADDON_DIRECTORY, themeDirPath)
+                        desktopApi.addons
+                            .deleteDirectory(themeDirPath)
                             .then(result => {
-                                if (!result?.success) {
-                                    throw new Error(result?.reason || 'DELETE_FAILED')
+                                const deleteResult = result as { reason?: string; success?: boolean }
+                                if (!deleteResult?.success) {
+                                    throw new Error(deleteResult?.reason || 'DELETE_FAILED')
                                 }
-                                window.refreshAddons()
+                                onAddonListChanged?.()
                                 console.log(t('contextMenuThemes.deleteSuccess', { name: currentAddon.name }))
                             })
                             .catch(error => {

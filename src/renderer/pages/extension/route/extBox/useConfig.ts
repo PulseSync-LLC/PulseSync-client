@@ -7,10 +7,9 @@ import {
     collectAddonSettingsValuesFromConfig,
     normalizeAddonSettingsValues,
 } from '@common/addons/handleEvents'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 
 import { AddonConfig, normalizeAddonConfig } from '@features/configurationSettings/types'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 type UseConfigResult = {
     configExists: boolean | null
@@ -41,7 +40,7 @@ export function useConfig(addonPath: string): UseConfigResult {
 
     const reload = useCallback(async () => {
         try {
-            const rawSchema = await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, schemaFilePath, 'utf-8')
+            const rawSchema = await desktopApi.addons.files.readText(schemaFilePath, 'utf8')
             const parsedSchema = safeParse<AddonConfig>(rawSchema)
             const normalizedSchema = parsedSchema ? normalizeAddonConfig(parsedSchema) : null
 
@@ -54,7 +53,7 @@ export function useConfig(addonPath: string): UseConfigResult {
 
             let storedValues = {}
             try {
-                const rawValues = await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, settingsFilePath, 'utf-8')
+                const rawValues = await desktopApi.addons.files.readText(settingsFilePath, 'utf8')
                 storedValues = normalizeAddonSettingsValues(safeParse(rawValues) ?? {})
             } catch {}
 
@@ -72,7 +71,7 @@ export function useConfig(addonPath: string): UseConfigResult {
         async (cfg: AddonConfig) => {
             const normalized = normalizeAddonConfig(cfg)
             const values = collectAddonSettingsValuesFromConfig(normalized)
-            await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, settingsFilePath, JSON.stringify(values, null, 4))
+            await desktopApi.addons.files.writeText(settingsFilePath, JSON.stringify(values, null, 4))
             setConfig(normalized)
             setExists(true)
         },
@@ -82,7 +81,7 @@ export function useConfig(addonPath: string): UseConfigResult {
     const saveSchema = useCallback(
         async (cfg: AddonConfig) => {
             const normalized = normalizeAddonConfig(cfg)
-            await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, schemaFilePath, JSON.stringify(normalized, null, 4))
+            await desktopApi.addons.files.writeText(schemaFilePath, JSON.stringify(normalized, null, 4))
             setEditConfig(normalized)
             setExists(true)
             await reload()

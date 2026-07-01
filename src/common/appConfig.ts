@@ -1,6 +1,6 @@
 export const isDev = false
 export const isDevmark = true
-export const branch = 'beta'
+export const branch = "beta"
 
 const PORT = '2007'
 const MAIN_PORT = 2007
