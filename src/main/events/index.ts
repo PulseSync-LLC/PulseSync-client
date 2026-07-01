@@ -1073,7 +1073,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 }
 
 const registerYandexMusicEvents = (window: BrowserWindow): void => {
-    ipcMain.on('DELETE_YANDEX_MUSIC_APP', async _event => {
+    ipcMain.on(MainEvents.DELETE_YANDEX_MUSIC_APP, async _event => {
         try {
             logger.main.info(t('main.events.yandexUninstallStart'))
 
@@ -1082,7 +1082,7 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
 
             if (!pkg) {
                 logger.main.warn(t('main.events.yandexNotFound'))
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: false,
                     message: t('main.events.yandexNotFoundMessage'),
                 })
@@ -1094,20 +1094,20 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
                 await uninstallApp(pkg.PackageFullName)
 
                 logger.main.info(t('main.events.yandexUninstallSuccess'))
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: true,
                     message: t('main.events.yandexUninstallSuccessMessage'),
                 })
             } catch (uninstallErr) {
                 logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: false,
                     message: t('main.events.yandexUninstallFailedWithReason', { message: (uninstallErr as Error).message }),
                 })
             }
         } catch (error: any) {
             logger.main.error(`Uninstall exception: ${error.message}`)
-            window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+            window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                 success: false,
                 message: t('main.events.yandexUninstallError'),
             })
