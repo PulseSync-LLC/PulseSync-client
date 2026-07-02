@@ -220,6 +220,10 @@ function isUpdaterManifestFile(filePath: string): boolean {
     return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
 }
 
+function isDesktopReleaseManifestFile(filePath: string): boolean {
+    return /^desktop-update-[a-z0-9_-]+\.json$/iu.test(path.basename(filePath))
+}
+
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
 
 function parseKeepRecentVersions(rawValue?: string | null): number | null {
@@ -511,7 +515,7 @@ export async function publishToS3(
 
     let files = walkFiles(dir)
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
-        .filter(fp => (version ? path.basename(fp).includes(version) || /latest(-linux)?\.yml$/.test(path.basename(fp)) : true))
+        .filter(fp => (version ? path.basename(fp).includes(version) || isUpdaterManifestFile(fp) || isDesktopReleaseManifestFile(fp) : true))
     const artifactFamilies = collectArtifactFamilies(files)
 
     const platform = os.platform()
@@ -548,8 +552,9 @@ export async function publishToS3(
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
     files = [
-        ...files.filter(filePath => !isUpdaterManifestFile(filePath)),
+        ...files.filter(filePath => !isUpdaterManifestFile(filePath) && !isDesktopReleaseManifestFile(filePath)),
         ...files.filter(filePath => isUpdaterManifestFile(filePath)),
+        ...files.filter(filePath => isDesktopReleaseManifestFile(filePath)),
     ]
 
     if (version && keepRecentVersions && artifactFamilies.size) {
