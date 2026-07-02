@@ -1,0 +1,14 @@
+{
+    "name": "@pulsesync/bootstrapper",
+    "version": "0.1.0",
+    "private": true,
+    "type": "module",
+    "bin": {
+        "pulsesync-bootstrapper": "./src/cli.ts"
+    },
+    "scripts": {
+        "build": "tsx ../../scripts/build-bootstrapper.ts build",
+        "check": "tsx src/cli.ts check",
+        "typecheck": "tsc -p tsconfig.json --noEmit"
+    }
+}
