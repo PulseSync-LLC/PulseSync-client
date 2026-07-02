@@ -14,6 +14,8 @@ import { fileURLToPath } from 'node:url'
 import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
+import { copyBootstrapperSidecarToResources } from './build-bootstrapper.js'
+import { emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -458,6 +460,7 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
+        await copyBootstrapperSidecarToResources(getPackagedResourcesDir(pdPath))
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -503,17 +506,21 @@ async function main(): Promise<void> {
         const releaseDir = path.join('.', 'release')
         const { version } = generateBuildInfo()
 
+        const buildDist =
+            os.platform() === 'darwin'
+                ? setBuildDist('darwin', targetArch)
+                : setBuildDist(os.platform(), os.arch())
+
         if (os.platform() === 'darwin') {
-            setBuildDist('darwin', targetArch)
             await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
         } else {
-            setBuildDist(os.platform(), os.arch())
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
         }
         pruneElectronLocales(outDir)
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
+        await copyBootstrapperSidecarToResources(getPackagedResourcesDir(outDir))
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
         } else if (os.platform() === 'linux') {
@@ -587,6 +594,21 @@ async function main(): Promise<void> {
         await uploadGlitchTipSourceMaps(version)
 
         if (publishBranch) {
+            const baseS3Url = process.env.S3_URL?.trim()
+            if (!baseS3Url) {
+                throw new Error('S3_URL is required to generate desktop release manifest')
+            }
+
+            await emitDesktopReleaseManifest({
+                baseUrl: `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}`,
+                channel: publishBranch,
+                dist: buildDist,
+                packagedAppRootDir: getPackagedAppRoot(outDir),
+                releaseDir,
+                rendererManifestUrl: process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
+                resourcesDir: getPackagedResourcesDir(outDir),
+                version,
+            })
             await publishToS3(publishBranch, releaseDir, version)
             if (os.platform() === 'darwin') {
                 await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
