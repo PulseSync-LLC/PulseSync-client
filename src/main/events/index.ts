@@ -72,6 +72,7 @@ const MOD_REPO = {
     owner: 'PulseSync-LLC',
     repo: 'PulseSync-mod',
 } as const
+const REMOTE_RENDERER_CACHE_MISS_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf', '.otf'])
 
 const toUnixSeconds = (dateValue: string | null | undefined): number => {
     if (!dateValue) {
@@ -107,9 +108,31 @@ function launchExtensionBackgroundWorkers(session = electronSession.defaultSessi
     )
 }
 
+function isRemoteRendererCacheMiss(details: Electron.OnErrorOccurredListenerDetails): boolean {
+    if (details.error !== 'net::ERR_CACHE_MISS') {
+        return false
+    }
+
+    try {
+        const url = new URL(details.url)
+        if (url.hostname !== 'pulsesync.dev' || !url.pathname.startsWith('/app/versions/')) {
+            return false
+        }
+
+        return REMOTE_RENDERER_CACHE_MISS_EXTENSIONS.has(path.extname(url.pathname).toLowerCase())
+    } catch {
+        return false
+    }
+}
+
 async function registerAppReadyEvents(): Promise<void> {
     const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'] }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
+        if (isRemoteRendererCacheMiss(details)) {
+            logger.http.warn(`HTTP CACHE MISS: ${details.method} ${details.url} (from ${details.webContentsId})`)
+            return
+        }
+
         logger.http.error(`HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`)
     })
     if (isAppDev) {
