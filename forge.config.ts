@@ -8,6 +8,8 @@ import { fileURLToPath } from 'node:url'
 import { prepareGlitchTipSourceMaps } from './scripts/glitchtip-sourcemaps.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const shouldBundleMainRenderer =
+    process.env.PULSESYNC_BUNDLE_RENDERER === '1' && process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_REF?.startsWith('refs/tags/')
 
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
@@ -43,6 +45,14 @@ const forgeConfig: ForgeConfig = {
                 },
             ],
             renderer: [
+                ...(shouldBundleMainRenderer
+                    ? [
+                          {
+                              name: 'main_window',
+                              config: 'vite.renderer.config.ts',
+                          },
+                      ]
+                    : []),
                 {
                     name: 'preloader',
                     config: 'vite.renderer.config.ts',
@@ -81,7 +91,9 @@ const forgeConfig: ForgeConfig = {
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             prepareGlitchTipSourceMaps(buildPath, platform, arch)
             fs.rmSync(path.join(buildPath, '.vite', 'worker'), { force: true, recursive: true })
-            fs.rmSync(path.join(buildPath, '.vite', 'renderer', 'assets'), { force: true, recursive: true })
+            if (!shouldBundleMainRenderer) {
+                fs.rmSync(path.join(buildPath, '.vite', 'renderer', 'assets'), { force: true, recursive: true })
+            }
             const resourcesPath = path.resolve(buildPath, '..')
             const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')
