@@ -13,7 +13,6 @@ import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import { isDevmark } from '@common/appConfig'
 import userInitials from '@entities/user/model/user.initials'
 import { useCharCount } from '@shared/lib/useCharCount'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -59,6 +58,7 @@ const Header: React.FC<p> = () => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, app, setUser, isAutonomousMode } = useContext(userContext)
+    const isDevmark = app.info.devmark
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const updateModalRef = useRef<{

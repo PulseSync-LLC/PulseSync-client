@@ -21,6 +21,7 @@ const settingsInitials: SettingsInterface = {
     info: {
         version: '',
         branch: '',
+        devmark: false,
     },
     mod: {
         version: '',

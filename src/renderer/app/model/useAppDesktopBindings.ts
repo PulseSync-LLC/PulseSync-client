@@ -221,6 +221,7 @@ export function useAppDesktopBindings({
                     ...prevSettings.info,
                     version: runtimeInfo.clientVersion,
                     branch: runtimeInfo.buildIdentity.commit,
+                    devmark: runtimeInfo.isDev || runtimeInfo.buildChannel === 'dev',
                 },
             }))
         })
