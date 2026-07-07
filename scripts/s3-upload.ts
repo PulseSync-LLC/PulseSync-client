@@ -1,9 +1,7 @@
 import 'dotenv/config'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
-import yaml from 'js-yaml'
 import chalk from 'chalk'
 import {
     AbortMultipartUploadCommand,
@@ -15,7 +13,6 @@ import {
     S3Client,
     UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import https from 'https'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import semver from 'semver'
 
@@ -77,16 +74,6 @@ function getMultipartUploadConfig() {
     return { threshold, partSize, concurrency }
 }
 
-async function hashFileSha512(filePath: string): Promise<string> {
-    return await new Promise<string>((resolve, reject) => {
-        const hash = crypto.createHash('sha512')
-        const stream = fs.createReadStream(filePath)
-        stream.on('data', chunk => hash.update(chunk))
-        stream.on('error', reject)
-        stream.on('end', () => resolve(hash.digest('hex')))
-    })
-}
-
 async function readFileChunk(filePath: string, start: number, length: number): Promise<Buffer> {
     const handle = await fs.promises.open(filePath, 'r')
     try {
@@ -98,116 +85,6 @@ async function readFileChunk(filePath: string, start: number, length: number): P
     }
 }
 
-function isDmg(name: string) {
-    return name.toLowerCase().endsWith('.dmg')
-}
-function isZip(name: string) {
-    return name.toLowerCase().endsWith('.zip')
-}
-function fileTypeOf(name: string): 'dmg' | 'zip' {
-    return isZip(name) ? 'zip' : 'dmg'
-}
-
-function parseMacArtifactArch(name: string): 'arm64' | 'x64' | null {
-    const lower = name.toLowerCase()
-    if (lower.includes('arm64')) return 'arm64'
-    if (lower.includes('x64') || lower.includes('intel')) return 'x64'
-    if (lower.includes('-mac') || lower.includes('mac')) return null
-    if (lower.includes('universal')) return null
-    return null
-}
-
-function collectMacArtifacts(releaseDir: string, version: string) {
-    const files = fs.readdirSync(releaseDir).filter(n => (!version || n.includes(version)) && (isDmg(n) || isZip(n)))
-    const out: Array<{ arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }> = []
-    for (const n of files) {
-        const arch = parseMacArtifactArch(n)
-        if (!arch) continue
-        out.push({ arch, file: path.join(releaseDir, n), type: fileTypeOf(n) })
-    }
-    const uniq = new Map<string, { arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }>()
-    for (const a of out) {
-        const key = `${a.arch}:${a.type}`
-        if (!uniq.has(key)) uniq.set(key, a)
-    }
-    return Array.from(uniq.values())
-}
-
-async function collectRemoteMacArtifacts(
-    client: S3Client,
-    bucket: string,
-    prefix: string,
-    branch: string,
-    version: string,
-    baseUrl: string,
-) {
-    const branchPrefix = `${prefix}/${branch}/`
-    const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '')
-    const uniq = new Map<string, { arch: 'arm64' | 'x64'; fileName: string; url: string; type: 'dmg' | 'zip' }>()
-    let continuationToken: string | undefined
-
-    do {
-        const response = await client.send(
-            new ListObjectsV2Command({
-                Bucket: bucket,
-                Prefix: branchPrefix,
-                ContinuationToken: continuationToken,
-            }),
-        )
-
-        for (const object of response.Contents ?? []) {
-            if (!object.Key) continue
-
-            const fileName = path.basename(object.Key)
-            if ((version && !fileName.includes(version)) || (!isDmg(fileName) && !isZip(fileName))) {
-                continue
-            }
-
-            const arch = parseMacArtifactArch(fileName)
-            if (!arch) continue
-
-            const type = fileTypeOf(fileName)
-            const key = `${arch}:${type}`
-            if (uniq.has(key)) continue
-
-            uniq.set(key, {
-                arch,
-                fileName,
-                url: `${normalizedBaseUrl}/${object.Key}`,
-                type,
-            })
-        }
-
-        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
-    } while (continuationToken)
-
-    return Array.from(uniq.values())
-}
-
-async function fetchJson(url: string): Promise<any | null> {
-    return await new Promise(resolve => {
-        https
-            .get(url, res => {
-                if (res.statusCode && res.statusCode >= 400) {
-                    res.resume()
-                    resolve(null)
-                    return
-                }
-                const chunks: Buffer[] = []
-                res.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
-                res.on('end', () => {
-                    try {
-                        const raw = Buffer.concat(chunks).toString('utf-8')
-                        resolve(JSON.parse(raw))
-                    } catch {
-                        resolve(null)
-                    }
-                })
-            })
-            .on('error', () => resolve(null))
-    })
-}
-
 function walkFiles(dir: string): string[] {
     return fs.readdirSync(dir).flatMap(name => {
         const full = path.join(dir, name)
@@ -215,13 +92,70 @@ function walkFiles(dir: string): string[] {
     })
 }
 
-function isUpdaterManifestFile(filePath: string): boolean {
+function isLegacyUpdaterArtifact(filePath: string): boolean {
     const fileName = path.basename(filePath).toLowerCase()
-    return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+    return fileName === 'download.json' || fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+}
+
+async function hashFileSha256(filePath: string): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha256')
+        const stream = fs.createReadStream(filePath)
+        stream.on('data', chunk => hash.update(chunk))
+        stream.on('error', reject)
+        stream.on('end', () => resolve(hash.digest('hex')))
+    })
 }
 
 function isDesktopReleaseManifestFile(filePath: string): boolean {
     return /^desktop-update-[a-z0-9_-]+\.json$/iu.test(path.basename(filePath))
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
+async function versionedPublishPath(filePath: string, version: string, dist: string, artifactPath: string): Promise<string> {
+    const fileName = path.basename(filePath)
+    const sha256 = await hashFileSha256(filePath)
+    return `versions/${version}/${dist}/${artifactPath}/${sha256.slice(0, 16)}/${fileName}`
+}
+
+async function resolveStructuredPublishPath(filePath: string, version?: string): Promise<string> {
+    const fileName = path.basename(filePath)
+    if (isDesktopReleaseManifestFile(filePath)) {
+        return fileName
+    }
+    if (!version) {
+        return fileName
+    }
+
+    const escapedVersion = escapeRegExp(version)
+    const appPayloadMatch = new RegExp(`^pulsesync-app-payload-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
+    if (appPayloadMatch) {
+        const dist = appPayloadMatch[1]
+        return await versionedPublishPath(filePath, version, dist, 'app')
+    }
+
+    const bootstrapperMatch = new RegExp(`^pulsesync-bootstrapper-${escapedVersion}-([a-z0-9_-]+)(?:\\.exe)?$`, 'iu').exec(fileName)
+    if (bootstrapperMatch) {
+        const dist = bootstrapperMatch[1]
+        return await versionedPublishPath(filePath, version, dist, 'bootstrapper')
+    }
+
+    const moduleMatch = new RegExp(`^pulsesync-module-([a-z0-9_-]+)-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
+    if (moduleMatch) {
+        const [, moduleName, dist] = moduleMatch
+        return await versionedPublishPath(filePath, version, dist, `modules/${moduleName}`)
+    }
+
+    const setupMatch = new RegExp(`^pulsesync-bootstrapper-setup-${escapedVersion}-([a-z0-9_-]+)\\.exe(?:\\.blockmap)?$`, 'iu').exec(fileName)
+    if (setupMatch) {
+        const arch = setupMatch[1].toLowerCase()
+        return await versionedPublishPath(filePath, version, `win32-${arch}`, 'setup')
+    }
+
+    return fileName
 }
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
@@ -395,6 +329,16 @@ async function pruneOldArtifacts(
 async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string): Promise<void> {
     const { size } = await fs.promises.stat(filePath)
     const { threshold, partSize, concurrency } = getMultipartUploadConfig()
+    const uploadHeaders = isDesktopReleaseManifestFile(filePath)
+        ? {
+              CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+              ContentType: 'application/json; charset=utf-8',
+          }
+        : key.includes('/versions/')
+          ? {
+                CacheControl: 'public, max-age=31536000, immutable',
+            }
+          : {}
 
     if (size < threshold) {
         await client.send(
@@ -403,19 +347,21 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 Key: key,
                 Body: fs.createReadStream(filePath),
                 ACL: 'public-read',
+                ...uploadHeaders,
             }),
         )
         log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
         return
     }
 
-    const createResponse = await client.send(
-        new CreateMultipartUploadCommand({
-            Bucket: bucket,
-            Key: key,
-            ACL: 'public-read',
-        }),
-    )
+        const createResponse = await client.send(
+            new CreateMultipartUploadCommand({
+                Bucket: bucket,
+                Key: key,
+                ACL: 'public-read',
+                ...uploadHeaders,
+            }),
+        )
 
     const uploadId = createResponse.UploadId
     if (!uploadId) {
@@ -515,35 +461,9 @@ export async function publishToS3(
 
     let files = walkFiles(dir)
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
-        .filter(fp => (version ? path.basename(fp).includes(version) || isUpdaterManifestFile(fp) || isDesktopReleaseManifestFile(fp) : true))
+        .filter(fp => !isLegacyUpdaterArtifact(fp))
+        .filter(fp => (version ? path.basename(fp).includes(version) || isDesktopReleaseManifestFile(fp) : true))
     const artifactFamilies = collectArtifactFamilies(files)
-
-    const platform = os.platform()
-    let variantFile: string | null = 'latest.yml'
-    if (platform === 'darwin') variantFile = null
-    else if (platform === 'linux') variantFile = 'latest-linux.yml'
-
-    if (variantFile) {
-        const variantPath = path.join(dir, variantFile)
-        if (fs.existsSync(variantPath)) {
-            log(LogLevel.INFO, `Processing ${variantFile}`)
-            const raw = fs.readFileSync(variantPath, 'utf-8')
-            let data: any = {}
-            try {
-                data = yaml.load(raw) as any
-            } catch (e: any) {
-                log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
-            }
-            data.updateUrgency = 'soft'
-            data.commonConfig = {
-                DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-                UPDATE_URL: `${process.env.S3_URL}/${prefix}/${branch}/`,
-            }
-            fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
-            if (!files.includes(variantPath)) files.push(variantPath)
-            log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
-        }
-    }
 
     const zipFiles = fs
         .readdirSync(dir)
@@ -552,8 +472,7 @@ export async function publishToS3(
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
     files = [
-        ...files.filter(filePath => !isUpdaterManifestFile(filePath) && !isDesktopReleaseManifestFile(filePath)),
-        ...files.filter(filePath => isUpdaterManifestFile(filePath)),
+        ...files.filter(filePath => !isDesktopReleaseManifestFile(filePath)),
         ...files.filter(filePath => isDesktopReleaseManifestFile(filePath)),
     ]
 
@@ -564,100 +483,11 @@ export async function publishToS3(
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
     for (const filePath of files) {
-        const key = `${prefix}/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
+        const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
         await uploadFileToS3(client, bucket, key, filePath)
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
-}
-
-export async function generateAndPublishMacDownloadJson(
-    branch: string,
-    releaseDir: string,
-    version: string,
-    opts?: { prefix?: string },
-): Promise<void> {
-    if (os.platform() !== 'darwin') return
-    const bucket = process.env.S3_BUCKET
-    const baseUrl = process.env.S3_URL
-    if (!bucket) {
-        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
-        process.exit(1)
-    }
-    if (!baseUrl) {
-        log(LogLevel.ERROR, 'S3_URL is not set in env')
-        process.exit(1)
-    }
-    const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const localArtifacts = collectMacArtifacts(releaseDir, version)
-    if (!localArtifacts.length) {
-        log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
-        process.exit(1)
-    }
-    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
-    let releaseNotes = ''
-    if (fs.existsSync(patchPath)) {
-        releaseNotes = fs.readFileSync(patchPath, 'utf-8')
-    }
-    const client = createS3Client()
-    const assets: Array<{ arch: string; url: string; fileType: string; sha512: string }> = []
-    for (const a of localArtifacts) {
-        const sha512 = await hashFileSha512(a.file)
-        const fileName = path.basename(a.file)
-        assets.push({
-            arch: a.arch,
-            url: `${baseUrl}/${prefix}/${branch}/${fileName}`,
-            fileType: a.type,
-            sha512,
-        })
-    }
-    const existingUrl = `${baseUrl}/${prefix}/${branch}/download.json`
-    const existing = await fetchJson(existingUrl)
-    const existingAssets = Array.isArray(existing?.assets) ? existing.assets : []
-    const remoteAssets = await collectRemoteMacArtifacts(client, bucket, prefix, branch, version, baseUrl)
-    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512?: string }>()
-    for (const a of existingAssets) {
-        if (a?.arch && a?.fileType && a?.url) {
-            merged.set(`${a.arch}:${a.fileType}`, a)
-        }
-    }
-    for (const a of remoteAssets) {
-        const key = `${a.arch}:${a.type}`
-        const current = merged.get(key)
-        merged.set(key, {
-            arch: a.arch,
-            url: a.url,
-            fileType: a.type,
-            sha512: current?.sha512,
-        })
-    }
-    for (const a of assets) {
-        merged.set(`${a.arch}:${a.fileType}`, a)
-    }
-    const mergedAssets = Array.from(merged.values())
-    const preferred = mergedAssets.find(x => x.arch === 'x64') || mergedAssets.find(x => x.arch === 'arm64') || mergedAssets[0]
-    const manifest = {
-        version,
-        url: preferred.url,
-        fileType: preferred.fileType,
-        sha512: preferred.sha512,
-        releaseNotes: releaseNotes || existing?.releaseNotes || '',
-        updateUrgency: 'soft',
-        minOsVersion: '>=10.13',
-        assets: mergedAssets,
-    }
-    const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
-    const key = `${prefix}/${branch}/download.json`
-    await client.send(
-        new PutObjectCommand({
-            Bucket: bucket,
-            Key: key,
-            Body: body,
-            ACL: 'public-read',
-            ContentType: 'application/json',
-        }),
-    )
-    log(LogLevel.SUCCESS, `Uploaded macOS download.json → s3://${bucket}/${key}`)
 }
 
 function readPkgVersion(): string {
@@ -672,36 +502,28 @@ function argValue(flag: string): string | null {
     if (i === -1) return null
     return process.argv[i + 1] || null
 }
-function hasFlag(flag: string): boolean {
-    return process.argv.includes(flag)
-}
 
 async function cli(): Promise<void> {
     const branch = argValue('--branch') || argValue('-b')
     if (!branch) {
         log(
             LogLevel.ERROR,
-            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app]',
         )
         process.exit(1)
     }
     const dir = argValue('--dir') || 'release'
     const version = argValue('--version') || readPkgVersion()
     const prefix = argValue('--prefix') || process.env.S3_PREFIX || 'builds/app'
-    const macManifest = hasFlag('--mac-manifest')
     const keepRecentVersions = parseKeepRecentVersions(argValue('--keep-last') || argValue('--keepLast') || process.env.S3_KEEP_RECENT_VERSIONS)
 
     log(LogLevel.INFO, `Branch: ${branch}`)
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
-    log(LogLevel.INFO, `macOS download.json: ${macManifest ? 'ON' : 'OFF'}`)
     log(LogLevel.INFO, `Retention keep recent versions: ${keepRecentVersions ?? 'OFF'}`)
 
     await publishToS3(branch, dir, version, { prefix, keepRecentVersions })
-    if (macManifest) {
-        await generateAndPublishMacDownloadJson(branch, dir, version, { prefix })
-    }
 }
 
 const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
