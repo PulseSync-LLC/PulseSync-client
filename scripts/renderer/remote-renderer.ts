@@ -88,7 +88,7 @@ function normalizeRendererHtmlOutput(versionOutDir: string): void {
 }
 
 function resolveRendererVersion(packageJson: PackageJson): string {
-    const explicitVersion = process.env.PULSESYNC_REMOTE_RENDERER_VERSION?.trim()
+    const explicitVersion = process.env.PULSESYNC_REMOTE_RENDERER_VERSION?.trim() || process.env.BUILD_VERSION?.trim()
     if (explicitVersion) {
         return toPathSegment(explicitVersion)
     }

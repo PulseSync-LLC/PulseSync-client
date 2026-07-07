@@ -185,9 +185,44 @@ jobs:
           path: release/**/*
           if-no-files-found: error
 
+  publish_renderer:
+    name: Publish Remote Renderer
+    needs: [changes, version]
+    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Publish remote renderer
+        run: yarn renderer:publish
+        env:
+          BUILD_VERSION: ${{ needs.version.outputs.build_version }}
+
   github_prerelease:
     name: Create GitHub Prerelease
-    needs: [changes, version, build]
+    needs: [changes, version, build, publish_renderer]
     if: ${{ needs.changes.outputs.should_build == 'true' }}
     runs-on: ubuntu-latest
 

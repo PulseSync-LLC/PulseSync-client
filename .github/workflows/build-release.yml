@@ -61,6 +61,7 @@ jobs:
         env:
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          PULSESYNC_BUNDLE_RENDERER: "1"
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
@@ -100,9 +101,41 @@ jobs:
           yarn publish:api "${VERSION_ARGS[@]}"
           yarn publish:discord "${VERSION_ARGS[@]}"
 
+  publish_renderer:
+    name: Publish Remote Renderer
+    if: ${{ startsWith(github.ref, 'refs/tags/') }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Publish remote renderer
+        run: yarn renderer:publish
+        env:
+          BUILD_VERSION: ${{ github.ref_name }}
+
   github_release:
     name: Create GitHub Release
-    needs: build
+    needs: [build, publish_renderer]
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: ubuntu-latest
 
