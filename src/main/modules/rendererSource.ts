@@ -2,10 +2,11 @@ import { app } from 'electron'
 import axios from 'axios'
 import * as semver from 'semver'
 import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
+import { isDevmark } from '@common/appConfig'
 import isAppDev from '../utils/isAppDev'
 import logger from './logger'
 import { getState } from './state'
-import { getUrlOrigin, isAllowedRemoteRendererUrl } from './security/remoteRendererPolicy'
+import { getUrlOrigin, isAllowedRemoteRendererUrl, shouldAllowDevRemoteRenderer } from './security/remoteRendererPolicy'
 
 export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://app.pulsesync.dev/desktop/manifest.json'
 
@@ -83,7 +84,8 @@ async function fetchRemoteManifest(manifestUrl: string): Promise<RemoteRendererM
 
 export async function resolveMainRendererSource(): Promise<MainRendererSource> {
     const manifestUrl = getRemoteManifestUrl()
-    if (!isAllowedRemoteRendererUrl(manifestUrl, isAppDev)) {
+    const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
+    if (!isAllowedRemoteRendererUrl(manifestUrl, allowDevRemoteRenderer)) {
         rejectRemoteRenderer('Remote renderer manifest URL is not allowlisted', { manifestUrl })
     }
     const manifestOrigin = getUrlOrigin(manifestUrl)
@@ -97,7 +99,7 @@ export async function resolveMainRendererSource(): Promise<MainRendererSource> {
             rejectRemoteRenderer('Remote renderer manifest is invalid', { manifestUrl })
         }
 
-        if (!isAllowedRemoteRendererUrl(manifest.url, isAppDev)) {
+        if (!isAllowedRemoteRendererUrl(manifest.url, allowDevRemoteRenderer)) {
             rejectRemoteRenderer('Remote renderer URL is not allowlisted', { url: manifest.url })
         }
 
