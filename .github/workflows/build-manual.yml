@@ -104,6 +104,9 @@ jobs:
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
 
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+
       - name: Show release contents (debug)
         shell: bash
         run: |

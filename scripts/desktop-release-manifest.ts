@@ -4,11 +4,35 @@ import crypto from 'node:crypto'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import AdmZip from 'adm-zip'
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
-import type { BootstrapperArtifact, BootstrapperUpdateManifest } from '../packages/bootstrapper/src/manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const defaultRendererManifestUrl = 'https://app.pulsesync.dev/desktop/manifest.json'
+
+type BootstrapperArtifact = {
+    sha256: string
+    signature?: string
+    signatureAlgorithm?: 'ed25519'
+    size?: number
+    url: string
+}
+
+type BootstrapperDistArtifacts = {
+    app: BootstrapperArtifact
+    bootstrapper?: BootstrapperArtifact
+    modules: Record<string, BootstrapperArtifact>
+}
+
+type BootstrapperUpdateManifest = {
+    artifacts: Record<string, BootstrapperDistArtifacts>
+    channel: string
+    clientVersion: string
+    deprecatedVersions?: string[]
+    desktopApi?: string
+    minClientVersion?: string
+    rendererManifestUrl?: string
+    schemaVersion: 1
+}
 
 type EmitDesktopReleaseManifestOptions = {
     baseUrl: string
@@ -17,19 +41,12 @@ type EmitDesktopReleaseManifestOptions = {
     packagedAppRootDir: string
     releaseDir: string
     rendererManifestUrl?: string
-    resourcesDir: string
     version: string
 }
 
 type ParsedDist = {
     arch: string
     platform: NodeJS.Platform
-}
-
-const appArtifactPreference: Partial<Record<NodeJS.Platform, string[]>> = {
-    darwin: ['dmg', 'zip'],
-    linux: ['deb', 'appimage', 'rpm', 'tar.gz'],
-    win32: ['exe'],
 }
 
 export function getDesktopReleaseManifestName(dist: string): string {
@@ -57,12 +74,6 @@ function parseDist(dist: string): ParsedDist {
     }
 }
 
-function getArchAliases(arch: string): string[] {
-    if (arch === 'x64') return ['x64', 'amd64']
-    if (arch === 'arm64') return ['arm64', 'aarch64']
-    return [arch]
-}
-
 function readArgValue(args: string[], name: string): string | null {
     const index = args.indexOf(name)
     if (index === -1) return null
@@ -75,47 +86,6 @@ function normalizeBaseUrl(baseUrl: string): string {
         throw new Error(`Desktop release manifest base URL must be http(s): ${baseUrl}`)
     }
     return normalized
-}
-
-function getArtifactExtension(fileName: string): string {
-    const lower = fileName.toLowerCase()
-    if (lower.endsWith('.tar.gz')) return 'tar.gz'
-    return path.extname(lower).replace(/^\./u, '')
-}
-
-function isVersionedAppArtifact(fileName: string, version: string): boolean {
-    const lower = fileName.toLowerCase()
-    return lower.startsWith(`pulsesync-app-${version.toLowerCase()}-`) && !lower.endsWith('.blockmap')
-}
-
-function findAppArtifact(releaseDir: string, version: string, dist: string): string {
-    const { arch, platform } = parseDist(dist)
-    const extensionPreference = appArtifactPreference[platform]
-    if (!extensionPreference) {
-        throw new Error(`Unsupported desktop release platform: ${platform}`)
-    }
-
-    const archAliases = getArchAliases(arch)
-    const candidates = fs
-        .readdirSync(releaseDir, { withFileTypes: true })
-        .filter(entry => entry.isFile() && isVersionedAppArtifact(entry.name, version))
-        .filter(entry => extensionPreference.includes(getArtifactExtension(entry.name)))
-        .filter(entry => {
-            const lower = entry.name.toLowerCase()
-            return archAliases.some(alias => lower.includes(`-${alias}.`) || lower.includes(`-${alias}-`))
-        })
-        .sort((left, right) => {
-            const leftIndex = extensionPreference.indexOf(getArtifactExtension(left.name))
-            const rightIndex = extensionPreference.indexOf(getArtifactExtension(right.name))
-            return leftIndex - rightIndex || left.name.localeCompare(right.name)
-        })
-
-    const artifact = candidates[0]
-    if (!artifact) {
-        throw new Error(`App artifact for ${version} (${dist}) was not found in ${releaseDir}`)
-    }
-
-    return path.join(releaseDir, artifact.name)
 }
 
 function directoryHasFiles(directoryPath: string): boolean {
@@ -142,6 +112,33 @@ function writeDirectoryZip(sourceDir: string, targetPath: string, archiveRoot: s
     zip.writeZip(targetPath)
 }
 
+function zipEntryUnixMode(entry: AdmZip.IZipEntry): number {
+    return (entry.header.attr >>> 16) & 0o7777
+}
+
+function appArchiveExecutablePath(platform: NodeJS.Platform): string | null {
+    if (platform === 'darwin') {
+        return 'app/MacOS/PulseSync'
+    }
+    if (platform === 'linux') {
+        return 'app/pulsesync'
+    }
+    return null
+}
+
+function assertArchiveExecutableMode(archivePath: string, entryName: string): void {
+    const zip = new AdmZip(archivePath)
+    const entry = zip.getEntry(entryName)
+    if (!entry) {
+        throw new Error(`Archive ${path.basename(archivePath)} is missing executable entry: ${entryName}`)
+    }
+
+    const mode = zipEntryUnixMode(entry)
+    if ((mode & 0o111) === 0) {
+        throw new Error(`Archive ${path.basename(archivePath)} entry ${entryName} is not executable: ${mode.toString(8)}`)
+    }
+}
+
 async function sha256File(filePath: string): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
         const hash = crypto.createHash('sha256')
@@ -152,27 +149,95 @@ async function sha256File(filePath: string): Promise<string> {
     })
 }
 
-async function createArtifactDescriptor(filePath: string, baseUrl: string): Promise<BootstrapperArtifact> {
+async function createVersionedArtifactDescriptor(filePath: string, baseUrl: string, version: string, dist: string, artifactPath: string): Promise<BootstrapperArtifact> {
     const stat = await fs.promises.stat(filePath)
+    const sha256 = await sha256File(filePath)
     return {
-        url: `${baseUrl}/${path.basename(filePath)}`,
-        sha256: await sha256File(filePath),
+        url: `${baseUrl}/versions/${version}/${dist}/${artifactPath.replace(/\\/g, '/')}/${sha256.slice(0, 16)}/${path.basename(filePath)}`,
+        sha256,
         size: stat.size,
     }
 }
 
-function createBootstrapperArchive(releaseDir: string, resourcesDir: string, version: string, dist: string): string {
-    const bootstrapperDir = path.join(resourcesDir, 'bootstrapper')
-    const archivePath = path.join(releaseDir, `pulsesync-bootstrapper-${version}-${dist}.zip`)
-    writeDirectoryZip(bootstrapperDir, archivePath, 'bootstrapper')
+function createAppPayloadArchive(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
+    const { platform } = parseDist(dist)
+    const appPayloadDir = path.join(packagedAppRootDir, 'app')
+    const archivePath = path.join(releaseDir, `pulsesync-app-payload-${version}-${dist}.zip`)
+    writeDirectoryZip(appPayloadDir, archivePath, path.basename(appPayloadDir))
+    const executableEntry = appArchiveExecutablePath(platform)
+    if (executableEntry) {
+        assertArchiveExecutableMode(archivePath, executableEntry)
+    }
     return archivePath
 }
 
-function createNativeModulesArchive(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
-    const nativeModulesDir = path.join(packagedAppRootDir, 'modules')
-    const archivePath = path.join(releaseDir, `pulsesync-native-modules-${version}-${dist}.zip`)
-    writeDirectoryZip(nativeModulesDir, archivePath, 'modules')
-    return archivePath
+function assertModuleName(moduleName: string): void {
+    if (!/^[a-z0-9][a-z0-9_-]*$/iu.test(moduleName)) {
+        throw new Error(`Invalid module artifact name: ${moduleName}`)
+    }
+}
+
+function createModuleArchives(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): Record<string, string> {
+    const modulesDir = path.join(packagedAppRootDir, 'modules')
+    if (!fs.existsSync(modulesDir) || !fs.statSync(modulesDir).isDirectory()) {
+        throw new Error(`Cannot create module artifacts: ${modulesDir} is not a directory`)
+    }
+
+    const archives: Record<string, string> = {}
+    for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+        if (!entry.isDirectory()) {
+            throw new Error(`Module payload entry must be a directory: ${path.join(modulesDir, entry.name)}`)
+        }
+        assertModuleName(entry.name)
+        const sourceDir = path.join(modulesDir, entry.name)
+        const archivePath = path.join(releaseDir, `pulsesync-module-${entry.name}-${version}-${dist}.zip`)
+        writeDirectoryZip(sourceDir, archivePath, path.join('modules', entry.name))
+        archives[entry.name] = archivePath
+    }
+
+    if (!Object.keys(archives).length) {
+        throw new Error(`Cannot create module artifacts: ${modulesDir} has no module directories`)
+    }
+    return archives
+}
+
+function bootstrapperExecutableName(platform: NodeJS.Platform): string {
+    return platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
+}
+
+function createBootstrapperArtifact(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
+    const { platform } = parseDist(dist)
+    const sourcePath = path.join(packagedAppRootDir, 'bootstrapper', bootstrapperExecutableName(platform))
+    if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+        throw new Error(`Cannot create bootstrapper artifact: ${sourcePath} is not a file`)
+    }
+
+    const extension = platform === 'win32' ? '.exe' : ''
+    const artifactPath = path.join(releaseDir, `pulsesync-bootstrapper-${version}-${dist}${extension}`)
+    fs.mkdirSync(path.dirname(artifactPath), { recursive: true })
+    fs.rmSync(artifactPath, { force: true })
+    fs.copyFileSync(sourcePath, artifactPath)
+    return artifactPath
+}
+
+function removeStaleBootstrapperArchive(releaseDir: string, version: string, dist: string): void {
+    fs.rmSync(path.join(releaseDir, `pulsesync-bootstrapper-${version}-${dist}.zip`), { force: true })
+}
+
+function removeStaleNativeModulesArchive(releaseDir: string, version: string, dist: string): void {
+    fs.rmSync(path.join(releaseDir, `pulsesync-native-modules-${version}-${dist}.zip`), { force: true })
+}
+
+function removeStaleInstallerAppArtifact(releaseDir: string, version: string): void {
+    for (const entry of fs.readdirSync(releaseDir, { withFileTypes: true })) {
+        if (!entry.isFile()) {
+            continue
+        }
+        const lower = entry.name.toLowerCase()
+        if (lower.startsWith(`pulsesync-app-${version.toLowerCase()}-`) && lower.endsWith('.blockmap')) {
+            fs.rmSync(path.join(releaseDir, entry.name), { force: true })
+        }
+    }
 }
 
 function parseDeprecatedVersions(): string[] | undefined {
@@ -186,12 +251,14 @@ function parseDeprecatedVersions(): string[] | undefined {
 
 export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseManifestOptions): Promise<string> {
     const releaseDir = resolveInsideProject(options.releaseDir)
-    const resourcesDir = resolveInsideProject(options.resourcesDir)
     const packagedAppRootDir = resolveInsideProject(options.packagedAppRootDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
-    const appArtifactPath = findAppArtifact(releaseDir, options.version, options.dist)
-    const nativeModulesArchivePath = createNativeModulesArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
-    const bootstrapperArchivePath = createBootstrapperArchive(releaseDir, resourcesDir, options.version, options.dist)
+    const appArtifactPath = createAppPayloadArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
+    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, options.version, options.dist)
+    const moduleArchivePaths = createModuleArchives(releaseDir, packagedAppRootDir, options.version, options.dist)
+    removeStaleBootstrapperArchive(releaseDir, options.version, options.dist)
+    removeStaleNativeModulesArchive(releaseDir, options.version, options.dist)
+    removeStaleInstallerAppArtifact(releaseDir, options.version)
 
     const deprecatedVersions = parseDeprecatedVersions()
     const manifest: BootstrapperUpdateManifest = {
@@ -202,9 +269,16 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
         artifacts: {
             [options.dist]: {
-                app: await createArtifactDescriptor(appArtifactPath, baseUrl),
-                nativeModules: await createArtifactDescriptor(nativeModulesArchivePath, baseUrl),
-                bootstrapper: await createArtifactDescriptor(bootstrapperArchivePath, baseUrl),
+                app: await createVersionedArtifactDescriptor(appArtifactPath, baseUrl, options.version, options.dist, 'app'),
+                bootstrapper: await createVersionedArtifactDescriptor(bootstrapperArtifactPath, baseUrl, options.version, options.dist, 'bootstrapper'),
+                modules: Object.fromEntries(
+                    await Promise.all(
+                        Object.entries(moduleArchivePaths).map(async ([moduleName, archivePath]) => [
+                            moduleName,
+                            await createVersionedArtifactDescriptor(archivePath, baseUrl, options.version, options.dist, path.join('modules', moduleName)),
+                        ]),
+                    ),
+                ),
             },
         },
         ...(deprecatedVersions ? { deprecatedVersions } : {}),
@@ -233,11 +307,10 @@ async function main(): Promise<void> {
     const dist = readArgValue(args, '--dist')
     const version = readArgValue(args, '--version')
     const packagedAppRootDir = readArgValue(args, '--packaged-app-root-dir')
-    const resourcesDir = readArgValue(args, '--resources-dir')
 
-    if (!channel || !dist || !version || !packagedAppRootDir || !resourcesDir) {
+    if (!channel || !dist || !version || !packagedAppRootDir) {
         throw new Error(
-            'Usage: tsx scripts/desktop-release-manifest.ts --channel <name> --dist <platform-arch> --version <version> --packaged-app-root-dir <path> --resources-dir <path> [--release-dir release] [--base-url https://...]',
+            'Usage: tsx scripts/desktop-release-manifest.ts --channel <name> --dist <platform-arch> --version <version> --packaged-app-root-dir <path> [--release-dir release] [--base-url https://...]',
         )
     }
 
@@ -248,7 +321,6 @@ async function main(): Promise<void> {
         packagedAppRootDir,
         releaseDir: readArgValue(args, '--release-dir') || 'release',
         rendererManifestUrl: readArgValue(args, '--renderer-manifest-url') || process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
-        resourcesDir,
         version,
     })
     console.log(`PulseSync desktop release manifest generated: ${manifestPath}`)

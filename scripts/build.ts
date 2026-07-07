@@ -11,10 +11,10 @@ import yaml from 'js-yaml'
 import * as semver from 'semver'
 import * as tar from 'tar'
 import { fileURLToPath } from 'node:url'
-import { generateAndPublishMacDownloadJson, publishToS3 } from './s3-upload.js'
+import { publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
-import { copyBootstrapperSidecarToResources } from './build-bootstrapper.js'
+import { copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -27,9 +27,10 @@ const buildApplication = process.argv.includes('--application') || process.argv.
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
-const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
 const ELECTRON_LOCALES_TO_KEEP = new Set(['en-US.pak', 'ru.pak'])
 const ARTIFACT_WORKER_FILE_NAME = 'artifactWorker.cjs'
+const BOOTSTRAPPER_CONFIG_FILE_NAME = 'bootstrapper.json'
+const DEFAULT_S3_URL = 'https://s3.pulsesync.dev'
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -230,6 +231,12 @@ async function runCommandStep(name: string, command: string): Promise<void> {
     }
 }
 
+async function verifyBootstrapperBuildLayout(): Promise<void> {
+    const tsxCli = path.join('node_modules', 'tsx', 'dist', 'cli.mjs')
+    const args = os.platform() === 'darwin' && macX64Build ? ' --mac-x64' : ''
+    await runCommandStep('Verify bootstrapper layout', `node "${tsxCli}" scripts/bootstrapper/verify-build-layout.ts${args}`)
+}
+
 function setBuildDist(platform: NodeJS.Platform, arch: string): string {
     const dist = `${platform}-${arch}`
     process.env.PULSESYNC_BUILD_DIST = dist
@@ -331,6 +338,175 @@ function getPackagedAppRoot(outDir: string): string {
     return path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents')
 }
 
+function getBootstrapperInstallerRoot(outDir: string): string {
+    return path.join(path.dirname(outDir), `${path.basename(outDir)}-bootstrapper`)
+}
+
+function getBootstrapperPayloadRoot(outDir: string): string {
+    return getBootstrapperInstallerRoot(outDir)
+}
+
+function getBootstrapperSetupRoot(outDir: string): string {
+    if (os.platform() !== 'win32') {
+        return getPackagedAppRoot(outDir)
+    }
+
+    return path.join(path.dirname(outDir), `${path.basename(outDir)}-bootstrapper-setup`)
+}
+
+function getBootstrapperAppExecutableName(): string {
+    const productName = getProductNameFromConfig()
+    if (os.platform() === 'win32') {
+        return `${productName}.exe`
+    }
+    if (os.platform() === 'darwin') {
+        return path.join('MacOS', productName)
+    }
+    return 'pulsesync'
+}
+
+function getBootstrapperManifestUrl(channel: string, dist: string): string {
+    const explicitManifestUrl = process.env.PULSESYNC_BOOTSTRAPPER_MANIFEST_URL?.trim()
+    if (explicitManifestUrl) {
+        return explicitManifestUrl
+    }
+
+    const baseS3Url = (process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')
+    return `${baseS3Url}/builds/app/${channel}/desktop-update-${dist}.json`
+}
+
+function getBootstrapperResourcesDir(installRoot: string): string {
+    return os.platform() === 'darwin' ? path.join(installRoot, 'Resources') : path.join(installRoot, 'resources')
+}
+
+function writeBootstrapperSetupConfig(setupRoot: string, channel: string, dist: string): void {
+    const config = {
+        schemaVersion: 1,
+        manifestUrl: getBootstrapperManifestUrl(channel, dist),
+        dist,
+        installedVersion: '0.0.0',
+        appExecutableName: getBootstrapperAppExecutableName(),
+    }
+    const configPath = path.join(getBootstrapperResourcesDir(setupRoot), BOOTSTRAPPER_CONFIG_FILE_NAME)
+    fs.mkdirSync(path.dirname(configPath), { recursive: true })
+    fs.writeFileSync(configPath, `${JSON.stringify(config, null, 4)}\n`, 'utf-8')
+}
+
+function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
+    if (os.platform() !== 'linux') {
+        return
+    }
+
+    const launcherPath = path.join(setupRoot, 'pulsesync')
+    const launcher = [
+        '#!/usr/bin/env bash',
+        'set -euo pipefail',
+        'APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
+        'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start "$@"',
+        '',
+    ].join('\n')
+
+    fs.writeFileSync(launcherPath, launcher, 'utf-8')
+    fs.chmodSync(launcherPath, 0o755)
+}
+
+function writeMacBootstrapperEntrypoint(setupRoot: string): void {
+    if (os.platform() !== 'darwin') {
+        return
+    }
+
+    const productName = getProductNameFromConfig()
+    const launcherPath = path.join(setupRoot, 'MacOS', productName)
+    const launcher = [
+        '#!/usr/bin/env bash',
+        'set -euo pipefail',
+        'APP_CONTENTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
+        'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start "$@"',
+        '',
+    ].join('\n')
+
+    fs.mkdirSync(path.dirname(launcherPath), { recursive: true })
+    fs.writeFileSync(launcherPath, launcher, 'utf-8')
+    fs.chmodSync(launcherPath, 0o755)
+}
+
+function applyBootstrapperSetupArtifactName(configObj: any): void {
+    if (os.platform() !== 'win32') {
+        return
+    }
+
+    const artifactName = 'pulsesync-bootstrapper-setup-${version}-${arch}.${ext}'
+    configObj.artifactName = artifactName
+    configObj.nsis = configObj.nsis || {}
+    configObj.nsis.artifactName = artifactName
+}
+
+function readPackageVersion(): string {
+    const pkgPath = path.resolve(__dirname, '../package.json')
+    const raw = fs.readFileSync(pkgPath, 'utf-8')
+    const pkg = JSON.parse(raw) as { version?: string }
+    if (!pkg.version) {
+        throw new Error(`Package version is missing: ${pkgPath}`)
+    }
+    return pkg.version
+}
+
+function removeStaleBootstrapperSetupAliases(releaseDir: string, version: string, arch: string): void {
+    if (os.platform() !== 'win32') {
+        return
+    }
+
+    for (const fileName of [`pulsesync-app-${version}-${arch}.exe`, `pulsesync-app-${version}-${arch}.exe.blockmap`]) {
+        fs.rmSync(path.join(releaseDir, fileName), { force: true })
+    }
+}
+
+function copyDirectoryEntries(sourceDir: string, targetDir: string, excludedNames = new Set<string>()): void {
+    fs.mkdirSync(targetDir, { recursive: true })
+    for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
+        if (excludedNames.has(entry.name)) {
+            continue
+        }
+
+        fs.cpSync(path.join(sourceDir, entry.name), path.join(targetDir, entry.name), { recursive: true })
+    }
+}
+
+async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string> {
+    const installRoot = getBootstrapperPayloadRoot(outDir)
+    const packagedAppRoot = getPackagedAppRoot(outDir)
+
+    const appPayloadDir = path.join(installRoot, 'app')
+    fs.rmSync(installRoot, { force: true, recursive: true })
+    copyDirectoryEntries(packagedAppRoot, appPayloadDir, new Set(['app', 'bootstrapper', 'modules', 'native', 'updates']))
+
+    const sourceModulesDir = path.join(packagedAppRoot, 'modules')
+    if (fs.existsSync(sourceModulesDir)) {
+        fs.cpSync(sourceModulesDir, path.join(installRoot, 'modules'), { recursive: true })
+    }
+
+    fs.mkdirSync(path.join(installRoot, 'resources'), { recursive: true })
+    await copyBootstrapperToInstallRoot(installRoot)
+    return installRoot
+}
+
+async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string): Promise<string> {
+    const setupRoot = getBootstrapperSetupRoot(outDir)
+    if (os.platform() !== 'win32') {
+        await copyBootstrapperToInstallRoot(setupRoot)
+        writeBootstrapperSetupConfig(setupRoot, channel, dist)
+        writeLinuxBootstrapperEntrypoint(setupRoot)
+        writeMacBootstrapperEntrypoint(setupRoot)
+        return setupRoot
+    }
+
+    fs.rmSync(setupRoot, { force: true, recursive: true })
+    fs.mkdirSync(path.join(setupRoot, 'resources'), { recursive: true })
+    await copyBootstrapperToInstallRoot(setupRoot)
+    writeBootstrapperSetupConfig(setupRoot, channel, dist)
+    return setupRoot
+}
+
 function getPackagedResourcesDir(outDir: string): string {
     return os.platform() === 'darwin' ? path.join(getPackagedAppRoot(outDir), 'Resources') : path.join(outDir, 'resources')
 }
@@ -360,6 +536,7 @@ function copyRuntimeNativeModules(outDir: string): void {
     const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
 
     fs.rmSync(modulesDir, { force: true, recursive: true })
+    fs.rmSync(path.join(getPackagedAppRoot(outDir), 'native'), { force: true, recursive: true })
 
     for (const mod of fs.readdirSync(nativeDir)) {
         const modulePath = path.join(nativeDir, mod)
@@ -382,7 +559,6 @@ function copyRuntimeNativeModules(outDir: string): void {
         for (const artifact of compiledArtifacts) {
             const sourcePath = path.join(releasePath, artifact.name)
             const dest = path.join(modulesDir, mod, artifact.name)
-
             fs.mkdirSync(path.dirname(dest), { recursive: true })
             fs.copyFileSync(sourcePath, dest)
             log(LogLevel.SUCCESS, `Copied native module to ${dest}`)
@@ -396,7 +572,7 @@ function copyArtifactWorker(outDir: string): void {
         throw new Error(`Artifact worker build output was not found: ${source}`)
     }
 
-    const dest = path.join(getPackagedAppRoot(outDir), 'modules', ARTIFACT_WORKER_FILE_NAME)
+    const dest = path.join(getPackagedAppRoot(outDir), 'modules', 'artifactWorker', ARTIFACT_WORKER_FILE_NAME)
     fs.mkdirSync(path.dirname(dest), { recursive: true })
     fs.copyFileSync(source, dest)
     fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'app.asar.unpacked', '.vite', 'worker'), { force: true, recursive: true })
@@ -452,6 +628,8 @@ async function main(): Promise<void> {
 
     if (!buildNativeModules && buildOnlyInstaller && !publishBranch) {
         const productName = getProductNameFromConfig()
+        const targetArch = getBuildTargetArch()
+        const releaseDir = path.join('.', 'release')
         const pdPath =
             os.platform() === 'darwin'
                 ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
@@ -460,11 +638,14 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
-        await copyBootstrapperSidecarToResources(getPackagedResourcesDir(pdPath))
+        await prepareBootstrapperInstallerRoot(pdPath)
+        const setupDist = setBuildDist(os.platform(), os.arch())
+        const setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+        applyBootstrapperSetupArtifactName(configObj)
 
         if (os.platform() === 'darwin') {
             configObj.dmg = configObj.dmg || {}
@@ -477,7 +658,8 @@ async function main(): Promise<void> {
         const tmpPath = path.join(os.tmpdir(), tmpName)
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
-        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${pdPath}" --config "${tmpPath}"`)
+        removeStaleBootstrapperSetupAliases(releaseDir, readPackageVersion(), targetArch)
+        await runCommandStep('Build (electron-builder)', `electron-builder --pd "${setupRoot}" --config "${tmpPath}"`)
         fs.unlinkSync(tmpPath)
         log(LogLevel.SUCCESS, 'Done')
         return
@@ -486,18 +668,6 @@ async function main(): Promise<void> {
     if (buildApplication) {
         if (publishBranch) {
             setConfigDevFalse(publishBranch)
-            if (os.platform() !== 'darwin') {
-                const appUpdateConfig = {
-                    provider: 'generic',
-                    url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
-                    channel: 'latest',
-                    updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: false,
-                }
-                const rootAppUpdatePath = path.resolve(__dirname, '../app-update.yml')
-                fs.writeFileSync(rootAppUpdatePath, yaml.dump(appUpdateConfig), 'utf-8')
-                log(LogLevel.SUCCESS, `Generated ${rootAppUpdatePath}`)
-            }
         }
 
         const baseOutDir = path.join('.', 'out')
@@ -520,7 +690,8 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
-        await copyBootstrapperSidecarToResources(getPackagedResourcesDir(outDir))
+        const payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
+        const setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist)
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
         } else if (os.platform() === 'linux') {
@@ -533,6 +704,7 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
+        applyBootstrapperSetupArtifactName(configObj)
 
         if (!configObj.linux) configObj.linux = {}
         configObj.linux.executableName = 'pulsesync'
@@ -543,15 +715,6 @@ async function main(): Promise<void> {
         }
 
         if (publishBranch) {
-            configObj.publish = [
-                {
-                    provider: 'generic',
-                    url: `${process.env.S3_URL}/builds/app/${publishBranch}/`,
-                    channel: 'latest',
-                    updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                    useMultipleRangeRequest: false,
-                },
-            ]
             configObj.extraMetadata = configObj.extraMetadata || {}
             configObj.extraMetadata.branch = publishBranch
             configObj.extraMetadata.version = version
@@ -583,14 +746,16 @@ async function main(): Promise<void> {
                 )
             }
         } else {
+            removeStaleBootstrapperSetupAliases(releaseDir, version, targetArch)
             await runCommandStep(
                 'Build (electron-builder)',
-                `electron-builder --pd "${path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)}" --config "${tmpPath}" --publish never`,
+                `electron-builder --pd "${setupRoot}" --config "${tmpPath}" --publish never`,
             )
         }
 
         fs.unlinkSync(tmpPath)
 
+        await verifyBootstrapperBuildLayout()
         await uploadGlitchTipSourceMaps(version)
 
         if (publishBranch) {
@@ -603,16 +768,12 @@ async function main(): Promise<void> {
                 baseUrl: `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}`,
                 channel: publishBranch,
                 dist: buildDist,
-                packagedAppRootDir: getPackagedAppRoot(outDir),
+                packagedAppRootDir: payloadRoot,
                 releaseDir,
                 rendererManifestUrl: process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
-                resourcesDir: getPackagedResourcesDir(outDir),
                 version,
             })
             await publishToS3(publishBranch, releaseDir, version)
-            if (os.platform() === 'darwin') {
-                await generateAndPublishMacDownloadJson(publishBranch, releaseDir, version)
-            }
             if (publishChangelogFlag) {
                 await publishChangelogToApi(version)
             }

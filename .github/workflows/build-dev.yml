@@ -165,6 +165,9 @@ jobs:
           SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+
       - name: Show release contents
         shell: bash
         run: |

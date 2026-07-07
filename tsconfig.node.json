@@ -17,7 +17,6 @@
         "vite.renderer.config.ts",
         "forge.config.ts",
         "src/common/desktopApi/version.ts",
-        "packages/bootstrapper/src/**/*.ts",
         "scripts/**/*.ts"
     ],
     "exclude": [
