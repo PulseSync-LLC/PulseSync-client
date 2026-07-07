@@ -7,7 +7,7 @@ import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
-const defaultRendererManifestUrl = 'https://app.pulsesync.dev/desktop/manifest.json'
+const defaultRendererManifestUrl = 'https://pulsesync.dev/app/desktop/manifest.json'
 
 type BootstrapperArtifact = {
     sha256: string

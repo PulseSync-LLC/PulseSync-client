@@ -8,7 +8,7 @@ import logger from './logger'
 import { getState } from './state'
 import { getUrlOrigin, isAllowedRemoteRendererUrl, shouldAllowDevRemoteRenderer } from './security/remoteRendererPolicy'
 
-export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://app.pulsesync.dev/desktop/manifest.json'
+export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://pulsesync.dev/app/desktop/manifest.json'
 
 export interface RemoteRendererManifest {
     rendererVersion: string

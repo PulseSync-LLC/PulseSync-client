@@ -1,4 +1,5 @@
-const PROD_REMOTE_RENDERER_ORIGINS = new Set(['https://app.pulsesync.dev', 'https://pulsesync.dev'])
+const PROD_REMOTE_RENDERER_ORIGIN = 'https://pulsesync.dev'
+const PROD_REMOTE_RENDERER_PATH_PREFIX = '/app/'
 const DEV_REMOTE_RENDERER_ORIGINS = new Set(['http://localhost:3100', 'http://127.0.0.1:3100'])
 const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'yandexmusic:'])
 
@@ -10,7 +11,7 @@ export function shouldAllowDevRemoteRenderer(isDevMode: boolean, isDevMarkedBuil
 }
 
 export function getRemoteRendererAllowedOrigins(isDevMode: boolean): Set<string> {
-    return new Set([...PROD_REMOTE_RENDERER_ORIGINS, ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
+    return new Set([PROD_REMOTE_RENDERER_ORIGIN, ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
 }
 
 export function getUrlOrigin(rawUrl: string): string | null {
@@ -24,10 +25,10 @@ export function getUrlOrigin(rawUrl: string): string | null {
 export function isAllowedRemoteRendererUrl(rawUrl: string, isDevMode: boolean): boolean {
     try {
         const url = new URL(rawUrl)
-        if (url.protocol !== 'https:' && !(isDevMode && url.protocol === 'http:')) {
-            return false
+        if (url.origin === PROD_REMOTE_RENDERER_ORIGIN) {
+            return url.protocol === 'https:' && url.pathname.startsWith(PROD_REMOTE_RENDERER_PATH_PREFIX)
         }
-        return getRemoteRendererAllowedOrigins(isDevMode).has(url.origin)
+        return isDevMode && url.protocol === 'http:' && DEV_REMOTE_RENDERER_ORIGINS.has(url.origin)
     } catch {
         return false
     }

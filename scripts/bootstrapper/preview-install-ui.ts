@@ -73,7 +73,7 @@ function createPreviewFixture(root: string): string {
                 schemaVersion: 1,
                 channel: 'preview',
                 clientVersion: targetVersion,
-                rendererManifestUrl: 'https://app.pulsesync.dev/desktop/manifest.json',
+                rendererManifestUrl: 'https://pulsesync.dev/app/desktop/manifest.json',
                 artifacts: {
                     [dist()]: {
                         app: artifactDescriptor(appArchive),
