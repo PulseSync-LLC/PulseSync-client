@@ -20,7 +20,8 @@ const rendererHtmlEntries: Record<string, string> = {
 }
 
 export default defineConfig(({ mode, forgeConfigSelf }: any) => {
-    const name = forgeConfigSelf?.name ?? 'main_window'
+    const isRemoteRendererBuild = process.env.PULSESYNC_REMOTE_RENDERER_BUILD === '1'
+    const name = isRemoteRendererBuild ? 'main_window' : (forgeConfigSelf?.name ?? 'main_window')
     const htmlEntry = rendererHtmlEntries[name]
     if (!htmlEntry) {
         throw new Error(`Unknown renderer entry: ${name}`)
@@ -29,13 +30,21 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevMode = mode === 'development'
     const isDevSourceMapMode = process.env.NODE_ENV === 'development'
     const sourceMapMode = isDevSourceMapMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
-    const rendererAssetsDir = path.resolve(__dirname, '.vite/renderer/assets')
+    const remoteRendererOutDir = process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR
+    const remoteRendererStaticAssetsDir = process.env.PULSESYNC_REMOTE_RENDERER_STATIC_ASSETS_DIR
+    const remoteRendererBase = process.env.PULSESYNC_REMOTE_RENDERER_BASE || '/app/'
+    const rendererOutDir = isRemoteRendererBuild
+        ? path.resolve(__dirname, remoteRendererOutDir || 'out/remote-renderer/versions/dev')
+        : path.resolve(__dirname, `.vite/renderer/${name}`)
+    const rendererAssetsDir = isRemoteRendererBuild
+        ? path.resolve(__dirname, remoteRendererStaticAssetsDir || 'out/remote-renderer/assets')
+        : path.resolve(__dirname, '.vite/renderer/assets')
     const staticAssetsDir = path.resolve(__dirname, 'static/assets')
     const publicDir: string | false = isDevMode ? path.resolve(__dirname, 'static') : false
 
     return {
         root: __dirname,
-        base: isDevMode ? '/' : './',
+        base: isDevMode ? '/' : isRemoteRendererBuild ? remoteRendererBase : './',
         publicDir,
         define: {
             PULSESYNC_VERSION: JSON.stringify(packageJson.version),
@@ -55,11 +64,11 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
         build: {
             sourcemap: sourceMapMode,
             target: 'chrome150',
-            outDir: path.resolve(__dirname, `.vite/renderer/${name}`),
-            assetsDir: '../assets',
+            outDir: rendererOutDir,
+            assetsDir: isRemoteRendererBuild ? 'assets' : '../assets',
             emptyOutDir: true,
             rolldownOptions: {
-                input: path.resolve(__dirname, htmlEntry),
+                input: isRemoteRendererBuild ? { index: path.resolve(__dirname, htmlEntry) } : path.resolve(__dirname, htmlEntry),
                 output: {
                     entryFileNames: 'renderer.js',
                     chunkFileNames: '[name].js',

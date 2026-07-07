@@ -29,6 +29,30 @@ enum LogLevel {
     ERROR = 'ERROR',
 }
 
+type UploadHeaders = {
+    CacheControl?: string
+    ContentType?: string
+}
+
+const CONTENT_TYPES_BY_EXTENSION: Record<string, string> = {
+    '.css': 'text/css; charset=utf-8',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.map': 'application/json; charset=utf-8',
+    '.otf': 'font/otf',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.ttf': 'font/ttf',
+    '.webp': 'image/webp',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+}
+
 function log(level: LogLevel, message: string): void {
     const ts = new Date().toLocaleString()
     const tag = {
@@ -109,6 +133,26 @@ async function hashFileSha256(filePath: string): Promise<string> {
 
 function isDesktopReleaseManifestFile(filePath: string): boolean {
     return /^desktop-update-[a-z0-9_-]+\.json$/iu.test(path.basename(filePath))
+}
+
+function getContentType(filePath: string): string | undefined {
+    return CONTENT_TYPES_BY_EXTENSION[path.extname(filePath).toLowerCase()]
+}
+
+function getRemoteRendererUploadHeaders(relativePath: string, filePath: string): UploadHeaders {
+    const normalizedPath = relativePath.replace(/\\/g, '/')
+    const contentType = getContentType(filePath)
+    const cacheControl =
+        normalizedPath === 'desktop/manifest.json'
+            ? 'no-store, no-cache, must-revalidate, max-age=0'
+            : normalizedPath.startsWith('versions/')
+              ? 'public, max-age=31536000, immutable'
+              : 'public, max-age=3600'
+
+    return {
+        ...(contentType ? { ContentType: contentType } : {}),
+        CacheControl: cacheControl,
+    }
 }
 
 function escapeRegExp(value: string): string {
@@ -326,10 +370,10 @@ async function pruneOldArtifacts(
     )
 }
 
-async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string): Promise<void> {
+async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string, headers?: UploadHeaders): Promise<void> {
     const { size } = await fs.promises.stat(filePath)
     const { threshold, partSize, concurrency } = getMultipartUploadConfig()
-    const uploadHeaders = isDesktopReleaseManifestFile(filePath)
+    const defaultUploadHeaders = isDesktopReleaseManifestFile(filePath)
         ? {
               CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
               ContentType: 'application/json; charset=utf-8',
@@ -339,6 +383,10 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 CacheControl: 'public, max-age=31536000, immutable',
             }
           : {}
+    const uploadHeaders = {
+        ...defaultUploadHeaders,
+        ...headers,
+    }
 
     if (size < threshold) {
         await client.send(
@@ -488,6 +536,33 @@ export async function publishToS3(
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
+}
+
+export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<void> {
+    const bucket = process.env.S3_BUCKET
+    if (!bucket) {
+        log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
+        process.exit(1)
+    }
+
+    const rootDir = path.resolve(dir)
+    if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
+        throw new Error(`Publish directory does not exist: ${rootDir}`)
+    }
+
+    const prefix = (opts?.prefix || process.env.S3_PREFIX || 'app').replace(/^\/+|\/+$/g, '')
+    const client = createS3Client()
+    const files = walkFiles(rootDir)
+
+    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/`)
+
+    for (const filePath of files) {
+        const relativePath = path.relative(rootDir, filePath).replace(/\\/g, '/')
+        const key = `${prefix}/${relativePath}`
+        await uploadFileToS3(client, bucket, key, filePath, getRemoteRendererUploadHeaders(relativePath, filePath))
+    }
+
+    log(LogLevel.SUCCESS, 'Publish directory to S3 completed')
 }
 
 function readPkgVersion(): string {

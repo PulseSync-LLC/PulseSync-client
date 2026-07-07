@@ -11,6 +11,8 @@
         "dev:renderer": "tsx scripts/dev-remote-renderer.ts",
         "dev:remote": "tsx scripts/dev-remote.ts",
         "dev:native": "electron-forge start",
+        "renderer:build": "tsx scripts/renderer/remote-renderer.ts build",
+        "renderer:publish": "tsx scripts/renderer/remote-renderer.ts publish",
         "bootstrapper:build": "tsx scripts/bootstrapper/build.ts build",
         "bootstrapper:copy": "tsx scripts/bootstrapper/build.ts copy",
         "bootstrapper:check": "cargo check --manifest-path packages/bootstrapper/Cargo.toml",
