@@ -42,7 +42,3 @@ export function shouldAllowDowngradeForCurrentChannel(): boolean {
 export function getUpdateFeedUrl(channel: UpdateChannel): string {
     return `${config.S3_URL}/builds/app/${channel}/`
 }
-
-export function getMacManifestUrl(channel: UpdateChannel): string {
-    return `${getUpdateFeedUrl(channel)}download.json`
-}

@@ -731,18 +731,6 @@
                 "openSettings": "Open settings"
             }
         },
-        "macUpdate": {
-            "title": "Finish installing the update",
-            "description": {
-                "dmg": "Open the mounted disk and drag PulseSync to Applications to replace the old version.",
-                "zip": "Open the extracted folder and drag PulseSync to Applications to replace the old version."
-            },
-            "buttons": {
-                "openFinder": "Open in Finder",
-                "openApplications": "Open Applications",
-                "done": "Done"
-            }
-        },
         "premiumPromo": {
             "title": "This is premium feature",
             "description": "You need subscribe on Boosty to use this feature.\nAlso you should connect the same Discord account to your Boosty and PulseSync accounts.",
