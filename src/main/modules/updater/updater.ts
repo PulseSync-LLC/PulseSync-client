@@ -22,6 +22,10 @@ class Updater {
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
 
+    private isRuntimeUpdateEnabled(): boolean {
+        return app.isPackaged || process.env.PULSESYNC_ENABLE_DEV_UPDATER === '1'
+    }
+
     private getWindow(): BrowserWindow | null {
         const win = mainWindow as unknown as BrowserWindow | undefined
         if (!win) return null
@@ -106,6 +110,12 @@ class Updater {
             sourceOverride?: UpdateSource
         },
     ): Promise<UpdateStatus | null> {
+        if (!this.isRuntimeUpdateEnabled()) {
+            logger.updater.info('Skipping desktop update check in non-packaged runtime')
+            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+            return null
+        }
+
         const source = options?.sourceOverride ?? getUpdateSource()
 
         if (this.updateStatus !== UpdateStatus.IDLE) {
@@ -194,6 +204,11 @@ class Updater {
     }
 
     start() {
+        if (!this.isRuntimeUpdateEnabled()) {
+            logger.updater.info('Skipping desktop updater start in non-packaged runtime')
+            return
+        }
+
         if (this.updaterId) return
         void this.check(false)
         this.updaterId = setInterval(() => {
@@ -244,6 +259,11 @@ class Updater {
     }
 
     async install() {
+        if (!this.isRuntimeUpdateEnabled()) {
+            logger.updater.info('Skipping desktop update install in non-packaged runtime')
+            return false
+        }
+
         logger.updater.info('Installing a new version', this.latestAvailableVersion)
         state.willQuit = true
 
