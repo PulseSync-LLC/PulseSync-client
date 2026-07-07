@@ -19,6 +19,7 @@ import {
     getUrlOrigin,
     isAllowedRemoteRendererNavigation,
     isAllowedRemoteRendererWindowOpen,
+    shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
 
 declare const PRELOADER_VITE_DEV_SERVER_URL: string
@@ -183,7 +184,8 @@ const assertRemotePreloadSurface = async (window: BrowserWindow): Promise<void> 
 }
 
 const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemoteOrigin: string): void => {
-    const csp = buildRemoteRendererContentSecurityPolicy(isAppDev)
+    const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
+    const csp = buildRemoteRendererContentSecurityPolicy(allowDevRemoteRenderer)
     const apiOrigins = Array.from(
         new Set(
             [config.SERVER_URL, config.SERVER_v2_URL]
@@ -193,7 +195,7 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
     )
     const apiUrlPatterns = apiOrigins.map(origin => getRemoteRendererUrlPattern(origin))
     const apiCorsRequestHeaders = new Map<number, string>()
-    const devCacheHeaders: Record<string, string[]> = isAppDev
+    const devCacheHeaders: Record<string, string[]> = allowDevRemoteRenderer
         ? {
               'Cache-Control': ['no-store'],
               Pragma: ['no-cache'],
@@ -327,6 +329,7 @@ export async function createWindow(): Promise<void> {
         alwaysOnTop: true,
         transparent: false,
         roundedCorners: true,
+        icon,
         webPreferences: {
             contextIsolation: true,
             nodeIntegration: false,

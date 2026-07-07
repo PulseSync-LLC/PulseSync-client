@@ -5,6 +5,10 @@ const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'yandexmusic:'])
 const PROD_CONNECT_SOURCES = ['https:', 'wss:', 'data:']
 const DEV_CONNECT_SOURCES = ['http://localhost:3100', 'http://127.0.0.1:3100', 'ws://localhost:3100', 'ws://127.0.0.1:3100']
 
+export function shouldAllowDevRemoteRenderer(isDevMode: boolean, isDevMarkedBuild: boolean): boolean {
+    return isDevMode || isDevMarkedBuild || process.env.PULSESYNC_ALLOW_LOCAL_REMOTE_RENDERER === '1'
+}
+
 export function getRemoteRendererAllowedOrigins(isDevMode: boolean): Set<string> {
     return new Set([...PROD_REMOTE_RENDERER_ORIGINS, ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
 }
