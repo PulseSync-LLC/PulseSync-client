@@ -17,8 +17,8 @@ export const buildPackageJson = packageJson as typeof packageJson & {
 
 export const buildIdentity = (): ClientBuildIdentity => ({
     origin: 'PulseSync-LLC/PulseSync-client',
-    version: buildPackageJson.buildInfo?.VERSION || buildPackageJson.version,
-    commit: buildPackageJson.buildInfo?.BRANCH || 'unknown',
+    version: buildPackageJson.buildInfo?.VERSION || PULSESYNC_VERSION || buildPackageJson.version,
+    commit: buildPackageJson.buildInfo?.BRANCH || PULSESYNC_BRANCH || 'unknown',
     builtAt: buildPackageJson.buildInfo?.BUILD_TIME || '',
     signatureAlgorithm: 'ed25519',
     signature: buildPackageJson.buildInfo?.SIGNATURE || '',
