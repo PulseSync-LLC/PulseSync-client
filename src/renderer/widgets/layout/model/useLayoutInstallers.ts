@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import * as semver from 'semver'
 
-import { isDev, isDevmark } from '@common/appConfig'
+import { isDev } from '@common/appConfig'
 import toast from '@shared/ui/toast'
 import { errorTypesToShow } from '@shared/lib/utils'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
@@ -328,7 +328,7 @@ export function useLayoutInstallers({
     }, [app.mod.installed, app.mod.version, isUpdating, modInfo, modInfoFetched, startUpdate, t])
 
     useEffect(() => {
-        if (isDevmark) {
+        if (app.info.devmark) {
             document.body.classList.add('devmark-border')
         } else {
             document.body.classList.remove('devmark-border')
@@ -336,7 +336,7 @@ export function useLayoutInstallers({
         return () => {
             document.body.classList.remove('devmark-border')
         }
-    }, [])
+    }, [app.info.devmark])
 
     return {
         isModUpdateAvailable,

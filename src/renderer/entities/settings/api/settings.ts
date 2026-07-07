@@ -27,6 +27,7 @@ export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<
             ...settingsInitials.info,
             version: runtimeInfo.clientVersion,
             branch: runtimeInfo.buildIdentity.commit,
+            devmark: runtimeInfo.isDev || runtimeInfo.buildChannel === 'dev',
         },
     }
     setApp(config)
